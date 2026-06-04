@@ -26,16 +26,16 @@ Thumbs.db
 *.bak
 
 # 美术素材不需要上传到版本控制系统
-assets/
+/assets/
 
 # 给AI的信箱里的图片就不需要上传到版本控制系统
-inbox/*.png
+/inbox/*.png
 
 # 测试文件夹不需要上传到版本控制系统
-tests/
+/tests/
 
 # 工具文件夹不需要上传到版本控制系统
-tools/
+/tools/
 
 # Wick MCP Server (保留 Wick 子模块，忽略其他)
 wick-mcp-server/*
