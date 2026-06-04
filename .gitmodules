@@ -1,3 +1,4 @@
 [submodule "wick-mcp-server/Wick"]
 	path = wick-mcp-server/Wick
 	url = G:/Workspace/godot-project/lucky-dog-pub-2026/wick-mcp-server/Wick
+	ignore = dirty
