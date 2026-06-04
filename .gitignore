@@ -1,0 +1,38 @@
+# Godot
+.godot/
+*.translation
+export_presets.cfg
+
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+*.bak
+
+# 美术素材不需要上传到版本控制系统
+assets/
+
+# 给AI的信箱里的图片就不需要上传到版本控制系统
+inbox/*.png
+
+# 测试文件夹不需要上传到版本控制系统
+tests/
+
+# 工具文件夹不需要上传到版本控制系统
+tools/

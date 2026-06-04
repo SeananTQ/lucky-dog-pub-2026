@@ -1,0 +1,14 @@
+{
+  "api_base": "http://192.168.31.185:1234/v1",
+  "model": "",
+  "timeout": 300,
+  "max_tokens": 4096,
+  "batch_delay": 200,
+  "batch_limit": 30,
+  "system_prompt": "prompts/system.md",
+  "prompts": {
+    "default": "prompts/describe.md",
+    "game_asset": "prompts/game_asset.md",
+    "structured": "prompts/game_asset_structured.md"
+  }
+}
