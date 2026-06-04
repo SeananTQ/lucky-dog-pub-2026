@@ -36,3 +36,7 @@ tests/
 
 # 工具文件夹不需要上传到版本控制系统
 tools/
+
+# Wick MCP Server (保留 Wick 子模块，忽略其他)
+wick-mcp-server/*
+!wick-mcp-server/Wick
