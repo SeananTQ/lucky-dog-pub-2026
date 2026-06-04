@@ -49,47 +49,9 @@ enabled=PackedStringArray("res://addons/wick/plugin.cfg")
 
 ## 4. 项目目录结构
 
-```
-项目名/
-├── project.godot
-├── assets/              ← 美术素材（图标、图片）
-├── scenes/
-│   ├── main.tscn        ← 主场景
-│   ├── ui/              ← UI 场景 (.tscn)
-│   └── game/            ← 游戏逻辑场景
-├── scripts/
-│   ├── autoload/        ← 全局单例（EventBus、GameManager）
-│   ├── data/            ← 数据类（枚举、状态、配置）
-│   ├── game/            ← 游戏逻辑脚本
-│   └── ui/              ← UI 脚本
-├── Themes/              ← Theme 资源文件 (.tres)
-└── addons/wick/         ← Wick 插件（不要改）
-```
+略
 
-## 5. 第一个脚本：ScreenshotTool
 
-创建 `scripts/ScreenshotTool.cs`：
-
-```csharp
-using Godot;
-
-public partial class ScreenshotTool : Node
-{
-    private const string SavePath = "inbox绝对路径";
-
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.F12)
-        {
-            var image = GetViewport().GetTexture().GetImage();
-            var timestamp = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            image.SavePng($"{SavePath}/screenshot_{timestamp}.png");
-        }
-    }
-}
-```
-
-在任意场景根节点挂上这个脚本，F12 截图调试。
 
 ## 6. C# 开发规则
 

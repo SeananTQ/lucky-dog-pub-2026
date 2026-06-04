@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "wick": {
+      "command": "dotnet",
+      "args": ["run", "--project", "G:/Workspace/godot-project/lucky-dog-pub-2026/wick-mcp-server/Wick/src/Wick.Server"],
+      "env": {
+        "WICK_GROUPS": "all",
+        "WICK_GODOT_BIN": "G:/MyProgram/GodotCom/Godot_v4.6.3/Godot_v4.6.3-stable_mono_win64.exe",
+        "WICK_PROJECT_PATH": "G:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise"
+      }
+    }
+  }
+}
