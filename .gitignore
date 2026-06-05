@@ -40,3 +40,5 @@ Thumbs.db
 # Wick MCP Server (保留 Wick 子模块，忽略其他)
 wick-mcp-server/*
 !wick-mcp-server/Wick
+
+/GameBuild/
