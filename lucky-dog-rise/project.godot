@@ -24,6 +24,10 @@ window/size/viewport_height=1200
 
 project/assembly_name="LuckyDogRise"
 
+[autoload]
+
+AudioManager="*res://Scripts/AudioManager.cs"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/wick/plugin.cfg")

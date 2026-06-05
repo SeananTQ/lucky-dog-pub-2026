@@ -7,11 +7,10 @@ public partial class HandAreaController : Node2D
     [Signal]
     public delegate void HandKnockedEventHandler();
 
-    private const float KnockAngle = 0.08f; // ~5 degrees in radians
+    private const float KnockAngle = 0.08f;
     private const float KnockDownTime = 0.1f;
     private const float KnockUpTime = 0.12f;
     private const float KnockIntervalTime = 0.05f;
-
 
     private Button _hitButton = null!;
     private bool _isKnocking;
@@ -32,6 +31,8 @@ public partial class HandAreaController : Node2D
     private void PlayKnockAnimation()
     {
         _isKnocking = true;
+        AudioManager.Instance.PlaySfxByName("Knock.wav");
+
         var tween = CreateTween();
         tween.TweenProperty(this, "rotation", KnockAngle, KnockDownTime)
             .SetEase(Tween.EaseType.In)
@@ -41,8 +42,8 @@ public partial class HandAreaController : Node2D
             .SetTrans(Tween.TransitionType.Bounce);
         tween.TweenInterval(KnockIntervalTime);
         tween.TweenProperty(this, "rotation", KnockAngle, KnockDownTime)
-    .SetEase(Tween.EaseType.In)
-    .SetTrans(Tween.TransitionType.Quad);
+            .SetEase(Tween.EaseType.In)
+            .SetTrans(Tween.TransitionType.Quad);
         tween.TweenProperty(this, "rotation", 0f, KnockUpTime)
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Bounce);

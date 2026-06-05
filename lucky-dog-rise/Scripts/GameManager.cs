@@ -96,7 +96,7 @@ public partial class GameManager : Node2D
     private void OnDrawPressed()
     {
         if (State == GameState.Dealt || State == GameState.Holding)
-            DoDraw();
+            CallDeferred(nameof(DoDraw));
     }
 
     private void StartNewHand()
