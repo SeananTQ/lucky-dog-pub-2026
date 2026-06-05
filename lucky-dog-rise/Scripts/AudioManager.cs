@@ -25,6 +25,7 @@ public partial class AudioManager : Node
 
         // 预加载所有音效
         PreloadSfx("res://Audio/SFX/Knock.wav");
+        PreloadSfx("res://Audio/SFX/ChipCollect.wav");
     }
 
     private void PreloadSfx(string path)

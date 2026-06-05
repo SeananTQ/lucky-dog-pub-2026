@@ -5,7 +5,7 @@ namespace LuckyDogRise;
 
 public enum GameState
 {
-    Idle,
+    WaitingForBet,
     Dealt,
     Holding,
     Drawing,
@@ -19,9 +19,11 @@ public partial class GameManager : Node2D
     private const int StartingChips = 100;
     private static readonly Color DimColor = new(0.6f, 0.6f, 0.6f, 1f);
     private const float DrawAnimDuration = 0.3f;
+    private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
 
-    public GameState State { get; private set; } = GameState.Idle;
+    public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
+    private int _pendingPayout;
 
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
@@ -40,6 +42,7 @@ public partial class GameManager : Node2D
 
     private DogVisual _dogVisual = null!;
     private Button _dogButton = null!;
+    private ChipStackController _chipStack = null!;
 
     public override void _Ready()
     {
@@ -62,11 +65,13 @@ public partial class GameManager : Node2D
         _dogVisual = GetNode<DogVisual>("DogArea");
         _dogButton = GetNode<Button>("HUD/DogButton");
         var handArea = GetNode<HandAreaController>("HandArea");
+        _chipStack = GetNode<ChipStackController>("ChipStack");
 
         _dealButton.Pressed += OnDealPressed;
         _drawButton.Pressed += OnDrawPressed;
         _dogButton.Pressed += OnDogClicked;
         handArea.HandKnocked += OnDrawPressed;
+        _chipStack.BetPlaced += OnBetPlaced;
 
         for (int i = 0; i < 5; i++)
         {
@@ -76,16 +81,47 @@ public partial class GameManager : Node2D
 
         UpdateButtonStates();
         UpdateUI();
-        SetMessage("Click DEAL to start!");
+        SetMessage("Click the chips to place your bet");
+        _chipStack.ShowHint("Click to bet");
+    }
+
+    private void OnBetPlaced()
+    {
+        if (State != GameState.WaitingForBet) return;
+        if (Chips < BetAmount)
+        {
+            TriggerGameOver();
+            return;
+        }
+
+        Chips -= BetAmount;
+        _deck.Deal();
+        _held = new bool[5];
+        _dogHint.ResetForNewHand();
+        _chipStack.HideHint();
+
+        for (int i = 0; i < 5; i++)
+        {
+            _cardNodes[i].Modulate = DimColor;
+            SetCardTexture(i, _deck.CurrentHand[i]);
+        }
+
+        State = GameState.Dealt;
+        _dogVisual.ResetAppearance();
+        SetMessage("Click cards to HOLD, then knock to draw");
+        UpdateButtonStates();
+        UpdateUI();
     }
 
     private void OnDealPressed()
     {
         switch (State)
         {
-            case GameState.Idle:
+            case GameState.WaitingForBet:
+                OnBetPlaced();
+                break;
             case GameState.Settled:
-                StartNewHand();
+                StartNextHand();
                 break;
             case GameState.GameOver:
                 ResetGame();
@@ -99,7 +135,7 @@ public partial class GameManager : Node2D
             CallDeferred(nameof(DoDraw));
     }
 
-    private void StartNewHand()
+    private void StartNextHand()
     {
         if (Chips < BetAmount)
         {
@@ -120,7 +156,8 @@ public partial class GameManager : Node2D
 
         State = GameState.Dealt;
         _dogVisual.ResetAppearance();
-        SetMessage("Click cards to HOLD, then DRAW");
+        _chipStack.HideHint();
+        SetMessage("Click cards to HOLD, then knock to draw");
         UpdateButtonStates();
         UpdateUI();
     }
@@ -131,8 +168,6 @@ public partial class GameManager : Node2D
         if (e is not InputEventMouseButton mb || !mb.Pressed) return;
 
         _held[index] = !_held[index];
-
-        // Visual: held = normal, un-held = dimmed
         _cardNodes[index].Modulate = _held[index] ? Colors.White : DimColor;
 
         State = GameState.Holding;
@@ -161,13 +196,11 @@ public partial class GameManager : Node2D
         State = GameState.Drawing;
         UpdateButtonStates();
 
-        // Clear all hold visuals
         for (int i = 0; i < 5; i++)
             _cardNodes[i].Modulate = Colors.White;
 
         var finalHand = _deck.DrawReplacements(_held);
 
-        // Animate new cards sliding in from below
         for (int i = 0; i < 5; i++)
         {
             if (!_held[i])
@@ -182,21 +215,27 @@ public partial class GameManager : Node2D
 
         if (payout > 0)
         {
-            Chips += payout;
-            SetMessage($"{rank}! Won {payout} chips!");
+            _pendingPayout = payout;
+            SetMessage($"{rank}! Won {payout} chips! Click chips to collect.");
+            SpawnChipReward(payout);
+            State = GameState.Settled;
+            _dealButton.Visible = false;
         }
         else
         {
-            SetMessage("No win this hand.");
-        }
+            SetMessage("No win. Click chips to bet again.");
+            State = GameState.WaitingForBet;
+            _chipStack.ShowHint("Click to bet");
 
-        _progression.UpdateHighScore(Chips);
-        State = GameState.Settled;
+            if (Chips < BetAmount)
+            {
+                TriggerGameOver();
+                return;
+            }
+        }
 
         if (_progression.CheckRankUp())
             ShowRankUp(_progression.CurrentRank);
-        else if (Chips < BetAmount)
-            TriggerGameOver();
 
         UpdateButtonStates();
         UpdateUI();
@@ -212,12 +251,33 @@ public partial class GameManager : Node2D
             .SetEase(Tween.EaseType.Out);
     }
 
+    private void SpawnChipReward(int amount)
+    {
+        var reward = ChipRewardScene.Instantiate<ChipRewardController>();
+        AddChild(reward);
+        reward.Position = new Vector2(600, 900);
+        reward.Setup(amount);
+        reward.Collected += OnChipCollected;
+    }
+
+    private void OnChipCollected()
+    {
+        _dealButton.Visible = true;
+        Chips += _pendingPayout;
+        _progression.UpdateHighScore(Chips);
+        _pendingPayout = 0;
+        UpdateUI();
+        State = GameState.WaitingForBet;
+        OnBetPlaced();
+    }
+
     private void TriggerGameOver()
     {
         State = GameState.GameOver;
         _overlay.Visible = true;
         _centerLabel.Text = DogProverbs.GetRandom();
         SetMessage("Game Over");
+        _chipStack.HideHint();
         UpdateButtonStates();
     }
 
@@ -229,13 +289,15 @@ public partial class GameManager : Node2D
 
     private void ResetForNextHand()
     {
-        State = GameState.Idle;
+        State = GameState.WaitingForBet;
         _held = new bool[5];
         for (int i = 0; i < 5; i++)
             _cardNodes[i].Modulate = Colors.White;
         _dogVisual.ResetAppearance();
         _overlay.Visible = false;
-        SetMessage("Click DEAL to start!");
+        _dealButton.Visible = true;
+        _chipStack.ShowHint("Click to bet");
+        SetMessage("Click the chips to place your bet");
         UpdateButtonStates();
         UpdateUI();
     }
@@ -252,11 +314,10 @@ public partial class GameManager : Node2D
     {
         switch (State)
         {
-            case GameState.Idle:
-            case GameState.Settled:
+            case GameState.WaitingForBet:
                 _dealButton.Disabled = false;
+                _dealButton.Text = "DEAL";
                 _drawButton.Disabled = true;
-                _dealButton.Text = State == GameState.Settled ? "NEXT HAND" : "DEAL";
                 break;
 
             case GameState.Dealt:
@@ -267,6 +328,12 @@ public partial class GameManager : Node2D
 
             case GameState.Drawing:
                 _dealButton.Disabled = true;
+                _drawButton.Disabled = true;
+                break;
+
+            case GameState.Settled:
+                _dealButton.Disabled = false;
+                _dealButton.Text = "NEXT HAND";
                 _drawButton.Disabled = true;
                 break;
 
