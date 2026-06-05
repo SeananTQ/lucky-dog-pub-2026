@@ -207,6 +207,27 @@ offset_right = 909.0
 offset_bottom = 724.0
 flat = true
 
+[node name="DebugPanel" type="PanelContainer" parent="HUD"]
+offset_left = 350.0
+offset_top = 10.0
+offset_right = 550.0
+offset_bottom = 90.0
+
+[node name="DebugVBox" type="VBoxContainer" parent="HUD/DebugPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SeedLabel" type="Button" parent="HUD/DebugPanel/DebugVBox"]
+layout_mode = 2
+text = "Seed: --- (click to copy)"
+theme_override_font_sizes/font_size = 18
+flat = true
+
+[node name="SeedInput" type="LineEdit" parent="HUD/DebugPanel/DebugVBox"]
+layout_mode = 2
+placeholder_text = "Fixed seed (optional)"
+theme_override_font_sizes/font_size = 16
+
 [node name="Overlay" type="CanvasLayer" parent="." unique_id=1469740645]
 layer = 10
 visible = false

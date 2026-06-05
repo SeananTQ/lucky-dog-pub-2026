@@ -20,7 +20,10 @@ public enum HandRank
 
 public static class CardEvaluator
 {
-    // Card encoding: 0-51, suit = card / 13 (0=Club,1=Diamond,2=Heart,3=Spade), rank = card % 13 (0=Ace,...,12=King)
+    // 卡牌编码：0-51 的整数
+    // suit = card / 13 → 0=Club, 1=Diamond, 2=Heart, 3=Spade
+    // rank = card % 13 → 0=Ace, 1=2, 2=3, ..., 9=10, 10=Jack, 11=Queen, 12=King
+    // 注意：rank 是 0-based，美术资源文件名是 1-based（CardToString 会 +1）
     public static int GetSuit(int card) => card / 13;
     public static int GetRank(int card) => card % 13;
 
@@ -74,18 +77,24 @@ public static class CardEvaluator
     {
         isRoyal = false;
 
-        // Check for A-2-3-4-5 (wheel)
+        // A-2-3-4-5 (wheel): sorted = [0,1,2,3,12]
         if (sortedRanks.SequenceEqual(new[] { 0, 1, 2, 3, 12 }))
             return true;
 
+        // 10-J-Q-K-A (royal): sorted = [0,9,10,11,12]
+        if (sortedRanks.SequenceEqual(new[] { 0, 9, 10, 11, 12 }))
+        {
+            isRoyal = true;
+            return true;
+        }
+
+        // 普通顺子：连续递增
         for (int i = 1; i < 5; i++)
         {
             if (sortedRanks[i] != sortedRanks[i - 1] + 1)
                 return false;
         }
 
-        // Royal: 10-J-Q-K-A → ranks 9,10,11,12,0
-        isRoyal = sortedRanks[0] == 0 && sortedRanks[1] == 9;
         return true;
     }
 

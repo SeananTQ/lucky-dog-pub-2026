@@ -24,8 +24,14 @@ public partial class GameManager : Node2D
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
     public bool GuideEnabled { get; set; } = true;
+    public bool DebugMode { get; set; } = true; // 默认开启，正式发布时关闭
     private int _pendingPayout;
     private Node2D _pendingReward;
+
+    // Debug UI
+    private PanelContainer _debugPanel = null!;
+    private Button _seedLabel = null!;
+    private LineEdit _seedInput = null!;
 
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
@@ -69,6 +75,16 @@ public partial class GameManager : Node2D
         var handArea = GetNode<HandAreaController>("HandArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
 
+        // Debug UI
+        _debugPanel = GetNode<PanelContainer>("HUD/DebugPanel");
+        _seedLabel = GetNode<Button>("HUD/DebugPanel/DebugVBox/SeedLabel");
+        _seedInput = GetNode<LineEdit>("HUD/DebugPanel/DebugVBox/SeedInput");
+        _seedLabel.Pressed += () =>
+        {
+            DisplayServer.ClipboardSet(_deck.LastSeed.ToString());
+            _seedLabel.Text = $"Seed: {_deck.LastSeed} (copied!)";
+        };
+
         _dealButton.Pressed += OnDealPressed;
         _drawButton.Pressed += OnDrawPressed;
         _dogButton.Pressed += OnDogClicked;
@@ -83,6 +99,7 @@ public partial class GameManager : Node2D
 
         UpdateButtonStates();
         UpdateUI();
+        UpdateDebugUI();
         SetMessage("Click the chips to place your bet");
         _chipStack.ShowHint("Click to bet");
     }
@@ -95,6 +112,10 @@ public partial class GameManager : Node2D
             TriggerGameOver();
             return;
         }
+
+        // Debug: 读取固定种子
+        if (DebugMode && _seedInput.Text.Length > 0 && int.TryParse(_seedInput.Text, out int fixedSeed))
+            _deck.SetFixedSeed(fixedSeed);
 
         Chips -= BetAmount;
         _deck.Deal();
@@ -113,6 +134,7 @@ public partial class GameManager : Node2D
         SetMessage("Click cards to HOLD, then knock to draw");
         UpdateButtonStates();
         UpdateUI();
+        UpdateDebugUI();
     }
 
     private void OnDealPressed()
@@ -373,6 +395,17 @@ public partial class GameManager : Node2D
         _chipLabel.Text = $"Chips: {Chips}";
         _rankLabel.Text = $"Rank: {_progression.CurrentRank}";
         _betLabel.Text = $"Bet: {BetAmount}";
+    }
+
+    private void UpdateDebugUI()
+    {
+        _debugPanel.Visible = DebugMode;
+        _dealButton.Visible = DebugMode;
+        _drawButton.Visible = DebugMode;
+        _messageLabel.GetParent<PanelContainer>().Visible = DebugMode;
+
+        if (DebugMode)
+            _seedLabel.Text = $"Seed: {_deck.LastSeed} (click to copy)";
     }
 
     private static string GetSignalMessage(DogSignal signal)

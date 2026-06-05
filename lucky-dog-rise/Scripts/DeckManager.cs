@@ -6,22 +6,37 @@ namespace LuckyDogRise;
 
 public class DeckManager
 {
-    private readonly Random _rng;
+    private Random _rng;
     private int[] _fullDeck;
     private int _dealIndex;
 
     public int[] CurrentHand { get; private set; } = new int[5];
     public int[] FinalHand { get; private set; } = new int[5];
     public HandRank PredeterminedRank { get; private set; }
+    public int LastSeed { get; private set; }
+
+    private int? _fixedSeed;
 
     public DeckManager(int? seed = null)
     {
+        _fixedSeed = seed;
         _rng = seed.HasValue ? new Random(seed.Value) : new Random();
         _fullDeck = Enumerable.Range(0, 52).ToArray();
     }
 
+    public void SetFixedSeed(int? seed)
+    {
+        _fixedSeed = seed;
+    }
+
     public void Deal()
     {
+        // 每手用新种子，方便复现
+        int seed = _fixedSeed ?? new Random().Next();
+        LastSeed = seed;
+        _rng = new Random(seed);
+        _fixedSeed = null; // 固定种子只用一次
+
         // Shuffle full deck
         Shuffle(_fullDeck);
         _dealIndex = 0;
