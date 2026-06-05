@@ -1,0 +1,180 @@
+[gd_scene format=3 uid="uid://dwfhbk6vuxql5"]
+
+[ext_resource type="Texture2D" uid="uid://ccti5x3080aj6" path="res://Assets/Background/GrayA.png" id="2_rgh2o"]
+[ext_resource type="Texture2D" uid="uid://ctmy87ol03xmo" path="res://Assets/Table/FeltEmerald.png" id="2_table"]
+[ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
+[ext_resource type="Script" uid="uid://dclwlcib85r8m" path="res://Scripts/DogVisual.cs" id="4_dog"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.345, 0.8, 0.008, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.25)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+
+[node name="Main" type="Node2D" unique_id=317845186]
+script = ExtResource("3_gm")
+
+[node name="Background" type="TextureRect" parent="." unique_id=296527543]
+offset_right = 1200.0
+offset_bottom = 1200.0
+texture = ExtResource("2_rgh2o")
+expand_mode = 3
+stretch_mode = 6
+
+[node name="Table" type="TextureRect" parent="." unique_id=520731814]
+offset_top = 677.0
+offset_right = 1200.0
+offset_bottom = 1271.0
+texture = ExtResource("2_table")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="CardArea" type="Node2D" parent="." unique_id=1697869153]
+position = Vector2(272, 764)
+
+[node name="Card0" type="TextureRect" parent="CardArea" unique_id=245353831]
+offset_right = 120.0
+offset_bottom = 168.0
+
+[node name="Card1" type="TextureRect" parent="CardArea" unique_id=685957291]
+offset_left = 140.0
+offset_right = 260.0
+offset_bottom = 168.0
+
+[node name="Card2" type="TextureRect" parent="CardArea" unique_id=2062460971]
+offset_left = 280.0
+offset_right = 400.0
+offset_bottom = 168.0
+
+[node name="Card3" type="TextureRect" parent="CardArea" unique_id=207611617]
+offset_left = 420.0
+offset_right = 540.0
+offset_bottom = 168.0
+
+[node name="Card4" type="TextureRect" parent="CardArea" unique_id=1708178651]
+offset_left = 560.0
+offset_right = 680.0
+offset_bottom = 168.0
+
+[node name="DogArea" type="Node2D" parent="." unique_id=679074999]
+script = ExtResource("4_dog")
+
+[node name="Head" type="Sprite2D" parent="DogArea" unique_id=2033075728]
+position = Vector2(587, 516)
+
+[node name="Eyes" type="Sprite2D" parent="DogArea" unique_id=611186822]
+position = Vector2(583, 385)
+
+[node name="Ears" type="Sprite2D" parent="DogArea" unique_id=1956743965]
+position = Vector2(588, 357)
+
+[node name="Claw" type="Sprite2D" parent="DogArea" unique_id=1598980778]
+position = Vector2(577, 622)
+
+[node name="Eyewear" type="Sprite2D" parent="DogArea" unique_id=1942620464]
+
+[node name="Headwear" type="Sprite2D" parent="DogArea" unique_id=668961892]
+
+[node name="HandArea" type="Node2D" parent="." unique_id=1769540683]
+position = Vector2(291, 1120)
+
+[node name="Hand" type="Sprite2D" parent="HandArea" unique_id=2063066888]
+
+[node name="Clothes" type="Sprite2D" parent="HandArea" unique_id=1416734206]
+
+[node name="Accessory" type="Sprite2D" parent="HandArea" unique_id=701568159]
+visible = false
+
+[node name="ChipStack" type="TextureRect" parent="." unique_id=1508312576]
+offset_left = 837.0
+offset_top = 1073.0
+offset_right = 920.0
+offset_bottom = 1127.0
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
+
+[node name="ChipLabel" type="Label" parent="HUD" unique_id=983292623]
+offset_left = 20.0
+offset_top = 15.0
+offset_right = 250.0
+offset_bottom = 55.0
+text = "Chips: 100"
+
+[node name="RankLabel" type="Label" parent="HUD" unique_id=1672215976]
+offset_left = 950.0
+offset_top = 15.0
+offset_right = 1180.0
+offset_bottom = 55.0
+text = "Rank: Home Game"
+horizontal_alignment = 2
+
+[node name="BetLabel" type="Label" parent="HUD" unique_id=1510145122]
+offset_left = 20.0
+offset_top = 60.0
+offset_right = 250.0
+offset_bottom = 100.0
+text = "Bet: 5"
+
+[node name="MessageLabel" type="Label" parent="HUD" unique_id=1095193780]
+offset_left = 300.0
+offset_top = 1100.0
+offset_right = 900.0
+offset_bottom = 1160.0
+text = "Click Deal to start"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DealButton" type="Button" parent="HUD" unique_id=668097238]
+offset_left = 400.0
+offset_top = 960.0
+offset_right = 580.0
+offset_bottom = 1010.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+text = "DEAL"
+
+[node name="DrawButton" type="Button" parent="HUD"]
+offset_left = 620.0
+offset_top = 960.0
+offset_right = 800.0
+offset_bottom = 1010.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+disabled = true
+text = "DRAW"
+
+[node name="DogButton" type="Button" parent="HUD" unique_id=1949857937]
+offset_left = 265.0
+offset_top = 222.0
+offset_right = 909.0
+offset_bottom = 724.0
+flat = true
+
+[node name="Overlay" type="CanvasLayer" parent="." unique_id=1469740645]
+layer = 10
+visible = false
+
+[node name="FadeRect" type="ColorRect" parent="Overlay" unique_id=1093022245]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.85)
+
+[node name="CenterLabel" type="Label" parent="Overlay" unique_id=925224689]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -40.0
+offset_right = 300.0
+offset_bottom = 40.0
+horizontal_alignment = 1
+vertical_alignment = 1

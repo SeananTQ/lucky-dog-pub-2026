@@ -11,7 +11,8 @@ config_version=5
 [application]
 
 config/name="LuckyDogRise"
-config/features=PackedStringArray("4.6", "Forward Plus")
+run/main_scene="res://Scenes/Main.tscn"
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
 [dotnet]
@@ -29,3 +30,10 @@ enabled=PackedStringArray("res://addons/wick/plugin.cfg")
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+
+[window]
+
+size/viewport_width=1200
+size/viewport_height=1200
+size/window_width_override=1200
+size/window_height_override=1200
