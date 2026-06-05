@@ -7,22 +7,11 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="5_theme"]
 [ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
-[ext_resource type="PackedScene" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
+[ext_resource type="PackedScene" uid="uid://csak1ybmnwp72" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
 [ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
 [ext_resource type="Script" uid="uid://dki6udll3canl" path="res://Scripts/DebugHUDController.cs" id="11_debug"]
 [ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
 [ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_tray"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0, 0, 0, 0.35)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -64,20 +53,6 @@ texture = ExtResource("2_table")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="CardTray" type="PanelContainer" parent="." unique_id=1599501574]
-offset_left = 255.0
-offset_top = 748.0
-offset_right = 945.0
-offset_bottom = 940.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_card_tray")
-
-[node name="HandLabel" type="Label" parent="CardTray" unique_id=1520048224]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.35)
-theme_override_font_sizes/font_size = 16
-text = "YOUR HAND"
-horizontal_alignment = 1
-
 [node name="CardArea" type="Node2D" parent="." unique_id=1720705050]
 position = Vector2(272, 775)
 script = ExtResource("12_cardtable")
@@ -111,8 +86,15 @@ offset_bottom = 168.0
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 position = Vector2(-50, 1127)
 
+[node name="RewardSpawnPoint" type="Marker2D" parent="." unique_id=1297724527]
+position = Vector2(700, 1115)
+
+[node name="PreviewSprite" type="Sprite2D" parent="RewardSpawnPoint" unique_id=1109649533]
+visible = false
+texture = ExtResource("6_chip")
+
 [node name="ChipStack" parent="." unique_id=1896668962 instance=ExtResource("9_chipstack")]
-position = Vector2(900, 1100)
+position = Vector2(976, 1105)
 
 [node name="TutorialManager" type="Node" parent="." unique_id=381839165]
 script = ExtResource("13_tutorial")
@@ -198,16 +180,6 @@ offset_bottom = 1065.0
 theme = ExtResource("5_theme")
 disabled = true
 text = "DRAW"
-
-[node name="BetHint" type="Label" parent="HUD" unique_id=1704326371]
-offset_left = 470.0
-offset_top = 1072.0
-offset_right = 730.0
-offset_bottom = 1098.0
-theme_override_colors/font_color = Color(1, 1, 1, 0.4)
-theme_override_font_sizes/font_size = 16
-text = "5 chips per hand"
-horizontal_alignment = 1
 
 [node name="DebugPanel" type="PanelContainer" parent="HUD" unique_id=1189662231]
 offset_left = 350.0

@@ -21,7 +21,7 @@ public partial class GameManager : Node2D
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
-    public bool DebugMode { get; set; } = true;
+    public bool DebugMode { get; set; } = false;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
@@ -38,6 +38,7 @@ public partial class GameManager : Node2D
     private DogVisual _dogVisual = null!;
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
+    private Marker2D _rewardSpawnPoint = null!;
 
     public override void _Ready()
     {
@@ -52,6 +53,8 @@ public partial class GameManager : Node2D
         _dogVisual = GetNode<DogVisual>("DogArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
+        _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
+        _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
 
         // 信号连接
         _hud.ConnectDeal(this, nameof(OnDealPressed));
@@ -229,8 +232,8 @@ public partial class GameManager : Node2D
     private void SpawnChipReward(int amount)
     {
         var reward = ChipRewardScene.Instantiate<ChipRewardController>();
-        AddChild(reward);
-        reward.Position = new Vector2(600, 900);
+        _rewardSpawnPoint.AddChild(reward);
+        reward.Position = Vector2.Zero;
         reward.Setup(amount);
         reward.Collected += OnChipCollected;
         _pendingReward = reward;
