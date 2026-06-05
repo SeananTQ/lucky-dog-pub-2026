@@ -11,14 +11,13 @@ public partial class DogVisual : Node2D
     private Sprite2D _head = null!;
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
-    private Sprite2D _claw = null!;
+    private Node2D _clawLeft = null!;
+    private Node2D _clawRight = null!;
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
     private Button _hitButton = null!;
 
     private const string BasePath = "res://Assets/Shiba/Red/";
-
-    // PSD center positions
     private static readonly Vector2 SunglassesPos = new(586, 415);
     private static readonly Vector2 LuckyCapPos = new(587, 222);
 
@@ -35,7 +34,8 @@ public partial class DogVisual : Node2D
         _head = GetNode<Sprite2D>("Head");
         _eyes = GetNode<Sprite2D>("Eyes");
         _ears = GetNode<Sprite2D>("Ears");
-        _claw = GetNode<Sprite2D>("Claw");
+        _clawLeft = GetNode<Node2D>("ClawLeft");
+        _clawRight = GetNode<Node2D>("ClawRight");
         _eyewear = GetNode<Sprite2D>("Eyewear");
         _headwear = GetNode<Sprite2D>("Headwear");
         _hitButton = GetNode<Button>("HitButton");
@@ -47,8 +47,7 @@ public partial class DogVisual : Node2D
         _head.Texture = GD.Load<Texture2D>(BasePath + "Head_Chubby.png");
         _eyes.Texture = GD.Load<Texture2D>(BasePath + "Eyes_Cute.png");
         _ears.Texture = GD.Load<Texture2D>(BasePath + "Ears_Happy.png");
-        _claw.Texture = GD.Load<Texture2D>(BasePath + "Claw_Lucky.png");
-        _claw.Visible = true;
+        ShowClawBack();
         _eyewear.Visible = false;
         _headwear.Visible = false;
     }
@@ -58,7 +57,7 @@ public partial class DogVisual : Node2D
         var textures = SignalTextures[signal];
         _eyes.Texture = GD.Load<Texture2D>(BasePath + textures[0]);
         _ears.Texture = GD.Load<Texture2D>(BasePath + textures[1]);
-        _claw.Visible = true;
+        ShowClawPalm();
 
         if (signal == DogSignal.TopTier)
         {
@@ -73,5 +72,37 @@ public partial class DogVisual : Node2D
         _eyewear.Visible = true;
         _eyewear.Texture = GD.Load<Texture2D>("res://Assets/Eyewear/Sunglasses_Blade.png");
         _eyewear.Position = SunglassesPos;
+    }
+
+    // 手心（掌心朝上）
+    public void ShowClawPalm()
+    {
+        _clawLeft.Visible = true;
+        _clawRight.Visible = true;
+        SetClawState(_clawLeft, "Palm");
+        SetClawState(_clawRight, "Palm");
+    }
+
+    // 手背（手背朝上）
+    public void ShowClawBack()
+    {
+        _clawLeft.Visible = true;
+        _clawRight.Visible = true;
+        SetClawState(_clawLeft, "Back");
+        SetClawState(_clawRight, "Back");
+    }
+
+    public void HideClaw()
+    {
+        _clawLeft.Visible = false;
+        _clawRight.Visible = false;
+    }
+
+    private void SetClawState(Node2D claw, string state)
+    {
+        var back = claw.GetNode<Sprite2D>("Claw_Back_Left");
+        var palm = claw.GetNode<Sprite2D>("Claw_Palm_Left");
+        back.Visible = state == "Back";
+        palm.Visible = state == "Palm";
     }
 }

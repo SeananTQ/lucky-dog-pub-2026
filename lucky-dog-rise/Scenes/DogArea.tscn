@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://b4rix8fkuvdj" path="res://Assets/Shiba/Red/Eyes_Cute.png" id="3_eyes"]
 [ext_resource type="Texture2D" uid="uid://cgmat5ulvoupt" path="res://Assets/Shiba/Red/Ears_Happy.png" id="4_ears"]
 [ext_resource type="Texture2D" uid="uid://bnnsdwjfwviqr" path="res://Assets/Shiba/Red/Claw_Lucky.png" id="5_claw"]
+[ext_resource type="PackedScene" uid="uid://ck4rk70dmgfjw" path="res://Scenes/Prefabs/DogClaw.tscn" id="6_cm54h"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
@@ -25,14 +26,21 @@ position = Vector2(583, 385)
 texture = ExtResource("3_eyes")
 
 [node name="Claw" type="Sprite2D" parent="." unique_id=1246649180]
+visible = false
 position = Vector2(577, 622)
 texture = ExtResource("5_claw")
+
+[node name="ClawLeft" parent="." unique_id=829141221 instance=ExtResource("6_cm54h")]
+position = Vector2(268, 635)
+
+[node name="ClawRight" parent="." unique_id=1983797705 instance=ExtResource("6_cm54h")]
+position = Vector2(894, 635)
+scale = Vector2(-1, 1)
 
 [node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
 visible = false
 
 [node name="Headwear" type="Sprite2D" parent="." unique_id=268961892]
-visible = false
 
 [node name="HitButton" type="Button" parent="." unique_id=950359140]
 offset_left = 300.0

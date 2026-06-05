@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://cnyycxklkhsih"]
+
+[ext_resource type="Texture2D" uid="uid://bnnsdwjfwviqr" path="res://Assets/Shiba/Red/Claw_Lucky.png" id="1_src"]
+
+[resource]
+atlas = ExtResource("1_src")
+region = Rect2(608.335, 0, 194, 158)
