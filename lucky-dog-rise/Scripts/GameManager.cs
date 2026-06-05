@@ -23,7 +23,9 @@ public partial class GameManager : Node2D
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
+    public bool GuideEnabled { get; set; } = true;
     private int _pendingPayout;
+    private Node2D _pendingReward;
 
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
@@ -167,6 +169,7 @@ public partial class GameManager : Node2D
         if (State != GameState.Dealt && State != GameState.Holding) return;
         if (e is not InputEventMouseButton mb || !mb.Pressed) return;
 
+        GetViewport().SetInputAsHandled();
         _held[index] = !_held[index];
         _cardNodes[index].Modulate = _held[index] ? Colors.White : DimColor;
 
@@ -261,11 +264,13 @@ public partial class GameManager : Node2D
         reward.Position = new Vector2(600, 900);
         reward.Setup(amount);
         reward.Collected += OnChipCollected;
+        _pendingReward = reward;
     }
 
     private void OnChipCollected()
     {
         _dealButton.Visible = true;
+        _pendingReward = null;
         Chips += _pendingPayout;
         _progression.UpdateHighScore(Chips);
         _pendingPayout = 0;
@@ -380,5 +385,44 @@ public partial class GameManager : Node2D
             DogSignal.TopTier => "*ears perk up* INCREDIBLE!",
             _ => "...",
         };
+    }
+
+    // 新手引导：点击空白处时，正确的交互元素会弹跳提示
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!GuideEnabled) return;
+        if (@event is not InputEventMouseButton mb || !mb.Pressed) return;
+
+        switch (State)
+        {
+            case GameState.WaitingForBet:
+                BounceNode(_chipStack);
+                break;
+
+            case GameState.Dealt:
+            case GameState.Holding:
+                if (!_dogHint.HasGivenHint)
+                    BounceNode(_dogVisual);
+                else
+                    BounceNode(GetNode<Node2D>("HandArea"));
+                break;
+
+            case GameState.Settled:
+                if (_pendingReward != null && IsInstanceValid(_pendingReward))
+                    BounceNode(_pendingReward);
+                break;
+        }
+    }
+
+    private void BounceNode(Node2D node)
+    {
+        var tween = CreateTween();
+        var origY = node.Position.Y;
+        tween.TweenProperty(node, "position:y", origY - 12, 0.08)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+        tween.TweenProperty(node, "position:y", origY, 0.1)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Bounce);
     }
 }
