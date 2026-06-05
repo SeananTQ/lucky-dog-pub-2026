@@ -12,6 +12,8 @@ public partial class HandAreaController : Node2D
     private const float KnockUpTime = 0.12f;
     private const float KnockIntervalTime = 0.05f;
 
+    public bool Enabled { get; set; }
+
     private Button _hitButton = null!;
     private bool _isKnocking;
 
@@ -23,7 +25,7 @@ public partial class HandAreaController : Node2D
 
     private void OnHitPressed()
     {
-        if (_isKnocking) return;
+        if (!Enabled || _isKnocking) return;
         EmitSignal(SignalName.HandKnocked);
         PlayKnockAnimation();
     }

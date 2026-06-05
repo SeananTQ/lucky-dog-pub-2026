@@ -17,39 +17,27 @@ public partial class GameManager : Node2D
 {
     private const int BetAmount = 5;
     private const int StartingChips = 100;
-    private static readonly Color DimColor = new(0.6f, 0.6f, 0.6f, 1f);
-    private const float DrawAnimDuration = 0.3f;
     private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
-    public bool GuideEnabled { get; set; } = true;
-    public bool DebugMode { get; set; } = true; // 默认开启，正式发布时关闭
+    public bool DebugMode { get; set; } = true;
+    public bool HasDogGivenHint => _dogHint.HasGivenHint;
+    public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
     private Node2D _pendingReward;
-
-    // Debug UI
-    private PanelContainer _debugPanel = null!;
-    private Button _seedLabel = null!;
-    private LineEdit _seedInput = null!;
 
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
     private ProgressionManager _progression = null!;
-
-    private TextureRect[] _cardNodes = new TextureRect[5];
     private bool[] _held = new bool[5];
-    private Button _dealButton = null!;
-    private Button _drawButton = null!;
-    private Label _chipLabel = null!;
-    private Label _rankLabel = null!;
-    private Label _betLabel = null!;
-    private Label _messageLabel = null!;
-    private CanvasLayer _overlay = null!;
-    private Label _centerLabel = null!;
 
+    private HUDController _hud = null!;
+    private DebugHUDController _debugHud = null!;
+    private CardTableController _cardTable = null!;
     private DogVisual _dogVisual = null!;
     private ChipStackController _chipStack = null!;
+    private HandAreaController _handArea = null!;
 
     public override void _Ready()
     {
@@ -58,96 +46,44 @@ public partial class GameManager : Node2D
         _progression = new ProgressionManager();
         Chips = StartingChips;
 
-        for (int i = 0; i < 5; i++)
-            _cardNodes[i] = GetNode<TextureRect>($"CardArea/Card{i}");
-
-        _dealButton = GetNode<Button>("HUD/DealButton");
-        _drawButton = GetNode<Button>("HUD/DrawButton");
-        _chipLabel = GetNode<Label>("HUD/InfoPanel/MarginContainer/HBox/VBox/ChipLabel");
-        _rankLabel = GetNode<Label>("HUD/RankPanel/RankLabel");
-        _betLabel = GetNode<Label>("HUD/InfoPanel/MarginContainer/HBox/VBox/BetLabel");
-        _messageLabel = GetNode<Label>("HUD/MessagePanel/MessageLabel");
-        _overlay = GetNode<CanvasLayer>("Overlay");
-        _centerLabel = GetNode<Label>("Overlay/OverlayPanel/OverlayVBox/CenterLabel");
+        _hud = GetNode<HUDController>("HUD");
+        _debugHud = GetNode<DebugHUDController>("HUD/DebugPanel");
+        _cardTable = GetNode<CardTableController>("CardArea");
         _dogVisual = GetNode<DogVisual>("DogArea");
-        var handArea = GetNode<HandAreaController>("HandArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
+        _handArea = GetNode<HandAreaController>("HandArea");
 
-        // Debug UI
-        _debugPanel = GetNode<PanelContainer>("HUD/DebugPanel");
-        _seedLabel = GetNode<Button>("HUD/DebugPanel/DebugVBox/SeedLabel");
-        _seedInput = GetNode<LineEdit>("HUD/DebugPanel/DebugVBox/SeedInput");
-        _seedLabel.Pressed += () =>
-        {
-            DisplayServer.ClipboardSet(_deck.LastSeed.ToString());
-            _seedLabel.Text = $"Seed: {_deck.LastSeed} (copied!)";
-        };
-
-        _dealButton.Pressed += OnDealPressed;
-        _drawButton.Pressed += OnDrawPressed;
+        // 信号连接
+        _hud.ConnectDeal(this, nameof(OnDealPressed));
+        _hud.ConnectDraw(this, nameof(OnDrawPressed));
         _dogVisual.DogClicked += OnDogClicked;
-        handArea.HandKnocked += OnDrawPressed;
+        _handArea.HandKnocked += OnDrawPressed;
         _chipStack.BetPlaced += OnBetPlaced;
+        _cardTable.ConnectCardInput(this, nameof(OnCardInput));
 
-        for (int i = 0; i < 5; i++)
-        {
-            int index = i;
-            _cardNodes[i].GuiInput += (e) => OnCardInput(e, index);
-        }
-
-        UpdateButtonStates();
-        UpdateUI();
-        UpdateDebugUI();
-        SetMessage("Click the chips to place your bet");
+        RefreshUI();
+        _hud.SetMessage("Click the chips to place your bet");
         _chipStack.ShowHint("Click to bet");
     }
+
+    // === 信号处理 ===
 
     private void OnBetPlaced()
     {
         if (State != GameState.WaitingForBet) return;
-        if (Chips < BetAmount)
-        {
-            TriggerGameOver();
-            return;
-        }
-
-        // Debug: 读取固定种子
-        if (DebugMode && _seedInput.Text.Length > 0 && int.TryParse(_seedInput.Text, out int fixedSeed))
+        if (Chips < BetAmount) { TriggerGameOver(); return; }
+        if (_debugHud.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
-
-        Chips -= BetAmount;
-        _deck.Deal();
-        _held = new bool[5];
-        _dogHint.ResetForNewHand();
-        _chipStack.HideHint();
-
-        for (int i = 0; i < 5; i++)
-        {
-            _cardNodes[i].Modulate = DimColor;
-            SetCardTexture(i, _deck.CurrentHand[i]);
-        }
-
-        State = GameState.Dealt;
-        _dogVisual.ResetAppearance();
-        SetMessage("Click cards to HOLD, then knock to draw");
-        UpdateButtonStates();
-        UpdateUI();
-        UpdateDebugUI();
+        DealNewHand();
     }
 
     private void OnDealPressed()
     {
         switch (State)
         {
-            case GameState.WaitingForBet:
-                OnBetPlaced();
-                break;
-            case GameState.Settled:
-                StartNextHand();
-                break;
-            case GameState.GameOver:
-                ResetGame();
-                break;
+            case GameState.WaitingForBet: OnBetPlaced(); break;
+            case GameState.Settled: StartNextHand(); break;
+            case GameState.GameOver: ResetGame(); break;
         }
     }
 
@@ -157,51 +93,22 @@ public partial class GameManager : Node2D
             CallDeferred(nameof(DoDraw));
     }
 
-    private void StartNextHand()
-    {
-        if (Chips < BetAmount)
-        {
-            TriggerGameOver();
-            return;
-        }
-
-        Chips -= BetAmount;
-        _deck.Deal();
-        _held = new bool[5];
-        _dogHint.ResetForNewHand();
-
-        for (int i = 0; i < 5; i++)
-        {
-            _cardNodes[i].Modulate = DimColor;
-            SetCardTexture(i, _deck.CurrentHand[i]);
-        }
-
-        State = GameState.Dealt;
-        _dogVisual.ResetAppearance();
-        _chipStack.HideHint();
-        SetMessage("Click cards to HOLD, then knock to draw");
-        UpdateButtonStates();
-        UpdateUI();
-    }
-
     private void OnCardInput(InputEvent e, int index)
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
         if (e is not InputEventMouseButton mb || !mb.Pressed) return;
-
         GetViewport().SetInputAsHandled();
+
         _held[index] = !_held[index];
-        _cardNodes[index].Modulate = _held[index] ? Colors.White : DimColor;
-
+        _cardTable.SetHeld(index, _held[index]);
         State = GameState.Holding;
-        SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
+        _hud.SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
 
-        // 狗给过提示后，玩家改了保留牌 → 自动戴墨镜
         if (_dogHint.HasGivenHint && !_dogHint.IsLocked)
         {
             _dogHint.IsLocked = true;
             _dogVisual.ShowSunglasses();
-            SetMessage("Dog: *puts on sunglasses* Locked in!");
+            _hud.SetMessage("Dog: *puts on sunglasses* Locked in!");
         }
     }
 
@@ -209,72 +116,114 @@ public partial class GameManager : Node2D
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
         if (_dogHint.HasGivenHint) return;
-
         var previewHand = _deck.PreviewFinalHand(_held);
         var signal = _dogHint.EvaluateHold(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ShowSignal(signal);
         _dogHint.HasGivenHint = true;
-        SetMessage($"Dog: {GetSignalMessage(signal)}");
+        _hud.SetMessage($"Dog: {GetSignalMessage(signal)}");
+    }
+
+    private void OnChipCollected()
+    {
+        _hud.SetDealButtonVisible(true);
+        _pendingReward = null;
+        Chips += _pendingPayout;
+        _progression.UpdateHighScore(Chips);
+        _pendingPayout = 0;
+        RefreshUI();
+        State = GameState.WaitingForBet;
+        OnBetPlaced();
+    }
+
+    // === 游戏逻辑 ===
+
+    private void DealNewHand()
+    {
+        Chips -= BetAmount;
+        _deck.Deal();
+        _held = new bool[5];
+        _dogHint.ResetForNewHand();
+        _chipStack.HideHint();
+        _cardTable.DimAll();
+        _cardTable.SetCards(_deck.CurrentHand);
+        State = GameState.Dealt;
+        _dogVisual.ResetAppearance();
+        _handArea.Enabled = true;
+        _hud.SetMessage("Click cards to HOLD, then knock to draw");
+        RefreshUI();
+    }
+
+    private void StartNextHand()
+    {
+        if (Chips < BetAmount) { TriggerGameOver(); return; }
+        DealNewHand();
     }
 
     private void DoDraw()
     {
         State = GameState.Drawing;
-        UpdateButtonStates();
-
-        for (int i = 0; i < 5; i++)
-            _cardNodes[i].Modulate = Colors.White;
-
+        _handArea.Enabled = false;
+        RefreshUI();
+        _cardTable.BrightenAll();
         var finalHand = _deck.DrawReplacements(_held);
-
         for (int i = 0; i < 5; i++)
         {
             if (!_held[i])
             {
-                SetCardTexture(i, finalHand[i]);
-                AnimateCardIn(i);
+                _cardTable.SetCards(finalHand);
+                _cardTable.AnimateFadeIn(i);
             }
         }
-
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, BetAmount);
-
         if (payout > 0)
         {
             _pendingPayout = payout;
-            SetMessage($"{rank}! Won {payout} chips! Click chips to collect.");
+            _hud.SetMessage($"{rank}! Won {payout} chips! Click chips to collect.");
             SpawnChipReward(payout);
             State = GameState.Settled;
-            _dealButton.Visible = false;
+            _hud.SetDealButtonVisible(false);
         }
         else
         {
-            SetMessage("No win. Click chips to bet again.");
+            _hud.SetMessage("No win. Click chips to bet again.");
             State = GameState.WaitingForBet;
             _chipStack.ShowHint("Click to bet");
-
-            if (Chips < BetAmount)
-            {
-                TriggerGameOver();
-                return;
-            }
+            if (Chips < BetAmount) { TriggerGameOver(); return; }
         }
-
         if (_progression.CheckRankUp())
-            ShowRankUp(_progression.CurrentRank);
-
-        UpdateButtonStates();
-        UpdateUI();
+            _hud.ShowOverlay($"Rank Up: {_progression.CurrentRank}!");
+        RefreshUI();
     }
 
-    private void AnimateCardIn(int index)
+    private void TriggerGameOver()
     {
-        var card = _cardNodes[index];
-        card.Modulate = new Color(1, 1, 1, 0);
+        State = GameState.GameOver;
+        _hud.ShowOverlay(DogProverbs.GetRandom());
+        _hud.SetMessage("Game Over");
+        _chipStack.HideHint();
+        RefreshUI();
+    }
 
-        var tween = CreateTween();
-        tween.TweenProperty(card, "modulate:a", 1f, DrawAnimDuration)
-            .SetEase(Tween.EaseType.Out);
+    private void ResetForNextHand()
+    {
+        State = GameState.WaitingForBet;
+        _held = new bool[5];
+        _cardTable.BrightenAll();
+        _dogVisual.ResetAppearance();
+        _hud.HideOverlay();
+        _hud.SetDealButtonVisible(true);
+        _chipStack.ShowHint("Click to bet");
+        _hud.SetMessage("Click the chips to place your bet");
+        RefreshUI();
+    }
+
+    private void ResetGame()
+    {
+        Chips = StartingChips;
+        _progression.Reset();
+        _hud.HideOverlay();
+        ResetForNextHand();
     }
 
     private void SpawnChipReward(int amount)
@@ -287,123 +236,12 @@ public partial class GameManager : Node2D
         _pendingReward = reward;
     }
 
-    private void OnChipCollected()
+    private void RefreshUI()
     {
-        _dealButton.Visible = true;
-        _pendingReward = null;
-        Chips += _pendingPayout;
-        _progression.UpdateHighScore(Chips);
-        _pendingPayout = 0;
-        UpdateUI();
-        State = GameState.WaitingForBet;
-        OnBetPlaced();
-    }
-
-    private void TriggerGameOver()
-    {
-        State = GameState.GameOver;
-        _overlay.Visible = true;
-        _centerLabel.Text = DogProverbs.GetRandom();
-        SetMessage("Game Over");
-        _chipStack.HideHint();
-        UpdateButtonStates();
-    }
-
-    private void ShowRankUp(PlayerRank rank)
-    {
-        _overlay.Visible = true;
-        _centerLabel.Text = $"Rank Up: {rank}!";
-    }
-
-    private void ResetForNextHand()
-    {
-        State = GameState.WaitingForBet;
-        _held = new bool[5];
-        for (int i = 0; i < 5; i++)
-            _cardNodes[i].Modulate = Colors.White;
-        _dogVisual.ResetAppearance();
-        _overlay.Visible = false;
-        _dealButton.Visible = true;
-        _chipStack.ShowHint("Click to bet");
-        SetMessage("Click the chips to place your bet");
-        UpdateButtonStates();
-        UpdateUI();
-    }
-
-    private void ResetGame()
-    {
-        Chips = StartingChips;
-        _progression.Reset();
-        _overlay.Visible = false;
-        ResetForNextHand();
-    }
-
-    private void UpdateButtonStates()
-    {
-        switch (State)
-        {
-            case GameState.WaitingForBet:
-                _dealButton.Disabled = false;
-                _dealButton.Text = "DEAL";
-                _drawButton.Disabled = true;
-                break;
-
-            case GameState.Dealt:
-            case GameState.Holding:
-                _dealButton.Disabled = true;
-                _drawButton.Disabled = false;
-                break;
-
-            case GameState.Drawing:
-                _dealButton.Disabled = true;
-                _drawButton.Disabled = true;
-                break;
-
-            case GameState.Settled:
-                _dealButton.Disabled = false;
-                _dealButton.Text = "NEXT HAND";
-                _drawButton.Disabled = true;
-                break;
-
-            case GameState.GameOver:
-                _dealButton.Disabled = false;
-                _dealButton.Text = "RESTART";
-                _drawButton.Disabled = true;
-                break;
-        }
-    }
-
-    private void SetCardTexture(int index, int card)
-    {
-        var path = DeckManager.CardToAssetPath(card);
-        var tex = GD.Load<Texture2D>(path);
-        if (tex != null)
-            _cardNodes[index].Texture = tex;
-        else
-            GD.PrintErr($"[Card] FAILED to load: {path}");
-    }
-
-    private void SetMessage(string msg)
-    {
-        _messageLabel.Text = msg;
-    }
-
-    private void UpdateUI()
-    {
-        _chipLabel.Text = $"Chips: {Chips}";
-        _rankLabel.Text = $"Rank: {_progression.CurrentRank}";
-        _betLabel.Text = $"Bet: {BetAmount}";
-    }
-
-    private void UpdateDebugUI()
-    {
-        _debugPanel.Visible = DebugMode;
-        _dealButton.Visible = DebugMode;
-        _drawButton.Visible = DebugMode;
-        _messageLabel.GetParent<PanelContainer>().Visible = DebugMode;
-
-        if (DebugMode)
-            _seedLabel.Text = $"Seed: {_deck.LastSeed} (click to copy)";
+        _hud.UpdateButtons(State, DebugMode);
+        _hud.UpdateInfo(Chips, _progression.CurrentRank, BetAmount);
+        _debugHud.DebugEnabled = DebugMode;
+        _debugHud.UpdateSeed(_deck.LastSeed);
     }
 
     private static string GetSignalMessage(DogSignal signal)
@@ -416,44 +254,5 @@ public partial class GameManager : Node2D
             DogSignal.TopTier => "*ears perk up* INCREDIBLE!",
             _ => "...",
         };
-    }
-
-    // 新手引导：点击空白处时，正确的交互元素会弹跳提示
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (!GuideEnabled) return;
-        if (@event is not InputEventMouseButton mb || !mb.Pressed) return;
-
-        switch (State)
-        {
-            case GameState.WaitingForBet:
-                BounceNode(_chipStack);
-                break;
-
-            case GameState.Dealt:
-            case GameState.Holding:
-                if (!_dogHint.HasGivenHint)
-                    BounceNode(_dogVisual);
-                else
-                    BounceNode(GetNode<Node2D>("HandArea"));
-                break;
-
-            case GameState.Settled:
-                if (_pendingReward != null && IsInstanceValid(_pendingReward))
-                    BounceNode(_pendingReward);
-                break;
-        }
-    }
-
-    private void BounceNode(Node2D node)
-    {
-        var tween = CreateTween();
-        var origY = node.Position.Y;
-        tween.TweenProperty(node, "position:y", origY - 12, 0.08)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Quad);
-        tween.TweenProperty(node, "position:y", origY, 0.1)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Bounce);
     }
 }

@@ -8,6 +8,10 @@
 [ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
 [ext_resource type="PackedScene" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
+[ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
+[ext_resource type="Script" uid="uid://dki6udll3canl" path="res://Scripts/DebugHUDController.cs" id="11_debug"]
+[ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
+[ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_tray"]
 content_margin_left = 12.0
@@ -76,6 +80,7 @@ horizontal_alignment = 1
 
 [node name="CardArea" type="Node2D" parent="." unique_id=1720705050]
 position = Vector2(272, 775)
+script = ExtResource("12_cardtable")
 
 [node name="Card0" type="TextureRect" parent="CardArea" unique_id=245353831]
 offset_right = 120.0
@@ -109,7 +114,11 @@ position = Vector2(-50, 1127)
 [node name="ChipStack" parent="." unique_id=1896668962 instance=ExtResource("9_chipstack")]
 position = Vector2(900, 1100)
 
+[node name="TutorialManager" type="Node" parent="." unique_id=381839165]
+script = ExtResource("13_tutorial")
+
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
+script = ExtResource("10_hud")
 
 [node name="InfoPanel" type="PanelContainer" parent="HUD" unique_id=1293237036]
 offset_left = 15.0
@@ -205,6 +214,7 @@ offset_left = 350.0
 offset_top = 10.0
 offset_right = 550.0
 offset_bottom = 90.0
+script = ExtResource("11_debug")
 
 [node name="DebugVBox" type="VBoxContainer" parent="HUD/DebugPanel" unique_id=512149623]
 layout_mode = 2
