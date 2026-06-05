@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://ccti5x3080aj6" path="res://Assets/Background/GrayA.png" id="2_rgh2o"]
 [ext_resource type="Texture2D" uid="uid://ctmy87ol03xmo" path="res://Assets/Table/FeltEmerald.png" id="2_table"]
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
-[ext_resource type="Script" uid="uid://dclwlcib85r8m" path="res://Scripts/DogVisual.cs" id="4_dog"]
+[ext_resource type="PackedScene" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="5_theme"]
 [ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
@@ -101,24 +101,7 @@ offset_left = 520.0
 offset_right = 640.0
 offset_bottom = 168.0
 
-[node name="DogArea" type="Node2D" parent="." unique_id=679074999]
-script = ExtResource("4_dog")
-
-[node name="Ears" type="Sprite2D" parent="DogArea" unique_id=1956743965]
-position = Vector2(588, 357)
-
-[node name="Head" type="Sprite2D" parent="DogArea" unique_id=2033075728]
-position = Vector2(587, 516)
-
-[node name="Eyes" type="Sprite2D" parent="DogArea" unique_id=611186822]
-position = Vector2(583, 385)
-
-[node name="Claw" type="Sprite2D" parent="DogArea" unique_id=1598980778]
-position = Vector2(577, 622)
-
-[node name="Eyewear" type="Sprite2D" parent="DogArea" unique_id=1942620464]
-
-[node name="Headwear" type="Sprite2D" parent="DogArea" unique_id=668961892]
+[node name="DogArea" parent="." instance=ExtResource("4_dog_scene")]
 
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 position = Vector2(-50, 1127)

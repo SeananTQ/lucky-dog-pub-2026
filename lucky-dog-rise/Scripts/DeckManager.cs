@@ -52,6 +52,32 @@ public class DeckManager
         return CardEvaluator.GetOptimalHold(CurrentHand);
     }
 
+    public int[] PreviewFinalHand(bool[] held)
+    {
+        // 预览补牌结果，不修改内部状态
+        var preview = (int[])FinalHand.Clone();
+        var usedCards = new HashSet<int>(CurrentHand.Concat(FinalHand));
+        int peekIndex = _dealIndex;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (!held[i])
+            {
+                while (peekIndex < 52)
+                {
+                    int card = _fullDeck[peekIndex++];
+                    if (!usedCards.Contains(card))
+                    {
+                        preview[i] = card;
+                        usedCards.Add(card);
+                        break;
+                    }
+                }
+            }
+        }
+        return preview;
+    }
+
     private HandRank RollOutcome()
     {
         // Weighted distribution: biased toward exciting near-miss outcomes

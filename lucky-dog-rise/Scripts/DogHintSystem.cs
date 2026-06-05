@@ -14,17 +14,24 @@ public enum DogSignal
 public class DogHintSystem
 {
     public bool HasGivenHint { get; set; }
+    public bool IsLocked { get; set; }
 
     public void ResetForNewHand()
     {
         HasGivenHint = false;
+        IsLocked = false;
     }
 
-    public DogSignal EvaluateHold(int[] cards, bool[] held, HandRank predeterminedRank)
+    public DogSignal EvaluateHold(int[] currentHand, bool[] held, int[] finalHand)
     {
-        // The dog knows the final outcome (predetermined rank)
-        // But it gives imprecise signals based on general quality
-        return predeterminedRank switch
+        // 狗知道补牌后的实际结果，根据最终手牌质量给信号
+        var rank = CardEvaluator.Evaluate(finalHand);
+        return RankToSignal(rank);
+    }
+
+    private static DogSignal RankToSignal(HandRank rank)
+    {
+        return rank switch
         {
             HandRank.Nothing => DogSignal.Bored,
             HandRank.JacksOrBetter => DogSignal.Happy,

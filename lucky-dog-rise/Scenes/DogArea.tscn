@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://d0enetq5iqkwr"]
+
+[ext_resource type="Script" uid="uid://dclwlcib85r8m" path="res://Scripts/DogVisual.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://c8af0q0pq0wic" path="res://Assets/Shiba/Red/Head_Chubby.png" id="2_head"]
+[ext_resource type="Texture2D" uid="uid://b4rix8fkuvdj" path="res://Assets/Shiba/Red/Eyes_Cute.png" id="3_eyes"]
+[ext_resource type="Texture2D" uid="uid://cgmat5ulvoupt" path="res://Assets/Shiba/Red/Ears_Happy.png" id="4_ears"]
+[ext_resource type="Texture2D" uid="uid://bnnsdwjfwviqr" path="res://Assets/Shiba/Red/Claw_Lucky.png" id="5_claw"]
+
+[node name="DogArea" type="Node2D" unique_id=164694611]
+script = ExtResource("1_script")
+
+[node name="Ears" type="Sprite2D" parent="." unique_id=353965843]
+position = Vector2(588, 357)
+texture = ExtResource("4_ears")
+
+[node name="Head" type="Sprite2D" parent="." unique_id=297302336]
+position = Vector2(587, 516)
+texture = ExtResource("2_head")
+
+[node name="Eyes" type="Sprite2D" parent="." unique_id=493219825]
+position = Vector2(583, 385)
+texture = ExtResource("3_eyes")
+
+[node name="Claw" type="Sprite2D" parent="." unique_id=1246649180]
+position = Vector2(577, 622)
+texture = ExtResource("5_claw")
+
+[node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
+visible = false
+
+[node name="Headwear" type="Sprite2D" parent="." unique_id=268231772]
+visible = false

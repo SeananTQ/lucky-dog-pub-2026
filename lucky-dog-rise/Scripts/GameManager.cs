@@ -172,20 +172,23 @@ public partial class GameManager : Node2D
 
         State = GameState.Holding;
         SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
+
+        // 狗给过提示后，玩家改了保留牌 → 自动戴墨镜
+        if (_dogHint.HasGivenHint && !_dogHint.IsLocked)
+        {
+            _dogHint.IsLocked = true;
+            _dogVisual.ShowSunglasses();
+            SetMessage("Dog: *puts on sunglasses* Locked in!");
+        }
     }
 
     private void OnDogClicked()
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
+        if (_dogHint.HasGivenHint) return;
 
-        if (_dogHint.HasGivenHint)
-        {
-            _dogVisual.ShowSunglasses();
-            SetMessage("Dog: *puts on sunglasses* No more hints!");
-            return;
-        }
-
-        var signal = _dogHint.EvaluateHold(_deck.CurrentHand, _held, _deck.PredeterminedRank);
+        var previewHand = _deck.PreviewFinalHand(_held);
+        var signal = _dogHint.EvaluateHold(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ShowSignal(signal);
         _dogHint.HasGivenHint = true;
         SetMessage($"Dog: {GetSignalMessage(signal)}");
