@@ -47,6 +47,14 @@ public partial class DogVisual : Node2D
         _head.Texture = GD.Load<Texture2D>(BasePath + "Head_Chubby.png");
         _eyes.Texture = GD.Load<Texture2D>(BasePath + "Eyes_Cute.png");
         _ears.Texture = GD.Load<Texture2D>(BasePath + "Ears_Happy.png");
+
+        // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
+        _head.ZIndex = 1;
+        _eyes.ZIndex = 1;
+        _ears.ZIndex = 1;
+        _eyewear.ZIndex = 1;
+        _headwear.ZIndex = 1;
+
         ShowClawBack();
         _eyewear.Visible = false;
         _headwear.Visible = false;
@@ -74,20 +82,30 @@ public partial class DogVisual : Node2D
         _eyewear.Position = SunglassesPos;
     }
 
-    // 手心（掌心朝上）
+    // 手心（掌心朝上，被桌子挡住）
+    // 层级：背景(0) < 狗头(1) < 爪子(1) < 桌子(2)
     public void ShowClawPalm()
     {
         _clawLeft.Visible = true;
         _clawRight.Visible = true;
+        _clawLeft.ZAsRelative = false;
+        _clawRight.ZAsRelative = false;
+        _clawLeft.ZIndex = 1;
+        _clawRight.ZIndex = 1;
         SetClawState(_clawLeft, "Palm");
         SetClawState(_clawRight, "Palm");
     }
 
-    // 手背（手背朝上）
+    // 手背（手背朝上，挡住桌子）
+    // 层级：背景(0) < 狗头(1) < 桌子(2) < 爪子(3)
     public void ShowClawBack()
     {
         _clawLeft.Visible = true;
         _clawRight.Visible = true;
+        _clawLeft.ZAsRelative = false;
+        _clawRight.ZAsRelative = false;
+        _clawLeft.ZIndex = 3;
+        _clawRight.ZIndex = 3;
         SetClawState(_clawLeft, "Back");
         SetClawState(_clawRight, "Back");
     }
@@ -96,6 +114,21 @@ public partial class DogVisual : Node2D
     {
         _clawLeft.Visible = false;
         _clawRight.Visible = false;
+    }
+
+    // 摇手拒绝动画（双手旋转摆动）
+    public void ShakePaw()
+    {
+        float angle = 0.25f; // ~15度
+        var tween = CreateTween().SetParallel(true);
+        tween.TweenProperty(_clawLeft, "rotation", angle, 0.06);
+        tween.TweenProperty(_clawRight, "rotation", -angle, 0.06);
+        tween.Chain().TweenProperty(_clawLeft, "rotation", -angle, 0.06);
+        tween.TweenProperty(_clawRight, "rotation", angle, 0.06);
+        tween.Chain().TweenProperty(_clawLeft, "rotation", angle * 0.6f, 0.05);
+        tween.TweenProperty(_clawRight, "rotation", -angle * 0.6f, 0.05);
+        tween.Chain().TweenProperty(_clawLeft, "rotation", 0f, 0.04);
+        tween.TweenProperty(_clawRight, "rotation", 0f, 0.04);
     }
 
     private void SetClawState(Node2D claw, string state)

@@ -36,6 +36,7 @@ public partial class CardTableController : Node2D
     public void SetHeld(int index, bool held)
     {
         _cards[index].Modulate = held ? Colors.White : DimColor;
+        AudioManager.Instance.PlaySfxByName("CardClick.wav");
     }
 
     public void AnimateFadeIn(int index)

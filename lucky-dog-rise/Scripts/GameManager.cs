@@ -68,6 +68,9 @@ public partial class GameManager : Node2D
         RefreshUI();
         _hud.SetMessage("Click the chips to place your bet");
         _chipStack.ShowHint("Click to bet");
+
+        // 启动BGM
+        AudioManager.Instance.PlayBgmByName("MainTheme.ogg");
     }
 
     // === 信号处理 ===
@@ -119,7 +122,14 @@ public partial class GameManager : Node2D
     private void OnDogClicked()
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
-        if (_dogHint.HasGivenHint) return;
+
+        if (_dogHint.HasGivenHint)
+        {
+            _dogVisual.ShakePaw();
+            _hud.SetMessage("Dog: *shakes paw* No more hints!");
+            return;
+        }
+
         var previewHand = _deck.PreviewFinalHand(_held);
         var signal = _dogHint.EvaluateHold(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ShowSignal(signal);
