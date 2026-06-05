@@ -17,6 +17,8 @@ public partial class GameManager : Node2D
 {
     private const int BetAmount = 5;
     private const int StartingChips = 100;
+    private static readonly Color DimColor = new(0.6f, 0.6f, 0.6f, 1f);
+    private const float DrawAnimDuration = 0.3f;
 
     public GameState State { get; private set; } = GameState.Idle;
     public int Chips { get; private set; }
@@ -109,10 +111,10 @@ public partial class GameManager : Node2D
         _dogHint.ResetForNewHand();
 
         for (int i = 0; i < 5; i++)
-            _cardNodes[i].Modulate = Colors.White;
-
-        for (int i = 0; i < 5; i++)
+        {
+            _cardNodes[i].Modulate = DimColor;
             SetCardTexture(i, _deck.CurrentHand[i]);
+        }
 
         State = GameState.Dealt;
         _dogVisual.ResetAppearance();
@@ -127,7 +129,9 @@ public partial class GameManager : Node2D
         if (e is not InputEventMouseButton mb || !mb.Pressed) return;
 
         _held[index] = !_held[index];
-        _cardNodes[index].Modulate = _held[index] ? new Color(1, 1, 0.5f) : Colors.White;
+
+        // Visual: held = normal, un-held = dimmed
+        _cardNodes[index].Modulate = _held[index] ? Colors.White : DimColor;
 
         State = GameState.Holding;
         SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
@@ -155,12 +159,20 @@ public partial class GameManager : Node2D
         State = GameState.Drawing;
         UpdateButtonStates();
 
+        // Clear all hold visuals
+        for (int i = 0; i < 5; i++)
+            _cardNodes[i].Modulate = Colors.White;
+
         var finalHand = _deck.DrawReplacements(_held);
 
+        // Animate new cards sliding in from below
         for (int i = 0; i < 5; i++)
         {
             if (!_held[i])
+            {
                 SetCardTexture(i, finalHand[i]);
+                AnimateCardIn(i);
+            }
         }
 
         var rank = CardEvaluator.Evaluate(finalHand);
@@ -186,6 +198,16 @@ public partial class GameManager : Node2D
 
         UpdateButtonStates();
         UpdateUI();
+    }
+
+    private void AnimateCardIn(int index)
+    {
+        var card = _cardNodes[index];
+        card.Modulate = new Color(1, 1, 1, 0);
+
+        var tween = CreateTween();
+        tween.TweenProperty(card, "modulate:a", 1f, DrawAnimDuration)
+            .SetEase(Tween.EaseType.Out);
     }
 
     private void TriggerGameOver()
