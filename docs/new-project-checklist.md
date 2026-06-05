@@ -12,7 +12,7 @@
 [application]
 config/name="项目名"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 
 [dotnet]
 project/assembly_name="项目名"
@@ -49,18 +49,16 @@ enabled=PackedStringArray("res://addons/wick/plugin.cfg")
 
 ## 4. 项目目录结构
 
-略
+（根据项目需要自行规划）
 
-
-
-## 6. C# 开发规则
+## 5. C# 开发规则
 
 ### 写代码
 
 - 直接用 Edit/Write 工具操作 `.cs` 文件
 - 节点引用用 `[Export]`，Inspector 拖拽绑定
 - 信号连接用代码 `node.Signal += Handler`
-- **不要用** `GetNode` 硬编码路径（层级变了就断）
+- `GetNode` 路径要与 .tscn 节点结构保持一致，改了结构要同步更新代码
 
 ### 挂载脚本
 

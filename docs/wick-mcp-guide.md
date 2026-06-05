@@ -13,7 +13,7 @@ Wick 是一个为 Godot 引擎设计的 MCP（Model Context Protocol）桥接工
 ```
 AI 客户端（Claude Code / Cursor / etc.）
     ↕ MCP 协议（stdio）
-Wick MCP Server（.NET 10.0 进程）
+Wick MCP Server（.NET 8.0 进程）
     ↕ TCP JSON-RPC（端口 6505）
 Godot 编辑器插件（GDScript）
     ↕ TCP（端口 7777）
@@ -105,9 +105,9 @@ dotnet build Wick.slnx --configuration Release
 | 工具 | 说明 |
 |------|------|
 | `scene_create` | 创建新 .tscn 场景文件 |
-| `scene_add_node` | 向场景添加子节点 |
+| `scene_add_node` | 向场景添加子节点（⚠️ 实测不可用，用 Write 写 .tscn 代替） |
 | `scene_set_node_properties` | 设置节点属性并保存 |
-| `scene_save` | 保存场景 |
+| `scene_save` | 保存场景（⚠️ 实测会超时，用 Write 写 .tscn 代替） |
 | `scene_load_resource` | 加载资源（纹理、材质、脚本等）并赋值给节点属性 |
 | `scene_get_tree` | 读取 .tscn 文件的场景树结构（纯文件读取，不需要 Godot 运行） |
 | `scene_get_node_properties` | 读取节点属性（纯文件读取） |
