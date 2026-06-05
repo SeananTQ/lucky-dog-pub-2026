@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" uid="uid://cgmat5ulvoupt" path="res://Assets/Shiba/Red/Ears_Happy.png" id="4_ears"]
 [ext_resource type="Texture2D" uid="uid://bnnsdwjfwviqr" path="res://Assets/Shiba/Red/Claw_Lucky.png" id="5_claw"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
+bg_color = Color(1, 1, 1, 0)
+
 [node name="DogArea" type="Node2D" unique_id=164694611]
 script = ExtResource("1_script")
 
@@ -28,5 +31,13 @@ texture = ExtResource("5_claw")
 [node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
 visible = false
 
-[node name="Headwear" type="Sprite2D" parent="." unique_id=268231772]
+[node name="Headwear" type="Sprite2D" parent="." unique_id=268961892]
 visible = false
+
+[node name="HitButton" type="Button" parent="." unique_id=950359140]
+offset_left = 300.0
+offset_top = 256.0
+offset_right = 889.0
+offset_bottom = 680.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
+flat = true

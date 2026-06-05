@@ -49,7 +49,6 @@ public partial class GameManager : Node2D
     private Label _centerLabel = null!;
 
     private DogVisual _dogVisual = null!;
-    private Button _dogButton = null!;
     private ChipStackController _chipStack = null!;
 
     public override void _Ready()
@@ -71,7 +70,6 @@ public partial class GameManager : Node2D
         _overlay = GetNode<CanvasLayer>("Overlay");
         _centerLabel = GetNode<Label>("Overlay/OverlayPanel/OverlayVBox/CenterLabel");
         _dogVisual = GetNode<DogVisual>("DogArea");
-        _dogButton = GetNode<Button>("HUD/DogButton");
         var handArea = GetNode<HandAreaController>("HandArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
 
@@ -87,7 +85,7 @@ public partial class GameManager : Node2D
 
         _dealButton.Pressed += OnDealPressed;
         _drawButton.Pressed += OnDrawPressed;
-        _dogButton.Pressed += OnDogClicked;
+        _dogVisual.DogClicked += OnDogClicked;
         handArea.HandKnocked += OnDrawPressed;
         _chipStack.BetPlaced += OnBetPlaced;
 

@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://ccti5x3080aj6" path="res://Assets/Background/GrayA.png" id="2_rgh2o"]
 [ext_resource type="Texture2D" uid="uid://ctmy87ol03xmo" path="res://Assets/Table/FeltEmerald.png" id="2_table"]
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
-[ext_resource type="PackedScene" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="5_theme"]
 [ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
@@ -101,7 +101,7 @@ offset_left = 520.0
 offset_right = 640.0
 offset_bottom = 168.0
 
-[node name="DogArea" parent="." instance=ExtResource("4_dog_scene")]
+[node name="DogArea" parent="." unique_id=23233845 instance=ExtResource("4_dog_scene")]
 
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 position = Vector2(-50, 1127)
@@ -177,7 +177,7 @@ vertical_alignment = 1
 offset_left = 370.0
 offset_top = 1010.0
 offset_right = 550.0
-offset_bottom = 1065.0
+offset_bottom = 1080.0
 theme = ExtResource("5_theme")
 text = "DEAL"
 
@@ -200,33 +200,26 @@ theme_override_font_sizes/font_size = 16
 text = "5 chips per hand"
 horizontal_alignment = 1
 
-[node name="DogButton" type="Button" parent="HUD" unique_id=1949857937]
-offset_left = 265.0
-offset_top = 222.0
-offset_right = 909.0
-offset_bottom = 724.0
-flat = true
-
-[node name="DebugPanel" type="PanelContainer" parent="HUD"]
+[node name="DebugPanel" type="PanelContainer" parent="HUD" unique_id=1189662231]
 offset_left = 350.0
 offset_top = 10.0
 offset_right = 550.0
 offset_bottom = 90.0
 
-[node name="DebugVBox" type="VBoxContainer" parent="HUD/DebugPanel"]
+[node name="DebugVBox" type="VBoxContainer" parent="HUD/DebugPanel" unique_id=512149623]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="SeedLabel" type="Button" parent="HUD/DebugPanel/DebugVBox"]
+[node name="SeedLabel" type="Button" parent="HUD/DebugPanel/DebugVBox" unique_id=2034386139]
 layout_mode = 2
-text = "Seed: --- (click to copy)"
 theme_override_font_sizes/font_size = 18
+text = "Seed: --- (click to copy)"
 flat = true
 
-[node name="SeedInput" type="LineEdit" parent="HUD/DebugPanel/DebugVBox"]
+[node name="SeedInput" type="LineEdit" parent="HUD/DebugPanel/DebugVBox" unique_id=610827349]
 layout_mode = 2
-placeholder_text = "Fixed seed (optional)"
 theme_override_font_sizes/font_size = 16
+placeholder_text = "Fixed seed (optional)"
 
 [node name="Overlay" type="CanvasLayer" parent="." unique_id=1469740645]
 layer = 10

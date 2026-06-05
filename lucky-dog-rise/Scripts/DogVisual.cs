@@ -5,12 +5,16 @@ namespace LuckyDogRise;
 
 public partial class DogVisual : Node2D
 {
+    [Signal]
+    public delegate void DogClickedEventHandler();
+
     private Sprite2D _head = null!;
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
     private Sprite2D _claw = null!;
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
+    private Button _hitButton = null!;
 
     private const string BasePath = "res://Assets/Shiba/Red/";
 
@@ -34,6 +38,8 @@ public partial class DogVisual : Node2D
         _claw = GetNode<Sprite2D>("Claw");
         _eyewear = GetNode<Sprite2D>("Eyewear");
         _headwear = GetNode<Sprite2D>("Headwear");
+        _hitButton = GetNode<Button>("HitButton");
+        _hitButton.Pressed += () => EmitSignal(SignalName.DogClicked);
     }
 
     public void ResetAppearance()
