@@ -53,18 +53,20 @@ public partial class GameManager : Node2D
 
         _dealButton = GetNode<Button>("HUD/DealButton");
         _drawButton = GetNode<Button>("HUD/DrawButton");
-        _chipLabel = GetNode<Label>("HUD/ChipLabel");
-        _rankLabel = GetNode<Label>("HUD/RankLabel");
-        _betLabel = GetNode<Label>("HUD/BetLabel");
-        _messageLabel = GetNode<Label>("HUD/MessageLabel");
+        _chipLabel = GetNode<Label>("HUD/InfoPanel/MarginContainer/HBox/VBox/ChipLabel");
+        _rankLabel = GetNode<Label>("HUD/RankPanel/RankLabel");
+        _betLabel = GetNode<Label>("HUD/InfoPanel/MarginContainer/HBox/VBox/BetLabel");
+        _messageLabel = GetNode<Label>("HUD/MessagePanel/MessageLabel");
         _overlay = GetNode<CanvasLayer>("Overlay");
-        _centerLabel = GetNode<Label>("Overlay/CenterLabel");
+        _centerLabel = GetNode<Label>("Overlay/OverlayPanel/OverlayVBox/CenterLabel");
         _dogVisual = GetNode<DogVisual>("DogArea");
         _dogButton = GetNode<Button>("HUD/DogButton");
+        var handArea = GetNode<HandAreaController>("HandArea");
 
         _dealButton.Pressed += OnDealPressed;
         _drawButton.Pressed += OnDrawPressed;
         _dogButton.Pressed += OnDogClicked;
+        handArea.HandKnocked += OnDrawPressed;
 
         for (int i = 0; i < 5; i++)
         {

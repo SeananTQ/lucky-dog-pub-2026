@@ -4,20 +4,43 @@
 [ext_resource type="Texture2D" uid="uid://ctmy87ol03xmo" path="res://Assets/Table/FeltEmerald.png" id="2_table"]
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
 [ext_resource type="Script" uid="uid://dclwlcib85r8m" path="res://Scripts/DogVisual.cs" id="4_dog"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="5_theme"]
+[ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
+[ext_resource type="Texture2D" uid="uid://ctcjoi3uvbsi5" path="res://Assets/Chip/ChipsA.png" id="7_chips"]
+[ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
-content_margin_left = 24.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_tray"]
+content_margin_left = 12.0
 content_margin_top = 12.0
-content_margin_right = 24.0
+content_margin_right = 12.0
 content_margin_bottom = 12.0
-bg_color = Color(0.345, 0.8, 0.008, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-shadow_color = Color(0, 0, 0, 0.25)
-shadow_size = 4
-shadow_offset = Vector2(0, 3)
+bg_color = Color(0, 0, 0, 0.35)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
+content_margin_left = 28.0
+content_margin_top = 12.0
+content_margin_right = 28.0
+content_margin_bottom = 12.0
+bg_color = Color(0.08, 0.15, 0.02, 0.8)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_overlay_panel"]
+content_margin_left = 50.0
+content_margin_top = 35.0
+content_margin_right = 50.0
+content_margin_bottom = 35.0
+bg_color = Color(0.05, 0.05, 0.05, 0.92)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
 
 [node name="Main" type="Node2D" unique_id=317845186]
 script = ExtResource("3_gm")
@@ -37,8 +60,22 @@ texture = ExtResource("2_table")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="CardArea" type="Node2D" parent="." unique_id=1697869153]
-position = Vector2(272, 764)
+[node name="CardTray" type="PanelContainer" parent="." unique_id=1599501574]
+offset_left = 255.0
+offset_top = 748.0
+offset_right = 945.0
+offset_bottom = 940.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_card_tray")
+
+[node name="HandLabel" type="Label" parent="CardTray" unique_id=1520048224]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.35)
+theme_override_font_sizes/font_size = 16
+text = "YOUR HAND"
+horizontal_alignment = 1
+
+[node name="CardArea" type="Node2D" parent="." unique_id=1720705050]
+position = Vector2(272, 775)
 
 [node name="Card0" type="TextureRect" parent="CardArea" unique_id=245353831]
 offset_right = 120.0
@@ -83,77 +120,108 @@ position = Vector2(577, 622)
 
 [node name="Headwear" type="Sprite2D" parent="DogArea" unique_id=668961892]
 
-[node name="HandArea" type="Node2D" parent="." unique_id=1769540683]
-position = Vector2(291, 1120)
-
-[node name="Hand" type="Sprite2D" parent="HandArea" unique_id=2063066888]
-
-[node name="Clothes" type="Sprite2D" parent="HandArea" unique_id=1416734206]
-
-[node name="Accessory" type="Sprite2D" parent="HandArea" unique_id=701568159]
-visible = false
+[node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
+position = Vector2(-50, 1127)
 
 [node name="ChipStack" type="TextureRect" parent="." unique_id=1508312576]
 offset_left = 837.0
-offset_top = 1073.0
-offset_right = 920.0
-offset_bottom = 1127.0
+offset_top = 1060.0
+offset_right = 960.0
+offset_bottom = 1140.0
+texture = ExtResource("7_chips")
+expand_mode = 3
+stretch_mode = 5
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
 
-[node name="ChipLabel" type="Label" parent="HUD" unique_id=983292623]
-offset_left = 20.0
-offset_top = 15.0
-offset_right = 250.0
-offset_bottom = 55.0
+[node name="InfoPanel" type="PanelContainer" parent="HUD" unique_id=1293237036]
+offset_left = 15.0
+offset_top = 10.0
+offset_right = 280.0
+offset_bottom = 105.0
+
+[node name="MarginContainer" type="MarginContainer" parent="HUD/InfoPanel" unique_id=1935938694]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="HUD/InfoPanel/MarginContainer" unique_id=1618375649]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ChipIcon" type="TextureRect" parent="HUD/InfoPanel/MarginContainer/HBox" unique_id=295130193]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+texture = ExtResource("6_chip")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="HUD/InfoPanel/MarginContainer/HBox" unique_id=1735390492]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ChipLabel" type="Label" parent="HUD/InfoPanel/MarginContainer/HBox/VBox" unique_id=372233980]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
 text = "Chips: 100"
-theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
-theme_override_font_sizes/font_size = 28
 
-[node name="RankLabel" type="Label" parent="HUD" unique_id=1672215976]
-offset_left = 950.0
-offset_top = 15.0
-offset_right = 1180.0
-offset_bottom = 55.0
-text = "Rank: Home Game"
-horizontal_alignment = 2
-theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
-theme_override_font_sizes/font_size = 28
-
-[node name="BetLabel" type="Label" parent="HUD" unique_id=1510145122]
-offset_left = 20.0
-offset_top = 60.0
-offset_right = 250.0
-offset_bottom = 100.0
+[node name="BetLabel" type="Label" parent="HUD/InfoPanel/MarginContainer/HBox/VBox" unique_id=498261284]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.8)
+theme_override_font_sizes/font_size = 18
 text = "Bet: 5"
-theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
-theme_override_font_sizes/font_size = 24
 
-[node name="MessageLabel" type="Label" parent="HUD" unique_id=1095193780]
-offset_left = 300.0
-offset_top = 1100.0
-offset_right = 900.0
-offset_bottom = 1160.0
-text = "Click Deal to start"
+[node name="RankPanel" type="PanelContainer" parent="HUD" unique_id=1984473747]
+offset_left = 920.0
+offset_top = 10.0
+offset_right = 1185.0
+offset_bottom = 65.0
+
+[node name="RankLabel" type="Label" parent="HUD/RankPanel" unique_id=993508188]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Rank: Home Game"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MessagePanel" type="PanelContainer" parent="HUD" unique_id=1511418603]
+offset_left = 250.0
+offset_top = 680.0
+offset_right = 950.0
+offset_bottom = 735.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_msg_panel")
+
+[node name="MessageLabel" type="Label" parent="HUD/MessagePanel" unique_id=1928995275]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Click DEAL to start"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="DealButton" type="Button" parent="HUD" unique_id=668097238]
-offset_left = 400.0
-offset_top = 960.0
-offset_right = 580.0
-offset_bottom = 1010.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+offset_left = 370.0
+offset_top = 1010.0
+offset_right = 550.0
+offset_bottom = 1065.0
+theme = ExtResource("5_theme")
 text = "DEAL"
 
-[node name="DrawButton" type="Button" parent="HUD"]
-offset_left = 620.0
-offset_top = 960.0
-offset_right = 800.0
-offset_bottom = 1010.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+[node name="DrawButton" type="Button" parent="HUD" unique_id=1068818596]
+offset_left = 650.0
+offset_top = 1010.0
+offset_right = 830.0
+offset_bottom = 1065.0
+theme = ExtResource("5_theme")
 disabled = true
 text = "DRAW"
+
+[node name="BetHint" type="Label" parent="HUD" unique_id=1704326371]
+offset_left = 470.0
+offset_top = 1072.0
+offset_right = 730.0
+offset_bottom = 1098.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.4)
+theme_override_font_sizes/font_size = 16
+text = "5 chips per hand"
+horizontal_alignment = 1
 
 [node name="DogButton" type="Button" parent="HUD" unique_id=1949857937]
 offset_left = 265.0
@@ -170,17 +238,33 @@ visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.85)
+color = Color(0, 0, 0, 0.88)
 
-[node name="CenterLabel" type="Label" parent="Overlay" unique_id=925224689]
+[node name="OverlayPanel" type="PanelContainer" parent="Overlay" unique_id=1778247929]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -40.0
-offset_right = 300.0
-offset_bottom = 40.0
+offset_left = -320.0
+offset_top = -100.0
+offset_right = 320.0
+offset_bottom = 100.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_overlay_panel")
+
+[node name="OverlayVBox" type="VBoxContainer" parent="Overlay/OverlayPanel" unique_id=1763420206]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="CenterLabel" type="Label" parent="Overlay/OverlayPanel/OverlayVBox" unique_id=2077596503]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="ContinueHint" type="Label" parent="Overlay/OverlayPanel/OverlayVBox" unique_id=1842330169]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 18
+text = "Click anywhere to continue"
+horizontal_alignment = 1

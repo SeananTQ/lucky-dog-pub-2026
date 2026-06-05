@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://bkycxynrannka"]
+
+[ext_resource type="Texture2D" uid="uid://c2wkbjesanu7i" path="res://Assets/Hand/MaleA.png" id="1_hand"]
+[ext_resource type="Texture2D" uid="uid://cuuv82mnyj8fb" path="res://Assets/Clothes/WhiteShirt_White.png" id="2_clothes"]
+[ext_resource type="Script" uid="uid://dcs7t63rqmree" path="res://Scripts/HandAreaController.cs" id="3_ctrl"]
+[ext_resource type="Texture2D" uid="uid://eh7ksitjdvp1" path="res://Assets/Accessory/F91UU.png" id="4_mwpwy"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
+bg_color = Color(1, 1, 1, 0)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="HandArea" type="Node2D" unique_id=120763373]
+script = ExtResource("3_ctrl")
+
+[node name="Hand" type="Sprite2D" parent="." unique_id=1377378991]
+position = Vector2(343, -21)
+texture = ExtResource("1_hand")
+
+[node name="Clothes" type="Sprite2D" parent="." unique_id=259657404]
+position = Vector2(141, -15)
+texture = ExtResource("2_clothes")
+
+[node name="Accessory" type="Sprite2D" parent="." unique_id=1593680809]
+position = Vector2(285, -11)
+texture = ExtResource("4_mwpwy")
+
+[node name="HitButton" type="Button" parent="." unique_id=62838072]
+offset_left = 22.0
+offset_top = -113.0
+offset_right = 664.0
+offset_bottom = 71.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
+flat = true
+metadata/_edit_use_anchors_ = true
