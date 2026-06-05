@@ -4,8 +4,12 @@ namespace LuckyDogRise;
 
 public partial class DebugHUDController : PanelContainer
 {
+    [Signal]
+    public delegate void RandomizeRequestedEventHandler();
+
     private Button _seedLabel = null!;
     private LineEdit _seedInput = null!;
+    private Button _randomizeButton = null!;
 
     public bool DebugEnabled { get; set; } = true;
     public int CurrentSeed { get; set; }
@@ -14,7 +18,9 @@ public partial class DebugHUDController : PanelContainer
     {
         _seedLabel = GetNode<Button>("DebugVBox/SeedLabel");
         _seedInput = GetNode<LineEdit>("DebugVBox/SeedInput");
+        _randomizeButton = GetNode<Button>("DebugVBox/RandomizeButton");
         _seedLabel.Pressed += OnSeedClicked;
+        _randomizeButton.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
     }
 
     public override void _Process(double delta)

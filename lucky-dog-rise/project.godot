@@ -15,6 +15,14 @@ run/main_scene="res://Scenes/Main.tscn"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://1igy362olshj"
+
+[autoload]
+
+AudioManager="*res://Scripts/AudioManager.cs"
+
 [display]
 
 window/size/viewport_width=1200
@@ -23,10 +31,6 @@ window/size/viewport_height=1200
 [dotnet]
 
 project/assembly_name="LuckyDogRise"
-
-[autoload]
-
-AudioManager="*res://Scripts/AudioManager.cs"
 
 [editor_plugins]
 

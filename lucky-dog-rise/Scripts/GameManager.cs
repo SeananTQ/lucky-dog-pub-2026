@@ -21,7 +21,7 @@ public partial class GameManager : Node2D
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
-    public bool DebugMode { get; set; } = false;
+    public bool DebugMode { get; set; } = true;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
@@ -63,6 +63,7 @@ public partial class GameManager : Node2D
         _handArea.HandKnocked += OnDrawPressed;
         _chipStack.BetPlaced += OnBetPlaced;
         _cardTable.ConnectCardInput(this, nameof(OnCardInput));
+        _debugHud.RandomizeRequested += OnRandomizeScene;
 
         RefreshUI();
         _hud.SetMessage("Click the chips to place your bet");
@@ -257,5 +258,42 @@ public partial class GameManager : Node2D
             DogSignal.TopTier => "*ears perk up* INCREDIBLE!",
             _ => "...",
         };
+    }
+
+    private void OnRandomizeScene()
+    {
+        var rng = new Random();
+
+        var bg = GetRandomTexture("res://Assets/Background/", rng);
+        if (bg != null) GetNode<TextureRect>("Background").Texture = bg;
+
+        var table = GetRandomTexture("res://Assets/Table/", rng);
+        if (table != null) GetNode<TextureRect>("Table").Texture = table;
+
+        var clothes = GetRandomTexture("res://Assets/Clothes/", rng);
+        if (clothes != null) _handArea.SetClothes(clothes);
+
+        var accessory = GetRandomTexture("res://Assets/Accessory/", rng);
+        if (accessory != null) _handArea.SetAccessory(accessory);
+    }
+
+    private static Texture2D GetRandomTexture(string dirPath, Random rng)
+    {
+        var dir = DirAccess.Open(dirPath);
+        if (dir == null) return null;
+
+        var files = new System.Collections.Generic.List<string>();
+        dir.ListDirBegin();
+        string fileName = dir.GetNext();
+        while (fileName != "")
+        {
+            if (fileName.EndsWith(".png"))
+                files.Add(fileName);
+            fileName = dir.GetNext();
+        }
+        dir.ListDirEnd();
+
+        if (files.Count == 0) return null;
+        return GD.Load<Texture2D>(dirPath + files[rng.Next(files.Count)]);
     }
 }

@@ -203,6 +203,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 placeholder_text = "Fixed seed (optional)"
 
+[node name="RandomizeButton" type="Button" parent="HUD/DebugPanel/DebugVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Randomize Scene"
+
 [node name="Overlay" type="CanvasLayer" parent="." unique_id=1469740645]
 layer = 10
 visible = false

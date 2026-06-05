@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxf2o401udmyw"
-path="res://.godot/imported/WhiteBusinessSuit_LightGray.png-36729400a8de9bbbefb7a730dce655c8.ctex"
+path="res://.godot/imported/WhiteBusinessSuit_LightGray.png-5f63b49a06caf04aa91355f85726c1d7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Accessory/WhiteBusinessSuit_LightGray.png"
-dest_files=["res://.godot/imported/WhiteBusinessSuit_LightGray.png-36729400a8de9bbbefb7a730dce655c8.ctex"]
+source_file="res://Assets/Clothes/WhiteBusinessSuit_LightGray.png"
+dest_files=["res://.godot/imported/WhiteBusinessSuit_LightGray.png-5f63b49a06caf04aa91355f85726c1d7.ctex"]
 
 [params]
 

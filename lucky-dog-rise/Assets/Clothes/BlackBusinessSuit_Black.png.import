@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bixutxwtl0lco"
-path="res://.godot/imported/BlackBusinessSuit_Black.png-0f4f3e9e1a846eb852b31054e70bbb57.ctex"
+path="res://.godot/imported/BlackBusinessSuit_Black.png-1d07b5a1366f5263d24adf6524f99e26.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Accessory/BlackBusinessSuit_Black.png"
-dest_files=["res://.godot/imported/BlackBusinessSuit_Black.png-0f4f3e9e1a846eb852b31054e70bbb57.ctex"]
+source_file="res://Assets/Clothes/BlackBusinessSuit_Black.png"
+dest_files=["res://.godot/imported/BlackBusinessSuit_Black.png-1d07b5a1366f5263d24adf6524f99e26.ctex"]
 
 [params]
 
