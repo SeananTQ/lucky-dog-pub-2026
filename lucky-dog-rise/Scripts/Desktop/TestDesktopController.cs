@@ -5,57 +5,43 @@ namespace LuckyDogRise;
 
 /// <summary>
 /// 透明窗口测试场景控制器
+/// 使用 WS_EX_TRANSPARENT 动态开关实现"透明区域穿透、交互区捕获点击"。
 /// </summary>
 public partial class TestDesktopController : Node2D
 {
     private bool _isDragging;
     private bool _potentialDrag;
+    private bool _isClickThrough = true;
     private Vector2I _mouseScreenStart;
     private Vector2I _windowPosStart;
+    private Button _quitButton = null!;
 
     private const float DragThreshold = 5f;
 
+    // 狗头在 DogArea 内部坐标约 (588,516)，25% 缩放后约 (147,129)，交互区放大些
+    private static readonly Rect2 DogHitRect = new(100, 70, 120, 120);
+
     public override void _Ready()
     {
-        // 设置透明窗口
+        _quitButton = GetNode<Button>("CanvasLayer/QuitButton");
+        _quitButton.Pressed += () => GetTree().Quit();
+
         SetupTransparentWindow();
-
-        // 退出按钮
-        GetNode<Button>("CanvasLayer/QuitButton").Pressed += () => GetTree().Quit();
     }
 
-    private void SetupTransparentWindow()
+    public override void _Process(double _)
     {
-        // 透明背景
-        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
-        // 置顶
-        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
+        var mouseScreen = DisplayServer.MouseGetPosition();
+        var windowPos = DisplayServer.WindowGetPosition();
+        var localPos = mouseScreen - windowPos;
 
-        // 窗口尺寸（刚好容纳缩放后的狗 + 留白）
-        DisplayServer.WindowSetSize(new Vector2I(400, 400));
-        // 居中
-        var screenSize = DisplayServer.ScreenGetSize();
-        DisplayServer.WindowSetPosition((screenSize - new Vector2I(400, 400)) / 2);
+        bool overInteractive = _quitButton.GetGlobalRect().HasPoint(localPos)
+                              || DogHitRect.HasPoint(localPos);
 
-        // 透明背景渲染
-        RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
-
-        // Windows API: 层叠窗口
-        EnableLayeredWindow();
-    }
-
-    private void EnableLayeredWindow()
-    {
-        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
-        if (hWnd == IntPtr.Zero) return;
-
-        // WS_EX_LAYERED
-        var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
-        WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_LAYERED);
-
-        // 置顶
-        WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
-            WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
+        if (_isClickThrough && overInteractive)
+            SetClickThrough(false);
+        else if (!_isClickThrough && !overInteractive && !_isDragging)
+            SetClickThrough(true);
     }
 
     public override void _Input(InputEvent @event)
@@ -64,7 +50,6 @@ public partial class TestDesktopController : Node2D
         {
             if (mb.Pressed)
             {
-                // 点击任意位置都允许拖拽
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();
                 _potentialDrag = true;
@@ -81,7 +66,10 @@ public partial class TestDesktopController : Node2D
         {
             var delta = DisplayServer.MouseGetPosition() - _mouseScreenStart;
             if (Mathf.Abs(delta.X) > DragThreshold || Mathf.Abs(delta.Y) > DragThreshold)
+            {
                 _isDragging = true;
+                SetClickThrough(false); // 拖拽时关闭穿透
+            }
 
             if (_isDragging)
             {
@@ -89,5 +77,46 @@ public partial class TestDesktopController : Node2D
                 GetViewport().SetInputAsHandled();
             }
         }
+    }
+
+    private void SetupTransparentWindow()
+    {
+        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
+        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
+
+        DisplayServer.WindowSetSize(new Vector2I(400, 400));
+        var screenSize = DisplayServer.ScreenGetSize();
+        DisplayServer.WindowSetPosition((screenSize - new Vector2I(400, 400)) / 2);
+
+        RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
+
+        EnableLayeredWindow();
+    }
+
+    private void EnableLayeredWindow()
+    {
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd == IntPtr.Zero) return;
+
+        var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
+        WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_LAYERED | WindowNative.WS_EX_TRANSPARENT);
+
+        WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
+            WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
+
+        _isClickThrough = true;
+    }
+
+    private void SetClickThrough(bool enabled)
+    {
+        _isClickThrough = enabled;
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd == IntPtr.Zero) return;
+
+        var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
+        if (enabled)
+            WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_TRANSPARENT);
+        else
+            WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style & ~WindowNative.WS_EX_TRANSPARENT);
     }
 }
