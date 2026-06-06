@@ -25,8 +25,8 @@ AudioManager="*res://Scripts/AudioManager.cs"
 
 [display]
 
-window/size/viewport_width=1200
-window/size/viewport_height=1200
+window/size/viewport_width=1900
+window/size/viewport_height=1550
 
 [dotnet]
 
@@ -48,5 +48,5 @@ rendering_device/driver.windows="d3d12"
 
 size/viewport_width=1200
 size/viewport_height=1200
-size/window_width_override=1200
-size/window_height_override=1200
+size/window_width_override=1900
+size/window_height_override=1550
