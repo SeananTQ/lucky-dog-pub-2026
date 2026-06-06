@@ -38,7 +38,7 @@ public partial class CardTableController : Node2D
 
     public void DealCards(int[] hand)
     {
-        float perCardDuration = 0.55f; // 每张牌完整的动画时长
+        float perCardDuration = 0.15f; // 每张牌间隔（小于总时长就有重叠）
         for (int i = 0; i < CardCount; i++)
         {
             _cards[i].SetCard(hand[i], i);

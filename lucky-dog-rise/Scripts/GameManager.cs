@@ -159,7 +159,8 @@ public partial class GameManager : Node2D
         _cardTable.DealCards(_deck.CurrentHand);
         State = GameState.Dealt;
         _dogVisual.ResetAppearance();
-        _handArea.Enabled = true;
+        _handArea.Enabled = false;  // 发牌动画期间禁止敲桌
+        GetTree().CreateTimer(1.1f).Timeout += () => _handArea.Enabled = true;
         _hud.SetMessage("Click cards to HOLD, then knock to draw");
         RefreshUI();
     }
