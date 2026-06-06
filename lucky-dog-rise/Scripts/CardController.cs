@@ -14,6 +14,8 @@ public partial class CardController : Node2D
     private Sprite2D _front = null!;
     private Sprite2D _back = null!;
     private Button _button = null!;
+    private Node2D _body = null!;
+    private Sprite2D _shadow = null!;
 
     public int CardIndex { get; set; }
     public int CardValue { get; private set; } = -1;
@@ -21,9 +23,11 @@ public partial class CardController : Node2D
 
     public override void _Ready()
     {
-        _front = GetNode<Sprite2D>("Front");
-        _back = GetNode<Sprite2D>("Back");
-        _button = GetNode<Button>("ClickButton");
+        _body = GetNode<Node2D>("CardBody");
+        _shadow = GetNode<Sprite2D>("Shadow");
+        _front = GetNode<Sprite2D>("CardBody/Front");
+        _back = GetNode<Sprite2D>("CardBody/Back");
+        _button = GetNode<Button>("CardBody/ClickButton");
         _button.Pressed += () => EmitSignal(SignalName.Clicked, CardIndex);
 
         ShowBack();
@@ -65,38 +69,63 @@ public partial class CardController : Node2D
         _back.Modulate = Colors.White;
     }
 
-    // 发牌动画：第 delay 秒后开始动画
-    // delay 由 CardTableController 传入，控制每张牌依次出现的间隔
+
+    /// <summary>
+    ///  动画这里的行注释不要删，方便后期调整动画细节
+    /// 发牌动画：第 delay 秒后开始动画
+    /// </summary>
+    /// <param name="delay"></param>
     public void AnimateDeal(float delay)
     {
-        var targetPos = Position;           // 卡牌最终位置（在 CardArea 中的局部坐标）
-        Scale = Vector2.Zero;               // 初始不可见
+        _body.Position = Vector2.Zero;
+        _body.Scale = Vector2.Zero;
+        _body.Modulate = Colors.White;
+        _shadow.Scale = Vector2.One;
+        _shadow.Modulate = new Color(0, 0, 0, 0.3f);
         ShowBack();
 
-        // 用 Timer 错开实际播放时间，避免 Godot 多 Tween 同步问题
         GetTree().CreateTimer(delay).Timeout += () =>
         {
-            Position = new Vector2(targetPos.X, targetPos.Y - 80);  // 起始位置：比最终位置高 80px
-            Scale = new Vector2(1.3f, 1.3f);    // 起始缩放：1.3 倍（从大变小）
-            Modulate = new Color(1, 1, 1, 0);   // 起始完全透明（从虚到实）
+            // CardBody 在高处的起始状态
+            _body.Position = new Vector2(0, -80);
+            _body.Scale = new Vector2(1.3f, 1.3f);
+            //_body.Modulate = new Color(1, 1, 1, 0);
 
-            // 下滑 + 缩小 + 显现
+            // 阴影：起始小 + 淡，落地点大 + 实
+            _shadow.Scale = new Vector2(0.8f, 0.8f);
+            _shadow.Modulate = new Color(0, 0, 0, 0.7f);
+            _shadow.Position = new Vector2(0, 30);
+
+            // 下滑 + 缩小 + 显现 + 阴影变化（并行）
             var slideTween = CreateTween().SetParallel(true);
-            slideTween.TweenProperty(this, "position", targetPos, DealSlideDuration)
+            slideTween.TweenProperty(_body, "position", Vector2.Zero, DealSlideDuration)
                 .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-            slideTween.TweenProperty(this, "scale", Vector2.One, DealSlideDuration)
+            slideTween.TweenProperty(_body, "scale", Vector2.One, DealSlideDuration)
                 .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-            slideTween.TweenProperty(this, "modulate:a", 1f, DealSlideDuration)
+            //slideTween.TweenProperty(_body, "modulate:a", 1f, DealSlideDuration)
+            //    .SetEase(Tween.EaseType.Out);
+
+            slideTween.TweenProperty(_shadow, "position", Vector2.Zero, DealSlideDuration)
+    .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+            slideTween.TweenProperty(_shadow, "scale", new Vector2(1f, 1f), DealSlideDuration)
+                .SetEase(Tween.EaseType.Out);
+            slideTween.TweenProperty(_shadow, "modulate:a", 1f, DealSlideDuration)
                 .SetEase(Tween.EaseType.Out);
 
-            // 翻转（下滑结束后）
+            // 翻转（下滑结束后，阴影同步缩小再恢复）
             GetTree().CreateTimer(DealSlideDuration).Timeout += () =>
             {
-                var flipTween = CreateTween();
-                flipTween.TweenProperty(this, "scale:x", 0f, FlipDuration)
+                var flipTween = CreateTween().SetParallel(true);
+                flipTween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
                     .SetEase(Tween.EaseType.In);
+                flipTween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
+                    .SetEase(Tween.EaseType.In);
+                flipTween.Chain();
                 flipTween.TweenCallback(Callable.From(() => ShowFront()));
-                flipTween.TweenProperty(this, "scale:x", 1f, FlipDuration)
+                flipTween.Chain().SetParallel(true);
+                flipTween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
+                    .SetEase(Tween.EaseType.Out);
+                flipTween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
                     .SetEase(Tween.EaseType.Out);
             };
         };
@@ -106,14 +135,14 @@ public partial class CardController : Node2D
     public void AnimateReplace()
     {
         ResetModulate();
-        Scale = Vector2.One;
+        _body.Scale = Vector2.One;
         ShowBack();
 
         var tween = CreateTween();
-        tween.TweenProperty(this, "scale:x", 0f, FlipDuration)
+        tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
         tween.TweenCallback(Callable.From(() => ShowFront()));
-        tween.TweenProperty(this, "scale:x", 1f, FlipDuration)
+        tween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
             .SetEase(Tween.EaseType.Out);
     }
 }

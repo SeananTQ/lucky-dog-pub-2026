@@ -1,20 +1,26 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://d0xhu7202frtj"]
 
-[ext_resource type="Script" path="res://Scripts/CardController.cs" id="1_ctrl"]
-[ext_resource type="Texture2D" path="res://Assets/Card/Back_Color1.png" id="2_back"]
+[ext_resource type="Script" uid="uid://duw70n1edgmeh" path="res://Scripts/CardController.cs" id="1_ctrl"]
+[ext_resource type="Texture2D" uid="uid://b4j7rref16kc6" path="res://Assets/Card/Back_Color1.png" id="2_back"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
 
-[node name="Card" type="Node2D"]
+[node name="Card" type="Node2D" unique_id=1930200579]
 script = ExtResource("1_ctrl")
 
-[node name="Front" type="Sprite2D" parent="."]
-
-[node name="Back" type="Sprite2D" parent="."]
+[node name="Shadow" type="Sprite2D" parent="." unique_id=795269555]
+self_modulate = Color(0, 0, 0, 1)
 texture = ExtResource("2_back")
 
-[node name="ClickButton" type="Button" parent="."]
+[node name="CardBody" type="Node2D" parent="." unique_id=1291110750]
+
+[node name="Front" type="Sprite2D" parent="CardBody" unique_id=306387111]
+
+[node name="Back" type="Sprite2D" parent="CardBody" unique_id=1733872990]
+texture = ExtResource("2_back")
+
+[node name="ClickButton" type="Button" parent="CardBody" unique_id=1520336561]
 offset_left = -60.0
 offset_top = -84.0
 offset_right = 60.0
