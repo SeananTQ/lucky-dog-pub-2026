@@ -30,7 +30,7 @@ public partial class GameManager : Node2D
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
     private ProgressionManager _progression = null!;
-    private bool[] _held = new bool[5];
+    private bool[] _held = [true, true, true, true, true];
 
     private HUDController _hud = null!;
     private DebugHUDController _debugHud = null!;
@@ -153,7 +153,7 @@ public partial class GameManager : Node2D
     {
         Chips -= BetAmount;
         _deck.Deal();
-        _held = new bool[5];
+        _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
         _chipStack.HideHint();
         _cardTable.DealCards(_deck.CurrentHand);
@@ -213,7 +213,7 @@ public partial class GameManager : Node2D
     private void ResetForNextHand()
     {
         State = GameState.WaitingForBet;
-        _held = new bool[5];
+        _held = [true, true, true, true, true];
         _cardTable.BrightenAll();
         _dogVisual.ResetAppearance();
         _hud.HideOverlay();

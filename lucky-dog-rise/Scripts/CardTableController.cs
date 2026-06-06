@@ -28,6 +28,14 @@ public partial class CardTableController : Node2D
             card.Position = new Vector2(startX + i * (CardWidth + CardGap), 0);
             _cards[i] = card;
         }
+
+        SetCardsVisible(false);
+    }
+
+    private void SetCardsVisible(bool visible)
+    {
+        for (int i = 0; i < CardCount; i++)
+            _cards[i].Visible = visible;
     }
 
     private void OnCardClicked(int index)
@@ -38,13 +46,13 @@ public partial class CardTableController : Node2D
 
     public void DealCards(int[] hand)
     {
-        float perCardDuration = 0.2f; // 每张牌间隔（小于总时长就有重叠）
+        SetCardsVisible(true);
+        float perCardDuration = 0.2f;
         for (int i = 0; i < CardCount; i++)
         {
             _cards[i].SetCard(hand[i], i);
             _cards[i].ResetModulate();
             _cards[i].ShowBack();
-            GD.Print($"[Deal] Card {i} delay = {i * perCardDuration}s");
             _cards[i].AnimateDeal(i * perCardDuration);
         }
     }
@@ -66,19 +74,10 @@ public partial class CardTableController : Node2D
         _cards[index].SetHeld(held);
     }
 
-    public void DimAll()
-    {
-        for (int i = 0; i < CardCount; i++)
-            _cards[i].SetHeld(false);
-    }
-
     public void BrightenAll()
     {
         for (int i = 0; i < CardCount; i++)
-        {
-            _cards[i].SetHeld(true);
             _cards[i].ResetModulate();
-        }
     }
 
     public CardController GetCard(int index) => _cards[index];

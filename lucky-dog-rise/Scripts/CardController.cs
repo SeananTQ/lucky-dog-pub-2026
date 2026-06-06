@@ -7,7 +7,6 @@ public partial class CardController : Node2D
     [Signal]
     public delegate void ClickedEventHandler(int index);
 
-    private static readonly Color DimColor = new(0.6f, 0.6f, 0.6f, 1f);
     private const float FlipDuration = 0.08f;
     private const float DealSlideDuration = 0.25f;
 
@@ -59,8 +58,10 @@ public partial class CardController : Node2D
     public void SetHeld(bool held)
     {
         IsHeld = held;
-        _front.Modulate = held ? Colors.White : DimColor;
-        _back.Modulate = held ? Colors.White : DimColor;
+        if (held)
+            ShowFront();
+        else
+            AnimateDiscard();
     }
 
     public void ResetModulate()
@@ -129,6 +130,21 @@ public partial class CardController : Node2D
                     .SetEase(Tween.EaseType.Out);
             };
         };
+    }
+
+    // 弃牌动画：翻转显示卡背
+    public void AnimateDiscard()
+    {
+        ResetModulate();
+        _body.Scale = Vector2.One;
+        ShowFront();
+
+        var tween = CreateTween();
+        tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
+            .SetEase(Tween.EaseType.In);
+        tween.TweenCallback(Callable.From(() => ShowBack()));
+        tween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
+            .SetEase(Tween.EaseType.Out);
     }
 
     // 补牌动画：翻转显示新牌面
