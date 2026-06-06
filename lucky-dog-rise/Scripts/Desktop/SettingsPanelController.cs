@@ -10,7 +10,7 @@ public partial class SettingsPanelController : CanvasLayer
     private Tween _tween;
 
     private const float PanelWidth = 280f;
-    private const float PanelHeight = 140f;
+    private const float PanelHeight = 190f;
 
     public override void _Ready()
     {
@@ -140,6 +140,25 @@ public partial class SettingsPanelController : CanvasLayer
         _audioToggle.Toggled += OnAudioToggled;
         audioRow.AddChild(_audioToggle);
         rootVBox.AddChild(audioRow);
+
+        // 分隔线
+        var sep2 = new HSeparator();
+        rootVBox.AddChild(sep2);
+
+        // 退出游戏行
+        var quitRow = new HBoxContainer();
+        var quitLabel = new Label();
+        quitLabel.Text = "Quit Game";
+        quitLabel.AddThemeFontSizeOverride("font_size", 16);
+        quitLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        quitRow.AddChild(quitLabel);
+
+        var quitBtn = new Button();
+        quitBtn.Text = "Quit";
+        quitBtn.AddThemeFontSizeOverride("font_size", 14);
+        quitBtn.Pressed += () => GetTree().Quit();
+        quitRow.AddChild(quitBtn);
+        rootVBox.AddChild(quitRow);
 
         _panel.AddChild(rootVBox);
         AddChild(_panel);
