@@ -59,7 +59,7 @@ public partial class CardController : Node2D
     {
         IsHeld = held;
         if (held)
-            ShowFront();
+            AnimateRehold();
         else
             AnimateDiscard();
     }
@@ -132,6 +132,27 @@ public partial class CardController : Node2D
         };
     }
 
+    // 反悔翻回：背面→正面（与阴影同步）
+    public void AnimateRehold()
+    {
+        ResetModulate();
+        _body.Scale = Vector2.One;
+        _shadow.Scale = Vector2.One;
+
+        var tween = CreateTween().SetParallel(true);
+        tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
+            .SetEase(Tween.EaseType.In);
+        tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
+            .SetEase(Tween.EaseType.In);
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() => ShowFront()));
+        tween.Chain().SetParallel(true);
+        tween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
+            .SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
+            .SetEase(Tween.EaseType.Out);
+    }
+
     // 弃牌动画：翻转显示卡背
     public void AnimateDiscard()
     {
@@ -147,18 +168,25 @@ public partial class CardController : Node2D
             .SetEase(Tween.EaseType.Out);
     }
 
-    // 补牌动画：翻转显示新牌面
+    // 补牌翻转（与阴影同步，模仿发牌翻转的风格）
     public void AnimateReplace()
     {
         ResetModulate();
         _body.Scale = Vector2.One;
+        _shadow.Scale = Vector2.One;
         ShowBack();
 
-        var tween = CreateTween();
+        var tween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
+        tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
+            .SetEase(Tween.EaseType.In);
+        tween.Chain();
         tween.TweenCallback(Callable.From(() => ShowFront()));
+        tween.Chain().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
+            .SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
             .SetEase(Tween.EaseType.Out);
     }
 }

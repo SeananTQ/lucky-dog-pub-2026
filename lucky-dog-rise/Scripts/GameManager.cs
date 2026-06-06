@@ -21,7 +21,7 @@ public partial class GameManager : Node2D
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
-    public bool DebugMode { get; set; } = true;
+    public bool DebugMode { get; set; } = false;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;

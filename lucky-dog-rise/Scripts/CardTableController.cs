@@ -59,12 +59,18 @@ public partial class CardTableController : Node2D
 
     public void ReplaceCards(int[] finalHand, bool[] held)
     {
+        float perCardDelay = 0.2f;
+        int replaced = 0;
         for (int i = 0; i < CardCount; i++)
         {
             if (!held[i])
             {
-                _cards[i].SetCard(finalHand[i], i);
-                _cards[i].AnimateReplace();
+                int idx = i;
+                _cards[idx].SetCard(finalHand[idx], idx);
+                float delay = replaced * perCardDelay;
+                GetTree().CreateTimer(delay).Timeout += () =>
+                    _cards[idx].AnimateReplace();
+                replaced++;
             }
         }
     }
