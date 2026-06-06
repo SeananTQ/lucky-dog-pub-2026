@@ -37,8 +37,6 @@ public partial class WindowManager : Node
     {
         // 透明背景
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
-        // 无边框
-        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Borderless, true);
         // 置顶
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
 
@@ -58,15 +56,11 @@ public partial class WindowManager : Node
         var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
         if (hWnd == IntPtr.Zero) return;
 
-        // 追加 WS_EX_LAYERED 样式
+        // WS_EX_LAYERED 确保 per-pixel alpha
         var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
         WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_LAYERED);
 
-        // DWM 扩展整个客户区
-        var margins = new WindowNative.Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
-        WindowNative.DwmExtendFrameIntoClientArea(hWnd, ref margins);
-
-        // 重新置顶
+        // 置顶
         WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
             WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
     }

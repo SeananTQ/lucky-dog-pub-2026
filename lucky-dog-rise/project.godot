@@ -27,6 +27,10 @@ AudioManager="*res://Scripts/AudioManager.cs"
 
 window/size/viewport_width=1900
 window/size/viewport_height=1550
+window/size/borderless=true
+window/size/always_on_top=true
+window/size/transparent=true
+window/per_pixel_transparency/allowed=true
 
 [dotnet]
 
@@ -43,6 +47,7 @@ enabled=PackedStringArray("res://addons/wick/plugin.cfg")
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+viewport/transparent_background=true
 
 [window]
 
@@ -50,3 +55,6 @@ size/viewport_width=1200
 size/viewport_height=1200
 size/window_width_override=1900
 size/window_height_override=1550
+size/transparent=true
+size/borderless=true
+size/always_on_top=true
