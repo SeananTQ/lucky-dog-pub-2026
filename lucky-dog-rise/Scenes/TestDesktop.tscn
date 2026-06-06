@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://dpeyifod7bc1i"]
+
+[ext_resource type="Script" uid="uid://c3k3sg2qgwsir" path="res://Scripts/Desktop/TestDesktopController.cs" id="1_test"]
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="2_dog"]
+
+[node name="TestDesktop" type="Node2D" unique_id=1675773000]
+script = ExtResource("1_test")
+
+[node name="DogArea" parent="." unique_id=786314185 instance=ExtResource("2_dog")]
+scale = Vector2(0.25, 0.25)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1004321850]
+
+[node name="QuitButton" type="Button" parent="CanvasLayer" unique_id=2108124690]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 110.0
+offset_bottom = 50.0
+text = "Quit"
