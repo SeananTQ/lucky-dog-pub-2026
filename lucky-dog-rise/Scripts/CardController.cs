@@ -28,6 +28,7 @@ public partial class CardController : Node2D
         _back = GetNode<Sprite2D>("CardBody/Back");
         _button = GetNode<Button>("CardBody/ClickButton");
         _button.Pressed += () => EmitSignal(SignalName.Clicked, CardIndex);
+        _shadow.Visible = false;
 
         ShowBack();
     }
@@ -81,7 +82,7 @@ public partial class CardController : Node2D
         _body.Position = Vector2.Zero;
         _body.Scale = Vector2.Zero;
         _body.Modulate = Colors.White;
-        _shadow.Scale = Vector2.One;
+        _shadow.Scale = Vector2.Zero;
         _shadow.Modulate = new Color(0, 0, 0, 0.3f);
         ShowBack();
 
@@ -93,6 +94,7 @@ public partial class CardController : Node2D
             //_body.Modulate = new Color(1, 1, 1, 0);
 
             // 阴影：起始小 + 淡，落地点大 + 实
+            _shadow.Visible = true;
             _shadow.Scale = new Vector2(0.8f, 0.8f);
             _shadow.Modulate = new Color(0, 0, 0, 0.7f);
             _shadow.Position = new Vector2(0, 30);
@@ -128,6 +130,8 @@ public partial class CardController : Node2D
                     .SetEase(Tween.EaseType.Out);
                 flipTween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
                     .SetEase(Tween.EaseType.Out);
+                flipTween.Chain();
+                flipTween.TweenCallback(Callable.From(() => _shadow.Visible = false));
             };
         };
     }
@@ -138,6 +142,7 @@ public partial class CardController : Node2D
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
+        _shadow.Visible = true;
 
         var tween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
@@ -151,21 +156,33 @@ public partial class CardController : Node2D
             .SetEase(Tween.EaseType.Out);
         tween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
             .SetEase(Tween.EaseType.Out);
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() => _shadow.Visible = false));
     }
 
-    // 弃牌动画：翻转显示卡背
+    // 弃牌动画：翻转显示卡背（与阴影同步）
     public void AnimateDiscard()
     {
         ResetModulate();
         _body.Scale = Vector2.One;
+        _shadow.Scale = Vector2.One;
+        _shadow.Visible = true;
         ShowFront();
 
-        var tween = CreateTween();
+        var tween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
+        tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
+            .SetEase(Tween.EaseType.In);
+        tween.Chain();
         tween.TweenCallback(Callable.From(() => ShowBack()));
+        tween.Chain().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 1f, FlipDuration)
             .SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
+            .SetEase(Tween.EaseType.Out);
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() => _shadow.Visible = false));
     }
 
     // 补牌翻转（与阴影同步，模仿发牌翻转的风格）
@@ -174,6 +191,7 @@ public partial class CardController : Node2D
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
+        _shadow.Visible = true;
         ShowBack();
 
         var tween = CreateTween().SetParallel(true);
@@ -188,5 +206,7 @@ public partial class CardController : Node2D
             .SetEase(Tween.EaseType.Out);
         tween.TweenProperty(_shadow, "scale:x", 1f, FlipDuration)
             .SetEase(Tween.EaseType.Out);
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() => _shadow.Visible = false));
     }
 }

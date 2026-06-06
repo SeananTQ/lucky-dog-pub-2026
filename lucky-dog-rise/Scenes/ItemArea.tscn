@@ -31,6 +31,7 @@ position = Vector2(5, -82)
 texture = ExtResource("3_tea")
 
 [node name="Tumbler" type="Sprite2D" parent="." unique_id=316289477]
+visible = false
 position = Vector2(0, -93)
 texture = ExtResource("4_tumbler")
 
@@ -40,7 +41,6 @@ position = Vector2(14, -93)
 texture = ExtResource("5_whisky")
 
 [node name="WhiskyCagar" type="Sprite2D" parent="." unique_id=2089806637]
-visible = false
 position = Vector2(13, -149)
 texture = ExtResource("6_whiskyc")
 
