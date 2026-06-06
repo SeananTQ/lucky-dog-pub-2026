@@ -4,65 +4,82 @@ namespace LuckyDogRise;
 
 public partial class CardTableController : Node2D
 {
-    private static readonly Color DimColor = new(0.6f, 0.6f, 0.6f, 1f);
-    private const float FadeInDuration = 0.3f;
+    [Signal]
+    public delegate void CardClickedEventHandler(int index);
 
-    private TextureRect[] _cards = new TextureRect[5];
+    private static readonly PackedScene CardScene = GD.Load<PackedScene>("res://Scenes/Prefabs/Card.tscn");
+    private const int CardCount = 5;
+    private const float CardWidth = 120f;
+    private const float CardGap = 12f;
+
+    private CardController[] _cards = new CardController[5];
 
     public override void _Ready()
     {
-        for (int i = 0; i < 5; i++)
-            _cards[i] = GetNode<TextureRect>($"Card{i}");
+        float totalWidth = CardCount * CardWidth + (CardCount - 1) * CardGap;
+        float startX = -totalWidth / 2f + CardWidth / 2f;
+
+        for (int i = 0; i < CardCount; i++)
+        {
+            var card = CardScene.Instantiate<CardController>();
+            card.CardIndex = i;
+            card.Clicked += OnCardClicked;
+            AddChild(card);
+            card.Position = new Vector2(startX + i * (CardWidth + CardGap), 0);
+            _cards[i] = card;
+        }
     }
 
-    public void SetCards(int[] hand)
+    private void OnCardClicked(int index)
     {
-        for (int i = 0; i < 5; i++)
-            SetCardTexture(i, hand[i]);
+        AudioManager.Instance.PlaySfxByName("CardClick.wav");
+        EmitSignal(SignalName.CardClicked, index);
     }
 
-    public void DimAll()
+    public void DealCards(int[] hand)
     {
-        for (int i = 0; i < 5; i++)
-            _cards[i].Modulate = DimColor;
+        float perCardDuration = 0.55f; // 每张牌完整的动画时长
+        for (int i = 0; i < CardCount; i++)
+        {
+            _cards[i].SetCard(hand[i], i);
+            _cards[i].ResetModulate();
+            _cards[i].ShowBack();
+            GD.Print($"[Deal] Card {i} delay = {i * perCardDuration}s");
+            _cards[i].AnimateDeal(i * perCardDuration);
+        }
     }
 
-    public void BrightenAll()
+    public void ReplaceCards(int[] finalHand, bool[] held)
     {
-        for (int i = 0; i < 5; i++)
-            _cards[i].Modulate = Colors.White;
+        for (int i = 0; i < CardCount; i++)
+        {
+            if (!held[i])
+            {
+                _cards[i].SetCard(finalHand[i], i);
+                _cards[i].AnimateReplace();
+            }
+        }
     }
 
     public void SetHeld(int index, bool held)
     {
-        _cards[index].Modulate = held ? Colors.White : DimColor;
-        AudioManager.Instance.PlaySfxByName("CardClick.wav");
+        _cards[index].SetHeld(held);
     }
 
-    public void AnimateFadeIn(int index)
+    public void DimAll()
     {
-        _cards[index].Modulate = new Color(1, 1, 1, 0);
-        var tween = CreateTween();
-        tween.TweenProperty(_cards[index], "modulate:a", 1f, FadeInDuration)
-            .SetEase(Tween.EaseType.Out);
+        for (int i = 0; i < CardCount; i++)
+            _cards[i].SetHeld(false);
     }
 
-    public void ConnectCardInput(GodotObject target, string method)
+    public void BrightenAll()
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < CardCount; i++)
         {
-            int index = i;
-            _cards[i].GuiInput += (e) => target.Call(method, e, index);
+            _cards[i].SetHeld(true);
+            _cards[i].ResetModulate();
         }
     }
 
-    private void SetCardTexture(int index, int card)
-    {
-        var path = DeckManager.CardToAssetPath(card);
-        var tex = GD.Load<Texture2D>(path);
-        if (tex != null)
-            _cards[index].Texture = tex;
-        else
-            GD.PrintErr($"[Card] FAILED to load: {path}");
-    }
+    public CardController GetCard(int index) => _cards[index];
 }

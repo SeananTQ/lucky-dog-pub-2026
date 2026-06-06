@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://dki6udll3canl" path="res://Scripts/DebugHUDController.cs" id="11_debug"]
 [ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
 [ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
+[ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/ItemArea.tscn" id="14_items"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -56,32 +57,14 @@ stretch_mode = 5
 
 [node name="CardArea" type="Node2D" parent="." unique_id=1720705050]
 z_index = 4
-position = Vector2(272, 775)
+position = Vector2(600, 848)
 script = ExtResource("12_cardtable")
 
-[node name="Card0" type="TextureRect" parent="CardArea" unique_id=245353831]
-offset_right = 120.0
-offset_bottom = 168.0
+[node name="ItemArea" parent="." unique_id=894784746 instance=ExtResource("14_items")]
+z_index = 3
+position = Vector2(1059, 1060)
 
-[node name="Card1" type="TextureRect" parent="CardArea" unique_id=685957291]
-offset_left = 130.0
-offset_right = 250.0
-offset_bottom = 168.0
-
-[node name="Card2" type="TextureRect" parent="CardArea" unique_id=2062460971]
-offset_left = 260.0
-offset_right = 380.0
-offset_bottom = 168.0
-
-[node name="Card3" type="TextureRect" parent="CardArea" unique_id=207611617]
-offset_left = 390.0
-offset_right = 510.0
-offset_bottom = 168.0
-
-[node name="Card4" type="TextureRect" parent="CardArea" unique_id=1708178651]
-offset_left = 520.0
-offset_right = 640.0
-offset_bottom = 168.0
+[node name="Marker2D" type="Marker2D" parent="ItemArea" unique_id=729888076]
 
 [node name="DogArea" parent="." unique_id=23233845 instance=ExtResource("4_dog_scene")]
 
@@ -208,7 +191,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 placeholder_text = "Fixed seed (optional)"
 
-[node name="RandomizeButton" type="Button" parent="HUD/DebugPanel/DebugVBox"]
+[node name="RandomizeButton" type="Button" parent="HUD/DebugPanel/DebugVBox" unique_id=1417343867]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Randomize Scene"

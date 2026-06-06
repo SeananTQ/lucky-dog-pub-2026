@@ -62,7 +62,7 @@ public partial class GameManager : Node2D
         _dogVisual.DogClicked += OnDogClicked;
         _handArea.HandKnocked += OnDrawPressed;
         _chipStack.BetPlaced += OnBetPlaced;
-        _cardTable.ConnectCardInput(this, nameof(OnCardInput));
+        _cardTable.CardClicked += OnCardClicked;
         _debugHud.RandomizeRequested += OnRandomizeScene;
 
         RefreshUI();
@@ -100,11 +100,9 @@ public partial class GameManager : Node2D
             CallDeferred(nameof(DoDraw));
     }
 
-    private void OnCardInput(InputEvent e, int index)
+    private void OnCardClicked(int index)
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
-        if (e is not InputEventMouseButton mb || !mb.Pressed) return;
-        GetViewport().SetInputAsHandled();
 
         _held[index] = !_held[index];
         _cardTable.SetHeld(index, _held[index]);
@@ -158,8 +156,7 @@ public partial class GameManager : Node2D
         _held = new bool[5];
         _dogHint.ResetForNewHand();
         _chipStack.HideHint();
-        _cardTable.DimAll();
-        _cardTable.SetCards(_deck.CurrentHand);
+        _cardTable.DealCards(_deck.CurrentHand);
         State = GameState.Dealt;
         _dogVisual.ResetAppearance();
         _handArea.Enabled = true;
@@ -180,14 +177,7 @@ public partial class GameManager : Node2D
         RefreshUI();
         _cardTable.BrightenAll();
         var finalHand = _deck.DrawReplacements(_held);
-        for (int i = 0; i < 5; i++)
-        {
-            if (!_held[i])
-            {
-                _cardTable.SetCards(finalHand);
-                _cardTable.AnimateFadeIn(i);
-            }
-        }
+        _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, BetAmount);
         if (payout > 0)
