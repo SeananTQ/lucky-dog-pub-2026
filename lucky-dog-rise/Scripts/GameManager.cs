@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace LuckyDogRise;
 
@@ -21,7 +22,7 @@ public partial class GameManager : Node2D
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public int Chips { get; private set; }
-    public bool DebugMode { get; set; } = false;
+    public bool DebugMode { get; set; } = true;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
@@ -67,6 +68,7 @@ public partial class GameManager : Node2D
         _chipStack.BetPlaced += OnBetPlaced;
         _cardTable.CardClicked += OnCardClicked;
         _debugHud.RandomizeRequested += OnRandomizeScene;
+        _debugHud.RandomizeDogRequested += OnRandomizeDog;
 
         RefreshUI();
         _hud.SetMessage("Click the chips to place your bet");
@@ -321,6 +323,65 @@ public partial class GameManager : Node2D
 
         var accessory = GetRandomTexture("res://Assets/Accessory/", rng);
         if (accessory != null) _handArea.SetAccessory(accessory);
+    }
+
+    private void OnRandomizeDog()
+    {
+        var (eyewears, headwears) = LoadAccessoryEntries();
+        if (eyewears.Count == 0 || headwears.Count == 0) return;
+
+        var rng = new Random();
+        var eye = eyewears[rng.Next(eyewears.Count)];
+        var head = headwears[rng.Next(headwears.Count)];
+
+        _dogVisual.ResetAppearance();
+        _dogVisual.ShowClawPalm();
+        _dogVisual.SetEyewear(eye.file, eye.scenePos);
+        _dogVisual.SetHeadwear(head.file, head.scenePos);
+        _hud.SetMessage($"Dog: {eye.name} + {head.name}");
+    }
+
+    private record struct AssetEntry(string name, string file, Vector2 scenePos)
+    {
+        // centerX = x + w/2, centerY = y + h/2
+        // Eyewear: scenePos = (centerX - 586, centerY - 677)
+        // Headwear: scenePos = (centerX - 585, centerY - 683)
+        public static AssetEntry FromJson(Godot.Collections.Dictionary d, bool isHeadwear)
+        {
+            var name = d["name"].AsString();
+            var file = d["file"].AsString().Split('/')[^1]; // "Eyewear/EyePatch.png" → "EyePatch.png"
+            var cx = (float)d["x"].AsDouble() + (float)d["w"].AsDouble() / 2f;
+            var cy = (float)d["y"].AsDouble() + (float)d["h"].AsDouble() / 2f;
+            var scenePos = isHeadwear
+                ? new Vector2(cx - 585f, cy - 683f)
+                : new Vector2(cx - 586f, cy - 677f);
+            return new AssetEntry(name, file, scenePos);
+        }
+    }
+
+    private static (List<AssetEntry> eyewear, List<AssetEntry> headwear) LoadAccessoryEntries()
+    {
+        var eyewear = new List<AssetEntry>();
+        var headwear = new List<AssetEntry>();
+
+        using var file = FileAccess.Open("res://Assets/layer_index.json", FileAccess.ModeFlags.Read);
+        if (file == null) return (eyewear, headwear);
+
+        var json = new Json();
+        if (json.Parse(file.GetAsText()) != Error.Ok) return (eyewear, headwear);
+
+        var layers = json.Data.AsGodotDictionary()["layers"].AsGodotArray();
+        foreach (var layer in layers)
+        {
+            var d = layer.AsGodotDictionary();
+            var name = d["name"].AsString();
+            if (name.StartsWith("Eyewear/"))
+                eyewear.Add(AssetEntry.FromJson(d, false));
+            else if (name.StartsWith("Headwear/"))
+                headwear.Add(AssetEntry.FromJson(d, true));
+        }
+
+        return (eyewear, headwear);
     }
 
     private static Texture2D GetRandomTexture(string dirPath, Random rng)

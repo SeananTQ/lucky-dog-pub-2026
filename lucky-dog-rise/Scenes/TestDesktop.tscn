@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="2_dog"]
 
 [node name="TestDesktop" type="Node2D" unique_id=1675773000]
+position = Vector2(113, 186)
 script = ExtResource("1_test")
 
 [node name="DogArea" parent="." unique_id=786314185 instance=ExtResource("2_dog")]

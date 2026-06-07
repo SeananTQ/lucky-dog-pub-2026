@@ -82,6 +82,38 @@ public partial class DogVisual : Node2D
         _eyewear.Position = SunglassesPos;
     }
 
+    public void SetEyewear(string fileName, Vector2 position)
+    {
+        _eyewear.Visible = true;
+        _eyewear.Texture = GD.Load<Texture2D>($"res://Assets/Eyewear/{fileName}");
+        _eyewear.Position = position;
+    }
+
+    public void SetHeadwear(string fileName, Vector2 position)
+    {
+        _headwear.Visible = true;
+        _headwear.Texture = GD.Load<Texture2D>($"res://Assets/Headwear/{fileName}");
+        _headwear.Position = position;
+    }
+
+    public void ResetAccessories()
+    {
+        _eyewear.Visible = false;
+        _headwear.Visible = false;
+    }
+
+    public void SwapEyewearTexture(string fileName)
+    {
+        _eyewear.Visible = true;
+        _eyewear.Texture = GD.Load<Texture2D>($"res://Assets/Eyewear/{fileName}");
+    }
+
+    public void SwapHeadwearTexture(string fileName)
+    {
+        _headwear.Visible = true;
+        _headwear.Texture = GD.Load<Texture2D>($"res://Assets/Headwear/{fileName}");
+    }
+
     // 手心（掌心朝上，被桌子挡住）
     // 层级：背景(0) < 狗头(1) < 爪子(1) < 桌子(2)
     public void ShowClawPalm()
