@@ -44,10 +44,12 @@ position = Vector2(308, -42)
 scale = Vector2(-1, 1)
 
 [node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
+visible = false
 position = Vector2(0, -262)
 texture = ExtResource("7_cjoeh")
 
 [node name="Headwear" type="Sprite2D" parent="." unique_id=268961892]
+visible = false
 position = Vector2(0, -444)
 texture = ExtResource("8_7md00")
 
