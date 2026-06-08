@@ -2,7 +2,8 @@
 
 ## 项目概况
 
-电视扑克（Jacks or Better）小游戏，使用 Godot 4.6 + C#。验证 Godot MCP 工作流。
+类《Bongo Cat》桌宠游戏，扑克部分仿电视扑克 Jacks or Better 规则。
+使用 Godot 4.6 + C#
 美术资产来自 PSD 1200x1200 画布导出，坐标系 1:1 对应。
 
 ## 技术栈
@@ -10,9 +11,10 @@
 - **引擎**: Godot 4.6.3 Mono (C#)
 - **IDE**: VS Code + Wick MCP 插件
 - **语言**: C# (.NET 8.0)
-- **项目路径**: `g:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise/`
+- **项目工作空间**: `g:/Workspace/godot-project/lucky-dog-pub-2026/`
+- **游戏项目路径**: `g:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise/`
 
-## 目录结构
+## 游戏目录结构
 
 ```
 lucky-dog-rise/
@@ -80,99 +82,62 @@ lucky-dog-rise/
 
 关系：**宿主窗口 > { 游戏面板, 设置面板, 商店面板, ... }**。面板不是独立 OS 窗口，而是宿主窗口场景树中的 Control 节点。
 
-## 游戏流程
-
-```
-WaitingForBet → 点 ChipStack → -5 筹码 → 发牌
-Dealt → 点卡牌保留/弃牌 → Holding
-Holding → 点狗给提示（一次性）→ 改保留牌 → 狗自动戴墨镜
-Dealt/Holding → 点手臂（敲桌）/ DRAW 按钮 → 补牌动画
-Drawing → 结算
-  ├─ 赢了 → 出现奖励筹码 → 点筹码收集 → +payout → 自动发下一局
-  └─ 没赢 → ChipStack 提示再点 → 回到 WaitingForBet
-GameOver → 筹码归零 → 黑屏格言 → RESTART
-```
-
-## 状态机
-
-`GameManager.State`:
-- `WaitingForBet` — 等待玩家下注
-- `Dealt` — 已发牌，等待选牌
-- `Holding` — 玩家已选保留
-- `Drawing` — 补牌中
-- `Settled` — 结算中（赢了等收集筹码）
-- `GameOver` — 游戏结束
-
-## ZIndex 层级
-
-| 元素 | ZIndex | 说明 |
-|------|--------|------|
-| Background | 0 | 最底层 |
-| 狗身体 | 1 | Head/Eyes/Ears |
-| 爪子手心 | 1 | 被桌子挡住 |
-| 桌子 | 2 | Table |
-| 爪子手背 | 3 | 挡住桌子 |
-| 卡牌/筹码堆 | 4 | 在桌子上 |
-| 手臂 | 5 | 最顶层 |
-
-爪子设 `z_as_relative = false` 用绝对 ZIndex。
-
-## 透明窗口（桌宠）技术说明
-
-**启用透明背景的方法**（需要用户在编辑器手动设置）：
-1. 项目设置 → Rendering → Viewport → Transparent Background → ON
-2. 编辑器 F5 运行时不支持透明窗口（显示棋盘格+提示），需切到独立窗口模式运行
-3. 或在命令行独立运行 `godot --path lucky-dog-rise/ res://Scenes/TestDesktop.tscn`
-
-**Windows API 关键样式**（lucky-dog-rise/Scripts/Desktop/WindowNative.cs）：
-- `WS_EX_LAYERED` — 启用 per-pixel alpha 层叠窗口
-- `WS_EX_TRANSPARENT` — 点击穿透（动态开关：鼠标在交互区时移除，移出时恢复）
-- 不需要 `DwmExtendFrameIntoClientArea`（在 D3D12 下导致黑色背景）
-- 置顶用 `SetWindowPos(hWnd, HWND_TOPMOST, ...)`
-
-**点击穿透机制**（lucky-dog-rise/Scripts/Desktop/TestDesktopController.cs）：
-- `_Process` 每帧检测鼠标位置（`DisplayServer.MouseGetPosition()`）
-- 鼠标在交互区（狗/按钮）→ 移除 `WS_EX_TRANSPARENT` → 点击被窗口捕获
-- 鼠标在透明区 → 添加 `WS_EX_TRANSPARENT` → 点击穿透到桌面
-- 拖拽时强制关闭穿透，松开后根据鼠标位置恢复
-
-## MCP 工作流注意事项
-
-- `scene_create` 可用，`scene_add_node` 不可用
-- `scene_save` 超时，用 Write 直接写 `lucky-dog-rise/Scenes/*.tscn` 文件
-- 改 `lucky-dog-rise/project.godot` 的窗口设置可能不生效，需用户在编辑器里手动改
-- 每次 Rewind 可能产生多余 Wick 进程，用 `kill-wick.bat` 清理
-- `lucky-dog-rise/.godot` 文件夹损坏时：删除 `.godot/`，重新打开编辑器，然后重新 build
-
-## AI 协作工作流
-
-1. **先讨论再写计划** — 主人提出需求 → AI 调研/分析 → 双方讨论方案 → 确认方向后写实施计划
-2. **复杂功能走 Plan Mode** — 读代码 → 出计划 → 主人审核 → 批准后才开代码
-3. **一个问题一个任务** — 不并行堆叠多个改动，逐个完成再推进下一个
-4. **测试场景优先** — 新技术方案（如透明窗口）先用独立测试场景验证，不直接嵌入主场景
-5. **不硬编码项目设置** — 窗口模式（无边框/全屏等）通过项目设置控制，不在代码里写死，方便调试
-6. **TSCN 手动编辑** — MCP 场景工具（scene_save/scene_add_node）不可靠，改场景直接写 .tscn 文本
-7. **迭代反馈** — 每次改动后主人 F5 测试 → 反馈效果 → AI 调整
-
-## 音效工作流
-
-1. AI 在 `lucky-dog-rise/Audio/SFX/` 或 `lucky-dog-rise/Audio/BGM/` 创建 `.txt` 占位文件
-2. 代码用 `AudioManager.Instance.PlaySfxByName("Xxx.wav")` 播放
-3. 文件不存在时自动打印 `[SFX] xxx` 到控制台
-4. 用户看到输出后找音效文件替换 .txt
-5. **文件名必须大驼峰**（如 `Knock.wav`）
-
 ## 卡牌编码
 
 - 0-51 整数编码：`suit = card / 13` (0=Club,1=Diamond,2=Heart,3=Spade)，`rank = card % 13` (0=Ace,...,12=King)
 - 文件名：`CardToString()` → `Club1` ~ `Spade13`（rank+1，美术资源从 1 开始）
 - **保留/弃牌交互**：默认全保留（正面朝上），点击卡牌翻到背面（弃牌），再点击反悔翻回。补牌时背面的牌翻转变成新牌
 
-## 小狗系统
+## 透明窗口（桌宠）技术说明
 
-- 4 档信号：Bored / Happy / LuckyEye / TopTier
-- 狗根据**补牌后的实际结果**给提示（不是预设等级）
-- 给提示后改保留牌 → 自动戴墨镜锁定
-- 默认表情：Eyes_Cute + Ears_Happy + 双手手背
-- 爪子切换：`ShowClawPalm()`（手心）/ `ShowClawBack()`（手背）
-- 摇手拒绝：`ShakePaw()`（锁定后再点狗触发）
+**启用透明背景**：
+- 项目设置 → Rendering → Viewport → Transparent Background → ON
+- 编辑器 F5 运行时不支持透明窗口（显示棋盘格），需切到独立窗口模式运行
+- 命令行独立运行：`godot --path lucky-dog-rise/ res://Scenes/TestDesktop.tscn`
+
+**Windows API**（lucky-dog-rise/Scripts/Desktop/WindowNative.cs）：
+- `WS_EX_LAYERED` — per-pixel alpha 层叠窗口
+- `WS_EX_TRANSPARENT` — 点击穿透（动态开关：鼠标在交互区时移除，移出时恢复）
+- 不需要 `DwmExtendFrameIntoClientArea`（D3D12 下导致黑色背景）
+- 置顶用 `SetWindowPos(hWnd, HWND_TOPMOST, ...)`
+
+**点击穿透机制**（TestDesktopController）：
+- `_Process` 每帧检测鼠标位置
+- 鼠标在交互区 → 移除 `WS_EX_TRANSPARENT` → 点击被窗口捕获
+- 鼠标在透明区 → 添加 `WS_EX_TRANSPARENT` → 点击穿透到桌面
+- 拖拽时强制关闭穿透，松开后恢复
+
+## 场景工作流
+
+- 新建场景用 `scene_create`（根节点类型+路径），生成的 .tscn 可直接用
+- 添加/修改节点用 `Write` 直接改 .tscn 文本（`scene_add_node` 和 `scene_save` 不可靠）
+- 改节点属性：简单属性用 `scene_set_node_properties`，复杂结构直接改 .tscn
+- 独立预制体：当某个节点需要被多处引用或逻辑独立时→提取为独立 .tscn（如 Card.tscn, DogClaw.tscn）
+- 测试场景：新技术方案先用独立场景验证（如 TestDesktop.tscn），不直接嵌入主场景
+
+## MCP 坑
+
+- `scene_add_node` 不可用 → Write 直接改 .tscn
+- `scene_save` 超时 → 同上
+- 改 project.godot 窗口设置可能不生效 → 用户在编辑器手动改
+- Wick 进程会堆积：`kill-wick.bat` 清理
+- `.godot` 损坏：删掉 `.godot/` → 重开编辑器 → 重新 build
+
+## 协作规则
+
+- **先聊再写** — 主人提需求 → AI 调研 → 讨论 → 确认方向 → 写计划
+- **复杂功能走 Plan Mode** — 审核通过才开代码
+- **一次只做一个** — 不并行堆砌改动
+- **测试场景优先** — 新技术用独立场景验证，再嵌入主场景
+- **不硬编码项目设置** — 窗口模式等通过 Godot 设置控制，不在代码里写死
+- **迭代反馈** — 每次改动后主人 F5 测试 → 反馈效果 → AI 调整
+- **UI 结构定义在 .tscn 里** — 脚本不 `new` 节点建 UI 树，而是引用预制好的场景或节点。程序化 new 出来的节点在编辑器中不可见，会导致主人无法手动调整位置和样式
+- **用 Theme.tres 统一管理样式** — 不直接在节点上调整 Theme Overrides，方便后续整体换肤
+
+## 音效工作流
+
+- AI 在 `lucky-dog-rise/Audio/SFX/` 或 `lucky-dog-rise/Audio/BGM/` 创建 `.txt` 占位文件
+- 代码用 `AudioManager.Instance.PlaySfxByName("Xxx.wav")` 播放
+- 文件不存在时自动打印 `[SFX] xxx` 到控制台
+- 用户看到输出后找音效文件替换 .txt
+- **文件名必须大驼峰**（如 `Knock.wav`）
