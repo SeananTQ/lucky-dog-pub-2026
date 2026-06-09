@@ -53,6 +53,12 @@ public partial class BossKeyController : Node2D
         else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
     }
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen)
+            _settingsPanel.CloseImmediate();
+    }
+
     // ===== 面板切换 =====
 
     private void ToggleSettingsPanel()

@@ -52,6 +52,13 @@ public partial class TestSettingPanelController : CanvasLayer
         _tween.TweenCallback(Callable.From(() => _panel.Visible = false));
     }
 
+    public void CloseImmediate()
+    {
+        if (_tween != null && _tween.IsRunning()) _tween.Kill();
+        _panel.Modulate = Colors.White with { A = 0f };
+        _panel.Visible = false;
+    }
+
     public void SetTargetPosition(Vector2 pos)
     {
         _panel.OffsetLeft = pos.X;
