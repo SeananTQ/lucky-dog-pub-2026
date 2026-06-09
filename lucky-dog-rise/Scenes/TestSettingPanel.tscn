@@ -70,6 +70,21 @@ layout_mode = 2
 [node name="Sep2" type="HSeparator" parent="Panel/Scroll/RootVBox"]
 layout_mode = 2
 
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="Panel/Scroll/RootVBox/DisplayRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Display Mode"
+size_flags_horizontal = 3
+
+[node name="DisplayOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DisplayRow"]
+layout_mode = 2
+
+[node name="Sep3" type="HSeparator" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
 [node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14

@@ -10,14 +10,21 @@ public partial class TestSettingPanelController : CanvasLayer
 
     private PanelContainer _panel = null!;
     private CheckButton _audioToggle = null!;
+    private OptionButton _displayOption = null!;
     private Tween _tween = null!;
 
     public override void _Ready()
     {
         _panel = GetNode<PanelContainer>("Panel");
         _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/AudioRow/AudioToggle");
+        _displayOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DisplayRow/DisplayOption");
         var closeBtn = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/Scroll/RootVBox/QuitBtn");
+
+        _displayOption.AddItem("Clock", 0);
+        _displayOption.AddItem("Chips", 1);
+        _displayOption.AddItem("Hidden", 2);
+        _displayOption.Select((int)SettingsManager.LoadDisplayMode());
 
         _panel.Visible = false;
         _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
@@ -26,6 +33,12 @@ public partial class TestSettingPanelController : CanvasLayer
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
         _audioToggle.Toggled += OnAudioToggled;
+        _displayOption.ItemSelected += OnDisplayModeChanged;
+    }
+
+    private void OnDisplayModeChanged(long index)
+    {
+        SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
     }
 
     public void Toggle() { if (_panel.Visible) Close(); else Open(); }

@@ -9,6 +9,7 @@ public partial class BossKeyController : Node2D
     [Signal] public delegate void SystemPanelRequestedEventHandler();
 
     private TestSettingPanelController _settingsPanel = null!;
+    private Label _mainText = null!;
     private Vector2 _windowBaseSize;
 
     private const int PanelW = 300;
@@ -25,6 +26,7 @@ public partial class BossKeyController : Node2D
 
     public override void _Ready()
     {
+        _mainText = GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         var modeBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
         modeBtn.Pressed += () => EmitSignal(SignalName.ModeSwitchRequested);
@@ -43,10 +45,34 @@ public partial class BossKeyController : Node2D
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
+
+        var tracker = new GlobalInputTracker();
+        tracker.Name = "GlobalInputTracker";
+        AddChild(tracker);
     }
+
+    private double _displayTimer;
+    private SettingsManager.DisplayMode _lastMode = (SettingsManager.DisplayMode)(-1);
 
     public override void _Process(double _)
     {
+        // 显示模式刷新
+        var mode = SettingsManager.CurrentDisplayMode;
+        if (mode != _lastMode)
+        {
+            _lastMode = mode;
+            _mainText.Text = mode switch
+            {
+                SettingsManager.DisplayMode.Clock => DateTime.Now.ToString("HH:mm"),
+                SettingsManager.DisplayMode.Hidden => "",
+                _ => "0"
+            };
+        }
+        if (mode == SettingsManager.DisplayMode.Clock)
+            _mainText.Text = DateTime.Now.ToString("HH:mm");
+        else if (mode == SettingsManager.DisplayMode.Chips)
+            _mainText.Text = GlobalInputTracker.TotalChips.ToString();
+
         var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
         bool over = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos) || _settingsPanel.IsOpen;
         if (_isClickThrough && over) SetClickThrough(false);
@@ -56,7 +82,15 @@ public partial class BossKeyController : Node2D
     public override void _Notification(int what)
     {
         if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen)
-            _settingsPanel.CloseImmediate();
+        {
+            var mouse = DisplayServer.MouseGetPosition();
+            var wp = DisplayServer.WindowGetPosition();
+            var ws = DisplayServer.WindowGetSize();
+            // 鼠标还在窗口内 → 原生下拉菜单导致，不关闭
+            if (mouse.X < wp.X || mouse.X > wp.X + ws.X ||
+                mouse.Y < wp.Y || mouse.Y > wp.Y + ws.Y)
+                _settingsPanel.CloseImmediate();
+        }
     }
 
     // ===== 面板切换 =====

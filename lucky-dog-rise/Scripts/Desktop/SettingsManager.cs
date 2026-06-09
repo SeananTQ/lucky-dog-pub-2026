@@ -7,9 +7,18 @@ public static class SettingsManager
     private const string Path = "user://settings.cfg";
     private const string SectionAudio = "audio";
     private const string SectionSystem = "system";
+    private const string SectionDisplay = "display";
     private const string KeyAudioEnabled = "enabled";
     private const string KeyAlwaysOnTop = "always_on_top";
     private const string KeyTaskbarIcon = "taskbar_icon";
+    private const string KeyDisplayMode = "mode";
+
+    public enum DisplayMode
+    {
+        Clock = 0,
+        Chips = 1,
+        Hidden = 2
+    }
 
     // === 音频 ===
     public static bool LoadAudioEnabled()
@@ -49,6 +58,24 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyTaskbarIcon, show);
+        config.Save(Path);
+    }
+
+    // === 显示模式 ===
+    public static DisplayMode CurrentDisplayMode { get; private set; } = DisplayMode.Clock;
+
+    public static DisplayMode LoadDisplayMode()
+    {
+        var config = Load();
+        CurrentDisplayMode = (DisplayMode)(int)config.GetValue(SectionDisplay, KeyDisplayMode, (int)DisplayMode.Clock);
+        return CurrentDisplayMode;
+    }
+
+    public static void SaveDisplayMode(DisplayMode mode)
+    {
+        CurrentDisplayMode = mode;
+        var config = Load();
+        config.SetValue(SectionDisplay, KeyDisplayMode, (int)mode);
         config.Save(Path);
     }
 
