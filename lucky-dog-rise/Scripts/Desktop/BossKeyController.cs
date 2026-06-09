@@ -199,12 +199,7 @@ public partial class BossKeyController : Node2D
             }
             else
             {
-                if (_isDragging)
-                {
-                    GetViewport().SetInputAsHandled();
-                    if (_settingsPanel.IsOpen)
-                        PositionPanelInBestSlot();
-                }
+                if (_isDragging) GetViewport().SetInputAsHandled();
                 _isDragging = false; _potentialDrag = false;
             }
         }
@@ -216,6 +211,8 @@ public partial class BossKeyController : Node2D
             if (_isDragging)
             {
                 DisplayServer.WindowSetPosition(_windowPosStart + d);
+                if (_settingsPanel.IsOpen)
+                    PositionPanelInBestSlot();
                 GetViewport().SetInputAsHandled();
             }
         }
