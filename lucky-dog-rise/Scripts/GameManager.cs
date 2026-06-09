@@ -43,6 +43,9 @@ public partial class GameManager : Node2D
     private WindowManager _windowManager = null!;
     private DragHandler _dragHandler = null!;
     private SettingsPanelController _settingsPanel = null!;
+    private GlobalInputTracker _globalInput = null!;
+    private TaskbarSnap _taskbarSnap = null!;
+    private BossKeyController _bossKey = null!;
 
     public override void _Ready()
     {
@@ -83,29 +86,34 @@ public partial class GameManager : Node2D
 
     private void SetupDesktopMode()
     {
-        // 游戏内容偏移到宿主窗口中的正确位置
         Position = new Vector2(WindowManager.GameViewOffsetX, WindowManager.GameViewOffsetY);
         _hud.Offset = new Vector2(WindowManager.GameViewOffsetX, WindowManager.GameViewOffsetY);
 
-        // 窗口管理器（透明 + 无边框 + 置顶 + 层叠）
         _windowManager = new WindowManager();
         _windowManager.Name = "WindowManager";
         AddChild(_windowManager);
 
-        // 拖拽控制器
         _dragHandler = new DragHandler();
         _dragHandler.Name = "DragHandler";
         AddChild(_dragHandler);
         _dragHandler.DragEnded += () => _settingsPanel.Reposition();
 
-        // 设置面板
         _settingsPanel = new SettingsPanelController();
         _settingsPanel.Name = "SettingsPanel";
-        _settingsPanel.Layer = 100; // 高于 HUD 和 Overlay
+        _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
 
-        // 设置按钮
         CreateSettingsButton();
+
+        // 全局输入钩子（打字统计）
+        _globalInput = new GlobalInputTracker();
+        _globalInput.Name = "GlobalInputTracker";
+        AddChild(_globalInput);
+
+        // 任务栏吸附
+        _taskbarSnap = new TaskbarSnap();
+        _taskbarSnap.Name = "TaskbarSnap";
+        AddChild(_taskbarSnap);
     }
 
     private void CreateSettingsButton()
@@ -195,6 +203,13 @@ public partial class GameManager : Node2D
     }
 
     // === 游戏逻辑 ===
+
+    public void AddChips(int amount)
+    {
+        Chips += amount;
+        _progression.UpdateHighScore(Chips);
+        RefreshUI();
+    }
 
     private void DealNewHand()
     {
