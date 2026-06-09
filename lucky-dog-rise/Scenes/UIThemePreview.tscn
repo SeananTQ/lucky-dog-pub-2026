@@ -1,0 +1,270 @@
+[gd_scene format=3 uid="uid://bhbc4lppc2mva"]
+
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
+
+[node name="UIThemePreview" type="Control" unique_id=650643820]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 660.0
+offset_bottom = 620.0
+theme = ExtResource("1_theme")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=33211357]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 494.0
+offset_bottom = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.5006195, 0.5006196, 0.5006196, 1)
+
+[node name="Title" type="Label" parent="." unique_id=672273503]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 12.0
+theme_override_font_sizes/font_size = 28
+text = "UI Theme Preview"
+
+[node name="Grid" type="VBoxContainer" parent="." unique_id=537598183]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 52.0
+offset_right = 640.0
+offset_bottom = 600.0
+
+[node name="SectionLabels" type="VBoxContainer" parent="Grid" unique_id=653389741]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionLabels" unique_id=1167745533]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionLabels/H" unique_id=970868158]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Labels ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionLabels" unique_id=486652243]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Grid/SectionLabels" unique_id=1099512500]
+layout_mode = 2
+
+[node name="L14" type="Label" parent="Grid/SectionLabels/Row" unique_id=24355968]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Label 14"
+
+[node name="L15" type="Label" parent="Grid/SectionLabels/Row" unique_id=1597563248]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Label 15"
+
+[node name="L16" type="Label" parent="Grid/SectionLabels/Row" unique_id=786716089]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Label 16"
+
+[node name="L18" type="Label" parent="Grid/SectionLabels/Row" unique_id=1090442033]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Label 18"
+
+[node name="L20" type="Label" parent="Grid/SectionLabels/Row" unique_id=1766494980]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Label 20"
+
+[node name="L22" type="Label" parent="Grid/SectionLabels/Row" unique_id=1878900252]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Label 22"
+
+[node name="L26" type="Label" parent="Grid/SectionLabels/Row" unique_id=1671569585]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Label 26"
+
+[node name="L30" type="Label" parent="Grid/SectionLabels/Row" unique_id=149017092]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Label 30"
+
+[node name="L32" type="Label" parent="Grid/SectionLabels/Row" unique_id=453116923]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Label 32"
+
+[node name="SectionButtons" type="VBoxContainer" parent="Grid" unique_id=654491194]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionButtons" unique_id=945329547]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionButtons/H" unique_id=1612483327]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Buttons ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionButtons" unique_id=818751736]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Grid/SectionButtons" unique_id=1644490293]
+layout_mode = 2
+
+[node name="Normal" type="Button" parent="Grid/SectionButtons/Row" unique_id=2027879844]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Normal"
+
+[node name="Flat" type="Button" parent="Grid/SectionButtons/Row" unique_id=745588907]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Flat"
+flat = true
+
+[node name="Disabled" type="Button" parent="Grid/SectionButtons/Row" unique_id=356378234]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+disabled = true
+text = "Disabled"
+
+[node name="Small" type="Button" parent="Grid/SectionButtons/Row" unique_id=1005787656]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Small"
+
+[node name="Quit" type="Button" parent="Grid/SectionButtons/Row" unique_id=54868123]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Quit Game"
+
+[node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionToggles" unique_id=1537111191]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionToggles/H" unique_id=1228789009]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Toggles ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionToggles" unique_id=913889025]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Grid/SectionToggles" unique_id=556087933]
+layout_mode = 2
+
+[node name="AudioToggle" type="CheckButton" parent="Grid/SectionToggles/Row" unique_id=1959306040]
+layout_mode = 2
+button_pressed = true
+text = "Sound Effects"
+
+[node name="Toggle2" type="CheckButton" parent="Grid/SectionToggles/Row" unique_id=23438417]
+layout_mode = 2
+text = "BGM"
+
+[node name="SectionContainers" type="VBoxContainer" parent="Grid" unique_id=631568083]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionContainers" unique_id=2096303658]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionContainers/H" unique_id=2002141914]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Containers ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionContainers" unique_id=89307304]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Grid/SectionContainers" unique_id=1954131362]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Grid/SectionContainers/Row" unique_id=268653444]
+custom_minimum_size = Vector2(200, 100)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Grid/SectionContainers/Row/Panel" unique_id=1487618260]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PLabel" type="Label" parent="Grid/SectionContainers/Row/Panel/VBox" unique_id=15683443]
+layout_mode = 2
+text = "PanelContainer"
+
+[node name="PBtn" type="Button" parent="Grid/SectionContainers/Row/Panel/VBox" unique_id=1757288440]
+layout_mode = 2
+text = "Button in panel"
+
+[node name="Panel2" type="PanelContainer" parent="Grid/SectionContainers/Row" unique_id=1935225727]
+custom_minimum_size = Vector2(200, 100)
+layout_mode = 2
+
+[node name="VBox2" type="VBoxContainer" parent="Grid/SectionContainers/Row/Panel2" unique_id=2030930998]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PLabel2" type="Label" parent="Grid/SectionContainers/Row/Panel2/VBox2" unique_id=1872633974]
+layout_mode = 2
+text = "Bubble style"
+
+[node name="SectionOther" type="VBoxContainer" parent="Grid" unique_id=737885242]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionOther" unique_id=2079421252]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionOther/H" unique_id=1078364933]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Other Controls ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionOther" unique_id=1436453933]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Grid/SectionOther" unique_id=1300005843]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Scroll" type="ScrollContainer" parent="Grid/SectionOther/Row" unique_id=1643548487]
+custom_minimum_size = Vector2(200, 80)
+layout_mode = 2
+
+[node name="LongVBox" type="VBoxContainer" parent="Grid/SectionOther/Row/Scroll" unique_id=664094280]
+layout_mode = 2
+
+[node name="Item1" type="Label" parent="Grid/SectionOther/Row/Scroll/LongVBox" unique_id=820676830]
+layout_mode = 2
+text = "Scroll item 1"
+
+[node name="Item2" type="Label" parent="Grid/SectionOther/Row/Scroll/LongVBox" unique_id=414639270]
+layout_mode = 2
+text = "Scroll item 2"
+
+[node name="Item3" type="Label" parent="Grid/SectionOther/Row/Scroll/LongVBox" unique_id=702084212]
+layout_mode = 2
+text = "Scroll item 3"
+
+[node name="Item4" type="Label" parent="Grid/SectionOther/Row/Scroll/LongVBox" unique_id=103182121]
+layout_mode = 2
+text = "Scroll item 4"
+
+[node name="Item5" type="Label" parent="Grid/SectionOther/Row/Scroll/LongVBox" unique_id=402010107]
+layout_mode = 2
+text = "Scroll item 5"
+
+[node name="Sep2" type="HSeparator" parent="Grid/SectionOther/Row" unique_id=1808382901]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="Grid/SectionOther/Row" unique_id=1246387210]
+custom_minimum_size = Vector2(64, 88)
+layout_mode = 2
