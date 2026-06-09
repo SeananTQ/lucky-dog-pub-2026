@@ -115,6 +115,18 @@ lucky-dog-rise/
 - 独立预制体：当某个节点需要被多处引用或逻辑独立时→提取为独立 .tscn（如 Card.tscn, DogClaw.tscn）
 - 测试场景：新技术方案先用独立场景验证（如 TestDesktop.tscn），不直接嵌入主场景
 
+## 节点引用规范
+
+**优先用 `[Export]` 而非 `GetNode` 来引用场景节点。**
+
+原因：`GetNode` 依赖节点树路径，场景结构调整（如嵌套容器、重命名）会直接导致运行时崩溃。`[Export]` 在场景文件（.tscn）中绑定的是节点引用，节点树结构调整后引用仍然有效。
+
+做法：
+- 在脚本中声明 `[Export] private NodeType _nodeName = null!;`
+- 在 .tscn 文件中用 `_nodeName = NodePath("Target/Path")` 赋值，或在编辑器中拖拽绑定
+- **必须确保每个 `[Export]` 字段都在 .tscn 中有对应的 NodePath 赋值**，否则运行时为 null
+- `GetNode` 仅在以下场景保留使用：动态创建的子节点（如 `new Button()` 后需要引用），或临时查找（如 `GetParent()`）
+
 ## MCP 坑
 
 - `scene_add_node` 不可用 → Write 直接改 .tscn

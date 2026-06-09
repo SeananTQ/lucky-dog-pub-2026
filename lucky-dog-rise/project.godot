@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="LuckyDogRise"
-run/main_scene="res://Scenes/Main.tscn"
+run/main_scene="res://Scenes/BossKey.tscn"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -27,7 +27,6 @@ AudioManager="*res://Scripts/AudioManager.cs"
 
 window/size/viewport_width=1900
 window/size/viewport_height=1550
-window/size/borderless=true
 window/size/always_on_top=true
 window/size/transparent=true
 window/per_pixel_transparency/allowed=true

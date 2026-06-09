@@ -5,10 +5,14 @@ namespace LuckyDogRise;
 
 /// <summary>
 /// 透明窗口测试场景控制器
-/// 使用 WS_EX_TRANSPARENT 动态开关实现"透明区域穿透、交互区捕获点击"。
+/// 演示 [Export] 引用父节点和子节点，避免 GetNode 路径问题。
 /// </summary>
 public partial class TestDesktopController : Node2D
 {
+    [Export] private Node2D _parentNode = null!;
+    [Export] private Sprite2D _childA = null!;
+    [Export] private Sprite2D _childB = null!;
+
     private bool _isDragging;
     private bool _potentialDrag;
     private bool _isClickThrough = true;
@@ -18,13 +22,24 @@ public partial class TestDesktopController : Node2D
 
     private const float DragThreshold = 5f;
 
-    // 狗头在 DogArea 内部坐标约 (588,516)，25% 缩放后约 (147,129)，交互区放大些
     private static readonly Rect2 DogHitRect = new(100, 70, 120, 120);
+    private static readonly Rect2 BtnHitRect = new(5, 5, 110, 50);
 
     public override void _Ready()
     {
         _quitButton = GetNode<Button>("CanvasLayer/QuitButton");
         _quitButton.Pressed += () => GetTree().Quit();
+
+        // 演示 [Export] 引用：父节点移动，子节点跟随
+        GD.Print($"[Export] _parentNode={_parentNode?.Name}, _childA={_childA?.Name}, _childB={_childB?.Name}");
+
+        // 即使 Parent 被挪到别的容器下，引用仍然有效
+        // 父节点位置改变，子节点自动跟随
+        if (_parentNode != null)
+        {
+            _parentNode.Position = new Vector2(50, 50);
+            GD.Print($"ChildA global: {_childA?.GlobalPosition}");
+        }
 
         SetupTransparentWindow();
     }
@@ -35,8 +50,7 @@ public partial class TestDesktopController : Node2D
         var windowPos = DisplayServer.WindowGetPosition();
         var localPos = mouseScreen - windowPos;
 
-        bool overInteractive = _quitButton.GetGlobalRect().HasPoint(localPos)
-                              || DogHitRect.HasPoint(localPos);
+        bool overInteractive = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos);
 
         if (_isClickThrough && overInteractive)
             SetClickThrough(false);
@@ -68,9 +82,8 @@ public partial class TestDesktopController : Node2D
             if (Mathf.Abs(delta.X) > DragThreshold || Mathf.Abs(delta.Y) > DragThreshold)
             {
                 _isDragging = true;
-                SetClickThrough(false); // 拖拽时关闭穿透
+                SetClickThrough(false);
             }
-
             if (_isDragging)
             {
                 DisplayServer.WindowSetPosition(_windowPosStart + delta);
@@ -83,13 +96,10 @@ public partial class TestDesktopController : Node2D
     {
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
-
         DisplayServer.WindowSetSize(new Vector2I(400, 400));
         var screenSize = DisplayServer.ScreenGetSize();
         DisplayServer.WindowSetPosition((screenSize - new Vector2I(400, 400)) / 2);
-
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
-
         EnableLayeredWindow();
     }
 
@@ -97,13 +107,10 @@ public partial class TestDesktopController : Node2D
     {
         var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
         if (hWnd == IntPtr.Zero) return;
-
         var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
         WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_LAYERED | WindowNative.WS_EX_TRANSPARENT);
-
         WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
             WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
-
         _isClickThrough = true;
     }
 
@@ -112,7 +119,6 @@ public partial class TestDesktopController : Node2D
         _isClickThrough = enabled;
         var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
         if (hWnd == IntPtr.Zero) return;
-
         var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
         if (enabled)
             WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_TRANSPARENT);

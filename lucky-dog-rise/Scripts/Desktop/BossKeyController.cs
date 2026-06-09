@@ -24,6 +24,8 @@ public partial class BossKeyController : Node2D
     private Label _mainText = null!;
     private Label _bubbleText = null!;
     private CanvasLayer _bubbleLayer = null!;
+    private SettingsPanelController _settingsPanel = null!;
+    private Node2D _baseWrapper = null!;
     private bool _showClock = true;
     private int _lastChips = -1;
 
@@ -33,15 +35,36 @@ public partial class BossKeyController : Node2D
 
     public override void _Ready()
     {
-        _mainText = GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
-        _bubbleText = GetNode<Label>("Bubble/BubbleBg/BubbleText");
-        _bubbleLayer = GetNode<CanvasLayer>("Bubble");
+        // 基础内容包装到独立节点，窗口扩展时只移 wrapper 不碰面板
+        _baseWrapper = new Node2D();
+        _baseWrapper.Name = "BaseWrapper";
+        var toMove = new System.Collections.Generic.List<Node>();
+        foreach (var child in GetChildren())
+            if (child.Name != "WindowSize")
+                toMove.Add(child);
+        foreach (var child in toMove)
+        {
+            RemoveChild(child);
+            _baseWrapper.AddChild(child);
+        }
+        AddChild(_baseWrapper);
+
+        _mainText = GetNode<Label>("BaseWrapper/CanvasLayer/Panel/HBoxContainer/MainText");
+        _bubbleText = GetNode<Label>("BaseWrapper/Bubble/BubbleBg/BubbleText");
+        _bubbleLayer = GetNode<CanvasLayer>("BaseWrapper/Bubble");
 
         // 按钮
-        GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch").Pressed +=
-            () => EmitSignal(SignalName.ModeSwitchRequested);
-        GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton").Pressed +=
-            () => EmitSignal(SignalName.SystemPanelRequested);
+        var modeBtn = GetNode<Button>("BaseWrapper/CanvasLayer/Panel/HBoxContainer/ModeSwitch");
+        modeBtn.Pressed += () => EmitSignal(SignalName.ModeSwitchRequested);
+        var sysBtn = GetNode<Button>("BaseWrapper/CanvasLayer/Panel/HBoxContainer/SystemButton");
+        sysBtn.Pressed += () => EmitSignal(SignalName.SystemPanelRequested);
+
+        // 设置面板
+        _settingsPanel = new SettingsPanelController();
+        _settingsPanel.Name = "SettingsPanel";
+        _settingsPanel.Layer = 10;
+        AddChild(_settingsPanel);
+        sysBtn.Pressed += () => ToggleSettingsPanel();
 
         // 窗口设置
         SetupTransparentWindow();
@@ -94,6 +117,63 @@ public partial class BossKeyController : Node2D
     }
 
     // ===== 窗口管理 =====
+
+    private void ToggleSettingsPanel()
+    {
+        if (_settingsPanel.IsOpen)
+        {
+            _settingsPanel.Close();
+            _baseWrapper.Position = Vector2.Zero;
+            var baseSize = GetNode<Marker2D>("WindowSize").Position;
+            DisplayServer.WindowSetSize(new Vector2I((int)baseSize.X, (int)baseSize.Y));
+            return;
+        }
+
+        var size = GetNode<Marker2D>("WindowSize").Position;
+        int bw = (int)size.X, bh = (int)size.Y;
+        int pw = (int)SettingsPanelController.PanelWidth;
+        int ph = (int)SettingsPanelController.PanelHeight;
+        var winPos = DisplayServer.WindowGetPosition();
+        var scrSize = DisplayServer.ScreenGetSize();
+
+        int left = winPos.X;
+        int right = (int)(scrSize.X - (winPos.X + bw));
+        int top = winPos.Y;
+        int bottom = (int)(scrSize.Y - (winPos.Y + bh));
+
+        if (left >= pw)
+        {
+            int newW = bw + pw, newH = Math.Max(bh, ph);
+            DisplayServer.WindowSetPosition(new Vector2I(winPos.X - pw, winPos.Y));
+            DisplayServer.WindowSetSize(new Vector2I(newW, newH));
+            _baseWrapper.Position = new Vector2(pw, 0);
+            _settingsPanel.SetTargetPosition(new Vector2(0, (newH - ph) / 2f));
+        }
+        else if (right >= pw)
+        {
+            int newW = bw + pw, newH = Math.Max(bh, ph);
+            DisplayServer.WindowSetSize(new Vector2I(newW, newH));
+            _baseWrapper.Position = Vector2.Zero;
+            _settingsPanel.SetTargetPosition(new Vector2(bw, (newH - ph) / 2f));
+        }
+        else if (top >= ph)
+        {
+            int newW = Math.Max(bw, pw), newH = bh + ph;
+            DisplayServer.WindowSetPosition(new Vector2I(winPos.X, winPos.Y - ph));
+            DisplayServer.WindowSetSize(new Vector2I(newW, newH));
+            _baseWrapper.Position = new Vector2(0, ph);
+            _settingsPanel.SetTargetPosition(new Vector2((newW - pw) / 2f, 0));
+        }
+        else
+        {
+            int newW = Math.Max(bw, pw), newH = bh + ph;
+            DisplayServer.WindowSetSize(new Vector2I(newW, newH));
+            _baseWrapper.Position = Vector2.Zero;
+            _settingsPanel.SetTargetPosition(new Vector2((newW - pw) / 2f, bh));
+        }
+
+        _settingsPanel.Open();
+    }
 
     private void SetupTransparentWindow()
     {

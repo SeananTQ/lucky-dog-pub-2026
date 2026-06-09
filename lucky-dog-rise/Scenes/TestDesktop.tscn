@@ -5,6 +5,9 @@
 
 [node name="TestDesktop" type="Node2D" unique_id=1675773000]
 script = ExtResource("1_test")
+_parentNode = NodePath("Parent")
+_childA = NodePath("Parent/ChildA")
+_childB = NodePath("Parent/ChildB")
 
 [node name="DogArea" parent="." unique_id=786314185 instance=ExtResource("2_dog")]
 position = Vector2(133, 181)
@@ -19,3 +22,10 @@ offset_right = 110.0
 offset_bottom = 50.0
 text = "Quit"
 metadata/_edit_use_anchors_ = true
+
+[node name="Parent" type="Node2D" parent="." unique_id=1541436056]
+
+[node name="ChildA" type="Sprite2D" parent="Parent" unique_id=453795899]
+
+[node name="ChildB" type="Sprite2D" parent="Parent" unique_id=188791660]
+position = Vector2(100, 0)

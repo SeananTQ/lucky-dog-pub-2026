@@ -4,6 +4,8 @@ namespace LuckyDogRise;
 
 public partial class SettingsPanelController : CanvasLayer
 {
+    public bool IsOpen => _panel.Visible;
+
     private PanelContainer _panel = null!;
     private CheckButton _audioToggle = null!;
     private CheckButton _alwaysOnTopToggle = null!;
@@ -11,12 +13,12 @@ public partial class SettingsPanelController : CanvasLayer
     private WindowManager _windowManager = null!;
     private Tween _tween;
 
-    private const float PanelWidth = 300f;
-    private const float PanelHeight = 420f;
+    internal const float PanelWidth = 300f;
+    internal const float PanelHeight = 420f;
 
     public override void _Ready()
     {
-        _windowManager = GetNode<WindowManager>("../WindowManager");
+        _windowManager = GetNodeOrNull<WindowManager>("../WindowManager");
         BuildUI();
         _panel.Visible = false;
 
@@ -35,11 +37,21 @@ public partial class SettingsPanelController : CanvasLayer
 
     public void Open()
     {
-        var gameRect = _windowManager.GameViewScreenRect;
-        var screenSize = DisplayServer.ScreenGetSize();
-        var (panelScreenPos, _) = PanelPositioner.Calculate(screenSize, gameRect, new Vector2(PanelWidth, PanelHeight));
-        var hostPos = DisplayServer.WindowGetPosition();
-        _panel.Position = panelScreenPos - hostPos;
+        if (_windowManager != null)
+        {
+            var gameRect = _windowManager.GameViewScreenRect;
+            var screenSize = DisplayServer.ScreenGetSize();
+            var (panelScreenPos, _) = PanelPositioner.Calculate(screenSize, gameRect, new Vector2(PanelWidth, PanelHeight));
+            _panel.Position = panelScreenPos - DisplayServer.WindowGetPosition();
+        }
+        else
+        {
+            var windowSize = DisplayServer.WindowGetSize();
+            _panel.Position = new Vector2(
+                (windowSize.X - PanelWidth) / 2,
+                (windowSize.Y - PanelHeight) / 2
+            );
+        }
 
         if (_tween != null && _tween.IsRunning())
             _tween.Kill();
@@ -60,14 +72,22 @@ public partial class SettingsPanelController : CanvasLayer
         _tween.TweenCallback(Callable.From(() => _panel.Visible = false));
     }
 
+    /// <summary>外部设置面板在宿主窗口内的位置（窗口扩展后调用）</summary>
+    public void SetTargetPosition(Vector2 pos)
+    {
+        _panel.Position = pos;
+    }
+
     public void Reposition()
     {
-        if (!_panel.Visible) return;
+        if (!_panel.Visible || _windowManager == null) return;
 
-        var gameRect = _windowManager.GameViewScreenRect;
+        var hostPos = DisplayServer.WindowGetPosition();
+        var windowSize = DisplayServer.WindowGetSize();
+        var gameRect = _windowManager?.GameViewScreenRect
+            ?? new Rect2(hostPos.X, hostPos.Y, windowSize.X, windowSize.Y);
         var screenSize = DisplayServer.ScreenGetSize();
         var (panelScreenPos, _) = PanelPositioner.Calculate(screenSize, gameRect, new Vector2(PanelWidth, PanelHeight));
-        var hostPos = DisplayServer.WindowGetPosition();
         _panel.Position = panelScreenPos - hostPos;
     }
 
@@ -155,7 +175,13 @@ public partial class SettingsPanelController : CanvasLayer
         {
             _alwaysOnTopToggle = new CheckButton();
             AddPrefRow(content, "Always on Top", _alwaysOnTopToggle);
-            _alwaysOnTopToggle.Toggled += (on) => _windowManager.SetAlwaysOnTop(on);
+            _alwaysOnTopToggle.Toggled += (on) =>
+            {
+                if (_windowManager != null)
+                    _windowManager.SetAlwaysOnTop(on);
+                else
+                    DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, on);
+            };
 
             _taskbarIconToggle = new CheckButton();
             AddPrefRow(content, "Show Taskbar Icon", _taskbarIconToggle);
