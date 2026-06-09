@@ -30,10 +30,13 @@ public partial class TestSettingPanelController : CanvasLayer
 
     public void Toggle() { if (_panel.Visible) Close(); else Open(); }
 
-    public void Open()
+    public void Open(bool centerInWindow = true)
     {
-        var ws = DisplayServer.WindowGetSize();
-        _panel.Position = new Vector2((ws.X - PanelWidth) / 2, (ws.Y - PanelHeight) / 2);
+        if (centerInWindow)
+        {
+            var ws = DisplayServer.WindowGetSize();
+            _panel.Position = new Vector2((ws.X - PanelWidth) / 2, (ws.Y - PanelHeight) / 2);
+        }
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;

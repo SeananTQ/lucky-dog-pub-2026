@@ -45,7 +45,7 @@ public partial class BossKeyController : Node2D
         var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
         bool over = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos);
         if (_isClickThrough && over) SetClickThrough(false);
-        else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
+        else if (!_isClickThrough && !over && !_isDragging && !_settingsPanel.IsOpen) SetClickThrough(true);
     }
 
     private void ToggleSettingsPanel()
@@ -73,31 +73,32 @@ public partial class BossKeyController : Node2D
 
         if (L >= pw)
         {
-            DisplayServer.WindowSetPosition(new Vector2I(winPos.X - pw, winPos.Y));
-            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
+            // 先移内容再移窗口，避免闪烁
             Position = new Vector2(pw, 0);
             canvas.Offset = new Vector2(pw, 0);
             _settingsPanel.SetTargetPosition(new Vector2(0, (Math.Max(bh, ph) - ph) / 2f));
+            DisplayServer.WindowSetPosition(new Vector2I(winPos.X - pw, winPos.Y));
+            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
         }
         else if (R >= pw)
         {
-            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
             _settingsPanel.SetTargetPosition(new Vector2(bw, (Math.Max(bh, ph) - ph) / 2f));
+            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
         }
         else if (T >= ph)
         {
-            DisplayServer.WindowSetPosition(new Vector2I(winPos.X, winPos.Y - ph));
-            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
             Position = new Vector2(0, ph);
             canvas.Offset = new Vector2(0, ph);
             _settingsPanel.SetTargetPosition(new Vector2((Math.Max(bw, pw) - pw) / 2f, 0));
+            DisplayServer.WindowSetPosition(new Vector2I(winPos.X, winPos.Y - ph));
+            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
         }
         else
         {
-            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
             _settingsPanel.SetTargetPosition(new Vector2((Math.Max(bw, pw) - pw) / 2f, bh));
+            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
         }
-        _settingsPanel.Open();
+        _settingsPanel.Open(false);
     }
 
     // ===== 窗口管理 =====
