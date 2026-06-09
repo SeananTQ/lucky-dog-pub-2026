@@ -9,106 +9,140 @@ public partial class BossKeyController : Node2D
     [Signal] public delegate void SystemPanelRequestedEventHandler();
 
     private TestSettingPanelController _settingsPanel = null!;
+    private Vector2 _windowBaseSize;
+
+    private const int PanelW = 300;
+    private const int PanelH = 420;
+    private static readonly Vector2 ContentOffset = new(PanelW, PanelH);
 
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
     private const float DragThreshold = 5f;
 
-    private static readonly Rect2 DogHitRect = new(60, 90, 180, 180);
-    private static readonly Rect2 BtnHitRect = new(50, 265, 240, 40);
+    // 击中区：旧坐标 + ContentOffset
+    private static readonly Rect2 DogHitRect = new(360, 510, 180, 180);
+    private static readonly Rect2 BtnHitRect = new(350, 685, 240, 40);
 
     public override void _Ready()
     {
         var modeBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
         modeBtn.Pressed += () => EmitSignal(SignalName.ModeSwitchRequested);
-        sysBtn.Pressed += () => EmitSignal(SignalName.SystemPanelRequested);
+        sysBtn.Pressed += ToggleSettingsPanel;
+
+        _windowBaseSize = GetNode<Marker2D>("ContentA/WindowSize").Position;
+        SetupFatWindow();
+        EnableLayeredWindow();
+
+        // tscn 已设 offset，这里确保运行时正确
+        GetNode<CanvasLayer>("CanvasLayer").Offset = ContentOffset;
+        GetNode<CanvasLayer>("Bubble").Offset = ContentOffset;
+        GetNode<CanvasLayer>("Bubble").Visible = false;
 
         _settingsPanel = GD.Load<PackedScene>("res://Scenes/TestSettingPanel.tscn").Instantiate<TestSettingPanelController>();
         _settingsPanel.Name = "SettingsPanel";
-        CallDeferred(nameof(AddSettingsPanelToRoot));
-
-        SetupTransparentWindow();
-        EnableLayeredWindow();
-        GetNode<CanvasLayer>("Bubble").Visible = false;
-    }
-
-    private void AddSettingsPanelToRoot()
-    {
-        GetTree().Root.AddChild(_settingsPanel);
-        var btn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
-        btn.Pressed += () => ToggleSettingsPanel();
+        _settingsPanel.Layer = 100;
+        AddChild(_settingsPanel);
     }
 
     public override void _Process(double _)
     {
         var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
-        bool over = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos);
+        bool over = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos) || _settingsPanel.IsOpen;
         if (_isClickThrough && over) SetClickThrough(false);
-        else if (!_isClickThrough && !over && !_isDragging && !_settingsPanel.IsOpen) SetClickThrough(true);
+        else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
     }
+
+    // ===== 面板切换 =====
 
     private void ToggleSettingsPanel()
     {
         if (_settingsPanel.IsOpen)
         {
             _settingsPanel.Close();
-            Position = Vector2.Zero;
-            GetNode<CanvasLayer>("CanvasLayer").Offset = Vector2.Zero;
-            var sz = GetNode<Marker2D>("WindowSize").Position;
-            DisplayServer.WindowSetSize(new Vector2I((int)sz.X, (int)sz.Y));
             return;
         }
+        PositionPanelInBestSlot();
+        _settingsPanel.Open();
+    }
 
-        var baseSz = GetNode<Marker2D>("WindowSize").Position;
-        int bw = (int)baseSz.X, bh = (int)baseSz.Y;
-        int pw = (int)TestSettingPanelController.PanelWidth;
-        int ph = (int)TestSettingPanelController.PanelHeight;
+    private void PositionPanelInBestSlot()
+    {
         var winPos = DisplayServer.WindowGetPosition();
-        var scr = DisplayServer.ScreenGetSize();
-        var canvas = GetNode<CanvasLayer>("CanvasLayer");
+        var scrSize = DisplayServer.ScreenGetSize();
+        int aw = (int)_windowBaseSize.X;
+        int ah = (int)_windowBaseSize.Y;
+        const int pad = 5;
 
-        int L = winPos.X, R = (int)(scr.X - (winPos.X + bw));
-        int T = winPos.Y, Btm = (int)(scr.Y - (winPos.Y + bh));
+        // 检查 B 在屏幕 (sx, sy) 处是否能完全放下
+        bool Fits(int sx, int sy) =>
+            sx >= -pad && sx + PanelW <= scrSize.X + pad &&
+            sy >= -pad && sy + PanelH <= scrSize.Y + pad;
 
-        if (L >= pw)
+        float bY = ContentOffset.Y + ah - PanelH;          // B 底边与 A 底边对齐
+        float centerX = ContentOffset.X + aw / 2f - PanelW / 2f; // 水平居中
+
+        // 左侧（4 号位默认）
+        int leftY = winPos.Y + (int)bY;
+        if (Fits(winPos.X, leftY))
         {
-            // 先移内容再移窗口，避免闪烁
-            Position = new Vector2(pw, 0);
-            canvas.Offset = new Vector2(pw, 0);
-            _settingsPanel.SetTargetPosition(new Vector2(0, (Math.Max(bh, ph) - ph) / 2f));
-            DisplayServer.WindowSetPosition(new Vector2I(winPos.X - pw, winPos.Y));
-            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
+            _settingsPanel.SetPanelPosition(new Vector2(0, bY));
+            return;
         }
-        else if (R >= pw)
+        // 右侧（6 号位）
+        int rx = winPos.X + (int)ContentOffset.X + aw;
+        if (Fits(rx, leftY))
         {
-            _settingsPanel.SetTargetPosition(new Vector2(bw, (Math.Max(bh, ph) - ph) / 2f));
-            DisplayServer.WindowSetSize(new Vector2I(bw + pw, Math.Max(bh, ph)));
+            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, bY));
+            return;
         }
-        else if (T >= ph)
+        // 正下方（2 号位）
+        int cx = winPos.X + (int)centerX;
+        int btmY = winPos.Y + (int)ContentOffset.Y + ah;
+        if (Fits(cx, btmY))
         {
-            Position = new Vector2(0, ph);
-            canvas.Offset = new Vector2(0, ph);
-            _settingsPanel.SetTargetPosition(new Vector2((Math.Max(bw, pw) - pw) / 2f, 0));
-            DisplayServer.WindowSetPosition(new Vector2I(winPos.X, winPos.Y - ph));
-            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
+            _settingsPanel.SetPanelPosition(new Vector2(centerX, ContentOffset.Y + ah));
+            return;
         }
-        else
+        // 右下（3 号位）：B 在 A 下方右对齐
+        int rX = winPos.X + (int)ContentOffset.X + aw;
+        if (Fits(rX, btmY))
         {
-            _settingsPanel.SetTargetPosition(new Vector2((Math.Max(bw, pw) - pw) / 2f, bh));
-            DisplayServer.WindowSetSize(new Vector2I(Math.Max(bw, pw), bh + ph));
+            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, ContentOffset.Y + ah));
+            return;
         }
-        _settingsPanel.Open(false);
+        // 左下（1 号位）：B 在 A 下方左对齐
+        if (Fits(winPos.X, btmY))
+        {
+            _settingsPanel.SetPanelPosition(new Vector2(0, ContentOffset.Y + ah));
+            return;
+        }
+        // 正上方（8 号位）
+        if (Fits(cx, winPos.Y))
+        {
+            _settingsPanel.SetPanelPosition(new Vector2(centerX, 0));
+            return;
+        }
+        // 右上（9 号位）
+        if (Fits(rX, winPos.Y))
+        {
+            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, 0));
+            return;
+        }
+        // 左上（7 号位）兜底
+        _settingsPanel.SetPanelPosition(new Vector2(0, 0));
     }
 
     // ===== 窗口管理 =====
 
-    private void SetupTransparentWindow()
+    private void SetupFatWindow()
     {
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
-        var sz = GetNode<Marker2D>("WindowSize").Position;
-        DisplayServer.WindowSetSize(new Vector2I((int)sz.X, (int)sz.Y));
+
+        int winW = (int)_windowBaseSize.X + PanelW * 2;
+        int winH = (int)_windowBaseSize.Y + PanelH * 2;
+        DisplayServer.WindowSetSize(new Vector2I(winW, winH));
         SetWindowAboveTaskbar();
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
     }
@@ -117,9 +151,12 @@ public partial class BossKeyController : Node2D
     {
         var scrRect = DisplayServer.ScreenGetUsableRect();
         int taskbarTop = (int)(scrRect.Position.Y + scrRect.Size.Y);
-        int x = (int)(scrRect.Position.X + (scrRect.Size.X - DisplayServer.WindowGetSize().X) / 2);
-        var anchor = GetNode<Marker2D>("TaskBar").Position;
-        DisplayServer.WindowSetPosition(new Vector2I(x, taskbarTop - (int)anchor.Y));
+        int winW = DisplayServer.WindowGetSize().X;
+        var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
+        int anchorY = (int)(ContentOffset.Y + anchor.Y);
+        int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
+        int y = taskbarTop - anchorY;
+        DisplayServer.WindowSetPosition(new Vector2I(x, y));
     }
 
     private void EnableLayeredWindow()
@@ -156,7 +193,12 @@ public partial class BossKeyController : Node2D
             }
             else
             {
-                if (_isDragging) GetViewport().SetInputAsHandled();
+                if (_isDragging)
+                {
+                    GetViewport().SetInputAsHandled();
+                    if (_settingsPanel.IsOpen)
+                        PositionPanelInBestSlot();
+                }
                 _isDragging = false; _potentialDrag = false;
             }
         }

@@ -19,16 +19,10 @@ corner_radius_bottom_left = 12
 
 [node name="BossKey" type="Node2D" unique_id=2041941169]
 script = ExtResource("1_ctrl")
-_mainText = NodePath("CanvasLayer/Panel/HBoxContainer/MainText")
-_bubbleText = NodePath("Bubble/BubbleBg/BubbleText")
-_bubbleLayer = NodePath("Bubble")
-_canvasLayer = NodePath("CanvasLayer")
-_windowSize = NodePath("WindowSize")
-_taskBar = NodePath("TaskBar")
-_modeSwitch = NodePath("CanvasLayer/Panel/HBoxContainer/ModeSwitch")
-_systemButton = NodePath("CanvasLayer/Panel/HBoxContainer/SystemButton")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1526364771]
+offset = Vector2(300, 420)
+transform = Transform2D(1, 0, 0, 1, 300, 420)
 
 [node name="Panel" type="PanelContainer" parent="CanvasLayer" unique_id=537945450]
 offset_left = 53.0
@@ -61,15 +55,23 @@ theme_override_font_sizes/font_size = 16
 text = "⚙"
 flat = true
 
-[node name="DogArea" parent="." unique_id=1900813958 instance=ExtResource("2_dog")]
+[node name="ContentA" type="Node2D" parent="." unique_id=1791701709]
+position = Vector2(300, 420)
+
+[node name="DogArea" parent="ContentA" unique_id=1900813958 instance=ExtResource("2_dog")]
 position = Vector2(137, 184)
 scale = Vector2(0.25, 0.25)
 
-[node name="WindowSize" type="Marker2D" parent="." unique_id=1547825256]
+[node name="WindowSize" type="Marker2D" parent="ContentA" unique_id=1547825256]
 position = Vector2(265, 235)
+
+[node name="TaskBar" type="Marker2D" parent="ContentA" unique_id=763624644]
+position = Vector2(137, 184)
 
 [node name="Bubble" type="CanvasLayer" parent="." unique_id=458806472]
 layer = 2
+offset = Vector2(300, 420)
+transform = Transform2D(1, 0, 0, 1, 300, 420)
 
 [node name="BubbleBg" type="PanelContainer" parent="Bubble" unique_id=737893080]
 offset_left = 1.0
@@ -91,6 +93,3 @@ vertical_alignment = 1
 position = Vector2(145, 28)
 color = Color(0.92941177, 0.92941177, 0.92941177, 1)
 polygon = PackedVector2Array(19, 9, 19, 24, 0, 9)
-
-[node name="TaskBar" type="Marker2D" parent="." unique_id=763624644]
-position = Vector2(137, 184)
