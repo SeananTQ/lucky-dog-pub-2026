@@ -19,6 +19,14 @@ corner_radius_bottom_left = 12
 
 [node name="BossKey" type="Node2D" unique_id=2041941169]
 script = ExtResource("1_ctrl")
+_mainText = NodePath("CanvasLayer/Panel/HBoxContainer/MainText")
+_bubbleText = NodePath("Bubble/BubbleBg/BubbleText")
+_bubbleLayer = NodePath("Bubble")
+_canvasLayer = NodePath("CanvasLayer")
+_windowSize = NodePath("WindowSize")
+_taskBar = NodePath("TaskBar")
+_modeSwitch = NodePath("CanvasLayer/Panel/HBoxContainer/ModeSwitch")
+_systemButton = NodePath("CanvasLayer/Panel/HBoxContainer/SystemButton")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1526364771]
 

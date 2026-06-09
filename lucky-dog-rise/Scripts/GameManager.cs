@@ -42,7 +42,7 @@ public partial class GameManager : Node2D
     private Marker2D _rewardSpawnPoint = null!;
     private WindowManager _windowManager = null!;
     private DragHandler _dragHandler = null!;
-    private SettingsPanelController _settingsPanel = null!;
+    private TestSettingPanelController _settingsPanel = null!;
     private GlobalInputTracker _globalInput = null!;
     private TaskbarSnap _taskbarSnap = null!;
     private BossKeyController _bossKey = null!;
@@ -96,9 +96,9 @@ public partial class GameManager : Node2D
         _dragHandler = new DragHandler();
         _dragHandler.Name = "DragHandler";
         AddChild(_dragHandler);
-        _dragHandler.DragEnded += () => _settingsPanel.Reposition();
+        _dragHandler.DragEnded += () => { };
 
-        _settingsPanel = new SettingsPanelController();
+        _settingsPanel = GD.Load<PackedScene>("res://Scenes/TestSettingPanel.tscn").Instantiate<TestSettingPanelController>();
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);

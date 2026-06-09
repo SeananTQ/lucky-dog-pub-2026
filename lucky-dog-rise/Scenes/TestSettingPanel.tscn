@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://testset"]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/TestSettingPanelController.cs" id="1_ctrl"]
+
+[sub_resource type="StyleBoxFlat" id="panel_bg"]
+bg_color = Color(0.08, 0.08, 0.08, 0.92)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 12
+content_margin_top = 8
+content_margin_right = 12
+content_margin_bottom = 8
+
+[node name="TestSettingPanel" type="CanvasLayer"]
+script = ExtResource("1_ctrl")
+_panel = NodePath("Panel")
+_closeBtn = NodePath("Panel/Scroll/RootVBox/TitleRow/CloseBtn")
+_quitBtn = NodePath("Panel/Scroll/RootVBox/QuitBtn")
+_audioToggle = NodePath("Panel/Scroll/RootVBox/AudioRow/AudioToggle")
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(300, 420)
+offset_left = 0
+offset_top = 0
+theme_override_styles/panel = SubResource("panel_bg")
+
+[node name="Scroll" type="ScrollContainer" parent="Panel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Panel/Scroll"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/Scroll/RootVBox/TitleRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Settings"
+
+[node name="Spacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseBtn" type="Button" parent="Panel/Scroll/RootVBox/TitleRow"]
+layout_mode = 2
+flat = true
+theme_override_font_sizes/font_size = 18
+text = "X"
+
+[node name="Sep1" type="HSeparator" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
+[node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
+[node name="AudioLabel" type="Label" parent="Panel/Scroll/RootVBox/AudioRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Sound Effects"
+size_flags_horizontal = 3
+
+[node name="AudioToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/AudioRow"]
+layout_mode = 2
+
+[node name="Sep2" type="HSeparator" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+
+[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Quit Game"
