@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://bhbc4lppc2mva"]
+[gd_scene format=3 uid="uid://bhbc4lppc2mva"]
 
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
-[ext_resource type="Script" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
+[ext_resource type="Script" uid="uid://bfly0c8d8fnc7" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
 
 [node name="UIThemePreview" type="Control" unique_id=650643820]
 layout_mode = 3
@@ -10,15 +10,14 @@ offset_right = 660.0
 offset_bottom = 620.0
 theme = ExtResource("1_theme")
 script = ExtResource("1_ujm45")
-_helloWorldButton = NodePath("Grid/SectionButtons/Row/Hello World")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=33211357]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 494.0
-offset_bottom = 48.0
+offset_right = 697.0
+offset_bottom = 749.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.5006195, 0.5006196, 0.5006196, 1)
@@ -145,10 +144,15 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Quit Game"
 
-[node name="Hello World" type="Button" parent="Grid/SectionButtons/Row"]
+[node name="Hello World" type="Button" parent="Grid/SectionButtons/Row" unique_id=273678716]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Hello World"
+
+[node name="Hello Qwen" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Hello Qwen"
 
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
 layout_mode = 2

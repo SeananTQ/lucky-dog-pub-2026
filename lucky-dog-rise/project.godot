@@ -25,6 +25,8 @@ AudioManager="*res://Scripts/AudioManager.cs"
 
 [display]
 
+window/size/viewport_width=1360
+window/size/viewport_height=1360
 window/size/always_on_top=true
 window/per_pixel_transparency/allowed=true
 

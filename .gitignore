@@ -30,6 +30,8 @@ Thumbs.db
 
 # 给AI的信箱里的图片就不需要上传到版本控制系统
 /inbox/*.png
+/inbox/*.jpg
+/inbox/*.md
 
 # 测试文件夹不需要上传到版本控制系统
 /tests/
@@ -46,3 +48,4 @@ wick-mcp-server/*
 # Codex
 /.agents/
 config.toml
+*.otf
