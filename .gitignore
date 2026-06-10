@@ -48,4 +48,8 @@ wick-mcp-server/*
 # Codex
 /.agents/
 config.toml
+
+
+# 字体
 *.otf
+*.ttf

@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://bsee5l6v638hs"
-path="res://.godot/imported/SourceHanSansSC-Light.otf-05bd94d1940367467d409da0667cfd39.fontdata"
+uid="uid://caua3oe3l4xuk"
+path="res://.godot/imported/MiSans-Light.ttf-d912869f8cdc7bcb85f2e9d4897eb5ac.fontdata"
 
 [deps]
 
-source_file="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf"
-dest_files=["res://.godot/imported/SourceHanSansSC-Light.otf-05bd94d1940367467d409da0667cfd39.fontdata"]
+source_file="res://Assets/Fonts/MiSans/ttf/MiSans-Light.ttf"
+dest_files=["res://.godot/imported/MiSans-Light.ttf-d912869f8cdc7bcb85f2e9d4897eb5ac.fontdata"]
 
 [params]
 

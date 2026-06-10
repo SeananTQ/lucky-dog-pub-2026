@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://dlj2kcxpctngj"
-path="res://.godot/imported/SourceHanSansSC-ExtraLight.otf-0cf3a349a4df74fbd2235f4fe7e3ba07.fontdata"
+path="res://.godot/imported/SourceHanSansSC-ExtraLight.otf-1a2688b7fd6255e269ddf2cba2e18ba0.fontdata"
 
 [deps]
 
-source_file="res://Assets/Fonts/09_SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-ExtraLight.otf"
-dest_files=["res://.godot/imported/SourceHanSansSC-ExtraLight.otf-0cf3a349a4df74fbd2235f4fe7e3ba07.fontdata"]
+source_file="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-ExtraLight.otf"
+dest_files=["res://.godot/imported/SourceHanSansSC-ExtraLight.otf-1a2688b7fd6255e269ddf2cba2e18ba0.fontdata"]
 
 [params]
 

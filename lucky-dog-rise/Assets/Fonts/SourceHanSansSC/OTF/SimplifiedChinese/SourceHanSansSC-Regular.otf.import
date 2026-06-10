@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://bwc4imqni5ads"
-path="res://.godot/imported/SourceHanSansSC-Regular.otf-821383cd17277dab677198f32ff17c95.fontdata"
+path="res://.godot/imported/SourceHanSansSC-Regular.otf-05e2eaa3df1b6a10a572327b32a36723.fontdata"
 
 [deps]
 
-source_file="res://Assets/Fonts/09_SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf"
-dest_files=["res://.godot/imported/SourceHanSansSC-Regular.otf-821383cd17277dab677198f32ff17c95.fontdata"]
+source_file="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf"
+dest_files=["res://.godot/imported/SourceHanSansSC-Regular.otf-05e2eaa3df1b6a10a572327b32a36723.fontdata"]
 
 [params]
 
