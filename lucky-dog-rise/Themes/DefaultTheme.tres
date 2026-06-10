@@ -1,12 +1,15 @@
 [gd_resource type="Theme" format=3 uid="uid://iavownpnqk7j"]
 
 [ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="1_mi_reg"]
-[ext_resource type="FontFile" uid="uid://cccnf35cenw8f" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf" id="2_mi_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_wn4m6"]
 [ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="3_inter_reg"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="4_inter_bold"]
 
-[sub_resource type="FontVariation" id="FontVar_bold"]
-fallbacks = Array[Font]([ExtResource("2_mi_bold")])
+[sub_resource type="FontVariation" id="FontVariation_rk5vj"]
+base_font = ExtResource("2_wn4m6")
+
+[sub_resource type="FontVariation" id="FontVariation_cme4l"]
+fallbacks = Array[Font]([SubResource("FontVariation_rk5vj")])
 base_font = ExtResource("4_inter_bold")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
@@ -15,26 +18,26 @@ content_margin_top = 10.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
 bg_color = Color(0.35, 0.35, 0.35, 0.5)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_focus"]
-content_margin_left = 32.0
-content_margin_top = 14.0
-content_margin_right = 32.0
-content_margin_bottom = 14.0
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
 bg_color = Color(0.22, 0.55, 0.006, 1)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 6
 border_color = Color(1, 1, 1, 0.6)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
 content_margin_left = 16.0
@@ -44,10 +47,10 @@ content_margin_bottom = 16.0
 bg_color = Color(0.22, 0.55, 0.006, 1)
 border_width_bottom = 6
 border_color = Color(0.14, 0.32, 0, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 content_margin_left = 16.0
@@ -70,10 +73,37 @@ content_margin_bottom = 10.0
 bg_color = Color(0.22, 0.55, 0.006, 1)
 border_width_top = 6
 border_color = Color(0.8, 0.8, 0.8, 0)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="FontVariation" id="FontVar_regular"]
+fallbacks = Array[Font]([ExtResource("1_mi_reg")])
+base_font = ExtResource("3_inter_reg")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q4vyd"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.75)
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wn4m6"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_dark"]
 content_margin_left = 18.0
@@ -88,29 +118,42 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[sub_resource type="FontVariation" id="FontVar_regular"]
-fallbacks = Array[Font]([ExtResource("1_mi_reg")])
-base_font = ExtResource("3_inter_reg")
-
 [resource]
-default_font = SubResource("FontVar_regular")
-Button/colors/font_color = Color(1, 1, 1, 1)
-Button/colors/font_disabled_color = Color(0.7, 0.7, 0.7, 0.6)
-Button/colors/font_hover_color = Color(1, 1, 1, 1)
-Button/colors/font_outline_color = Color(0, 0, 0, 0.3)
-Button/colors/font_pressed_color = Color(0.95, 0.95, 0.95, 1)
-Button/colors/font_shadow_color = Color(0, 0, 0, 0.5)
-Button/constants/font_outline_size = 2
+default_font = ExtResource("4_inter_bold")
+Button/colors/font_color = Color(0.9490196, 0.9490196, 0.9490196, 1)
+Button/colors/font_disabled_color = Color(0.875, 0.875, 0.875, 0.5)
+Button/colors/font_focus_color = Color(0.95, 0.95, 0.95, 1)
+Button/colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
+Button/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+Button/colors/font_outline_color = Color(0, 0, 0, 1)
+Button/colors/font_pressed_color = Color(1, 1, 1, 1)
+Button/colors/icon_disabled_color = Color(1, 1, 1, 0.4)
+Button/colors/icon_focus_color = Color(1, 1, 1, 1)
+Button/colors/icon_hover_color = Color(1, 1, 1, 1)
+Button/colors/icon_hover_pressed_color = Color(1, 1, 1, 1)
+Button/colors/icon_normal_color = Color(1, 1, 1, 1)
+Button/colors/icon_pressed_color = Color(1, 1, 1, 1)
+Button/constants/align_to_largest_stylebox = 0
+Button/constants/h_separation = 4
+Button/constants/icon_max_width = 0
 Button/font_sizes/font_size = 30
-Button/fonts/font = SubResource("FontVar_bold")
+Button/fonts/font = SubResource("FontVariation_cme4l")
 Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
 Button/styles/hover = SubResource("StyleBoxFlat_btn_hover")
 Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 Label/colors/font_color = Color(1, 1, 1, 1)
-Label/colors/font_outline_color = Color(0, 0, 0, 0.5)
-Label/colors/font_shadow_color = Color(0, 0, 0, 0.5)
+Label/colors/font_outline_color = Color(1, 0, 0, 0.5019608)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.5019608)
 Label/constants/font_outline_size = 2
+Label/constants/line_spacing = 3
+Label/constants/outline_size = 0
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+Label/constants/shadow_outline_size = 1
 Label/font_sizes/font_size = 26
+Label/fonts/font = SubResource("FontVar_regular")
+Label/styles/focus = SubResource("StyleBoxFlat_q4vyd")
+Label/styles/normal = SubResource("StyleBoxTexture_wn4m6")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel_dark")
