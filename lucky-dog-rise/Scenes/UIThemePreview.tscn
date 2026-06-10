@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://bhbc4lppc2mva"]
+[gd_scene load_steps=3 format=3 uid="uid://bhbc4lppc2mva"]
 
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
 
 [node name="UIThemePreview" type="Control" unique_id=650643820]
 layout_mode = 3
@@ -8,6 +9,8 @@ anchors_preset = 0
 offset_right = 660.0
 offset_bottom = 620.0
 theme = ExtResource("1_theme")
+script = ExtResource("1_ujm45")
+_helloWorldButton = NodePath("Grid/SectionButtons/Row/Hello World")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=33211357]
 layout_mode = 1
@@ -141,6 +144,11 @@ text = "Small"
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Quit Game"
+
+[node name="Hello World" type="Button" parent="Grid/SectionButtons/Row"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Hello World"
 
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
 layout_mode = 2

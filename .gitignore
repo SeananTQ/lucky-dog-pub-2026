@@ -42,3 +42,7 @@ wick-mcp-server/*
 !wick-mcp-server/Wick
 
 /GameBuild/
+
+# Codex
+/.agents/
+config.toml
