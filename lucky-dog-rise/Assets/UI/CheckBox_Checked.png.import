@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://di2w7hic7hktg"
-path="res://.godot/imported/BlackB.png-86c6ad90a96cb265a444b6688611c525.ctex"
+uid="uid://cavh1d2gudd1n"
+path="res://.godot/imported/CheckBox_Checked.png-90571fee027d0f98a5d3c3540c07ec93.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/BlackB.png"
-dest_files=["res://.godot/imported/BlackB.png-86c6ad90a96cb265a444b6688611c525.ctex"]
+source_file="res://Assets/UI/CheckBox_Checked.png"
+dest_files=["res://.godot/imported/CheckBox_Checked.png-90571fee027d0f98a5d3c3540c07ec93.ctex"]
 
 [params]
 
