@@ -122,6 +122,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Normal"
 
+[node name="Normal2" type="Button" parent="Grid/SectionButtons/Row" unique_id=1912025654]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "普通"
+
 [node name="Flat" type="Button" parent="Grid/SectionButtons/Row" unique_id=745588907]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
