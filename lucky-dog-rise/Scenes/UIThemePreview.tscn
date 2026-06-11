@@ -2,6 +2,7 @@
 
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
 [ext_resource type="Script" uid="uid://bfly0c8d8fnc7" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
+[ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Style_BoxFlat_ValuePanel.tres" id="3_rkfi6"]
 
 [node name="UIThemePreview" type="Control" unique_id=650643820]
 layout_mode = 3
@@ -13,11 +14,11 @@ script = ExtResource("1_ujm45")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=33211357]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = 697.0
-offset_bottom = 749.0
+anchors_preset = -1
+anchor_right = 2.056
+anchor_bottom = 2.2080002
+offset_right = 0.040039063
+offset_bottom = 0.039916992
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.5006195, 0.5006196, 0.5006196, 1)
@@ -46,7 +47,8 @@ alignment = 1
 [node name="Header" type="Label" parent="Grid/SectionLabels/H" unique_id=970868158]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "=== Labels ==="
+text = "=== Labels and
+ Line Edit==="
 
 [node name="Sep" type="HSeparator" parent="Grid/SectionLabels" unique_id=486652243]
 layout_mode = 2
@@ -59,25 +61,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Label 14"
 
-[node name="L15" type="Label" parent="Grid/SectionLabels/Row" unique_id=1597563248]
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "Label 15"
-
-[node name="L16" type="Label" parent="Grid/SectionLabels/Row" unique_id=786716089]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Label 16"
-
 [node name="L18" type="Label" parent="Grid/SectionLabels/Row" unique_id=1090442033]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Label 18"
-
-[node name="L20" type="Label" parent="Grid/SectionLabels/Row" unique_id=1766494980]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Label 20"
 
 [node name="L22" type="Label" parent="Grid/SectionLabels/Row" unique_id=1878900252]
 layout_mode = 2
@@ -89,15 +76,15 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Label 26"
 
-[node name="L30" type="Label" parent="Grid/SectionLabels/Row" unique_id=149017092]
-layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "Label 30"
-
 [node name="L32" type="Label" parent="Grid/SectionLabels/Row" unique_id=453116923]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "Label 32"
+
+[node name="LineEdit" type="LineEdit" parent="Grid/SectionLabels/Row" unique_id=1428017631]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+placeholder_text = "Input text..."
 
 [node name="SectionButtons" type="VBoxContainer" parent="Grid" unique_id=654491194]
 layout_mode = 2
@@ -279,9 +266,160 @@ text = "Scroll item 4"
 layout_mode = 2
 text = "Scroll item 5"
 
-[node name="Sep2" type="HSeparator" parent="Grid/SectionOther/Row" unique_id=1808382901]
+[node name="VSeparator" type="VSeparator" parent="Grid/SectionOther/Row" unique_id=744170072]
 layout_mode = 2
 
 [node name="TextureRect" type="TextureRect" parent="Grid/SectionOther/Row" unique_id=1246387210]
 custom_minimum_size = Vector2(64, 88)
 layout_mode = 2
+
+[node name="VSeparator2" type="VSeparator" parent="Grid/SectionOther/Row" unique_id=1701142073]
+layout_mode = 2
+
+[node name="SectionInfo" type="VBoxContainer" parent="Grid" unique_id=1195165598]
+layout_mode = 2
+
+[node name="H" type="HBoxContainer" parent="Grid/SectionInfo" unique_id=189478329]
+layout_mode = 2
+alignment = 1
+
+[node name="Header" type="Label" parent="Grid/SectionInfo/H" unique_id=342473218]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "=== Info Panels ==="
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionInfo" unique_id=1395567768]
+layout_mode = 2
+
+[node name="LabelH" type="Label" parent="Grid/SectionInfo" unique_id=66018715]
+layout_mode = 2
+text = "Horizontal Key-Value"
+
+[node name="RowH" type="HBoxContainer" parent="Grid/SectionInfo" unique_id=1460070045]
+layout_mode = 2
+
+[node name="HRank" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=379590784]
+custom_minimum_size = Vector2(180, 60)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HRank" unique_id=1901951640]
+layout_mode = 2
+alignment = 1
+
+[node name="Key" type="Label" parent="Grid/SectionInfo/RowH/HRank/HBox" unique_id=231224647]
+layout_mode = 2
+text = "RANK"
+
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowH/HRank/HBox" unique_id=1038136779]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_rkfi6")
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HRank/HBox/ValuePanel" unique_id=632111979]
+layout_mode = 2
+text = "BRONZE"
+
+[node name="HChips" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=508022620]
+custom_minimum_size = Vector2(180, 60)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HChips" unique_id=1790800680]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="KeyZ" type="Label" parent="Grid/SectionInfo/RowH/HChips/HBox" unique_id=1585722461]
+layout_mode = 2
+text = "Total Chips"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ValuePanelZ" type="PanelContainer" parent="Grid/SectionInfo/RowH/HChips/HBox" unique_id=545700304]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_rkfi6")
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HChips/HBox/ValuePanelZ" unique_id=1767755595]
+layout_mode = 2
+text = "100"
+
+[node name="LabelV" type="Label" parent="Grid/SectionInfo" unique_id=1212081927]
+layout_mode = 2
+text = "Vertical Key-Value"
+
+[node name="RowV" type="HBoxContainer" parent="Grid/SectionInfo" unique_id=1435772992]
+layout_mode = 2
+
+[node name="VRank" type="PanelContainer" parent="Grid/SectionInfo/RowV" unique_id=710921876]
+custom_minimum_size = Vector2(120, 70)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Grid/SectionInfo/RowV/VRank" unique_id=1948802463]
+layout_mode = 2
+alignment = 1
+
+[node name="Key" type="Label" parent="Grid/SectionInfo/RowV/VRank/VBox" unique_id=1897107297]
+layout_mode = 2
+text = "RANK"
+horizontal_alignment = 1
+
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowV/VRank/VBox" unique_id=1088083378]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_rkfi6")
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowV/VRank/VBox/ValuePanel" unique_id=1032979081]
+layout_mode = 2
+text = "BRONZE"
+horizontal_alignment = 1
+
+[node name="VChips" type="PanelContainer" parent="Grid/SectionInfo/RowV" unique_id=1982358578]
+custom_minimum_size = Vector2(120, 70)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Grid/SectionInfo/RowV/VChips" unique_id=1098285465]
+layout_mode = 2
+alignment = 1
+
+[node name="Key" type="Label" parent="Grid/SectionInfo/RowV/VChips/VBox" unique_id=1439691414]
+layout_mode = 2
+text = "CHIPS"
+horizontal_alignment = 1
+
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowV/VChips/VBox" unique_id=750945994]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_rkfi6")
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowV/VChips/VBox/ValuePanel" unique_id=2031677393]
+layout_mode = 2
+text = "100"
+horizontal_alignment = 1
+
+[node name="LabelOnly" type="Label" parent="Grid/SectionInfo" unique_id=1432586926]
+layout_mode = 2
+text = "Value Only"
+
+[node name="RowO" type="HBoxContainer" parent="Grid/SectionInfo" unique_id=628970869]
+layout_mode = 2
+
+[node name="OValue" type="PanelContainer" parent="Grid/SectionInfo/RowO" unique_id=1342706970]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Grid/SectionInfo/RowO/OValue" unique_id=1795106557]
+layout_mode = 2
+alignment = 1
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowO/OValue/VBox" unique_id=451969480]
+layout_mode = 2
+text = "100"
+horizontal_alignment = 1
+
+[node name="OValue2" type="PanelContainer" parent="Grid/SectionInfo/RowO" unique_id=66057146]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Grid/SectionInfo/RowO/OValue2" unique_id=269086927]
+layout_mode = 2
+alignment = 1
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowO/OValue2/VBox" unique_id=1163649639]
+layout_mode = 2
+text = "5"
+horizontal_alignment = 1
