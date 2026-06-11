@@ -1,5 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://iavownpnqk7j"]
 
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Action_Disabled.tres" id="1_5li03"]
 [ext_resource type="StyleBox" uid="uid://dwvfed5lw108j" path="res://Themes/Buttons/Action_Normal.tres" id="1_l8k4y"]
 [ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="1_mi_reg"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_wn4m6"]
@@ -13,11 +14,16 @@
 [ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="6_xhhvy"]
 [ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_avwua"]
 [ext_resource type="StyleBox" uid="uid://b7v7v4bri36fj" path="res://Themes/Buttons/Destructive_Normal.tres" id="10_14jnw"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Disabled.tres" id="10_bcron"]
+[ext_resource type="StyleBox" uid="uid://bpcaxomtuehly" path="res://Themes/Buttons/Action_Hover.tres" id="10_kaug1"]
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="11_sts5i"]
-[ext_resource type="StyleBox" uid="uid://ewo7iif550kj" path="res://Themes/Buttons/Secretary_Disabled.tres" id="13_kaug1"]
-[ext_resource type="StyleBox" uid="uid://bxlgovnuin7gq" path="res://Themes/Buttons/Secretary_Hover.tres" id="14_kaug1"]
+[ext_resource type="StyleBox" uid="uid://b8yhp1a07dop8" path="res://Themes/Buttons/Action_Pressed.tres" id="12_bcron"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Disabled.tres" id="13_kaug1"]
+[ext_resource type="StyleBox" uid="uid://deij2a8nbdvl5" path="res://Themes/Buttons/Secretary_Hover.tres" id="14_kaug1"]
+[ext_resource type="StyleBox" uid="uid://bi72kshd5vup8" path="res://Themes/Buttons/Destructive_Hover.tres" id="14_p7m14"]
 [ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="15_bcron"]
-[ext_resource type="StyleBox" uid="uid://jcj5j8bdaaih" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_5gcxy"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
@@ -34,22 +40,6 @@ corner_detail = 1
 [sub_resource type="FontVariation" id="FontVariation_cme4l"]
 fallbacks = Array[Font]([ExtResource("2_wn4m6")])
 base_font = ExtResource("4_inter_bold")
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_focus"]
-content_margin_left = 16.0
-content_margin_top = 10.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(0.22, 0.55, 0.006, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 6
-border_color = Color(1, 1, 1, 0.6)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
 
 [sub_resource type="DPITexture" id="DPITexture_p0un0"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"14\" height=\"14\" x=\"1\" y=\"1\" fill=\"#fff\" fill-opacity=\".37\" rx=\"2.333\"/><path fill=\"#1a1a1a\" fill-opacity=\".5\" d=\"m11.5 3.75-5.6 5.6-1.7-1.7-1.5 1.5 3.2 3.2 7.1-7.1z\"/></svg>
@@ -185,7 +175,7 @@ content_margin_left = 4.0
 content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
-bg_color = Color(0.34509805, 0.8, 0.007843138, 1)
+bg_color = Color(0, 0.78039217, 0.40392157, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -197,7 +187,7 @@ content_margin_left = 4.0
 content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
-bg_color = Color(0.34509805, 0.8, 0.007843138, 1)
+bg_color = Color(0, 0.78039217, 0.40392157, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -364,11 +354,11 @@ vertical = true
 [resource]
 default_font = ExtResource("4_inter_bold")
 ActionButton/base_type = &"Button"
-ActionButton/styles/disabled = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/disabled = ExtResource("1_5li03")
 ActionButton/styles/focus = SubResource("StyleBoxFlat_7288i")
-ActionButton/styles/hover = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/hover = ExtResource("10_kaug1")
 ActionButton/styles/normal = ExtResource("1_l8k4y")
-ActionButton/styles/pressed = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/pressed = ExtResource("12_bcron")
 Button/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_disabled_color = Color(0.875, 0.875, 0.875, 0.5)
 Button/colors/font_focus_color = Color(0.95, 0.95, 0.95, 1)
@@ -388,7 +378,7 @@ Button/constants/icon_max_width = 0
 Button/font_sizes/font_size = 32
 Button/fonts/font = SubResource("FontVariation_cme4l")
 Button/styles/disabled = ExtResource("3_7288i")
-Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
+Button/styles/focus = ExtResource("4_l8k4y")
 Button/styles/hover = ExtResource("4_l8k4y")
 Button/styles/hover_pressed = ExtResource("5_14jnw")
 Button/styles/normal = ExtResource("6_xhhvy")
@@ -448,7 +438,10 @@ CheckButton/styles/hover_pressed = SubResource("StyleBoxEmpty_xhhvy")
 CheckButton/styles/normal = SubResource("StyleBoxEmpty_xhhvy")
 CheckButton/styles/pressed = SubResource("StyleBoxEmpty_xhhvy")
 DestructiveButton/base_type = &"Button"
+DestructiveButton/styles/disabled = ExtResource("10_bcron")
+DestructiveButton/styles/hover = ExtResource("14_p7m14")
 DestructiveButton/styles/normal = ExtResource("10_14jnw")
+DestructiveButton/styles/pressed = ExtResource("16_5gcxy")
 HSeparator/constants/separation = 6
 HSeparator/styles/separator = SubResource("StyleBoxLine_avwua")
 HSlider/constants/center_grabber = 0

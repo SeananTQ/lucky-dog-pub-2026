@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bhbc4lppc2mva"]
 
-[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
+[ext_resource type="Theme" uid="uid://dxsmkr5xu6of7" path="res://Themes/DefaultTheme_V1Bak.tres" id="1_isdcl"]
 [ext_resource type="Script" uid="uid://bfly0c8d8fnc7" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
 [ext_resource type="LabelSettings" uid="uid://e2wcrepsuxui" path="res://Themes/Label_KeyText.tres" id="3_isdcl"]
 [ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="3_rkfi6"]
@@ -11,7 +11,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 660.0
 offset_bottom = 620.0
-theme = ExtResource("1_theme")
+theme = ExtResource("1_isdcl")
 script = ExtResource("1_ujm45")
 _helloWorldButton = NodePath("Grid/SectionButtons/Row/PrimaryButton")
 
