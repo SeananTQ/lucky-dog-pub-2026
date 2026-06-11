@@ -1,5 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://iavownpnqk7j"]
 
+[ext_resource type="StyleBox" uid="uid://dwvfed5lw108j" path="res://Themes/Buttons/Action_Normal.tres" id="1_l8k4y"]
 [ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="1_mi_reg"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_wn4m6"]
 [ext_resource type="StyleBox" uid="uid://cj6v0oxlb7tl6" path="res://Themes/Buttons/Primary_Disabled.tres" id="3_7288i"]
@@ -11,11 +12,24 @@
 [ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="6_eevlq"]
 [ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="6_xhhvy"]
 [ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_avwua"]
+[ext_resource type="StyleBox" uid="uid://b7v7v4bri36fj" path="res://Themes/Buttons/Destructive_Normal.tres" id="10_14jnw"]
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="11_sts5i"]
 [ext_resource type="StyleBox" uid="uid://ewo7iif550kj" path="res://Themes/Buttons/Secretary_Disabled.tres" id="13_kaug1"]
-[ext_resource type="StyleBox" uid="uid://bxlgovnuin7gq" path="res://Themes/Buttons/Secretary_Hover.tres" id="14_bcron"]
-[ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="15_ox3pi"]
-[ext_resource type="StyleBox" uid="uid://jcj5j8bdaaih" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_gph56"]
+[ext_resource type="StyleBox" uid="uid://bxlgovnuin7gq" path="res://Themes/Buttons/Secretary_Hover.tres" id="14_kaug1"]
+[ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="15_bcron"]
+[ext_resource type="StyleBox" uid="uid://jcj5j8bdaaih" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 0.365, 0.365, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_detail = 1
 
 [sub_resource type="FontVariation" id="FontVariation_cme4l"]
 fallbacks = Array[Font]([ExtResource("2_wn4m6")])
@@ -306,7 +320,7 @@ shadow_size = 1
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7eo5n"]
-bg_color = Color(0.065929614, 0.20294845, 0.00074422173, 1)
+bg_color = Color(0, 0.14652029, 0.28276542, 1)
 corner_radius_top_left = 16
 corner_radius_top_right = 16
 corner_radius_bottom_right = 16
@@ -318,7 +332,7 @@ shadow_size = 1
 shadow_offset = Vector2(0, 6)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i6fns"]
-bg_color = Color(0.34509805, 0.8, 0.007843138, 1)
+bg_color = Color(0, 0.5764706, 1, 1)
 border_color = Color(0.18039216, 0.4, 0, 1)
 corner_radius_top_left = 16
 corner_radius_top_right = 16
@@ -349,6 +363,12 @@ vertical = true
 
 [resource]
 default_font = ExtResource("4_inter_bold")
+ActionButton/base_type = &"Button"
+ActionButton/styles/disabled = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/focus = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/hover = SubResource("StyleBoxFlat_7288i")
+ActionButton/styles/normal = ExtResource("1_l8k4y")
+ActionButton/styles/pressed = SubResource("StyleBoxFlat_7288i")
 Button/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_disabled_color = Color(0.875, 0.875, 0.875, 0.5)
 Button/colors/font_focus_color = Color(0.95, 0.95, 0.95, 1)
@@ -427,6 +447,8 @@ CheckButton/styles/hover = SubResource("StyleBoxEmpty_xhhvy")
 CheckButton/styles/hover_pressed = SubResource("StyleBoxEmpty_xhhvy")
 CheckButton/styles/normal = SubResource("StyleBoxEmpty_xhhvy")
 CheckButton/styles/pressed = SubResource("StyleBoxEmpty_xhhvy")
+DestructiveButton/base_type = &"Button"
+DestructiveButton/styles/normal = ExtResource("10_14jnw")
 HSeparator/constants/separation = 6
 HSeparator/styles/separator = SubResource("StyleBoxLine_avwua")
 HSlider/constants/center_grabber = 0
@@ -475,9 +497,9 @@ ProgressBar/styles/background = SubResource("StyleBoxFlat_7eo5n")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_i6fns")
 SecondaryButton/base_type = &"Button"
 SecondaryButton/styles/disabled = ExtResource("13_kaug1")
-SecondaryButton/styles/hover = ExtResource("14_bcron")
-SecondaryButton/styles/normal = ExtResource("15_ox3pi")
-SecondaryButton/styles/pressed = ExtResource("16_gph56")
+SecondaryButton/styles/hover = ExtResource("14_kaug1")
+SecondaryButton/styles/normal = ExtResource("15_bcron")
+SecondaryButton/styles/pressed = ExtResource("16_ox3pi")
 TooltipLabel/font_sizes/font_size = 18
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_sts5i")
 VSeparator/constants/separation = 4

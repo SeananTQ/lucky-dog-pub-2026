@@ -6,13 +6,14 @@
 [ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="3_rkfi6"]
 [ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="5_wifws"]
 
-[node name="UIThemePreview" type="Control" unique_id=650643820]
+[node name="UIThemePreview" type="Control" unique_id=650643820 node_paths=PackedStringArray("_helloWorldButton")]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 660.0
 offset_bottom = 620.0
 theme = ExtResource("1_theme")
 script = ExtResource("1_ujm45")
+_helloWorldButton = NodePath("Grid/SectionButtons/Row/PrimaryButton")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=33211357]
 layout_mode = 1
@@ -23,7 +24,7 @@ offset_right = 0.040039063
 offset_bottom = 0.039916992
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.5006195, 0.5006196, 0.5006196, 1)
+color = Color(0.18039216, 0.21960784, 0.2509804, 1)
 
 [node name="Title" type="Label" parent="." unique_id=672273503]
 layout_mode = 0
@@ -106,15 +107,15 @@ layout_mode = 2
 [node name="Row" type="HBoxContainer" parent="Grid/SectionButtons" unique_id=1644490293]
 layout_mode = 2
 
-[node name="Normal" type="Button" parent="Grid/SectionButtons/Row" unique_id=2027879844]
+[node name="PrimaryButton" type="Button" parent="Grid/SectionButtons/Row" unique_id=2027879844]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Normal"
+text = "Primary Button"
 
 [node name="Normal2" type="Button" parent="Grid/SectionButtons/Row" unique_id=1912025654]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "普通"
+text = "主要按钮"
 
 [node name="Flat" type="Button" parent="Grid/SectionButtons/Row" unique_id=745588907]
 layout_mode = 2
@@ -135,19 +136,21 @@ text = "Small"
 
 [node name="Quit" type="Button" parent="Grid/SectionButtons/Row" unique_id=54868123]
 layout_mode = 2
+theme_type_variation = &"ActionButton"
+theme_override_font_sizes/font_size = 14
+text = "Action Button"
+
+[node name="Quit2" type="Button" parent="Grid/SectionButtons/Row" unique_id=2036083414]
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
 theme_override_font_sizes/font_size = 14
 text = "Quit Game"
 
-[node name="Hello World" type="Button" parent="Grid/SectionButtons/Row" unique_id=273678716]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "Hello World"
-
-[node name="Hello Qwen" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
+[node name="SecretaryButton" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
 theme_override_font_sizes/font_size = 14
-text = "Hello Qwen"
+text = "Secretary Button"
 
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
 layout_mode = 2
