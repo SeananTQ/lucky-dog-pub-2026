@@ -1,0 +1,13 @@
+[gd_resource type="LabelSettings" format=3 uid="uid://e2wcrepsuxui"]
+
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_q3452"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_nxsmb"]
+
+[sub_resource type="FontVariation" id="FontVariation_ymkvt"]
+fallbacks = Array[Font]([ExtResource("2_nxsmb")])
+base_font = ExtResource("1_q3452")
+
+[resource]
+line_spacing = 2.0
+paragraph_spacing = -5.0
+font = SubResource("FontVariation_ymkvt")

@@ -2,7 +2,9 @@
 
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
 [ext_resource type="Script" uid="uid://bfly0c8d8fnc7" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
+[ext_resource type="LabelSettings" uid="uid://e2wcrepsuxui" path="res://Themes/Label_KeyText.tres" id="3_isdcl"]
 [ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Style_BoxFlat_ValuePanel.tres" id="3_rkfi6"]
+[ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="5_wifws"]
 
 [node name="UIThemePreview" type="Control" unique_id=650643820]
 layout_mode = 3
@@ -298,47 +300,55 @@ text = "Horizontal Key-Value"
 [node name="RowH" type="HBoxContainer" parent="Grid/SectionInfo" unique_id=1460070045]
 layout_mode = 2
 
-[node name="HRank" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=379590784]
-custom_minimum_size = Vector2(180, 60)
+[node name="HFixedWidth" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=379590784]
+custom_minimum_size = Vector2(260, 60)
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HRank" unique_id=1901951640]
+[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HFixedWidth" unique_id=1901951640]
 layout_mode = 2
-alignment = 1
 
-[node name="Key" type="Label" parent="Grid/SectionInfo/RowH/HRank/HBox" unique_id=231224647]
+[node name="Key" type="Label" parent="Grid/SectionInfo/RowH/HFixedWidth/HBox" unique_id=231224647]
 layout_mode = 2
-text = "RANK"
+text = "Player Rank"
+label_settings = ExtResource("3_isdcl")
 
-[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowH/HRank/HBox" unique_id=1038136779]
+[node name="Spacer" type="Control" parent="Grid/SectionInfo/RowH/HFixedWidth/HBox" unique_id=489009629]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowH/HFixedWidth/HBox" unique_id=1038136779]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("3_rkfi6")
 
-[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HRank/HBox/ValuePanel" unique_id=632111979]
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HFixedWidth/HBox/ValuePanel" unique_id=632111979]
 layout_mode = 2
-text = "BRONZE"
+text = "Bronze"
+label_settings = ExtResource("5_wifws")
 
-[node name="HChips" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=508022620]
-custom_minimum_size = Vector2(180, 60)
+[node name="HAutoWidth" type="PanelContainer" parent="Grid/SectionInfo/RowH" unique_id=508022620]
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HChips" unique_id=1790800680]
+[node name="HBox" type="HBoxContainer" parent="Grid/SectionInfo/RowH/HAutoWidth" unique_id=1790800680]
 layout_mode = 2
 theme_override_constants/separation = 10
+alignment = 1
 
-[node name="KeyZ" type="Label" parent="Grid/SectionInfo/RowH/HChips/HBox" unique_id=1585722461]
+[node name="Key" type="Label" parent="Grid/SectionInfo/RowH/HAutoWidth/HBox" unique_id=1585722461]
 layout_mode = 2
-text = "Total Chips"
+text = "Total
+Chips"
+label_settings = ExtResource("3_isdcl")
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ValuePanelZ" type="PanelContainer" parent="Grid/SectionInfo/RowH/HChips/HBox" unique_id=545700304]
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowH/HAutoWidth/HBox" unique_id=545700304]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("3_rkfi6")
 
-[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HChips/HBox/ValuePanelZ" unique_id=1767755595]
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowH/HAutoWidth/HBox/ValuePanel" unique_id=1767755595]
 layout_mode = 2
-text = "100"
+text = "1000"
+label_settings = ExtResource("5_wifws")
 
 [node name="LabelV" type="Label" parent="Grid/SectionInfo" unique_id=1212081927]
 layout_mode = 2
@@ -357,7 +367,8 @@ alignment = 1
 
 [node name="Key" type="Label" parent="Grid/SectionInfo/RowV/VRank/VBox" unique_id=1897107297]
 layout_mode = 2
-text = "RANK"
+text = "Rank"
+label_settings = ExtResource("3_isdcl")
 horizontal_alignment = 1
 
 [node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowV/VRank/VBox" unique_id=1088083378]
@@ -366,7 +377,8 @@ theme_override_styles/panel = ExtResource("3_rkfi6")
 
 [node name="Value" type="Label" parent="Grid/SectionInfo/RowV/VRank/VBox/ValuePanel" unique_id=1032979081]
 layout_mode = 2
-text = "BRONZE"
+text = "Bronze"
+label_settings = ExtResource("5_wifws")
 horizontal_alignment = 1
 
 [node name="VChips" type="PanelContainer" parent="Grid/SectionInfo/RowV" unique_id=1982358578]
@@ -379,7 +391,8 @@ alignment = 1
 
 [node name="Key" type="Label" parent="Grid/SectionInfo/RowV/VChips/VBox" unique_id=1439691414]
 layout_mode = 2
-text = "CHIPS"
+text = "Chips"
+label_settings = ExtResource("3_isdcl")
 horizontal_alignment = 1
 
 [node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowV/VChips/VBox" unique_id=750945994]
@@ -389,6 +402,7 @@ theme_override_styles/panel = ExtResource("3_rkfi6")
 [node name="Value" type="Label" parent="Grid/SectionInfo/RowV/VChips/VBox/ValuePanel" unique_id=2031677393]
 layout_mode = 2
 text = "100"
+label_settings = ExtResource("5_wifws")
 horizontal_alignment = 1
 
 [node name="LabelOnly" type="Label" parent="Grid/SectionInfo" unique_id=1432586926]
@@ -406,9 +420,14 @@ layout_mode = 2
 layout_mode = 2
 alignment = 1
 
-[node name="Value" type="Label" parent="Grid/SectionInfo/RowO/OValue/VBox" unique_id=451969480]
+[node name="ValuePanel" type="PanelContainer" parent="Grid/SectionInfo/RowO/OValue/VBox" unique_id=824304991]
 layout_mode = 2
-text = "100"
+theme_override_styles/panel = ExtResource("3_rkfi6")
+
+[node name="Value" type="Label" parent="Grid/SectionInfo/RowO/OValue/VBox/ValuePanel" unique_id=772011317]
+layout_mode = 2
+text = "Bronze"
+label_settings = ExtResource("5_wifws")
 horizontal_alignment = 1
 
 [node name="OValue2" type="PanelContainer" parent="Grid/SectionInfo/RowO" unique_id=66057146]

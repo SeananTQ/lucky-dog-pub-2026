@@ -300,12 +300,18 @@ content_margin_top = 12.0
 content_margin_right = 12.0
 content_margin_bottom = 12.0
 bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
-border_width_bottom = 4
-border_color = Color(0.02745098, 0.03529412, 0.039215688, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.60446244, 0.7101088, 0.7392709, 1)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+shadow_color = Color(0.02745098, 0.03529412, 0.039215688, 1)
+shadow_size = 1
+shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7eo5n"]
 bg_color = Color(0.065929614, 0.20294845, 0.00074422173, 1)
@@ -328,6 +334,18 @@ corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 expand_margin_top = 2.0
 expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sts5i"]
+bg_color = Color(0.19738793, 0.20819774, 0.2190085, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 4
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_sts5i"]
 content_margin_left = 0.0
@@ -463,5 +481,7 @@ PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel_dark")
 ProgressBar/font_sizes/font_size = 22
 ProgressBar/styles/background = SubResource("StyleBoxFlat_7eo5n")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_i6fns")
+TooltipLabel/font_sizes/font_size = 18
+TooltipPanel/styles/panel = SubResource("StyleBoxFlat_sts5i")
 VSeparator/constants/separation = 4
 VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")
