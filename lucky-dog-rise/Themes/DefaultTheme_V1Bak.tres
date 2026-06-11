@@ -2,9 +2,9 @@
 
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_6dukq"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_nwgbv"]
-[ext_resource type="StyleBox" uid="uid://bel0dk8tr0sad" path="res://Themes/Style_BoxFlat_Hover.tres" id="3_yv6kf"]
-[ext_resource type="StyleBox" uid="uid://cwvcr4uljklia" path="res://Themes/Style_BoxFlat_Pressed.tres" id="4_sqfd6"]
-[ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Style_BoxFlat_Normal.tres" id="5_fkqj3"]
+[ext_resource type="StyleBox" uid="uid://bel0dk8tr0sad" path="res://Themes/Buttons/Primary_Hover.tres" id="3_yv6kf"]
+[ext_resource type="StyleBox" uid="uid://cwvcr4uljklia" path="res://Themes/Buttons/Primary_Pressed.tres" id="4_sqfd6"]
+[ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="5_fkqj3"]
 [ext_resource type="Texture2D" uid="uid://cavh1d2gudd1n" path="res://Assets/UI/CheckBox_Checked.png" id="6_brgq4"]
 [ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="7_x8r3m"]
 [ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_aa0sr"]

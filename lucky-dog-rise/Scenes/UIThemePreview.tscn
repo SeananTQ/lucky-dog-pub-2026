@@ -3,7 +3,7 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
 [ext_resource type="Script" uid="uid://bfly0c8d8fnc7" path="res://Scripts/UIThemePreviewController.cs" id="1_ujm45"]
 [ext_resource type="LabelSettings" uid="uid://e2wcrepsuxui" path="res://Themes/Label_KeyText.tres" id="3_isdcl"]
-[ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Style_BoxFlat_ValuePanel.tres" id="3_rkfi6"]
+[ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="3_rkfi6"]
 [ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="5_wifws"]
 
 [node name="UIThemePreview" type="Control" unique_id=650643820]
@@ -145,6 +145,7 @@ text = "Hello World"
 
 [node name="Hello Qwen" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
 layout_mode = 2
+theme_type_variation = &"SecondaryButton"
 theme_override_font_sizes/font_size = 14
 text = "Hello Qwen"
 
