@@ -1,19 +1,19 @@
-[gd_resource type="Theme" format=3 uid="uid://iavownpnqk7j"]
+[gd_resource type="Theme" format=3 uid="uid://dxsmkr5xu6of7"]
 
-[ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="1_mi_reg"]
-[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_wn4m6"]
-[ext_resource type="StyleBox" uid="uid://bel0dk8tr0sad" path="res://Themes/Style_BoxFlat_Hover.tres" id="3_5u8pc"]
-[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="3_inter_reg"]
-[ext_resource type="StyleBox" uid="uid://cwvcr4uljklia" path="res://Themes/Style_BoxFlat_Pressed.tres" id="4_eevlq"]
-[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="4_inter_bold"]
-[ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Style_BoxFlat_Normal.tres" id="4_p0un0"]
-[ext_resource type="Texture2D" uid="uid://cavh1d2gudd1n" path="res://Assets/UI/CheckBox_Checked.png" id="5_p0un0"]
-[ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="6_eevlq"]
-[ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_avwua"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_7eo5n"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_i6fns"]
+[ext_resource type="StyleBox" uid="uid://bel0dk8tr0sad" path="res://Themes/Style_BoxFlat_Hover.tres" id="3_6dukq"]
+[ext_resource type="StyleBox" uid="uid://cwvcr4uljklia" path="res://Themes/Style_BoxFlat_Pressed.tres" id="4_nwgbv"]
+[ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Style_BoxFlat_Normal.tres" id="5_yv6kf"]
+[ext_resource type="Texture2D" uid="uid://cavh1d2gudd1n" path="res://Assets/UI/CheckBox_Checked.png" id="6_sqfd6"]
+[ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="7_fkqj3"]
+[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="8_brgq4"]
+[ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_i6fns"]
+[ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="9_x8r3m"]
 
 [sub_resource type="FontVariation" id="FontVariation_cme4l"]
-fallbacks = Array[Font]([ExtResource("2_wn4m6")])
-base_font = ExtResource("4_inter_bold")
+fallbacks = Array[Font]([ExtResource("2_i6fns")])
+base_font = ExtResource("1_7eo5n")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
 content_margin_left = 16.0
@@ -201,8 +201,8 @@ corner_radius_bottom_left = 4
 corner_detail = 6
 
 [sub_resource type="FontVariation" id="FontVar_regular"]
-fallbacks = Array[Font]([ExtResource("1_mi_reg")])
-base_font = ExtResource("3_inter_reg")
+fallbacks = Array[Font]([ExtResource("9_x8r3m")])
+base_font = ExtResource("8_brgq4")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q4vyd"]
 content_margin_left = 4.0
@@ -263,7 +263,7 @@ expand_margin_top = 2.0
 expand_margin_bottom = 2.0
 
 [resource]
-default_font = ExtResource("4_inter_bold")
+default_font = ExtResource("1_7eo5n")
 Button/colors/font_color = Color(0.9490196, 0.9490196, 0.9490196, 1)
 Button/colors/font_disabled_color = Color(0.875, 0.875, 0.875, 0.5)
 Button/colors/font_focus_color = Color(0.95, 0.95, 0.95, 1)
@@ -284,10 +284,10 @@ Button/font_sizes/font_size = 30
 Button/fonts/font = SubResource("FontVariation_cme4l")
 Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
-Button/styles/hover = ExtResource("3_5u8pc")
-Button/styles/hover_pressed = ExtResource("4_eevlq")
-Button/styles/normal = ExtResource("4_p0un0")
-Button/styles/pressed = ExtResource("4_eevlq")
+Button/styles/hover = ExtResource("3_6dukq")
+Button/styles/hover_pressed = ExtResource("4_nwgbv")
+Button/styles/normal = ExtResource("5_yv6kf")
+Button/styles/pressed = ExtResource("4_nwgbv")
 CheckBox/colors/checkbox_checked_color = Color(1, 1, 1, 1)
 CheckBox/colors/checkbox_unchecked_color = Color(1, 1, 1, 1)
 CheckBox/colors/font_color = Color(0.875, 0.875, 0.875, 1)
@@ -301,13 +301,13 @@ CheckBox/constants/check_v_offset = 0
 CheckBox/constants/h_separation = 8
 CheckBox/constants/outline_size = 0
 CheckBox/font_sizes/font_size = 26
-CheckBox/icons/checked = ExtResource("5_p0un0")
+CheckBox/icons/checked = ExtResource("6_sqfd6")
 CheckBox/icons/checked_disabled = SubResource("DPITexture_p0un0")
 CheckBox/icons/radio_checked = SubResource("DPITexture_eevlq")
 CheckBox/icons/radio_checked_disabled = SubResource("DPITexture_avwua")
 CheckBox/icons/radio_unchecked = SubResource("DPITexture_xhhvy")
 CheckBox/icons/radio_unchecked_disabled = SubResource("DPITexture_kaug1")
-CheckBox/icons/unchecked = ExtResource("6_eevlq")
+CheckBox/icons/unchecked = ExtResource("7_fkqj3")
 CheckBox/icons/unchecked_disabled = SubResource("DPITexture_bcron")
 CheckBox/styles/disabled = SubResource("StyleBoxEmpty_ox3pi")
 CheckBox/styles/focus = SubResource("StyleBoxFlat_kaug1")
@@ -345,9 +345,9 @@ CheckButton/styles/pressed = SubResource("StyleBoxEmpty_xhhvy")
 HSlider/constants/center_grabber = 0
 HSlider/constants/grabber_offset = 0
 HSlider/constants/tick_offset = 0
-HSlider/icons/grabber = ExtResource("8_avwua")
-HSlider/icons/grabber_disabled = ExtResource("8_avwua")
-HSlider/icons/grabber_highlight = ExtResource("8_avwua")
+HSlider/icons/grabber = ExtResource("8_i6fns")
+HSlider/icons/grabber_disabled = ExtResource("8_i6fns")
+HSlider/icons/grabber_highlight = ExtResource("8_i6fns")
 HSlider/icons/tick = SubResource("DPITexture_6dukq")
 HSlider/styles/grabber_area = SubResource("StyleBoxFlat_nwgbv")
 HSlider/styles/grabber_area_highlight = SubResource("StyleBoxFlat_yv6kf")
