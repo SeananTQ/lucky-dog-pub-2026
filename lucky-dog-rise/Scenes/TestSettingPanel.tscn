@@ -1,91 +1,73 @@
 [gd_scene format=3 uid="uid://testset"]
 
-[ext_resource type="Script" path="res://Scripts/Desktop/TestSettingPanelController.cs" id="1_ctrl"]
+[ext_resource type="Script" uid="uid://cfr53y6ci7qwy" path="res://Scripts/Desktop/TestSettingPanelController.cs" id="1_ctrl"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
 
-[sub_resource type="StyleBoxFlat" id="panel_bg"]
-bg_color = Color(0.08, 0.08, 0.08, 0.92)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-content_margin_left = 12
-content_margin_top = 8
-content_margin_right = 12
-content_margin_bottom = 8
-
-[node name="TestSettingPanel" type="CanvasLayer"]
+[node name="TestSettingPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
-_panel = NodePath("Panel")
-_closeBtn = NodePath("Panel/Scroll/RootVBox/TitleRow/CloseBtn")
-_quitBtn = NodePath("Panel/Scroll/RootVBox/QuitBtn")
-_audioToggle = NodePath("Panel/Scroll/RootVBox/AudioRow/AudioToggle")
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(300, 420)
-offset_left = 0
-offset_top = 0
-theme_override_styles/panel = SubResource("panel_bg")
+theme = ExtResource("2_rixui")
 
-[node name="Scroll" type="ScrollContainer" parent="Panel"]
+[node name="Scroll" type="ScrollContainer" parent="Panel" unique_id=1384469647]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="RootVBox" type="VBoxContainer" parent="Panel/Scroll"]
+[node name="RootVBox" type="VBoxContainer" parent="Panel/Scroll" unique_id=1245391682]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
+[node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1627757193]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="Panel/Scroll/RootVBox/TitleRow"]
+[node name="TitleLabel" type="Label" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=9830931]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "Settings"
 
-[node name="Spacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow"]
+[node name="Spacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=89865551]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CloseBtn" type="Button" parent="Panel/Scroll/RootVBox/TitleRow"]
+[node name="CloseBtn" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=184556203]
 layout_mode = 2
-flat = true
 theme_override_font_sizes/font_size = 18
 text = "X"
 
-[node name="Sep1" type="HSeparator" parent="Panel/Scroll/RootVBox"]
+[node name="Sep1" type="HSeparator" parent="Panel/Scroll/RootVBox" unique_id=2137006305]
 layout_mode = 2
 
-[node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
+[node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1724876092]
 layout_mode = 2
 
-[node name="AudioLabel" type="Label" parent="Panel/Scroll/RootVBox/AudioRow"]
+[node name="AudioLabel" type="Label" parent="Panel/Scroll/RootVBox/AudioRow" unique_id=1830034355]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+size_flags_horizontal = 3
 text = "Sound Effects"
+
+[node name="AudioToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/AudioRow" unique_id=1581395180]
+layout_mode = 2
+
+[node name="Sep2" type="HSeparator" parent="Panel/Scroll/RootVBox" unique_id=700966535]
+layout_mode = 2
+
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1556867985]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="Panel/Scroll/RootVBox/DisplayRow" unique_id=634754941]
+layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="AudioToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/AudioRow"]
-layout_mode = 2
-
-[node name="Sep2" type="HSeparator" parent="Panel/Scroll/RootVBox"]
-layout_mode = 2
-
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox"]
-layout_mode = 2
-
-[node name="DisplayLabel" type="Label" parent="Panel/Scroll/RootVBox/DisplayRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
 text = "Display Mode"
-size_flags_horizontal = 3
 
-[node name="DisplayOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DisplayRow"]
+[node name="DisplayOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DisplayRow" unique_id=356464326]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="Sep3" type="HSeparator" parent="Panel/Scroll/RootVBox" unique_id=578985512]
 layout_mode = 2
 
-[node name="Sep3" type="HSeparator" parent="Panel/Scroll/RootVBox"]
+[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox" unique_id=1890114490]
 layout_mode = 2
-
-[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 26
 text = "Quit Game"
