@@ -111,7 +111,7 @@ public partial class ModeManager : Control
 
     // ===== 模式切换 =====
 
-    private CanvasItem _playContent = null!;
+    private Node2D _playRoot = null!;
     private InfoPanelController _infoPanel = null!;
 
     private void SwitchToPlay()
@@ -122,32 +122,28 @@ public partial class ModeManager : Control
         SetClickThrough(false);
         HideBossKeyContent();
 
-        if (_playContent == null)
+        if (_playRoot == null)
         {
-            _playContent = (CanvasItem)GD.Load<PackedScene>("res://Scenes/Main.tscn").Instantiate();
-            _playContent.Name = "PlayContent";
-            AddChild(_playContent);
-            var gm = _playContent as GameManager;
-            if (gm != null)
-            {
-                gm.Position = Vector2.Zero;
-                _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
-                _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
-            }
-        }
+            _playRoot = GD.Load<PackedScene>("res://Scenes/PlayContent.tscn").Instantiate<Node2D>();
+            _playRoot.Name = "PlayRoot";
+            AddChild(_playRoot);
 
-        _playContent.Visible = true;
-
-        if (_infoPanel == null)
-        {
+            // 信息面板由 ModeManager 直接管理（需要动态定位）
             _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
             _infoPanel.Name = "InfoPanel";
             AddChild(_infoPanel);
             _infoPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y));
             _infoPanel.SettingsRequested += ToggleSettingsPanel;
-        }
-        _infoPanel.Visible = true;
 
+            // 连接 Main 中的 GameManager 信号
+            var gm = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
+            _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
+            _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
+        }
+
+        _playRoot.Visible = true;
+        if (_infoPanel != null)
+            _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
     }
 
@@ -156,8 +152,8 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey) return;
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
-        if (_playContent != null)
-            _playContent.Visible = false;
+        if (_playRoot != null)
+            _playRoot.Visible = false;
         if (_infoPanel != null)
             _infoPanel.Visible = false;
 

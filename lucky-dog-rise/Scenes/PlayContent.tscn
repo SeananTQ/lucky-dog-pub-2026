@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://dwyovgqpbovdj"]
+
+[ext_resource type="PackedScene" uid="uid://dwfhbk6vuxql5" path="res://Scenes/Main.tscn" id="1_ketwd"]
+
+[node name="PlayRoot" type="Node2D" unique_id=1172946148]
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="." unique_id=319309915]
+offset_left = 240.0
+offset_top = 420.0
+offset_right = 1440.0
+offset_bottom = 1620.0
+scale = Vector2(0.5, 0.5)
+
+[node name="SubViewport" type="SubViewport" parent="SubViewportContainer" unique_id=946887247]
+handle_input_locally = false
+size = Vector2i(1200, 1200)
+render_target_update_mode = 4
+
+[node name="Main" parent="SubViewportContainer/SubViewport" unique_id=317845186 instance=ExtResource("1_ketwd")]
