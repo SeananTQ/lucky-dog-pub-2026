@@ -10,6 +10,7 @@ public partial class ModeManager : Node2D
 
     private TestSettingPanelController _settingsPanel = null!;
     public TestSettingPanelController SettingsPanelObj => _settingsPanel;
+    private Node2D _bossKeyContent = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
@@ -28,9 +29,10 @@ public partial class ModeManager : Node2D
 
     public override void _Ready()
     {
-        _mainText = GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
-        var modeBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
-        var sysBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
+        _bossKeyContent = GetNode<Node2D>("BossKeyContent");
+        _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
+        var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
+        var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
         modeBtn.Pressed += SwitchToPlay;
         sysBtn.Pressed += ToggleSettingsPanel;
 
@@ -46,14 +48,14 @@ public partial class ModeManager : Node2D
         _dogHitRect = new Rect2(60 + _contentOffset.X, 90 + _contentOffset.Y, 180, 180);
         _btnHitRect = new Rect2(50 + _contentOffset.X, 265 + _contentOffset.Y, 240, 40);
 
-        _windowBaseSize = GetNode<Marker2D>("ContentA/WindowSize").Position;
-        GetNode<Node2D>("ContentA").Position = _contentOffset;
+        _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
+        _bossKeyContent.GetNode<Node2D>("ContentA").Position = _contentOffset;
         SetupFatWindow();
         EnableLayeredWindow();
 
-        GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
-        GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
-        GetNode<CanvasLayer>("Bubble").Visible = false;
+        _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
+        _bossKeyContent.GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
+        _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
 
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
@@ -148,15 +150,12 @@ public partial class ModeManager : Node2D
 
     private void HideBossKeyContent()
     {
-        GetNode<Node2D>("ContentA").Visible = false;
-        GetNode<CanvasLayer>("CanvasLayer").Visible = false;
-        GetNode<CanvasLayer>("Bubble").Visible = false;
+        _bossKeyContent.Visible = false;
     }
 
     private void ShowBossKeyContent()
     {
-        GetNode<Node2D>("ContentA").Visible = true;
-        GetNode<CanvasLayer>("CanvasLayer").Visible = true;
+        _bossKeyContent.Visible = true;
     }
 
     // ===== 面板切换 =====
@@ -258,7 +257,7 @@ public partial class ModeManager : Node2D
     {
         var scrRect = DisplayServer.ScreenGetUsableRect();
         int taskbarTop = scrRect.Position.Y + scrRect.Size.Y;
-        var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
+        var anchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar").Position;
         int anchorY = (int)(_contentOffset.Y + anchor.Y);
         int snappedY = taskbarTop - anchorY;
 
@@ -283,7 +282,7 @@ public partial class ModeManager : Node2D
         var scrRect = DisplayServer.ScreenGetUsableRect();
         int taskbarTop = (int)(scrRect.Position.Y + scrRect.Size.Y);
         int winW = DisplayServer.WindowGetSize().X;
-        var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
+        var anchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar").Position;
         int anchorY = (int)(_contentOffset.Y + anchor.Y);
         int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
         int y = taskbarTop - anchorY;
