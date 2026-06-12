@@ -20,7 +20,6 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 4
 
 [node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1627757193]
 layout_mode = 2
@@ -50,7 +49,6 @@ layout_mode = 2
 [node name="SettingsContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283480]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 4
 
 [node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1724876092]
 layout_mode = 2
@@ -94,7 +92,6 @@ text = "Quit Game"
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 4
 
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
 layout_mode = 2

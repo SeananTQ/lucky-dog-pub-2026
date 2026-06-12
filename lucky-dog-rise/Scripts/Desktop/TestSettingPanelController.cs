@@ -50,6 +50,7 @@ public partial class TestSettingPanelController : CanvasLayer
 
         _settingsTab.Pressed += () => SwitchTab(true);
         _debugTab.Pressed += () => SwitchTab(false);
+        SwitchTab(true);
 
         // 设置页
         _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AudioRow/AudioToggle");
