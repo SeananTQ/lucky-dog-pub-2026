@@ -11,10 +11,8 @@ public partial class BossKeyController : Node2D
     private TestSettingPanelController _settingsPanel = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
-
-    private const int PanelW = 300;
-    private const int PanelH = 420;
-    private static readonly Vector2 ContentOffset = new(PanelW, PanelH);
+    private Vector2 _panelSize;
+    private Vector2 _contentOffset;
 
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
@@ -24,9 +22,8 @@ public partial class BossKeyController : Node2D
     private const int SnapThreshold = 15;
     private const int BreakawayThreshold = 30;
 
-    // 击中区：旧坐标 + ContentOffset
-    private static readonly Rect2 DogHitRect = new(360, 510, 180, 180);
-    private static readonly Rect2 BtnHitRect = new(350, 685, 240, 40);
+    private Rect2 _dogHitRect;
+    private Rect2 _btnHitRect;
 
     public override void _Ready()
     {
@@ -36,19 +33,26 @@ public partial class BossKeyController : Node2D
         modeBtn.Pressed += () => EmitSignal(SignalName.ModeSwitchRequested);
         sysBtn.Pressed += ToggleSettingsPanel;
 
-        _windowBaseSize = GetNode<Marker2D>("ContentA/WindowSize").Position;
-        SetupFatWindow();
-        EnableLayeredWindow();
-
-        // tscn 已设 offset，这里确保运行时正确
-        GetNode<CanvasLayer>("CanvasLayer").Offset = ContentOffset;
-        GetNode<CanvasLayer>("Bubble").Offset = ContentOffset;
-        GetNode<CanvasLayer>("Bubble").Visible = false;
-
+        // 先实例化面板以读取实际尺寸
         _settingsPanel = GD.Load<PackedScene>("res://Scenes/TestSettingPanel.tscn").Instantiate<TestSettingPanelController>();
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
+
+        _panelSize = _settingsPanel.PanelSize;
+        _contentOffset = _panelSize;
+
+        _dogHitRect = new Rect2(60 + _contentOffset.X, 90 + _contentOffset.Y, 180, 180);
+        _btnHitRect = new Rect2(50 + _contentOffset.X, 265 + _contentOffset.Y, 240, 40);
+
+        _windowBaseSize = GetNode<Marker2D>("ContentA/WindowSize").Position;
+        GetNode<Node2D>("ContentA").Position = _contentOffset;
+        SetupFatWindow();
+        EnableLayeredWindow();
+
+        GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
+        GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
+        GetNode<CanvasLayer>("Bubble").Visible = false;
 
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
@@ -60,7 +64,6 @@ public partial class BossKeyController : Node2D
 
     public override void _Process(double _)
     {
-        // 显示模式刷新
         var mode = SettingsManager.CurrentDisplayMode;
         if (mode != _lastMode)
         {
@@ -78,7 +81,7 @@ public partial class BossKeyController : Node2D
             _mainText.Text = GlobalInputTracker.TotalChips.ToString();
 
         var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
-        bool over = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos) || _settingsPanel.IsOpen;
+        bool over = _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos) || _settingsPanel.IsOpen;
         if (_isClickThrough && over) SetClickThrough(false);
         else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
     }
@@ -90,7 +93,6 @@ public partial class BossKeyController : Node2D
             var mouse = DisplayServer.MouseGetPosition();
             var wp = DisplayServer.WindowGetPosition();
             var ws = DisplayServer.WindowGetSize();
-            // 鼠标还在窗口内 → 原生下拉菜单导致，不关闭
             if (mouse.X < wp.X || mouse.X > wp.X + ws.X ||
                 mouse.Y < wp.Y || mouse.Y > wp.Y + ws.Y)
                 _settingsPanel.CloseImmediate();
@@ -116,15 +118,16 @@ public partial class BossKeyController : Node2D
         var scrSize = DisplayServer.ScreenGetSize();
         int aw = (int)_windowBaseSize.X;
         int ah = (int)_windowBaseSize.Y;
+        int pw = (int)_panelSize.X;
+        int ph = (int)_panelSize.Y;
         const int pad = 5;
 
-        // 检查 B 在屏幕 (sx, sy) 处是否能完全放下
         bool Fits(int sx, int sy) =>
-            sx >= -pad && sx + PanelW <= scrSize.X + pad &&
-            sy >= -pad && sy + PanelH <= scrSize.Y + pad;
+            sx >= -pad && sx + pw <= scrSize.X + pad &&
+            sy >= -pad && sy + ph <= scrSize.Y + pad;
 
-        float bY = ContentOffset.Y + ah - PanelH;          // B 底边与 A 底边对齐
-        float centerX = ContentOffset.X + aw / 2f - PanelW / 2f; // 水平居中
+        float bY = _contentOffset.Y + ah - ph;            // B 底边与 A 底边对齐
+        float centerX = _contentOffset.X + aw / 2f - pw / 2f; // 水平居中
 
         // 左侧（4 号位默认）
         int leftY = winPos.Y + (int)bY;
@@ -134,31 +137,31 @@ public partial class BossKeyController : Node2D
             return;
         }
         // 右侧（6 号位）
-        int rx = winPos.X + (int)ContentOffset.X + aw;
+        int rx = winPos.X + (int)_contentOffset.X + aw;
         if (Fits(rx, leftY))
         {
-            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, bY));
+            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, bY));
             return;
         }
         // 正下方（2 号位）
         int cx = winPos.X + (int)centerX;
-        int btmY = winPos.Y + (int)ContentOffset.Y + ah;
+        int btmY = winPos.Y + (int)_contentOffset.Y + ah;
         if (Fits(cx, btmY))
         {
-            _settingsPanel.SetPanelPosition(new Vector2(centerX, ContentOffset.Y + ah));
+            _settingsPanel.SetPanelPosition(new Vector2(centerX, _contentOffset.Y + ah));
             return;
         }
-        // 右下（3 号位）：B 在 A 下方右对齐
-        int rX = winPos.X + (int)ContentOffset.X + aw;
+        // 右下（3 号位）
+        int rX = winPos.X + (int)_contentOffset.X + aw;
         if (Fits(rX, btmY))
         {
-            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, ContentOffset.Y + ah));
+            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, _contentOffset.Y + ah));
             return;
         }
-        // 左下（1 号位）：B 在 A 下方左对齐
+        // 左下（1 号位）
         if (Fits(winPos.X, btmY))
         {
-            _settingsPanel.SetPanelPosition(new Vector2(0, ContentOffset.Y + ah));
+            _settingsPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y + ah));
             return;
         }
         // 正上方（8 号位）
@@ -170,7 +173,7 @@ public partial class BossKeyController : Node2D
         // 右上（9 号位）
         if (Fits(rX, winPos.Y))
         {
-            _settingsPanel.SetPanelPosition(new Vector2(ContentOffset.X + aw, 0));
+            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, 0));
             return;
         }
         // 左上（7 号位）兜底
@@ -184,8 +187,8 @@ public partial class BossKeyController : Node2D
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
 
-        int winW = (int)_windowBaseSize.X + PanelW * 2;
-        int winH = (int)_windowBaseSize.Y + PanelH * 2;
+        int winW = (int)_windowBaseSize.X + (int)_panelSize.X * 2;
+        int winH = (int)_windowBaseSize.Y + (int)_panelSize.Y * 2;
         DisplayServer.WindowSetSize(new Vector2I(winW, winH));
         SetWindowAboveTaskbar();
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
@@ -196,7 +199,7 @@ public partial class BossKeyController : Node2D
         var scrRect = DisplayServer.ScreenGetUsableRect();
         int taskbarTop = scrRect.Position.Y + scrRect.Size.Y;
         var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
-        int anchorY = (int)(ContentOffset.Y + anchor.Y);
+        int anchorY = (int)(_contentOffset.Y + anchor.Y);
         int snappedY = taskbarTop - anchorY;
 
         int dist = Math.Abs(newPos.Y - snappedY);
@@ -221,7 +224,7 @@ public partial class BossKeyController : Node2D
         int taskbarTop = (int)(scrRect.Position.Y + scrRect.Size.Y);
         int winW = DisplayServer.WindowGetSize().X;
         var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
-        int anchorY = (int)(ContentOffset.Y + anchor.Y);
+        int anchorY = (int)(_contentOffset.Y + anchor.Y);
         int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
         int y = taskbarTop - anchorY;
         DisplayServer.WindowSetPosition(new Vector2I(x, y));
@@ -255,7 +258,6 @@ public partial class BossKeyController : Node2D
         {
             if (mb.Pressed)
             {
-                // 不响应面板区域的拖拽（避免滚动条等交互被拦截）
                 var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
                 if (_settingsPanel.ContainsPoint(localPos)) return;
 

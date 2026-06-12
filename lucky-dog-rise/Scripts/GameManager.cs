@@ -102,6 +102,8 @@ public partial class GameManager : Node2D
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
+        _settingsPanel.RandomizeRequested += OnRandomizeScene;
+        _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
 
         CreateSettingsButton();
 
@@ -134,7 +136,7 @@ public partial class GameManager : Node2D
     {
         if (State != GameState.WaitingForBet) return;
         if (Chips < BetAmount) { TriggerGameOver(); return; }
-        if (_debugHud.TryGetFixedSeed(out int fixedSeed))
+        if (_settingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
     }
@@ -307,8 +309,7 @@ public partial class GameManager : Node2D
     {
         _hud.UpdateButtons(State, DebugMode);
         _hud.UpdateInfo(Chips, _progression.CurrentRank, BetAmount);
-        _debugHud.DebugEnabled = DebugMode;
-        _debugHud.UpdateSeed(_deck.LastSeed);
+        _settingsPanel.UpdateSeed(_deck.LastSeed);
     }
 
     private static string GetSignalMessage(DogSignal signal)
