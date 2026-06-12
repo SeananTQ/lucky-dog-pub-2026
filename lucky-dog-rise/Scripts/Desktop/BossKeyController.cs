@@ -20,6 +20,10 @@ public partial class BossKeyController : Node2D
     private Vector2I _mouseScreenStart, _windowPosStart;
     private const float DragThreshold = 5f;
 
+    private bool _taskbarSnapped;
+    private const int SnapThreshold = 15;
+    private const int BreakawayThreshold = 30;
+
     // 击中区：旧坐标 + ContentOffset
     private static readonly Rect2 DogHitRect = new(360, 510, 180, 180);
     private static readonly Rect2 BtnHitRect = new(350, 685, 240, 40);
@@ -187,6 +191,30 @@ public partial class BossKeyController : Node2D
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
     }
 
+    private void ApplyTaskbarSnap(ref Vector2I newPos)
+    {
+        var scrRect = DisplayServer.ScreenGetUsableRect();
+        int taskbarTop = scrRect.Position.Y + scrRect.Size.Y;
+        var anchor = GetNode<Marker2D>("ContentA/TaskBar").Position;
+        int anchorY = (int)(ContentOffset.Y + anchor.Y);
+        int snappedY = taskbarTop - anchorY;
+
+        int dist = Math.Abs(newPos.Y - snappedY);
+
+        if (_taskbarSnapped)
+        {
+            if (newPos.Y < snappedY - BreakawayThreshold)
+                _taskbarSnapped = false;
+            else
+                newPos.Y = snappedY;
+        }
+        else if (dist < SnapThreshold)
+        {
+            _taskbarSnapped = true;
+            newPos.Y = snappedY;
+        }
+    }
+
     private void SetWindowAboveTaskbar()
     {
         var scrRect = DisplayServer.ScreenGetUsableRect();
@@ -239,6 +267,7 @@ public partial class BossKeyController : Node2D
             {
                 if (_isDragging) GetViewport().SetInputAsHandled();
                 _isDragging = false; _potentialDrag = false;
+                _taskbarSnapped = false;
             }
         }
         else if (@event is InputEventMouseMotion && _potentialDrag)
@@ -248,7 +277,9 @@ public partial class BossKeyController : Node2D
             { _isDragging = true; SetClickThrough(false); }
             if (_isDragging)
             {
-                DisplayServer.WindowSetPosition(_windowPosStart + d);
+                var newPos = _windowPosStart + d;
+                ApplyTaskbarSnap(ref newPos);
+                DisplayServer.WindowSetPosition(newPos);
                 if (_settingsPanel.IsOpen)
                     PositionPanelInBestSlot();
                 GetViewport().SetInputAsHandled();
