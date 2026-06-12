@@ -6,6 +6,8 @@ public partial class TestSettingPanelController : CanvasLayer
 {
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
+    [Signal] public delegate void SwitchToPlayRequestedEventHandler();
+    [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
 
     public bool IsOpen => _panel.Visible;
 
@@ -68,6 +70,12 @@ public partial class TestSettingPanelController : CanvasLayer
 
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
+
+        var switchToPlayBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToPlayBtn");
+        var switchToBossKeyBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToBossKeyBtn");
+        switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
+        switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
+
         _audioToggle.Toggled += OnAudioToggled;
         _displayOption.ItemSelected += OnDisplayModeChanged;
 

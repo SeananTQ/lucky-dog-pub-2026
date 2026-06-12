@@ -1,0 +1,142 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/InfoPanelController.cs" id="1_ctrl"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[node name="InfoPanel" type="CanvasLayer"]
+script = ExtResource("1_ctrl")
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(240, 600)
+theme = ExtResource("2_theme")
+
+[node name="RootVBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ChipsLabel" type="Label" parent="Panel/RootVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "88,888"
+horizontal_alignment = 1
+
+[node name="RankLabel" type="Label" parent="Panel/RootVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Jacks or Better"
+horizontal_alignment = 1
+
+[node name="Sep1" type="HSeparator" parent="Panel/RootVBox"]
+layout_mode = 2
+
+[node name="PayoutTitle" type="Label" parent="Panel/RootVBox"]
+layout_mode = 2
+text = "Payout Table"
+horizontal_alignment = 1
+
+[node name="PayoutGrid" type="GridContainer" parent="Panel/RootVBox"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 1
+
+[node name="R1_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Royal Flush"
+size_flags_horizontal = 3
+
+[node name="R1_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "100"
+horizontal_alignment = 2
+
+[node name="R2_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Straight Flush"
+
+[node name="R2_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "80"
+horizontal_alignment = 2
+
+[node name="R3_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Four of a Kind"
+
+[node name="R3_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "60"
+horizontal_alignment = 2
+
+[node name="R4_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Full House"
+
+[node name="R4_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "50"
+horizontal_alignment = 2
+
+[node name="R5_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Flush"
+
+[node name="R5_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "40"
+horizontal_alignment = 2
+
+[node name="R6_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Straight"
+
+[node name="R6_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "30"
+horizontal_alignment = 2
+
+[node name="R7_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Three of a Kind"
+
+[node name="R7_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "20"
+horizontal_alignment = 2
+
+[node name="R8_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Two Pair"
+
+[node name="R8_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "10"
+horizontal_alignment = 2
+
+[node name="R9_Name" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "Jacks or Better"
+
+[node name="R9_Val" type="Label" parent="Panel/RootVBox/PayoutGrid"]
+layout_mode = 2
+text = "5"
+horizontal_alignment = 2
+
+[node name="Sep2" type="HSeparator" parent="Panel/RootVBox"]
+layout_mode = 2
+
+[node name="BlindBoxBtn" type="Button" parent="Panel/RootVBox"]
+layout_mode = 2
+disabled = true
+text = "Bling Box —— 88888"
+
+[node name="Spacer" type="Control" parent="Panel/RootVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Sep3" type="HSeparator" parent="Panel/RootVBox"]
+layout_mode = 2
+
+[node name="SettingsBtn" type="Button" parent="Panel/RootVBox"]
+layout_mode = 2
+text = "Settings"

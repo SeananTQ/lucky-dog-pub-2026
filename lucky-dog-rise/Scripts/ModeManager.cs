@@ -43,6 +43,8 @@ public partial class ModeManager : Node2D
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
+        _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
+        _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
 
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
@@ -110,6 +112,7 @@ public partial class ModeManager : Node2D
     // ===== 模式切换 =====
 
     private CanvasItem _playContent = null!;
+    private InfoPanelController _infoPanel = null!;
 
     private void SwitchToPlay()
     {
@@ -134,6 +137,17 @@ public partial class ModeManager : Node2D
         }
 
         _playContent.Visible = true;
+
+        if (_infoPanel == null)
+        {
+            _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
+            _infoPanel.Name = "InfoPanel";
+            AddChild(_infoPanel);
+            _infoPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y));
+            _infoPanel.SettingsRequested += ToggleSettingsPanel;
+        }
+        _infoPanel.Visible = true;
+
         CurrentMode = Mode.Play;
     }
 
@@ -144,6 +158,8 @@ public partial class ModeManager : Node2D
 
         if (_playContent != null)
             _playContent.Visible = false;
+        if (_infoPanel != null)
+            _infoPanel.Visible = false;
 
         ShowBossKeyContent();
         SetClickThrough(true);
