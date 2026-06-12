@@ -72,6 +72,12 @@ public partial class TestSettingPanelController : CanvasLayer
         _panel.Visible = false;
     }
 
+    public bool ContainsPoint(Vector2 windowPos)
+    {
+        if (!_panel.Visible) return false;
+        return new Rect2(_panel.Position, new Vector2(PanelWidth, PanelHeight)).HasPoint(windowPos);
+    }
+
     public void SetTargetPosition(Vector2 pos)
     {
         _panel.OffsetLeft = pos.X;

@@ -227,6 +227,10 @@ public partial class BossKeyController : Node2D
         {
             if (mb.Pressed)
             {
+                // 不响应面板区域的拖拽（避免滚动条等交互被拦截）
+                var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
+                if (_settingsPanel.ContainsPoint(localPos)) return;
+
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();
                 _potentialDrag = true;
