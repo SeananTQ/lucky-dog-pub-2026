@@ -187,58 +187,30 @@ public partial class ModeManager : Node2D
             sx >= -pad && sx + pw <= scrSize.X + pad &&
             sy >= -pad && sy + ph <= scrSize.Y + pad;
 
-        float bY = _contentOffset.Y + ah - ph;            // B 底边与 A 底边对齐
+        float bY = _contentOffset.Y + ah - ph;            // 底边与 A 对齐
         float centerX = _contentOffset.X + aw / 2f - pw / 2f; // 水平居中
 
-        // 左侧（4 号位默认）
-        int leftY = winPos.Y + (int)bY;
-        if (Fits(winPos.X, leftY))
+        // 按优先级排列：8→9→7→4→6→2→3→1
+        var slots = new (int wx, int wy)[]
         {
-            _settingsPanel.SetPanelPosition(new Vector2(0, bY));
-            return;
-        }
-        // 右侧（6 号位）
-        int rx = winPos.X + (int)_contentOffset.X + aw;
-        if (Fits(rx, leftY))
+            ((int)centerX, 0),                                   // 8 上中
+            ((int)_contentOffset.X + aw, 0),                     // 9 上右
+            (0, 0),                                              // 7 上左
+            (0, (int)bY),                                        // 4 左
+            ((int)_contentOffset.X + aw, (int)bY),               // 6 右
+            ((int)centerX, (int)_contentOffset.Y + ah),          // 2 下中
+            ((int)_contentOffset.X + aw, (int)_contentOffset.Y + ah), // 3 下右
+            (0, (int)_contentOffset.Y + ah),                     // 1 下左
+        };
+
+        foreach (var (wx, wy) in slots)
         {
-            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, bY));
-            return;
+            if (Fits(winPos.X + wx, winPos.Y + wy))
+            {
+                _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
+                return;
+            }
         }
-        // 正下方（2 号位）
-        int cx = winPos.X + (int)centerX;
-        int btmY = winPos.Y + (int)_contentOffset.Y + ah;
-        if (Fits(cx, btmY))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(centerX, _contentOffset.Y + ah));
-            return;
-        }
-        // 右下（3 号位）
-        int rX = winPos.X + (int)_contentOffset.X + aw;
-        if (Fits(rX, btmY))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, _contentOffset.Y + ah));
-            return;
-        }
-        // 左下（1 号位）
-        if (Fits(winPos.X, btmY))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y + ah));
-            return;
-        }
-        // 正上方（8 号位）
-        if (Fits(cx, winPos.Y))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(centerX, 0));
-            return;
-        }
-        // 右上（9 号位）
-        if (Fits(rX, winPos.Y))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(_contentOffset.X + aw, 0));
-            return;
-        }
-        // 左上（7 号位）兜底
-        _settingsPanel.SetPanelPosition(new Vector2(0, 0));
     }
 
     // ===== 窗口管理 =====
