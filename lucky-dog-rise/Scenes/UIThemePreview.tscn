@@ -179,6 +179,15 @@ text = "Sound Effects"
 layout_mode = 2
 text = "BGM"
 
+[node name="AudioCheck" type="CheckBox" parent="Grid/SectionToggles/Row" unique_id=1262382001]
+layout_mode = 2
+button_pressed = true
+text = "Sound (CheckBox)"
+
+[node name="BgmCheck" type="CheckBox" parent="Grid/SectionToggles/Row" unique_id=394294480]
+layout_mode = 2
+text = "BGM (CheckBox)"
+
 [node name="SectionContainers" type="VBoxContainer" parent="Grid" unique_id=631568083]
 layout_mode = 2
 

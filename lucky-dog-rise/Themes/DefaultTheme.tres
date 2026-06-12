@@ -248,7 +248,7 @@ border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.34509805, 0.8, 0.007843138, 1)
+border_color = Color(1, 0.59607846, 0, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -330,6 +330,58 @@ corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 expand_margin_top = 2.0
 expand_margin_bottom = 2.0
+
+[sub_resource type="FontVariation" id="FontVariation_hgkal"]
+fallbacks = Array[Font]([ExtResource("11_sts5i")])
+base_font = ExtResource("3_inter_reg")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_io7bs"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16078432, 0.21176471, 0.21176471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.59607846, 0, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hgkal"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16078432, 0.21176471, 0.21176471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.03137255, 0.03137255, 0.03137255, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l3s1b"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16078432, 0.21176471, 0.21176471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.16078432, 0.21176471, 0.21176471, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sts5i"]
 bg_color = Color(0.19738793, 0.20819774, 0.2190085, 1)
@@ -493,6 +545,11 @@ SecondaryButton/styles/disabled = ExtResource("13_kaug1")
 SecondaryButton/styles/hover = ExtResource("14_kaug1")
 SecondaryButton/styles/normal = ExtResource("15_bcron")
 SecondaryButton/styles/pressed = ExtResource("16_ox3pi")
+TextEdit/font_sizes/font_size = 26
+TextEdit/fonts/font = SubResource("FontVariation_hgkal")
+TextEdit/styles/focus = SubResource("StyleBoxFlat_io7bs")
+TextEdit/styles/normal = SubResource("StyleBoxFlat_hgkal")
+TextEdit/styles/read_only = SubResource("StyleBoxFlat_l3s1b")
 TooltipLabel/font_sizes/font_size = 18
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_sts5i")
 VSeparator/constants/separation = 4
