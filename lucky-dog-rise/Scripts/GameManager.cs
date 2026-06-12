@@ -40,12 +40,7 @@ public partial class GameManager : Node2D
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
-    private WindowManager _windowManager = null!;
-    private DragHandler _dragHandler = null!;
     private TestSettingPanelController _settingsPanel = null!;
-    private GlobalInputTracker _globalInput = null!;
-    private TaskbarSnap _taskbarSnap = null!;
-    private BossKeyController _bossKey = null!;
 
     public override void _Ready()
     {
@@ -73,61 +68,16 @@ public partial class GameManager : Node2D
         _debugHud.RandomizeRequested += OnRandomizeScene;
         _debugHud.RandomizeDogRequested += OnRandomizeDog;
 
+        // 从父级 ModeManager 获取设置面板（必须在 RefreshUI 之前）
+        var mm = GetParent() as ModeManager;
+        _settingsPanel = mm?.SettingsPanelObj!;
+
         RefreshUI();
         _hud.SetMessage("Click the chips to place your bet");
         _chipStack.ShowHint("Click to bet");
 
         // 启动BGM
         AudioManager.Instance.PlayBgmByName("MainTheme.ogg");
-
-        // === 桌宠宿主窗口初始化 ===
-        SetupDesktopMode();
-    }
-
-    private void SetupDesktopMode()
-    {
-        Position = new Vector2(WindowManager.GameViewOffsetX, WindowManager.GameViewOffsetY);
-        _hud.Offset = new Vector2(WindowManager.GameViewOffsetX, WindowManager.GameViewOffsetY);
-
-        _windowManager = new WindowManager();
-        _windowManager.Name = "WindowManager";
-        AddChild(_windowManager);
-
-        _dragHandler = new DragHandler();
-        _dragHandler.Name = "DragHandler";
-        AddChild(_dragHandler);
-        _dragHandler.DragEnded += () => { };
-
-        _settingsPanel = GD.Load<PackedScene>("res://Scenes/TestSettingPanel.tscn").Instantiate<TestSettingPanelController>();
-        _settingsPanel.Name = "SettingsPanel";
-        _settingsPanel.Layer = 100;
-        AddChild(_settingsPanel);
-        _settingsPanel.RandomizeRequested += OnRandomizeScene;
-        _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
-
-        CreateSettingsButton();
-
-        // 全局输入钩子（打字统计）
-        _globalInput = new GlobalInputTracker();
-        _globalInput.Name = "GlobalInputTracker";
-        AddChild(_globalInput);
-
-        // 任务栏吸附
-        _taskbarSnap = new TaskbarSnap();
-        _taskbarSnap.Name = "TaskbarSnap";
-        AddChild(_taskbarSnap);
-    }
-
-    private void CreateSettingsButton()
-    {
-        var btn = new Button();
-        btn.Text = "⚙";
-        btn.Flat = true;
-        btn.SetPosition(new Vector2(1150, 10));
-        btn.SetSize(new Vector2(40, 40));
-        btn.AddThemeFontSizeOverride("font_size", 24);
-        btn.Pressed += () => _settingsPanel.Toggle();
-        _hud.AddChild(btn);
     }
 
     // === 信号处理 ===
@@ -136,7 +86,7 @@ public partial class GameManager : Node2D
     {
         if (State != GameState.WaitingForBet) return;
         if (Chips < BetAmount) { TriggerGameOver(); return; }
-        if (_settingsPanel.TryGetFixedSeed(out int fixedSeed))
+        if (_settingsPanel != null && _settingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
     }
@@ -309,7 +259,7 @@ public partial class GameManager : Node2D
     {
         _hud.UpdateButtons(State, DebugMode);
         _hud.UpdateInfo(Chips, _progression.CurrentRank, BetAmount);
-        _settingsPanel.UpdateSeed(_deck.LastSeed);
+        _settingsPanel?.UpdateSeed(_deck.LastSeed);
     }
 
     private static string GetSignalMessage(DogSignal signal)
@@ -324,7 +274,7 @@ public partial class GameManager : Node2D
         };
     }
 
-    private void OnRandomizeScene()
+    public void OnRandomizeScene()
     {
         var rng = new Random();
 
@@ -341,7 +291,7 @@ public partial class GameManager : Node2D
         if (accessory != null) _handArea.SetAccessory(accessory);
     }
 
-    private void OnRandomizeDog()
+    public void OnRandomizeDog()
     {
         var (eyewears, headwears) = LoadAccessoryEntries();
         if (eyewears.Count == 0 || headwears.Count == 0) return;

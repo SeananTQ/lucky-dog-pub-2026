@@ -3,12 +3,13 @@ using Godot;
 
 namespace LuckyDogRise;
 
-public partial class BossKeyController : Node2D
+public partial class ModeManager : Node2D
 {
-    [Signal] public delegate void ModeSwitchRequestedEventHandler();
-    [Signal] public delegate void SystemPanelRequestedEventHandler();
+    public enum Mode { BossKey, Play, Immersive }
+    public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
     private TestSettingPanelController _settingsPanel = null!;
+    public TestSettingPanelController SettingsPanelObj => _settingsPanel;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
@@ -30,7 +31,7 @@ public partial class BossKeyController : Node2D
         _mainText = GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         var modeBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
-        modeBtn.Pressed += () => EmitSignal(SignalName.ModeSwitchRequested);
+        modeBtn.Pressed += SwitchToPlay;
         sysBtn.Pressed += ToggleSettingsPanel;
 
         // 先实例化面板以读取实际尺寸
@@ -80,10 +81,13 @@ public partial class BossKeyController : Node2D
         else if (mode == SettingsManager.DisplayMode.Chips)
             _mainText.Text = GlobalInputTracker.TotalChips.ToString();
 
-        var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
-        bool over = _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos) || _settingsPanel.IsOpen;
-        if (_isClickThrough && over) SetClickThrough(false);
-        else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
+        if (CurrentMode == Mode.BossKey)
+        {
+            var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
+            bool over = _settingsPanel.IsOpen || _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            if (_isClickThrough && over) SetClickThrough(false);
+            else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
+        }
     }
 
     public override void _Notification(int what)
@@ -97,6 +101,62 @@ public partial class BossKeyController : Node2D
                 mouse.Y < wp.Y || mouse.Y > wp.Y + ws.Y)
                 _settingsPanel.CloseImmediate();
         }
+    }
+
+    // ===== 模式切换 =====
+
+    private CanvasItem _playContent = null!;
+
+    private void SwitchToPlay()
+    {
+        if (CurrentMode == Mode.Play) return;
+        if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
+
+        SetClickThrough(false);
+        HideBossKeyContent();
+
+        if (_playContent == null)
+        {
+            _playContent = (CanvasItem)GD.Load<PackedScene>("res://Scenes/Main.tscn").Instantiate();
+            _playContent.Name = "PlayContent";
+            AddChild(_playContent);
+            var gm = _playContent as GameManager;
+            if (gm != null)
+            {
+                gm.Position = Vector2.Zero;
+                _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
+                _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
+            }
+        }
+
+        _playContent.Visible = true;
+        CurrentMode = Mode.Play;
+    }
+
+    private void SwitchToBossKey()
+    {
+        if (CurrentMode == Mode.BossKey) return;
+        if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
+
+        if (_playContent != null)
+            _playContent.Visible = false;
+
+        ShowBossKeyContent();
+        SetClickThrough(true);
+        CurrentMode = Mode.BossKey;
+    }
+
+    private void HideBossKeyContent()
+    {
+        GetNode<Node2D>("ContentA").Visible = false;
+        GetNode<CanvasLayer>("CanvasLayer").Visible = false;
+        GetNode<CanvasLayer>("Bubble").Visible = false;
+    }
+
+    private void ShowBossKeyContent()
+    {
+        GetNode<Node2D>("ContentA").Visible = true;
+        GetNode<CanvasLayer>("CanvasLayer").Visible = true;
     }
 
     // ===== 面板切换 =====

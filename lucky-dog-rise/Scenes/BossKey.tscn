@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bosskey"]
 
-[ext_resource type="Script" uid="uid://b2gtmvcao50bo" path="res://Scripts/Desktop/BossKeyController.cs" id="1_ctrl"]
+[ext_resource type="Script" uid="uid://bqt7jksk08p1p" path="res://Scripts/ModeManager.cs" id="1_ctrl"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="2_dog"]
 
 [sub_resource type="StyleBoxFlat" id="panel_bg"]
