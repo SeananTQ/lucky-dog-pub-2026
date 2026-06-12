@@ -1,0 +1,93 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="1_dog"]
+
+[sub_resource type="StyleBoxFlat" id="panel_bg"]
+bg_color = Color(0.08, 0.08, 0.08, 0.85)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="bubble_bg"]
+bg_color = Color(1, 1, 1, 0.9)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="BossKeyContent" type="Node2D"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+offset = Vector2(300, 420)
+transform = Transform2D(1, 0, 0, 1, 300, 420)
+
+[node name="Panel" type="PanelContainer" parent="CanvasLayer"]
+offset_left = 53.0
+offset_top = 201.0
+offset_right = 225.0
+offset_bottom = 232.0
+theme_override_styles/panel = SubResource("panel_bg")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Panel"]
+layout_mode = 2
+alignment = 1
+
+[node name="ModeSwitch" type="Button" parent="CanvasLayer/Panel/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "▶"
+flat = true
+
+[node name="MainText" type="Label" parent="CanvasLayer/Panel/HBoxContainer"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "12:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SystemButton" type="Button" parent="CanvasLayer/Panel/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚙"
+flat = true
+
+[node name="ContentA" type="Node2D" parent="."]
+position = Vector2(300, 420)
+
+[node name="DogArea" parent="ContentA" instance=ExtResource("1_dog")]
+position = Vector2(137, 184)
+scale = Vector2(0.25, 0.25)
+
+[node name="WindowSize" type="Marker2D" parent="ContentA"]
+position = Vector2(265, 235)
+
+[node name="TaskBar" type="Marker2D" parent="ContentA"]
+position = Vector2(137, 184)
+
+[node name="Bubble" type="CanvasLayer" parent="."]
+layer = 2
+offset = Vector2(300, 420)
+transform = Transform2D(1, 0, 0, 1, 300, 420)
+
+[node name="BubbleBg" type="PanelContainer" parent="Bubble"]
+offset_left = 1.0
+offset_top = 2.0
+offset_right = 181.0
+offset_bottom = 42.0
+theme_override_styles/panel = SubResource("bubble_bg")
+
+[node name="BubbleText" type="Label" parent="Bubble/BubbleBg"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
+theme_override_font_sizes/font_size = 14
+text = "别太累，适度放松下~"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Polygon2D" type="Polygon2D" parent="Bubble/BubbleBg"]
+position = Vector2(145, 28)
+color = Color(0.92941177, 0.92941177, 0.92941177, 1)
+polygon = PackedVector2Array(19, 9, 19, 24, 0, 9)

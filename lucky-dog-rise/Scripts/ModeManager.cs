@@ -29,7 +29,9 @@ public partial class ModeManager : Node2D
 
     public override void _Ready()
     {
-        _bossKeyContent = GetNode<Node2D>("BossKeyContent");
+        _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
+        _bossKeyContent.Name = "BossKeyContent";
+        AddChild(_bossKeyContent);
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
