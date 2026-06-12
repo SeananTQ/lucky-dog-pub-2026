@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://bqt7jksk08p1p" path="res://Scripts/ModeManager.cs" id="1_ctrl"]
 
-[node name="ModeManager" type="Node2D"]
+[node name="ModeManager" type="Control"]
 script = ExtResource("1_ctrl")

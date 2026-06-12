@@ -3,7 +3,7 @@ using Godot;
 
 namespace LuckyDogRise;
 
-public partial class ModeManager : Node2D
+public partial class ModeManager : Control
 {
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
