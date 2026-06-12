@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="LabelSettings" uid="uid://e2wcrepsuxui" path="res://Themes/Label_KeyText.tres" id="1_key"]
+[ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="2_valpanel"]
+[ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="3_val"]
+
+[node name="H_FixedWidth" type="PanelContainer"]
+custom_minimum_size = Vector2(260, 60)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Key" type="Label" parent="HBox"]
+layout_mode = 2
+text = "Key"
+label_settings = ExtResource("1_key")
+
+[node name="Spacer" type="Control" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ValuePanel" type="PanelContainer" parent="HBox"]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_valpanel")
+
+[node name="Value" type="Label" parent="HBox/ValuePanel"]
+layout_mode = 2
+text = "Value"
+label_settings = ExtResource("3_val")

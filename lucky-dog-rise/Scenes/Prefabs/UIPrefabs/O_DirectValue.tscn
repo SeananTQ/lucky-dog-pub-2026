@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="1_val"]
+
+[node name="O_DirectValue" type="PanelContainer"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+alignment = 1
+
+[node name="Value" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Value"
+label_settings = ExtResource("1_val")
+horizontal_alignment = 1
