@@ -89,13 +89,30 @@ public partial class ModeManager : Control
         else if (mode == SettingsManager.DisplayMode.Chips)
             _mainText.Text = GlobalInputTracker.TotalChips.ToString();
 
+        var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
+        bool over = _settingsPanel.ContainsPoint(localPos);
+
         if (CurrentMode == Mode.BossKey)
         {
-            var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
-            bool over = _settingsPanel.IsOpen || _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
-            if (_isClickThrough && over) SetClickThrough(false);
-            else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
+            over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
         }
+        else if (CurrentMode == Mode.Play)
+        {
+            if (_playViewport != null)
+            {
+                var gameRect = new Rect2(_playViewport.Position,
+                    _playViewport.Size * _playViewport.Scale);
+                over |= gameRect.HasPoint(localPos);
+            }
+            if (_infoPanel != null && _infoPanel.Visible)
+            {
+                int infoX = _infoPanelOnRight ? 240 + 600 : 0;
+                over |= new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos);
+            }
+        }
+
+        if (_isClickThrough && over) SetClickThrough(false);
+        else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
     }
 
     public override void _Notification(int what)
@@ -384,6 +401,11 @@ public partial class ModeManager : Control
             {
                 var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
                 if (_settingsPanel.ContainsPoint(localPos)) return;
+                if (_infoPanel != null && _infoPanel.Visible)
+                {
+                    int infoX = _infoPanelOnRight ? 840 : 0;
+                    if (new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos)) return;
+                }
 
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();

@@ -26,12 +26,10 @@ layout_mode = 2
 
 [node name="SettingsTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168624]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "Settings"
 
 [node name="DebugTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168623]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "Debug"
 
 [node name="HSpacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=89865551]
@@ -79,14 +77,14 @@ theme_override_font_sizes/font_size = 16
 [node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
 layout_mode = 2
 
-[node name="ModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="ModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=182738614]
 layout_mode = 2
 
-[node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
 layout_mode = 2
 text = "Switch to Play"
 
-[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=246680196]
 layout_mode = 2
 text = "Switch to BossKey"
 
@@ -97,7 +95,6 @@ size_flags_vertical = 3
 [node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1890114490]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
-theme_override_font_sizes/font_size = 26
 text = "Quit Game"
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
