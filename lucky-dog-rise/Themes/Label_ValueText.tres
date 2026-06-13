@@ -3,14 +3,14 @@
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_iplwk"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_sawds"]
 
-[sub_resource type="FontVariation" id="FontVariation_ymkvt"]
+[sub_resource type="FontVariation" id="FontVariation_3lv87"]
 fallbacks = Array[Font]([ExtResource("2_sawds")])
 base_font = ExtResource("1_iplwk")
 
 [resource]
 line_spacing = 2.0
 paragraph_spacing = -5.0
-font = SubResource("FontVariation_ymkvt")
+font = SubResource("FontVariation_3lv87")
 font_size = 20
 shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
