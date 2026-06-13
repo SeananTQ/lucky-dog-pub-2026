@@ -6,13 +6,14 @@ public partial class InfoPanelController : CanvasLayer
 {
     [Signal] public delegate void SettingsRequestedEventHandler();
 
+    [Export] private Button  _settingsBtn =null;
     private PanelContainer _panel = null!;
 
     public override void _Ready()
     {
         _panel = GetNode<PanelContainer>("Panel");
-        var btn = _panel.GetNode<Button>("RootVBox/SettingsBtn");
-        btn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
+        //var btn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsBtn");
+        _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
     }
 
     public void SetPanelPosition(Vector2 pos)

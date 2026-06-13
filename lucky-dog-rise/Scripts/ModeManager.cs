@@ -112,7 +112,10 @@ public partial class ModeManager : Control
     // ===== 模式切换 =====
 
     private Node2D _playRoot = null!;
+    private SubViewportContainer _playViewport = null!;
     private InfoPanelController _infoPanel = null!;
+    // 游玩模式布局状态：false=信息面板在左(默认), true=信息面板在右
+    private bool _infoPanelOnRight;
 
     private void SwitchToPlay()
     {
@@ -127,12 +130,12 @@ public partial class ModeManager : Control
             _playRoot = GD.Load<PackedScene>("res://Scenes/PlayContent.tscn").Instantiate<Node2D>();
             _playRoot.Name = "PlayRoot";
             AddChild(_playRoot);
+            _playViewport = _playRoot.GetNode<SubViewportContainer>("SubViewportContainer");
 
-            // 信息面板由 ModeManager 直接管理（需要动态定位）
+            // 信息面板由 ModeManager 直接管理（需要动态定位+避让）
             _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
             _infoPanel.Name = "InfoPanel";
             AddChild(_infoPanel);
-            _infoPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y));
             _infoPanel.SettingsRequested += ToggleSettingsPanel;
 
             // 连接 Main 中的 GameManager 信号
@@ -141,10 +144,31 @@ public partial class ModeManager : Control
             _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
         }
 
+        // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）
+        SetupPlayFatWindow();
+        UpdatePlayLayout();
         _playRoot.Visible = true;
-        if (_infoPanel != null)
-            _infoPanel.Visible = true;
+        _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+    }
+
+    private void UpdatePlayLayout()
+    {
+        var scrSize = DisplayServer.ScreenGetSize();
+        var winPos = DisplayServer.WindowGetPosition();
+        int baseY = (int)_contentOffset.Y;
+        const int gameW = 600;
+        const int infoW = 240;
+        const int pad = 5;
+
+        // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + 240
+        bool leftOk = winPos.X >= -pad && winPos.X + infoW <= scrSize.X + pad;
+
+        _infoPanelOnRight = !leftOk;
+
+        // 游戏面板位置固定，信息面板自己绕到右侧
+        _playViewport.Position = new Vector2(infoW, baseY);
+        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? infoW + gameW : 0, baseY));
     }
 
     private void SwitchToBossKey()
@@ -158,6 +182,7 @@ public partial class ModeManager : Control
             _infoPanel.Visible = false;
 
         ShowBossKeyContent();
+        SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
     }
@@ -189,33 +214,64 @@ public partial class ModeManager : Control
     {
         var winPos = DisplayServer.WindowGetPosition();
         var scrSize = DisplayServer.ScreenGetSize();
-        int aw = (int)_windowBaseSize.X;
-        int ah = (int)_windowBaseSize.Y;
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
         const int pad = 5;
 
-        bool Fits(int sx, int sy) =>
-            sx >= -pad && sx + pw <= scrSize.X + pad &&
-            sy >= -pad && sy + ph <= scrSize.Y + pad;
-
-        float bY = _contentOffset.Y + ah - ph;            // 底边与 A 对齐
-        float centerX = _contentOffset.X + aw / 2f - pw / 2f; // 水平居中
-
-        // 按优先级排列：8→9→7→4→6→2→3→1
-        var slots = new (int wx, int wy)[]
+        // 根据模式取 A 区位置和尺寸
+        float aX, aY; int aw, ah;
+        if (CurrentMode == Mode.Play && _playViewport != null)
         {
-            ((int)centerX, 0),                                   // 8 上中
-            ((int)_contentOffset.X + aw, 0),                     // 9 上右
-            (0, 0),                                              // 7 上左
-            (0, (int)bY),                                        // 4 左
-            ((int)_contentOffset.X + aw, (int)bY),               // 6 右
-            ((int)centerX, (int)_contentOffset.Y + ah),          // 2 下中
-            ((int)_contentOffset.X + aw, (int)_contentOffset.Y + ah), // 3 下右
-            (0, (int)_contentOffset.Y + ah),                     // 1 下左
+            aX = _playViewport.Position.X;
+            aY = _playViewport.Position.Y;
+            aw = (int)(_playViewport.Size.X * _playViewport.Scale.X);
+            ah = (int)(_playViewport.Size.Y * _playViewport.Scale.Y);
+        }
+        else
+        {
+            aX = _contentOffset.X;
+            aY = _contentOffset.Y;
+            aw = (int)_windowBaseSize.X;
+            ah = (int)_windowBaseSize.Y;
+        }
+
+        bool Fits(int sx, int sy)
+        {
+            if (sx < -pad || sx + pw > scrSize.X + pad ||
+                sy < -pad || sy + ph > scrSize.Y + pad)
+                return false;
+            // 游玩模式下避开信息面板区域
+            if (CurrentMode == Mode.Play && _infoPanel != null && _infoPanel.Visible)
+            {
+                int infoX = _infoPanelOnRight
+                    ? (int)aX + aw : 0;
+                int infoY = (int)aY;
+                var setRect = new Rect2(sx, sy, pw, ph);
+                // info 坐标是窗口空间，Fits 是屏幕空间，需加 winPos
+                var infoRect = new Rect2(winPos.X + infoX, winPos.Y + infoY, 240, 600);
+                if (setRect.Intersects(infoRect))
+                    return false;
+            }
+            return true;
+        }
+
+        float bY = aY + ah - ph;
+        float centerX = aX + aw / 2f - pw / 2f;
+
+        // 改优先级就是改数组里那几行的顺序，不用动逻辑
+        var slots = new (int slot, int wx, int wy)[]
+        {
+            (8, (int)centerX, 0),
+            (9, (int)aX + aw, 0),
+            (7, 0, 0),
+            (6, (int)aX + aw, (int)bY),            
+            (4, 0, (int)bY),
+            (2, (int)centerX, (int)aY + ah),
+            (3, (int)aX + aw, (int)aY + ah),
+            (1, 0, (int)aY + ah),
         };
 
-        foreach (var (wx, wy) in slots)
+        foreach (var (_, wx, wy) in slots)
         {
             if (Fits(winPos.X + wx, winPos.Y + wy))
             {
@@ -223,6 +279,8 @@ public partial class ModeManager : Control
                 return;
             }
         }
+        // 兜底：覆盖在 A 区中央
+        _settingsPanel.SetPanelPosition(new Vector2(aX + aw / 2f - pw / 2f, aY + ah / 2f - ph / 2f));
     }
 
     // ===== 窗口管理 =====
@@ -261,6 +319,20 @@ public partial class ModeManager : Control
             _taskbarSnapped = true;
             newPos.Y = snappedY;
         }
+    }
+
+    private void SetupPlayFatWindow()
+    {
+        int pw = (int)_panelSize.X;
+        int ph = (int)_panelSize.Y;
+        // 游玩模式内容宽度 = 信息面板(240) + 游戏面板(600) = 840
+        int contentW = 840;
+        int contentH = 600;
+        int winW = contentW + pw * 2;
+        int winH = Math.Max(contentH, ph) + ph * 2;
+        DisplayServer.WindowSetSize(new Vector2I(winW, winH));
+        // 内容底部与任务栏对齐（复用 taskbar 锚点）
+        SetWindowAboveTaskbar();
     }
 
     private void SetWindowAboveTaskbar()
@@ -329,6 +401,8 @@ public partial class ModeManager : Control
                 DisplayServer.WindowSetPosition(newPos);
                 if (_settingsPanel.IsOpen)
                     PositionPanelInBestSlot();
+                if (CurrentMode == Mode.Play)
+                    UpdatePlayLayout();
                 GetViewport().SetInputAsHandled();
             }
         }
