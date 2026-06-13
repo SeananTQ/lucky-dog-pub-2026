@@ -192,11 +192,15 @@ public partial class ModeManager : Control
     private void HideBossKeyContent()
     {
         _bossKeyContent.Visible = false;
+        // CanvasLayer 不继承 Node2D 的 Visible，需单独隐藏
+        _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = false;
+        _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
     }
 
     private void ShowBossKeyContent()
     {
         _bossKeyContent.Visible = true;
+        _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
     }
 
     // ===== 面板切换 =====
@@ -263,10 +267,10 @@ public partial class ModeManager : Control
         // 改优先级就是改数组里那几行的顺序，不用动逻辑
         var slots = new (int slot, int wx, int wy)[]
         {
+            (6, (int)aX + aw, (int)bY),  
             (8, (int)centerX, 0),
             (9, (int)aX + aw, 0),
-            (7, 0, 0),
-            (6, (int)aX + aw, (int)bY),            
+            (7, 0, 0),          
             (4, 0, (int)bY),
             (2, (int)centerX, (int)aY + ah),
             (3, (int)aX + aw, (int)aY + ah),
