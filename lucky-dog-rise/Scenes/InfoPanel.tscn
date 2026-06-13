@@ -61,14 +61,15 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsLabel", "_rankLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxCostLabel")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxCostLabel")]
 script = ExtResource("1_ctrl")
-_chipsLabel = NodePath("Panel/RootVBox/ChipsPanel/VBox/ValuePanel/ChipsValue")
-_rankLabel = NodePath("Panel/RootVBox/RankLabel")
-_payoutGrid = NodePath("Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid")
-_settingsBtn = NodePath("Panel/RootVBox/HBoxContainer/SettingsBtn")
-_blindBoxBtn = NodePath("Panel/RootVBox/HBoxContainer/BlindBoxBtn")
-_blindBoxCostLabel = NodePath("Panel/RootVBox/BlindCostPanel/HBox/ValuePanel/BlindCostValue")
+_chipsLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsValuePanel/ChipsValue")
+_rankNameLabel = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/RankNameLabel")
+_winResultLabel = NodePath("Panel/RootVBox/WinResultLabel")
+_payoutGrid = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid")
+_settingsBtn = NodePath("Panel/RootVBox/ButtonRow/SettingsBtn")
+_blindBoxBtn = NodePath("Panel/RootVBox/ButtonRow/BlindBoxBtn")
+_blindBoxCostLabel = NodePath("Panel/RootVBox/BlindCostPanel/CostHBox/CostValuePanel/BlindCostValue")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1220554571]
 custom_minimum_size = Vector2(240, 600)
@@ -85,21 +86,21 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(120, 70)
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Panel/RootVBox/ChipsPanel" unique_id=1728740539]
+[node name="ChipsVBox" type="VBoxContainer" parent="Panel/RootVBox/ChipsPanel" unique_id=1728740539]
 layout_mode = 2
 alignment = 1
 
-[node name="ChipsKey" type="Label" parent="Panel/RootVBox/ChipsPanel/VBox" unique_id=1869870124]
+[node name="ChipsKey" type="Label" parent="Panel/RootVBox/ChipsPanel/ChipsVBox" unique_id=1869870124]
 layout_mode = 2
 text = "Chips"
 label_settings = SubResource("LabelSettings_vy1hc")
 horizontal_alignment = 1
 
-[node name="ValuePanel" type="PanelContainer" parent="Panel/RootVBox/ChipsPanel/VBox" unique_id=543503477]
+[node name="ChipsValuePanel" type="PanelContainer" parent="Panel/RootVBox/ChipsPanel/ChipsVBox" unique_id=543503477]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("5_valpanel")
 
-[node name="ChipsValue" type="Label" parent="Panel/RootVBox/ChipsPanel/VBox/ValuePanel" unique_id=2116103975]
+[node name="ChipsValue" type="Label" parent="Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsValuePanel" unique_id=2116103975]
 layout_mode = 2
 text = "88,888"
 label_settings = SubResource("LabelSettings_fok14")
@@ -109,139 +110,139 @@ horizontal_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="RankListPanel" type="PanelContainer" parent="Panel/RootVBox" unique_id=169312486]
+[node name="PayoutPanel" type="PanelContainer" parent="Panel/RootVBox" unique_id=169312486]
 custom_minimum_size = Vector2(120, 70)
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Panel/RootVBox/RankListPanel" unique_id=1830834442]
+[node name="PayoutVBox" type="VBoxContainer" parent="Panel/RootVBox/PayoutPanel" unique_id=1830834442]
 layout_mode = 2
 alignment = 1
 
-[node name="Key" type="Label" parent="Panel/RootVBox/RankListPanel/VBox" unique_id=154735878]
+[node name="RankNameLabel" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox" unique_id=154735878]
 layout_mode = 2
 text = "Jacks or Better"
 label_settings = ExtResource("3_keytext")
 horizontal_alignment = 1
 
-[node name="ValuePanel" type="PanelContainer" parent="Panel/RootVBox/RankListPanel/VBox" unique_id=838706545]
+[node name="PayoutValuePanel" type="PanelContainer" parent="Panel/RootVBox/PayoutPanel/PayoutVBox" unique_id=838706545]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("5_valpanel")
 
-[node name="PayoutGrid" type="GridContainer" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel" unique_id=892553035]
+[node name="PayoutGrid" type="GridContainer" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel" unique_id=892553035]
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 1
 columns = 2
 
-[node name="R1_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=395719180]
+[node name="R1_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=395719180]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Royal Flush"
 
-[node name="R1_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=152699344]
+[node name="R1_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=152699344]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "250"
 horizontal_alignment = 2
 
-[node name="R2_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=636431851]
+[node name="R2_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=636431851]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Straight Flush"
 
-[node name="R2_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1059851796]
+[node name="R2_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1059851796]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "50"
 horizontal_alignment = 2
 
-[node name="R3_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1337252456]
+[node name="R3_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1337252456]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Four of a Kind"
 
-[node name="R3_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=556824593]
+[node name="R3_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=556824593]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "25"
 horizontal_alignment = 2
 
-[node name="R4_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=550517670]
+[node name="R4_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=550517670]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Full House"
 
-[node name="R4_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1798978952]
+[node name="R4_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1798978952]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "9"
 horizontal_alignment = 2
 
-[node name="R5_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=2087479881]
+[node name="R5_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=2087479881]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Flush"
 
-[node name="R5_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=657370698]
+[node name="R5_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=657370698]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "6"
 horizontal_alignment = 2
 
-[node name="R6_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1516985089]
+[node name="R6_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1516985089]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Straight"
 
-[node name="R6_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=333589015]
+[node name="R6_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=333589015]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "4"
 horizontal_alignment = 2
 
-[node name="R7_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1422558259]
+[node name="R7_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1422558259]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Three of a Kind"
 
-[node name="R7_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=27992456]
+[node name="R7_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=27992456]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "3"
 horizontal_alignment = 2
 
-[node name="R8_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=803011086]
+[node name="R8_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=803011086]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Two Pair"
 
-[node name="R8_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=93637392]
+[node name="R8_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=93637392]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "2"
 horizontal_alignment = 2
 
-[node name="R9_Name" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1688531693]
+[node name="R9_Name" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1688531693]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 text = "Jacks or Better"
 
-[node name="R9_Val" type="Label" parent="Panel/RootVBox/RankListPanel/VBox/ValuePanel/PayoutGrid" unique_id=1798880069]
+[node name="R9_Val" type="Label" parent="Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid" unique_id=1798880069]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "1"
 horizontal_alignment = 2
 
-[node name="RankLabel" type="Label" parent="Panel/RootVBox" unique_id=1739175701]
+[node name="WinResultLabel" type="Label" parent="Panel/RootVBox" unique_id=1739175701]
 layout_mode = 2
 text = "You win 250"
 label_settings = SubResource("LabelSettings_ot0tl")
@@ -251,32 +252,32 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(180, 40)
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="Panel/RootVBox/BlindCostPanel" unique_id=1792349716]
+[node name="CostHBox" type="HBoxContainer" parent="Panel/RootVBox/BlindCostPanel" unique_id=1792349716]
 layout_mode = 2
 
-[node name="BlindCostKey" type="Label" parent="Panel/RootVBox/BlindCostPanel/HBox" unique_id=1435165420]
+[node name="BlindCostKey" type="Label" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=1435165420]
 layout_mode = 2
 text = "Blind Cost"
 label_settings = ExtResource("3_keytext")
 
-[node name="Spacer" type="Control" parent="Panel/RootVBox/BlindCostPanel/HBox" unique_id=303613423]
+[node name="Spacer" type="Control" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=303613423]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ValuePanel" type="PanelContainer" parent="Panel/RootVBox/BlindCostPanel/HBox" unique_id=172127128]
+[node name="CostValuePanel" type="PanelContainer" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=172127128]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("5_valpanel")
 
-[node name="BlindCostValue" type="Label" parent="Panel/RootVBox/BlindCostPanel/HBox/ValuePanel" unique_id=1230012961]
+[node name="BlindCostValue" type="Label" parent="Panel/RootVBox/BlindCostPanel/CostHBox/CostValuePanel" unique_id=1230012961]
 layout_mode = 2
 text = "8000"
 label_settings = ExtResource("4_valtext")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1754669997]
+[node name="ButtonRow" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1754669997]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BlindBoxBtn" type="Button" parent="Panel/RootVBox/HBoxContainer" unique_id=1739093236]
+[node name="BlindBoxBtn" type="Button" parent="Panel/RootVBox/ButtonRow" unique_id=1739093236]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -285,7 +286,7 @@ theme_override_font_sizes/font_size = 14
 text = "Claim"
 icon = ExtResource("7_present")
 
-[node name="SettingsBtn" type="Button" parent="Panel/RootVBox/HBoxContainer" unique_id=640000321]
+[node name="SettingsBtn" type="Button" parent="Panel/RootVBox/ButtonRow" unique_id=640000321]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 20

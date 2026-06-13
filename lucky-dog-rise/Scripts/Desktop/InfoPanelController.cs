@@ -9,7 +9,8 @@ public partial class InfoPanelController : CanvasLayer
     [Signal] public delegate void SettingsRequestedEventHandler();
 
     [Export] private Label _chipsLabel = null!;
-    [Export] private Label _rankLabel = null!;
+    [Export] private Label _rankNameLabel = null!;
+    [Export] private Label _winResultLabel = null!;
     [Export] private GridContainer _payoutGrid = null!;
     [Export] private Button _settingsBtn = null!;
     [Export] private Button _blindBoxBtn = null!;
@@ -21,38 +22,37 @@ public partial class InfoPanelController : CanvasLayer
     private bool _hasHighlight;
     private Color _defaultNameColor;
 
-    // HandRank → grid row index (same order as CardEvaluator.HandRank enum)
     private static readonly HandRank[] GridOrder =
     {
-        HandRank.RoyalFlush,     // 0
-        HandRank.StraightFlush,  // 1
-        HandRank.FourOfAKind,    // 2
-        HandRank.FullHouse,      // 3
-        HandRank.Flush,          // 4
-        HandRank.Straight,       // 5
-        HandRank.ThreeOfAKind,   // 6
-        HandRank.TwoPair,        // 7
-        HandRank.JacksOrBetter,  // 8
+        HandRank.RoyalFlush,
+        HandRank.StraightFlush,
+        HandRank.FourOfAKind,
+        HandRank.FullHouse,
+        HandRank.Flush,
+        HandRank.Straight,
+        HandRank.ThreeOfAKind,
+        HandRank.TwoPair,
+        HandRank.JacksOrBetter,
     };
 
     public override void _Ready()
     {
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
 
-        // Collect payout grid labels by index (even = name, odd = value)
-        var children = _payoutGrid.GetChildren().Cast<Label>().ToList();
-        for (int i = 0; i < children.Count; i++)
+        foreach (var child in _payoutGrid.GetChildren())
         {
-            if (i % 2 == 0)
-                _payoutNames.Add(children[i]);
-            else
-                _payoutValues.Add(children[i]);
+            if (child is Label label)
+            {
+                if (_payoutNames.Count <= _payoutValues.Count)
+                    _payoutNames.Add(label);
+                else
+                    _payoutValues.Add(label);
+            }
         }
 
         if (_payoutNames.Count > 0)
-            _defaultNameColor = _payoutNames[0].Theme.GetColor("font_color", "Label");
+            _defaultNameColor = _payoutNames[0].GetThemeColor("font_color");
 
-        // Blind box disabled for now
         _blindBoxBtn.Disabled = true;
     }
 
@@ -63,12 +63,17 @@ public partial class InfoPanelController : CanvasLayer
 
     public void SetRank(string rankName)
     {
-        _rankLabel.Text = rankName;
+        _rankNameLabel.Text = rankName;
+    }
+
+    public void SetWinResult(string text)
+    {
+        _winResultLabel.Text = text;
     }
 
     public void SetBlindBoxCost(int cost)
     {
-        _blindBoxCostLabel.Text = $"Cost: {cost:N0}";
+        _blindBoxCostLabel.Text = cost.ToString("N0");
     }
 
     public void HighlightPayoutRow(HandRank rank)
@@ -84,7 +89,7 @@ public partial class InfoPanelController : CanvasLayer
             return;
 
         _lastHighlightedName = _payoutNames[idx];
-        _lastHighlightedName.AddThemeColorOverride("font_color", new Color(1, 0.78f, 0.2f)); // gold
+        _lastHighlightedName.AddThemeColorOverride("font_color", new Color(1, 0.78f, 0.2f));
         _hasHighlight = true;
     }
 
