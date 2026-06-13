@@ -55,6 +55,8 @@ public partial class ModeManager : Control
         _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
         _bossKeyContent.GetNode<Node2D>("ContentA").Position = _contentOffset;
         SetupFatWindow();
+        SetWindowAboveTaskbar();
+        DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
         EnableLayeredWindow();
 
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
@@ -292,8 +294,9 @@ public partial class ModeManager : Control
 
         int winW = (int)_windowBaseSize.X + (int)_panelSize.X * 2;
         int winH = (int)_windowBaseSize.Y + (int)_panelSize.Y * 2;
+        var pos = DisplayServer.WindowGetPosition();
         DisplayServer.WindowSetSize(new Vector2I(winW, winH));
-        SetWindowAboveTaskbar();
+        DisplayServer.WindowSetPosition(pos);
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
     }
 
@@ -325,14 +328,14 @@ public partial class ModeManager : Control
     {
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
-        // 游玩模式内容宽度 = 信息面板(240) + 游戏面板(600) = 840
         int contentW = 840;
         int contentH = 600;
         int winW = contentW + pw * 2;
         int winH = Math.Max(contentH, ph) + ph * 2;
+        // 只 resize，保留窗口当前位置，不让内容跳位
+        var pos = DisplayServer.WindowGetPosition();
         DisplayServer.WindowSetSize(new Vector2I(winW, winH));
-        // 内容底部与任务栏对齐（复用 taskbar 锚点）
-        SetWindowAboveTaskbar();
+        DisplayServer.WindowSetPosition(pos);
     }
 
     private void SetWindowAboveTaskbar()
