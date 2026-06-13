@@ -114,7 +114,6 @@ text = "Primary Button"
 
 [node name="Normal2" type="Button" parent="Grid/SectionButtons/Row" unique_id=1912025654]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "主要按钮"
 
 [node name="Flat" type="Button" parent="Grid/SectionButtons/Row" unique_id=745588907]
@@ -137,19 +136,16 @@ text = "Small"
 [node name="Quit" type="Button" parent="Grid/SectionButtons/Row" unique_id=54868123]
 layout_mode = 2
 theme_type_variation = &"ActionButton"
-theme_override_font_sizes/font_size = 18
 text = "Action Button"
 
 [node name="Quit2" type="Button" parent="Grid/SectionButtons/Row" unique_id=2036083414]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
-theme_override_font_sizes/font_size = 18
 text = "Quit Game"
 
 [node name="SecretaryButton" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
-theme_override_font_sizes/font_size = 18
 text = "Secretary Button"
 
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]

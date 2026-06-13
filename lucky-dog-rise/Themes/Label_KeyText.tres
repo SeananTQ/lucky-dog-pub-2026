@@ -11,3 +11,4 @@ base_font = ExtResource("1_q3452")
 line_spacing = 2.0
 paragraph_spacing = -5.0
 font = SubResource("FontVariation_ymkvt")
+font_size = 14
