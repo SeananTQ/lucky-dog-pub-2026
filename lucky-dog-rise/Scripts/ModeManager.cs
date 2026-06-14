@@ -168,6 +168,7 @@ public partial class ModeManager : Control
             // 连接 Main 中的 GameManager 信号
             var gm = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             gm.GameData = _gameData;
+            gm.SettingsPanel = _settingsPanel;
             _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
             _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
 

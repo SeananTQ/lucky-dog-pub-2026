@@ -45,6 +45,7 @@ text = "X"
 layout_mode = 2
 
 [node name="SettingsContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283480]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -98,7 +99,6 @@ theme_type_variation = &"DestructiveButton"
 text = "Quit Game"
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
-visible = false
 layout_mode = 2
 
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
@@ -112,7 +112,6 @@ text = "Seed: N/A"
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Copy"
-flat = true
 
 [node name="SeedInput" type="LineEdit" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=45613217]
 layout_mode = 2

@@ -253,10 +253,6 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p7m14"]
 content_margin_left = 6.0
@@ -528,7 +524,7 @@ LineEdit/colors/selection_color = Color(0.5, 0.5, 0.5, 1)
 LineEdit/constants/caret_width = 1
 LineEdit/constants/minimum_character_width = 4
 LineEdit/constants/outline_size = 0
-LineEdit/font_sizes/font_size = 24
+LineEdit/font_sizes/font_size = 22
 LineEdit/fonts/font = SubResource("FontVariation_hevoe")
 LineEdit/icons/clear = SubResource("DPITexture_ox3pi")
 LineEdit/styles/focus = SubResource("StyleBoxFlat_5li03")

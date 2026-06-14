@@ -6,9 +6,7 @@ public partial class HUDController : CanvasLayer
 {
     private Button _dealButton = null!;
     private Button _drawButton = null!;
-    private Label _chipLabel = null!;
     private Label _rankLabel = null!;
-    private Label _betLabel = null!;
     private Label _messageLabel = null!;
     private PanelContainer _messagePanel = null!;
     private CanvasLayer _overlay = null!;
@@ -18,9 +16,7 @@ public partial class HUDController : CanvasLayer
     {
         _dealButton = GetNode<Button>("DealButton");
         _drawButton = GetNode<Button>("DrawButton");
-        _chipLabel = GetNode<Label>("InfoPanel/MarginContainer/HBox/VBox/ChipLabel");
         _rankLabel = GetNode<Label>("RankPanel/RankLabel");
-        _betLabel = GetNode<Label>("InfoPanel/MarginContainer/HBox/VBox/BetLabel");
         _messageLabel = GetNode<Label>("MessagePanel/MessageLabel");
         _messagePanel = GetNode<PanelContainer>("MessagePanel");
         _overlay = GetParent().GetNode<CanvasLayer>("Overlay");
@@ -63,14 +59,6 @@ public partial class HUDController : CanvasLayer
                 _drawButton.Disabled = true;
                 break;
         }
-    }
-
-    // 信息更新
-    public void UpdateInfo(int chips, PlayerRank rank, int betAmount)
-    {
-        _chipLabel.Text = $"Chips: {chips}";
-        _rankLabel.Text = $"Rank: {rank}";
-        _betLabel.Text = $"Bet: {betAmount}";
     }
 
     // 消息

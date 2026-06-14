@@ -52,7 +52,7 @@ public partial class GameManager : Node2D
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
-    private TestSettingPanelController _settingsPanel = null!;
+    public TestSettingPanelController SettingsPanel { get; set; } = null!;
 
     public override void _Ready()
     {
@@ -78,10 +78,6 @@ public partial class GameManager : Node2D
         _debugHud.RandomizeRequested += OnRandomizeScene;
         _debugHud.RandomizeDogRequested += OnRandomizeDog;
 
-        // 从父级 ModeManager 获取设置面板
-        var mm = GetParent() as ModeManager;
-        _settingsPanel = mm?.SettingsPanelObj!;
-
         if (_gameData != null)
         {
             RefreshUI();
@@ -98,7 +94,7 @@ public partial class GameManager : Node2D
     {
         if (State != GameState.WaitingForBet) return;
         if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
-        if (_settingsPanel != null && _settingsPanel.TryGetFixedSeed(out int fixedSeed))
+        if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
     }
@@ -269,8 +265,7 @@ public partial class GameManager : Node2D
     private void RefreshUI()
     {
         _hud.UpdateButtons(State, DebugMode);
-        _hud.UpdateInfo(_gameData.Chips, _gameData.Progression.CurrentRank, _gameData.BetAmount);
-        _settingsPanel?.UpdateSeed(_deck.LastSeed);
+        SettingsPanel?.UpdateSeed(_deck.LastSeed);
     }
 
     private static string GetSignalMessage(DogSignal signal)
