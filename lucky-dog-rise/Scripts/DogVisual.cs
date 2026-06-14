@@ -18,8 +18,15 @@ public partial class DogVisual : Node2D
     private Button _hitButton = null!;
 
     private const string BasePath = "res://Assets/Shiba/Red/";
-    private static readonly Vector2 SunglassesPos = new(586, 415);
-    private static readonly Vector2 LuckyCapPos = new(587, 222);
+
+    // PSD → DogArea 本地坐标转换参数
+    // Headwear 需要独立 Y 偏移（683 vs 677），因为帽子在头顶位置较高
+    private const float OffsetX = 586f;
+    private const float OffsetY = 677f;
+    private const float OffsetXHeadwear = 585f;
+    private const float OffsetYHeadwear = 683f;
+
+    private Dictionary<string, Vector2> _positionCache = null!;
 
     private static readonly Dictionary<DogSignal, string[]> SignalTextures = new()
     {
@@ -40,13 +47,61 @@ public partial class DogVisual : Node2D
         _headwear = GetNode<Sprite2D>("Headwear");
         _hitButton = GetNode<Button>("HitButton");
         _hitButton.Pressed += () => EmitSignal(SignalName.DogClicked);
+
+        EnsurePositionCache();
+    }
+
+    /// <summary>
+    /// 从 layer_index.json 读取指定文件的 PSD 坐标，
+    /// 按 IsHeadwear 决定转换参数，返回 DogArea 本地坐标。
+    /// </summary>
+    public Vector2 GetScenePosition(string fileName, bool isHeadwear = false)
+    {
+        if (_positionCache.TryGetValue(fileName, out var pos))
+            return pos;
+
+        GD.PushWarning($"[DogVisual] Position not found for: {fileName}");
+        return Vector2.Zero;
+    }
+
+    private void EnsurePositionCache()
+    {
+        if (_positionCache != null) return;
+        _positionCache = new Dictionary<string, Vector2>();
+
+        using var file = FileAccess.Open("res://Assets/layer_index.json", FileAccess.ModeFlags.Read);
+        if (file == null) return;
+
+        var json = new Json();
+        if (json.Parse(file.GetAsText()) != Error.Ok) return;
+
+        var layers = json.Data.AsGodotDictionary()["layers"].AsGodotArray();
+        foreach (var layer in layers)
+        {
+            var d = layer.AsGodotDictionary();
+            var name = d["name"].AsString();
+            var fileOnly = d["file"].AsString().Split('/')[^1];
+            var cx = (float)d["x"].AsDouble() + (float)d["w"].AsDouble() / 2f;
+            var cy = (float)d["y"].AsDouble() + (float)d["h"].AsDouble() / 2f;
+
+            var pos = name.StartsWith("Headwear/")
+                ? new Vector2(cx - OffsetXHeadwear, cy - OffsetYHeadwear)
+                : new Vector2(cx - OffsetX, cy - OffsetY);
+
+            _positionCache[fileOnly] = pos;
+        }
     }
 
     public void ResetAppearance()
     {
         _head.Texture = GD.Load<Texture2D>(BasePath + "Head_Chubby.png");
+        _head.Position = GetScenePosition("Head_Chubby.png");
+
         _eyes.Texture = GD.Load<Texture2D>(BasePath + "Eyes_Cute.png");
+        _eyes.Position = GetScenePosition("Eyes_Cute.png");
+
         _ears.Texture = GD.Load<Texture2D>(BasePath + "Ears_Happy.png");
+        _ears.Position = GetScenePosition("Ears_Happy.png");
 
         // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
         _head.ZIndex = 1;
@@ -64,14 +119,16 @@ public partial class DogVisual : Node2D
     {
         var textures = SignalTextures[signal];
         _eyes.Texture = GD.Load<Texture2D>(BasePath + textures[0]);
+        _eyes.Position = GetScenePosition(textures[0]);
         _ears.Texture = GD.Load<Texture2D>(BasePath + textures[1]);
+        _ears.Position = GetScenePosition(textures[1]);
         ShowClawPalm();
 
         if (signal == DogSignal.TopTier)
         {
             _headwear.Visible = true;
             _headwear.Texture = GD.Load<Texture2D>("res://Assets/Headwear/Lucky.png");
-            _headwear.Position = LuckyCapPos;
+            _headwear.Position = GetScenePosition("Lucky.png", isHeadwear: true);
         }
     }
 
@@ -79,7 +136,7 @@ public partial class DogVisual : Node2D
     {
         _eyewear.Visible = true;
         _eyewear.Texture = GD.Load<Texture2D>("res://Assets/Eyewear/Sunglasses_Blade.png");
-        _eyewear.Position = SunglassesPos;
+        _eyewear.Position = GetScenePosition("Sunglasses_Blade.png");
     }
 
     public void SetEyewear(string fileName, Vector2 position)
