@@ -148,13 +148,10 @@ public class DeckManager
     private int[] GenerateFourOfAKind()
     {
         int rank = _rng.Next(13);
-        int suit1 = _rng.Next(4);
-        int suit2 = (suit1 + 1 + _rng.Next(3)) % 4;
-        int suit3 = (suit1 + 2 + _rng.Next(2)) % 4;
-        int suit4 = (suit1 + 3) % 4;
+        var suits = Enumerable.Range(0, 4).OrderBy(_ => _rng.Next()).ToArray();
         int kickerRank = (rank + 1 + _rng.Next(12)) % 13;
         int kickerSuit = _rng.Next(4);
-        return new[] { rank + suit1 * 13, rank + suit2 * 13, rank + suit3 * 13, rank + suit4 * 13, kickerRank + kickerSuit * 13 };
+        return new[] { rank + suits[0] * 13, rank + suits[1] * 13, rank + suits[2] * 13, rank + suits[3] * 13, kickerRank + kickerSuit * 13 };
     }
 
     private int[] GenerateFullHouse()
@@ -282,12 +279,11 @@ public class DeckManager
         return true;
     }
 
-    private static void Shuffle(int[] array)
+    private void Shuffle(int[] array)
     {
-        var rng = new Random();
         for (int i = array.Length - 1; i > 0; i--)
         {
-            int j = rng.Next(i + 1);
+            int j = _rng.Next(i + 1);
             (array[i], array[j]) = (array[j], array[i]);
         }
     }
