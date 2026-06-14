@@ -73,7 +73,7 @@ lucky-dog-rise/
 │   ├── PlayContent.tscn     # 游玩模式布局（SubViewportContainer）
 │   ├── InfoPanel.tscn       # 信息面板（240×600）
 │   ├── Main.tscn            # 扑克游戏内容（SubViewport 内渲染）
-│   ├── TestSettingPanel.tscn # 测试设置面板
+│   ├── SystemPanel.tscn     # 系统功能面板（设置/装扮/Debug 页签）
 │   ├── DogArea.tscn         # 小狗场景（表情系统）
 │   ├── HandArea.tscn        # 手臂场景（敲桌交互）
 │   ├── ChipStack.tscn       # 筹码堆场景（下注交互）
@@ -84,10 +84,11 @@ lucky-dog-rise/
 │   ├── ModeManager.cs        # 主入口控制器（窗口管理+模式切换+面板避让）
 │   ├── Desktop/              # 桌宠宿主窗口底层
 │   │   ├── WindowNative.cs        # Windows API P/Invoke
-│   │   ├── TestSettingPanelController.cs  # 测试设置面板
+│   │   ├── SystemPanelController.cs   # 系统功能面板（设置/装扮/Debug）
 │   │   ├── InfoPanelController.cs     # 信息面板
-│   │   ├── SettingsManager.cs        # 设置持久化（ConfigFile）
-│   │   └── GlobalInputTracker.cs     # 全局键盘钩子
+│   │   ├── GameData.cs                # 共享游戏数据（筹码/段位）
+│   │   ├── SettingsManager.cs         # 设置持久化（ConfigFile）
+│   │   └── GlobalInputTracker.cs      # 全局键盘钩子
 │   ├── GameManager.cs        # 扑克游戏状态机（被 SubViewport 承载）
 │   ├── DeckManager.cs        # 牌组管理（CheatDeck）
 │   ├── CardEvaluator.cs      # 牌型判定（纯静态）

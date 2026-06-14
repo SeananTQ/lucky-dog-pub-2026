@@ -2,7 +2,7 @@ using Godot;
 
 namespace LuckyDogRise;
 
-public partial class TestSettingPanelController : CanvasLayer
+public partial class SystemPanelController : CanvasLayer
 {
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
@@ -24,37 +24,48 @@ public partial class TestSettingPanelController : CanvasLayer
     private PanelContainer _panel = null!;
     private Tween _tween = null!;
 
-    // 设置页
+    // 页签按钮
+    private Button _settingsTab = null!;
+    private Button _wardrobeTab = null!;
+    private Button _debugTab = null!;
+
+    // 页签内容容器
     private VBoxContainer _settingsContent = null!;
+    private VBoxContainer _wardrobeContent = null!;
+    private VBoxContainer _debugContent = null!;
+
+    // Settings 页
     private CheckButton _audioToggle = null!;
     private OptionButton _displayOption = null!;
 
     // Debug 页
-    private VBoxContainer _debugContent = null!;
     private Label _seedLabel = null!;
     private LineEdit _seedInput = null!;
-
-    // 分页按钮
-    private Button _settingsTab = null!;
-    private Button _debugTab = null!;
-
     private int _currentSeed;
+
+    private readonly Button[] _tabs = new Button[3];
 
     public override void _Ready()
     {
         _panel = GetNode<PanelContainer>("Panel");
 
-        // 分页切换
         _settingsTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/SettingsTab");
+        _wardrobeTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/WardrobeTab");
         _debugTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/DebugTab");
+        _tabs[0] = _settingsTab;
+        _tabs[1] = _wardrobeTab;
+        _tabs[2] = _debugTab;
+
         _settingsContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/SettingsContent");
+        _wardrobeContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/WardrobeContent");
         _debugContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/DebugContent");
 
-        _settingsTab.Pressed += () => SwitchTab(true);
-        _debugTab.Pressed += () => SwitchTab(false);
-        SwitchTab(true);
+        _settingsTab.Pressed += () => SwitchTab(0);
+        _wardrobeTab.Pressed += () => SwitchTab(1);
+        _debugTab.Pressed += () => SwitchTab(2);
+        SwitchTab(0);
 
-        // 设置页
+        // === Settings 页 ===
         _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AudioRow/AudioToggle");
         _displayOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/DisplayRow/DisplayOption");
         var closeBtn = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/CloseBtn");
@@ -79,7 +90,7 @@ public partial class TestSettingPanelController : CanvasLayer
         _audioToggle.Toggled += OnAudioToggled;
         _displayOption.ItemSelected += OnDisplayModeChanged;
 
-        // Debug 页
+        // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedLabel");
         var seedCopyBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
@@ -93,15 +104,17 @@ public partial class TestSettingPanelController : CanvasLayer
         _panel.Visible = false;
     }
 
-    private void SwitchTab(bool settings)
+    private void SwitchTab(int index)
     {
-        _settingsContent.Visible = settings;
-        _debugContent.Visible = !settings;
-        _settingsTab.Modulate = settings ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
-        _debugTab.Modulate = !settings ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+        var contents = new[] { _settingsContent, _wardrobeContent, _debugContent };
+        for (int i = 0; i < _tabs.Length; i++)
+        {
+            contents[i].Visible = i == index;
+            _tabs[i].Modulate = i == index ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+        }
     }
 
-    // ===== 公共 API（设置页） =====
+    // ===== 公共 API =====
 
     public void Toggle() { if (_panel.Visible) Close(); else Open(); }
 
@@ -139,8 +152,6 @@ public partial class TestSettingPanelController : CanvasLayer
         if (!_panel.Visible) return false;
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos);
     }
-
-    // ===== 公共 API（Debug 页） =====
 
     public void UpdateSeed(int seed)
     {

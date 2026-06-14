@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://testset"]
 
-[ext_resource type="Script" uid="uid://cfr53y6ci7qwy" path="res://Scripts/Desktop/TestSettingPanelController.cs" id="1_ctrl"]
+[ext_resource type="Script" uid="uid://c2rtl3vl2waso" path="res://Scripts/Desktop/SystemPanelController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
 
-[node name="TestSettingPanel" type="CanvasLayer" unique_id=548226029]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
@@ -23,13 +23,21 @@ size_flags_vertical = 3
 
 [node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1627757193]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="SettingsTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168624]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Settings"
+
+[node name="WardrobeTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168622]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Wardrobe"
 
 [node name="DebugTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168623]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Debug"
 
 [node name="HSpacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=89865551]
@@ -45,7 +53,6 @@ text = "X"
 layout_mode = 2
 
 [node name="SettingsContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283480]
-visible = false
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -78,9 +85,6 @@ theme_override_font_sizes/font_size = 16
 [node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
 layout_mode = 2
 
-[node name="ModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=182738614]
-layout_mode = 2
-
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
 layout_mode = 2
 text = "Switch to Play"
@@ -98,7 +102,18 @@ layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "Quit Game"
 
+[node name="WardrobeContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283482]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WardrobePlaceholder" type="Label" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220241]
+layout_mode = 2
+text = "Coming soon..."
+horizontal_alignment = 1
+
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
+visible = false
 layout_mode = 2
 
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]

@@ -50,7 +50,7 @@ public partial class GameManager : Node2D
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
-    public TestSettingPanelController SettingsPanel { get; set; } = null!;
+    public SystemPanelController SettingsPanel { get; set; } = null!;
 
     public override void _Ready()
     {

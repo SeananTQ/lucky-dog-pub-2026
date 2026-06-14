@@ -8,8 +8,8 @@ public partial class ModeManager : Control
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
-    private TestSettingPanelController _settingsPanel = null!;
-    public TestSettingPanelController SettingsPanelObj => _settingsPanel;
+    private SystemPanelController _settingsPanel = null!;
+    public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -46,7 +46,7 @@ public partial class ModeManager : Control
         sysBtn.Pressed += ToggleSettingsPanel;
 
         // 先实例化面板以读取实际尺寸
-        _settingsPanel = GD.Load<PackedScene>("res://Scenes/TestSettingPanel.tscn").Instantiate<TestSettingPanelController>();
+        _settingsPanel = GD.Load<PackedScene>("res://Scenes/SystemPanel.tscn").Instantiate<SystemPanelController>();
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
