@@ -16,9 +16,9 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private Label _blindBoxCostLabel = null!;
 
     // ===== 动画参数 =====
-    private const float ChipsAnimDuration = 0.4f;       // 筹码数字缓动时长（秒）
-    private const float BlinkVisibleDuration = 0.8f;     // 闪烁：显示停留时长（秒）
-    private const float BlinkHiddenDuration = 0.4f;      // 闪烁：隐藏停留时长（秒）
+    private const float ChipsAnimDuration = 0.4f;
+    private const float BlinkVisibleDuration = 0.8f;
+    private const float BlinkHiddenDuration = 0.4f;
 
     private GameData _gameData = null!;
     private readonly List<Label> _payoutNames = new();
@@ -31,7 +31,6 @@ public partial class InfoPanelController : CanvasLayer
 
     private int _displayedChips;
     private Tween _chipsTween;
-
     private Tween _blinkTween;
 
     // Display payout = CardEvaluator.PayTable multiplier × GameData.BetAmount (50)
@@ -86,6 +85,11 @@ public partial class InfoPanelController : CanvasLayer
             _defaultValueColor = _payoutValues[0].GetThemeColor("font_color");
 
         _blindBoxBtn.Disabled = true;
+
+        // 初始状态：清除 .tscn 占位文本
+        _winResultLabel.Text = "";
+        _winResultLabel.SelfModulate = new Color(1, 1, 1, 0);
+        _rankNameLabel.Text = "Good Luck!";
     }
 
     public void Bind(GameData data)
@@ -95,6 +99,7 @@ public partial class InfoPanelController : CanvasLayer
         _chipsLabel.Text = _displayedChips.ToString("N0");
         data.ChipsChanged += OnChipsChanged;
         data.HandResolved += OnHandResolved;
+        data.NewHandStarted += OnNewHandStarted;
     }
 
     private void OnChipsChanged(int newChips)
@@ -118,20 +123,30 @@ public partial class InfoPanelController : CanvasLayer
         _displayedChips = newChips;
     }
 
+    private void OnNewHandStarted()
+    {
+        StopBlink();
+        ClearHighlight();
+        _winResultLabel.Text = "";
+        _winResultLabel.SelfModulate = new Color(1, 1, 1, 0);
+        _rankNameLabel.Text = "Good Luck!";
+    }
+
     private void OnHandResolved(HandRank rank, int payout)
     {
         StopBlink();
-        _rankNameLabel.Text = rank.ToString();
         _winResultLabel.SelfModulate = Colors.White;
 
         if (payout > 0)
         {
+            _rankNameLabel.Text = rank.ToString();
             _winResultLabel.Text = $"You win {payout}";
             HighlightPayoutRow(rank);
             StartBlink();
         }
         else
         {
+            _rankNameLabel.Text = rank == HandRank.Nothing ? "Nothing" : rank.ToString();
             _winResultLabel.Text = "";
             ClearHighlight();
         }
@@ -142,7 +157,6 @@ public partial class InfoPanelController : CanvasLayer
         _blinkTween?.Kill();
         _blinkTween = CreateTween();
         _blinkTween.SetLoops(0); // infinite
-        // 显示 → 停留 → 视觉隐藏 → 停留 → 循环（用 SelfModulate 避免 layout 变化）
         _blinkTween.TweenCallback(Callable.From(() => _winResultLabel.SelfModulate = Colors.White));
         _blinkTween.TweenInterval(BlinkVisibleDuration);
         _blinkTween.TweenCallback(Callable.From(() => _winResultLabel.SelfModulate = new Color(1, 1, 1, 0)));

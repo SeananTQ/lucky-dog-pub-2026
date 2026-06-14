@@ -6,10 +6,16 @@ public partial class GameData : Node
 {
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
     [Signal] public delegate void HandResolvedEventHandler(HandRank rank, int payout);
+    [Signal] public delegate void NewHandStartedEventHandler();
 
     public void EmitHandResolved(HandRank rank, int payout)
     {
         EmitSignal(SignalName.HandResolved, (int)rank, payout);
+    }
+
+    public void EmitNewHandStarted()
+    {
+        EmitSignal(SignalName.NewHandStarted);
     }
 
     public int Chips { get; private set; } = 1000;

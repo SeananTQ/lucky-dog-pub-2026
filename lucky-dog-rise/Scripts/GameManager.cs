@@ -154,7 +154,7 @@ public partial class GameManager : Node2D
     private void DealNewHand()
     {
         _gameData.ModifyChips(-_gameData.BetAmount);
-        _gameData.EmitHandResolved(HandRank.Nothing, 0);
+        _gameData.EmitNewHandStarted();
         _deck.Deal();
         _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
