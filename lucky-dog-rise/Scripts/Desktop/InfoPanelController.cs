@@ -16,11 +16,19 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private Button _blindBoxBtn = null!;
     [Export] private Label _blindBoxCostLabel = null!;
 
+    private GameData _gameData = null!;
     private readonly List<Label> _payoutNames = new();
     private readonly List<Label> _payoutValues = new();
     private Label _lastHighlightedName = null!;
     private bool _hasHighlight;
     private Color _defaultNameColor;
+
+    public void Bind(GameData data)
+    {
+        _gameData = data;
+        data.ChipsChanged += chips => _chipsLabel.Text = chips.ToString("N0");
+        SetChips(data.Chips);
+    }
 
     private static readonly HandRank[] GridOrder =
     {

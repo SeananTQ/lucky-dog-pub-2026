@@ -27,8 +27,15 @@ public partial class ModeManager : Control
     private Rect2 _dogHitRect;
     private Rect2 _btnHitRect;
 
+    private GameData _gameData = null!;
+    public GameData GameDataObj => _gameData;
+
     public override void _Ready()
     {
+        _gameData = new GameData();
+        _gameData.Name = "GameData";
+        AddChild(_gameData);
+
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
@@ -65,6 +72,7 @@ public partial class ModeManager : Control
 
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
+        tracker.GameData = _gameData;
         AddChild(tracker);
     }
 
@@ -87,7 +95,7 @@ public partial class ModeManager : Control
         if (mode == SettingsManager.DisplayMode.Clock)
             _mainText.Text = DateTime.Now.ToString("HH:mm");
         else if (mode == SettingsManager.DisplayMode.Chips)
-            _mainText.Text = GlobalInputTracker.TotalChips.ToString();
+            _mainText.Text = _gameData.Chips.ToString();
 
         var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
         bool over = _settingsPanel.ContainsPoint(localPos);
@@ -159,8 +167,12 @@ public partial class ModeManager : Control
 
             // 连接 Main 中的 GameManager 信号
             var gm = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
+            gm.GameData = _gameData;
             _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
             _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
+
+            // InfoPanel 绑定 GameData
+            _infoPanel.Bind(_gameData);
         }
 
         // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）

@@ -16,21 +16,33 @@ public enum GameState
 
 public partial class GameManager : Node2D
 {
-    private const int BetAmount = 5;
-    private const int StartingChips = 100;
     private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
-    public int Chips { get; private set; }
     public bool DebugMode { get; set; } = true;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
     private Node2D _pendingReward;
 
+    private GameData _gameData = null!;
+    public GameData GameData
+    {
+        get => _gameData;
+        set
+        {
+            _gameData = value;
+            if (_hud != null && _chipStack != null)
+            {
+                RefreshUI();
+                _hud.SetMessage("Click the chips to place your bet");
+                _chipStack.ShowHint("Click to bet");
+            }
+        }
+    }
+
     private DeckManager _deck = null!;
     private DogHintSystem _dogHint = null!;
-    private ProgressionManager _progression = null!;
     private bool[] _held = [true, true, true, true, true];
 
     private HUDController _hud = null!;
@@ -46,8 +58,6 @@ public partial class GameManager : Node2D
     {
         _deck = new DeckManager();
         _dogHint = new DogHintSystem();
-        _progression = new ProgressionManager();
-        Chips = StartingChips;
 
         _hud = GetNode<HUDController>("HUD");
         _debugHud = GetNode<DebugHUDController>("HUD/DebugPanel");
@@ -68,15 +78,17 @@ public partial class GameManager : Node2D
         _debugHud.RandomizeRequested += OnRandomizeScene;
         _debugHud.RandomizeDogRequested += OnRandomizeDog;
 
-        // 从父级 ModeManager 获取设置面板（必须在 RefreshUI 之前）
+        // 从父级 ModeManager 获取设置面板
         var mm = GetParent() as ModeManager;
         _settingsPanel = mm?.SettingsPanelObj!;
 
-        RefreshUI();
-        _hud.SetMessage("Click the chips to place your bet");
-        _chipStack.ShowHint("Click to bet");
+        if (_gameData != null)
+        {
+            RefreshUI();
+            _hud.SetMessage("Click the chips to place your bet");
+            _chipStack.ShowHint("Click to bet");
+        }
 
-        // 启动BGM
         AudioManager.Instance.PlayBgmByName("MainTheme.ogg");
     }
 
@@ -85,7 +97,7 @@ public partial class GameManager : Node2D
     private void OnBetPlaced()
     {
         if (State != GameState.WaitingForBet) return;
-        if (Chips < BetAmount) { TriggerGameOver(); return; }
+        if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
         if (_settingsPanel != null && _settingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
@@ -146,8 +158,7 @@ public partial class GameManager : Node2D
     {
         _hud.SetDealButtonVisible(true);
         _pendingReward = null;
-        Chips += _pendingPayout;
-        _progression.UpdateHighScore(Chips);
+        _gameData.ModifyChips(_pendingPayout);
         _pendingPayout = 0;
         RefreshUI();
         State = GameState.WaitingForBet;
@@ -158,14 +169,13 @@ public partial class GameManager : Node2D
 
     public void AddChips(int amount)
     {
-        Chips += amount;
-        _progression.UpdateHighScore(Chips);
+        _gameData.ModifyChips(amount);
         RefreshUI();
     }
 
     private void DealNewHand()
     {
-        Chips -= BetAmount;
+        _gameData.ModifyChips(-_gameData.BetAmount);
         _deck.Deal();
         _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
@@ -181,7 +191,7 @@ public partial class GameManager : Node2D
 
     private void StartNextHand()
     {
-        if (Chips < BetAmount) { TriggerGameOver(); return; }
+        if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
         DealNewHand();
     }
 
@@ -194,7 +204,7 @@ public partial class GameManager : Node2D
         var finalHand = _deck.DrawReplacements(_held);
         _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
-        int payout = CardEvaluator.GetPayout(finalHand, BetAmount);
+        int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
         if (payout > 0)
         {
             _pendingPayout = payout;
@@ -208,10 +218,10 @@ public partial class GameManager : Node2D
             _hud.SetMessage("No win. Click chips to bet again.");
             State = GameState.WaitingForBet;
             _chipStack.ShowHint("Click to bet");
-            if (Chips < BetAmount) { TriggerGameOver(); return; }
+            if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
         }
-        if (_progression.CheckRankUp())
-            _hud.ShowOverlay($"Rank Up: {_progression.CurrentRank}!");
+        if (_gameData.Progression.CheckRankUp())
+            _hud.ShowOverlay($"Rank Up: {_gameData.Progression.CurrentRank}!");
         RefreshUI();
     }
 
@@ -239,8 +249,7 @@ public partial class GameManager : Node2D
 
     private void ResetGame()
     {
-        Chips = StartingChips;
-        _progression.Reset();
+        _gameData.ResetToStart();
         _hud.HideOverlay();
         ResetForNextHand();
     }
@@ -258,7 +267,7 @@ public partial class GameManager : Node2D
     private void RefreshUI()
     {
         _hud.UpdateButtons(State, DebugMode);
-        _hud.UpdateInfo(Chips, _progression.CurrentRank, BetAmount);
+        _hud.UpdateInfo(_gameData.Chips, _gameData.Progression.CurrentRank, _gameData.BetAmount);
         _settingsPanel?.UpdateSeed(_deck.LastSeed);
     }
 

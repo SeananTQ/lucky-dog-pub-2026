@@ -8,7 +8,7 @@ namespace LuckyDogRise;
 
 public partial class GlobalInputTracker : Node
 {
-    public static int TotalChips { get; private set; }
+    public GameData GameData { get; set; } = null!;
 
     private IntPtr _kbHook = IntPtr.Zero;
     private IntPtr _msHook = IntPtr.Zero;
@@ -88,8 +88,8 @@ public partial class GlobalInputTracker : Node
     public override void _Process(double delta)
     {
         var count = Interlocked.Exchange(ref _pendingPresses, 0);
-        if (count > 0)
-            TotalChips += count;
+        if (count > 0 && GameData != null)
+            GameData.ModifyChips(count);
     }
 
     private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)
