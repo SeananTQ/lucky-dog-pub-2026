@@ -50,6 +50,13 @@ wick-mcp-server/*
 config.toml
 
 
+
+# 鲁班 
+/luban-excels/luban-doc-main/
+/luban-excels/Tools/
+~$*.xlsx
+
+
 # 字体
 *.otf
 *.ttf
