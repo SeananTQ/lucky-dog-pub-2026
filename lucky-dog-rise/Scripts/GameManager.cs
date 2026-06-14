@@ -19,7 +19,6 @@ public partial class GameManager : Node2D
     private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
-    public bool DebugMode { get; set; } = true;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
@@ -46,7 +45,6 @@ public partial class GameManager : Node2D
     private bool[] _held = [true, true, true, true, true];
 
     private HUDController _hud = null!;
-    private DebugHUDController _debugHud = null!;
     private CardTableController _cardTable = null!;
     private DogVisual _dogVisual = null!;
     private ChipStackController _chipStack = null!;
@@ -60,7 +58,6 @@ public partial class GameManager : Node2D
         _dogHint = new DogHintSystem();
 
         _hud = GetNode<HUDController>("HUD");
-        _debugHud = GetNode<DebugHUDController>("HUD/DebugPanel");
         _cardTable = GetNode<CardTableController>("CardArea");
         _dogVisual = GetNode<DogVisual>("DogArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
@@ -69,14 +66,10 @@ public partial class GameManager : Node2D
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
 
         // 信号连接
-        _hud.ConnectDeal(this, nameof(OnDealPressed));
-        _hud.ConnectDraw(this, nameof(OnDrawPressed));
         _dogVisual.DogClicked += OnDogClicked;
         _handArea.HandKnocked += OnDrawPressed;
         _chipStack.BetPlaced += OnBetPlaced;
         _cardTable.CardClicked += OnCardClicked;
-        _debugHud.RandomizeRequested += OnRandomizeScene;
-        _debugHud.RandomizeDogRequested += OnRandomizeDog;
 
         if (_gameData != null)
         {
@@ -97,16 +90,6 @@ public partial class GameManager : Node2D
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
-    }
-
-    private void OnDealPressed()
-    {
-        switch (State)
-        {
-            case GameState.WaitingForBet: OnBetPlaced(); break;
-            case GameState.Settled: StartNextHand(); break;
-            case GameState.GameOver: ResetGame(); break;
-        }
     }
 
     private void OnDrawPressed()
@@ -152,7 +135,6 @@ public partial class GameManager : Node2D
 
     private void OnChipCollected()
     {
-        _hud.SetDealButtonVisible(true);
         _pendingReward = null;
         _gameData.ModifyChips(_pendingPayout);
         _pendingPayout = 0;
@@ -186,12 +168,6 @@ public partial class GameManager : Node2D
         RefreshUI();
     }
 
-    private void StartNextHand()
-    {
-        if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
-        DealNewHand();
-    }
-
     private void DoDraw()
     {
         State = GameState.Drawing;
@@ -209,7 +185,6 @@ public partial class GameManager : Node2D
             _hud.SetMessage($"{rank}! Won {payout} chips! Click chips to collect.");
             SpawnChipReward(payout);
             State = GameState.Settled;
-            _hud.SetDealButtonVisible(false);
         }
         else
         {
@@ -232,26 +207,6 @@ public partial class GameManager : Node2D
         RefreshUI();
     }
 
-    private void ResetForNextHand()
-    {
-        State = GameState.WaitingForBet;
-        _held = [true, true, true, true, true];
-        _cardTable.BrightenAll();
-        _dogVisual.ResetAppearance();
-        _hud.HideOverlay();
-        _hud.SetDealButtonVisible(true);
-        _chipStack.ShowHint("Click to bet");
-        _hud.SetMessage("Click the chips to place your bet");
-        RefreshUI();
-    }
-
-    private void ResetGame()
-    {
-        _gameData.ResetToStart();
-        _hud.HideOverlay();
-        ResetForNextHand();
-    }
-
     private void SpawnChipReward(int amount)
     {
         var reward = ChipRewardScene.Instantiate<ChipRewardController>();
@@ -264,7 +219,6 @@ public partial class GameManager : Node2D
 
     private void RefreshUI()
     {
-        _hud.UpdateButtons(State, DebugMode);
         SettingsPanel?.UpdateSeed(_deck.LastSeed);
     }
 

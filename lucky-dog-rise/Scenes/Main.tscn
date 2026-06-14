@@ -4,12 +4,10 @@
 [ext_resource type="Texture2D" uid="uid://ctmy87ol03xmo" path="res://Assets/Table/FeltEmerald.png" id="2_table"]
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
-[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="5_theme"]
 [ext_resource type="Texture2D" uid="uid://bpy0yltsldt17" path="res://Assets/Chip/GreenA.png" id="6_chip"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
 [ext_resource type="PackedScene" uid="uid://csak1ybmnwp72" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
 [ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
-[ext_resource type="Script" uid="uid://dki6udll3canl" path="res://Scripts/DebugHUDController.cs" id="11_debug"]
 [ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
 [ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
 [ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/ItemArea.tscn" id="14_items"]
@@ -91,54 +89,6 @@ script = ExtResource("13_tutorial")
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
 script = ExtResource("10_hud")
 
-[node name="InfoPanel" type="PanelContainer" parent="HUD" unique_id=1293237036]
-offset_left = 15.0
-offset_top = 10.0
-offset_right = 280.0
-offset_bottom = 105.0
-
-[node name="MarginContainer" type="MarginContainer" parent="HUD/InfoPanel" unique_id=1935938694]
-layout_mode = 2
-
-[node name="HBox" type="HBoxContainer" parent="HUD/InfoPanel/MarginContainer" unique_id=1618375649]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="ChipIcon" type="TextureRect" parent="HUD/InfoPanel/MarginContainer/HBox" unique_id=295130193]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-texture = ExtResource("6_chip")
-expand_mode = 3
-stretch_mode = 5
-
-[node name="VBox" type="VBoxContainer" parent="HUD/InfoPanel/MarginContainer/HBox" unique_id=1735390492]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="ChipLabel" type="Label" parent="HUD/InfoPanel/MarginContainer/HBox/VBox" unique_id=372233980]
-layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "Chips: 100"
-
-[node name="BetLabel" type="Label" parent="HUD/InfoPanel/MarginContainer/HBox/VBox" unique_id=498261284]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.8)
-theme_override_font_sizes/font_size = 18
-text = "Bet: 5"
-
-[node name="RankPanel" type="PanelContainer" parent="HUD" unique_id=1984473747]
-offset_left = 920.0
-offset_top = 10.0
-offset_right = 1185.0
-offset_bottom = 65.0
-
-[node name="RankLabel" type="Label" parent="HUD/RankPanel" unique_id=993508188]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Rank: Home Game"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="MessagePanel" type="PanelContainer" parent="HUD" unique_id=1511418603]
 offset_left = 250.0
 offset_top = 680.0
@@ -152,50 +102,6 @@ theme_override_font_sizes/font_size = 26
 text = "Click DEAL to start"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="DealButton" type="Button" parent="HUD" unique_id=668097238]
-offset_left = 370.0
-offset_top = 1010.0
-offset_right = 550.0
-offset_bottom = 1080.0
-theme = ExtResource("5_theme")
-text = "DEAL"
-
-[node name="DrawButton" type="Button" parent="HUD" unique_id=1068818596]
-offset_left = 650.0
-offset_top = 1010.0
-offset_right = 830.0
-offset_bottom = 1065.0
-theme = ExtResource("5_theme")
-disabled = true
-text = "DRAW"
-
-[node name="DebugPanel" type="PanelContainer" parent="HUD" unique_id=1189662231]
-offset_left = 350.0
-offset_top = 10.0
-offset_right = 550.0
-offset_bottom = 90.0
-script = ExtResource("11_debug")
-
-[node name="DebugVBox" type="VBoxContainer" parent="HUD/DebugPanel" unique_id=512149623]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="SeedLabel" type="Button" parent="HUD/DebugPanel/DebugVBox" unique_id=2034386139]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Seed: --- (click to copy)"
-flat = true
-
-[node name="SeedInput" type="LineEdit" parent="HUD/DebugPanel/DebugVBox" unique_id=610827349]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-placeholder_text = "Fixed seed (optional)"
-
-[node name="RandomizeButton" type="Button" parent="HUD/DebugPanel/DebugVBox" unique_id=1417343867]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Randomize Scene"
 
 [node name="Overlay" type="CanvasLayer" parent="." unique_id=1469740645]
 layer = 10
