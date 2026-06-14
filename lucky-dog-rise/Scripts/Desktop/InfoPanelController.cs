@@ -15,6 +15,11 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private Button _blindBoxBtn = null!;
     [Export] private Label _blindBoxCostLabel = null!;
 
+    // ===== 动画参数 =====
+    private const float ChipsAnimDuration = 0.4f;       // 筹码数字缓动时长（秒）
+    private const float BlinkVisibleDuration = 0.8f;     // 闪烁：显示停留时长（秒）
+    private const float BlinkHiddenDuration = 0.4f;      // 闪烁：隐藏停留时长（秒）
+
     private GameData _gameData = null!;
     private readonly List<Label> _payoutNames = new();
     private readonly List<Label> _payoutValues = new();
@@ -23,6 +28,11 @@ public partial class InfoPanelController : CanvasLayer
     private bool _hasHighlight;
     private Color _defaultNameColor;
     private Color _defaultValueColor;
+
+    private int _displayedChips;
+    private Tween _chipsTween;
+
+    private Tween _blinkTween;
 
     // Display payout = CardEvaluator.PayTable multiplier × GameData.BetAmount (50)
     // User-editable: change values here to match desired reward amounts
@@ -67,7 +77,6 @@ public partial class InfoPanelController : CanvasLayer
             }
         }
 
-        // Populate payout values from code
         for (int i = 0; i < PayoutTable.Length && i < _payoutValues.Count; i++)
             _payoutValues[i].Text = PayoutTable[i].ToString();
 
@@ -82,19 +91,69 @@ public partial class InfoPanelController : CanvasLayer
     public void Bind(GameData data)
     {
         _gameData = data;
-        data.ChipsChanged += chips => _chipsLabel.Text = chips.ToString("N0");
+        _displayedChips = data.Chips;
+        _chipsLabel.Text = _displayedChips.ToString("N0");
+        data.ChipsChanged += OnChipsChanged;
         data.HandResolved += OnHandResolved;
-        SetChips(data.Chips);
+    }
+
+    private void OnChipsChanged(int newChips)
+    {
+        int delta = newChips - _displayedChips;
+        if (Mathf.Abs(delta) <= 1)
+        {
+            _displayedChips = newChips;
+            _chipsLabel.Text = newChips.ToString("N0");
+            return;
+        }
+
+        _chipsTween?.Kill();
+        _chipsTween = CreateTween();
+        _chipsTween.TweenMethod(
+            Callable.From<int>(v => _chipsLabel.Text = v.ToString("N0")),
+            _displayedChips,
+            newChips,
+            ChipsAnimDuration
+        );
+        _displayedChips = newChips;
     }
 
     private void OnHandResolved(HandRank rank, int payout)
     {
+        StopBlink();
         _rankNameLabel.Text = rank.ToString();
-        _winResultLabel.Text = payout > 0 ? $"You win {payout}" : "";
+        _winResultLabel.SelfModulate = Colors.White;
+
         if (payout > 0)
+        {
+            _winResultLabel.Text = $"You win {payout}";
             HighlightPayoutRow(rank);
+            StartBlink();
+        }
         else
+        {
+            _winResultLabel.Text = "";
             ClearHighlight();
+        }
+    }
+
+    private void StartBlink()
+    {
+        _blinkTween?.Kill();
+        _blinkTween = CreateTween();
+        _blinkTween.SetLoops(0); // infinite
+        // 显示 → 停留 → 视觉隐藏 → 停留 → 循环（用 SelfModulate 避免 layout 变化）
+        _blinkTween.TweenCallback(Callable.From(() => _winResultLabel.SelfModulate = Colors.White));
+        _blinkTween.TweenInterval(BlinkVisibleDuration);
+        _blinkTween.TweenCallback(Callable.From(() => _winResultLabel.SelfModulate = new Color(1, 1, 1, 0)));
+        _blinkTween.TweenInterval(BlinkHiddenDuration);
+    }
+
+    private void StopBlink()
+    {
+        _blinkTween?.Kill();
+        _blinkTween = null;
+        _winResultLabel.SelfModulate = new Color(1, 1, 1, 0);
     }
 
     public void SetChips(int chips)
