@@ -5,9 +5,15 @@ namespace LuckyDogRise;
 public partial class GameData : Node
 {
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
+    [Signal] public delegate void HandResolvedEventHandler(HandRank rank, int payout);
 
-    public int Chips { get; private set; } = 100;
-    public int BetAmount => 5;
+    public void EmitHandResolved(HandRank rank, int payout)
+    {
+        EmitSignal(SignalName.HandResolved, (int)rank, payout);
+    }
+
+    public int Chips { get; private set; } = 1000;
+    public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
 
     public void ModifyChips(int delta)
@@ -21,7 +27,7 @@ public partial class GameData : Node
 
     public void ResetToStart()
     {
-        Chips = 100;
+        Chips = 1000;
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
     }

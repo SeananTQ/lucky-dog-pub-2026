@@ -1,6 +1,5 @@
 using Godot;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LuckyDogRise;
 
@@ -20,15 +19,25 @@ public partial class InfoPanelController : CanvasLayer
     private readonly List<Label> _payoutNames = new();
     private readonly List<Label> _payoutValues = new();
     private Label _lastHighlightedName = null!;
+    private Label _lastHighlightedValue = null!;
     private bool _hasHighlight;
     private Color _defaultNameColor;
+    private Color _defaultValueColor;
 
-    public void Bind(GameData data)
+    // Display payout = CardEvaluator.PayTable multiplier × GameData.BetAmount (50)
+    // User-editable: change values here to match desired reward amounts
+    private static readonly int[] PayoutTable =
     {
-        _gameData = data;
-        data.ChipsChanged += chips => _chipsLabel.Text = chips.ToString("N0");
-        SetChips(data.Chips);
-    }
+        12500, // RoyalFlush   (250 × 50)
+        2500,  // StraightFlush (50 × 50)
+        1250,  // FourOfAKind   (25 × 50)
+        450,   // FullHouse     (9 × 50)
+        300,   // Flush         (6 × 50)
+        200,   // Straight      (4 × 50)
+        150,   // ThreeOfAKind  (3 × 50)
+        100,   // TwoPair       (2 × 50)
+        50,    // JacksOrBetter (1 × 50)
+    };
 
     private static readonly HandRank[] GridOrder =
     {
@@ -58,10 +67,34 @@ public partial class InfoPanelController : CanvasLayer
             }
         }
 
+        // Populate payout values from code
+        for (int i = 0; i < PayoutTable.Length && i < _payoutValues.Count; i++)
+            _payoutValues[i].Text = PayoutTable[i].ToString();
+
         if (_payoutNames.Count > 0)
             _defaultNameColor = _payoutNames[0].GetThemeColor("font_color");
+        if (_payoutValues.Count > 0)
+            _defaultValueColor = _payoutValues[0].GetThemeColor("font_color");
 
         _blindBoxBtn.Disabled = true;
+    }
+
+    public void Bind(GameData data)
+    {
+        _gameData = data;
+        data.ChipsChanged += chips => _chipsLabel.Text = chips.ToString("N0");
+        data.HandResolved += OnHandResolved;
+        SetChips(data.Chips);
+    }
+
+    private void OnHandResolved(HandRank rank, int payout)
+    {
+        _rankNameLabel.Text = rank.ToString();
+        _winResultLabel.Text = payout > 0 ? $"You win {payout}" : "";
+        if (payout > 0)
+            HighlightPayoutRow(rank);
+        else
+            ClearHighlight();
     }
 
     public void SetChips(int chips)
@@ -86,18 +119,16 @@ public partial class InfoPanelController : CanvasLayer
 
     public void HighlightPayoutRow(HandRank rank)
     {
-        if (_hasHighlight)
-        {
-            _lastHighlightedName.RemoveThemeColorOverride("font_color");
-            _hasHighlight = false;
-        }
+        ClearHighlight();
 
         int idx = System.Array.IndexOf(GridOrder, rank);
-        if (idx < 0 || idx >= _payoutNames.Count)
+        if (idx < 0 || idx >= _payoutNames.Count || idx >= _payoutValues.Count)
             return;
 
         _lastHighlightedName = _payoutNames[idx];
         _lastHighlightedName.AddThemeColorOverride("font_color", new Color(1, 0.78f, 0.2f));
+        _lastHighlightedValue = _payoutValues[idx];
+        _lastHighlightedValue.AddThemeColorOverride("font_color", new Color(1, 0.78f, 0.2f));
         _hasHighlight = true;
     }
 
@@ -106,6 +137,7 @@ public partial class InfoPanelController : CanvasLayer
         if (_hasHighlight)
         {
             _lastHighlightedName.RemoveThemeColorOverride("font_color");
+            _lastHighlightedValue.RemoveThemeColorOverride("font_color");
             _hasHighlight = false;
         }
     }

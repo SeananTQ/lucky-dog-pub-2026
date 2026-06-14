@@ -176,6 +176,7 @@ public partial class GameManager : Node2D
     private void DealNewHand()
     {
         _gameData.ModifyChips(-_gameData.BetAmount);
+        _gameData.EmitHandResolved(HandRank.Nothing, 0);
         _deck.Deal();
         _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
@@ -205,6 +206,7 @@ public partial class GameManager : Node2D
         _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
+        _gameData.EmitHandResolved(rank, payout);
         if (payout > 0)
         {
             _pendingPayout = payout;
