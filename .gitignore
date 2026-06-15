@@ -57,6 +57,10 @@ config.toml
 ~$*.xlsx
 
 
+
+/photoshop-tools-test/
+
+
 # 字体
 *.otf
 *.ttf
