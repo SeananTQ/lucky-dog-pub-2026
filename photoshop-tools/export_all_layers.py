@@ -191,11 +191,11 @@ def main():
         psd_path = resolve_path(script_dir, args.psd)
         out_dir = resolve_path(script_dir, args.out)
 
-    if not os.path.exists(args.psd):
-        print(f"错误: PSD 文件不存在 - {args.psd}")
+    if not os.path.exists(psd_path):
+        print(f"错误: PSD 文件不存在 - {psd_path}")
         sys.exit(1)
 
-    export_all_layers(args.psd, args.out)
+    export_all_layers(psd_path, out_dir)
 
 
 if __name__ == "__main__":
