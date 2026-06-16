@@ -57,9 +57,9 @@ config.toml
 ~$*.xlsx
 
 
-
-/photoshop-tools-test/
-
+# Photoshop导出工具
+/photoshop-tools/*.psd
+/photoshop-tools/output/
 
 # 字体
 *.otf
