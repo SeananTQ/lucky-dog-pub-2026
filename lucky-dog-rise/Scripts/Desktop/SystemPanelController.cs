@@ -91,6 +91,10 @@ public partial class SystemPanelController : CanvasLayer
         _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
         ApplyAudio(_audioToggle.ButtonPressed);
 
+        var autoHideToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AutoHideRow/AutoHideToggle");
+        autoHideToggle.ButtonPressed = SettingsManager.LoadAutoHidePanel();
+        autoHideToggle.Toggled += enabled => SettingsManager.SaveAutoHidePanel(enabled);
+
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
 

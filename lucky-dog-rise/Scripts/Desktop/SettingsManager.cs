@@ -11,6 +11,7 @@ public static class SettingsManager
     private const string KeyAudioEnabled = "enabled";
     private const string KeyAlwaysOnTop = "always_on_top";
     private const string KeyTaskbarIcon = "taskbar_icon";
+    private const string KeyAutoHidePanel = "auto_hide_panel";
     private const string KeyDisplayMode = "mode";
 
     public enum DisplayMode
@@ -58,6 +59,19 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyTaskbarIcon, show);
+        config.Save(Path);
+    }
+
+    public static bool LoadAutoHidePanel()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyAutoHidePanel, true);
+    }
+
+    public static void SaveAutoHidePanel(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyAutoHidePanel, enabled);
         config.Save(Path);
     }
 

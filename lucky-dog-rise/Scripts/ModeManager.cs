@@ -126,7 +126,8 @@ public partial class ModeManager : Control
 
     public override void _Notification(int what)
     {
-        if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen)
+        if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen
+            && SettingsManager.LoadAutoHidePanel())
         {
             var mouse = DisplayServer.MouseGetPosition();
             var wp = DisplayServer.WindowGetPosition();

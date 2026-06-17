@@ -85,6 +85,20 @@ theme_override_font_sizes/font_size = 16
 [node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
 layout_mode = 2
 
+[node name="AutoHideRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1556867986]
+layout_mode = 2
+
+[node name="AutoHideLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/AutoHideRow" unique_id=634754942]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Auto-hide on focus lost"
+
+[node name="AutoHideToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
+layout_mode = 2
+
+[node name="AutoHideSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=700966536]
+layout_mode = 2
+
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
 layout_mode = 2
 text = "Switch to Play"
