@@ -1,0 +1,44 @@
+[
+  {
+    "Id": 1001,
+    "Name": "Legendary",
+    "ItemRarity": 1,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Legendary.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Legendary.png"
+  },
+  {
+    "Id": 1002,
+    "Name": "Epic",
+    "ItemRarity": 2,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Epic.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Epic.png"
+  },
+  {
+    "Id": 1003,
+    "Name": "Rare",
+    "ItemRarity": 3,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Rare.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Rare.png"
+  },
+  {
+    "Id": 1004,
+    "Name": "Common",
+    "ItemRarity": 4,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Common.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Common.png"
+  },
+  {
+    "Id": 1005,
+    "Name": "Special1",
+    "ItemRarity": 5,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Special1.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Special1.png"
+  },
+  {
+    "Id": 1006,
+    "Name": "Special2",
+    "ItemRarity": 6,
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Special2.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Special2.png"
+  }
+]

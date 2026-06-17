@@ -20,7 +20,7 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
         { if(!_buf["ItemType"].IsNumber) { throw new SerializationException(); }  ItemType = (EItemType)_buf["ItemType"].AsInt; }
-        { if(!_buf["Rarity"].IsNumber) { throw new SerializationException(); }  Rarity = (ERarity)_buf["Rarity"].AsInt; }
+        { if(!_buf["ItemRarity"].IsNumber) { throw new SerializationException(); }  ItemRarity = (ERarity)_buf["ItemRarity"].AsInt; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["BlindBoxWeight"].IsNumber) { throw new SerializationException(); }  BlindBoxWeight = _buf["BlindBoxWeight"]; }
         { if(!_buf["IsUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["IsUnique"]; }
@@ -40,7 +40,7 @@ public sealed partial class Item : Luban.BeanBase
     public readonly int Id;
     public readonly string Name;
     public readonly EItemType ItemType;
-    public readonly ERarity Rarity;
+    public readonly ERarity ItemRarity;
     /// <summary>
     /// 排序权重，数字越大约靠前
     /// </summary>
@@ -66,7 +66,7 @@ public sealed partial class Item : Luban.BeanBase
     /// </summary>
     public readonly int BlindBoxId;
     /// <summary>
-    /// 由于部件拆的比较碎，因此需要文件夹路径如 `Assets\Eyewear\EyePatch.png`<br/>拿到字符串后需要自行转义<br/>该字段为列表，可以跨行填写多个<br/>要注意，也可以是tres文件<br/>由于小狗皮肤由多个文件组成，因此直接填写文件夹目录
+    /// 由于部件拆的比较碎，因此需要文件夹路径如 `Assets\Eyewear\EyePatch.png`<br/>拿到字符串后需要自行转义<br/>该字段为列表，可以跨行填写多个<br/>要注意，也可以是tres文件<br/>由于小狗皮肤由多个文件组成，因此直接填写文件夹目录，卡面也是填文件夹
     /// </summary>
     public readonly System.Collections.Generic.List<string> AssetPathList;
     /// <summary>
@@ -88,7 +88,7 @@ public sealed partial class Item : Luban.BeanBase
         + "Id:" + Id + ","
         + "Name:" + Name + ","
         + "ItemType:" + ItemType + ","
-        + "Rarity:" + Rarity + ","
+        + "ItemRarity:" + ItemRarity + ","
         + "SortOrder:" + SortOrder + ","
         + "BlindBoxWeight:" + BlindBoxWeight + ","
         + "IsUnique:" + IsUnique + ","
