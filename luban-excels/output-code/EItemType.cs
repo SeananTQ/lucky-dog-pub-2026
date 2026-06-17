@@ -31,7 +31,7 @@ namespace cfg
         /// <summary>
         /// 例如纹身
         /// </summary>
-        Hand = 4,
+        Arm = 4,
         /// <summary>
         /// 玩家手臂衣服
         /// </summary>
@@ -51,7 +51,7 @@ namespace cfg
         /// <summary>
         /// 例如烟酒
         /// </summary>
-        Hobby = 9,
+        Treat = 9,
         /// <summary>
         /// 卡牌背面
         /// </summary>

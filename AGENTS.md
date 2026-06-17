@@ -28,6 +28,26 @@
 - **项目工作空间**: `g:/Workspace/godot-project/lucky-dog-pub-2026/`
 - **游戏项目路径**: `g:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise/`
 
+## 架构概览
+
+```
+ModeManager.tscn（主入口, Control）
+├── BossKeyContent.tscn（Node2D, 伪装模式 A 区）
+│   ├── CanvasLayer（按钮/Label/气泡）
+│   ├── ContentA（DogArea/WindowSize/TaskBar 标记）
+│   └── Bubble（CanvasLayer）
+├── PlayContent.tscn（Node2D, 游玩模式内容）
+│   └── SubViewportContainer（600×600, Scale=0.5）
+│       └── SubViewport（1200×1200）
+│           └── Main.tscn（扑克游戏, GameManager）
+├── InfoPanel（CanvasLayer, 240×600, ModeManager 直接管理）
+├── SettingsPanel（CanvasLayer, 420×420, 测试设置面板）
+└── GlobalInputTracker（Node, 打字统计）
+```
+
+三种模式共享同一个宿主窗口，不切场景。切换时只改显隐 + 窗口 resize。
+窗口为"胖窗口"设计：A 区周围预留 B 的完整尺寸空间，面板展开不改变窗口大小。
+
 ## 游戏目录结构
 
 ```
@@ -48,40 +68,44 @@ lucky-dog-rise/
 │   ├── BGM/             # 背景音乐（OGG 格式）
 │   └── SFX/             # 音效文件（大驼峰命名，如 Knock.wav）
 ├── Scenes/
-│   ├── Main.tscn        # 主场景（扑克游戏）
-│   ├── TestDesktop.tscn # 透明窗口测试场景（狗头缩小25%）
-│   ├── DogArea.tscn     # 小狗场景（表情系统）
-│   ├── HandArea.tscn    # 手臂场景（敲桌交互）
-│   ├── ChipStack.tscn   # 筹码堆场景（下注交互）
-│   ├── ChipReward.tscn  # 奖励筹码场景（收集动画）
-│   └── Prefabs/         # 小组件预制体
-│       └── DogClaw.tscn # 狗爪子（手心/手背切换）
+│   ├── ModeManager.tscn     # 主入口场景，根节点 Control
+│   ├── BossKeyContent.tscn  # BossKey A 区（狗+按钮+气泡）
+│   ├── PlayContent.tscn     # 游玩模式布局（SubViewportContainer）
+│   ├── InfoPanel.tscn       # 信息面板（240×600）
+│   ├── Main.tscn            # 扑克游戏内容（SubViewport 内渲染）
+│   ├── SystemPanel.tscn     # 系统功能面板（设置/装扮/Debug 页签）
+│   ├── DogArea.tscn         # 小狗场景（表情系统）
+│   ├── HandArea.tscn        # 手臂场景（敲桌交互）
+│   ├── ChipStack.tscn       # 筹码堆场景（下注交互）
+│   ├── ChipReward.tscn      # 奖励筹码场景（收集动画）
+│   └── Prefabs/
+│       └── DogClaw.tscn     # 狗爪子（手心/手背切换）
 ├── Scripts/
-│   ├── Desktop/             # 桌宠宿主窗口系统
-│   │   ├── WindowNative.cs        # Windows API P/Invoke（user32.dll, dwmapi.dll）
-│   │   ├── WindowManager.cs       # 宿主窗口管理器（透明/置顶/层叠窗口）
-│   │   ├── DragHandler.cs         # 窗口拖拽控制器
-│   │   ├── PanelPositioner.cs     # 智能定位计算器（面板左>右>上>下）
-│   │   ├── SettingsPanelController.cs  # 设置面板控制器
-│   │   ├── SettingsManager.cs     # 音效设置持久化（ConfigFile）
-│   │   └── TestDesktopController.cs    # 透明窗口测试场景控制器
-│   ├── GameManager.cs       # 游戏状态机 + 逻辑编排
-│   ├── DeckManager.cs       # 牌组管理（CheatDeck）
-│   ├── CardEvaluator.cs     # 牌型判定（纯静态）
-│   ├── DogHintSystem.cs     # 小狗提示逻辑
-│   ├── DogVisual.cs         # 小狗视觉表现
-│   ├── HandAreaController.cs    # 手臂交互+敲桌动画
-│   ├── ChipStackController.cs   # 筹码堆交互
-│   ├── ChipRewardController.cs  # 奖励筹码收集
-│   ├── ProgressionManager.cs    # 成长系统（段位）
-│   ├── AudioManager.cs      # 音效管理（autoload 单例）
-│   ├── DogProverbs.cs       # Game Over 格言
-│   ├── HUDController.cs     # UI 管理（按钮/标签/消息/Overlay）
-│   ├── DebugHUDController.cs # Debug 面板（种子显示/随机换装）
-│   ├── TutorialManager.cs   # 新手引导弹跳
+│   ├── ModeManager.cs        # 主入口控制器（窗口管理+模式切换+面板避让）
+│   ├── Desktop/              # 桌宠宿主窗口底层
+│   │   ├── WindowNative.cs        # Windows API P/Invoke
+│   │   ├── SystemPanelController.cs   # 系统功能面板（设置/装扮/Debug）
+│   │   ├── InfoPanelController.cs     # 信息面板
+│   │   ├── GameData.cs                # 共享游戏数据（筹码/段位）
+│   │   ├── SettingsManager.cs         # 设置持久化（ConfigFile）
+│   │   └── GlobalInputTracker.cs      # 全局键盘钩子
+│   ├── GameManager.cs        # 扑克游戏状态机（被 SubViewport 承载）
+│   ├── DeckManager.cs        # 牌组管理（CheatDeck）
+│   ├── CardEvaluator.cs      # 牌型判定（纯静态）
+│   ├── DogHintSystem.cs      # 小狗提示逻辑
+│   ├── DogVisual.cs          # 小狗视觉表现
+│   ├── HandAreaController.cs # 手臂交互+敲桌动画
+│   ├── ChipStackController.cs    # 筹码堆交互
+│   ├── ChipRewardController.cs   # 奖励筹码收集
+│   ├── ProgressionManager.cs     # 成长系统（段位）
+│   ├── AudioManager.cs       # 音效管理（autoload 单例）
+│   ├── DogProverbs.cs        # Game Over 格言
+│   ├── HUDController.cs      # HUD（消息/按钮/Overlay）
+│   ├── DebugHUDController.cs # Debug 面板（旧，已迁移至设置面板）
+│   ├── TutorialManager.cs    # 新手引导弹跳
 │   └── CardTableController.cs # 卡牌显示/保留/动画
 ├── Themes/
-│   └── DefaultTheme.tres # Duolingo 风格主题
+│   └── DefaultTheme.tres     # Duolingo 风格主题
 ├── project.godot
 └── LuckyDogRise.csproj
 ```
@@ -90,11 +114,20 @@ lucky-dog-rise/
 
 | 术语 | 说明 |
 |------|------|
-| **宿主窗口** | 唯一的 OS 级窗口，透明+无边框+置顶+鼠标穿透。DisplayServer + Windows API 操作 |
-| **游戏面板** | 宿主窗口内的扑克内容区域，始终可见，是宿主窗口的"锚点" |
-| **设置面板** | 宿主窗口内的 UI 控件，从游戏面板边缘弹出，智能定位（左>右>上>下） |
+| **宿主窗口** | 唯一的 OS 窗口，透明+无边框+置顶+鼠标穿透。胖窗口设计 |
+| **A 区** | 主内容区域。三种模式各不同：BossKey(狗)/Play(600×600 扑克)/Immersive(1200×1200 扑克) |
+| **缓冲区** | A 区周围的预留空间，面板在此展开/收起，不改变窗口大小 |
+| **面板** | 缓冲区中可独立显示/隐藏的 UI 控件，遵循显示器边缘避让 |
 
-关系：**宿主窗口 > { 游戏面板, 设置面板, 商店面板, ... }**。面板不是独立 OS 窗口，而是宿主窗口场景树中的 Control 节点。
+关系：**宿主窗口 = A 区 + 缓冲区 + 面板**。面板不是独立 OS 窗口，而是宿主窗口场景树中的节点。
+
+## 面板避让算法
+
+9 宫格优先级链（在 `PositionPanelInBestSlot` 中以数组形式定义）：
+```
+8(上中) → 9(上右) → 7(上左) → 4(左) → 6(右) → 2(下中) → 3(下右) → 1(下左)
+```
+改优先级就改数组里那几行的顺序。兜底策略：所有槽位不可用时覆盖在 A 区中央。
 
 ## 卡牌编码
 
@@ -107,27 +140,44 @@ lucky-dog-rise/
 **启用透明背景**：
 - 项目设置 → Rendering → Viewport → Transparent Background → ON
 - 编辑器 F5 运行时不支持透明窗口（显示棋盘格），需切到独立窗口模式运行
-- 命令行独立运行：`godot --path lucky-dog-rise/ res://Scenes/TestDesktop.tscn`
+- 命令行独立运行：`godot --path lucky-dog-rise/ res://Scenes/ModeManager.tscn`
 
 **Windows API**（lucky-dog-rise/Scripts/Desktop/WindowNative.cs）：
 - `WS_EX_LAYERED` — per-pixel alpha 层叠窗口
-- `WS_EX_TRANSPARENT` — 点击穿透（动态开关：鼠标在交互区时移除，移出时恢复）
+- `WS_EX_TRANSPARENT` — 点击穿透（ModeManager._Process 动态开关）
 - 不需要 `DwmExtendFrameIntoClientArea`（D3D12 下导致黑色背景）
 - 置顶用 `SetWindowPos(hWnd, HWND_TOPMOST, ...)`
 
-**点击穿透机制**（TestDesktopController）：
-- `_Process` 每帧检测鼠标位置
-- 鼠标在交互区 → 移除 `WS_EX_TRANSPARENT` → 点击被窗口捕获
-- 鼠标在透明区 → 添加 `WS_EX_TRANSPARENT` → 点击穿透到桌面
+**点击穿透机制**（ModeManager._Process）：
+- BossKey 模式：每帧检测鼠标是否在狗/按钮/面板区域，动态开关 WS_EX_TRANSPARENT
+- Play 模式：始终关闭穿透，保证游戏交互正常
 - 拖拽时强制关闭穿透，松开后恢复
+
+## 胖窗口设计
+
+每种模式初始化时设定一次宿主窗口尺寸：
+- **伪装模式**：265×235 A 区 + 2×面板尺寸缓冲
+- **游玩模式**：840×600（信息面板+游戏面板）+ 2×面板尺寸缓冲
+- **沉浸模式**：1200×1200 全屏
+
+面板展开/收起不改变窗口大小。模式切换时窗口 resize，保留屏幕位置（不重定位）。
+
+## 信号连接
+
+ModeManager 持有设置面板实例，负责连接信号：
+- `SettingsPanel.SwitchToPlayRequested` → `ModeManager.SwitchToPlay()`
+- `SettingsPanel.SwitchToBossKeyRequested` → `ModeManager.SwitchToBossKey()`
+- `SettingsPanel.RandomizeRequested` → `GameManager.OnRandomizeScene()`
+- `SettingsPanel.RandomizeDogRequested` → `GameManager.OnRandomizeDog()`
+- `InfoPanel.SettingsRequested` → `ModeManager.ToggleSettingsPanel()`
 
 ## 场景工作流
 
 - 新建场景用 `scene_create`（根节点类型+路径），生成的 .tscn 可直接用
 - 添加/修改节点用 `Write` 直接改 .tscn 文本（`scene_add_node` 和 `scene_save` 不可靠）
-- 改节点属性：简单属性用 `scene_set_node_properties`，复杂结构直接改 .tscn
-- 独立预制体：当某个节点需要被多处引用或逻辑独立时→提取为独立 .tscn（如 Card.tscn, DogClaw.tscn）
-- 测试场景：新技术方案先用独立场景验证（如 TestDesktop.tscn），不直接嵌入主场景
+- UI 结构定义在 .tscn 里，脚本不 `new` 节点建 UI 树
+- 独立预制体：需要被多处引用或逻辑独立时 → 提取为独立 .tscn
+- 测试场景：新技术方案先用独立场景验证，不直接嵌入主场景
 
 ## 节点引用规范
 
@@ -137,6 +187,7 @@ lucky-dog-rise/
 
 做法：
 - 在脚本中声明 `[Export] private NodeType _nodeName = null!;`
+- 声明后**先编译**，编辑器才能识别新的 Export 字段
 - 在 .tscn 文件中用 `_nodeName = NodePath("Target/Path")` 赋值，或在编辑器中拖拽绑定
 - **必须确保每个 `[Export]` 字段都在 .tscn 中有对应的 NodePath 赋值**，否则运行时为 null
 - `GetNode` 仅在以下场景保留使用：动态创建的子节点（如 `new Button()` 后需要引用），或临时查找（如 `GetParent()`）
