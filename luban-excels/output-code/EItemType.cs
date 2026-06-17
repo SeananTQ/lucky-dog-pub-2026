@@ -9,7 +9,7 @@
 
 
 
-namespace cfg
+namespace DataTables
 { 
     /// <summary>
     /// 派系

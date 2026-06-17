@@ -11,7 +11,7 @@ using Luban;
 using Luban.SimpleJSON;
 
 
-namespace cfg
+namespace DataTables
 {
 public partial class TbPayTable
 {
@@ -27,7 +27,7 @@ public partial class TbPayTable
         foreach(JSONNode _ele in _buf.Children)
         {
             PayTable _v;
-            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::cfg.PayTable.DeserializePayTable(_ele);  }
+            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.PayTable.DeserializePayTable(_ele);  }
             _dataList.Add(_v);
             _dataMap.Add(_v.Id, _v);
         }

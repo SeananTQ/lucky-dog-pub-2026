@@ -11,7 +11,7 @@ using Luban;
 using Luban.SimpleJSON;
 
 
-namespace cfg
+namespace DataTables
 {
 public partial class TbGameDevelopConfig
 {
@@ -27,7 +27,7 @@ public partial class TbGameDevelopConfig
         foreach(JSONNode _ele in _buf.Children)
         {
             GameDevelopConfig _v;
-            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::cfg.GameDevelopConfig.DeserializeGameDevelopConfig(_ele);  }
+            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.GameDevelopConfig.DeserializeGameDevelopConfig(_ele);  }
             _dataList.Add(_v);
             _dataMap.Add(_v.IsSafeMode, _v);
         }
