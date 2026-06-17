@@ -16,11 +16,15 @@ public partial class Tables
 {
     public TbItem TbItem {get; }
     public TbDogSkin TbDogSkin {get; }
+    public TbPayTable TbPayTable {get; }
+    public TbGameDevelopConfig TbGameDevelopConfig {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
         TbItem = new TbItem(loader("tbitem"));
         TbDogSkin = new TbDogSkin(loader("tbdogskin"));
+        TbPayTable = new TbPayTable(loader("tbpaytable"));
+        TbGameDevelopConfig = new TbGameDevelopConfig(loader("tbgamedevelopconfig"));
         ResolveRef();
     }
     
@@ -28,6 +32,8 @@ public partial class Tables
     {
         TbItem.ResolveRef(this);
         TbDogSkin.ResolveRef(this);
+        TbPayTable.ResolveRef(this);
+        TbGameDevelopConfig.ResolveRef(this);
     }
 }
 

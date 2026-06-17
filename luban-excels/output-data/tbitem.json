@@ -6,8 +6,10 @@
     "Rarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Red\\"
     ],
@@ -21,7 +23,9 @@
     "Rarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Black\\"
@@ -36,7 +40,9 @@
     "Rarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Cream\\"
@@ -51,7 +57,9 @@
     "Rarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Sesame\\"
@@ -66,7 +74,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Red\\"
@@ -81,7 +91,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Red\\"
@@ -96,7 +108,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Black\\"
@@ -111,7 +125,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Black\\"
@@ -126,7 +142,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Cream\\"
@@ -141,7 +159,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Cream\\"
@@ -156,7 +176,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Sesame\\"
@@ -171,7 +193,9 @@
     "Rarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Assets\\Shiba\\Sesame\\"
@@ -186,7 +210,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\Beret_Green.png"
@@ -201,7 +227,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\Beret_Red.png"
@@ -216,7 +244,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\FedoraHat_Gray.png"
@@ -231,7 +261,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\FedoraHat_Maroon.png"
@@ -246,7 +278,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\Hole.png"
@@ -261,7 +295,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\Lucky.png"
@@ -276,7 +312,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\MagicHat_Black.png"
@@ -291,7 +329,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\MagicHat_White.png"
@@ -306,7 +346,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\SunHat_Beige.png"
@@ -321,7 +363,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Headwear\\SunHat_Blue.png"
@@ -336,7 +380,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Eyewear\\3DGlasses.png"
@@ -351,7 +397,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Eyewear\\EyePatch.png"
@@ -366,7 +414,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Eyewear\\Monocle_black.png"
@@ -381,7 +431,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Eyewear\\Monocle_golden.png"
@@ -396,8 +448,10 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
-    "BlindBoxId": 1001,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Eyewear\\Sunglasses_Blade.png"
     ],
@@ -409,10 +463,12 @@
     "Name": "Male A",
     "ItemType": 4,
     "Rarity": 3,
-    "SortOrder": 300,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Player\\Arm\\MaleA.png"
     ],
@@ -424,10 +480,12 @@
     "Name": "Male B",
     "ItemType": 4,
     "Rarity": 3,
-    "SortOrder": 300,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Player\\Arm\\MaleB.png"
     ],
@@ -439,10 +497,12 @@
     "Name": "Male C",
     "ItemType": 4,
     "Rarity": 3,
-    "SortOrder": 300,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Player\\Arm\\MaleC.png"
     ],
@@ -454,10 +514,12 @@
     "Name": "Male D",
     "ItemType": 4,
     "Rarity": 3,
-    "SortOrder": 300,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Player\\Arm\\MaleD.png"
     ],
@@ -471,7 +533,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\BaseballJacket_Black.png"
@@ -486,7 +550,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\BaseballJacket_Purple.png"
@@ -501,7 +567,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\BlackBusinessSuit_Black.png"
@@ -516,7 +584,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\BlueShirt_Cyan.png"
@@ -531,7 +601,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\BlueStripedShirt_RegattaStripe.png"
@@ -546,7 +618,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\CreamShirt_Beige.png"
@@ -561,7 +635,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\WhiteBusinessSuit_LightGray.png"
@@ -576,7 +652,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Clothes\\WhiteShirt_White.png"
@@ -591,7 +669,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\FeltEmerald.png"
@@ -606,7 +686,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\FullTiltLike.png"
@@ -621,7 +703,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\HustlerLike.png"
@@ -636,7 +720,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\LesAmbassadeursLike.png"
@@ -651,7 +737,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\MaestralLike.png"
@@ -666,7 +754,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\MezcalLike.png"
@@ -681,7 +771,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\PokerGoLike.png"
@@ -696,7 +788,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\PureIndigo.png"
@@ -711,7 +805,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\PurePurple.png"
@@ -726,7 +822,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\PureTeal.png"
@@ -741,7 +839,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Table\\TheKingOfHillLike.png"
@@ -756,7 +856,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\BlueA.png"
@@ -771,7 +873,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\BrownA.png"
@@ -786,7 +890,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\BrownB.png"
@@ -801,7 +907,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\GrayA.png"
@@ -816,7 +924,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\GrayB.png"
@@ -831,7 +941,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\GreenA.png"
@@ -846,7 +958,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\GreenB.png"
@@ -861,7 +975,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\HighstakesPokerLike.png"
@@ -876,7 +992,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\OrangeA.png"
@@ -891,7 +1009,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\PartPokerLike.png"
@@ -906,7 +1026,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\PinkA.png"
@@ -921,7 +1043,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\PokerKingLike.png"
@@ -936,7 +1060,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\PurpleA.png"
@@ -951,7 +1077,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\RedA.png"
@@ -966,7 +1094,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\RedB.png"
@@ -981,7 +1111,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\TwitterBlue.png"
@@ -996,7 +1128,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\WorldPokerTourtLike.png"
@@ -1011,7 +1145,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Background\\YellowA.png"
@@ -1026,7 +1162,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\A158UUA.png"
@@ -1041,7 +1179,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\AnchorTattoo.png"
@@ -1056,7 +1196,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\F91UU.png"
@@ -1071,7 +1213,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\FengShuiBracelet.png"
@@ -1086,7 +1230,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\GoodLuckBracelet.png"
@@ -1101,7 +1247,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\Hair.png"
@@ -1116,7 +1264,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\RelaxDriver_Black.png"
@@ -1131,7 +1281,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\RelaxDriver_Green.png"
@@ -1146,7 +1298,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\TextWristband_Green.png"
@@ -1161,7 +1315,9 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\TextWristband_Red.png"
@@ -1176,12 +1332,252 @@
     "Rarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
       "v1\\Player\\Accessory\\WSOPGoldBracelet.png"
     ],
     "IconPath": "v1\\ItemIcon\\Accessory_WSOPGoldBracelet.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9001,
+    "Name": "Black Tea",
+    "ItemType": 9,
+    "Rarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\BlackTea.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_BlackTea.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9002,
+    "Name": "Bordeaux",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Bordeaux.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Bordeaux.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9003,
+    "Name": "Burgundy",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Burgundy.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Burgundy.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9004,
+    "Name": "Chardonnay",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Chardonnay.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Chardonnay.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9005,
+    "Name": "Shot Glass",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\ShotGlass.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_ShotGlass.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9006,
+    "Name": "Tulip",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Tulip.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Tulip.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9007,
+    "Name": "Tumbler",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Tumbler.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Tumbler.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9008,
+    "Name": "Vintage",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Vintage.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Vintage.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9009,
+    "Name": "Water",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Treat\\Water.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Water.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9010,
+    "Name": "Whisky",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Whisky.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Whisky.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9011,
+    "Name": "Whisky Cigar",
+    "ItemType": 9,
+    "Rarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\WhiskyCagar.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_WhiskyCagar.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 10001,
+    "Name": "Basic Card Back",
+    "ItemType": 10,
+    "Rarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardBack\\Basic.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardBack_Basic.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 11001,
+    "Name": "Kibble Card Face",
+    "ItemType": 11,
+    "Rarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardFace\\"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardFace_Classic.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 11002,
+    "Name": "Classic Card Face",
+    "ItemType": 11,
+    "Rarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 11001,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardFace\\"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardFace_Classic.png",
     "SkinId": 0
   }
 ]

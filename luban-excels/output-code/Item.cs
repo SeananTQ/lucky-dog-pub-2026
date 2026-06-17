@@ -23,7 +23,9 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["Rarity"].IsNumber) { throw new SerializationException(); }  Rarity = (ERarity)_buf["Rarity"].AsInt; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["BlindBoxWeight"].IsNumber) { throw new SerializationException(); }  BlindBoxWeight = _buf["BlindBoxWeight"]; }
-        { if(!_buf["isUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["isUnique"]; }
+        { if(!_buf["IsUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["IsUnique"]; }
+        { if(!_buf["HiddenRegionFlag"].IsNumber) { throw new SerializationException(); }  HiddenRegionFlag = (EHiddenRegionFlag)_buf["HiddenRegionFlag"].AsInt; }
+        { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
         { var __json0 = _buf["AssetPathList"]; if(!__json0.IsArray) { throw new SerializationException(); } AssetPathList = new System.Collections.Generic.List<string>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { string __v0;  { if(!__e0.IsString) { throw new SerializationException(); }  __v0 = __e0; }  AssetPathList.Add(__v0); }   }
         { if(!_buf["IconPath"].IsString) { throw new SerializationException(); }  IconPath = _buf["IconPath"]; }
@@ -43,11 +45,22 @@ public sealed partial class Item : Luban.BeanBase
     /// 排序权重，数字越大约靠前
     /// </summary>
     public readonly int SortOrder;
+    /// <summary>
+    /// 盲盒权重
+    /// </summary>
     public readonly int BlindBoxWeight;
     /// <summary>
     /// 非唯一的物品可以重复获得
     /// </summary>
     public readonly bool IsUnique;
+    /// <summary>
+    /// 在哪些国家无法抽到
+    /// </summary>
+    public readonly EHiddenRegionFlag HiddenRegionFlag;
+    /// <summary>
+    /// 直播模式或者安全模式开启状态下，需要替换成和谐资源，该替换规则高于国家规则
+    /// </summary>
+    public readonly int SafeResourceId;
     /// <summary>
     /// 所属盲盒的id，相同id的物品在同一个组里进行随机
     /// </summary>
@@ -78,7 +91,9 @@ public sealed partial class Item : Luban.BeanBase
         + "Rarity:" + Rarity + ","
         + "SortOrder:" + SortOrder + ","
         + "BlindBoxWeight:" + BlindBoxWeight + ","
-        + "isUnique:" + IsUnique + ","
+        + "IsUnique:" + IsUnique + ","
+        + "HiddenRegionFlag:" + HiddenRegionFlag + ","
+        + "SafeResourceId:" + SafeResourceId + ","
         + "BlindBoxId:" + BlindBoxId + ","
         + "AssetPathList:" + Luban.StringUtil.CollectionToString(AssetPathList) + ","
         + "IconPath:" + IconPath + ","

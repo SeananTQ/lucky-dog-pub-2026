@@ -12,54 +12,59 @@
 namespace cfg
 { 
     /// <summary>
-    /// 派系
+    /// 在该地区隐藏
     /// </summary>
-    public enum EItemType
+    [System.Flags]
+    public enum EHiddenRegionFlag
     {
         /// <summary>
-        /// 小狗本体
+        /// 在全部国家隐藏
         /// </summary>
-        Dog = 1,
+        ALL = 1,
         /// <summary>
-        /// 小狗头部装饰
+        /// Saudi Arabia赌博/宗教/酒精/色情/进化论
         /// </summary>
-        Headwear = 2,
+        SA = 2,
         /// <summary>
-        /// 小狗眼部装饰
+        /// United Arab Emirates赌博/宗教/酒精/色情
         /// </summary>
-        Eyewear = 3,
+        AE = 4,
         /// <summary>
-        /// 例如纹身
+        /// Iran宗教/进化论/赌博/政治/西方文化
         /// </summary>
-        Arm = 4,
+        IR = 8,
         /// <summary>
-        /// 玩家手臂衣服
+        /// Pakistan国家形象/政治
         /// </summary>
-        Clothes = 5,
+        PK = 16,
         /// <summary>
-        /// 桌布
+        /// Malaysia赌博/暴力/LGBTQ/酒精
         /// </summary>
-        Table = 6,
+        MY = 32,
         /// <summary>
-        /// 背景
+        /// Indonesia赌博/暴力/LGBTQ/酒精
         /// </summary>
-        Background = 7,
+        ID = 64,
         /// <summary>
-        /// 玩家手部装饰
+        /// Russia赌博/LGBTQ/极端主义
         /// </summary>
-        Accessory = 8,
+        RU = 128,
         /// <summary>
-        /// 例如烟酒
+        /// China赌博/暴力/血腥/色情
         /// </summary>
-        Treat = 9,
+        CN = 256,
         /// <summary>
-        /// 卡背
+        /// North Korea国际制裁/政治
         /// </summary>
-        CardBack = 10,
+        KP = 512,
         /// <summary>
-        /// 卡面
+        /// Syria国际制裁/政治/宗教
         /// </summary>
-        CardFace = 11,
+        SY = 1024,
+        /// <summary>
+        /// Cuba国际制裁/政治
+        /// </summary>
+        CU = 2048,
     }
 
 } 
