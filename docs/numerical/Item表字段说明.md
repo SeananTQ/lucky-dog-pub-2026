@@ -8,7 +8,7 @@
 | Name | string | 显示名称 |
 | 图层名称 | string | 内部名称，方便记忆 |
 | ItemType | EItemType | 物品类型 |
-| Rarity | ERarity | 品质 |
+| ItemRarity | ERarity | 品质 |
 | SortOrder | int | 排序权重，数字越大约靠前 |
 | BlindBoxWeight | int | 盲盒权重，决定抽中概率 |
 | IsUnique | bool | 是否唯一，非唯一的物品可重复获得 |
@@ -44,9 +44,9 @@
 `v1\Card\CardFace\Classic\`：因为卡面数据为52张扑克牌，因此直接填写文件夹
 
 
-### Rarity
+### ItemRarity
 
-道具品质对应道具的边框和底板，资源路径在`Assets\UI\ItemUI\`中，
+道具品质对应道具的边框和底板，读`RarityUI`表即可理清资源关系
 
 
 

@@ -668,11 +668,11 @@
     "ItemType": 6,
     "ItemRarity": 3,
     "SortOrder": 300,
-    "BlindBoxWeight": 300,
-    "IsUnique": false,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Table\\FeltEmerald.png"
     ],
@@ -906,11 +906,11 @@
     "ItemType": 7,
     "ItemRarity": 3,
     "SortOrder": 300,
-    "BlindBoxWeight": 300,
-    "IsUnique": false,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 0,
     "AssetPathList": [
       "v1\\Background\\GrayA.png"
     ],
