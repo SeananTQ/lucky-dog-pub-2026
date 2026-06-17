@@ -1,0 +1,65 @@
+[
+  {
+    "Id": 1001,
+    "PayoutMultiplier": 50,
+    "OriginalName": "Jacks or Better",
+    "SafeName_EN": "Top Dogs",
+    "SafeName_CN": "好犬优选"
+  },
+  {
+    "Id": 1002,
+    "PayoutMultiplier": 100,
+    "OriginalName": "Two Pair",
+    "SafeName_EN": "Twin Pairs",
+    "SafeName_CN": "双犬配对"
+  },
+  {
+    "Id": 1003,
+    "PayoutMultiplier": 150,
+    "OriginalName": "Three of a Kind",
+    "SafeName_EN": "Triple Pals",
+    "SafeName_CN": "三犬同行"
+  },
+  {
+    "Id": 1004,
+    "PayoutMultiplier": 200,
+    "OriginalName": "Straight",
+    "SafeName_EN": "Chain Walk",
+    "SafeName_CN": "顺位犬链"
+  },
+  {
+    "Id": 1005,
+    "PayoutMultiplier": 300,
+    "OriginalName": "Flush",
+    "SafeName_EN": "Matching Den",
+    "SafeName_CN": "同色犬舍"
+  },
+  {
+    "Id": 1006,
+    "PayoutMultiplier": 450,
+    "OriginalName": "Full House",
+    "SafeName_EN": "Puppy Party",
+    "SafeName_CN": "狗狗满堂"
+  },
+  {
+    "Id": 1007,
+    "PayoutMultiplier": 1000,
+    "OriginalName": "Four of a Kind",
+    "SafeName_EN": "Dog Squad",
+    "SafeName_CN": "四犬成团"
+  },
+  {
+    "Id": 1008,
+    "PayoutMultiplier": 2500,
+    "OriginalName": "Straight Flush",
+    "SafeName_EN": "Purebred Strike",
+    "SafeName_CN": "纯种犬连击"
+  },
+  {
+    "Id": 1009,
+    "PayoutMultiplier": 12500,
+    "OriginalName": "Royal Flush",
+    "SafeName_EN": "Royal Feast",
+    "SafeName_CN": "皇家狗粮"
+  }
+]
