@@ -11,7 +11,7 @@ using Luban;
 using Luban.SimpleJSON;
 
 
-namespace cfg
+namespace DataTables
 {
 public sealed partial class GameDevelopConfig : Luban.BeanBase
 {

@@ -11,7 +11,7 @@ using Luban;
 using Luban.SimpleJSON;
 
 
-namespace cfg
+namespace DataTables
 {
 public partial class TbDogSkin
 {
@@ -27,7 +27,7 @@ public partial class TbDogSkin
         foreach(JSONNode _ele in _buf.Children)
         {
             DogSkin _v;
-            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::cfg.DogSkin.DeserializeDogSkin(_ele);  }
+            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.DogSkin.DeserializeDogSkin(_ele);  }
             _dataList.Add(_v);
             _dataMap.Add(_v.Id, _v);
         }

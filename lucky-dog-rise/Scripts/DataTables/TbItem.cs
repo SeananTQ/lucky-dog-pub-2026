@@ -11,7 +11,7 @@ using Luban;
 using Luban.SimpleJSON;
 
 
-namespace cfg
+namespace DataTables
 {
 public partial class TbItem
 {
@@ -27,7 +27,7 @@ public partial class TbItem
         foreach(JSONNode _ele in _buf.Children)
         {
             Item _v;
-            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::cfg.Item.DeserializeItem(_ele);  }
+            { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.Item.DeserializeItem(_ele);  }
             _dataList.Add(_v);
             _dataMap.Add(_v.Id, _v);
         }
