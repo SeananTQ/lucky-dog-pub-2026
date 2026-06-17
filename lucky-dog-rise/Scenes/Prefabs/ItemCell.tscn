@@ -1,0 +1,69 @@
+[gd_scene format=3 uid="uid://bbxjsmyo8skhj"]
+
+[ext_resource type="Script" uid="uid://bad2jhr24ohsl" path="res://Scripts/Desktop/ItemCellController.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dwo1m6s75yko2" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
+[ext_resource type="Texture2D" uid="uid://u4q1jxbdtqww" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
+[ext_resource type="Texture2D" uid="uid://cgbhbfglpnwll" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
+[ext_resource type="Texture2D" uid="uid://ddc0m65634155" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
+[ext_resource type="Texture2D" uid="uid://cyrlv621yvpnj" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ep3ge"]
+
+[node name="ItemCell" type="PanelContainer" unique_id=1967701219 node_paths=PackedStringArray("_iconRect", "_markEquipped", "_markNew")]
+custom_minimum_size = Vector2(96, 96)
+offset_right = 256.0
+offset_bottom = 256.0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_ep3ge")
+script = ExtResource("1_script")
+_iconRect = NodePath("Content/IconRect")
+_markEquipped = NodePath("Content/MarkEquipped")
+_markNew = NodePath("Content/MarkNew")
+
+[node name="Content" type="Control" parent="." unique_id=444555666]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Plate" type="TextureRect" parent="Content" unique_id=192722240]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("2_ep3ge")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="IconRect" type="TextureRect" parent="Content" unique_id=1896988278]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("3_lrxce")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="Frame" type="TextureRect" parent="Content" unique_id=2058755043]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("4_lt10t")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="MarkEquipped" type="TextureRect" parent="Content" unique_id=1152070947]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("2_mark")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="MarkNew" type="TextureRect" parent="Content" unique_id=244665858]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("6_260rb")
+expand_mode = 3
+stretch_mode = 5

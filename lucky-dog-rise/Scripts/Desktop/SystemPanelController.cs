@@ -200,35 +200,14 @@ public partial class SystemPanelController : CanvasLayer
             PopulateWardrobeGrid(_selectedType);
     }
 
-    private Button CreateItemCell(Item item)
+    private static readonly PackedScene ItemCellScene = GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
+
+    private Node CreateItemCell(Item item)
     {
-        var btn = new Button();
-        btn.CustomMinimumSize = new Vector2(56, 56);
-        btn.ExpandIcon = true;
-        btn.Flat = true;
-        btn.TooltipText = item.Name;
-
-        var iconPath = PlayerInventory.ToResPath(item.IconPath);
-        if (ResourceLoader.Exists(iconPath))
-            btn.Icon = GD.Load<Texture2D>(iconPath);
-
-        // 装备标记
-        if (_gameData.Inventory.IsEquipped(item.Id))
-        {
-            var mark = new TextureRect();
-            mark.Texture = GD.Load<Texture2D>("res://Assets/UI/ItemUI/Mark_Equipped.png");
-            mark.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-            mark.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-            mark.CustomMinimumSize = new Vector2(16, 16);
-            mark.Position = new Vector2(2, 38);
-            btn.AddChild(mark);
-        }
-
-        btn.Pressed += () =>
-        {
-            _gameData.EquipItem(item.Id);
-        };
-        return btn;
+        var cell = ItemCellScene.Instantiate<ItemCellController>();
+        cell.Setup(item, _gameData.Inventory.IsEquipped(item.Id));
+        cell.Pressed += () => _gameData.EquipItem(item.Id);
+        return cell;
     }
 
     private static string TypeLabel(EItemType type) => type switch
