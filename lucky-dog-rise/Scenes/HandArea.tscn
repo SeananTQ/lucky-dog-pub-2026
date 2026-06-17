@@ -15,12 +15,15 @@ corner_radius_bottom_left = 12
 [node name="HandArea" type="Node2D" unique_id=120763373]
 script = ExtResource("3_ctrl")
 
-[node name="Hand" type="Sprite2D" parent="." unique_id=1377378991]
+[node name="Arm" type="Sprite2D" parent="." unique_id=1377378991]
 position = Vector2(343, -21)
 texture = ExtResource("1_hand")
 
+[node name="Surface" type="Sprite2D" parent="." unique_id=1488431824]
+position = Vector2(126, -15)
+
 [node name="Clothes" type="Sprite2D" parent="." unique_id=259657404]
-position = Vector2(141, -15)
+position = Vector2(126, -15)
 texture = ExtResource("2_clothes")
 
 [node name="Accessory" type="Sprite2D" parent="." unique_id=1593680809]

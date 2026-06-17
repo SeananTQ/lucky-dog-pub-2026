@@ -5,9 +5,6 @@
 
 [node name="TestDesktop" type="Node2D" unique_id=1675773000]
 script = ExtResource("1_test")
-_parentNode = NodePath("Parent")
-_childA = NodePath("Parent/ChildA")
-_childB = NodePath("Parent/ChildB")
 
 [node name="DogArea" parent="." unique_id=786314185 instance=ExtResource("2_dog")]
 position = Vector2(133, 181)

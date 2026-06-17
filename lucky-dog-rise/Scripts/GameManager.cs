@@ -241,18 +241,21 @@ public partial class GameManager : Node2D
 
     private void ApplyEquippedVisuals()
     {
-        ApplyItemTexture(EItemType.Background, tex => GetNode<TextureRect>("Background").Texture = tex);
-        ApplyItemTexture(EItemType.Table, tex => GetNode<TextureRect>("Table").Texture = tex);
-        ApplyItemTexture(EItemType.Clothes, tex => _handArea.SetClothes(tex));
-        ApplyItemTexture(EItemType.Accessory, tex => _handArea.SetAccessory(tex));
+        ApplyItemTexture(EItemType.Background, (tex, _) => GetNode<TextureRect>("Background").Texture = tex);
+        ApplyItemTexture(EItemType.Table, (tex, _) => GetNode<TextureRect>("Table").Texture = tex);
+        ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
+        ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name));
+        ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name));
     }
 
-    private void ApplyItemTexture(EItemType type, System.Action<Texture2D> apply)
+    private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply)
     {
         var item = _gameData.Inventory.GetEquipped(type);
         if (item == null || item.AssetPathList.Count == 0) return;
         var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(item.AssetPathList[0]));
-        if (tex != null) apply(tex);
+        if (tex == null) return;
+        var fileName = item.AssetPathList[0].Split('\\').Last();
+        apply(tex, fileName);
     }
 
     public void OnRandomizeScene()
@@ -260,23 +263,27 @@ public partial class GameManager : Node2D
         var rng = new Random();
 
         ApplyRandomFromInventory(EItemType.Background, rng,
-            tex => GetNode<TextureRect>("Background").Texture = tex);
+            (tex, _) => GetNode<TextureRect>("Background").Texture = tex);
         ApplyRandomFromInventory(EItemType.Table, rng,
-            tex => GetNode<TextureRect>("Table").Texture = tex);
+            (tex, _) => GetNode<TextureRect>("Table").Texture = tex);
+        ApplyRandomFromInventory(EItemType.Arm, rng,
+            (tex, name) => _handArea.SetArm(tex, name));
         ApplyRandomFromInventory(EItemType.Clothes, rng,
-            tex => _handArea.SetClothes(tex));
+            (tex, name) => _handArea.SetClothes(tex, name));
         ApplyRandomFromInventory(EItemType.Accessory, rng,
-            tex => _handArea.SetAccessory(tex));
+            (tex, name) => _handArea.SetAccessory(tex, name));
     }
 
-    private void ApplyRandomFromInventory(EItemType type, Random rng, System.Action<Texture2D> apply)
+    private void ApplyRandomFromInventory(EItemType type, Random rng, System.Action<Texture2D, string> apply)
     {
         var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
         if (items.Count == 0) return;
         var picked = items[rng.Next(items.Count)];
         if (picked.AssetPathList.Count == 0) return;
         var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(picked.AssetPathList[0]));
-        if (tex != null) apply(tex);
+        if (tex == null) return;
+        var fileName = picked.AssetPathList[0].Split('\\').Last();
+        apply(tex, fileName);
     }
 
     public void OnRandomizeDog()
