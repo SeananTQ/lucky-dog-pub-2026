@@ -9,7 +9,7 @@
 | 图层名称 | string | 内部名称，方便记忆 |
 | ItemType | EItemType | 物品类型 |
 | ItemRarity | ERarity | 品质 |
-| SortOrder | int | 排序权重，数字越大约靠前 |
+| SortOrder | int | 排序权重，数字越小约靠前 |
 | BlindBoxWeight | int | 盲盒权重，决定抽中概率 |
 | IsUnique | bool | 是否唯一，非唯一的物品可重复获得 |
 | HiddenRegionFlag | EHiddenRegionFlag | 在哪些国家无法抽到（bit flag） |

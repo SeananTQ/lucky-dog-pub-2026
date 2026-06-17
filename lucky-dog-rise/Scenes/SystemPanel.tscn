@@ -7,7 +7,7 @@
 script = ExtResource("1_ctrl")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
-custom_minimum_size = Vector2(600, 600)
+custom_minimum_size = Vector2(420, 600)
 offset_right = 420.0
 offset_bottom = 420.0
 theme = ExtResource("2_rixui")
@@ -133,9 +133,9 @@ size_flags_vertical = 3
 [node name="WardrobeGrid" type="GridContainer" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll" unique_id=1928220244]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 5
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 4
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
 visible = false

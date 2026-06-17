@@ -50,11 +50,12 @@ public partial class SystemPanelController : CanvasLayer
     // Wardrobe 页
     private GridContainer _wardrobeGrid = null!;
     private HBoxContainer _typeFilterRow = null!;
-    private EItemType _selectedType;
+    private TabGroup _selectedTab = null!;
     private GameData _gameData = null!;
     public GameData GameData { get => _gameData; set { _gameData = value; _gameData.EquipmentChanged += RefreshWardrobeGrid; } }
 
     private readonly Button[] _tabs = new Button[3];
+    private readonly Dictionary<Button, TabGroup> _filterTabs = new();
     private readonly List<Button> _typeFilterButtons = new();
 
     public override void _Ready()
@@ -147,61 +148,72 @@ public partial class SystemPanelController : CanvasLayer
             BuildTypeFilters();
             _wardrobeBuilt = true;
         }
-        PopulateWardrobeGrid(_selectedType);
+        if (_selectedTab != null)
+            PopulateWardrobeGrid(_selectedTab);
     }
 
     private void BuildTypeFilters()
     {
         foreach (var child in _typeFilterRow.GetChildren())
             child.QueueFree();
+        _filterTabs.Clear();
         _typeFilterButtons.Clear();
 
-        var types = System.Enum.GetValues(typeof(EItemType)).Cast<EItemType>();
-        foreach (var type in types)
+        var tabs = LubanData.Tables.TbTabGroup.DataList
+            .OrderBy(t => t.SortOrder);
+
+        foreach (var tab in tabs)
         {
-            var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
-            if (items.Count == 0) continue;
+            bool hasItems = tab.TabItemTypeList
+                .Any(type => _gameData.Inventory.GetOwnedOfType(type).Any());
+            if (!hasItems) continue;
 
             var btn = new Button();
-            btn.Text = TypeLabel(type);
+            btn.Text = tab.TabName;
             btn.AddThemeFontSizeOverride("font_size", 13);
             btn.Pressed += () =>
             {
-                _selectedType = type;
-                UpdateFilterButtonStyles(type);
-                PopulateWardrobeGrid(type);
+                _selectedTab = tab;
+                UpdateFilterButtonStyles(tab.Id);
+                PopulateWardrobeGrid(tab);
             };
+            _filterTabs[btn] = tab;
             _typeFilterRow.AddChild(btn);
             _typeFilterButtons.Add(btn);
         }
 
         if (_typeFilterButtons.Count > 0)
         {
-            _selectedType = types.First(t => _gameData.Inventory.GetOwnedOfType(t).Any());
-            UpdateFilterButtonStyles(_selectedType);
+            _selectedTab = tabs.First(t => t.TabItemTypeList
+                .Any(type => _gameData.Inventory.GetOwnedOfType(type).Any()));
+            UpdateFilterButtonStyles(_selectedTab.Id);
         }
     }
 
-    private void UpdateFilterButtonStyles(EItemType active)
+    private void UpdateFilterButtonStyles(int activeTabId)
     {
-        foreach (var btn in _typeFilterButtons)
-            btn.Modulate = btn.Text == TypeLabel(active) ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+        foreach (var (btn, tab) in _filterTabs)
+            btn.Modulate = tab.Id == activeTabId ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
     }
 
-    private void PopulateWardrobeGrid(EItemType type)
+    private void PopulateWardrobeGrid(TabGroup tab)
     {
         foreach (var child in _wardrobeGrid.GetChildren())
             child.QueueFree();
 
-        var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
+        var items = tab.TabItemTypeList
+            .SelectMany(type => _gameData.Inventory.GetOwnedOfType(type))
+            .OrderBy(item => item.SortOrder)
+            .ThenBy(item => item.Id);
+
         foreach (var item in items)
             _wardrobeGrid.AddChild(CreateItemCell(item));
     }
 
     private void RefreshWardrobeGrid()
     {
-        if (_wardrobeContent.Visible)
-            PopulateWardrobeGrid(_selectedType);
+        if (_wardrobeContent.Visible && _selectedTab != null)
+            PopulateWardrobeGrid(_selectedTab);
     }
 
     private static readonly PackedScene ItemCellScene = GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
@@ -213,22 +225,6 @@ public partial class SystemPanelController : CanvasLayer
         cell.Pressed += () => _gameData.EquipItem(item.Id);
         return cell;
     }
-
-    private static string TypeLabel(EItemType type) => type switch
-    {
-        EItemType.Dog => "Dog",
-        EItemType.Headwear => "Hat",
-        EItemType.Eyewear => "Eye",
-        EItemType.Arm => "Arm",
-        EItemType.Clothes => "Top",
-        EItemType.Table => "Table",
-        EItemType.Background => "BG",
-        EItemType.Accessory => "Acc",
-        EItemType.Treat => "Treat",
-        EItemType.CardBack => "CardB",
-        EItemType.CardFace => "CardF",
-        _ => type.ToString(),
-    };
 
     // ===== 公共 API =====
 
