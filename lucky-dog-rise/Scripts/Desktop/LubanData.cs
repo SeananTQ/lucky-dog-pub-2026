@@ -3,17 +3,17 @@ using Luban.SimpleJSON;
 
 namespace LuckyDogRise;
 
-public static class DataTables
+public static class LubanData
 {
-    private static cfg.Tables _tables = null!;
+    private static DataTables.Tables _tables = null!;
 
-    public static cfg.Tables Tables
+    public static DataTables.Tables Tables
     {
         get
         {
-            _tables ??= new cfg.Tables(name =>
+            _tables ??= new DataTables.Tables(name =>
             {
-                var path = $"res://Scripts/Data/{name}.json";
+                var path = $"res://Data/Json/{name}.json";
                 using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
                 if (file == null)
                     throw new System.IO.FileNotFoundException($"Luban data file not found: {path}");

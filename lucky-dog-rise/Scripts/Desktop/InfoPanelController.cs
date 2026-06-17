@@ -64,7 +64,7 @@ public partial class InfoPanelController : CanvasLayer
         }
 
         // 从 Luban PayTable 数据表填充赔率名称和数值
-        var payList = DataTables.Tables.TbPayTable.DataList;
+        var payList = LubanData.Tables.TbPayTable.DataList;
         for (int i = 0; i < payList.Count; i++)
         {
             int gridIdx = payList.Count - 1 - i; // JSON 是低→高，Grid 是高→低
