@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2peqy7ytqubm"
-path="res://.godot/imported/Spade8.png-123187531668b5cefa2b37126817e596.ctex"
+path="res://.godot/imported/Spade8.png-8bf42d52efbc25e73705b365334c7da2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/Card/Style1/Spade8.png"
-dest_files=["res://.godot/imported/Spade8.png-123187531668b5cefa2b37126817e596.ctex"]
+source_file="res://Assets/v1/CardFace/Classic/Spade8.png"
+dest_files=["res://.godot/imported/Spade8.png-8bf42d52efbc25e73705b365334c7da2.ctex"]
 
 [params]
 

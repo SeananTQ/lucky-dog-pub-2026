@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://g1cf7fv5gha8"
-path="res://.godot/imported/Club13.png-805be142980cdca42ae28e8f48a49af6.ctex"
+path="res://.godot/imported/Club13.png-3b85afecfa4fabf25734ee714301c214.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/Card/Style1/Club13.png"
-dest_files=["res://.godot/imported/Club13.png-805be142980cdca42ae28e8f48a49af6.ctex"]
+source_file="res://Assets/v1/CardFace/Classic/Club13.png"
+dest_files=["res://.godot/imported/Club13.png-3b85afecfa4fabf25734ee714301c214.ctex"]
 
 [params]
 
