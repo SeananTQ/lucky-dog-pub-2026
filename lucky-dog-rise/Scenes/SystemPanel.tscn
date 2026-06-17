@@ -106,11 +106,22 @@ text = "Quit Game"
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 6
 
-[node name="WardrobePlaceholder" type="Label" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220241]
+[node name="TypeFilterRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220242]
 layout_mode = 2
-text = "Coming soon..."
-horizontal_alignment = 1
+theme_override_constants/separation = 2
+
+[node name="WardrobeScroll" type="ScrollContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220243]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WardrobeGrid" type="GridContainer" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll" unique_id=1928220244]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 4
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
 visible = false

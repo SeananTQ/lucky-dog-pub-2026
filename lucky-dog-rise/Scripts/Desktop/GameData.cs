@@ -7,6 +7,7 @@ public partial class GameData : Node
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
     [Signal] public delegate void HandResolvedEventHandler(HandRank rank, int payout);
     [Signal] public delegate void NewHandStartedEventHandler();
+    [Signal] public delegate void EquipmentChangedEventHandler();
 
     public void EmitHandResolved(HandRank rank, int payout)
     {
@@ -22,6 +23,16 @@ public partial class GameData : Node
     public int Chips { get; private set; } = 1000;
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
+
+    public override void _Ready()
+    {
+        Inventory.EquipmentChanged += () => EmitSignal(SignalName.EquipmentChanged);
+    }
+
+    public void EquipItem(int itemId)
+    {
+        Inventory.Equip(itemId);
+    }
 
     public void ModifyChips(int delta)
     {

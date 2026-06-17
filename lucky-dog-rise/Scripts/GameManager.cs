@@ -38,6 +38,7 @@ public partial class GameManager : Node2D
                 RefreshUI();
                 ApplyEquippedVisuals();
                 _dogVisual.GameData = _gameData;
+                _gameData.EquipmentChanged += ApplyEquippedVisuals;
                 _hud.SetMessage("Click the chips to place your bet");
                 _chipStack.ShowHint("Click to bet");
             }
@@ -248,7 +249,7 @@ public partial class GameManager : Node2D
 
     private void ApplyItemTexture(EItemType type, System.Action<Texture2D> apply)
     {
-        var item = _gameData.Inventory.GetDefaultOfType(type);
+        var item = _gameData.Inventory.GetEquipped(type);
         if (item == null || item.AssetPathList.Count == 0) return;
         var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(item.AssetPathList[0]));
         if (tex != null) apply(tex);

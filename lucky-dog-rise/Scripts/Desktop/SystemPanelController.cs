@@ -1,4 +1,8 @@
 using Godot;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -43,7 +47,15 @@ public partial class SystemPanelController : CanvasLayer
     private LineEdit _seedInput = null!;
     private int _currentSeed;
 
+    // Wardrobe 页
+    private GridContainer _wardrobeGrid = null!;
+    private HBoxContainer _typeFilterRow = null!;
+    private EItemType _selectedType;
+    private GameData _gameData = null!;
+    public GameData GameData { get => _gameData; set { _gameData = value; _gameData.EquipmentChanged += RefreshWardrobeGrid; } }
+
     private readonly Button[] _tabs = new Button[3];
+    private readonly List<Button> _typeFilterButtons = new();
 
     public override void _Ready()
     {
@@ -101,6 +113,10 @@ public partial class SystemPanelController : CanvasLayer
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
 
+        // === Wardrobe 页 ===
+        _wardrobeGrid = GetNode<GridContainer>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
+        _typeFilterRow = GetNode<HBoxContainer>("Panel/Scroll/RootVBox/WardrobeContent/TypeFilterRow");
+
         _panel.Visible = false;
     }
 
@@ -112,7 +128,124 @@ public partial class SystemPanelController : CanvasLayer
             contents[i].Visible = i == index;
             _tabs[i].Modulate = i == index ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
         }
+        if (index == 1 && _gameData != null)
+            BuildWardrobe();
     }
+
+    // ===== Wardrobe 页 =====
+
+    private bool _wardrobeBuilt;
+
+    private void BuildWardrobe()
+    {
+        if (!_wardrobeBuilt)
+        {
+            BuildTypeFilters();
+            _wardrobeBuilt = true;
+        }
+        PopulateWardrobeGrid(_selectedType);
+    }
+
+    private void BuildTypeFilters()
+    {
+        foreach (var child in _typeFilterRow.GetChildren())
+            child.QueueFree();
+        _typeFilterButtons.Clear();
+
+        var types = System.Enum.GetValues(typeof(EItemType)).Cast<EItemType>();
+        foreach (var type in types)
+        {
+            var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
+            if (items.Count == 0) continue;
+
+            var btn = new Button();
+            btn.Text = TypeLabel(type);
+            btn.AddThemeFontSizeOverride("font_size", 13);
+            btn.Pressed += () =>
+            {
+                _selectedType = type;
+                UpdateFilterButtonStyles(type);
+                PopulateWardrobeGrid(type);
+            };
+            _typeFilterRow.AddChild(btn);
+            _typeFilterButtons.Add(btn);
+        }
+
+        if (_typeFilterButtons.Count > 0)
+        {
+            _selectedType = types.First(t => _gameData.Inventory.GetOwnedOfType(t).Any());
+            UpdateFilterButtonStyles(_selectedType);
+        }
+    }
+
+    private void UpdateFilterButtonStyles(EItemType active)
+    {
+        foreach (var btn in _typeFilterButtons)
+            btn.Modulate = btn.Text == TypeLabel(active) ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+    }
+
+    private void PopulateWardrobeGrid(EItemType type)
+    {
+        foreach (var child in _wardrobeGrid.GetChildren())
+            child.QueueFree();
+
+        var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
+        foreach (var item in items)
+            _wardrobeGrid.AddChild(CreateItemCell(item));
+    }
+
+    private void RefreshWardrobeGrid()
+    {
+        if (_wardrobeContent.Visible)
+            PopulateWardrobeGrid(_selectedType);
+    }
+
+    private Button CreateItemCell(Item item)
+    {
+        var btn = new Button();
+        btn.CustomMinimumSize = new Vector2(56, 56);
+        btn.ExpandIcon = true;
+        btn.Flat = true;
+        btn.TooltipText = item.Name;
+
+        var iconPath = PlayerInventory.ToResPath(item.IconPath);
+        if (ResourceLoader.Exists(iconPath))
+            btn.Icon = GD.Load<Texture2D>(iconPath);
+
+        // 装备标记
+        if (_gameData.Inventory.IsEquipped(item.Id))
+        {
+            var mark = new TextureRect();
+            mark.Texture = GD.Load<Texture2D>("res://Assets/UI/ItemUI/Mark_Equipped.png");
+            mark.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+            mark.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            mark.CustomMinimumSize = new Vector2(16, 16);
+            mark.Position = new Vector2(2, 38);
+            btn.AddChild(mark);
+        }
+
+        btn.Pressed += () =>
+        {
+            _gameData.EquipItem(item.Id);
+        };
+        return btn;
+    }
+
+    private static string TypeLabel(EItemType type) => type switch
+    {
+        EItemType.Dog => "Dog",
+        EItemType.Headwear => "Hat",
+        EItemType.Eyewear => "Eye",
+        EItemType.Arm => "Arm",
+        EItemType.Clothes => "Top",
+        EItemType.Table => "Table",
+        EItemType.Background => "BG",
+        EItemType.Accessory => "Acc",
+        EItemType.Treat => "Treat",
+        EItemType.CardBack => "CardB",
+        EItemType.CardFace => "CardF",
+        _ => type.ToString(),
+    };
 
     // ===== 公共 API =====
 
