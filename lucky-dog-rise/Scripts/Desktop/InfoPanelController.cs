@@ -33,20 +33,7 @@ public partial class InfoPanelController : CanvasLayer
     private Tween _chipsTween;
     private Tween _blinkTween;
 
-    // Display payout = CardEvaluator.PayTable multiplier × GameData.BetAmount (50)
-    // User-editable: change values here to match desired reward amounts
-    private static readonly int[] PayoutTable =
-    {
-        12500, // RoyalFlush   (250 × 50)
-        2500,  // StraightFlush (50 × 50)
-        1250,  // FourOfAKind   (25 × 50)
-        450,   // FullHouse     (9 × 50)
-        300,   // Flush         (6 × 50)
-        200,   // Straight      (4 × 50)
-        150,   // ThreeOfAKind  (3 × 50)
-        100,   // TwoPair       (2 × 50)
-        50,    // JacksOrBetter (1 × 50)
-    };
+    // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
     private static readonly HandRank[] GridOrder =
     {
@@ -76,8 +63,16 @@ public partial class InfoPanelController : CanvasLayer
             }
         }
 
-        for (int i = 0; i < PayoutTable.Length && i < _payoutValues.Count; i++)
-            _payoutValues[i].Text = PayoutTable[i].ToString();
+        // 从 Luban PayTable 数据表填充赔率名称和数值
+        var payList = DataTables.Tables.TbPayTable.DataList;
+        for (int i = 0; i < payList.Count; i++)
+        {
+            int gridIdx = payList.Count - 1 - i; // JSON 是低→高，Grid 是高→低
+            if (gridIdx < _payoutNames.Count)
+                _payoutNames[gridIdx].Text = payList[i].SafeNameCN;
+            if (gridIdx < _payoutValues.Count)
+                _payoutValues[gridIdx].Text = payList[i].PayoutMultiplier.ToString();
+        }
 
         if (_payoutNames.Count > 0)
             _defaultNameColor = _payoutNames[0].GetThemeColor("font_color");
