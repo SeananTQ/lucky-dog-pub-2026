@@ -55,7 +55,7 @@ def safe_filename(name: str) -> str:
     return re.sub(r'[:/\\ ]', '_', name)
 
 
-def export_all_layers(psd_path: str, out_dir: str):
+def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True, use_composite: bool = False):
     psd_name = Path(psd_path).stem
     psd = PSDImage.open(psd_path)
 
@@ -88,7 +88,25 @@ def export_all_layers(psd_path: str, out_dir: str):
 
         # 渲染
         try:
-            img = layer.topil() if hasattr(layer, 'topil') else layer.composite()
+            if use_composite:
+                # 合成渲染：只显示目标图层，确保图层效果正确
+                for l_hide in all_layers:
+                    try:
+                        l_hide.visible = False
+                    except AttributeError:
+                        pass
+                # 显示目标图层的父组链
+                p = layer.parent
+                while p is not None and hasattr(p, 'is_group') and p.is_group():
+                    try:
+                        p.visible = True
+                    except AttributeError:
+                        pass
+                    p = p.parent if hasattr(p, 'parent') else None
+                layer.visible = True
+                img = psd.composite()
+            else:
+                img = layer.topil() if hasattr(layer, 'topil') else layer.composite()
             if img is None:
                 skipped_count += 1
                 continue
@@ -101,17 +119,31 @@ def export_all_layers(psd_path: str, out_dir: str):
         bbox = layer.bbox
         doc_x, doc_y = bbox[0], bbox[1]
 
-        content_bbox = img.getbbox()
-        if content_bbox:
-            img = img.crop(content_bbox)
-            actual_x = doc_x + content_bbox[0]
-            actual_y = doc_y + content_bbox[1]
-            actual_w = content_bbox[2] - content_bbox[0]
-            actual_h = content_bbox[3] - content_bbox[1]
+        if crop_blank:
+            content_bbox = img.getbbox()
+            if content_bbox:
+                img_cropped = img.crop(content_bbox)
+                actual_x = doc_x + content_bbox[0]
+                actual_y = doc_y + content_bbox[1]
+                actual_w = content_bbox[2] - content_bbox[0]
+                actual_h = content_bbox[3] - content_bbox[1]
+            else:
+                actual_x, actual_y = doc_x, doc_y
+                actual_w = bbox[2] - bbox[0]
+                actual_h = bbox[3] - bbox[1]
+                img_cropped = img
         else:
-            actual_x, actual_y = doc_x, doc_y
-            actual_w = bbox[2] - bbox[0]
-            actual_h = bbox[3] - bbox[1]
+            # 不裁剪，保持画布原尺寸
+            img_cropped = img
+            content_bbox = img.getbbox()
+            if content_bbox:
+                actual_x = doc_x + content_bbox[0]
+                actual_y = doc_y + content_bbox[1]
+                actual_w = content_bbox[2] - content_bbox[0]
+                actual_h = content_bbox[3] - content_bbox[1]
+            else:
+                actual_x, actual_y = 0, 0
+                actual_w, actual_h = psd.width, psd.height
 
         # 保存
         save_dir = os.path.join(out_dir, folder)
@@ -119,7 +151,7 @@ def export_all_layers(psd_path: str, out_dir: str):
         filepath = os.path.join(save_dir, filename)
 
         try:
-            img.save(filepath)
+            img_cropped.save(filepath)
         except Exception as e:
             print(f"  [!] 保存失败 [{layer.name}]: {e}")
             continue
@@ -184,18 +216,22 @@ def main():
         cfg = load_config(args.config)
         psd_path = resolve_path(script_dir, cfg["psd路径"])
         out_dir = resolve_path(script_dir, cfg["输出目录"])
+        crop_blank = cfg.get("裁剪空白", True)
+        use_composite = cfg.get("使用合成渲染", False)
     else:
         if not args.psd:
             print("错误: 需要 --psd 或 --config")
             sys.exit(1)
         psd_path = resolve_path(script_dir, args.psd)
         out_dir = resolve_path(script_dir, args.out)
+        crop_blank = True
+        use_composite = False
 
     if not os.path.exists(psd_path):
         print(f"错误: PSD 文件不存在 - {psd_path}")
         sys.exit(1)
 
-    export_all_layers(psd_path, out_dir)
+    export_all_layers(psd_path, out_dir, crop_blank, use_composite)
 
 
 if __name__ == "__main__":
