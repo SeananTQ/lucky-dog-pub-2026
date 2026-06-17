@@ -18,6 +18,7 @@ public partial class Tables
     public TbDogSkin TbDogSkin {get; }
     public TbPayTable TbPayTable {get; }
     public TbGameDevelopConfig TbGameDevelopConfig {get; }
+    public TbRarityUI TbRarityUI {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -25,6 +26,7 @@ public partial class Tables
         TbDogSkin = new TbDogSkin(loader("tbdogskin"));
         TbPayTable = new TbPayTable(loader("tbpaytable"));
         TbGameDevelopConfig = new TbGameDevelopConfig(loader("tbgamedevelopconfig"));
+        TbRarityUI = new TbRarityUI(loader("tbrarityui"));
         ResolveRef();
     }
     
@@ -34,6 +36,7 @@ public partial class Tables
         TbDogSkin.ResolveRef(this);
         TbPayTable.ResolveRef(this);
         TbGameDevelopConfig.ResolveRef(this);
+        TbRarityUI.ResolveRef(this);
     }
 }
 
