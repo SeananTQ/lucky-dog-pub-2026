@@ -42,7 +42,7 @@ public sealed partial class Item : Luban.BeanBase
     public readonly EItemType ItemType;
     public readonly ERarity ItemRarity;
     /// <summary>
-    /// 排序权重，数字越大约靠前
+    /// 排序权重，数字越小约靠前
     /// </summary>
     public readonly int SortOrder;
     /// <summary>

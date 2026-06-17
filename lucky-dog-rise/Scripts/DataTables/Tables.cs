@@ -19,6 +19,7 @@ public partial class Tables
     public TbPayTable TbPayTable {get; }
     public TbGameDevelopConfig TbGameDevelopConfig {get; }
     public TbRarityUI TbRarityUI {get; }
+    public TbTabGroup TbTabGroup {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -27,6 +28,7 @@ public partial class Tables
         TbPayTable = new TbPayTable(loader("tbpaytable"));
         TbGameDevelopConfig = new TbGameDevelopConfig(loader("tbgamedevelopconfig"));
         TbRarityUI = new TbRarityUI(loader("tbrarityui"));
+        TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         ResolveRef();
     }
     
@@ -37,6 +39,7 @@ public partial class Tables
         TbPayTable.ResolveRef(this);
         TbGameDevelopConfig.ResolveRef(this);
         TbRarityUI.ResolveRef(this);
+        TbTabGroup.ResolveRef(this);
     }
 }
 

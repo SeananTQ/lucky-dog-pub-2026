@@ -1,0 +1,55 @@
+[
+  {
+    "Id": 1001,
+    "TabName": "Dog",
+    "TabItemTypeList": [
+      1
+    ],
+    "SortOrder": 1
+  },
+  {
+    "Id": 1002,
+    "TabName": "Hat",
+    "TabItemTypeList": [
+      2
+    ],
+    "SortOrder": 2
+  },
+  {
+    "Id": 1003,
+    "TabName": "Eye",
+    "TabItemTypeList": [
+      3
+    ],
+    "SortOrder": 3
+  },
+  {
+    "Id": 1004,
+    "TabName": "Player",
+    "TabItemTypeList": [
+      4,
+      8,
+      5
+    ],
+    "SortOrder": 4
+  },
+  {
+    "Id": 1005,
+    "TabName": "Theme",
+    "TabItemTypeList": [
+      6,
+      7,
+      9
+    ],
+    "SortOrder": 5
+  },
+  {
+    "Id": 1006,
+    "TabName": "Card",
+    "TabItemTypeList": [
+      10,
+      11
+    ],
+    "SortOrder": 6
+  }
+]
