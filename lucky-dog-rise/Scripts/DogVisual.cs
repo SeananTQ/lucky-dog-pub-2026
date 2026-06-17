@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -16,6 +17,8 @@ public partial class DogVisual : Node2D
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
     private Button _hitButton = null!;
+
+    public GameData GameData { get; set; } = null!;
 
     private const string BasePath = "res://Assets/Shiba/Red/";
 
@@ -135,8 +138,14 @@ public partial class DogVisual : Node2D
     public void ShowSunglasses()
     {
         _eyewear.Visible = true;
-        _eyewear.Texture = GD.Load<Texture2D>("res://Assets/Eyewear/Sunglasses_Blade.png");
         _eyewear.Position = GetScenePosition("Sunglasses_Blade.png");
+
+        // 从玩家背包读取默认眼镜（v1 数据驱动），无则回落旧资源
+        var item = GameData?.Inventory.GetDefaultOfType(EItemType.Eyewear);
+        var path = item != null && item.AssetPathList.Count > 0
+            ? PlayerInventory.ToResPath(item.AssetPathList[0])
+            : "res://Assets/Eyewear/Sunglasses_Blade.png";
+        _eyewear.Texture = GD.Load<Texture2D>(path);
     }
 
     public void SetEyewear(string fileName, Vector2 position)

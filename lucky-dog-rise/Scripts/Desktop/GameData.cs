@@ -18,6 +18,7 @@ public partial class GameData : Node
         EmitSignal(SignalName.NewHandStarted);
     }
 
+    public PlayerInventory Inventory { get; } = new();
     public int Chips { get; private set; } = 1000;
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();

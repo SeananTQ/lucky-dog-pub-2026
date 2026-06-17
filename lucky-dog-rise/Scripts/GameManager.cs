@@ -1,6 +1,8 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -34,6 +36,8 @@ public partial class GameManager : Node2D
             if (_hud != null && _chipStack != null)
             {
                 RefreshUI();
+                ApplyEquippedVisuals();
+                _dogVisual.GameData = _gameData;
                 _hud.SetMessage("Click the chips to place your bet");
                 _chipStack.ShowHint("Click to bet");
             }
@@ -234,21 +238,44 @@ public partial class GameManager : Node2D
         };
     }
 
+    private void ApplyEquippedVisuals()
+    {
+        ApplyItemTexture(EItemType.Background, tex => GetNode<TextureRect>("Background").Texture = tex);
+        ApplyItemTexture(EItemType.Table, tex => GetNode<TextureRect>("Table").Texture = tex);
+        ApplyItemTexture(EItemType.Clothes, tex => _handArea.SetClothes(tex));
+        ApplyItemTexture(EItemType.Accessory, tex => _handArea.SetAccessory(tex));
+    }
+
+    private void ApplyItemTexture(EItemType type, System.Action<Texture2D> apply)
+    {
+        var item = _gameData.Inventory.GetDefaultOfType(type);
+        if (item == null || item.AssetPathList.Count == 0) return;
+        var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(item.AssetPathList[0]));
+        if (tex != null) apply(tex);
+    }
+
     public void OnRandomizeScene()
     {
         var rng = new Random();
 
-        var bg = GetRandomTexture("res://Assets/Background/", rng);
-        if (bg != null) GetNode<TextureRect>("Background").Texture = bg;
+        ApplyRandomFromInventory(EItemType.Background, rng,
+            tex => GetNode<TextureRect>("Background").Texture = tex);
+        ApplyRandomFromInventory(EItemType.Table, rng,
+            tex => GetNode<TextureRect>("Table").Texture = tex);
+        ApplyRandomFromInventory(EItemType.Clothes, rng,
+            tex => _handArea.SetClothes(tex));
+        ApplyRandomFromInventory(EItemType.Accessory, rng,
+            tex => _handArea.SetAccessory(tex));
+    }
 
-        var table = GetRandomTexture("res://Assets/Table/", rng);
-        if (table != null) GetNode<TextureRect>("Table").Texture = table;
-
-        var clothes = GetRandomTexture("res://Assets/Clothes/", rng);
-        if (clothes != null) _handArea.SetClothes(clothes);
-
-        var accessory = GetRandomTexture("res://Assets/Accessory/", rng);
-        if (accessory != null) _handArea.SetAccessory(accessory);
+    private void ApplyRandomFromInventory(EItemType type, Random rng, System.Action<Texture2D> apply)
+    {
+        var items = _gameData.Inventory.GetOwnedOfType(type).ToList();
+        if (items.Count == 0) return;
+        var picked = items[rng.Next(items.Count)];
+        if (picked.AssetPathList.Count == 0) return;
+        var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(picked.AssetPathList[0]));
+        if (tex != null) apply(tex);
     }
 
     public void OnRandomizeDog()
