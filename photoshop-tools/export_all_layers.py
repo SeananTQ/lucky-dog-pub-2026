@@ -123,8 +123,14 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True, use_
             content_bbox = img.getbbox()
             if content_bbox:
                 img_cropped = img.crop(content_bbox)
-                actual_x = doc_x + content_bbox[0]
-                actual_y = doc_y + content_bbox[1]
+                if use_composite:
+                    # composite 已是画布坐标，getbbox 即绝对位置
+                    actual_x = content_bbox[0]
+                    actual_y = content_bbox[1]
+                else:
+                    # topil 是图层自身像素，需加上图层在画布中的位置
+                    actual_x = doc_x + content_bbox[0]
+                    actual_y = doc_y + content_bbox[1]
                 actual_w = content_bbox[2] - content_bbox[0]
                 actual_h = content_bbox[3] - content_bbox[1]
             else:
@@ -137,8 +143,12 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True, use_
             img_cropped = img
             content_bbox = img.getbbox()
             if content_bbox:
-                actual_x = doc_x + content_bbox[0]
-                actual_y = doc_y + content_bbox[1]
+                if use_composite:
+                    actual_x = content_bbox[0]
+                    actual_y = content_bbox[1]
+                else:
+                    actual_x = doc_x + content_bbox[0]
+                    actual_y = doc_y + content_bbox[1]
                 actual_w = content_bbox[2] - content_bbox[0]
                 actual_h = content_bbox[3] - content_bbox[1]
             else:
