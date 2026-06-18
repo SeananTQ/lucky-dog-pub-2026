@@ -60,15 +60,19 @@ public partial class DogVisual : Node2D
     }
 
     /// <summary>
-    /// 从 layer_index.json 读取指定文件的 PSD 坐标，
-    /// 按 IsHeadwear 决定转换参数，返回 DogArea 本地坐标。
+    /// 从 v1 layer_index.json 读取指定资源的 PSD 坐标，返回 DogArea 本地坐标。
     /// </summary>
-    public Vector2 GetScenePosition(string fileName, bool isHeadwear = false)
+    public Vector2 GetScenePosition(string assetPath)
     {
-        if (_positionCache.TryGetValue(fileName, out var pos))
+        var key = NormalizeLayerPath(assetPath);
+        if (_positionCache.TryGetValue(key, out var pos))
             return pos;
 
-        GD.PushWarning($"[DogVisual] Position not found for: {fileName}");
+        var fileName = key.Split('/')[^1];
+        if (_positionCache.TryGetValue(fileName, out pos))
+            return pos;
+
+        GD.PushWarning($"[DogVisual] Position not found for: {assetPath}");
         return Vector2.Zero;
     }
 
@@ -77,7 +81,7 @@ public partial class DogVisual : Node2D
         if (_positionCache != null) return;
         _positionCache = new Dictionary<string, Vector2>();
 
-        using var file = FileAccess.Open("res://Assets/layer_index.json", FileAccess.ModeFlags.Read);
+        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
         if (file == null) return;
 
         var json = new Json();
@@ -87,16 +91,17 @@ public partial class DogVisual : Node2D
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
-            var name = d["name"].AsString();
-            var fileOnly = d["file"].AsString().Split('/')[^1];
-            var cx = (float)d["x"].AsDouble() + (float)d["w"].AsDouble() / 2f;
-            var cy = (float)d["y"].AsDouble() + (float)d["h"].AsDouble() / 2f;
+            var path = NormalizeLayerPath(d["file"].AsString());
+            var fileOnly = path.Split('/')[^1];
+            var cx = ReadFloat(d, "doc_x", "x") + ReadFloat(d, "width", "w") / 2f;
+            var cy = ReadFloat(d, "doc_y", "y") + ReadFloat(d, "height", "h") / 2f;
 
-            var pos = name.StartsWith("Headwear/")
+            var pos = path.StartsWith("Headwear/")
                 ? new Vector2(cx - OffsetXHeadwear, cy - OffsetYHeadwear)
                 : new Vector2(cx - OffsetX, cy - OffsetY);
 
-            _positionCache[fileOnly] = pos;
+            _positionCache[path] = pos;
+            _positionCache.TryAdd(fileOnly, pos);
         }
     }
 
@@ -105,18 +110,18 @@ public partial class DogVisual : Node2D
         var skin = CurrentDogSkin;
 
         SetDogTexture(_head, skin.Head);
-        _head.Position = GetScenePosition(skin.Head);
+        _head.Position = GetDogScenePosition(skin.Head);
 
         SetDogTexture(_eyes, skin.EyesCute);
-        _eyes.Position = GetScenePosition("Eyes_Cute.png");
+        _eyes.Position = GetDogScenePosition(skin.EyesCute);
 
         SetDogTexture(_ears, skin.EarsHappy);
-        _ears.Position = GetScenePosition("Ears_Happy.png");
+        _ears.Position = GetDogScenePosition(skin.EarsHappy);
 
         if (_tongue != null)
         {
             SetDogTexture(_tongue, skin.TongueRegular);
-            _tongue.Position = GetScenePosition(skin.TongueRegular);
+            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
 
         // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
@@ -138,9 +143,9 @@ public partial class DogVisual : Node2D
     {
         var (eyes, ears) = GetSignalTextureNames(signal);
         SetDogTexture(_eyes, eyes);
-        _eyes.Position = GetScenePosition(eyes);
+        _eyes.Position = GetDogScenePosition(eyes);
         SetDogTexture(_ears, ears);
-        _ears.Position = GetScenePosition(ears);
+        _ears.Position = GetDogScenePosition(ears);
         ShowClawPalm();
 
         RefreshEquippedHeadwear();
@@ -215,9 +220,8 @@ public partial class DogVisual : Node2D
             return;
         }
 
-        var fileName = item.AssetPathList[0].Split('\\').Last();
         _headwear.Texture = texture;
-        _headwear.Position = GetScenePosition(fileName, isHeadwear: true);
+        _headwear.Position = GetScenePosition(item.AssetPathList[0]);
         _headwear.Visible = true;
     }
 
@@ -240,9 +244,8 @@ public partial class DogVisual : Node2D
             return;
         }
 
-        var fileName = item.AssetPathList[0].Split('\\').Last();
         _eyewear.Texture = texture;
-        _eyewear.Position = GetScenePosition(fileName);
+        _eyewear.Position = GetScenePosition(item.AssetPathList[0]);
         if (showIfEquipped)
             _eyewear.Visible = true;
     }
@@ -311,6 +314,11 @@ public partial class DogVisual : Node2D
         return PlayerInventory.ToResPath($"{CurrentDogSkin.FolderPath}\\{fileName}");
     }
 
+    private Vector2 GetDogScenePosition(string fileName)
+    {
+        return GetScenePosition($"{CurrentDogSkin.FolderPath}\\{fileName}");
+    }
+
     private void SetDogTexture(Sprite2D sprite, string fileName)
     {
         var texture = GD.Load<Texture2D>(DogResPath(fileName));
@@ -344,5 +352,23 @@ public partial class DogVisual : Node2D
             DogSignal.TopTier => (skin.EyesLucky, skin.EarsHappy),
             _ => (skin.EyesCute, skin.EarsHappy),
         };
+    }
+
+    private static string NormalizeLayerPath(string path)
+    {
+        path = path.Replace('\\', '/');
+        const string assetsPrefix = "res://Assets/";
+        if (path.StartsWith(assetsPrefix))
+            path = path[assetsPrefix.Length..];
+        if (path.StartsWith("v1/"))
+            path = path[3..];
+        return path;
+    }
+
+    private static float ReadFloat(Godot.Collections.Dictionary d, string preferredKey, string fallbackKey)
+    {
+        return d.ContainsKey(preferredKey)
+            ? (float)d[preferredKey].AsDouble()
+            : (float)d[fallbackKey].AsDouble();
     }
 }

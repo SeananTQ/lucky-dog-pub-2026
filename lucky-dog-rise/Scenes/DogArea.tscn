@@ -21,7 +21,7 @@ position = Vector2(-1, -320)
 texture = ExtResource("2_d5sjk")
 
 [node name="Head" type="Sprite2D" parent="." unique_id=297302336]
-position = Vector2(-2, -161)
+position = Vector2(-2, -189)
 texture = ExtResource("3_kw0np")
 
 [node name="Tonghe" type="Sprite2D" parent="." unique_id=1192264822]
