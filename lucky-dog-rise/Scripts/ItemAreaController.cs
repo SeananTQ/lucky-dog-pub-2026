@@ -5,13 +5,17 @@ namespace LuckyDogRise;
 
 public partial class ItemAreaController : Node2D
 {
+    private const string ReferenceTreatFileName = "Whisky.png";
+
     private Sprite2D _treatSprite = null!;
     private readonly Dictionary<string, Vector2> _localCache = new();
+    private Vector2 _referenceLocalPosition;
     private bool _cacheBuilt;
 
     public override void _Ready()
     {
         _treatSprite = GetNodeOrNull<Sprite2D>("Treat") ?? CreateTreatSprite();
+        _referenceLocalPosition = _treatSprite.Position;
         BuildPositionCache();
     }
 
@@ -27,7 +31,7 @@ public partial class ItemAreaController : Node2D
     {
         _treatSprite.Texture = texture;
         _treatSprite.Visible = true;
-        _treatSprite.Position = _localCache.GetValueOrDefault(fileName, Vector2.Zero);
+        _treatSprite.Position = _localCache.GetValueOrDefault(fileName, _referenceLocalPosition);
     }
 
     public void ClearTreat()
@@ -36,9 +40,9 @@ public partial class ItemAreaController : Node2D
     }
 
     /// <summary>
-    /// 以预览酒（.tscn 中手动对准 0,0 的那张图）的 PSD 底部中心为参考点，
-    /// 计算所有 treat 相对于参考点的本地偏移。
-    /// ItemArea.Position 不参与公式 —— 你在编辑器里挪它来控制所有 treat 的整体位置。
+    /// 以 ItemArea.tscn 中预览 Whisky 的手调位置作为基础偏移。
+    /// Sprite2D.Position 控制的是图片中心点，所以每种酒再根据
+    /// PSD 中图片中心点相对 Whisky 图片中心点的差值进行偏移。
     /// </summary>
     private void BuildPositionCache()
     {
@@ -52,42 +56,41 @@ public partial class ItemAreaController : Node2D
         var json = new Json();
         if (json.Parse(file.GetAsText()) != Error.Ok) return;
 
-        // 第一遍：找到预览酒的 PSD 底部中心，作为参考锚点
         var layers = json.Data.AsGodotDictionary()["layers"].AsGodotArray();
-        Vector2 refBottom = Vector2.Zero;
-        bool foundRef = false;
+        Vector2 referenceCenter = Vector2.Zero;
+        bool foundReference = false;
 
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
             var fileName = d["file"].AsString().Split('/')[^1];
-            if (fileName == "Whisky.png")
-            {
-                var x = (float)d["x"].AsDouble();
-                var y = (float)d["y"].AsDouble();
-                var w = ReadDim(d, "w", "width");
-                refBottom = new Vector2(x + w / 2f, y + ReadDim(d, "h", "height"));
-                foundRef = true;
-                break;
-            }
+            if (fileName != ReferenceTreatFileName) continue;
+
+            referenceCenter = ReadCenter(d);
+            foundReference = true;
+            break;
         }
 
-        if (!foundRef) return;
+        if (!foundReference) return;
 
-        // 第二遍：以参考点为基准，算每个 treat 的本地偏移
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
             var fileOnly = d["file"].AsString().Split('/')[^1];
 
-            var x = (float)d["x"].AsDouble();
-            var y = (float)d["y"].AsDouble();
-            var w = ReadDim(d, "w", "width");
-            var h = ReadDim(d, "h", "height");
-            var bottom = new Vector2(x + w / 2f, y + h);
+            var centerDelta = ReadCenter(d) - referenceCenter;
 
-            _localCache[fileOnly] = bottom - refBottom;
+            _localCache[fileOnly] = _referenceLocalPosition + centerDelta;
         }
+    }
+
+    private static Vector2 ReadCenter(Godot.Collections.Dictionary d)
+    {
+        var x = (float)d["x"].AsDouble();
+        var y = (float)d["y"].AsDouble();
+        var w = ReadDim(d, "w", "width");
+        var h = ReadDim(d, "h", "height");
+        return new Vector2(x + w / 2f, y + h / 2f);
     }
 
     private static float ReadDim(Godot.Collections.Dictionary d, string shortKey, string longKey)
