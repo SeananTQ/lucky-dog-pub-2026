@@ -107,36 +107,12 @@ public partial class DogVisual : Node2D
 
     public void ResetAppearance()
     {
-        var skin = CurrentDogSkin;
+        ApplyBaseAppearance(CurrentDogSkin.EyesCute, CurrentDogSkin.EarsHappy);
+    }
 
-        SetDogTexture(_head, skin.Head);
-        _head.Position = GetDogScenePosition(skin.Head);
-
-        SetDogTexture(_eyes, skin.EyesCute);
-        _eyes.Position = GetDogScenePosition(skin.EyesCute);
-
-        SetDogTexture(_ears, skin.EarsHappy);
-        _ears.Position = GetDogScenePosition(skin.EarsHappy);
-
-        if (_tongue != null)
-        {
-            SetDogTexture(_tongue, skin.TongueRegular);
-            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
-        }
-
-        // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
-        _head.ZIndex = 1;
-        _eyes.ZIndex = 1;
-        _ears.ZIndex = 1;
-        if (_tongue != null)
-            _tongue.ZIndex = 1;
-        _eyewear.ZIndex = 1;
-        _headwear.ZIndex = 1;
-
-        ApplyClawTextures();
-        ShowClawBack();
-        _eyewear.Visible = false;
-        RefreshEquippedHeadwear();
+    public void ResetDisguiseAppearance()
+    {
+        ApplyBaseAppearance(CurrentDogSkin.DefaultEyes, CurrentDogSkin.DefaultEars);
     }
 
     public void ShowSignal(DogSignal signal)
@@ -199,6 +175,18 @@ public partial class DogVisual : Node2D
             : null;
 
         ResetAppearance();
+    }
+
+    public void RefreshEquippedDisguiseVisuals()
+    {
+        if (!IsNodeReady()) return;
+
+        var dogItem = _gameData?.Inventory.GetEquipped(EItemType.Dog);
+        _dogSkin = dogItem != null
+            ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
+            : null;
+
+        ResetDisguiseAppearance();
     }
 
     public void RefreshEquippedHeadwear()
@@ -324,6 +312,40 @@ public partial class DogVisual : Node2D
         var texture = GD.Load<Texture2D>(DogResPath(fileName));
         if (texture != null)
             sprite.Texture = texture;
+    }
+
+    private void ApplyBaseAppearance(string eyesFileName, string earsFileName)
+    {
+        var skin = CurrentDogSkin;
+
+        SetDogTexture(_head, skin.Head);
+        _head.Position = GetDogScenePosition(skin.Head);
+
+        SetDogTexture(_eyes, eyesFileName);
+        _eyes.Position = GetDogScenePosition(eyesFileName);
+
+        SetDogTexture(_ears, earsFileName);
+        _ears.Position = GetDogScenePosition(earsFileName);
+
+        if (_tongue != null)
+        {
+            SetDogTexture(_tongue, skin.TongueRegular);
+            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
+        }
+
+        // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
+        _head.ZIndex = 1;
+        _eyes.ZIndex = 1;
+        _ears.ZIndex = 1;
+        if (_tongue != null)
+            _tongue.ZIndex = 1;
+        _eyewear.ZIndex = 1;
+        _headwear.ZIndex = 1;
+
+        ApplyClawTextures();
+        ShowClawBack();
+        _eyewear.Visible = false;
+        RefreshEquippedHeadwear();
     }
 
     private void ApplyClawTextures()

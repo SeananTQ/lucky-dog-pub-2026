@@ -243,7 +243,7 @@ public partial class ModeManager : Control
 
     private void RefreshBossDogVisuals()
     {
-        _bossDogVisual.RefreshEquippedVisuals();
+        _bossDogVisual.RefreshEquippedDisguiseVisuals();
         _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
     }
 
