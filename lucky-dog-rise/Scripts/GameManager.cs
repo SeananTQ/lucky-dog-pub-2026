@@ -35,9 +35,9 @@ public partial class GameManager : Node2D
             _gameData = value;
             if (_hud != null && _chipStack != null)
             {
+                _dogVisual.GameData = _gameData;
                 RefreshUI();
                 ApplyEquippedVisuals();
-                _dogVisual.GameData = _gameData;
                 _gameData.EquipmentChanged += ApplyEquippedVisuals;
                 _hud.SetMessage("Click the chips to place your bet");
                 _chipStack.ShowHint("Click to bet");
@@ -243,12 +243,15 @@ public partial class GameManager : Node2D
 
     private void ApplyEquippedVisuals()
     {
+        _dogVisual.RefreshEquippedVisuals();
         ApplyItemTexture(EItemType.Background, (tex, _) => GetNode<TextureRect>("Background").Texture = tex);
         ApplyItemTexture(EItemType.Table, (tex, _) => GetNode<TextureRect>("Table").Texture = tex);
         ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name));
         ApplyItemTexture(EItemType.Treat, (tex, name) => _itemArea.SetTreat(tex, name));
+        _dogVisual.RefreshEquippedHeadwear();
+        _dogVisual.RefreshEquippedEyewear();
     }
 
     private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply)

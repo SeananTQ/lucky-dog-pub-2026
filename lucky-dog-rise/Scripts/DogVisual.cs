@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 using DataTables;
 
 namespace LuckyDogRise;
@@ -12,15 +13,25 @@ public partial class DogVisual : Node2D
     private Sprite2D _head = null!;
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
+    private Sprite2D _tongue = null!;
     private Node2D _clawLeft = null!;
     private Node2D _clawRight = null!;
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
     private Button _hitButton = null!;
 
-    public GameData GameData { get; set; } = null!;
+    private GameData _gameData = null!;
+    private DogSkin _dogSkin = null!;
 
-    private const string BasePath = "res://Assets/Shiba/Red/";
+    public GameData GameData
+    {
+        get => _gameData;
+        set
+        {
+            _gameData = value;
+            RefreshEquippedVisuals();
+        }
+    }
 
     // PSD → DogArea 本地坐标转换参数
     // Headwear 需要独立 Y 偏移（683 vs 677），因为帽子在头顶位置较高
@@ -31,19 +42,12 @@ public partial class DogVisual : Node2D
 
     private Dictionary<string, Vector2> _positionCache = null!;
 
-    private static readonly Dictionary<DogSignal, string[]> SignalTextures = new()
-    {
-        { DogSignal.Bored, new[] { "Eyes_Bored.png", "Ears_Plane.png" } },
-        { DogSignal.Happy, new[] { "Eyes_Happy.png", "Ears_Happy.png" } },
-        { DogSignal.LuckyEye, new[] { "Eyes_Lucky.png", "Ears_Happy.png" } },
-        { DogSignal.TopTier, new[] { "Eyes_Lucky.png", "Ears_Happy.png" } },
-    };
-
     public override void _Ready()
     {
         _head = GetNode<Sprite2D>("Head");
         _eyes = GetNode<Sprite2D>("Eyes");
         _ears = GetNode<Sprite2D>("Ears");
+        _tongue = GetNodeOrNull<Sprite2D>("Tonghe");
         _clawLeft = GetNode<Node2D>("ClawLeft");
         _clawRight = GetNode<Node2D>("ClawRight");
         _eyewear = GetNode<Sprite2D>("Eyewear");
@@ -52,6 +56,7 @@ public partial class DogVisual : Node2D
         _hitButton.Pressed += () => EmitSignal(SignalName.DogClicked);
 
         EnsurePositionCache();
+        RefreshEquippedVisuals();
     }
 
     /// <summary>
@@ -97,55 +102,54 @@ public partial class DogVisual : Node2D
 
     public void ResetAppearance()
     {
-        _head.Texture = GD.Load<Texture2D>(BasePath + "Head_Chubby.png");
-        _head.Position = GetScenePosition("Head_Chubby.png");
+        var skin = CurrentDogSkin;
 
-        _eyes.Texture = GD.Load<Texture2D>(BasePath + "Eyes_Cute.png");
+        SetDogTexture(_head, skin.Head);
+        _head.Position = GetScenePosition(skin.Head);
+
+        SetDogTexture(_eyes, skin.EyesCute);
         _eyes.Position = GetScenePosition("Eyes_Cute.png");
 
-        _ears.Texture = GD.Load<Texture2D>(BasePath + "Ears_Happy.png");
+        SetDogTexture(_ears, skin.EarsHappy);
         _ears.Position = GetScenePosition("Ears_Happy.png");
+
+        if (_tongue != null)
+        {
+            SetDogTexture(_tongue, skin.TongueRegular);
+            _tongue.Position = GetScenePosition(skin.TongueRegular);
+        }
 
         // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
         _head.ZIndex = 1;
         _eyes.ZIndex = 1;
         _ears.ZIndex = 1;
+        if (_tongue != null)
+            _tongue.ZIndex = 1;
         _eyewear.ZIndex = 1;
         _headwear.ZIndex = 1;
 
+        ApplyClawTextures();
         ShowClawBack();
         _eyewear.Visible = false;
-        _headwear.Visible = false;
+        RefreshEquippedHeadwear();
     }
 
     public void ShowSignal(DogSignal signal)
     {
-        var textures = SignalTextures[signal];
-        _eyes.Texture = GD.Load<Texture2D>(BasePath + textures[0]);
-        _eyes.Position = GetScenePosition(textures[0]);
-        _ears.Texture = GD.Load<Texture2D>(BasePath + textures[1]);
-        _ears.Position = GetScenePosition(textures[1]);
+        var (eyes, ears) = GetSignalTextureNames(signal);
+        SetDogTexture(_eyes, eyes);
+        _eyes.Position = GetScenePosition(eyes);
+        SetDogTexture(_ears, ears);
+        _ears.Position = GetScenePosition(ears);
         ShowClawPalm();
 
-        if (signal == DogSignal.TopTier)
-        {
-            _headwear.Visible = true;
-            _headwear.Texture = GD.Load<Texture2D>("res://Assets/Headwear/Lucky.png");
-            _headwear.Position = GetScenePosition("Lucky.png", isHeadwear: true);
-        }
+        RefreshEquippedHeadwear();
     }
 
     public void ShowSunglasses()
     {
         _eyewear.Visible = true;
-        _eyewear.Position = GetScenePosition("Sunglasses_Blade.png");
-
-        // 从玩家背包读取默认眼镜（v1 数据驱动），无则回落旧资源
-        var item = GameData?.Inventory.GetDefaultOfType(EItemType.Eyewear);
-        var path = item != null && item.AssetPathList.Count > 0
-            ? PlayerInventory.ToResPath(item.AssetPathList[0])
-            : "res://Assets/Eyewear/Sunglasses_Blade.png";
-        _eyewear.Texture = GD.Load<Texture2D>(path);
+        RefreshEquippedEyewear(showIfEquipped: true);
     }
 
     public void SetEyewear(string fileName, Vector2 position)
@@ -178,6 +182,69 @@ public partial class DogVisual : Node2D
     {
         _headwear.Visible = true;
         _headwear.Texture = GD.Load<Texture2D>($"res://Assets/Headwear/{fileName}");
+    }
+
+    public void RefreshEquippedVisuals()
+    {
+        if (!IsNodeReady()) return;
+
+        var dogItem = _gameData?.Inventory.GetEquipped(EItemType.Dog);
+        _dogSkin = dogItem != null
+            ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
+            : null;
+
+        ResetAppearance();
+    }
+
+    public void RefreshEquippedHeadwear()
+    {
+        if (!IsNodeReady()) return;
+
+        var item = _gameData?.Inventory.GetEquipped(EItemType.Headwear);
+        if (item == null || item.AssetPathList.Count == 0)
+        {
+            _headwear.Visible = false;
+            return;
+        }
+
+        var path = PlayerInventory.ToResPath(item.AssetPathList[0]);
+        var texture = GD.Load<Texture2D>(path);
+        if (texture == null)
+        {
+            _headwear.Visible = false;
+            return;
+        }
+
+        var fileName = item.AssetPathList[0].Split('\\').Last();
+        _headwear.Texture = texture;
+        _headwear.Position = GetScenePosition(fileName, isHeadwear: true);
+        _headwear.Visible = true;
+    }
+
+    public void RefreshEquippedEyewear(bool showIfEquipped = false)
+    {
+        if (!IsNodeReady()) return;
+
+        var item = _gameData?.Inventory.GetEquipped(EItemType.Eyewear);
+        if (item == null || item.AssetPathList.Count == 0)
+        {
+            _eyewear.Visible = false;
+            return;
+        }
+
+        var path = PlayerInventory.ToResPath(item.AssetPathList[0]);
+        var texture = GD.Load<Texture2D>(path);
+        if (texture == null)
+        {
+            _eyewear.Visible = false;
+            return;
+        }
+
+        var fileName = item.AssetPathList[0].Split('\\').Last();
+        _eyewear.Texture = texture;
+        _eyewear.Position = GetScenePosition(fileName);
+        if (showIfEquipped)
+            _eyewear.Visible = true;
     }
 
     // 手心（掌心朝上，被桌子挡住）
@@ -235,5 +302,47 @@ public partial class DogVisual : Node2D
         var palm = claw.GetNode<Sprite2D>("Claw_Palm_Left");
         back.Visible = state == "Back";
         palm.Visible = state == "Palm";
+    }
+
+    private DogSkin CurrentDogSkin => _dogSkin ?? LubanData.Tables.TbDogSkin.Get(1001);
+
+    private string DogResPath(string fileName)
+    {
+        return PlayerInventory.ToResPath($"{CurrentDogSkin.FolderPath}\\{fileName}");
+    }
+
+    private void SetDogTexture(Sprite2D sprite, string fileName)
+    {
+        var texture = GD.Load<Texture2D>(DogResPath(fileName));
+        if (texture != null)
+            sprite.Texture = texture;
+    }
+
+    private void ApplyClawTextures()
+    {
+        var skin = CurrentDogSkin;
+        SetClawTextures(_clawLeft, skin.ClawLeftBack, skin.ClawRightPalms);
+        SetClawTextures(_clawRight, skin.ClawLeftBack, skin.ClawRightPalms);
+    }
+
+    private void SetClawTextures(Node2D claw, string backFileName, string palmFileName)
+    {
+        var back = claw.GetNode<Sprite2D>("Claw_Back_Left");
+        var palm = claw.GetNode<Sprite2D>("Claw_Palm_Left");
+        SetDogTexture(back, backFileName);
+        SetDogTexture(palm, palmFileName);
+    }
+
+    private (string eyes, string ears) GetSignalTextureNames(DogSignal signal)
+    {
+        var skin = CurrentDogSkin;
+        return signal switch
+        {
+            DogSignal.Bored => (skin.EyesBored, skin.EarsPlane),
+            DogSignal.Happy => (skin.EyesHappy, skin.EarsHappy),
+            DogSignal.LuckyEye => (skin.EyesLucky, skin.EarsHappy),
+            DogSignal.TopTier => (skin.EyesLucky, skin.EarsHappy),
+            _ => (skin.EyesCute, skin.EarsHappy),
+        };
     }
 }

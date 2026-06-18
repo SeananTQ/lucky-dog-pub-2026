@@ -11,6 +11,7 @@ public partial class ModeManager : Control
     private SystemPanelController _settingsPanel = null!;
     public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
+    private DogVisual _bossDogVisual = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
@@ -39,6 +40,10 @@ public partial class ModeManager : Control
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
+        _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
+        _bossDogVisual.GameData = _gameData;
+        RefreshBossDogVisuals();
+        _gameData.EquipmentChanged += RefreshBossDogVisuals;
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
@@ -233,6 +238,13 @@ public partial class ModeManager : Control
     {
         _bossKeyContent.Visible = true;
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
+        RefreshBossDogVisuals();
+    }
+
+    private void RefreshBossDogVisuals()
+    {
+        _bossDogVisual.RefreshEquippedVisuals();
+        _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
     }
 
     // ===== 面板切换 =====
