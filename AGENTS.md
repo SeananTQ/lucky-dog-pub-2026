@@ -52,18 +52,31 @@ ModeManager.tscn（主入口, Control）
 
 ```
 lucky-dog-rise/
-├── Assets/              # PSD 导出的 PNG 素材（不要重命名）
-│   ├── Card/            # 52 张牌 (Club1-13, Diamond1-13, ...)
-│   ├── Shiba/Red/       # 小狗素材（Head, Eyes, Ears, Claw, Eyewear, Headwear）
-│   ├── Chip/            # 筹码
-│   ├── Table/           # 牌桌
-│   ├── Background/      # 背景
-│   ├── Hand/            # 手臂
-│   ├── Clothes/         # 衣服
-│   ├── Eyewear/         # 眼镜
-│   ├── Headwear/        # 帽子
-│   ├── Accessory/       # 饰品
-│   └── layer_index.json # PSD 层坐标数据
+├── Assets/              # 旧版 PSD 导出素材（尚未删除，保持兼容）
+│   └── ...              # 同上，部分旧资源仍在使用
+├── Assets/v1/           # 新版 PSD 导出素材（数据驱动）
+│   ├── Background/      # 背景（大小不一，JSON 定位）
+│   ├── Table/           # 桌布
+│   ├── Shiba/           # 小狗素材（四种毛色）
+│   │   ├── Red/         # 头/眼/耳/爪
+│   │   ├── Black/
+│   │   ├── Cream/
+│   │   └── Sesame/
+│   ├── Player/          # 玩家（手臂/衣服/饰品）
+│   ├── Headwear/        # 头部装饰
+│   ├── Eyewear/         # 眼部装饰
+│   ├── Treat/           # 饮品
+│   ├── Card/            # 52 张牌 + 卡背/卡面
+│   ├── ItemIcon/        # 背包道具图标
+│   ├── ChipStack/       # 筹码
+│   └── layer_index.json # PSD 层坐标数据（doc_x/doc_y/width/height）
+├── Data/
+│   └── Json/            # Luban 导出的 JSON 数据
+│       ├── tbpaytable.json
+│       ├── tbitem.json
+│       ├── tbdogskin.json
+│       ├── tbtabgroup.json
+│       └── tbgamedevelopconfig.json
 ├── Audio/
 │   ├── BGM/             # 背景音乐（OGG 格式）
 │   └── SFX/             # 音效文件（大驼峰命名，如 Knock.wav）
@@ -76,39 +89,67 @@ lucky-dog-rise/
 │   ├── SystemPanel.tscn     # 系统功能面板（设置/装扮/Debug 页签）
 │   ├── DogArea.tscn         # 小狗场景（表情系统）
 │   ├── HandArea.tscn        # 手臂场景（敲桌交互）
+│   ├── ItemArea.tscn        # 道具展示场景（饮品等 Treat）
 │   ├── ChipStack.tscn       # 筹码堆场景（下注交互）
 │   ├── ChipReward.tscn      # 奖励筹码场景（收集动画）
 │   └── Prefabs/
-│       └── DogClaw.tscn     # 狗爪子（手心/手背切换）
+│       ├── DogClaw.tscn     # 狗爪子（手心/手背切换）
+│       └── ItemCell.tscn    # 背包单格道具（品质框+图标+标记）
 ├── Scripts/
 │   ├── ModeManager.cs        # 主入口控制器（窗口管理+模式切换+面板避让）
+│   ├── GameManager.cs        # 扑克游戏状态机（被 SubViewport 承载）
+│   │                          + 装备视觉应用 + Luban 数据加载
 │   ├── Desktop/              # 桌宠宿主窗口底层
 │   │   ├── WindowNative.cs        # Windows API P/Invoke
 │   │   ├── SystemPanelController.cs   # 系统功能面板（设置/装扮/Debug）
-│   │   ├── InfoPanelController.cs     # 信息面板
-│   │   ├── GameData.cs                # 共享游戏数据（筹码/段位）
+│   │   ├── InfoPanelController.cs     # 信息面板（赔率表+筹码+牌型）
+│   │   ├── GameData.cs                # 共享游戏数据（筹码/段位/Inventory）
+│   │   ├── PlayerInventory.cs         # 玩家背包（拥有道具+装备状态）
+│   │   ├── LubanData.cs               # Luban 数据表加载器（静态懒加载）
 │   │   ├── SettingsManager.cs         # 设置持久化（ConfigFile）
 │   │   └── GlobalInputTracker.cs      # 全局键盘钩子
-│   ├── GameManager.cs        # 扑克游戏状态机（被 SubViewport 承载）
-│   ├── DeckManager.cs        # 牌组管理（CheatDeck）
 │   ├── CardEvaluator.cs      # 牌型判定（纯静态）
+│   ├── DeckManager.cs        # 牌组管理（作弊发牌）
 │   ├── DogHintSystem.cs      # 小狗提示逻辑
-│   ├── DogVisual.cs          # 小狗视觉表现
-│   ├── HandAreaController.cs # 手臂交互+敲桌动画
+│   ├── DogVisual.cs          # 小狗视觉表现（JSON 坐标定位）
+│   ├── HandAreaController.cs # 手臂交互+敲桌动画（JSON 坐标定位）
+│   ├── ItemAreaController.cs # 道具展示（Treat 等，JSON 坐标定位）
+│   ├── ItemCellController.cs # 背包单格道具预制体控制器
 │   ├── ChipStackController.cs    # 筹码堆交互
 │   ├── ChipRewardController.cs   # 奖励筹码收集
 │   ├── ProgressionManager.cs     # 成长系统（段位）
 │   ├── AudioManager.cs       # 音效管理（autoload 单例）
 │   ├── DogProverbs.cs        # Game Over 格言
-│   ├── HUDController.cs      # HUD（消息/按钮/Overlay）
-│   ├── DebugHUDController.cs # Debug 面板（旧，已迁移至设置面板）
+│   ├── HUDController.cs      # HUD（消息/Overlay）
 │   ├── TutorialManager.cs    # 新手引导弹跳
 │   └── CardTableController.cs # 卡牌显示/保留/动画
+├── Scripts/DataTables/       # Luban 生成的 C# 表类型（namespace DataTables）
+│   ├── Tables.cs             # 所有表的访问入口
+│   ├── PayTable.cs / TbPayTable.cs
+│   ├── Item.cs / TbItem.cs
+│   ├── DogSkin.cs / TbDogSkin.cs
+│   ├── TabGroup.cs / TbTabGroup.cs
+│   ├── GameDevelopConfig.cs / TbGameDevelopConfig.cs
+│   └── 枚举：EItemType.cs / ERarity.cs / EHiddenRegionFlag.cs
+├── Scripts/Luban/            # Luban 运行时库
+│   ├── BeanBase.cs
+│   ├── SimpleJSON/
+│   └── StringUtil.cs
 ├── Themes/
 │   └── DefaultTheme.tres     # Duolingo 风格主题
 ├── project.godot
 └── LuckyDogRise.csproj
 ```
+
+## 数据驱动说明
+
+所有道具和可替换资源的数据来自 Luban 表（Excel → JSON → C#），不硬编码路径。
+
+**加载器：** `LubanData.Tables`（`Scripts/Desktop/LubanData.cs`）懒加载 `Data/Json/*.json`
+
+**PSD 坐标定位：** 使用 `layer_index.json` 的 `doc_x/doc_y/width/height`，
+以**参考物手调位置 + PSD 中心点差值**公式计算 `Sprite2D.Position`。
+详细算法见 `docs/guide/psd-json-sprite-offset-guide.md`
 
 ## 术语约定
 
