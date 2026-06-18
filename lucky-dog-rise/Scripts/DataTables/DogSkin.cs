@@ -23,8 +23,9 @@ public sealed partial class DogSkin : Luban.BeanBase
         { if(!_buf["DefaultEyes"].IsString) { throw new SerializationException(); }  DefaultEyes = _buf["DefaultEyes"]; }
         { if(!_buf["FolderPath"].IsString) { throw new SerializationException(); }  FolderPath = _buf["FolderPath"]; }
         { if(!_buf["Head"].IsString) { throw new SerializationException(); }  Head = _buf["Head"]; }
-        { if(!_buf["ClawLucky_Left_Back"].IsString) { throw new SerializationException(); }  ClawLuckyLeftBack = _buf["ClawLucky_Left_Back"]; }
-        { if(!_buf["ClawLucky_Right_Palms"].IsString) { throw new SerializationException(); }  ClawLuckyRightPalms = _buf["ClawLucky_Right_Palms"]; }
+        { if(!_buf["Claw_Left_Back"].IsString) { throw new SerializationException(); }  ClawLeftBack = _buf["Claw_Left_Back"]; }
+        { if(!_buf["Claw_Right_Palms"].IsString) { throw new SerializationException(); }  ClawRightPalms = _buf["Claw_Right_Palms"]; }
+        { if(!_buf["Tongue_Regular"].IsString) { throw new SerializationException(); }  TongueRegular = _buf["Tongue_Regular"]; }
         { if(!_buf["Ears_Happy"].IsString) { throw new SerializationException(); }  EarsHappy = _buf["Ears_Happy"]; }
         { if(!_buf["Ears_Plane"].IsString) { throw new SerializationException(); }  EarsPlane = _buf["Ears_Plane"]; }
         { if(!_buf["Eyes_Bored"].IsString) { throw new SerializationException(); }  EyesBored = _buf["Eyes_Bored"]; }
@@ -52,8 +53,9 @@ public sealed partial class DogSkin : Luban.BeanBase
     public readonly string DefaultEyes;
     public readonly string FolderPath;
     public readonly string Head;
-    public readonly string ClawLuckyLeftBack;
-    public readonly string ClawLuckyRightPalms;
+    public readonly string ClawLeftBack;
+    public readonly string ClawRightPalms;
+    public readonly string TongueRegular;
     public readonly string EarsHappy;
     public readonly string EarsPlane;
     public readonly string EyesBored;
@@ -79,8 +81,9 @@ public sealed partial class DogSkin : Luban.BeanBase
         + "DefaultEyes:" + DefaultEyes + ","
         + "FolderPath:" + FolderPath + ","
         + "Head:" + Head + ","
-        + "ClawLuckyLeftBack:" + ClawLuckyLeftBack + ","
-        + "ClawLuckyRightPalms:" + ClawLuckyRightPalms + ","
+        + "ClawLeftBack:" + ClawLeftBack + ","
+        + "ClawRightPalms:" + ClawRightPalms + ","
+        + "TongueRegular:" + TongueRegular + ","
         + "EarsHappy:" + EarsHappy + ","
         + "EarsPlane:" + EarsPlane + ","
         + "EyesBored:" + EyesBored + ","
