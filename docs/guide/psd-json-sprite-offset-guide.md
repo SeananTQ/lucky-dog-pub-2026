@@ -10,11 +10,11 @@ status: draft
 
 本项目的美术资源来自 1200x1200 PSD 画布。美术在 PSD 中把各类物体摆到视觉正确的位置后，导出 PNG 资源，同时导出 `layer_index.json`。
 
-PNG 会裁切透明像素，因此每张 PNG 的尺寸可能不同。`layer_index.json` 中记录的 `x`、`y` 是该 PNG 左上角在 PSD 画布中的坐标，`width`、`height` 是裁切后的 PNG 尺寸。
+PNG 会裁切透明像素，因此每张 PNG 的尺寸可能不同。`layer_index.json` 中记录的 `doc_x`、`doc_y` 是该 PNG 左上角在 PSD 画布中的坐标，`width`、`height` 是裁切后的 PNG 尺寸。
 
 Godot 中常用 `Sprite2D` 显示这些 PNG。默认情况下，`Sprite2D.Centered = true`，因此 `Sprite2D.Position` 控制的是图片中心点，而不是左上角。
 
-这意味着程序不能直接把 JSON 的 `x`、`y` 当作 `Sprite2D.Position` 使用，也不能只用左上角差值做偏移。正确做法是：用 JSON 还原每张 PNG 在 PSD 中的图片中心点，再计算它相对于参考物的中心点差值。
+这意味着程序不能直接把 JSON 的 `doc_x`、`doc_y` 当作 `Sprite2D.Position` 使用，也不能只用左上角差值做偏移。正确做法是：用 JSON 还原每张 PNG 在 PSD 中的图片中心点，再计算它相对于参考物的中心点差值。
 
 ## 已验证案例
 
@@ -109,7 +109,7 @@ Sprite2D.Position =
 
 ## 为什么使用图片中心点
 
-JSON 的 `x`、`y` 是 PNG 左上角在 PSD 中的位置，但 Godot 默认 `Sprite2D.Position` 控制的是 PNG 中心点。
+JSON 的 `doc_x`、`doc_y` 是 PNG 左上角在 PSD 中的位置，但 Godot 默认 `Sprite2D.Position` 控制的是 PNG 中心点。
 
 当不同 PNG 尺寸不同时，只使用左上角差值会漏掉尺寸差异。例如高酒瓶和矮酒杯的左上角 Y 坐标差异很大，但真正需要交给 `Sprite2D.Position` 的是“中心点应该移动多少”。
 
@@ -159,7 +159,7 @@ ShotGlass   -> (-51.5, -25.5)
 
 1. 确认同类物体来自同一 PSD 构图规则。
 
-同一类物体应在 PSD 中已经由美术摆到视觉正确的位置。JSON 必须记录该类所有 PNG 的 `x`、`y`、`width`、`height`。
+同一类物体应在 PSD 中已经由美术摆到视觉正确的位置。JSON 必须记录该类所有 PNG 的 `doc_x`、`doc_y`、`width`、`height`。
 
 2. 在对应子场景中创建或确认显示节点。
 
