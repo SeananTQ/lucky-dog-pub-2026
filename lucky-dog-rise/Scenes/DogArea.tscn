@@ -1,13 +1,14 @@
 [gd_scene format=3 uid="uid://d0enetq5iqkwr"]
 
 [ext_resource type="Script" uid="uid://dclwlcib85r8m" path="res://Scripts/DogVisual.cs" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://c8af0q0pq0wic" path="res://Assets/Shiba/Red/Head_Chubby.png" id="2_head"]
-[ext_resource type="Texture2D" uid="uid://b4rix8fkuvdj" path="res://Assets/Shiba/Red/Eyes_Cute.png" id="3_eyes"]
-[ext_resource type="Texture2D" uid="uid://cgmat5ulvoupt" path="res://Assets/Shiba/Red/Ears_Happy.png" id="4_ears"]
+[ext_resource type="Texture2D" uid="uid://c448adccs7l0p" path="res://Assets/v1/Shiba/Red/Ears_Happy.png" id="2_d5sjk"]
+[ext_resource type="Texture2D" uid="uid://bo0nn2yn31slx" path="res://Assets/v1/Shiba/Red/Head_Chubby.png" id="3_kw0np"]
+[ext_resource type="Texture2D" uid="uid://jwodcs4yv5iv" path="res://Assets/v1/Shiba/Red/Tongue_Regular.png" id="4_d5sjk"]
+[ext_resource type="Texture2D" uid="uid://8kd0d043lhwa" path="res://Assets/v1/Shiba/Red/Eyes_Cute.png" id="5_a4wju"]
 [ext_resource type="Texture2D" uid="uid://bnnsdwjfwviqr" path="res://Assets/Shiba/Red/Claw_Lucky.png" id="5_claw"]
 [ext_resource type="PackedScene" uid="uid://ck4rk70dmgfjw" path="res://Scenes/Prefabs/DogClaw.tscn" id="6_cm54h"]
-[ext_resource type="Texture2D" uid="uid://bawlnmbb080mw" path="res://Assets/Eyewear/Sunglasses_Blade.png" id="7_cjoeh"]
-[ext_resource type="Texture2D" uid="uid://dkgk8o1bs110y" path="res://Assets/Headwear/FedoraHat_Maroon.png" id="8_7md00"]
+[ext_resource type="Texture2D" uid="uid://cynyioj5isqrp" path="res://Assets/v1/Eyewear/Sunglasses_Blade.png" id="8_3ms1v"]
+[ext_resource type="Texture2D" uid="uid://bgy6rp2ii45lp" path="res://Assets/v1/Headwear/FedoraHat_Maroon.png" id="9_e0wpe"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
@@ -17,15 +18,19 @@ script = ExtResource("1_script")
 
 [node name="Ears" type="Sprite2D" parent="." unique_id=353965843]
 position = Vector2(2, -320)
-texture = ExtResource("4_ears")
+texture = ExtResource("2_d5sjk")
 
 [node name="Head" type="Sprite2D" parent="." unique_id=297302336]
 position = Vector2(1, -161)
-texture = ExtResource("2_head")
+texture = ExtResource("3_kw0np")
+
+[node name="Tonghe" type="Sprite2D" parent="." unique_id=1192264822]
+position = Vector2(0, -15)
+texture = ExtResource("4_d5sjk")
 
 [node name="Eyes" type="Sprite2D" parent="." unique_id=493219825]
 position = Vector2(-3, -292)
-texture = ExtResource("3_eyes")
+texture = ExtResource("5_a4wju")
 
 [node name="Claw" type="Sprite2D" parent="." unique_id=1246649180]
 visible = false
@@ -46,17 +51,17 @@ scale = Vector2(-1, 1)
 [node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
 visible = false
 position = Vector2(0, -262)
-texture = ExtResource("7_cjoeh")
+texture = ExtResource("8_3ms1v")
 
 [node name="Headwear" type="Sprite2D" parent="." unique_id=268961892]
 visible = false
 position = Vector2(0, -444)
-texture = ExtResource("8_7md00")
+texture = ExtResource("9_e0wpe")
 
 [node name="HitButton" type="Button" parent="." unique_id=950359140]
-offset_left = -286.0
-offset_top = -421.0
-offset_right = 303.0
+offset_left = -294.0
+offset_top = -388.0
+offset_right = 295.0
 offset_bottom = 3.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
 flat = true

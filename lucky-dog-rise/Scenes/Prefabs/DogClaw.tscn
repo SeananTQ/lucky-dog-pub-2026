@@ -1,21 +1,9 @@
 [gd_scene format=3 uid="uid://ck4rk70dmgfjw"]
 
-[ext_resource type="Texture2D" uid="uid://dd38614o4igmb" path="res://Assets/Shiba/Red/Claw_Lucky_Left.tres" id="1_5j8xa"]
-[ext_resource type="Texture2D" uid="uid://cnyycxklkhsih" path="res://Assets/Shiba/Red/Claw_Lucky_Right.tres" id="2_rndps"]
 [ext_resource type="Texture2D" uid="uid://cukvfg2buiq7n" path="res://Assets/v1/Shiba/Red/Claw_Lucky_Left.png" id="3_rndps"]
 [ext_resource type="Texture2D" uid="uid://c2b7ve43mqges" path="res://Assets/v1/Shiba/Red/Claw_Lucky_Right.png" id="4_hmltp"]
 
 [node name="ClawLeft" type="Node2D" unique_id=829141221]
-
-[node name="Claw_Back_Left_Old" type="Sprite2D" parent="." unique_id=1062745638]
-visible = false
-position = Vector2(-1, 24)
-texture = ExtResource("1_5j8xa")
-
-[node name="Claw_Palm_Left_Old" type="Sprite2D" parent="." unique_id=684985012]
-visible = false
-position = Vector2(-9, -37)
-texture = ExtResource("2_rndps")
 
 [node name="Claw_Back_Left" type="Sprite2D" parent="." unique_id=364544035]
 position = Vector2(-0.5, -126.5)
