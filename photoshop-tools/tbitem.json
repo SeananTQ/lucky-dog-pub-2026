@@ -3,1185 +3,1581 @@
     "Id": 1001,
     "Name": "Red",
     "ItemType": 1,
-    "Rarity": 2,
+    "ItemRarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\\\Assets\\Shiba\\Red\\"
+      "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "lucky-dog-rise\\\\Assets\\UI\\ItemIcon\\Shiba_Red.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_Red.png",
     "SkinId": 1001
   },
   {
     "Id": 1002,
     "Name": "Black",
     "ItemType": 1,
-    "Rarity": 2,
+    "ItemRarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\\\Assets\\Shiba\\Black\\"
+      "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "lucky-dog-rise\\\\Assets\\UI\\ItemIcon\\Shiba_Black.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_Black.png",
     "SkinId": 1002
   },
   {
     "Id": 1003,
     "Name": "Cream",
     "ItemType": 1,
-    "Rarity": 2,
+    "ItemRarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Cream\\"
+      "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_Cream.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_Cream.png",
     "SkinId": 1003
   },
   {
     "Id": 1004,
     "Name": "Sesame",
     "ItemType": 1,
-    "Rarity": 2,
+    "ItemRarity": 2,
     "SortOrder": 200,
     "BlindBoxWeight": 200,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Sesame\\"
+      "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_Sesame.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_Sesame.png",
     "SkinId": 1004
   },
   {
     "Id": 1005,
     "Name": "Thin Red",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\\\Assets\\Shiba\\Red\\"
+      "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "lucky-dog-rise\\\\Assets\\UI\\ItemIcon\\Shiba_ThinRed.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_ThinRed.png",
     "SkinId": 1005
   },
   {
     "Id": 1006,
     "Name": "Unshaven Red",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\\\Assets\\Shiba\\Red\\"
+      "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "lucky-dog-rise\\\\Assets\\UI\\ItemIcon\\Shiba_UnshavenRed.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenRed.png",
     "SkinId": 1006
   },
   {
     "Id": 1007,
     "Name": "Thin Black",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Black\\"
+      "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_ThinBlack.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_ThinBlack.png",
     "SkinId": 1007
   },
   {
     "Id": 1008,
     "Name": "Unshaven Black",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Black\\"
+      "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_UnshavenBlack.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenBlack.png",
     "SkinId": 1008
   },
   {
     "Id": 1009,
     "Name": "Thin Cream",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Cream\\"
+      "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_ThinCream.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_ThinCream.png",
     "SkinId": 1009
   },
   {
     "Id": 1010,
     "Name": "Unshaven Cream",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Cream\\"
+      "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_UnshavenCream.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenCream.png",
     "SkinId": 1010
   },
   {
     "Id": 1011,
     "Name": "Thin Sesame",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Sesame\\"
+      "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_ThinSesame.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_ThinSesame.png",
     "SkinId": 1011
   },
   {
     "Id": 1012,
     "Name": "Unshaven Sesame",
     "ItemType": 1,
-    "Rarity": 1,
+    "ItemRarity": 1,
     "SortOrder": 100,
     "BlindBoxWeight": 100,
-    "isUnique": true,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Shiba\\Sesame\\"
+      "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Shiba_UnshavenSesame.png",
+    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenSesame.png",
     "SkinId": 1012
   },
   {
     "Id": 2001,
     "Name": "Green Beret",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\Beret_Green.png"
+      "v1\\Headwear\\Beret_Green.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_Beret_Green.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_Beret_Green.png",
     "SkinId": 0
   },
   {
     "Id": 2002,
     "Name": "Red Beret",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\Beret_Red.png"
+      "v1\\Headwear\\Beret_Red.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_Beret_Red.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_Beret_Red.png",
     "SkinId": 0
   },
   {
     "Id": 2003,
     "Name": "Gray Fedora Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\FedoraHat_Gray.png"
+      "v1\\Headwear\\FedoraHat_Gray.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_FedoraHat_Gray.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_FedoraHat_Gray.png",
     "SkinId": 0
   },
   {
     "Id": 2004,
     "Name": "Maroon Fedora Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\FedoraHat_Maroon.png"
+      "v1\\Headwear\\FedoraHat_Maroon.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_FedoraHat_Maroon.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_FedoraHat_Maroon.png",
     "SkinId": 0
   },
   {
     "Id": 2005,
     "Name": "Hole",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\Hole.png"
+      "v1\\Headwear\\Hole.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_Hole.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_Hole.png",
     "SkinId": 0
   },
   {
     "Id": 2006,
     "Name": "Lucky",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\Lucky.png"
+      "v1\\Headwear\\Lucky.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_Lucky.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_Lucky.png",
     "SkinId": 0
   },
   {
     "Id": 2007,
     "Name": "Black Magic Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\MagicHat_Black.png"
+      "v1\\Headwear\\MagicHat_Black.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_MagicHat_Black.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_MagicHat_Black.png",
     "SkinId": 0
   },
   {
     "Id": 2008,
     "Name": "White Magic Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\MagicHat_White.png"
+      "v1\\Headwear\\MagicHat_White.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_MagicHat_White.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_MagicHat_White.png",
     "SkinId": 0
   },
   {
     "Id": 2009,
     "Name": "Beige Sun Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\SunHat_Beige.png"
+      "v1\\Headwear\\SunHat_Beige.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_SunHat_Beige.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_SunHat_Beige.png",
     "SkinId": 0
   },
   {
     "Id": 2010,
     "Name": "Blue Sun Hat",
     "ItemType": 2,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Headwear\\SunHat_Blue.png"
+      "v1\\Headwear\\SunHat_Blue.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Headwear_SunHat_Blue.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_SunHat_Blue.png",
     "SkinId": 0
   },
   {
     "Id": 3001,
     "Name": "3D Glasses",
     "ItemType": 3,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Eyewear\\3DGlasses.png"
+      "v1\\Eyewear\\3DGlasses.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Eyewear_3DGlasses.png",
+    "IconPath": "v1\\ItemIcon\\Eyewear_3DGlasses.png",
     "SkinId": 0
   },
   {
     "Id": 3002,
     "Name": "Eye Patch",
     "ItemType": 3,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Eyewear\\EyePatch.png"
+      "v1\\Eyewear\\EyePatch.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Eyewear_EyePatch.png",
+    "IconPath": "v1\\ItemIcon\\Eyewear_EyePatch.png",
     "SkinId": 0
   },
   {
     "Id": 3003,
     "Name": "Black Monocle",
     "ItemType": 3,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Eyewear\\Monocle_black.png"
+      "v1\\Eyewear\\Monocle_black.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Eyewear_Monocle_black.png",
+    "IconPath": "v1\\ItemIcon\\Eyewear_Monocle_black.png",
     "SkinId": 0
   },
   {
     "Id": 3004,
     "Name": "Golden Monocle",
     "ItemType": 3,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Eyewear\\Monocle_golden.png"
+      "v1\\Eyewear\\Monocle_golden.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Eyewear_Monocle_golden.png",
+    "IconPath": "v1\\ItemIcon\\Eyewear_Monocle_golden.png",
     "SkinId": 0
   },
   {
     "Id": 3005,
     "Name": "Blade Sunglasses",
     "ItemType": 3,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
-    "BlindBoxId": 1001,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Eyewear\\Sunglasses_Blade.png"
+      "v1\\Eyewear\\Sunglasses_Blade.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Eyewear_Sunglasses_Blade.png",
+    "IconPath": "v1\\ItemIcon\\Eyewear_Sunglasses_Blade.png",
     "SkinId": 0
   },
   {
     "Id": 4001,
     "Name": "Male A",
     "ItemType": 4,
-    "Rarity": 3,
-    "SortOrder": 300,
+    "ItemRarity": 3,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Hand\\MaleA.png"
+      "v1\\Player\\Arm\\MaleA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Hand_MaleA.png",
+    "IconPath": "v1\\ItemIcon\\Hand_MaleA.png",
     "SkinId": 0
   },
   {
     "Id": 4002,
     "Name": "Male B",
     "ItemType": 4,
-    "Rarity": 3,
-    "SortOrder": 300,
+    "ItemRarity": 3,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Hand\\MaleB.png"
+      "v1\\Player\\Arm\\MaleB.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Hand_MaleB.png",
+    "IconPath": "v1\\ItemIcon\\Hand_MaleB.png",
     "SkinId": 0
   },
   {
     "Id": 4003,
     "Name": "Male C",
     "ItemType": 4,
-    "Rarity": 3,
-    "SortOrder": 300,
+    "ItemRarity": 3,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Hand\\MaleC.png"
+      "v1\\Player\\Arm\\MaleC.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Hand_MaleC.png",
+    "IconPath": "v1\\ItemIcon\\Hand_MaleC.png",
     "SkinId": 0
   },
   {
     "Id": 4004,
     "Name": "Male D",
     "ItemType": 4,
-    "Rarity": 3,
-    "SortOrder": 300,
+    "ItemRarity": 3,
+    "SortOrder": 0,
     "BlindBoxWeight": 0,
-    "isUnique": true,
-    "BlindBoxId": 1001,
+    "IsUnique": true,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Hand\\MaleD.png"
+      "v1\\Player\\Arm\\MaleD.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Hand_MaleD.png",
+    "IconPath": "v1\\ItemIcon\\Hand_MaleD.png",
     "SkinId": 0
   },
   {
     "Id": 5001,
     "Name": "Baseball Jacket Black",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\BaseballJacket_Black.png"
+      "v1\\Player\\Clothes\\BaseballJacket_Black.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_BaseballJacket_Black.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_BaseballJacket_Black.png",
     "SkinId": 0
   },
   {
     "Id": 5002,
     "Name": "Baseball Jacket Purple",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\BaseballJacket_Purple.png"
+      "v1\\Player\\Clothes\\BaseballJacket_Purple.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_BaseballJacket_Purple.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_BaseballJacket_Purple.png",
     "SkinId": 0
   },
   {
     "Id": 5003,
     "Name": "Black Business Suit",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\BlackBusinessSuit_Black.png"
+      "v1\\Player\\Clothes\\BlackBusinessSuit_Black.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_BlackBusinessSuit_Black.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_BlackBusinessSuit_Black.png",
     "SkinId": 0
   },
   {
     "Id": 5004,
     "Name": "Blue Shirt",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\BlueShirt_Cyan.png"
+      "v1\\Player\\Clothes\\BlueShirt_Cyan.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_BlueShirt_Cyan.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_BlueShirt_Cyan.png",
     "SkinId": 0
   },
   {
     "Id": 5005,
     "Name": "Blue Striped Shirt",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\BlueStripedShirt_RegattaStripe.png"
+      "v1\\Player\\Clothes\\BlueStripedShirt_RegattaStripe.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_BlueStripedShirt_RegattaStripe.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_BlueStripedShirt_RegattaStripe.png",
     "SkinId": 0
   },
   {
     "Id": 5006,
     "Name": "Cream Shirt",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\CreamShirt_Beige.png"
+      "v1\\Player\\Clothes\\CreamShirt_Beige.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_CreamShirt_Beige.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_CreamShirt_Beige.png",
     "SkinId": 0
   },
   {
     "Id": 5007,
     "Name": "White Business Suit",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\WhiteBusinessSuit_LightGray.png"
+      "v1\\Player\\Clothes\\WhiteBusinessSuit_LightGray.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_WhiteBusinessSuit_LightGray.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_WhiteBusinessSuit_LightGray.png",
     "SkinId": 0
   },
   {
     "Id": 5008,
     "Name": "White Shirt",
     "ItemType": 5,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Clothes\\WhiteShirt_White.png"
+      "v1\\Player\\Clothes\\WhiteShirt_White.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Clothes_WhiteShirt_White.png",
+    "IconPath": "v1\\ItemIcon\\Clothes_WhiteShirt_White.png",
     "SkinId": 0
   },
   {
     "Id": 6001,
     "Name": "Felt Emerald",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
-    "BlindBoxWeight": 300,
-    "isUnique": false,
-    "BlindBoxId": 1001,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\FeltEmerald.png"
+      "v1\\Table\\FeltEmerald.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_FeltEmerald.png",
+    "IconPath": "v1\\ItemIcon\\Table_FeltEmerald.png",
     "SkinId": 0
   },
   {
     "Id": 6002,
     "Name": "Full Tilt Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\FullTiltLike.png"
+      "v1\\Table\\FullTiltLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_FullTiltLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_FullTiltLike.png",
     "SkinId": 0
   },
   {
     "Id": 6003,
     "Name": "Hustler Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\HustlerLike.png"
+      "v1\\Table\\HustlerLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_HustlerLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_HustlerLike.png",
     "SkinId": 0
   },
   {
     "Id": 6004,
     "Name": "Les Ambassadeurs Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\LesAmbassadeursLike.png"
+      "v1\\Table\\LesAmbassadeursLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_LesAmbassadeursLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_LesAmbassadeursLike.png",
     "SkinId": 0
   },
   {
     "Id": 6005,
     "Name": "Maestral Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\MaestralLike.png"
+      "v1\\Table\\MaestralLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_MaestralLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_MaestralLike.png",
     "SkinId": 0
   },
   {
     "Id": 6006,
     "Name": "Mezcal Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\MezcalLike.png"
+      "v1\\Table\\MezcalLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_MezcalLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_MezcalLike.png",
     "SkinId": 0
   },
   {
     "Id": 6007,
     "Name": "Poker Go Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\PokerGoLike.png"
+      "v1\\Table\\PokerGoLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_PokerGoLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_PokerGoLike.png",
     "SkinId": 0
   },
   {
     "Id": 6008,
     "Name": "Pure Indigo",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\PureIndigo.png"
+      "v1\\Table\\PureIndigo.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_PureIndigo.png",
+    "IconPath": "v1\\ItemIcon\\Table_PureIndigo.png",
     "SkinId": 0
   },
   {
     "Id": 6009,
     "Name": "Pure Purple",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\PurePurple.png"
+      "v1\\Table\\PurePurple.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_PurePurple.png",
+    "IconPath": "v1\\ItemIcon\\Table_PurePurple.png",
     "SkinId": 0
   },
   {
     "Id": 6010,
     "Name": "Pure Teal",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\PureTeal.png"
+      "v1\\Table\\PureTeal.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_PureTeal.png",
+    "IconPath": "v1\\ItemIcon\\Table_PureTeal.png",
     "SkinId": 0
   },
   {
     "Id": 6011,
     "Name": "The King of Hill Like",
     "ItemType": 6,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Table\\TheKingOfHillLike.png"
+      "v1\\Table\\TheKingOfHillLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Table_TheKingOfHillLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_TheKingOfHillLike.png",
     "SkinId": 0
   },
   {
     "Id": 7001,
     "Name": "Blue A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\BlueA.png"
+      "v1\\Background\\BlueA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_BlueA.png",
+    "IconPath": "v1\\ItemIcon\\Background_BlueA.png",
     "SkinId": 0
   },
   {
     "Id": 7002,
     "Name": "Brown A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\BrownA.png"
+      "v1\\Background\\BrownA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_BrownA.png",
+    "IconPath": "v1\\ItemIcon\\Background_BrownA.png",
     "SkinId": 0
   },
   {
     "Id": 7003,
     "Name": "Brown B",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\BrownB.png"
+      "v1\\Background\\BrownB.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_BrownB.png",
+    "IconPath": "v1\\ItemIcon\\Background_BrownB.png",
     "SkinId": 0
   },
   {
     "Id": 7004,
     "Name": "Gray A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
-    "BlindBoxWeight": 300,
-    "isUnique": false,
-    "BlindBoxId": 1001,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\GrayA.png"
+      "v1\\Background\\GrayA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_GrayA.png",
+    "IconPath": "v1\\ItemIcon\\Background_GrayA.png",
     "SkinId": 0
   },
   {
     "Id": 7005,
     "Name": "Gray B",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\GrayB.png"
+      "v1\\Background\\GrayB.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_GrayB.png",
+    "IconPath": "v1\\ItemIcon\\Background_GrayB.png",
     "SkinId": 0
   },
   {
     "Id": 7006,
     "Name": "Green A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\GreenA.png"
+      "v1\\Background\\GreenA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_GreenA.png",
+    "IconPath": "v1\\ItemIcon\\Background_GreenA.png",
     "SkinId": 0
   },
   {
     "Id": 7007,
     "Name": "Green B",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\GreenB.png"
+      "v1\\Background\\GreenB.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_GreenB.png",
+    "IconPath": "v1\\ItemIcon\\Background_GreenB.png",
     "SkinId": 0
   },
   {
     "Id": 7008,
     "Name": "Highstakes Poker Like",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\HighstakesPokerLike.png"
+      "v1\\Background\\HighstakesPokerLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_HighstakesPokerLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_HighstakesPokerLike.png",
     "SkinId": 0
   },
   {
     "Id": 7009,
     "Name": "Orange A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\OrangeA.png"
+      "v1\\Background\\OrangeA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_OrangeA.png",
+    "IconPath": "v1\\ItemIcon\\Background_OrangeA.png",
     "SkinId": 0
   },
   {
     "Id": 7010,
     "Name": "Part Poker Like",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\PartPokerLike.png"
+      "v1\\Background\\PartPokerLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_PartPokerLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_PartPokerLike.png",
     "SkinId": 0
   },
   {
     "Id": 7011,
     "Name": "Pink A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\PinkA.png"
+      "v1\\Background\\PinkA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_PinkA.png",
+    "IconPath": "v1\\ItemIcon\\Background_PinkA.png",
     "SkinId": 0
   },
   {
     "Id": 7012,
     "Name": "Poker King Like",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\PokerKingLike.png"
+      "v1\\Background\\PokerKingLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_PokerKingLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_PokerKingLike.png",
     "SkinId": 0
   },
   {
     "Id": 7013,
     "Name": "Purple A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\PurpleA.png"
+      "v1\\Background\\PurpleA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_PurpleA.png",
+    "IconPath": "v1\\ItemIcon\\Background_PurpleA.png",
     "SkinId": 0
   },
   {
     "Id": 7014,
     "Name": "Red A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\RedA.png"
+      "v1\\Background\\RedA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_RedA.png",
+    "IconPath": "v1\\ItemIcon\\Background_RedA.png",
     "SkinId": 0
   },
   {
     "Id": 7015,
     "Name": "Red B",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\RedB.png"
+      "v1\\Background\\RedB.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_RedB.png",
+    "IconPath": "v1\\ItemIcon\\Background_RedB.png",
     "SkinId": 0
   },
   {
     "Id": 7016,
     "Name": "Twitter Blue",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\TwitterBlue.png"
+      "v1\\Background\\TwitterBlue.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_TwitterBlue.png",
+    "IconPath": "v1\\ItemIcon\\Background_TwitterBlue.png",
     "SkinId": 0
   },
   {
     "Id": 7017,
     "Name": "World Poker Tour Like",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\WorldPokerTourtLike.png"
+      "v1\\Background\\WorldPokerTourtLike.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_WorldPokerTourtLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_WorldPokerTourtLike.png",
     "SkinId": 0
   },
   {
     "Id": 7018,
     "Name": "Yellow A",
     "ItemType": 7,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Background\\YellowA.png"
+      "v1\\Background\\YellowA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Background_YellowA.png",
+    "IconPath": "v1\\ItemIcon\\Background_YellowA.png",
     "SkinId": 0
   },
   {
     "Id": 8001,
     "Name": "A158UUA",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\A158UUA.png"
+      "v1\\Player\\Accessory\\A158UUA.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_A158UUA.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_A158UUA.png",
     "SkinId": 0
   },
   {
     "Id": 8002,
     "Name": "Anchor Tattoo",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\AnchorTattoo.png"
+      "v1\\Player\\Accessory\\AnchorTattoo.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_AnchorTattoo.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_AnchorTattoo.png",
     "SkinId": 0
   },
   {
     "Id": 8003,
     "Name": "F91UU",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\F91UU.png"
+      "v1\\Player\\Accessory\\F91UU.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_F91UU.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_F91UU.png",
     "SkinId": 0
   },
   {
     "Id": 8004,
     "Name": "Feng Shui Bracelet",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\FengShuiBracelet.png"
+      "v1\\Player\\Accessory\\FengShuiBracelet.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_FengShuiBracelet.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_FengShuiBracelet.png",
     "SkinId": 0
   },
   {
     "Id": 8005,
     "Name": "Good Luck Bracelet",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\GoodLuckBracelet.png"
+      "v1\\Player\\Accessory\\GoodLuckBracelet.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_GoodLuckBracelet.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_GoodLuckBracelet.png",
     "SkinId": 0
   },
   {
     "Id": 8006,
     "Name": "Hair",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\Hair.png"
+      "v1\\Player\\Accessory\\Hair.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_Hair.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_Hair.png",
     "SkinId": 0
   },
   {
     "Id": 8007,
     "Name": "Relax Driver Black",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\RelaxDriver_Black.png"
+      "v1\\Player\\Accessory\\RelaxDriver_Black.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_RelaxDriver_Black.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_RelaxDriver_Black.png",
     "SkinId": 0
   },
   {
     "Id": 8008,
     "Name": "Relax Driver Green",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\RelaxDriver_Green.png"
+      "v1\\Player\\Accessory\\RelaxDriver_Green.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_RelaxDriver_Green.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_RelaxDriver_Green.png",
     "SkinId": 0
   },
   {
     "Id": 8009,
     "Name": "Text Wristband Green",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\TextWristband_Green.png"
+      "v1\\Player\\Accessory\\TextWristband_Green.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_TextWristband_Green.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_TextWristband_Green.png",
     "SkinId": 0
   },
   {
     "Id": 8010,
     "Name": "Text Wristband Red",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\TextWristband_Red.png"
+      "v1\\Player\\Accessory\\TextWristband_Red.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_TextWristband_Red.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_TextWristband_Red.png",
     "SkinId": 0
   },
   {
     "Id": 8011,
     "Name": "WSOP Gold Bracelet",
     "ItemType": 8,
-    "Rarity": 3,
+    "ItemRarity": 3,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
-    "isUnique": false,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
     "BlindBoxId": 1001,
     "AssetPathList": [
-      "lucky-dog-rise\\Assets\\Accessory\\WSOPGoldBracelet.png"
+      "v1\\Player\\Accessory\\WSOPGoldBracelet.png"
     ],
-    "IconPath": "lucky-dog-rise\\Assets\\UI\\ItemIcon\\Accessory_WSOPGoldBracelet.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_WSOPGoldBracelet.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9001,
+    "Name": "Black Tea",
+    "ItemType": 9,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\BlackTea.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_BlackTea.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9002,
+    "Name": "Bordeaux",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Bordeaux.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Bordeaux.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9003,
+    "Name": "Burgundy",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Burgundy.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Burgundy.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9004,
+    "Name": "Chardonnay",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Chardonnay.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Chardonnay.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9005,
+    "Name": "Shot Glass",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\ShotGlass.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_ShotGlass.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9006,
+    "Name": "Tulip",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Tulip.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Tulip.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9007,
+    "Name": "Tumbler",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Tumbler.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Tumbler.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9008,
+    "Name": "Vintage",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Vintage.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Vintage.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9009,
+    "Name": "Water",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Treat\\Water.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Water.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9010,
+    "Name": "Whisky",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\Whisky.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_Whisky.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 9011,
+    "Name": "Whisky Cigar",
+    "ItemType": 9,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "IsUnique": false,
+    "HiddenRegionFlag": 102,
+    "SafeResourceId": 9009,
+    "BlindBoxId": 1001,
+    "AssetPathList": [
+      "v1\\Treat\\WhiskyCagar.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Treat_WhiskyCagar.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 10001,
+    "Name": "Basic Card Back",
+    "ItemType": 10,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardBack\\Basic.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardBack_Basic.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 11001,
+    "Name": "Kibble Card Face",
+    "ItemType": 11,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardFace\\Classic\\"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardFace_Kibble.png",
+    "SkinId": 0
+  },
+  {
+    "Id": 11002,
+    "Name": "Classic Card Face",
+    "ItemType": 11,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 0,
+    "IsUnique": true,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 11001,
+    "BlindBoxId": 0,
+    "AssetPathList": [
+      "v1\\Card\\CardFace\\Classic\\"
+    ],
+    "IconPath": "v1\\ItemIcon\\CardFace_Classic.png",
     "SkinId": 0
   }
 ]
