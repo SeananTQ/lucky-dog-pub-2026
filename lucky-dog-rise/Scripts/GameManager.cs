@@ -54,6 +54,7 @@ public partial class GameManager : Node2D
     private DogVisual _dogVisual = null!;
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
+    private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
@@ -67,6 +68,7 @@ public partial class GameManager : Node2D
         _dogVisual = GetNode<DogVisual>("DogArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
+        _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
 
@@ -246,6 +248,7 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name));
+        ApplyItemTexture(EItemType.Treat, (tex, name) => _itemArea.SetTreat(tex, name));
     }
 
     private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply)
@@ -272,6 +275,8 @@ public partial class GameManager : Node2D
             (tex, name) => _handArea.SetClothes(tex, name));
         ApplyRandomFromInventory(EItemType.Accessory, rng,
             (tex, name) => _handArea.SetAccessory(tex, name));
+        ApplyRandomFromInventory(EItemType.Treat, rng,
+            (tex, name) => _itemArea.SetTreat(tex, name));
     }
 
     private void ApplyRandomFromInventory(EItemType type, Random rng, System.Action<Texture2D, string> apply)
