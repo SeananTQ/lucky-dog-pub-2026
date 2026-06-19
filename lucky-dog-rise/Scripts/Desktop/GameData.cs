@@ -35,6 +35,11 @@ public partial class GameData : Node
         Inventory.Equip(itemId);
     }
 
+    public void ToggleEquipItem(int itemId)
+    {
+        Inventory.ToggleEquip(itemId);
+    }
+
     public void ModifyChips(int delta)
     {
         Chips += delta;

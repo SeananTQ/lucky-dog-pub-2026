@@ -252,19 +252,27 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.Background, (tex, _) => GetNode<TextureRect>("Background").Texture = tex);
         ApplyItemTexture(EItemType.Table, (tex, _) => GetNode<TextureRect>("Table").Texture = tex);
         ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
-        ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name));
-        ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name));
-        ApplyItemTexture(EItemType.Treat, (tex, name) => _itemArea.SetTreat(tex, name));
+        ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name), () => _handArea.SetClothes(null, ""));
+        ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name), () => _handArea.SetAccessory(null, ""));
+        ApplyItemTexture(EItemType.Treat, (tex, name) => _itemArea.SetTreat(tex, name), _itemArea.ClearTreat);
         _dogVisual.RefreshEquippedHeadwear();
         _dogVisual.RefreshEquippedEyewear();
     }
 
-    private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply)
+    private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply, Action clear = null)
     {
         var item = _gameData.Inventory.GetEquipped(type);
-        if (item == null || item.AssetPathList.Count == 0) return;
+        if (item == null || item.AssetPathList.Count == 0)
+        {
+            clear?.Invoke();
+            return;
+        }
         var tex = GD.Load<Texture2D>(PlayerInventory.ToResPath(item.AssetPathList[0]));
-        if (tex == null) return;
+        if (tex == null)
+        {
+            clear?.Invoke();
+            return;
+        }
         var fileName = item.AssetPathList[0].Split('\\').Last();
         apply(tex, fileName);
     }

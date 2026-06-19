@@ -229,7 +229,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         var cell = ItemCellScene.Instantiate<ItemCellController>();
         cell.Setup(item, _gameData.Inventory.IsEquipped(item.Id));
-        cell.Pressed += () => _gameData.EquipItem(item.Id);
+        cell.Pressed += () => _gameData.ToggleEquipItem(item.Id);
         return cell;
     }
 

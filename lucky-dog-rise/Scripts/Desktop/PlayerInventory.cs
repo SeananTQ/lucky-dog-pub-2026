@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DataTables;
+using Godot;
 
 namespace LuckyDogRise;
 
@@ -19,12 +20,20 @@ public class PlayerInventory
             _ownedIds.Add(item.Id); // 临时：拥有全部道具用于测试
         }
 
-        // 自动装备每种类型的第一个道具
+        // 不可空闲的槽位默认装备玩家拥有的第一个道具。
         foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
         {
+            if (CanUnequip(type)) continue;
+
             var first = GetOwnedOfType(type).FirstOrDefault();
             if (first != null)
+            {
                 _equipped[type] = first.Id;
+            }
+            else if (LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type) != null)
+            {
+                GD.PushError($"[Inventory] Required equipment slot has no owned item: {type}");
+            }
         }
     }
 
@@ -48,8 +57,29 @@ public class PlayerInventory
         var item = FindItem(itemId);
         if (item == null || !_ownedIds.Contains(itemId)) return;
 
+        if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
+            return;
+
         _equipped[item.ItemType] = itemId;
         EquipmentChanged?.Invoke();
+    }
+
+    public void ToggleEquip(int itemId)
+    {
+        var item = FindItem(itemId);
+        if (item == null || !_ownedIds.Contains(itemId)) return;
+
+        if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
+        {
+            if (CanUnequip(item.ItemType))
+            {
+                _equipped.Remove(item.ItemType);
+                EquipmentChanged?.Invoke();
+            }
+            return;
+        }
+
+        Equip(itemId);
     }
 
     public IEnumerable<Item> GetOwnedOfType(EItemType type)
@@ -62,6 +92,12 @@ public class PlayerInventory
     public Item? GetDefaultOfType(EItemType type)
     {
         return GetOwnedOfType(type).FirstOrDefault();
+    }
+
+    public bool CanUnequip(EItemType type)
+    {
+        var config = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type);
+        return config != null && string.Equals(config.CanUnequip, "True", StringComparison.OrdinalIgnoreCase);
     }
 
     private static Item? FindItem(int id)

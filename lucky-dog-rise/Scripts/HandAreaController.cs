@@ -76,9 +76,17 @@ public partial class HandAreaController : Node2D
 
     public void SetClothes(Texture2D texture, string fileName)
     {
-        _clothes.Texture = texture;
-        var pos = GetScenePosition(fileName);
-        if (pos != Vector2.Zero) _clothes.Position = pos;
+        if (texture != null)
+        {
+            _clothes.Texture = texture;
+            _clothes.Visible = true;
+            var pos = GetScenePosition(fileName);
+            if (pos != Vector2.Zero) _clothes.Position = pos;
+        }
+        else
+        {
+            _clothes.Visible = false;
+        }
     }
 
     public void SetAccessory(Texture2D texture, string fileName)
