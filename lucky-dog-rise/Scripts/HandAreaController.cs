@@ -119,14 +119,7 @@ public partial class HandAreaController : Node2D
         _positionCache = new Dictionary<string, Vector2>();
 
         using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
-        if (file == null)
-        {
-            // Fallback to old layer_index.json
-            using var oldFile = FileAccess.Open("res://Assets/layer_index.json", FileAccess.ModeFlags.Read);
-            if (oldFile == null) return;
-            ParseLayerJson(oldFile.GetAsText());
-            return;
-        }
+        if (file == null) return;
         ParseLayerJson(file.GetAsText());
     }
 

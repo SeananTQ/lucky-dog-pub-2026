@@ -49,8 +49,7 @@ public partial class ItemAreaController : Node2D
         if (_cacheBuilt) return;
         _cacheBuilt = true;
 
-        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read)
-            ?? FileAccess.Open("res://Assets/layer_index.json", FileAccess.ModeFlags.Read);
+        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
         if (file == null) return;
 
         var json = new Json();

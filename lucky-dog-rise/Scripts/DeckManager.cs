@@ -299,6 +299,6 @@ public class DeckManager
 
     public static string CardToAssetPath(int card)
     {
-        return $"res://Assets/Card/{CardToString(card)}.png";
+        return $"res://Assets/v1/CardFace/Classic/{CardToString(card)}.png";
     }
 }

@@ -140,36 +140,10 @@ public partial class DogVisual : Node2D
         ApplyReaction(EDogReactionTrigger.Silent);
     }
 
-    public void SetEyewear(string fileName, Vector2 position)
-    {
-        _eyewear.Visible = true;
-        _eyewear.Texture = GD.Load<Texture2D>($"res://Assets/Eyewear/{fileName}");
-        _eyewear.Position = position;
-    }
-
-    public void SetHeadwear(string fileName, Vector2 position)
-    {
-        _headwear.Visible = true;
-        _headwear.Texture = GD.Load<Texture2D>($"res://Assets/Headwear/{fileName}");
-        _headwear.Position = position;
-    }
-
     public void ResetAccessories()
     {
         _eyewear.Visible = false;
         _headwear.Visible = false;
-    }
-
-    public void SwapEyewearTexture(string fileName)
-    {
-        _eyewear.Visible = true;
-        _eyewear.Texture = GD.Load<Texture2D>($"res://Assets/Eyewear/{fileName}");
-    }
-
-    public void SwapHeadwearTexture(string fileName)
-    {
-        _headwear.Visible = true;
-        _headwear.Texture = GD.Load<Texture2D>($"res://Assets/Headwear/{fileName}");
     }
 
     public void RefreshEquippedVisuals()
