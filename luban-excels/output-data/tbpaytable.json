@@ -2,6 +2,7 @@
   {
     "Id": 1001,
     "PayoutMultiplier": 50,
+    "HandRank": 2,
     "OriginalName": "Jacks or Better",
     "SafeName_EN": "Top Dogs",
     "SafeName_CN": "好犬优选"
@@ -9,6 +10,7 @@
   {
     "Id": 1002,
     "PayoutMultiplier": 100,
+    "HandRank": 3,
     "OriginalName": "Two Pair",
     "SafeName_EN": "Twin Pairs",
     "SafeName_CN": "双犬配对"
@@ -16,6 +18,7 @@
   {
     "Id": 1003,
     "PayoutMultiplier": 150,
+    "HandRank": 4,
     "OriginalName": "Three of a Kind",
     "SafeName_EN": "Triple Pals",
     "SafeName_CN": "三犬同行"
@@ -23,6 +26,7 @@
   {
     "Id": 1004,
     "PayoutMultiplier": 200,
+    "HandRank": 5,
     "OriginalName": "Straight",
     "SafeName_EN": "Chain Walk",
     "SafeName_CN": "顺位犬链"
@@ -30,6 +34,7 @@
   {
     "Id": 1005,
     "PayoutMultiplier": 300,
+    "HandRank": 6,
     "OriginalName": "Flush",
     "SafeName_EN": "Matching Den",
     "SafeName_CN": "同色犬舍"
@@ -37,6 +42,7 @@
   {
     "Id": 1006,
     "PayoutMultiplier": 450,
+    "HandRank": 7,
     "OriginalName": "Full House",
     "SafeName_EN": "Puppy Party",
     "SafeName_CN": "狗狗满堂"
@@ -44,6 +50,7 @@
   {
     "Id": 1007,
     "PayoutMultiplier": 1000,
+    "HandRank": 8,
     "OriginalName": "Four of a Kind",
     "SafeName_EN": "Dog Squad",
     "SafeName_CN": "四犬成团"
@@ -51,6 +58,7 @@
   {
     "Id": 1008,
     "PayoutMultiplier": 2500,
+    "HandRank": 9,
     "OriginalName": "Straight Flush",
     "SafeName_EN": "Purebred Strike",
     "SafeName_CN": "纯种犬连击"
@@ -58,6 +66,7 @@
   {
     "Id": 1009,
     "PayoutMultiplier": 12500,
+    "HandRank": 10,
     "OriginalName": "Royal Flush",
     "SafeName_EN": "Royal Feast",
     "SafeName_CN": "皇家狗粮"

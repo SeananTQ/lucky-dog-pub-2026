@@ -12,7 +12,7 @@
 namespace DataTables
 { 
     /// <summary>
-    /// 派系
+    /// 物品类型
     /// </summary>
     public enum EItemType
     {

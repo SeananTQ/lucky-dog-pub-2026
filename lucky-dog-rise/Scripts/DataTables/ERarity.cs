@@ -12,7 +12,7 @@
 namespace DataTables
 { 
     /// <summary>
-    /// 类型
+    /// 物品稀有度
     /// </summary>
     public enum ERarity
     {

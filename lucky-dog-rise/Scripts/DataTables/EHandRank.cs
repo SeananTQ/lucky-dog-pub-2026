@@ -12,34 +12,50 @@
 namespace DataTables
 { 
     /// <summary>
-    /// 物品稀有度
+    /// 牌型
     /// </summary>
-    public enum ERarity
+    public enum EHandRank
     {
         /// <summary>
-        /// 传说
+        /// 坏牌
         /// </summary>
-        Legendary = 1,
+        Nothing = 1,
         /// <summary>
-        /// 史诗
+        /// 高对
         /// </summary>
-        Epic = 2,
+        JacksOrBetter = 2,
         /// <summary>
-        /// 稀有
+        /// 两对
         /// </summary>
-        Rare = 3,
+        TwoPair = 3,
         /// <summary>
-        /// 普通
+        /// 三条
         /// </summary>
-        Common = 4,
+        ThreeOfAKind = 4,
         /// <summary>
-        /// 渠道奖励，不按传统系统度计算
+        /// 顺子
         /// </summary>
-        Special1 = 5,
+        Straight = 5,
         /// <summary>
-        /// 渠道奖励，不按传统系统度计算
+        /// 同花
         /// </summary>
-        Special2 = 6,
+        Flush = 6,
+        /// <summary>
+        /// 葫芦
+        /// </summary>
+        FullHouse = 7,
+        /// <summary>
+        /// 四条
+        /// </summary>
+        FourOfAKind = 8,
+        /// <summary>
+        /// 同花顺
+        /// </summary>
+        StraightFlush = 9,
+        /// <summary>
+        /// 皇家同花顺
+        /// </summary>
+        RoyalFlush = 10,
     }
 
 } 
