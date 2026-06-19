@@ -164,3 +164,16 @@ text = "Randomize Scene"
 [node name="RandomizeDogBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=98234572]
 layout_mode = 2
 text = "Randomize Dog"
+
+[node name="ReactionRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+layout_mode = 2
+
+[node name="ReactionOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+
+[node name="PlayReactionBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Play"

@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using DataTables;
 using Godot;
 
 namespace LuckyDogRise;
@@ -12,6 +15,7 @@ public partial class ModeManager : Control
     public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
     private DogVisual _bossDogVisual = null!;
+    private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
@@ -30,6 +34,20 @@ public partial class ModeManager : Control
 
     private GameData _gameData = null!;
     public GameData GameDataObj => _gameData;
+
+    private static readonly EItemType[] DebugDogItemTypes =
+    [
+        EItemType.Dog,
+        EItemType.Headwear,
+        EItemType.Eyewear,
+    ];
+
+    private static readonly EItemType[] DebugSceneItemTypes = Enum.GetValues<EItemType>()
+        .Where(type => !DebugDogItemTypes.Contains(type))
+        .ToArray();
+
+    private readonly Random _debugRandom = new();
+    private readonly Dictionary<EItemType, ShuffleBag<int>> _debugItemBags = new();
 
     public override void _Ready()
     {
@@ -58,6 +76,9 @@ public partial class ModeManager : Control
         _settingsPanel.GameData = _gameData;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
+        _settingsPanel.RandomizeRequested += OnRandomizeScene;
+        _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
+        _settingsPanel.DogReactionRequested += OnDogReactionRequested;
 
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
@@ -173,11 +194,9 @@ public partial class ModeManager : Control
             _infoPanel.SettingsRequested += ToggleSettingsPanel;
 
             // 连接 Main 中的 GameManager 信号
-            var gm = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
-            gm.GameData = _gameData;
-            gm.SettingsPanel = _settingsPanel;
-            _settingsPanel.RandomizeRequested += gm.OnRandomizeScene;
-            _settingsPanel.RandomizeDogRequested += gm.OnRandomizeDog;
+            _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
+            _gameManager.GameData = _gameData;
+            _gameManager.SettingsPanel = _settingsPanel;
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
@@ -245,6 +264,45 @@ public partial class ModeManager : Control
     {
         _bossDogVisual.RefreshEquippedDisguiseVisuals();
         _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
+    }
+
+    private void OnRandomizeScene()
+    {
+        ApplyRandomEquipment(DebugSceneItemTypes);
+    }
+
+    private void OnRandomizeDog()
+    {
+        ApplyRandomEquipment(DebugDogItemTypes);
+    }
+
+    private void OnDogReactionRequested(int trigger)
+    {
+        if (CurrentMode == Mode.BossKey)
+            _bossDogVisual.ApplyReaction((EDogReactionTrigger)trigger);
+        else
+            _gameManager?.OnPlayDogReaction(trigger);
+    }
+
+    private void ApplyRandomEquipment(IEnumerable<EItemType> types)
+    {
+        foreach (var type in types)
+        {
+            var items = _gameData.Inventory.GetOwnedOfType(type)
+                .OrderBy(item => item.Id)
+                .ToList();
+            if (items.Count == 0) continue;
+
+            if (!_debugItemBags.TryGetValue(type, out var bag))
+            {
+                bag = new ShuffleBag<int>();
+                _debugItemBags[type] = bag;
+            }
+
+            var equippedId = _gameData.Inventory.GetEquipped(type)?.Id ?? -1;
+            var pickedId = bag.Pick(items.Select(item => item.Id).ToList(), _debugRandom, equippedId);
+            _gameData.EquipItem(pickedId);
+        }
     }
 
     // ===== 面板切换 =====
@@ -461,6 +519,69 @@ public partial class ModeManager : Control
                     UpdatePlayLayout();
                 GetViewport().SetInputAsHandled();
             }
+        }
+    }
+
+    private sealed class ShuffleBag<T>
+    {
+        private readonly Queue<T> _queue = new();
+        private List<T> _lastCandidates = new();
+        private T _lastPicked;
+        private bool _hasLastPicked;
+
+        public T Pick(IReadOnlyList<T> candidates, Random rng, T avoid)
+        {
+            if (candidates.Count == 0)
+                throw new InvalidOperationException("ShuffleBag needs at least one candidate.");
+
+            if (_queue.Count == 0 || !HasSameCandidates(candidates))
+                Refill(candidates, rng, avoid);
+
+            var picked = _queue.Dequeue();
+            _lastPicked = picked;
+            _hasLastPicked = true;
+            return picked;
+        }
+
+        private void Refill(IReadOnlyList<T> candidates, Random rng, T avoid)
+        {
+            _lastCandidates = candidates.ToList();
+            var shuffled = candidates.ToList();
+            for (int i = shuffled.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
+            }
+
+            MoveFirstRepeatBack(shuffled, avoid);
+            if (_hasLastPicked)
+                MoveFirstRepeatBack(shuffled, _lastPicked);
+
+            _queue.Clear();
+            foreach (var item in shuffled)
+                _queue.Enqueue(item);
+        }
+
+        private static void MoveFirstRepeatBack(List<T> shuffled, T avoid)
+        {
+            if (shuffled.Count <= 1 || !EqualityComparer<T>.Default.Equals(shuffled[0], avoid))
+                return;
+
+            for (int i = 1; i < shuffled.Count; i++)
+            {
+                if (!EqualityComparer<T>.Default.Equals(shuffled[i], avoid))
+                {
+                    (shuffled[0], shuffled[i]) = (shuffled[i], shuffled[0]);
+                    return;
+                }
+            }
+        }
+
+        private bool HasSameCandidates(IReadOnlyList<T> candidates)
+        {
+            return _lastCandidates.Count == candidates.Count
+                && !_lastCandidates.Except(candidates).Any()
+                && !candidates.Except(_lastCandidates).Any();
         }
     }
 }

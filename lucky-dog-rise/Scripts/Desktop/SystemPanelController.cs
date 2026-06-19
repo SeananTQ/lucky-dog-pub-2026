@@ -10,6 +10,7 @@ public partial class SystemPanelController : CanvasLayer
 {
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
+    [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
 
@@ -45,6 +46,7 @@ public partial class SystemPanelController : CanvasLayer
     // Debug 页
     private Label _seedLabel = null!;
     private LineEdit _seedInput = null!;
+    private OptionButton _reactionOption = null!;
     private int _currentSeed;
 
     // Wardrobe 页
@@ -113,10 +115,15 @@ public partial class SystemPanelController : CanvasLayer
         _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
         var randomizeSceneBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeDogBtn");
+        _reactionOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/ReactionOption");
+        var playReactionBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
+        BuildReactionOptions();
+        playReactionBtn.Pressed += () =>
+            EmitSignal(SignalName.DogReactionRequested, _reactionOption.GetSelectedId());
 
         // === Wardrobe 页 ===
         _wardrobeGrid = GetNode<GridContainer>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
@@ -275,6 +282,23 @@ public partial class SystemPanelController : CanvasLayer
     {
         seed = 0;
         return _seedInput.Text.Length > 0 && int.TryParse(_seedInput.Text, out seed);
+    }
+
+    private void BuildReactionOptions()
+    {
+        _reactionOption.Clear();
+
+        var triggers = LubanData.Tables.TbDogReaction.DataList
+            .Select(reaction => reaction.DogReactionTrigger)
+            .Where(trigger => trigger != EDogReactionTrigger.None && trigger != EDogReactionTrigger.Bespoke)
+            .Distinct()
+            .OrderBy(trigger => (int)trigger);
+
+        foreach (var trigger in triggers)
+            _reactionOption.AddItem($"{trigger} ({(int)trigger})", (int)trigger);
+
+        if (_reactionOption.ItemCount > 0)
+            _reactionOption.Select(0);
     }
 
     // ===== 设置回调 =====
