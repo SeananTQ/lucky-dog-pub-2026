@@ -16,6 +16,7 @@ namespace DataTables
     /// </summary>
     public enum EDogReactionTrigger
     {
+        None = 0,
         /// <summary>
         /// 特殊处理的方式需要和开发人员约定来定制
         /// </summary>
