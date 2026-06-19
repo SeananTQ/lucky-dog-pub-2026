@@ -39,7 +39,7 @@ public partial class GameManager : Node2D
                 RefreshUI();
                 ApplyEquippedVisuals();
                 _gameData.EquipmentChanged += ApplyEquippedVisuals;
-                _hud.SetMessage("Click the chips to place your bet");
+                _hud.SetMessage("");
                 _chipStack.ShowHint("Click to bet");
             }
         }
@@ -81,7 +81,7 @@ public partial class GameManager : Node2D
         if (_gameData != null)
         {
             RefreshUI();
-            _hud.SetMessage("Click the chips to place your bet");
+            _hud.SetMessage("");
             _chipStack.ShowHint("Click to bet");
         }
 
@@ -118,7 +118,7 @@ public partial class GameManager : Node2D
         {
             _dogHint.IsLocked = true;
             _dogVisual.ApplyReaction(EDogReactionTrigger.HintExhausted);
-            _hud.SetMessage("Dog: *puts on sunglasses* Locked in!");
+            _hud.SetMessage("");
         }
         else if (!_dogHint.HasGivenHint)
         {
@@ -133,8 +133,7 @@ public partial class GameManager : Node2D
         if (_dogHint.HasGivenHint)
         {
             _dogVisual.ApplyReaction(EDogReactionTrigger.RefuseHint);
-            _dogVisual.ShakePaw();
-            _hud.SetMessage("Dog: *shakes paw* No more hints!");
+            _hud.SetMessage("");
             return;
         }
 
@@ -142,7 +141,7 @@ public partial class GameManager : Node2D
         var previewRank = _dogHint.EvaluateHoldRank(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ApplyReaction(GetSawReaction(previewRank));
         _dogHint.HasGivenHint = true;
-        _hud.SetMessage($"Dog: {GetSignalMessage(previewRank)}");
+        _hud.SetMessage("");
     }
 
     private void OnChipCollected()
@@ -176,7 +175,7 @@ public partial class GameManager : Node2D
         _dogVisual.ApplyReaction(EDogReactionTrigger.Dealt);
         _handArea.Enabled = false;  // 发牌动画期间禁止敲桌
         GetTree().CreateTimer(1.1f).Timeout += () => _handArea.Enabled = true;
-        _hud.SetMessage("Click cards to HOLD, then knock to draw");
+        _hud.SetMessage("");
         RefreshUI();
     }
 
@@ -195,13 +194,13 @@ public partial class GameManager : Node2D
         if (payout > 0)
         {
             _pendingPayout = payout;
-            _hud.SetMessage($"{rank}! Won {payout} chips! Click chips to collect.");
+            _hud.SetMessage("");
             SpawnChipReward(payout);
             State = GameState.Settled;
         }
         else
         {
-            _hud.SetMessage("No win. Click chips to bet again.");
+            _hud.SetMessage("");
             State = GameState.WaitingForBet;
             _chipStack.ShowHint("Click to bet");
             if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
@@ -215,7 +214,7 @@ public partial class GameManager : Node2D
     {
         State = GameState.GameOver;
         _hud.ShowOverlay(DogProverbs.GetRandom());
-        _hud.SetMessage("Game Over");
+        _hud.SetMessage("");
         _chipStack.HideHint();
         RefreshUI();
     }
@@ -233,18 +232,6 @@ public partial class GameManager : Node2D
     private void RefreshUI()
     {
         SettingsPanel?.UpdateSeed(_deck.LastSeed);
-    }
-
-    private static string GetSignalMessage(EHandRank rank)
-    {
-        return rank switch
-        {
-            EHandRank.Nothing => "*yawns* Not looking great...",
-            EHandRank.JacksOrBetter or EHandRank.TwoPair or EHandRank.ThreeOfAKind => "*wags tail* Feeling good!",
-            EHandRank.Straight or EHandRank.Flush or EHandRank.FullHouse => "*eyes light up* Something big!",
-            EHandRank.FourOfAKind or EHandRank.StraightFlush or EHandRank.RoyalFlush => "*ears perk up* INCREDIBLE!",
-            _ => "...",
-        };
     }
 
     private static EDogReactionTrigger GetSawReaction(EHandRank rank)
@@ -325,7 +312,7 @@ public partial class GameManager : Node2D
         _dogVisual.ShowClawPalm();
         _dogVisual.SetEyewear(eye.file, eye.scenePos);
         _dogVisual.SetHeadwear(head.file, head.scenePos);
-        _hud.SetMessage($"Dog: {eye.name} + {head.name}");
+        _hud.SetMessage("");
     }
 
     private record struct AssetEntry(string name, string file, Vector2 scenePos)

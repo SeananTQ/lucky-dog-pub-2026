@@ -22,6 +22,11 @@ public partial class DogVisual : Node2D
     private GameData _gameData = null!;
     private DogSkin _dogSkin = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
+    private Tween _tongueTween = null!;
+
+    [Export] private float _tonguePantOffset = 10f;
+    [Export] private float _tonguePantStepDuration = 0.06f;
+    [Export] private int _tonguePantLoops = 2;
 
     public GameData GameData
     {
@@ -115,6 +120,7 @@ public partial class DogVisual : Node2D
         ApplyReaction(EDogReactionTrigger.Default);
     }
 
+    // TODO: 待清理。旧硬编码表情入口，主流程已改为 DogReaction 表驱动。
     public void ShowSignal(DogSignal signal)
     {
         ApplyReaction(signal switch
@@ -127,6 +133,7 @@ public partial class DogVisual : Node2D
         });
     }
 
+    // TODO: 待清理。旧硬编码表情入口，主流程已改为 DogReaction 表驱动。
     public void ShowSunglasses()
     {
         ApplyReaction(EDogReactionTrigger.Silent);
@@ -279,6 +286,7 @@ public partial class DogVisual : Node2D
         _clawRight.Visible = false;
     }
 
+    // TODO: 待清理。旧动画入口，主流程应通过 DogReaction.Left/RightPawAnimation 驱动。
     // 摇手拒绝动画（双手旋转摆动）
     public void ShakePaw()
     {
@@ -332,6 +340,9 @@ public partial class DogVisual : Node2D
         if (reaction == null)
             return DogReactionVisual.Default;
 
+        if (reaction.AssetRef == EDogReactionTrigger.Bespoke)
+            return ResolveBespokeReaction(reaction.Id);
+
         var result = DogReactionVisual.Default;
         if (reaction.AssetRef != EDogReactionTrigger.None && reaction.AssetRef != EDogReactionTrigger.Bespoke)
             result = ResolveReaction(reaction.AssetRef);
@@ -354,6 +365,16 @@ public partial class DogVisual : Node2D
         return result;
     }
 
+    private DogReactionVisual ResolveBespokeReaction(int reactionId)
+    {
+        return reactionId switch
+        {
+            2004 => DogReactionVisual.Default,
+            2008 => DogReactionVisual.Default,
+            _ => DogReactionVisual.Default,
+        };
+    }
+
     private void ApplyReactionVisual(DogReactionVisual visual)
     {
         var skin = CurrentDogSkin;
@@ -371,6 +392,7 @@ public partial class DogVisual : Node2D
 
         if (_tongue != null)
         {
+            StopTongueAnimation();
             SetDogTexture(_tongue, skin.TongueRegular);
             _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
@@ -393,6 +415,8 @@ public partial class DogVisual : Node2D
         RefreshEquippedEyewear(showIfEquipped: visual.WearGlasses);
         if (!visual.WearGlasses)
             _eyewear.Visible = false;
+
+        ApplyTongueVisual(visual);
     }
 
     private void ApplyBaseAppearance(string eyesFileName, string earsFileName)
@@ -447,6 +471,39 @@ public partial class DogVisual : Node2D
             ShowClawPalm();
         else
             ShowClawBack();
+
+        if (left.Contains("摆手") || right.Contains("摆手"))
+            ShakePaw();
+    }
+
+    private void ApplyTongueVisual(DogReactionVisual visual)
+    {
+        if (_tongue == null) return;
+
+        if (visual.TongueAnimation.Contains("哈气"))
+            PlayTonguePant();
+    }
+
+    private void PlayTonguePant()
+    {
+        if (_tongue == null) return;
+
+        StopTongueAnimation();
+        var basePosition = _tongue.Position;
+        _tongueTween = CreateTween();
+        _tongueTween.SetLoops(Mathf.Max(1, _tonguePantLoops));
+        _tongueTween.TweenProperty(_tongue, "position", basePosition + new Vector2(0, _tonguePantOffset), _tonguePantStepDuration);
+        _tongueTween.TweenProperty(_tongue, "position", basePosition, _tonguePantStepDuration);
+        _tongueTween.TweenProperty(_tongue, "position", basePosition - new Vector2(0, _tonguePantOffset), _tonguePantStepDuration);
+        _tongueTween.TweenProperty(_tongue, "position", basePosition, _tonguePantStepDuration);
+    }
+
+    private void StopTongueAnimation()
+    {
+        if (_tongueTween == null) return;
+
+        _tongueTween.Kill();
+        _tongueTween = null;
     }
 
     private string ResolveDogAsset(string asset, string defaultAsset)
