@@ -1,22 +1,9 @@
 using System;
+using DataTables;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace LuckyDogRise;
-
-public enum HandRank
-{
-    Nothing = 1,
-    JacksOrBetter = 2,
-    TwoPair = 3,
-    ThreeOfAKind = 4,
-    Straight = 5,
-    Flush = 6,
-    FullHouse = 7,
-    FourOfAKind = 8,
-    StraightFlush = 9,
-    RoyalFlush = 10
-}
 
 public static class CardEvaluator
 {
@@ -27,23 +14,23 @@ public static class CardEvaluator
     public static int GetSuit(int card) => card / 13;
     public static int GetRank(int card) => card % 13;
 
-    public static readonly Dictionary<HandRank, int> PayTable = new()
+    public static readonly Dictionary<EHandRank, int> PayTable = new()
     {
-        { HandRank.Nothing, 0 },
-        { HandRank.JacksOrBetter, 1 },
-        { HandRank.TwoPair, 2 },
-        { HandRank.ThreeOfAKind, 3 },
-        { HandRank.Straight, 4 },
-        { HandRank.Flush, 6 },
-        { HandRank.FullHouse, 9 },
-        { HandRank.FourOfAKind, 25 },
-        { HandRank.StraightFlush, 50 },
-        { HandRank.RoyalFlush, 250 },
+        { EHandRank.Nothing, 0 },
+        { EHandRank.JacksOrBetter, 1 },
+        { EHandRank.TwoPair, 2 },
+        { EHandRank.ThreeOfAKind, 3 },
+        { EHandRank.Straight, 4 },
+        { EHandRank.Flush, 6 },
+        { EHandRank.FullHouse, 9 },
+        { EHandRank.FourOfAKind, 25 },
+        { EHandRank.StraightFlush, 50 },
+        { EHandRank.RoyalFlush, 250 },
     };
 
-    public static HandRank Evaluate(int[] cards)
+    public static EHandRank Evaluate(int[] cards)
     {
-        if (cards.Length != 5) return HandRank.Nothing;
+        if (cards.Length != 5) return EHandRank.Nothing;
 
         var ranks = cards.Select(GetRank).OrderBy(r => r).ToArray();
         var suits = cards.Select(GetSuit).ToArray();
@@ -51,21 +38,21 @@ public static class CardEvaluator
         bool isFlush = suits.Distinct().Count() == 1;
         bool isStraight = IsStraight(ranks, out bool isRoyal);
 
-        if (isFlush && isStraight && isRoyal) return HandRank.RoyalFlush;
-        if (isFlush && isStraight) return HandRank.StraightFlush;
+        if (isFlush && isStraight && isRoyal) return EHandRank.RoyalFlush;
+        if (isFlush && isStraight) return EHandRank.StraightFlush;
 
         var groups = ranks.GroupBy(r => r).OrderByDescending(g => g.Count()).ToArray();
         int maxCount = groups[0].Count();
 
-        if (maxCount == 4) return HandRank.FourOfAKind;
-        if (maxCount == 3 && groups.Length == 2) return HandRank.FullHouse;
-        if (isFlush) return HandRank.Flush;
-        if (isStraight) return HandRank.Straight;
-        if (maxCount == 3) return HandRank.ThreeOfAKind;
-        if (maxCount == 2 && groups.Count(g => g.Count() == 2) == 2) return HandRank.TwoPair;
-        if (maxCount == 2 && IsJacksOrBetter(groups[0].Key)) return HandRank.JacksOrBetter;
+        if (maxCount == 4) return EHandRank.FourOfAKind;
+        if (maxCount == 3 && groups.Length == 2) return EHandRank.FullHouse;
+        if (isFlush) return EHandRank.Flush;
+        if (isStraight) return EHandRank.Straight;
+        if (maxCount == 3) return EHandRank.ThreeOfAKind;
+        if (maxCount == 2 && groups.Count(g => g.Count() == 2) == 2) return EHandRank.TwoPair;
+        if (maxCount == 2 && IsJacksOrBetter(groups[0].Key)) return EHandRank.JacksOrBetter;
 
-        return HandRank.Nothing;
+        return EHandRank.Nothing;
     }
 
     public static int GetPayout(int[] cards, int bet)
@@ -107,7 +94,7 @@ public static class CardEvaluator
     public static int[] GetOptimalHold(int[] cards)
     {
         // Returns indices (0-4) of cards to hold for best expected outcome
-        HandRank currentRank = Evaluate(cards);
+        EHandRank currentRank = Evaluate(cards);
         var held = new List<int>();
 
         var ranks = cards.Select(GetRank).ToArray();
@@ -118,7 +105,7 @@ public static class CardEvaluator
                           .ToArray();
 
         // Always hold made hands (except maybe breaking a low pair)
-        if (currentRank >= HandRank.Straight)
+        if (currentRank >= EHandRank.Straight)
         {
             return Enumerable.Range(0, 5).ToArray(); // Hold all
         }

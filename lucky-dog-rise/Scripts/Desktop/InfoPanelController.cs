@@ -1,4 +1,5 @@
 using Godot;
+using DataTables;
 using System.Collections.Generic;
 
 namespace LuckyDogRise;
@@ -35,17 +36,17 @@ public partial class InfoPanelController : CanvasLayer
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
-    private static readonly HandRank[] GridOrder =
+    private static readonly EHandRank[] GridOrder =
     {
-        HandRank.RoyalFlush,
-        HandRank.StraightFlush,
-        HandRank.FourOfAKind,
-        HandRank.FullHouse,
-        HandRank.Flush,
-        HandRank.Straight,
-        HandRank.ThreeOfAKind,
-        HandRank.TwoPair,
-        HandRank.JacksOrBetter,
+        EHandRank.RoyalFlush,
+        EHandRank.StraightFlush,
+        EHandRank.FourOfAKind,
+        EHandRank.FullHouse,
+        EHandRank.Flush,
+        EHandRank.Straight,
+        EHandRank.ThreeOfAKind,
+        EHandRank.TwoPair,
+        EHandRank.JacksOrBetter,
     };
 
     public override void _Ready()
@@ -127,7 +128,7 @@ public partial class InfoPanelController : CanvasLayer
         _rankNameLabel.Text = "Good Luck!";
     }
 
-    private void OnHandResolved(HandRank rank, int payout)
+    private void OnHandResolved(EHandRank rank, int payout)
     {
         StopBlink();
         _winResultLabel.SelfModulate = Colors.White;
@@ -141,7 +142,7 @@ public partial class InfoPanelController : CanvasLayer
         }
         else
         {
-            _rankNameLabel.Text = rank == HandRank.Nothing ? "Nothing" : rank.ToString();
+            _rankNameLabel.Text = rank == EHandRank.Nothing ? "Nothing" : rank.ToString();
             _winResultLabel.Text = "";
             ClearHighlight();
         }
@@ -185,7 +186,7 @@ public partial class InfoPanelController : CanvasLayer
         _blindBoxCostLabel.Text = cost.ToString("N0");
     }
 
-    public void HighlightPayoutRow(HandRank rank)
+    public void HighlightPayoutRow(EHandRank rank)
     {
         ClearHighlight();
 

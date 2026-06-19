@@ -1,6 +1,5 @@
 using Godot;
 using System.Collections.Generic;
-using System.Linq;
 using DataTables;
 
 namespace LuckyDogRise;
@@ -22,6 +21,7 @@ public partial class DogVisual : Node2D
 
     private GameData _gameData = null!;
     private DogSkin _dogSkin = null!;
+    private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
 
     public GameData GameData
     {
@@ -107,30 +107,29 @@ public partial class DogVisual : Node2D
 
     public void ResetAppearance()
     {
-        ApplyBaseAppearance(CurrentDogSkin.EyesCute, CurrentDogSkin.EarsHappy);
+        ApplyReaction(EDogReactionTrigger.Default);
     }
 
     public void ResetDisguiseAppearance()
     {
-        ApplyBaseAppearance(CurrentDogSkin.DefaultEyes, CurrentDogSkin.DefaultEars);
+        ApplyReaction(EDogReactionTrigger.Default);
     }
 
     public void ShowSignal(DogSignal signal)
     {
-        var (eyes, ears) = GetSignalTextureNames(signal);
-        SetDogTexture(_eyes, eyes);
-        _eyes.Position = GetDogScenePosition(eyes);
-        SetDogTexture(_ears, ears);
-        _ears.Position = GetDogScenePosition(ears);
-        ShowClawPalm();
-
-        RefreshEquippedHeadwear();
+        ApplyReaction(signal switch
+        {
+            DogSignal.Bored => EDogReactionTrigger.Bored,
+            DogSignal.Happy => EDogReactionTrigger.Excited,
+            DogSignal.LuckyEye => EDogReactionTrigger.Starstruck,
+            DogSignal.TopTier => EDogReactionTrigger.Starstruck,
+            _ => EDogReactionTrigger.Default,
+        });
     }
 
     public void ShowSunglasses()
     {
-        _eyewear.Visible = true;
-        RefreshEquippedEyewear(showIfEquipped: true);
+        ApplyReaction(EDogReactionTrigger.Silent);
     }
 
     public void SetEyewear(string fileName, Vector2 position)
@@ -174,7 +173,7 @@ public partial class DogVisual : Node2D
             ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
             : null;
 
-        ResetAppearance();
+        ReapplyCurrentReaction();
     }
 
     public void RefreshEquippedDisguiseVisuals()
@@ -186,7 +185,15 @@ public partial class DogVisual : Node2D
             ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
             : null;
 
-        ResetDisguiseAppearance();
+        ReapplyCurrentReaction();
+    }
+
+    public void ApplyReaction(EDogReactionTrigger trigger)
+    {
+        if (!IsNodeReady()) return;
+
+        _currentReaction = trigger;
+        ReapplyCurrentReaction();
     }
 
     public void RefreshEquippedHeadwear()
@@ -314,6 +321,80 @@ public partial class DogVisual : Node2D
             sprite.Texture = texture;
     }
 
+    private void ReapplyCurrentReaction()
+    {
+        ApplyReactionVisual(ResolveReaction(_currentReaction));
+    }
+
+    private DogReactionVisual ResolveReaction(EDogReactionTrigger trigger)
+    {
+        var reaction = LubanData.Tables.TbDogReaction.GetOrDefault((int)trigger);
+        if (reaction == null)
+            return DogReactionVisual.Default;
+
+        var result = DogReactionVisual.Default;
+        if (reaction.AssetRef != EDogReactionTrigger.None && reaction.AssetRef != EDogReactionTrigger.Bespoke)
+            result = ResolveReaction(reaction.AssetRef);
+
+        if (!string.IsNullOrEmpty(reaction.EarAsset))
+            result.EarAsset = reaction.EarAsset;
+        if (!string.IsNullOrEmpty(reaction.EyeAsset))
+            result.EyeAsset = reaction.EyeAsset;
+        if (!string.IsNullOrEmpty(reaction.OverrideHeadwear))
+            result.OverrideHeadwear = reaction.OverrideHeadwear;
+        if (reaction.WearGlasses)
+            result.WearGlasses = true;
+        if (!string.IsNullOrEmpty(reaction.LeftPawAnimation))
+            result.LeftPawAnimation = reaction.LeftPawAnimation;
+        if (!string.IsNullOrEmpty(reaction.RightPawAnimation))
+            result.RightPawAnimation = reaction.RightPawAnimation;
+        if (!string.IsNullOrEmpty(reaction.TongueAnimation))
+            result.TongueAnimation = reaction.TongueAnimation;
+
+        return result;
+    }
+
+    private void ApplyReactionVisual(DogReactionVisual visual)
+    {
+        var skin = CurrentDogSkin;
+        var eyeAsset = ResolveDogAsset(visual.EyeAsset, skin.DefaultEyes);
+        var earAsset = ResolveDogAsset(visual.EarAsset, skin.DefaultEars);
+
+        SetDogTexture(_head, skin.Head);
+        _head.Position = GetDogScenePosition(skin.Head);
+
+        SetDogTexture(_eyes, eyeAsset);
+        _eyes.Position = GetDogScenePosition(eyeAsset);
+
+        SetDogTexture(_ears, earAsset);
+        _ears.Position = GetDogScenePosition(earAsset);
+
+        if (_tongue != null)
+        {
+            SetDogTexture(_tongue, skin.TongueRegular);
+            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
+        }
+
+        _head.ZIndex = 1;
+        _eyes.ZIndex = 1;
+        _ears.ZIndex = 1;
+        if (_tongue != null)
+            _tongue.ZIndex = 1;
+        _eyewear.ZIndex = 1;
+        _headwear.ZIndex = 1;
+
+        ApplyClawTextures();
+        ApplyPawVisual(visual);
+        RefreshEquippedHeadwear();
+
+        if (!string.IsNullOrEmpty(visual.OverrideHeadwear))
+            ApplyHeadwearOverride(visual.OverrideHeadwear);
+
+        RefreshEquippedEyewear(showIfEquipped: visual.WearGlasses);
+        if (!visual.WearGlasses)
+            _eyewear.Visible = false;
+    }
+
     private void ApplyBaseAppearance(string eyesFileName, string earsFileName)
     {
         var skin = CurrentDogSkin;
@@ -348,6 +429,34 @@ public partial class DogVisual : Node2D
         RefreshEquippedHeadwear();
     }
 
+    private void ApplyHeadwearOverride(string assetPath)
+    {
+        var texture = GD.Load<Texture2D>(PlayerInventory.ToResPath(assetPath));
+        if (texture == null) return;
+
+        _headwear.Texture = texture;
+        _headwear.Position = GetScenePosition(assetPath);
+        _headwear.Visible = true;
+    }
+
+    private void ApplyPawVisual(DogReactionVisual visual)
+    {
+        var left = visual.LeftPawAnimation;
+        var right = visual.RightPawAnimation;
+        if (left.Contains("手心") || right.Contains("手心"))
+            ShowClawPalm();
+        else
+            ShowClawBack();
+    }
+
+    private string ResolveDogAsset(string asset, string defaultAsset)
+    {
+        if (string.IsNullOrEmpty(asset) || asset == "默认")
+            return defaultAsset;
+
+        return asset.EndsWith(".png") ? asset : $"{asset}.png";
+    }
+
     private void ApplyClawTextures()
     {
         var skin = CurrentDogSkin;
@@ -373,6 +482,28 @@ public partial class DogVisual : Node2D
             DogSignal.LuckyEye => (skin.EyesLucky, skin.EarsHappy),
             DogSignal.TopTier => (skin.EyesLucky, skin.EarsHappy),
             _ => (skin.EyesCute, skin.EarsHappy),
+        };
+    }
+
+    private struct DogReactionVisual
+    {
+        public string EarAsset;
+        public string EyeAsset;
+        public string OverrideHeadwear;
+        public bool WearGlasses;
+        public string LeftPawAnimation;
+        public string RightPawAnimation;
+        public string TongueAnimation;
+
+        public static DogReactionVisual Default => new()
+        {
+            EarAsset = "默认",
+            EyeAsset = "默认",
+            OverrideHeadwear = "",
+            WearGlasses = false,
+            LeftPawAnimation = "手背",
+            RightPawAnimation = "手背",
+            TongueAnimation = "正常",
         };
     }
 

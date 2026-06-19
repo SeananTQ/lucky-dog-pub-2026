@@ -1,15 +1,16 @@
 using Godot;
+using DataTables;
 
 namespace LuckyDogRise;
 
 public partial class GameData : Node
 {
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
-    [Signal] public delegate void HandResolvedEventHandler(HandRank rank, int payout);
+    [Signal] public delegate void HandResolvedEventHandler(EHandRank rank, int payout);
     [Signal] public delegate void NewHandStartedEventHandler();
     [Signal] public delegate void EquipmentChangedEventHandler();
 
-    public void EmitHandResolved(HandRank rank, int payout)
+    public void EmitHandResolved(EHandRank rank, int payout)
     {
         EmitSignal(SignalName.HandResolved, (int)rank, payout);
     }

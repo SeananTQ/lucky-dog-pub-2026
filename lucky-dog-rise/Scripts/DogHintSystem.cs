@@ -1,4 +1,5 @@
 using System;
+using DataTables;
 using System.Linq;
 
 namespace LuckyDogRise;
@@ -29,20 +30,25 @@ public class DogHintSystem
         return RankToSignal(rank);
     }
 
-    private static DogSignal RankToSignal(HandRank rank)
+    public EHandRank EvaluateHoldRank(int[] currentHand, bool[] held, int[] finalHand)
+    {
+        return CardEvaluator.Evaluate(finalHand);
+    }
+
+    private static DogSignal RankToSignal(EHandRank rank)
     {
         return rank switch
         {
-            HandRank.Nothing => DogSignal.Bored,
-            HandRank.JacksOrBetter => DogSignal.Happy,
-            HandRank.TwoPair => DogSignal.Happy,
-            HandRank.ThreeOfAKind => DogSignal.Happy,
-            HandRank.Straight => DogSignal.LuckyEye,
-            HandRank.Flush => DogSignal.LuckyEye,
-            HandRank.FullHouse => DogSignal.LuckyEye,
-            HandRank.FourOfAKind => DogSignal.TopTier,
-            HandRank.StraightFlush => DogSignal.TopTier,
-            HandRank.RoyalFlush => DogSignal.TopTier,
+            EHandRank.Nothing => DogSignal.Bored,
+            EHandRank.JacksOrBetter => DogSignal.Happy,
+            EHandRank.TwoPair => DogSignal.Happy,
+            EHandRank.ThreeOfAKind => DogSignal.Happy,
+            EHandRank.Straight => DogSignal.LuckyEye,
+            EHandRank.Flush => DogSignal.LuckyEye,
+            EHandRank.FullHouse => DogSignal.LuckyEye,
+            EHandRank.FourOfAKind => DogSignal.TopTier,
+            EHandRank.StraightFlush => DogSignal.TopTier,
+            EHandRank.RoyalFlush => DogSignal.TopTier,
             _ => DogSignal.Bored
         };
     }

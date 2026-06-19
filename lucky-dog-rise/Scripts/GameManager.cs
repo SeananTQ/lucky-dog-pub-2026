@@ -117,8 +117,12 @@ public partial class GameManager : Node2D
         if (_dogHint.HasGivenHint && !_dogHint.IsLocked)
         {
             _dogHint.IsLocked = true;
-            _dogVisual.ShowSunglasses();
+            _dogVisual.ApplyReaction(EDogReactionTrigger.HintExhausted);
             _hud.SetMessage("Dog: *puts on sunglasses* Locked in!");
+        }
+        else if (!_dogHint.HasGivenHint)
+        {
+            _dogVisual.ApplyReaction(EDogReactionTrigger.WaitingForHint);
         }
     }
 
@@ -128,16 +132,17 @@ public partial class GameManager : Node2D
 
         if (_dogHint.HasGivenHint)
         {
+            _dogVisual.ApplyReaction(EDogReactionTrigger.RefuseHint);
             _dogVisual.ShakePaw();
             _hud.SetMessage("Dog: *shakes paw* No more hints!");
             return;
         }
 
         var previewHand = _deck.PreviewFinalHand(_held);
-        var signal = _dogHint.EvaluateHold(_deck.CurrentHand, _held, previewHand);
-        _dogVisual.ShowSignal(signal);
+        var previewRank = _dogHint.EvaluateHoldRank(_deck.CurrentHand, _held, previewHand);
+        _dogVisual.ApplyReaction(GetSawReaction(previewRank));
         _dogHint.HasGivenHint = true;
-        _hud.SetMessage($"Dog: {GetSignalMessage(signal)}");
+        _hud.SetMessage($"Dog: {GetSignalMessage(previewRank)}");
     }
 
     private void OnChipCollected()
@@ -168,7 +173,7 @@ public partial class GameManager : Node2D
         _chipStack.HideHint();
         _cardTable.DealCards(_deck.CurrentHand);
         State = GameState.Dealt;
-        _dogVisual.ResetAppearance();
+        _dogVisual.ApplyReaction(EDogReactionTrigger.Dealt);
         _handArea.Enabled = false;  // 发牌动画期间禁止敲桌
         GetTree().CreateTimer(1.1f).Timeout += () => _handArea.Enabled = true;
         _hud.SetMessage("Click cards to HOLD, then knock to draw");
@@ -186,6 +191,7 @@ public partial class GameManager : Node2D
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
         _gameData.EmitHandResolved(rank, payout);
+        _dogVisual.ApplyReaction(GetSawReaction(rank));
         if (payout > 0)
         {
             _pendingPayout = payout;
@@ -229,16 +235,28 @@ public partial class GameManager : Node2D
         SettingsPanel?.UpdateSeed(_deck.LastSeed);
     }
 
-    private static string GetSignalMessage(DogSignal signal)
+    private static string GetSignalMessage(EHandRank rank)
     {
-        return signal switch
+        return rank switch
         {
-            DogSignal.Bored => "*yawns* Not looking great...",
-            DogSignal.Happy => "*wags tail* Feeling good!",
-            DogSignal.LuckyEye => "*eyes light up* Something big!",
-            DogSignal.TopTier => "*ears perk up* INCREDIBLE!",
+            EHandRank.Nothing => "*yawns* Not looking great...",
+            EHandRank.JacksOrBetter or EHandRank.TwoPair or EHandRank.ThreeOfAKind => "*wags tail* Feeling good!",
+            EHandRank.Straight or EHandRank.Flush or EHandRank.FullHouse => "*eyes light up* Something big!",
+            EHandRank.FourOfAKind or EHandRank.StraightFlush or EHandRank.RoyalFlush => "*ears perk up* INCREDIBLE!",
             _ => "...",
         };
+    }
+
+    private static EDogReactionTrigger GetSawReaction(EHandRank rank)
+    {
+        if (rank == EHandRank.Nothing)
+            return EDogReactionTrigger.SawNothing;
+
+        var payTable = LubanData.Tables.TbPayTable.DataList.FirstOrDefault(row => row.HandRank == rank);
+        if (payTable == null)
+            return EDogReactionTrigger.SawNothing;
+
+        return (EDogReactionTrigger)(3000 + (int)payTable.HandRank);
     }
 
     private void ApplyEquippedVisuals()

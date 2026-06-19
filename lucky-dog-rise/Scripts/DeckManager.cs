@@ -1,4 +1,5 @@
 using System;
+using DataTables;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,7 +13,7 @@ public class DeckManager
 
     public int[] CurrentHand { get; private set; } = new int[5];
     public int[] FinalHand { get; private set; } = new int[5];
-    public HandRank PredeterminedRank { get; private set; }
+    public EHandRank PredeterminedRank { get; private set; }
     public int LastSeed { get; private set; }
 
     private int? _fixedSeed;
@@ -93,7 +94,7 @@ public class DeckManager
         return preview;
     }
 
-    private HandRank RollOutcome()
+    private EHandRank RollOutcome()
     {
         // Weighted distribution: biased toward exciting near-miss outcomes
         // Total weight: 1000
@@ -101,31 +102,31 @@ public class DeckManager
         // Straight: 60, Flush: 40, FullHouse: 30, FourOfAKind: 12, StraightFlush: 6, RoyalFlush: 2
         int roll = _rng.Next(1000);
 
-        if (roll < 250) return HandRank.Nothing;          // 25%
-        if (roll < 550) return HandRank.JacksOrBetter;    // 30%
-        if (roll < 730) return HandRank.TwoPair;          // 18%
-        if (roll < 850) return HandRank.ThreeOfAKind;     // 12%
-        if (roll < 910) return HandRank.Straight;          // 6%
-        if (roll < 950) return HandRank.Flush;             // 4%
-        if (roll < 980) return HandRank.FullHouse;         // 3%
-        if (roll < 992) return HandRank.FourOfAKind;       // 1.2%
-        if (roll < 998) return HandRank.StraightFlush;     // 0.6%
-        return HandRank.RoyalFlush;                        // 0.2%
+        if (roll < 250) return EHandRank.Nothing;          // 25%
+        if (roll < 550) return EHandRank.JacksOrBetter;    // 30%
+        if (roll < 730) return EHandRank.TwoPair;          // 18%
+        if (roll < 850) return EHandRank.ThreeOfAKind;     // 12%
+        if (roll < 910) return EHandRank.Straight;          // 6%
+        if (roll < 950) return EHandRank.Flush;             // 4%
+        if (roll < 980) return EHandRank.FullHouse;         // 3%
+        if (roll < 992) return EHandRank.FourOfAKind;       // 1.2%
+        if (roll < 998) return EHandRank.StraightFlush;     // 0.6%
+        return EHandRank.RoyalFlush;                        // 0.2%
     }
 
-    private int[] GenerateHandForRank(HandRank rank)
+    private int[] GenerateHandForRank(EHandRank rank)
     {
         return rank switch
         {
-            HandRank.RoyalFlush => GenerateRoyalFlush(),
-            HandRank.StraightFlush => GenerateStraightFlush(),
-            HandRank.FourOfAKind => GenerateFourOfAKind(),
-            HandRank.FullHouse => GenerateFullHouse(),
-            HandRank.Flush => GenerateFlush(),
-            HandRank.Straight => GenerateStraight(),
-            HandRank.ThreeOfAKind => GenerateThreeOfAKind(),
-            HandRank.TwoPair => GenerateTwoPair(),
-            HandRank.JacksOrBetter => GenerateJacksOrBetter(),
+            EHandRank.RoyalFlush => GenerateRoyalFlush(),
+            EHandRank.StraightFlush => GenerateStraightFlush(),
+            EHandRank.FourOfAKind => GenerateFourOfAKind(),
+            EHandRank.FullHouse => GenerateFullHouse(),
+            EHandRank.Flush => GenerateFlush(),
+            EHandRank.Straight => GenerateStraight(),
+            EHandRank.ThreeOfAKind => GenerateThreeOfAKind(),
+            EHandRank.TwoPair => GenerateTwoPair(),
+            EHandRank.JacksOrBetter => GenerateJacksOrBetter(),
             _ => GenerateNothing(),
         };
     }
@@ -245,7 +246,7 @@ public class DeckManager
         }
         // Verify it's actually nothing
         var result = cards.ToArray();
-        if (CardEvaluator.Evaluate(result) != HandRank.Nothing)
+        if (CardEvaluator.Evaluate(result) != EHandRank.Nothing)
             return GenerateNothing(); // Retry
         return result;
     }
