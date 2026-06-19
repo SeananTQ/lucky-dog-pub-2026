@@ -1,29 +1,29 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://b1vqwt5qb5i6a"]
 
-[ext_resource type="Script" path="res://Scripts/ChipRewardController.cs" id="1_ctrl"]
-[ext_resource type="Texture2D" path="res://Assets/Chip/ChipsA.png" id="2_chips"]
+[ext_resource type="Script" uid="uid://bfj6hgln0xem3" path="res://Scripts/ChipRewardController.cs" id="1_ctrl"]
+[ext_resource type="Texture2D" uid="uid://5nb5hhyt2n1a" path="res://Assets/v1/ChipStack/JacksOrBetter.png" id="2_uiumv"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
 
-[node name="ChipReward" type="Node2D"]
+[node name="ChipReward" type="Node2D" unique_id=144732315]
 script = ExtResource("1_ctrl")
 
-[node name="ChipSprite" type="Sprite2D" parent="."]
+[node name="ChipSprite" type="Sprite2D" parent="." unique_id=514500607]
 position = Vector2(0, -30)
-texture = ExtResource("2_chips")
+texture = ExtResource("2_uiumv")
 
-[node name="AmountLabel" type="Label" parent="."]
+[node name="AmountLabel" type="Label" parent="." unique_id=428280680]
 offset_left = -60.0
 offset_top = 20.0
 offset_right = 60.0
 offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 0.92, 0.2, 1)
+theme_override_font_sizes/font_size = 28
 text = "+0"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 28
-theme_override_colors/font_color = Color(1, 0.92, 0.2, 1)
 
-[node name="ClickButton" type="Button" parent="."]
+[node name="ClickButton" type="Button" parent="." unique_id=1931970227]
 offset_left = -80.0
 offset_top = -80.0
 offset_right = 80.0
