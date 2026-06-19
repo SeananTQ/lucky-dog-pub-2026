@@ -88,6 +88,7 @@ script = ExtResource("13_tutorial")
 script = ExtResource("10_hud")
 
 [node name="MessagePanel" type="PanelContainer" parent="HUD" unique_id=1511418603]
+visible = false
 offset_left = 250.0
 offset_top = 680.0
 offset_right = 950.0
@@ -97,7 +98,6 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_msg_panel")
 [node name="MessageLabel" type="Label" parent="HUD/MessagePanel" unique_id=1928995275]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = "Click DEAL to start"
 horizontal_alignment = 1
 vertical_alignment = 1
 
