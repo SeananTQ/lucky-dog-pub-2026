@@ -21,6 +21,7 @@ public partial class Tables
     public TbRarityUI TbRarityUI {get; }
     public TbTabGroup TbTabGroup {get; }
     public TbDogReaction TbDogReaction {get; }
+    public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -31,6 +32,7 @@ public partial class Tables
         TbRarityUI = new TbRarityUI(loader("tbrarityui"));
         TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         TbDogReaction = new TbDogReaction(loader("tbdogreaction"));
+        TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
         ResolveRef();
     }
     
@@ -43,6 +45,7 @@ public partial class Tables
         TbRarityUI.ResolveRef(this);
         TbTabGroup.ResolveRef(this);
         TbDogReaction.ResolveRef(this);
+        TbEquipmentSlotConfig.ResolveRef(this);
     }
 }
 

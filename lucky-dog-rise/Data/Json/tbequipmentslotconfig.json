@@ -1,0 +1,46 @@
+[
+  {
+    "ItemType": 1,
+    "CanUnequip": "False"
+  },
+  {
+    "ItemType": 2,
+    "CanUnequip": "True"
+  },
+  {
+    "ItemType": 3,
+    "CanUnequip": "True"
+  },
+  {
+    "ItemType": 4,
+    "CanUnequip": "False"
+  },
+  {
+    "ItemType": 8,
+    "CanUnequip": "True"
+  },
+  {
+    "ItemType": 5,
+    "CanUnequip": "True"
+  },
+  {
+    "ItemType": 6,
+    "CanUnequip": "False"
+  },
+  {
+    "ItemType": 7,
+    "CanUnequip": "False"
+  },
+  {
+    "ItemType": 9,
+    "CanUnequip": "True"
+  },
+  {
+    "ItemType": 10,
+    "CanUnequip": "False"
+  },
+  {
+    "ItemType": 11,
+    "CanUnequip": "False"
+  }
+]
