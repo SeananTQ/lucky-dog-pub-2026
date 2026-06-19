@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 using DataTables;
 
 namespace LuckyDogRise;
@@ -227,11 +228,14 @@ public partial class DogVisual : Node2D
         _headwear.Visible = true;
     }
 
-    public void RefreshEquippedEyewear(bool showIfEquipped = false)
+    public void RefreshEquippedEyewear(bool showIfEquipped = false, bool allowOwnedFallback = false)
     {
         if (!IsNodeReady()) return;
 
         var item = _gameData?.Inventory.GetEquipped(EItemType.Eyewear);
+        if ((item == null || item.AssetPathList.Count == 0) && allowOwnedFallback)
+            item = _gameData?.Inventory.GetOwnedOfType(EItemType.Eyewear).FirstOrDefault();
+
         if (item == null || item.AssetPathList.Count == 0)
         {
             _eyewear.Visible = false;
@@ -412,7 +416,7 @@ public partial class DogVisual : Node2D
         if (!string.IsNullOrEmpty(visual.OverrideHeadwear))
             ApplyHeadwearOverride(visual.OverrideHeadwear);
 
-        RefreshEquippedEyewear(showIfEquipped: visual.WearGlasses);
+        RefreshEquippedEyewear(showIfEquipped: visual.WearGlasses, allowOwnedFallback: visual.WearGlasses);
         if (!visual.WearGlasses)
             _eyewear.Visible = false;
 
