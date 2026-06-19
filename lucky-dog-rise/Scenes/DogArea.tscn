@@ -16,21 +16,23 @@ bg_color = Color(1, 1, 1, 0)
 [node name="DogArea" type="Node2D" unique_id=164694611]
 script = ExtResource("1_script")
 
-[node name="Ears" type="Sprite2D" parent="." unique_id=353965843]
+[node name="HeadRoot" type="Node2D" parent="."]
+
+[node name="Ears" type="Sprite2D" parent="HeadRoot" unique_id=353965843]
 position = Vector2(-1, -320)
 texture = ExtResource("2_d5sjk")
 
-[node name="Head" type="Sprite2D" parent="." unique_id=297302336]
+[node name="Head" type="Sprite2D" parent="HeadRoot" unique_id=297302336]
 position = Vector2(-2, -189)
 texture = ExtResource("3_kw0np")
 
-[node name="Tonghe" type="Sprite2D" parent="." unique_id=1192264822]
+[node name="Tonghe" type="Sprite2D" parent="HeadRoot" unique_id=1192264822]
 z_index = 3
 z_as_relative = false
 position = Vector2(-3, -15)
 texture = ExtResource("4_d5sjk")
 
-[node name="Eyes" type="Sprite2D" parent="." unique_id=493219825]
+[node name="Eyes" type="Sprite2D" parent="HeadRoot" unique_id=493219825]
 position = Vector2(-6, -292)
 texture = ExtResource("5_a4wju")
 
@@ -50,12 +52,12 @@ z_as_relative = false
 position = Vector2(305, 108.5)
 scale = Vector2(-1, 1)
 
-[node name="Eyewear" type="Sprite2D" parent="." unique_id=1858841942]
+[node name="Eyewear" type="Sprite2D" parent="HeadRoot" unique_id=1858841942]
 visible = false
 position = Vector2(0, -262)
 texture = ExtResource("8_3ms1v")
 
-[node name="Headwear" type="Sprite2D" parent="." unique_id=268961892]
+[node name="Headwear" type="Sprite2D" parent="HeadRoot" unique_id=268961892]
 visible = false
 position = Vector2(0, -444)
 texture = ExtResource("9_e0wpe")

@@ -49,14 +49,14 @@ public partial class DogVisual : Node2D
 
     public override void _Ready()
     {
-        _head = GetNode<Sprite2D>("Head");
-        _eyes = GetNode<Sprite2D>("Eyes");
-        _ears = GetNode<Sprite2D>("Ears");
-        _tongue = GetNodeOrNull<Sprite2D>("Tonghe");
+        _head = GetNode<Sprite2D>("HeadRoot/Head");
+        _eyes = GetNode<Sprite2D>("HeadRoot/Eyes");
+        _ears = GetNode<Sprite2D>("HeadRoot/Ears");
+        _tongue = GetNodeOrNull<Sprite2D>("HeadRoot/Tonghe");
         _clawLeft = GetNode<Node2D>("ClawLeft");
         _clawRight = GetNode<Node2D>("ClawRight");
-        _eyewear = GetNode<Sprite2D>("Eyewear");
-        _headwear = GetNode<Sprite2D>("Headwear");
+        _eyewear = GetNode<Sprite2D>("HeadRoot/Eyewear");
+        _headwear = GetNode<Sprite2D>("HeadRoot/Headwear");
         _hitButton = GetNode<Button>("HitButton");
         _hitButton.Pressed += () => EmitSignal(SignalName.DogClicked);
 
@@ -397,13 +397,13 @@ public partial class DogVisual : Node2D
             _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
 
-        _head.ZIndex = 1;
-        _eyes.ZIndex = 1;
-        _ears.ZIndex = 1;
-        if (_tongue != null)
-            _tongue.ZIndex = 1;
-        _eyewear.ZIndex = 1;
-        _headwear.ZIndex = 1;
+        // _head.ZIndex = 1;
+        // _eyes.ZIndex = 1;
+        // _ears.ZIndex = 1;
+        // if (_tongue != null)
+        //     _tongue.ZIndex = 1;
+        // _eyewear.ZIndex = 1;
+        // _headwear.ZIndex = 1;
 
         ApplyClawTextures();
         ApplyPawVisual(visual);
@@ -438,14 +438,14 @@ public partial class DogVisual : Node2D
             _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
 
-        // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
-        _head.ZIndex = 1;
-        _eyes.ZIndex = 1;
-        _ears.ZIndex = 1;
-        if (_tongue != null)
-            _tongue.ZIndex = 1;
-        _eyewear.ZIndex = 1;
-        _headwear.ZIndex = 1;
+        // // 狗身体层级：背景(0) < 狗(1) < 桌子(2)
+        // _head.ZIndex = 1;
+        // _eyes.ZIndex = 1;
+        // _ears.ZIndex = 1;
+        // if (_tongue != null)
+        //     _tongue.ZIndex = 1;
+        // _eyewear.ZIndex = 1;
+        // _headwear.ZIndex = 1;
 
         ApplyClawTextures();
         ShowClawBack();
