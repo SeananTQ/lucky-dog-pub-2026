@@ -6,16 +6,16 @@ namespace LuckyDogRise;
 
 public enum HandRank
 {
-    Nothing,
-    JacksOrBetter,
-    TwoPair,
-    ThreeOfAKind,
-    Straight,
-    Flush,
-    FullHouse,
-    FourOfAKind,
-    StraightFlush,
-    RoyalFlush
+    Nothing = 1,
+    JacksOrBetter = 2,
+    TwoPair = 3,
+    ThreeOfAKind = 4,
+    Straight = 5,
+    Flush = 6,
+    FullHouse = 7,
+    FourOfAKind = 8,
+    StraightFlush = 9,
+    RoyalFlush = 10
 }
 
 public static class CardEvaluator
