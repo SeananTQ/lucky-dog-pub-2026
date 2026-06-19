@@ -20,11 +20,9 @@ public class PlayerInventory
             _ownedIds.Add(item.Id); // 临时：拥有全部道具用于测试
         }
 
-        // 不可空闲的槽位默认装备玩家拥有的第一个道具。
+        // 新游戏默认装备玩家拥有的每种类型第一个道具；CanUnequip 只控制之后能不能脱下。
         foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
         {
-            if (CanUnequip(type)) continue;
-
             var first = GetOwnedOfType(type).FirstOrDefault();
             if (first != null)
             {
