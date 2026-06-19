@@ -269,7 +269,22 @@ public partial class SystemPanelController : CanvasLayer
     public bool ContainsPoint(Vector2 windowPos)
     {
         if (!_panel.Visible) return false;
-        return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos);
+        return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
+            || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
+            || PopupContainsPoint(_reactionOption.GetPopup(), windowPos);
+    }
+
+    private static bool PopupContainsPoint(PopupMenu popup, Vector2 windowPos)
+    {
+        if (popup == null || !popup.Visible)
+            return false;
+
+        var popupRect = new Rect2(popup.Position, popup.Size);
+        if (popupRect.HasPoint(windowPos))
+            return true;
+
+        var screenRelativePosition = popup.Position - DisplayServer.WindowGetPosition();
+        return new Rect2(screenRelativePosition, popup.Size).HasPoint(windowPos);
     }
 
     public void UpdateSeed(int seed)

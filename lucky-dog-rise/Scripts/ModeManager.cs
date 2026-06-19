@@ -177,7 +177,6 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.Play) return;
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
-        SetClickThrough(false);
         HideBossKeyContent();
 
         if (_playRoot == null)
@@ -204,6 +203,7 @@ public partial class ModeManager : Control
 
         // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）
         SetupPlayFatWindow();
+        SetClickThrough(false);
         UpdatePlayLayout();
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
@@ -458,24 +458,30 @@ public partial class ModeManager : Control
 
     private void EnableLayeredWindow()
     {
-        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
-        if (hWnd == IntPtr.Zero) return;
-        var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
-        WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_LAYERED | WindowNative.WS_EX_TRANSPARENT);
-        WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0, WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
-        _isClickThrough = true;
+        ApplyNativeWindowStyles(clickThrough: true);
     }
 
     private void SetClickThrough(bool enabled)
     {
         _isClickThrough = enabled;
+        ApplyNativeWindowStyles(enabled);
+    }
+
+    private static void ApplyNativeWindowStyles(bool clickThrough)
+    {
         var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
         if (hWnd == IntPtr.Zero) return;
+
         var style = WindowNative.GetWindowLong(hWnd, WindowNative.GWL_EXSTYLE);
-        if (enabled)
-            WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style | WindowNative.WS_EX_TRANSPARENT);
+        style |= WindowNative.WS_EX_LAYERED;
+        if (clickThrough)
+            style |= WindowNative.WS_EX_TRANSPARENT;
         else
-            WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style & ~WindowNative.WS_EX_TRANSPARENT);
+            style &= ~WindowNative.WS_EX_TRANSPARENT;
+
+        WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style);
+        WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
+            WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
     }
 
     public override void _Input(InputEvent @event)
