@@ -46,6 +46,20 @@ public partial class ModeManager : Control
         .Where(type => !DebugDogItemTypes.Contains(type))
         .ToArray();
 
+    // 面板避让九宫优先级：伪装模式。按数组顺序尝试，数字对应键盘九宫格：
+    // 789 / 456 / 123
+    private static readonly int[] BossKeyPanelSlotPriority =
+    [
+        8, 9, 7, 6, 4, 2, 3, 1,
+    ];
+
+    // 面板避让九宫优先级：扑克模式。需要调整扑克模式面板位置时，只改这个数组顺序。
+    // 789 / 456 / 123
+    private static readonly int[] PlayPanelSlotPriority =
+    [
+        6, 8, 9, 7, 4, 2, 3, 1,
+    ];
+
     private readonly Random _debugRandom = new();
     private readonly Dictionary<EItemType, ShuffleBag<int>> _debugItemBags = new();
     private readonly Queue<(double time, int count)> _desktopInputEvents = new();
@@ -683,21 +697,11 @@ public partial class ModeManager : Control
         float bY = aY + ah - ph;
         float centerX = aX + aw / 2f - pw / 2f;
 
-        // 改优先级就是改数组里那几行的顺序，不用动逻辑
-        var slots = new (int slot, int wx, int wy)[]
-        {
-            (6, (int)aX + aw, (int)bY),  
-            (8, (int)centerX, 0),
-            (9, (int)aX + aw, 0),
-            (7, 0, 0),          
-            (4, 0, (int)bY),
-            (2, (int)centerX, (int)aY + ah),
-            (3, (int)aX + aw, (int)aY + ah),
-            (1, 0, (int)aY + ah),
-        };
+        var slotPriority = CurrentMode == Mode.Play ? PlayPanelSlotPriority : BossKeyPanelSlotPriority;
 
-        foreach (var (_, wx, wy) in slots)
+        foreach (var slot in slotPriority)
         {
+            var (wx, wy) = GetPanelSlotPosition(slot, aX, aY, aw, ah, pw, ph, bY, centerX);
             if (Fits(winPos.X + wx, winPos.Y + wy))
             {
                 _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
@@ -706,6 +710,23 @@ public partial class ModeManager : Control
         }
         // 兜底：覆盖在 A 区中央
         _settingsPanel.SetPanelPosition(new Vector2(aX + aw / 2f - pw / 2f, aY + ah / 2f - ph / 2f));
+    }
+
+    private static (int wx, int wy) GetPanelSlotPosition(
+        int slot, float aX, float aY, int aw, int ah, int pw, int ph, float bY, float centerX)
+    {
+        return slot switch
+        {
+            9 => ((int)aX + aw, 0),
+            8 => ((int)centerX, 0),
+            7 => (0, 0),
+            6 => ((int)aX + aw, (int)bY),
+            4 => (0, (int)bY),
+            3 => ((int)aX + aw, (int)aY + ah),
+            2 => ((int)centerX, (int)aY + ah),
+            1 => (0, (int)aY + ah),
+            _ => ((int)(aX + aw / 2f - pw / 2f), (int)(aY + ah / 2f - ph / 2f)),
+        };
     }
 
     // ===== 窗口管理 =====
