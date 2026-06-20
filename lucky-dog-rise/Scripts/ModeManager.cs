@@ -48,6 +48,13 @@ public partial class ModeManager : Control
 
     private readonly Random _debugRandom = new();
     private readonly Dictionary<EItemType, ShuffleBag<int>> _debugItemBags = new();
+    private readonly Queue<(double time, int count)> _desktopInputEvents = new();
+    private const double DesktopActivitySampleSeconds = 10.0;
+    private DesktopActivityState _currentDesktopActivityState;
+    private DesktopActivityState _candidateDesktopActivityState;
+    private double _candidateDesktopActivitySeconds;
+    private double _desktopActivityCooldownSeconds;
+    private bool _desktopTongueFeedbackEnabled = true;
 
     public override void _Ready()
     {
@@ -109,6 +116,8 @@ public partial class ModeManager : Control
 
     public override void _Process(double _)
     {
+        UpdateDesktopActivityState(_);
+
         var mode = SettingsManager.CurrentDisplayMode;
         if (mode != _lastMode)
         {
@@ -287,8 +296,85 @@ public partial class ModeManager : Control
 
     private void OnTypingInputOccurred(int count)
     {
-        if (CurrentMode == Mode.BossKey)
+        _desktopInputEvents.Enqueue((Time.GetTicksMsec() / 1000.0, count));
+
+        if (CurrentMode == Mode.BossKey && _desktopTongueFeedbackEnabled)
             _bossDogVisual.PlayDesktopTongueTap(count);
+    }
+
+    private void UpdateDesktopActivityState(double delta)
+    {
+        var now = Time.GetTicksMsec() / 1000.0;
+        while (_desktopInputEvents.Count > 0 && now - _desktopInputEvents.Peek().time > DesktopActivitySampleSeconds)
+            _desktopInputEvents.Dequeue();
+
+        if (CurrentMode != Mode.BossKey)
+        {
+            ResetDesktopActivityCandidate();
+            return;
+        }
+
+        var state = ResolveDesktopActivityState(GetDesktopInputEventsPerMinute(now));
+        if (state == null)
+        {
+            ResetDesktopActivityCandidate();
+            return;
+        }
+
+        if (_desktopActivityCooldownSeconds > 0.0)
+        {
+            _desktopActivityCooldownSeconds -= delta;
+            return;
+        }
+
+        if (_currentDesktopActivityState != null && _currentDesktopActivityState.Id == state.Id)
+        {
+            ResetDesktopActivityCandidate();
+            return;
+        }
+
+        if (_candidateDesktopActivityState == null || _candidateDesktopActivityState.Id != state.Id)
+        {
+            _candidateDesktopActivityState = state;
+            _candidateDesktopActivitySeconds = 0.0;
+            return;
+        }
+
+        _candidateDesktopActivitySeconds += delta;
+        if (_candidateDesktopActivitySeconds < state.MinDurationSeconds)
+            return;
+
+        _currentDesktopActivityState = state;
+        _candidateDesktopActivityState = null;
+        _candidateDesktopActivitySeconds = 0.0;
+        _desktopActivityCooldownSeconds = state.CooldownSeconds;
+        _desktopTongueFeedbackEnabled = state.EnableTongueFeedback;
+        _bossDogVisual.ApplyReaction(state.DogReactionTrigger);
+    }
+
+    private double GetDesktopInputEventsPerMinute(double now)
+    {
+        var count = _desktopInputEvents.Sum(item => item.count);
+        var elapsed = _desktopInputEvents.Count == 0
+            ? DesktopActivitySampleSeconds
+            : Math.Min(DesktopActivitySampleSeconds, Math.Max(1.0, now - _desktopInputEvents.Peek().time));
+        return count / elapsed * 60.0;
+    }
+
+    private static DesktopActivityState ResolveDesktopActivityState(double inputEventsPerMinute)
+    {
+        return LubanData.Tables.TbDesktopActivityState.DataList
+            .Where(state => inputEventsPerMinute >= state.MinInputEventsPerMinute
+                && (state.MaxInputEventsPerMinute == 0 || inputEventsPerMinute <= state.MaxInputEventsPerMinute))
+            .OrderByDescending(state => state.Priority)
+            .ThenBy(state => state.Id)
+            .FirstOrDefault();
+    }
+
+    private void ResetDesktopActivityCandidate()
+    {
+        _candidateDesktopActivityState = null;
+        _candidateDesktopActivitySeconds = 0.0;
     }
 
     private void ApplyRandomEquipment(IEnumerable<EItemType> types)
