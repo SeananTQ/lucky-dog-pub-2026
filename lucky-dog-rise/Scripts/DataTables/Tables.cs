@@ -22,6 +22,7 @@ public partial class Tables
     public TbTabGroup TbTabGroup {get; }
     public TbDogReaction TbDogReaction {get; }
     public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
+    public TbDesktopActivityState TbDesktopActivityState {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -33,6 +34,7 @@ public partial class Tables
         TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         TbDogReaction = new TbDogReaction(loader("tbdogreaction"));
         TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
+        TbDesktopActivityState = new TbDesktopActivityState(loader("tbdesktopactivitystate"));
         ResolveRef();
     }
     
@@ -46,6 +48,7 @@ public partial class Tables
         TbTabGroup.ResolveRef(this);
         TbDogReaction.ResolveRef(this);
         TbEquipmentSlotConfig.ResolveRef(this);
+        TbDesktopActivityState.ResolveRef(this);
     }
 }
 

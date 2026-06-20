@@ -1,0 +1,50 @@
+[
+  {
+    "Id": 1,
+    "StateName": "Idle",
+    "MinInputEventsPerMinute": 0,
+    "MaxInputEventsPerMinute": 0,
+    "MinDurationSeconds": 10,
+    "CooldownSeconds": 5,
+    "DogReactionTrigger": 1003,
+    "EnableTongueFeedback": true,
+    "Priority": 1,
+    "Notes": "挂机空闲，测试阶段为了快速测试，先调成10秒进入，后续记得改长一些"
+  },
+  {
+    "Id": 2,
+    "StateName": "Casual",
+    "MinInputEventsPerMinute": 1,
+    "MaxInputEventsPerMinute": 80,
+    "MinDurationSeconds": 3,
+    "CooldownSeconds": 3,
+    "DogReactionTrigger": 1001,
+    "EnableTongueFeedback": true,
+    "Priority": 2,
+    "Notes": ""
+  },
+  {
+    "Id": 3,
+    "StateName": "Focused",
+    "MinInputEventsPerMinute": 81,
+    "MaxInputEventsPerMinute": 180,
+    "MinDurationSeconds": 5,
+    "CooldownSeconds": 5,
+    "DogReactionTrigger": 1005,
+    "EnableTongueFeedback": true,
+    "Priority": 3,
+    "Notes": ""
+  },
+  {
+    "Id": 4,
+    "StateName": "HighEnergy",
+    "MinInputEventsPerMinute": 181,
+    "MaxInputEventsPerMinute": 0,
+    "MinDurationSeconds": 3,
+    "CooldownSeconds": 8,
+    "DogReactionTrigger": 1006,
+    "EnableTongueFeedback": true,
+    "Priority": 4,
+    "Notes": ""
+  }
+]
