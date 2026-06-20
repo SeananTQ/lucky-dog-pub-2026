@@ -12,6 +12,7 @@ public partial class GameData : Node
     [Signal] public delegate void HandResolvedEventHandler(EHandRank rank, int payout);
     [Signal] public delegate void NewHandStartedEventHandler();
     [Signal] public delegate void EquipmentChangedEventHandler();
+    [Signal] public delegate void InventoryChangedEventHandler();
 
     public void EmitHandResolved(EHandRank rank, int payout)
     {
@@ -38,6 +39,7 @@ public partial class GameData : Node
         _saveDataMode = SettingsManager.LoadSaveDataMode();
         LoadDataForCurrentMode();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
+        Inventory.InventoryChanged += OnInventoryChanged;
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
     }
@@ -65,6 +67,12 @@ public partial class GameData : Node
     public void ToggleEquipItem(int itemId)
     {
         Inventory.ToggleEquip(itemId);
+    }
+
+    public void AddItem(int itemId, int count = 1, bool markNew = true)
+    {
+        Inventory.AddItem(itemId, count, markNew);
+        QueueSaveIfUsingLocalSave();
     }
 
     public void ModifyChips(int delta)
@@ -105,7 +113,7 @@ public partial class GameData : Node
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
         {
             Chips = profile.Chips;
-            Inventory.LoadState(profile.OwnedItemIds, profile.EquippedItemIdsByType, emitChanged: false);
+            Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
         }
@@ -117,7 +125,7 @@ public partial class GameData : Node
         {
             var profile = SaveManager.LoadOrCreate();
             Chips = profile.Chips;
-            Inventory.LoadState(profile.OwnedItemIds, profile.EquippedItemIdsByType, emitChanged: false);
+            Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             QueueSaveIfUsingLocalSave();
             return;
         }
@@ -131,6 +139,12 @@ public partial class GameData : Node
     private void OnInventoryEquipmentChanged()
     {
         EmitSignal(SignalName.EquipmentChanged);
+        QueueSaveIfUsingLocalSave();
+    }
+
+    private void OnInventoryChanged()
+    {
+        EmitSignal(SignalName.InventoryChanged);
         QueueSaveIfUsingLocalSave();
     }
 
@@ -152,7 +166,9 @@ public partial class GameData : Node
         {
             Chips = Chips,
             OwnedItemIds = Inventory.GetOwnedIds().ToList(),
+            OwnedItemCounts = Inventory.GetOwnedItemCounts(),
             EquippedItemIdsByType = Inventory.GetEquippedIdsByTypeName(),
+            NewItemIds = Inventory.GetNewItemIds().ToList(),
         });
         _saveDirty = false;
     }

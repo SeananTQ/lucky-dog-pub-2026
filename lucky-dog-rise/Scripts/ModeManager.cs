@@ -108,6 +108,7 @@ public partial class ModeManager : Control
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
         _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
+        _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
 
         _panelSize = _settingsPanel.PanelSize;
@@ -324,6 +325,16 @@ public partial class ModeManager : Control
             _bossDogVisual.ApplyReaction((EDogReactionTrigger)trigger);
         else
             _gameManager?.OnPlayDogReaction(trigger);
+    }
+
+    private void OnRandomAcquireItem()
+    {
+        var items = LubanData.Tables.TbItem.DataList.ToList();
+        if (items.Count == 0)
+            return;
+
+        var item = items[_debugRandom.Next(items.Count)];
+        _gameData.AddItem(item.Id, count: 1, markNew: true);
     }
 
     private void OnTypingInputOccurred(int count)

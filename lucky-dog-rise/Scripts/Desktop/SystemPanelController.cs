@@ -10,6 +10,7 @@ public partial class SystemPanelController : CanvasLayer
 {
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
+    [Signal] public delegate void RandomAcquireItemRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -56,7 +57,16 @@ public partial class SystemPanelController : CanvasLayer
     private HBoxContainer _typeFilterRow = null!;
     private TabGroup _selectedTab = null!;
     private GameData _gameData = null!;
-    public GameData GameData { get => _gameData; set { _gameData = value; _gameData.EquipmentChanged += RefreshWardrobeGrid; } }
+    public GameData GameData
+    {
+        get => _gameData;
+        set
+        {
+            _gameData = value;
+            _gameData.EquipmentChanged += RefreshWardrobeGrid;
+            _gameData.InventoryChanged += RefreshWardrobeGrid;
+        }
+    }
 
     private readonly Button[] _tabs = new Button[3];
     private readonly Dictionary<Button, TabGroup> _filterTabs = new();
@@ -144,12 +154,14 @@ public partial class SystemPanelController : CanvasLayer
         _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
         var randomizeSceneBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeDogBtn");
+        var randomAcquireItemBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomAcquireItemBtn");
         _reactionOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/ReactionOption");
         var playReactionBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
+        randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
         BuildReactionOptions();
         playReactionBtn.Pressed += () =>
             EmitSignal(SignalName.DogReactionRequested, _reactionOption.GetSelectedId());
@@ -239,7 +251,8 @@ public partial class SystemPanelController : CanvasLayer
 
         var items = tab.TabItemTypeList
             .SelectMany(type => _gameData.Inventory.GetOwnedOfType(type))
-            .OrderBy(item => item.SortOrder)
+            .OrderByDescending(item => _gameData.Inventory.IsNew(item.Id))
+            .ThenByDescending(item => item.SortOrder)
             .ThenBy(item => item.Id);
 
         foreach (var item in items)
@@ -257,7 +270,11 @@ public partial class SystemPanelController : CanvasLayer
     private Node CreateItemCell(Item item)
     {
         var cell = ItemCellScene.Instantiate<ItemCellController>();
-        cell.Setup(item, _gameData.Inventory.IsEquipped(item.Id));
+        cell.Setup(
+            item,
+            _gameData.Inventory.IsEquipped(item.Id),
+            _gameData.Inventory.GetCount(item.Id),
+            _gameData.Inventory.IsNew(item.Id));
         cell.Pressed += () => _gameData.ToggleEquipItem(item.Id);
         return cell;
     }

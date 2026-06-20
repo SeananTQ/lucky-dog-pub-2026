@@ -13,6 +13,7 @@ public sealed class SaveProfile
     public int Version { get; set; } = SaveManager.CurrentVersion;
     public int Chips { get; set; } = GameData.StartingChips;
     public List<int> OwnedItemIds { get; set; } = new();
+    public Dictionary<int, int> OwnedItemCounts { get; set; } = new();
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
     public List<int> NewItemIds { get; set; } = new();
     public string CreatedAt { get; set; } = "";
@@ -73,8 +74,6 @@ public static class SaveManager
             profile.CreatedAt = string.IsNullOrWhiteSpace(existing?.CreatedAt)
                 ? DateTimeOffset.UtcNow.ToString("O")
                 : existing.CreatedAt;
-        if (profile.NewItemIds.Count == 0 && existing?.NewItemIds.Count > 0)
-            profile.NewItemIds = existing.NewItemIds;
         profile.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
 
         var json = JsonSerializer.Serialize(Normalize(profile), JsonOptions);
@@ -94,14 +93,15 @@ public static class SaveManager
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
         };
 
-        profile.OwnedItemIds = LubanData.Tables.TbItem.DataList
+        profile.OwnedItemCounts = LubanData.Tables.TbItem.DataList
             .Select(item => item.Id)
             .Distinct()
             .OrderBy(id => id)
-            .ToList();
+            .ToDictionary(id => id, _ => 1);
+        profile.OwnedItemIds = profile.OwnedItemCounts.Keys.ToList();
 
         var inventory = new PlayerInventory();
-        inventory.LoadState(profile.OwnedItemIds, new Dictionary<string, int>(), emitChanged: false);
+        inventory.LoadState(profile.OwnedItemCounts, new Dictionary<string, int>(), emitChanged: false);
         profile.EquippedItemIdsByType = inventory.GetEquippedIdsByTypeName();
         return profile;
     }
@@ -120,6 +120,7 @@ public static class SaveManager
 
         profile.Chips = Math.Max(0, profile.Chips);
         profile.OwnedItemIds ??= new List<int>();
+        profile.OwnedItemCounts ??= new Dictionary<int, int>();
         profile.EquippedItemIdsByType ??= new Dictionary<string, int>();
         profile.NewItemIds ??= new List<int>();
 
@@ -127,20 +128,26 @@ public static class SaveManager
             .Select(item => item.Id)
             .ToHashSet();
 
-        profile.OwnedItemIds = profile.OwnedItemIds
-            .Where(validIds.Contains)
-            .Distinct()
-            .OrderBy(id => id)
-            .ToList();
+        if (profile.OwnedItemCounts.Count == 0 && profile.OwnedItemIds.Count > 0)
+            profile.OwnedItemCounts = profile.OwnedItemIds
+                .Where(validIds.Contains)
+                .Distinct()
+                .ToDictionary(id => id, _ => 1);
+
+        profile.OwnedItemCounts = profile.OwnedItemCounts
+            .Where(pair => validIds.Contains(pair.Key) && pair.Value > 0)
+            .OrderBy(pair => pair.Key)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+        profile.OwnedItemIds = profile.OwnedItemCounts.Keys.ToList();
 
         profile.NewItemIds = profile.NewItemIds
-            .Where(id => validIds.Contains(id) && profile.OwnedItemIds.Contains(id))
+            .Where(id => validIds.Contains(id) && profile.OwnedItemCounts.ContainsKey(id))
             .Distinct()
             .OrderBy(id => id)
             .ToList();
 
         var inventory = new PlayerInventory();
-        inventory.LoadState(profile.OwnedItemIds, profile.EquippedItemIdsByType, emitChanged: false);
+        inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         profile.EquippedItemIdsByType = inventory.GetEquippedIdsByTypeName();
         return profile;
     }

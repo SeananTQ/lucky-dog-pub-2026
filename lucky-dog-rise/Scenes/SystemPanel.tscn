@@ -231,6 +231,10 @@ text = "Randomize Scene"
 layout_mode = 2
 text = "Randomize Dog"
 
+[node name="RandomAcquireItemBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent"]
+layout_mode = 2
+text = "随机获得道具"
+
 [node name="ReactionRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
 layout_mode = 2
 

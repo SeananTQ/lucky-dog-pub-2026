@@ -10,17 +10,23 @@ namespace LuckyDogRise;
 
 public class PlayerInventory
 {
-    private readonly HashSet<int> _ownedIds = new();
+    private readonly Dictionary<int, int> _ownedItemCounts = new();
     private readonly Dictionary<EItemType, int> _equipped = new();
+    private readonly HashSet<int> _newItemIds = new();
 
     public event Action? EquipmentChanged;
+    public event Action? InventoryChanged;
 
     public PlayerInventory()
     {
         ResetToDebugAllItems(emitChanged: false);
     }
 
-    public bool Owns(int itemId) => _ownedIds.Contains(itemId);
+    public bool Owns(int itemId) => _ownedItemCounts.TryGetValue(itemId, out var count) && count > 0;
+
+    public int GetCount(int itemId) => _ownedItemCounts.TryGetValue(itemId, out var count) ? count : 0;
+
+    public bool IsNew(int itemId) => _newItemIds.Contains(itemId);
 
     public bool IsEquipped(int itemId)
     {
@@ -38,19 +44,23 @@ public class PlayerInventory
     public void Equip(int itemId)
     {
         var item = FindItem(itemId);
-        if (item == null || !_ownedIds.Contains(itemId)) return;
+        if (item == null || !Owns(itemId)) return;
 
         if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
             return;
 
         _equipped[item.ItemType] = itemId;
+        ClearNew(itemId, emitChanged: false);
         EquipmentChanged?.Invoke();
+        InventoryChanged?.Invoke();
     }
 
     public void ToggleEquip(int itemId)
     {
         var item = FindItem(itemId);
-        if (item == null || !_ownedIds.Contains(itemId)) return;
+        if (item == null || !Owns(itemId)) return;
+
+        var clearedNew = ClearNew(itemId, emitChanged: false);
 
         if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
         {
@@ -58,6 +68,11 @@ public class PlayerInventory
             {
                 _equipped.Remove(item.ItemType);
                 EquipmentChanged?.Invoke();
+                InventoryChanged?.Invoke();
+            }
+            else if (clearedNew)
+            {
+                InventoryChanged?.Invoke();
             }
             return;
         }
@@ -68,8 +83,10 @@ public class PlayerInventory
     public IEnumerable<Item> GetOwnedOfType(EItemType type)
     {
         return LubanData.Tables.TbItem.DataList
-            .Where(item => _ownedIds.Contains(item.Id) && item.ItemType == type)
-            .OrderByDescending(item => item.SortOrder);
+            .Where(item => Owns(item.Id) && item.ItemType == type)
+            .OrderByDescending(item => IsNew(item.Id))
+            .ThenByDescending(item => item.SortOrder)
+            .ThenBy(item => item.Id);
     }
 
     public Item? GetDefaultOfType(EItemType type)
@@ -77,9 +94,22 @@ public class PlayerInventory
         return GetOwnedOfType(type).FirstOrDefault();
     }
 
+    public Dictionary<int, int> GetOwnedItemCounts()
+    {
+        return _ownedItemCounts
+            .Where(pair => pair.Value > 0)
+            .OrderBy(pair => pair.Key)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+
     public IReadOnlyCollection<int> GetOwnedIds()
     {
-        return _ownedIds.OrderBy(id => id).ToArray();
+        return GetOwnedItemCounts().Keys.ToArray();
+    }
+
+    public IReadOnlyCollection<int> GetNewItemIds()
+    {
+        return _newItemIds.OrderBy(id => id).ToArray();
     }
 
     public Dictionary<string, int> GetEquippedIdsByTypeName()
@@ -91,23 +121,35 @@ public class PlayerInventory
 
     public void ResetToDebugAllItems(bool emitChanged = true)
     {
-        _ownedIds.Clear();
+        _ownedItemCounts.Clear();
+        _newItemIds.Clear();
         foreach (var item in LubanData.Tables.TbItem.DataList)
-            _ownedIds.Add(item.Id); // 临时：拥有全部道具用于测试
+            _ownedItemCounts[item.Id] = 1; // 临时：拥有全部道具用于测试
 
         ApplyDefaultEquipment();
         if (emitChanged)
+        {
             EquipmentChanged?.Invoke();
+            InventoryChanged?.Invoke();
+        }
     }
 
-    public void LoadState(IEnumerable<int> ownedItemIds, IReadOnlyDictionary<string, int> equippedIdsByTypeName, bool emitChanged = true)
+    public void LoadState(
+        IReadOnlyDictionary<int, int> ownedItemCounts,
+        IReadOnlyDictionary<string, int> equippedIdsByTypeName,
+        IEnumerable<int>? newItemIds = null,
+        bool emitChanged = true)
     {
-        _ownedIds.Clear();
+        _ownedItemCounts.Clear();
         _equipped.Clear();
+        _newItemIds.Clear();
 
         var validIds = LubanData.Tables.TbItem.DataList.Select(item => item.Id).ToHashSet();
-        foreach (var id in ownedItemIds.Where(validIds.Contains).Distinct())
-            _ownedIds.Add(id);
+        foreach (var (id, count) in ownedItemCounts)
+        {
+            if (validIds.Contains(id) && count > 0)
+                _ownedItemCounts[id] = count;
+        }
 
         foreach (var (typeName, itemId) in equippedIdsByTypeName)
         {
@@ -115,15 +157,59 @@ public class PlayerInventory
                 continue;
 
             var item = FindItem(itemId);
-            if (item == null || item.ItemType != type || !_ownedIds.Contains(itemId))
+            if (item == null || item.ItemType != type || !Owns(itemId))
                 continue;
 
             _equipped[type] = itemId;
         }
 
+        if (newItemIds != null)
+        {
+            foreach (var id in newItemIds.Where(id => validIds.Contains(id) && Owns(id)).Distinct())
+                _newItemIds.Add(id);
+        }
+
         ApplyDefaultEquipment();
         if (emitChanged)
+        {
             EquipmentChanged?.Invoke();
+            InventoryChanged?.Invoke();
+        }
+    }
+
+    public void LoadState(IEnumerable<int> ownedItemIds, IReadOnlyDictionary<string, int> equippedIdsByTypeName, bool emitChanged = true)
+    {
+        LoadState(
+            ownedItemIds.Distinct().ToDictionary(id => id, _ => 1),
+            equippedIdsByTypeName,
+            newItemIds: null,
+            emitChanged);
+    }
+
+    public void AddItem(int itemId, int count = 1, bool markNew = true)
+    {
+        var item = FindItem(itemId);
+        if (item == null || count <= 0)
+            return;
+
+        _ownedItemCounts[itemId] = GetCount(itemId) + count;
+        if (markNew)
+            _newItemIds.Add(itemId);
+
+        var equipmentChanged = ApplyDefaultEquipment();
+        if (equipmentChanged)
+            EquipmentChanged?.Invoke();
+        InventoryChanged?.Invoke();
+    }
+
+    public bool ClearNew(int itemId, bool emitChanged = true)
+    {
+        if (!_newItemIds.Remove(itemId))
+            return false;
+
+        if (emitChanged)
+            InventoryChanged?.Invoke();
+        return true;
     }
 
     public bool CanUnequip(EItemType type)
@@ -137,8 +223,9 @@ public class PlayerInventory
         return LubanData.Tables.TbItem.DataList.FirstOrDefault(item => item.Id == id);
     }
 
-    private void ApplyDefaultEquipment()
+    private bool ApplyDefaultEquipment()
     {
+        var changed = false;
         // 新游戏默认装备玩家拥有的每种类型第一个道具；CanUnequip 只控制之后能不能脱下。
         foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
         {
@@ -149,12 +236,15 @@ public class PlayerInventory
             if (first != null)
             {
                 _equipped[type] = first.Id;
+                changed = true;
             }
             else if (LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type) != null)
             {
                 GD.PushError($"[Inventory] Required equipment slot has no owned item: {type}");
             }
         }
+
+        return changed;
     }
 
     public static string ToResPath(string lubanPath)
