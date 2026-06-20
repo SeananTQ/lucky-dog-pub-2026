@@ -230,6 +230,7 @@ public partial class ModeManager : Control
 
         // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）
         SetupPlayFatWindow();
+        KeepPlayContentWithinScreen();
         SetClickThrough(false);
         UpdatePlayLayout();
         _playRoot.Visible = true;
@@ -758,6 +759,59 @@ public partial class ModeManager : Control
         var pos = DisplayServer.WindowGetPosition();
         DisplayServer.WindowSetSize(new Vector2I(winW, winH));
         DisplayServer.WindowSetPosition(pos);
+    }
+
+    private void KeepPlayContentWithinScreen()
+    {
+        const int contentW = 840;
+        const int contentH = 600;
+        const int pad = 5;
+
+        var pos = DisplayServer.WindowGetPosition();
+        var contentTopLeft = new Vector2I(pos.X, pos.Y + (int)_contentOffset.Y);
+        var contentRect = new Rect2I(contentTopLeft, new Vector2I(contentW, contentH));
+        var screen = GetBestScreenUsableRect(contentRect);
+
+        int newX = pos.X;
+        int newY = pos.Y;
+
+        if (contentRect.Position.X < screen.Position.X + pad)
+            newX += screen.Position.X + pad - contentRect.Position.X;
+        else if (contentRect.End.X > screen.End.X - pad)
+            newX -= contentRect.End.X - (screen.End.X - pad);
+
+        if (contentRect.Position.Y < screen.Position.Y + pad)
+            newY += screen.Position.Y + pad - contentRect.Position.Y;
+        else if (contentRect.End.Y > screen.End.Y - pad)
+            newY -= contentRect.End.Y - (screen.End.Y - pad);
+
+        DisplayServer.WindowSetPosition(new Vector2I(newX, newY));
+    }
+
+    private static Rect2I GetBestScreenUsableRect(Rect2I targetRect)
+    {
+        var targetCenter = targetRect.Position + targetRect.Size / 2;
+        Rect2I best = DisplayServer.ScreenGetUsableRect();
+        long bestDistance = long.MaxValue;
+
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = DisplayServer.ScreenGetUsableRect(i);
+            if (screen.Intersects(targetRect))
+                return screen;
+
+            var center = screen.Position + screen.Size / 2;
+            long dx = center.X - targetCenter.X;
+            long dy = center.Y - targetCenter.Y;
+            long distance = dx * dx + dy * dy;
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = screen;
+            }
+        }
+
+        return best;
     }
 
     private void SetWindowAboveTaskbar()
