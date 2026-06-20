@@ -15,6 +15,7 @@ public static class SettingsManager
     private const string KeyDesktopTongueImmediateMode = "desktop_tongue_immediate_mode";
     private const string KeyShowOverFullscreenApps = "show_over_fullscreen_apps";
     private const string KeyEnhancedTopmostMode = "enhanced_topmost_mode";
+    private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
 
     public enum DisplayMode
@@ -22,6 +23,12 @@ public static class SettingsManager
         Clock = 0,
         Chips = 1,
         Hidden = 2
+    }
+
+    public enum SaveDataMode
+    {
+        DebugAllItems = 0,
+        LocalSave = 1
     }
 
     // === 音频 ===
@@ -114,6 +121,19 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyEnhancedTopmostMode, enabled);
+        config.Save(Path);
+    }
+
+    public static SaveDataMode LoadSaveDataMode()
+    {
+        var config = Load();
+        return (SaveDataMode)(int)config.GetValue(SectionSystem, KeySaveDataMode, (int)SaveDataMode.DebugAllItems);
+    }
+
+    public static void SaveSaveDataMode(SaveDataMode mode)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeySaveDataMode, (int)mode);
         config.Save(Path);
     }
 

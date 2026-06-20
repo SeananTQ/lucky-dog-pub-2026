@@ -42,6 +42,7 @@ public partial class SystemPanelController : CanvasLayer
     // Settings 页
     private CheckButton _audioToggle = null!;
     private OptionButton _displayOption = null!;
+    private OptionButton _saveDataModeOption = null!;
 
     // Debug 页
     private Label _seedLabel = null!;
@@ -83,6 +84,7 @@ public partial class SystemPanelController : CanvasLayer
         // === Settings 页 ===
         _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AudioRow/AudioToggle");
         _displayOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/DisplayRow/DisplayOption");
+        _saveDataModeOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow/SaveDataModeOption");
         var closeBtn = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/QuitBtn");
 
@@ -90,6 +92,10 @@ public partial class SystemPanelController : CanvasLayer
         _displayOption.AddItem("Chips", 1);
         _displayOption.AddItem("Hidden", 2);
         _displayOption.Select((int)SettingsManager.LoadDisplayMode());
+
+        _saveDataModeOption.AddItem("调试全道具", (int)SettingsManager.SaveDataMode.DebugAllItems);
+        _saveDataModeOption.AddItem("本地存档", (int)SettingsManager.SaveDataMode.LocalSave);
+        _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
 
         _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
         ApplyAudio(_audioToggle.ButtonPressed);
@@ -120,6 +126,7 @@ public partial class SystemPanelController : CanvasLayer
 
         _audioToggle.Toggled += OnAudioToggled;
         _displayOption.ItemSelected += OnDisplayModeChanged;
+        _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
 
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedLabel");
@@ -339,6 +346,14 @@ public partial class SystemPanelController : CanvasLayer
     private void OnDisplayModeChanged(long index)
     {
         SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
+    }
+
+    private void OnSaveDataModeChanged(long index)
+    {
+        _gameData.SetSaveDataMode((SettingsManager.SaveDataMode)(int)index);
+        _wardrobeBuilt = false;
+        if (_wardrobeContent.Visible)
+            BuildWardrobe();
     }
 
     private static void ApplyAudio(bool enabled)

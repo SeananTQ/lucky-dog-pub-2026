@@ -85,6 +85,21 @@ theme_override_font_sizes/font_size = 16
 [node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
 layout_mode = 2
 
+[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "背包数据来源"
+
+[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+layout_mode = 2
+
 [node name="AutoHideRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1556867986]
 layout_mode = 2
 
