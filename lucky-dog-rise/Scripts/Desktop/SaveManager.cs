@@ -106,6 +106,13 @@ public static class SaveManager
         return profile;
     }
 
+    public static SaveProfile ResetLocalSave()
+    {
+        var profile = CreateDefaultProfile();
+        Save(profile);
+        return profile;
+    }
+
     private static SaveProfile Normalize(SaveProfile profile)
     {
         if (profile.Version <= 0)

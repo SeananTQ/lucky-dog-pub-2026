@@ -1,7 +1,8 @@
-[gd_scene format=3 uid="uid://testset"]
+[gd_scene load_steps=4 format=3 uid="uid://testset"]
 
 [ext_resource type="Script" uid="uid://c2rtl3vl2waso" path="res://Scripts/Desktop/SystemPanelController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -56,6 +57,14 @@ layout_mode = 2
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1890114490]
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
+text = "Quit Game"
+
+[node name="SettingsSep0" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+layout_mode = 2
+
 [node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1724876092]
 layout_mode = 2
 
@@ -83,21 +92,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
 [node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
-layout_mode = 2
-
-[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
-layout_mode = 2
-
-[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "背包数据来源"
-
-[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-
-[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
 layout_mode = 2
 
 [node name="AutoHideRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1556867986]
@@ -168,10 +162,10 @@ text = "Switch to BossKey"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1890114490]
+[node name="ResetSaveBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent"]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
-text = "Quit Game"
+text = "重置存档"
 
 [node name="WardrobeContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283482]
 visible = false
@@ -196,6 +190,21 @@ columns = 4
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
 visible = false
+layout_mode = 2
+
+[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+layout_mode = 2
+
+[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "背包数据来源"
+
+[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/DebugContent"]
 layout_mode = 2
 
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
@@ -234,3 +243,5 @@ theme_override_font_sizes/font_size = 14
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Play"
+
+[node name="ResetSaveConfirm" parent="." instance=ExtResource("3_confirm")]

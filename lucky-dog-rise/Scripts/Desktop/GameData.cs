@@ -98,6 +98,19 @@ public partial class GameData : Node
         EmitSignal(SignalName.EquipmentChanged);
     }
 
+    public void ResetLocalSave()
+    {
+        FlushSave();
+        var profile = SaveManager.ResetLocalSave();
+        if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
+        {
+            Chips = profile.Chips;
+            Inventory.LoadState(profile.OwnedItemIds, profile.EquippedItemIdsByType, emitChanged: false);
+            EmitSignal(SignalName.ChipsChanged, Chips);
+            EmitSignal(SignalName.EquipmentChanged);
+        }
+    }
+
     private void LoadDataForCurrentMode()
     {
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)

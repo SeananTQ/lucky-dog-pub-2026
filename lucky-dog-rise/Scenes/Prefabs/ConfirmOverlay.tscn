@@ -1,0 +1,102 @@
+[gd_scene format=3 uid="uid://qrso37san66q"]
+
+[ext_resource type="Script" uid="uid://lg5n6xwuobx8" path="res://Scripts/Desktop/ConfirmOverlayController.cs" id="1_ctrl"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="overlay_bg"]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0, 0, 0, 0.92156863)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="message_bg"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(1, 1, 1, 0.08)
+draw_center = false
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="ConfirmOverlay" type="Control" unique_id=433562155]
+visible = false
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 3
+anchors_preset = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_ctrl")
+
+[node name="OverlayPanel" type="PanelContainer" parent="." unique_id=1731195539]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("overlay_bg")
+
+[node name="Margin" type="MarginContainer" parent="OverlayPanel" unique_id=1110064918]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="OverlayPanel/Margin" unique_id=1991147163]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TopSpacer" type="Control" parent="OverlayPanel/Margin/Content" unique_id=1501105277]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="OverlayPanel/Margin/Content" unique_id=1274910269]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "确认操作"
+horizontal_alignment = 1
+
+[node name="MessageBg" type="PanelContainer" parent="OverlayPanel/Margin/Content" unique_id=2116035730]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("message_bg")
+
+[node name="Message" type="Label" parent="OverlayPanel/Margin/Content/MessageBg" unique_id=1904159264]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 16
+text = "确认要继续吗？"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ButtonRow" type="HBoxContainer" parent="OverlayPanel/Margin/Content" unique_id=887931038]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="CancelButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow" unique_id=1066066042]
+custom_minimum_size = Vector2(112, 42)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "取消"
+
+[node name="ConfirmButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow" unique_id=1490594271]
+custom_minimum_size = Vector2(112, 42)
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
+text = "确认"
+
+[node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content" unique_id=457087408]
+layout_mode = 2
+size_flags_vertical = 3

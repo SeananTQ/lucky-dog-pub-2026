@@ -43,6 +43,7 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _audioToggle = null!;
     private OptionButton _displayOption = null!;
     private OptionButton _saveDataModeOption = null!;
+    private ConfirmOverlayController _resetSaveConfirm = null!;
 
     // Debug 页
     private Label _seedLabel = null!;
@@ -84,9 +85,11 @@ public partial class SystemPanelController : CanvasLayer
         // === Settings 页 ===
         _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AudioRow/AudioToggle");
         _displayOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/DisplayRow/DisplayOption");
-        _saveDataModeOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/SaveDataModeRow/SaveDataModeOption");
+        _saveDataModeOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
+        _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/QuitBtn");
+        var resetSaveBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/ResetSaveBtn");
 
         _displayOption.AddItem("Clock", 0);
         _displayOption.AddItem("Chips", 1);
@@ -118,6 +121,13 @@ public partial class SystemPanelController : CanvasLayer
 
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
+        resetSaveBtn.Pressed += () =>
+            _resetSaveConfirm.ShowConfirm(
+                "重置存档",
+                "确定要重置本地存档吗？此操作会清空筹码、背包拥有状态和装备状态，并创建一份新的默认存档。",
+                "重置",
+                "取消");
+        _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
 
         var switchToPlayBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToPlayBtn");
         var switchToBossKeyBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToBossKeyBtn");
@@ -268,10 +278,13 @@ public partial class SystemPanelController : CanvasLayer
     public void SetPanelPosition(Vector2 pos)
     {
         _panel.Position = pos;
+        _resetSaveConfirm?.SetOverlayRect(pos, PanelSize);
     }
 
     public void Close()
     {
+        if (_resetSaveConfirm != null)
+            _resetSaveConfirm.Visible = false;
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 0f, 0.1f).SetEase(Tween.EaseType.In);
@@ -280,6 +293,8 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+        if (_resetSaveConfirm != null)
+            _resetSaveConfirm.Visible = false;
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
@@ -289,6 +304,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (!_panel.Visible) return false;
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
+            || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPos);
     }
@@ -351,6 +367,14 @@ public partial class SystemPanelController : CanvasLayer
     private void OnSaveDataModeChanged(long index)
     {
         _gameData.SetSaveDataMode((SettingsManager.SaveDataMode)(int)index);
+        _wardrobeBuilt = false;
+        if (_wardrobeContent.Visible)
+            BuildWardrobe();
+    }
+
+    private void OnResetSaveConfirmed()
+    {
+        _gameData.ResetLocalSave();
         _wardrobeBuilt = false;
         if (_wardrobeContent.Visible)
             BuildWardrobe();
