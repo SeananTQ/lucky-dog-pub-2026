@@ -59,6 +59,10 @@ public partial class ModeManager : Control
     private bool _hiddenByFullscreenApp;
     private double _enhancedTopmostTimer;
     private double _enhancedTopmostBoostTimer;
+    private double _enhancedTopmostDelayedBoostTimer;
+    private bool _waitingForWinMenuDismiss;
+    private double _recoverTopmostOnNextMousePressTimer;
+    private const double RecoverTopmostOnNextMousePressSeconds = 5.0;
 
     public override void _Ready()
     {
@@ -114,6 +118,8 @@ public partial class ModeManager : Control
         tracker.GameData = _gameData;
         tracker.TypingInputOccurred += OnTypingInputOccurred;
         tracker.GlobalMousePressed += OnGlobalMousePressed;
+        tracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
+        tracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
         AddChild(tracker);
     }
 
@@ -315,8 +321,83 @@ public partial class ModeManager : Control
 
     private void OnGlobalMousePressed(Vector2I screenPosition)
     {
-        if (SettingsManager.LoadEnhancedTopmostMode() && IsPointInTaskbarArea(screenPosition))
-            _enhancedTopmostBoostTimer = 0.5;
+        if (!SettingsManager.LoadEnhancedTopmostMode())
+        {
+            _waitingForWinMenuDismiss = false;
+            _enhancedTopmostDelayedBoostTimer = 0.0;
+            _recoverTopmostOnNextMousePressTimer = 0.0;
+            return;
+        }
+
+        if (_recoverTopmostOnNextMousePressTimer > 0.0)
+        {
+            _recoverTopmostOnNextMousePressTimer = 0.0;
+            StartEnhancedTopmostBoost();
+            return;
+        }
+
+        if (_waitingForWinMenuDismiss)
+        {
+            _waitingForWinMenuDismiss = false;
+            StartEnhancedTopmostBoostAfterShellDismiss();
+            return;
+        }
+
+        if (IsPointInTaskbarArea(screenPosition))
+        {
+            StartEnhancedTopmostBoost();
+        }
+    }
+
+    private void OnGlobalWinKeyPressed()
+    {
+        if (!SettingsManager.LoadEnhancedTopmostMode())
+        {
+            _waitingForWinMenuDismiss = false;
+            _enhancedTopmostDelayedBoostTimer = 0.0;
+            _recoverTopmostOnNextMousePressTimer = 0.0;
+            return;
+        }
+
+        if (_waitingForWinMenuDismiss)
+        {
+            _waitingForWinMenuDismiss = false;
+            StartEnhancedTopmostBoostAfterShellDismiss();
+            return;
+        }
+
+        _waitingForWinMenuDismiss = true;
+    }
+
+    private void OnGlobalEscapeKeyPressed()
+    {
+        if (!SettingsManager.LoadEnhancedTopmostMode())
+        {
+            _waitingForWinMenuDismiss = false;
+            _enhancedTopmostDelayedBoostTimer = 0.0;
+            _recoverTopmostOnNextMousePressTimer = 0.0;
+            return;
+        }
+
+        if (!_waitingForWinMenuDismiss)
+            return;
+
+        _waitingForWinMenuDismiss = false;
+        StartEnhancedTopmostBoostAfterShellDismiss();
+    }
+
+    private void StartEnhancedTopmostBoostAfterShellDismiss()
+    {
+        StartEnhancedTopmostBoost();
+        _enhancedTopmostDelayedBoostTimer = 0.08;
+        _recoverTopmostOnNextMousePressTimer = RecoverTopmostOnNextMousePressSeconds;
+    }
+
+    private void StartEnhancedTopmostBoost()
+    {
+        _enhancedTopmostBoostTimer = 0.5;
+        _enhancedTopmostTimer = 0.0;
+        ReassertTopmostNoActivate();
     }
 
     private void UpdateFullscreenVisibility(double delta)
@@ -344,6 +425,19 @@ public partial class ModeManager : Control
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp || !SettingsManager.LoadEnhancedTopmostMode())
             return;
 
+        if (_enhancedTopmostDelayedBoostTimer > 0.0)
+        {
+            _enhancedTopmostDelayedBoostTimer -= delta;
+            if (_enhancedTopmostDelayedBoostTimer <= 0.0)
+                StartEnhancedTopmostBoost();
+        }
+
+        if (_recoverTopmostOnNextMousePressTimer > 0.0)
+            _recoverTopmostOnNextMousePressTimer -= delta;
+
+        if (_enhancedTopmostBoostTimer <= 0.0)
+            return;
+
         if (_enhancedTopmostBoostTimer > 0.0)
             _enhancedTopmostBoostTimer -= delta;
 
@@ -351,7 +445,7 @@ public partial class ModeManager : Control
         if (_enhancedTopmostTimer > 0.0)
             return;
 
-        _enhancedTopmostTimer = _enhancedTopmostBoostTimer > 0.0 ? 0.016 : 0.25;
+        _enhancedTopmostTimer = 0.016;
         ReassertTopmostNoActivate();
     }
 

@@ -10,6 +10,8 @@ public partial class GlobalInputTracker : Node
 {
     [Signal] public delegate void TypingInputOccurredEventHandler(int count);
     [Signal] public delegate void GlobalMousePressedEventHandler(Vector2I screenPosition);
+    [Signal] public delegate void GlobalWinKeyPressedEventHandler();
+    [Signal] public delegate void GlobalEscapeKeyPressedEventHandler();
 
     public GameData GameData { get; set; } = null!;
 
@@ -26,6 +28,11 @@ public partial class GlobalInputTracker : Node
     private const int WH_MOUSE_LL = 14;
     private const int WM_KEYDOWN = 0x0100;
     private const int WM_KEYUP = 0x0101;
+    private const int WM_SYSKEYDOWN = 0x0104;
+    private const int WM_SYSKEYUP = 0x0105;
+    private const int VK_ESCAPE = 0x1B;
+    private const int VK_LWIN = 0x5B;
+    private const int VK_RWIN = 0x5C;
     private const int WM_LBUTTONDOWN = 0x0201;
     private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
@@ -117,16 +124,20 @@ public partial class GlobalInputTracker : Node
 
     private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+        if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
         {
             int vkCode = Marshal.ReadInt32(lParam);
             if (!_keysDown[vkCode])
             {
                 _keysDown[vkCode] = true;
+                if (vkCode == VK_LWIN || vkCode == VK_RWIN)
+                    EmitSignal(SignalName.GlobalWinKeyPressed);
+                else if (vkCode == VK_ESCAPE)
+                    EmitSignal(SignalName.GlobalEscapeKeyPressed);
                 Interlocked.Increment(ref _pendingPresses);
             }
         }
-        else if (nCode >= 0 && wParam == (IntPtr)WM_KEYUP)
+        else if (nCode >= 0 && (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP))
         {
             int vkCode = Marshal.ReadInt32(lParam);
             _keysDown[vkCode] = false;
