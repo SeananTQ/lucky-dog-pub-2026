@@ -55,6 +55,8 @@ public partial class ModeManager : Control
     private double _candidateDesktopActivitySeconds;
     private double _desktopActivityCooldownSeconds;
     private bool _desktopTongueFeedbackEnabled = true;
+    private double _fullscreenCheckTimer;
+    private bool _hiddenByFullscreenApp;
 
     public override void _Ready()
     {
@@ -117,7 +119,11 @@ public partial class ModeManager : Control
 
     public override void _Process(double _)
     {
+        UpdateFullscreenVisibility(_);
         UpdateDesktopActivityState(_);
+
+        if (_hiddenByFullscreenApp)
+            return;
 
         var mode = SettingsManager.CurrentDisplayMode;
         if (mode != _lastMode)
@@ -299,8 +305,90 @@ public partial class ModeManager : Control
     {
         _desktopInputEvents.Enqueue((Time.GetTicksMsec() / 1000.0, count));
 
-        if (CurrentMode == Mode.BossKey && _desktopTongueFeedbackEnabled)
+        if (CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp && _desktopTongueFeedbackEnabled)
             _bossDogVisual.PlayDesktopTongueTap(count);
+    }
+
+    private void UpdateFullscreenVisibility(double delta)
+    {
+        _fullscreenCheckTimer -= delta;
+        if (_fullscreenCheckTimer > 0.0)
+            return;
+
+        _fullscreenCheckTimer = 0.5;
+        var shouldHide = !SettingsManager.LoadShowOverFullscreenApps() && IsOtherAppFullscreen();
+        if (shouldHide == _hiddenByFullscreenApp)
+            return;
+
+        SetHiddenByFullscreenApp(shouldHide);
+        if (!shouldHide)
+        {
+            SetClickThrough(CurrentMode == Mode.BossKey);
+            if (CurrentMode == Mode.Play)
+                UpdatePlayLayout();
+        }
+    }
+
+    private void SetHiddenByFullscreenApp(bool hidden)
+    {
+        _hiddenByFullscreenApp = hidden;
+        if (hidden)
+        {
+            if (_settingsPanel.IsOpen)
+                _settingsPanel.CloseImmediate();
+            HideBossKeyContent();
+            if (_playRoot != null)
+                _playRoot.Visible = false;
+            if (_infoPanel != null)
+                _infoPanel.Visible = false;
+            return;
+        }
+
+        if (CurrentMode == Mode.BossKey)
+            ShowBossKeyContent();
+        else if (CurrentMode == Mode.Play)
+        {
+            if (_playRoot != null)
+                _playRoot.Visible = true;
+            if (_infoPanel != null)
+                _infoPanel.Visible = true;
+        }
+    }
+
+    private static bool IsOtherAppFullscreen()
+    {
+        var foreground = WindowNative.GetForegroundWindow();
+        var ownWindow = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (foreground == IntPtr.Zero || foreground == ownWindow)
+            return false;
+
+        if (!WindowNative.GetWindowRect(foreground, out var rect))
+            return false;
+
+        var windowRect = new Rect2I(
+            rect.Left,
+            rect.Top,
+            Math.Max(0, rect.Right - rect.Left),
+            Math.Max(0, rect.Bottom - rect.Top)
+        );
+
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = new Rect2I(DisplayServer.ScreenGetPosition(i), DisplayServer.ScreenGetSize(i));
+            if (CoversScreen(windowRect, screen))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool CoversScreen(Rect2I windowRect, Rect2I screenRect)
+    {
+        const int tolerance = 2;
+        return windowRect.Position.X <= screenRect.Position.X + tolerance
+            && windowRect.Position.Y <= screenRect.Position.Y + tolerance
+            && windowRect.End.X >= screenRect.End.X - tolerance
+            && windowRect.End.Y >= screenRect.End.Y - tolerance;
     }
 
     private void UpdateDesktopActivityState(double delta)

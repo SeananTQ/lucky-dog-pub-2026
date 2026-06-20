@@ -102,6 +102,10 @@ public partial class SystemPanelController : CanvasLayer
         tongueImmediateToggle.ButtonPressed = SettingsManager.LoadDesktopTongueImmediateMode();
         tongueImmediateToggle.Toggled += enabled => SettingsManager.SaveDesktopTongueImmediateMode(enabled);
 
+        var showFullscreenToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle");
+        showFullscreenToggle.ButtonPressed = SettingsManager.LoadShowOverFullscreenApps();
+        showFullscreenToggle.Toggled += enabled => SettingsManager.SaveShowOverFullscreenApps(enabled);
+
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
 
