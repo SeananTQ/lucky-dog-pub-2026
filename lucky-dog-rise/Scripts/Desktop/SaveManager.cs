@@ -94,6 +94,7 @@ public static class SaveManager
         };
 
         profile.OwnedItemCounts = LubanData.Tables.TbItem.DataList
+            .Where(item => item.BlindBoxId == 0)
             .Select(item => item.Id)
             .Distinct()
             .OrderBy(id => id)

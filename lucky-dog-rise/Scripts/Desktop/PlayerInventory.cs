@@ -238,7 +238,7 @@ public class PlayerInventory
                 _equipped[type] = first.Id;
                 changed = true;
             }
-            else if (LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type) != null)
+            else if (!CanUnequip(type))
             {
                 GD.PushError($"[Inventory] Required equipment slot has no owned item: {type}");
             }
