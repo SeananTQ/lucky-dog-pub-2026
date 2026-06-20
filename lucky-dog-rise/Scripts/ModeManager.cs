@@ -100,6 +100,7 @@ public partial class ModeManager : Control
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
         tracker.GameData = _gameData;
+        tracker.TypingInputOccurred += OnTypingInputOccurred;
         AddChild(tracker);
     }
 
@@ -282,6 +283,12 @@ public partial class ModeManager : Control
             _bossDogVisual.ApplyReaction((EDogReactionTrigger)trigger);
         else
             _gameManager?.OnPlayDogReaction(trigger);
+    }
+
+    private void OnTypingInputOccurred(int count)
+    {
+        if (CurrentMode == Mode.BossKey)
+            _bossDogVisual.PlayDesktopTongueTap(count);
     }
 
     private void ApplyRandomEquipment(IEnumerable<EItemType> types)

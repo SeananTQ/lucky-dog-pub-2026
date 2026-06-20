@@ -8,6 +8,8 @@ namespace LuckyDogRise;
 
 public partial class GlobalInputTracker : Node
 {
+    [Signal] public delegate void TypingInputOccurredEventHandler(int count);
+
     public GameData GameData { get; set; } = null!;
 
     private IntPtr _kbHook = IntPtr.Zero;
@@ -89,7 +91,10 @@ public partial class GlobalInputTracker : Node
     {
         var count = Interlocked.Exchange(ref _pendingPresses, 0);
         if (count > 0 && GameData != null)
+        {
             GameData.ModifyChips(count);
+            EmitSignal(SignalName.TypingInputOccurred, count);
+        }
     }
 
     private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)

@@ -24,10 +24,24 @@ public partial class DogVisual : Node2D
     private DogSkin _dogSkin = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     private Tween _tongueTween = null!;
+    private Vector2 _desktopTongueBasePosition;
+    private float _desktopTongueTimer;
+    private float _desktopTongueActiveTimer;
+    private float _desktopTongueBeatTimer;
+    private float _desktopTongueBurstTimer;
+    private int _desktopTongueBurstCount;
+    private bool _desktopTongueExtended;
 
     [Export] private float _tonguePantOffset = 10f;
     [Export] private float _tonguePantStepDuration = 0.06f;
     [Export] private int _tonguePantLoops = 2;
+    [Export] private bool _desktopTongueImmediateMode;
+    [Export] private float _desktopTongueTapOffset = 10f;
+    [Export] private float _desktopTongueTapHoldSeconds = 0.08f;
+    [Export] private float _desktopTongueActiveSeconds = 0.7f;
+    [Export] private float _desktopTongueBeatSeconds = 0.12f;
+    [Export] private float _desktopTongueBurstWindowSeconds = 0.25f;
+    [Export] private int _desktopTongueBurstThreshold = 2;
 
     public GameData GameData
     {
@@ -63,6 +77,54 @@ public partial class DogVisual : Node2D
 
         EnsurePositionCache();
         RefreshEquippedVisuals();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_tongue == null) return;
+
+        if (IsDesktopTongueImmediateMode())
+        {
+            if (_desktopTongueTimer <= 0f) return;
+
+            _desktopTongueTimer -= (float)delta;
+            if (_desktopTongueTimer <= 0f)
+                _tongue.Position = _desktopTongueBasePosition;
+            return;
+        }
+
+        if (_desktopTongueBurstTimer > 0f)
+        {
+            _desktopTongueBurstTimer -= (float)delta;
+            if (_desktopTongueBurstTimer <= 0f)
+                _desktopTongueBurstCount = 0;
+        }
+
+        if (_desktopTongueTimer > 0f)
+        {
+            _desktopTongueTimer -= (float)delta;
+            if (_desktopTongueTimer <= 0f && _desktopTongueActiveTimer <= 0f)
+                _tongue.Position = _desktopTongueBasePosition;
+        }
+
+        if (_desktopTongueActiveTimer <= 0f) return;
+
+        _desktopTongueActiveTimer -= (float)delta;
+        _desktopTongueBeatTimer -= (float)delta;
+
+        if (_desktopTongueBeatTimer <= 0f)
+        {
+            _desktopTongueExtended = !_desktopTongueExtended;
+            _desktopTongueBeatTimer = _desktopTongueBeatSeconds;
+            _tongue.Position = _desktopTongueBasePosition
+                + (_desktopTongueExtended ? new Vector2(0, _desktopTongueTapOffset) : Vector2.Zero);
+        }
+
+        if (_desktopTongueActiveTimer <= 0f)
+        {
+            _desktopTongueExtended = false;
+            _tongue.Position = _desktopTongueBasePosition;
+        }
     }
 
     /// <summary>
@@ -144,6 +206,52 @@ public partial class DogVisual : Node2D
     {
         _eyewear.Visible = false;
         _headwear.Visible = false;
+    }
+
+    public void PlayDesktopTongueTap(int inputCount = 1)
+    {
+        if (!IsNodeReady() || _tongue == null) return;
+
+        if (_desktopTongueTimer <= 0f && _desktopTongueActiveTimer <= 0f)
+            _desktopTongueBasePosition = _tongue.Position;
+
+        StopTongueAnimation();
+        if (!IsDesktopTongueImmediateMode())
+        {
+            _desktopTongueBurstTimer = _desktopTongueBurstWindowSeconds;
+            _desktopTongueBurstCount += Mathf.Max(1, inputCount);
+
+            if (_desktopTongueBurstCount < _desktopTongueBurstThreshold && _desktopTongueActiveTimer <= 0f)
+            {
+                _tongue.Position = _desktopTongueBasePosition + new Vector2(0, _desktopTongueTapOffset);
+                _desktopTongueTimer = _desktopTongueTapHoldSeconds;
+                return;
+            }
+
+            _desktopTongueActiveTimer = Mathf.Min(
+                _desktopTongueActiveSeconds + Mathf.Max(0, inputCount - 1) * 0.04f,
+                1.2f
+            );
+
+            if (_desktopTongueBeatTimer <= 0f)
+            {
+                _desktopTongueExtended = true;
+                _desktopTongueBeatTimer = _desktopTongueBeatSeconds;
+                _tongue.Position = _desktopTongueBasePosition + new Vector2(0, _desktopTongueTapOffset);
+            }
+            return;
+        }
+
+        _tongue.Position = _desktopTongueBasePosition + new Vector2(0, _desktopTongueTapOffset);
+        _desktopTongueTimer = Mathf.Min(
+            _desktopTongueTapHoldSeconds + Mathf.Max(0, inputCount - 1) * 0.015f,
+            0.16f
+        );
+    }
+
+    private bool IsDesktopTongueImmediateMode()
+    {
+        return _desktopTongueImmediateMode || SettingsManager.LoadDesktopTongueImmediateMode();
     }
 
     public void RefreshEquippedVisuals()
@@ -371,6 +479,12 @@ public partial class DogVisual : Node2D
         if (_tongue != null)
         {
             StopTongueAnimation();
+            _desktopTongueTimer = 0f;
+            _desktopTongueActiveTimer = 0f;
+            _desktopTongueBeatTimer = 0f;
+            _desktopTongueBurstTimer = 0f;
+            _desktopTongueBurstCount = 0;
+            _desktopTongueExtended = false;
             SetDogTexture(_tongue, skin.TongueRegular);
             _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }

@@ -98,6 +98,10 @@ public partial class SystemPanelController : CanvasLayer
         autoHideToggle.ButtonPressed = SettingsManager.LoadAutoHidePanel();
         autoHideToggle.Toggled += enabled => SettingsManager.SaveAutoHidePanel(enabled);
 
+        var tongueImmediateToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow/TongueImmediateToggle");
+        tongueImmediateToggle.ButtonPressed = SettingsManager.LoadDesktopTongueImmediateMode();
+        tongueImmediateToggle.Toggled += enabled => SettingsManager.SaveDesktopTongueImmediateMode(enabled);
+
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
 
