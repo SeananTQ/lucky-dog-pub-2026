@@ -42,6 +42,7 @@ public partial class DogVisual : Node2D
     [Export] private float _desktopTongueBeatSeconds = 0.12f;
     [Export] private float _desktopTongueBurstWindowSeconds = 0.25f;
     [Export] private int _desktopTongueBurstThreshold = 2;
+    [Export] public bool ShowEquippedEyewearByDefault { get; set; }
 
     public GameData GameData
     {
@@ -504,8 +505,9 @@ public partial class DogVisual : Node2D
         if (!string.IsNullOrEmpty(visual.OverrideHeadwear))
             ApplyHeadwearOverride(visual.OverrideHeadwear);
 
-        RefreshEquippedEyewear(showIfEquipped: visual.WearGlasses, allowOwnedFallback: visual.WearGlasses);
-        if (!visual.WearGlasses)
+        var shouldShowEyewear = visual.WearGlasses || ShowEquippedEyewearByDefault;
+        RefreshEquippedEyewear(showIfEquipped: shouldShowEyewear, allowOwnedFallback: visual.WearGlasses);
+        if (!shouldShowEyewear)
             _eyewear.Visible = false;
 
         ApplyTongueVisual(visual);

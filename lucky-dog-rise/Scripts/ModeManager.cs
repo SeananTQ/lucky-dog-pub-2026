@@ -66,6 +66,7 @@ public partial class ModeManager : Control
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
         _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
+        _bossDogVisual.ShowEquippedEyewearByDefault = true;
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
         _gameData.EquipmentChanged += RefreshBossDogVisuals;
