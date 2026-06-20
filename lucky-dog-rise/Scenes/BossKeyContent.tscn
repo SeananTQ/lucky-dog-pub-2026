@@ -1,13 +1,68 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="1_dog"]
 
 [sub_resource type="StyleBoxFlat" id="panel_bg"]
-bg_color = Color(0.08, 0.08, 0.08, 0.85)
-corner_radius_top_left = 15
-corner_radius_top_right = 15
-corner_radius_bottom_right = 15
-corner_radius_bottom_left = 15
+content_margin_left = 5.0
+content_margin_top = 3.0
+content_margin_right = 5.0
+content_margin_bottom = 3.0
+bg_color = Color(0.86, 0.895, 0.915, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.535, 0.56, 0.82)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.04, 0.045, 0.05, 0.28)
+shadow_size = 1
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="bar_icon_normal"]
+content_margin_left = 4.0
+content_margin_top = 3.0
+content_margin_right = 4.0
+content_margin_bottom = 3.0
+bg_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="bar_icon_hover"]
+content_margin_left = 4.0
+content_margin_top = 3.0
+content_margin_right = 4.0
+content_margin_bottom = 3.0
+bg_color = Color(1, 1, 1, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="bar_icon_pressed"]
+content_margin_left = 4.0
+content_margin_top = 3.0
+content_margin_right = 4.0
+content_margin_bottom = 3.0
+bg_color = Color(0.54, 0.6, 0.63, 0.25)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="DPITexture" id="play_icon"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path fill=\"#22282d\" d=\"M5 3.4v9.2l7-4.6z\"/></svg>
+"
+base_scale = 1.15
+
+[sub_resource type="DPITexture" id="menu_icon"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path fill=\"#22282d\" d=\"M3 4h10v2H3zm0 3h10v2H3zm0 3h10v2H3z\"/></svg>
+"
+base_scale = 1.15
 
 [sub_resource type="StyleBoxFlat" id="bubble_bg"]
 bg_color = Color(1, 1, 1, 0.9)
@@ -23,35 +78,60 @@ offset = Vector2(300, 420)
 transform = Transform2D(1, 0, 0, 1, 300, 420)
 
 [node name="Panel" type="PanelContainer" parent="CanvasLayer"]
-offset_left = 53.0
-offset_top = 201.0
-offset_right = 225.0
-offset_bottom = 232.0
+offset_left = 51.0
+offset_top = 204.0
+offset_right = 227.0
+offset_bottom = 233.0
 theme_override_styles/panel = SubResource("panel_bg")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Panel"]
 layout_mode = 2
+theme_override_constants/separation = 2
 alignment = 1
 
 [node name="ModeSwitch" type="Button" parent="CanvasLayer/Panel/HBoxContainer"]
+custom_minimum_size = Vector2(28, 22)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "▶"
-flat = true
+tooltip_text = "切换到游玩模式"
+focus_mode = 0
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_styles/normal = SubResource("bar_icon_normal")
+theme_override_styles/hover = SubResource("bar_icon_hover")
+theme_override_styles/pressed = SubResource("bar_icon_pressed")
+theme_override_styles/focus = SubResource("bar_icon_hover")
+icon = SubResource("play_icon")
 
 [node name="MainText" type="Label" parent="CanvasLayer/Panel/HBoxContainer"]
-custom_minimum_size = Vector2(96, 0)
+custom_minimum_size = Vector2(104, 22)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.065, 0.075, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(1, 1, 1, 0.3)
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 14
 text = "12:00"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SystemButton" type="Button" parent="CanvasLayer/Panel/HBoxContainer"]
+custom_minimum_size = Vector2(28, 22)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "⚙"
-flat = true
+tooltip_text = "系统功能"
+focus_mode = 0
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_styles/normal = SubResource("bar_icon_normal")
+theme_override_styles/hover = SubResource("bar_icon_hover")
+theme_override_styles/pressed = SubResource("bar_icon_pressed")
+theme_override_styles/focus = SubResource("bar_icon_hover")
+icon = SubResource("menu_icon")
 
 [node name="ContentA" type="Node2D" parent="."]
 position = Vector2(300, 420)
