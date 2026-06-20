@@ -60,23 +60,25 @@ public class PlayerInventory
         var item = FindItem(itemId);
         if (item == null || !Owns(itemId)) return;
 
-        var clearedNew = ClearNew(itemId, emitChanged: false);
-
         if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
         {
+            var clearedNew = ClearNew(itemId, emitChanged: false);
+            if (clearedNew)
+            {
+                InventoryChanged?.Invoke();
+                return;
+            }
+
             if (CanUnequip(item.ItemType))
             {
                 _equipped.Remove(item.ItemType);
                 EquipmentChanged?.Invoke();
                 InventoryChanged?.Invoke();
             }
-            else if (clearedNew)
-            {
-                InventoryChanged?.Invoke();
-            }
             return;
         }
 
+        ClearNew(itemId, emitChanged: false);
         Equip(itemId);
     }
 
@@ -196,7 +198,7 @@ public class PlayerInventory
         if (markNew)
             _newItemIds.Add(itemId);
 
-        var equipmentChanged = ApplyDefaultEquipment();
+        var equipmentChanged = EquipAcquiredItemIfSlotEmpty(item);
         if (equipmentChanged)
             EquipmentChanged?.Invoke();
         InventoryChanged?.Invoke();
@@ -226,10 +228,13 @@ public class PlayerInventory
     private bool ApplyDefaultEquipment()
     {
         var changed = false;
-        // 新游戏默认装备玩家拥有的每种类型第一个道具；CanUnequip 只控制之后能不能脱下。
+        // 新游戏默认只补齐不可空闲槽位；可空闲槽位允许保持空闲。
         foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
         {
             if (_equipped.ContainsKey(type))
+                continue;
+
+            if (CanUnequip(type))
                 continue;
 
             var first = GetOwnedOfType(type).FirstOrDefault();
@@ -245,6 +250,15 @@ public class PlayerInventory
         }
 
         return changed;
+    }
+
+    private bool EquipAcquiredItemIfSlotEmpty(Item item)
+    {
+        if (_equipped.ContainsKey(item.ItemType))
+            return false;
+
+        _equipped[item.ItemType] = item.Id;
+        return true;
     }
 
     public static string ToResPath(string lubanPath)

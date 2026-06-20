@@ -54,8 +54,10 @@ public partial class SystemPanelController : CanvasLayer
 
     // Wardrobe 页
     private GridContainer _wardrobeGrid = null!;
+    private Control _emptyWardrobeCenter = null!;
     private HBoxContainer _typeFilterRow = null!;
     private TabGroup _selectedTab = null!;
+    private Label _emptyWardrobeLabel = null!;
     private GameData _gameData = null!;
     public GameData GameData
     {
@@ -169,6 +171,8 @@ public partial class SystemPanelController : CanvasLayer
         // === Wardrobe 页 ===
         _wardrobeGrid = GetNode<GridContainer>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
         _typeFilterRow = GetNode<HBoxContainer>("Panel/Scroll/RootVBox/WardrobeContent/TypeFilterRow");
+        _emptyWardrobeCenter = GetNode<Control>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter");
+        _emptyWardrobeLabel = GetNode<Label>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter/EmptyWardrobeLabel");
 
         _panel.Visible = false;
     }
@@ -210,12 +214,9 @@ public partial class SystemPanelController : CanvasLayer
         var tabs = LubanData.Tables.TbTabGroup.DataList
             .OrderBy(t => t.SortOrder);
 
+        var selectedTabId = _selectedTab?.Id;
         foreach (var tab in tabs)
         {
-            bool hasItems = tab.TabItemTypeList
-                .Any(type => _gameData.Inventory.GetOwnedOfType(type).Any());
-            if (!hasItems) continue;
-
             var btn = new Button();
             btn.Text = tab.TabName;
             btn.AddThemeFontSizeOverride("font_size", 13);
@@ -232,8 +233,7 @@ public partial class SystemPanelController : CanvasLayer
 
         if (_typeFilterButtons.Count > 0)
         {
-            _selectedTab = tabs.First(t => t.TabItemTypeList
-                .Any(type => _gameData.Inventory.GetOwnedOfType(type).Any()));
+            _selectedTab = tabs.FirstOrDefault(t => t.Id == selectedTabId) ?? tabs.First();
             UpdateFilterButtonStyles(_selectedTab.Id);
         }
     }
@@ -247,13 +247,21 @@ public partial class SystemPanelController : CanvasLayer
     private void PopulateWardrobeGrid(TabGroup tab)
     {
         foreach (var child in _wardrobeGrid.GetChildren())
+        {
             child.QueueFree();
+        }
 
         var items = tab.TabItemTypeList
             .SelectMany(type => _gameData.Inventory.GetOwnedOfType(type))
             .OrderByDescending(item => _gameData.Inventory.IsNew(item.Id))
             .ThenByDescending(item => item.SortOrder)
-            .ThenBy(item => item.Id);
+            .ThenBy(item => item.Id)
+            .ToList();
+
+        _wardrobeGrid.Visible = items.Count > 0;
+        _emptyWardrobeCenter.Visible = items.Count == 0;
+        if (items.Count == 0)
+            return;
 
         foreach (var item in items)
             _wardrobeGrid.AddChild(CreateItemCell(item));

@@ -329,7 +329,9 @@ public partial class ModeManager : Control
 
     private void OnRandomAcquireItem()
     {
-        var items = LubanData.Tables.TbItem.DataList.ToList();
+        var items = LubanData.Tables.TbItem.DataList
+            .Where(item => !item.IsUnique || !_gameData.Inventory.Owns(item.Id))
+            .ToList();
         if (items.Count == 0)
             return;
 

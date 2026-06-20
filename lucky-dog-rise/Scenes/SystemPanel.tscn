@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://testset"]
+[gd_scene format=3 uid="uid://testset"]
 
 [ext_resource type="Script" uid="uid://c2rtl3vl2waso" path="res://Scripts/Desktop/SystemPanelController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
-[ext_resource type="PackedScene" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
+[ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -62,7 +62,7 @@ layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "Quit Game"
 
-[node name="SettingsSep0" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="SettingsSep0" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=826391324]
 layout_mode = 2
 
 [node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1724876092]
@@ -108,46 +108,46 @@ layout_mode = 2
 [node name="AutoHideSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=700966536]
 layout_mode = 2
 
-[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1889982942]
 layout_mode = 2
 
-[node name="TongueImmediateLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow"]
+[node name="TongueImmediateLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Tongue instant mode"
 
-[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow"]
+[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
 layout_mode = 2
 
-[node name="TongueImmediateSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="TongueImmediateSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1114726695]
 layout_mode = 2
 
-[node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=2044158914]
 layout_mode = 2
 
-[node name="ShowFullscreenLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow"]
+[node name="ShowFullscreenLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "全屏时显示"
 
-[node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow"]
+[node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
 layout_mode = 2
 
-[node name="ShowFullscreenSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="ShowFullscreenSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1855807597]
 layout_mode = 2
 
-[node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=5683608]
 layout_mode = 2
 
-[node name="EnhancedTopmostLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow"]
+[node name="EnhancedTopmostLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "增强置顶"
 
-[node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow"]
+[node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
 layout_mode = 2
 
-[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=846027549]
 layout_mode = 2
 
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
@@ -162,7 +162,7 @@ text = "Switch to BossKey"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ResetSaveBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="ResetSaveBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=240889279]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "重置存档"
@@ -188,23 +188,39 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 4
 
+[node name="EmptyWardrobeCenter" type="CenterContainer" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll" unique_id=26666424]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EmptyWardrobeLabel" type="Label" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter" unique_id=130236510]
+custom_minimum_size = Vector2(320, 160)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 16
+text = "还没有这个分类的物品，想办法去搞点吧汪~"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
 visible = false
 layout_mode = 2
 
-[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1028578028]
 layout_mode = 2
 
-[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow"]
+[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow" unique_id=792698923]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "背包数据来源"
 
-[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow"]
+[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow" unique_id=1397872734]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
-[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1993035049]
 layout_mode = 2
 
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
@@ -231,21 +247,21 @@ text = "Randomize Scene"
 layout_mode = 2
 text = "Randomize Dog"
 
-[node name="RandomAcquireItemBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="RandomAcquireItemBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=478263499]
 layout_mode = 2
 text = "随机获得道具"
 
-[node name="ReactionRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="ReactionRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1733918955]
 layout_mode = 2
 
-[node name="ReactionOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow"]
+[node name="ReactionOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow" unique_id=287358163]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
 
-[node name="PlayReactionBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow"]
+[node name="PlayReactionBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow" unique_id=1763972397]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Play"
 
-[node name="ResetSaveConfirm" parent="." instance=ExtResource("3_confirm")]
+[node name="ResetSaveConfirm" parent="." unique_id=1096261693 instance=ExtResource("3_confirm")]
