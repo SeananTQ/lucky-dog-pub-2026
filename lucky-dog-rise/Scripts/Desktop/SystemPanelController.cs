@@ -106,6 +106,10 @@ public partial class SystemPanelController : CanvasLayer
         showFullscreenToggle.ButtonPressed = SettingsManager.LoadShowOverFullscreenApps();
         showFullscreenToggle.Toggled += enabled => SettingsManager.SaveShowOverFullscreenApps(enabled);
 
+        var enhancedTopmostToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle");
+        enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
+        enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
+
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
 

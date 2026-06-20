@@ -127,6 +127,20 @@ layout_mode = 2
 [node name="ShowFullscreenSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
 layout_mode = 2
 
+[node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="EnhancedTopmostLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "增强置顶"
+
+[node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow"]
+layout_mode = 2
+
+[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent"]
+layout_mode = 2
+
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
 layout_mode = 2
 text = "Switch to Play"

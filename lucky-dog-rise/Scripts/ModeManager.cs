@@ -57,6 +57,8 @@ public partial class ModeManager : Control
     private bool _desktopTongueFeedbackEnabled = true;
     private double _fullscreenCheckTimer;
     private bool _hiddenByFullscreenApp;
+    private double _enhancedTopmostTimer;
+    private double _enhancedTopmostBoostTimer;
 
     public override void _Ready()
     {
@@ -111,6 +113,7 @@ public partial class ModeManager : Control
         tracker.Name = "GlobalInputTracker";
         tracker.GameData = _gameData;
         tracker.TypingInputOccurred += OnTypingInputOccurred;
+        tracker.GlobalMousePressed += OnGlobalMousePressed;
         AddChild(tracker);
     }
 
@@ -120,6 +123,7 @@ public partial class ModeManager : Control
     public override void _Process(double _)
     {
         UpdateFullscreenVisibility(_);
+        UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
 
         if (_hiddenByFullscreenApp)
@@ -309,6 +313,12 @@ public partial class ModeManager : Control
             _bossDogVisual.PlayDesktopTongueTap(count);
     }
 
+    private void OnGlobalMousePressed(Vector2I screenPosition)
+    {
+        if (SettingsManager.LoadEnhancedTopmostMode() && IsPointInTaskbarArea(screenPosition))
+            _enhancedTopmostBoostTimer = 0.5;
+    }
+
     private void UpdateFullscreenVisibility(double delta)
     {
         _fullscreenCheckTimer -= delta;
@@ -327,6 +337,36 @@ public partial class ModeManager : Control
             if (CurrentMode == Mode.Play)
                 UpdatePlayLayout();
         }
+    }
+
+    private void UpdateEnhancedTopmost(double delta)
+    {
+        if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp || !SettingsManager.LoadEnhancedTopmostMode())
+            return;
+
+        if (_enhancedTopmostBoostTimer > 0.0)
+            _enhancedTopmostBoostTimer -= delta;
+
+        _enhancedTopmostTimer -= delta;
+        if (_enhancedTopmostTimer > 0.0)
+            return;
+
+        _enhancedTopmostTimer = _enhancedTopmostBoostTimer > 0.0 ? 0.016 : 0.25;
+        ReassertTopmostNoActivate();
+    }
+
+    private static bool IsPointInTaskbarArea(Vector2I screenPosition)
+    {
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = new Rect2I(DisplayServer.ScreenGetPosition(i), DisplayServer.ScreenGetSize(i));
+            if (!screen.HasPoint(screenPosition)) continue;
+
+            var usable = DisplayServer.ScreenGetUsableRect(i);
+            return !usable.HasPoint(screenPosition);
+        }
+
+        return false;
     }
 
     private void SetHiddenByFullscreenApp(bool hidden)
@@ -664,6 +704,18 @@ public partial class ModeManager : Control
         WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style);
         WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
             WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
+    }
+
+    private static void ReassertTopmostNoActivate()
+    {
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd == IntPtr.Zero) return;
+
+        WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
+            WindowNative.SWP_NOMOVE
+            | WindowNative.SWP_NOSIZE
+            | WindowNative.SWP_NOACTIVATE
+            | WindowNative.SWP_SHOWWINDOW);
     }
 
     public override void _Input(InputEvent @event)

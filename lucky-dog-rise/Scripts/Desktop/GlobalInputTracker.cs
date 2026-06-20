@@ -9,6 +9,7 @@ namespace LuckyDogRise;
 public partial class GlobalInputTracker : Node
 {
     [Signal] public delegate void TypingInputOccurredEventHandler(int count);
+    [Signal] public delegate void GlobalMousePressedEventHandler(Vector2I screenPosition);
 
     public GameData GameData { get; set; } = null!;
 
@@ -32,6 +33,23 @@ public partial class GlobalInputTracker : Node
 
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
     private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Point
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MsllHookStruct
+    {
+        public Point Pt;
+        public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public IntPtr ExtraInfo;
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, Delegate lpfn,
@@ -124,7 +142,11 @@ public partial class GlobalInputTracker : Node
             var msg = (int)wParam;
             if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN ||
                 msg == WM_MBUTTONDOWN || msg == WM_XBUTTONDOWN)
+            {
                 Interlocked.Increment(ref _pendingPresses);
+                var hook = Marshal.PtrToStructure<MsllHookStruct>(lParam);
+                EmitSignal(SignalName.GlobalMousePressed, new Vector2I(hook.Pt.X, hook.Pt.Y));
+            }
         }
 
         return CallNextHookEx(_msHook, nCode, wParam, lParam);
