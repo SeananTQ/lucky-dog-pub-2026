@@ -1,5 +1,5 @@
 # 偏好设置
-写计划时不要采用子AGNET
+写计划时不要采用子 AGENT
 
 宫格顺序按键盘顺序，而非手机顺序。
 ```
@@ -20,6 +20,15 @@
 使用 Godot 4.6 + C#
 美术资产来自 PSD 1200x1200 画布导出，坐标系 1:1 对应。
 
+## 当前实现状态
+
+- 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情。
+- 小狗视觉：已迁移到 v1 资源和 `DogReaction` 数据驱动，旧硬编码入口仅保留 TODO 待清理。
+- 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
+- 存档：已支持本地 JSON 存档、版本号、缺字段兜底、损坏备份、重置存档确认。
+- 调试：Debug 页支持随机狗、随机场景、随机获得道具、播放狗反应、切换背包数据来源。
+- 待开发：正式盲盒/道具获取系统、LinkTree 免费领取、盲盒结果展示、重复补偿/分解等。
+
 ## 技术栈
 
 - **引擎**: Godot 4.6.3 Mono (C#)
@@ -33,7 +42,7 @@
 ```
 ModeManager.tscn（主入口, Control）
 ├── BossKeyContent.tscn（Node2D, 伪装模式 A 区）
-│   ├── CanvasLayer（按钮/Label/气泡）
+│   ├── CanvasLayer（桌宠信息栏：模式切换/数值显示/系统按钮）
 │   ├── ContentA（DogArea/WindowSize/TaskBar 标记）
 │   └── Bubble（CanvasLayer）
 ├── PlayContent.tscn（Node2D, 游玩模式内容）
@@ -41,7 +50,7 @@ ModeManager.tscn（主入口, Control）
 │       └── SubViewport（1200×1200）
 │           └── Main.tscn（扑克游戏, GameManager）
 ├── InfoPanel（CanvasLayer, 240×600, ModeManager 直接管理）
-├── SettingsPanel（CanvasLayer, 420×420, 测试设置面板）
+├── SettingsPanel（CanvasLayer, 420×600, 系统功能面板：设置/背包/Debug）
 └── GlobalInputTracker（Node, 打字统计）
 ```
 
@@ -52,8 +61,7 @@ ModeManager.tscn（主入口, Control）
 
 ```
 lucky-dog-rise/
-├── Assets/              # 旧版 PSD 导出素材（尚未删除，保持兼容）
-│   └── ...              # 同上，部分旧资源仍在使用
+├── Assets/              # 字体/UI 等通用资源；旧版美术资源已基本清理，不应新增旧路径依赖
 ├── Assets/v1/           # 新版 PSD 导出素材（数据驱动）
 │   ├── Background/      # 背景（大小不一，JSON 定位）
 │   ├── Table/           # 桌布
@@ -66,7 +74,8 @@ lucky-dog-rise/
 │   ├── Headwear/        # 头部装饰
 │   ├── Eyewear/         # 眼部装饰
 │   ├── Treat/           # 饮品
-│   ├── Card/            # 52 张牌 + 卡背/卡面
+│   ├── CardBack/        # 卡背
+│   ├── CardFace/        # 卡面
 │   ├── ItemIcon/        # 背包道具图标
 │   ├── ChipStack/       # 筹码
 │   └── layer_index.json # PSD 层坐标数据（doc_x/doc_y/width/height）
@@ -75,6 +84,9 @@ lucky-dog-rise/
 │       ├── tbpaytable.json
 │       ├── tbitem.json
 │       ├── tbdogskin.json
+│       ├── tbdogreaction.json
+│       ├── tbequipmentslotconfig.json
+│       ├── tbdesktopactivitystate.json
 │       ├── tbtabgroup.json
 │       └── tbgamedevelopconfig.json
 ├── Audio/
@@ -93,8 +105,9 @@ lucky-dog-rise/
 │   ├── ChipStack.tscn       # 筹码堆场景（下注交互）
 │   ├── ChipReward.tscn      # 奖励筹码场景（收集动画）
 │   └── Prefabs/
+│       ├── ConfirmOverlay.tscn # 面板内确认遮罩（替代 Godot 原生弹窗）
 │       ├── DogClaw.tscn     # 狗爪子（手心/手背切换）
-│       └── ItemCell.tscn    # 背包单格道具（品质框+图标+标记）
+│       └── ItemCell.tscn    # 背包单格道具（品质框+图标+New/装备中/数量）
 ├── Scripts/
 │   ├── ModeManager.cs        # 主入口控制器（窗口管理+模式切换+面板避让）
 │   ├── GameManager.cs        # 扑克游戏状态机（被 SubViewport 承载）
@@ -104,10 +117,12 @@ lucky-dog-rise/
 │   │   ├── SystemPanelController.cs   # 系统功能面板（设置/装扮/Debug）
 │   │   ├── InfoPanelController.cs     # 信息面板（赔率表+筹码+牌型）
 │   │   ├── GameData.cs                # 共享游戏数据（筹码/段位/Inventory）
-│   │   ├── PlayerInventory.cs         # 玩家背包（拥有道具+装备状态）
+│   │   ├── PlayerInventory.cs         # 玩家背包（数量堆叠+New 标记+装备状态）
+│   │   ├── SaveManager.cs             # 本地 JSON 存档（user://saves/profile_0.json）
 │   │   ├── LubanData.cs               # Luban 数据表加载器（静态懒加载）
 │   │   ├── SettingsManager.cs         # 设置持久化（ConfigFile）
-│   │   └── GlobalInputTracker.cs      # 全局键盘钩子
+│   │   ├── ConfirmOverlayController.cs # 通用确认遮罩控制器
+│   │   └── GlobalInputTracker.cs      # 全局键鼠钩子（打字/点击统计）
 │   ├── CardEvaluator.cs      # 牌型判定（纯静态）
 │   ├── DeckManager.cs        # 牌组管理（作弊发牌）
 │   ├── DogHintSystem.cs      # 小狗提示逻辑
@@ -130,7 +145,7 @@ lucky-dog-rise/
 │   ├── DogSkin.cs / TbDogSkin.cs
 │   ├── TabGroup.cs / TbTabGroup.cs
 │   ├── GameDevelopConfig.cs / TbGameDevelopConfig.cs
-│   └── 枚举：EItemType.cs / ERarity.cs / EHiddenRegionFlag.cs
+│   └── 枚举：EItemType.cs / ERarity.cs / EHiddenRegionFlag.cs / EDogReactionTrigger.cs / EHandRank.cs
 ├── Scripts/Luban/            # Luban 运行时库
 │   ├── BeanBase.cs
 │   ├── SimpleJSON/
@@ -151,6 +166,23 @@ lucky-dog-rise/
 以**参考物手调位置 + PSD 中心点差值**公式计算 `Sprite2D.Position`。
 详细算法见 `docs/guide/psd-json-sprite-offset-guide.md`
 
+**小狗表现：** `DogVisual` 通过 `DogReaction` 表应用眼睛、耳朵、舌头、爪子、眼镜等表现。`Bespoke` 行需要在代码中按行 id 约定特殊逻辑，不要硬改 Luban 生成的 C# 文件。
+
+**桌宠输入状态：** `GlobalInputTracker` 监听全局键鼠事件，`ModeManager` 根据 `DesktopActivityState` 表统计输入频率并切换小狗表情。桌宠吐舌头支持平滑模式和即时模式，设置项由 `SettingsManager` 持久化。
+
+## 背包与存档
+
+- 背包数据在 `PlayerInventory` 中维护，拥有状态使用 `Dictionary<int, int>` 表示 `itemId -> count`，支持重复道具堆叠显示。
+- `ItemCell.tscn` 显示品质框、图标、`MarkNew`、装备中标记和数量角标。数量为 1 时不显示数量。
+- `NewItemIds` 会写入存档。点击带 New 标记的已装备道具时，只清除 New，不立刻卸下装备。
+- 装备位规则来自 `EquipmentSlotConfig`。`CanUnequip=False` 的槽位需要默认装备玩家已拥有道具；`CanUnequip=True` 的槽位允许空闲。
+- 新建/重置本地存档时，默认只拥有 `Item.BlindBoxId == 0` 的道具。`调试全道具` 模式仍然拥有全部道具，不写入真实存档。
+- 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
+- `IsUnique=True` 的道具已拥有后不应重复获得；`IsUnique=False` 可重复获得并堆叠数量。
+- 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
+- 存档含 `Version`、`Chips`、`OwnedItemCounts`、兼容旧档的 `OwnedItemIds`、`EquippedItemIdsByType`、`NewItemIds`、`CreatedAt`、`UpdatedAt`。
+- 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆、动画中间状态等）。
+
 ## 术语约定
 
 | 术语 | 说明 |
@@ -164,11 +196,22 @@ lucky-dog-rise/
 
 ## 面板避让算法
 
-9 宫格优先级链（在 `PositionPanelInBestSlot` 中以数组形式定义）：
+9 宫格编号按键盘顺序：
 ```
-8(上中) → 9(上右) → 7(上左) → 4(左) → 6(右) → 2(下中) → 3(下右) → 1(下左)
+789
+456
+123
 ```
-改优先级就改数组里那几行的顺序。兜底策略：所有槽位不可用时覆盖在 A 区中央。
+
+面板避让优先级在 `ModeManager.cs` 顶部拆成两套数组：
+- `BossKeyPanelSlotPriority`：伪装模式系统功能面板优先级
+- `PlayPanelSlotPriority`：扑克模式系统功能面板优先级
+
+默认优先级链：
+```
+6(右) → 8(上中) → 9(上右) → 7(上左) → 4(左) → 2(下中) → 3(下右) → 1(下左)
+```
+改优先级只改对应数组顺序，不改 `GetPanelSlotPosition()`。兜底策略：所有槽位不可用时覆盖在 A 区中央。
 
 ## 卡牌编码
 
@@ -194,6 +237,16 @@ lucky-dog-rise/
 - Play 模式：始终关闭穿透，保证游戏交互正常
 - 拖拽时强制关闭穿透，松开后恢复
 
+**全屏应用兼容**：
+- 设置项 `全屏时显示` 默认开启。
+- 关闭时，若检测到其它程序全屏，会隐藏 BossKey/Play 内容和 CanvasLayer UI，避免覆盖 3D 游戏。
+
+**增强置顶**：
+- 设置项 `增强置顶` 默认关闭。
+- 开启后，仅在任务栏点击、Win 菜单收起后的短窗口期等特定场景高频 `SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE)`。
+- Win 键处理规则：按下 Win 后等待；随后鼠标点击、再次 Win、Esc 会触发抢回置顶，并在短时间内监听下一次鼠标点击补抢。
+- 平时不持续抢置顶，避免无意义打扰其它软件。
+
 ## 胖窗口设计
 
 每种模式初始化时设定一次宿主窗口尺寸：
@@ -203,14 +256,33 @@ lucky-dog-rise/
 
 面板展开/收起不改变窗口大小。模式切换时窗口 resize，保留屏幕位置（不重定位）。
 
+从伪装模式切到扑克模式时，优先原地展开；若 840×600 的扑克内容区会超出屏幕，则移动宿主窗口，保证扑克内容区留在屏幕内。无需强行保证整个胖窗口都在屏幕内。
+
+## 系统面板与确认遮罩
+
+- `SystemPanel.tscn` 是系统功能面板，含 Settings / Wardrobe / Debug 三个页签。
+- Settings 页放玩家可见设置；Debug 页放开发/内测功能，例如数据来源、随机获得道具、随机狗/场景、狗反应测试。
+- `背包数据来源` 属于 Debug 页：`调试全道具` 不读写真实存档，`本地存档` 读写 `profile_0.json`。
+- 危险操作使用 `ConfirmOverlay.tscn`，不要使用 Godot 原生 `ConfirmationDialog`。原生 Dialog 会脱离面板、可拖出窗口，并且容易和透明窗口点击穿透冲突。
+- `ConfirmOverlay` 覆盖系统面板区域，黑色 70% 遮罩，按钮区自动布局。
+
 ## 信号连接
 
 ModeManager 持有设置面板实例，负责连接信号：
 - `SettingsPanel.SwitchToPlayRequested` → `ModeManager.SwitchToPlay()`
 - `SettingsPanel.SwitchToBossKeyRequested` → `ModeManager.SwitchToBossKey()`
-- `SettingsPanel.RandomizeRequested` → `GameManager.OnRandomizeScene()`
-- `SettingsPanel.RandomizeDogRequested` → `GameManager.OnRandomizeDog()`
+- `SettingsPanel.RandomizeRequested` → `ModeManager.OnRandomizeScene()`
+- `SettingsPanel.RandomizeDogRequested` → `ModeManager.OnRandomizeDog()`
+- `SettingsPanel.RandomAcquireItemRequested` → `ModeManager.OnRandomAcquireItem()`
+- `SettingsPanel.DogReactionRequested` → 当前模式的小狗执行对应 `EDogReactionTrigger`
 - `InfoPanel.SettingsRequested` → `ModeManager.ToggleSettingsPanel()`
+
+`GameData` 持有全局筹码和 `PlayerInventory`，并发出：
+- `ChipsChanged`
+- `EquipmentChanged`
+- `InventoryChanged`
+- `HandResolved`
+- `NewHandStarted`
 
 ## 场景工作流
 
@@ -245,12 +317,12 @@ ModeManager 持有设置面板实例，负责连接信号：
 
 - **先聊再写** — 主人提需求 → AI 调研 → 讨论 → 确认方向 → 写计划
 - **复杂功能走 Plan Mode** — 审核通过才开代码
-- **一次只做一个** — 不并行堆砌改动
+
 - **测试场景优先** — 新技术用独立场景验证，再嵌入主场景
 - **不硬编码项目设置** — 窗口模式等通过 Godot 设置控制，不在代码里写死
-- **迭代反馈** — 每次改动后主人 F5 测试 → 反馈效果 → AI 调整
+
 - **UI 结构定义在 .tscn 里** — 脚本不 `new` 节点建 UI 树，而是引用预制好的场景或节点。程序化 new 出来的节点在编辑器中不可见，会导致主人无法手动调整位置和样式
-- **用 Theme.tres 统一管理样式** — 不直接在节点上调整 Theme Overrides，方便后续整体换肤
+- **用 Theme.tres 统一管理样式** — 非必要不推荐直接在节点上调整 Theme Overrides，方便后续整体换肤
 
 ## 音效工作流
 
