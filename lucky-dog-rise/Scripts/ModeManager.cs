@@ -109,6 +109,7 @@ public partial class ModeManager : Control
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
         _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
         _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
+        _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
 
         _panelSize = _settingsPanel.PanelSize;
@@ -233,6 +234,8 @@ public partial class ModeManager : Control
             _infoPanel.Name = "InfoPanel";
             AddChild(_infoPanel);
             _infoPanel.SettingsRequested += ToggleSettingsPanel;
+            _infoPanel.BlindBoxRequested += OnBlindBoxRequested;
+            _infoPanel.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
 
             // 连接 Main 中的 GameManager 信号
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
@@ -241,6 +244,8 @@ public partial class ModeManager : Control
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
+            if (_gameData.PendingBlindBoxReward != null)
+                _infoPanel.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
         }
 
         // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）
@@ -337,6 +342,27 @@ public partial class ModeManager : Control
 
         var item = items[_debugRandom.Next(items.Count)];
         _gameData.AddItem(item.Id, count: 1, markNew: true);
+    }
+
+    private void OnDebugGrantChips()
+    {
+        _gameData.ModifyChips(50000);
+    }
+
+    private void OnBlindBoxRequested()
+    {
+        if (_infoPanel == null)
+            return;
+
+        var pending = _gameData.TryOpenBlindBox();
+        if (pending != null)
+            _infoPanel.ShowPendingBlindBoxReward(pending);
+    }
+
+    private void OnBlindBoxRewardClaimRequested()
+    {
+        _gameData.ClaimPendingBlindBoxReward();
+        _infoPanel?.HidePendingBlindBoxReward();
     }
 
     private void OnTypingInputOccurred(int count)

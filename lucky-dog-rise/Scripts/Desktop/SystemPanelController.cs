@@ -11,6 +11,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
     [Signal] public delegate void RandomAcquireItemRequestedEventHandler();
+    [Signal] public delegate void DebugGrantChipsRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -48,9 +49,11 @@ public partial class SystemPanelController : CanvasLayer
 
     // Debug 页
     private Label _seedLabel = null!;
+    private Label _playTimeLabel = null!;
     private LineEdit _seedInput = null!;
     private OptionButton _reactionOption = null!;
     private int _currentSeed;
+    private double _debugTimeRefreshTimer;
 
     // Wardrobe 页
     private GridContainer _wardrobeGrid = null!;
@@ -152,8 +155,10 @@ public partial class SystemPanelController : CanvasLayer
 
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedLabel");
+        _playTimeLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/PlayTimeLabel");
         var seedCopyBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
+        var grantChipsBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/GrantChipsBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomAcquireItemBtn");
@@ -161,6 +166,7 @@ public partial class SystemPanelController : CanvasLayer
         var playReactionBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
+        grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
@@ -175,6 +181,20 @@ public partial class SystemPanelController : CanvasLayer
         _emptyWardrobeLabel = GetNode<Label>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter/EmptyWardrobeLabel");
 
         _panel.Visible = false;
+        RefreshDebugPlayTime();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_gameData == null || !_debugContent.Visible)
+            return;
+
+        _debugTimeRefreshTimer -= delta;
+        if (_debugTimeRefreshTimer > 0)
+            return;
+
+        _debugTimeRefreshTimer = 1.0;
+        RefreshDebugPlayTime();
     }
 
     private void SwitchTab(int index)
@@ -187,6 +207,17 @@ public partial class SystemPanelController : CanvasLayer
         }
         if (index == 1 && _gameData != null)
             BuildWardrobe();
+        if (index == 2)
+            RefreshDebugPlayTime();
+    }
+
+    private void RefreshDebugPlayTime()
+    {
+        if (_playTimeLabel == null || _gameData == null)
+            return;
+
+        var total = TimeSpan.FromSeconds(_gameData.TotalPlaySeconds);
+        _playTimeLabel.Text = $"Play Time: {total:hh\\:mm\\:ss} ({_gameData.TotalPlaySeconds:0.0}s)";
     }
 
     // ===== Wardrobe 页 =====

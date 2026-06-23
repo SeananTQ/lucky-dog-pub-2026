@@ -7,6 +7,8 @@ namespace LuckyDogRise;
 public partial class InfoPanelController : CanvasLayer
 {
     [Signal] public delegate void SettingsRequestedEventHandler();
+    [Signal] public delegate void BlindBoxRequestedEventHandler();
+    [Signal] public delegate void BlindBoxRewardClaimRequestedEventHandler();
 
     [Export] private Label _chipsLabel = null!;
     [Export] private Label _rankNameLabel = null!;
@@ -33,6 +35,9 @@ public partial class InfoPanelController : CanvasLayer
     private int _displayedChips;
     private Tween _chipsTween;
     private Tween _blinkTween;
+    private Control _rewardOverlay = null!;
+    private Label _rewardDebugLabel = null!;
+    private ItemCellController _rewardCell = null!;
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
@@ -52,6 +57,7 @@ public partial class InfoPanelController : CanvasLayer
     public override void _Ready()
     {
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
+        _blindBoxBtn.Pressed += () => EmitSignal(SignalName.BlindBoxRequested);
 
         foreach (var child in _payoutGrid.GetChildren())
         {
@@ -81,6 +87,7 @@ public partial class InfoPanelController : CanvasLayer
             _defaultValueColor = _payoutValues[0].GetThemeColor("font_color");
 
         _blindBoxBtn.Disabled = true;
+        BuildRewardOverlay();
 
         // 初始状态：清除 .tscn 占位文本
         _winResultLabel.Text = "";
@@ -96,6 +103,8 @@ public partial class InfoPanelController : CanvasLayer
         data.ChipsChanged += OnChipsChanged;
         data.HandResolved += OnHandResolved;
         data.NewHandStarted += OnNewHandStarted;
+        data.BlindBoxStateChanged += RefreshBlindBoxButton;
+        RefreshBlindBoxButton();
     }
 
     private void OnChipsChanged(int newChips)
@@ -186,6 +195,23 @@ public partial class InfoPanelController : CanvasLayer
         _blindBoxCostLabel.Text = cost.ToString("N0");
     }
 
+    public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
+    {
+        var item = LubanData.Tables.TbItem.GetOrDefault(pending.ItemId);
+        if (item == null)
+            return;
+
+        _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: true);
+        _rewardDebugLabel.Text = pending.DebugText;
+        _rewardOverlay.Visible = true;
+    }
+
+    public void HidePendingBlindBoxReward()
+    {
+        if (_rewardOverlay != null)
+            _rewardOverlay.Visible = false;
+    }
+
     public void HighlightPayoutRow(EHandRank rank)
     {
         ClearHighlight();
@@ -215,5 +241,86 @@ public partial class InfoPanelController : CanvasLayer
     {
         var panel = GetNode<PanelContainer>("Panel");
         panel.Position = pos;
+    }
+
+    private void RefreshBlindBoxButton()
+    {
+        if (_gameData == null)
+            return;
+
+        var box = _gameData.GetNextAvailableBlindBox();
+        var hasPending = _gameData.PendingBlindBoxReward != null;
+        _blindBoxBtn.Disabled = box == null && !hasPending;
+        if (box == null)
+        {
+            _blindBoxCostLabel.Text = "-";
+            _blindBoxBtn.Text = "Claim";
+            return;
+        }
+
+        var cost = _gameData.GetBlindBoxDisplayCost(box);
+        _blindBoxCostLabel.Text = cost.ToString("N0");
+        _blindBoxBtn.Text = hasPending ? "Reward" : "Claim";
+    }
+
+    private void BuildRewardOverlay()
+    {
+        var panel = GetNode<PanelContainer>("Panel");
+
+        _rewardOverlay = new PanelContainer
+        {
+            Name = "BlindBoxRewardOverlay",
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        _rewardOverlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        panel.AddChild(_rewardOverlay);
+
+        var style = new StyleBoxFlat
+        {
+            BgColor = new Color(0.05f, 0.07f, 0.075f, 0.96f),
+            CornerRadiusTopLeft = 12,
+            CornerRadiusTopRight = 12,
+            CornerRadiusBottomLeft = 12,
+            CornerRadiusBottomRight = 12,
+            ContentMarginLeft = 16,
+            ContentMarginRight = 16,
+            ContentMarginTop = 16,
+            ContentMarginBottom = 16,
+        };
+        _rewardOverlay.AddThemeStyleboxOverride("panel", style);
+
+        var root = new VBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        root.AddThemeConstantOverride("separation", 14);
+        _rewardOverlay.AddChild(root);
+
+        var title = new Label
+        {
+            Text = "Blind Box Reward",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontSizeOverride("font_size", 20);
+        root.AddChild(title);
+
+        var center = new CenterContainer();
+        root.AddChild(center);
+
+        var itemCellScene = GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
+        _rewardCell = itemCellScene.Instantiate<ItemCellController>();
+        _rewardCell.CustomMinimumSize = new Vector2(120, 120);
+        _rewardCell.Pressed += () => EmitSignal(SignalName.BlindBoxRewardClaimRequested);
+        center.AddChild(_rewardCell);
+
+        _rewardDebugLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        _rewardDebugLabel.AddThemeFontSizeOverride("font_size", 12);
+        root.AddChild(_rewardDebugLabel);
     }
 }

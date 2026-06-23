@@ -12,10 +12,13 @@ public sealed class SaveProfile
 {
     public int Version { get; set; } = SaveManager.CurrentVersion;
     public int Chips { get; set; } = GameData.StartingChips;
+    public double TotalPlaySeconds { get; set; }
     public List<int> OwnedItemIds { get; set; } = new();
     public Dictionary<int, int> OwnedItemCounts { get; set; } = new();
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
     public List<int> NewItemIds { get; set; } = new();
+    public Dictionary<int, int> BlindBoxClaimedCountsBySchedule { get; set; } = new();
+    public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
 }
@@ -94,7 +97,7 @@ public static class SaveManager
         };
 
         profile.OwnedItemCounts = LubanData.Tables.TbItem.DataList
-            .Where(item => item.BlindBoxId == 0)
+            .Where(item => item.AcquisitionType == DataTables.EAcquisitionType.Initial)
             .Select(item => item.Id)
             .Distinct()
             .OrderBy(id => id)
@@ -124,6 +127,8 @@ public static class SaveManager
         profile.OwnedItemCounts ??= new Dictionary<int, int>();
         profile.EquippedItemIdsByType ??= new Dictionary<string, int>();
         profile.NewItemIds ??= new List<int>();
+        profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
+        profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 
         var validIds = LubanData.Tables.TbItem.DataList
             .Select(item => item.Id)
@@ -146,6 +151,24 @@ public static class SaveManager
             .Distinct()
             .OrderBy(id => id)
             .ToList();
+
+        var validScheduleIds = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Select(schedule => schedule.Id)
+            .ToHashSet();
+        profile.BlindBoxClaimedCountsBySchedule = profile.BlindBoxClaimedCountsBySchedule
+            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value > 0)
+            .OrderBy(pair => pair.Key)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        if (profile.PendingBlindBoxReward != null)
+        {
+            var pending = profile.PendingBlindBoxReward;
+            var validPending = validIds.Contains(pending.ItemId)
+                && LubanData.Tables.TbBlindBox.GetOrDefault(pending.BlindBoxId) != null
+                && validScheduleIds.Contains(pending.ScheduleId);
+            if (!validPending)
+                profile.PendingBlindBoxReward = null;
+        }
 
         var inventory = new PlayerInventory();
         inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
