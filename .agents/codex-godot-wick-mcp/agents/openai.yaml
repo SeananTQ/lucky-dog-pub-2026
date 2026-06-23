@@ -1,0 +1,4 @@
+interface:
+  display_name: "Godot Wick MCP"
+  short_description: "Operate Godot C# projects through Wick MCP."
+  default_prompt: "Use $godot-wick-mcp to inspect and modify this Godot C# project through Wick MCP."
