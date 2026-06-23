@@ -254,7 +254,7 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name), () => _handArea.SetClothes(null, ""));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name), () => _handArea.SetAccessory(null, ""));
-        ApplyItemTexture(EItemType.Treat, (tex, name) => _itemArea.SetTreat(tex, name), _itemArea.ClearTreat);
+        ApplyItemTexture(EItemType.Refreshment, (tex, name) => _itemArea.SetTreat(tex, name), _itemArea.ClearTreat);
         _dogVisual.RefreshEquippedHeadwear();
         _dogVisual.RefreshEquippedEyewear();
     }
