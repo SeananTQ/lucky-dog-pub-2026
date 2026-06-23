@@ -201,7 +201,7 @@ public partial class InfoPanelController : CanvasLayer
         if (item == null)
             return;
 
-        _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: true);
+        _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _rewardDebugLabel.Text = pending.DebugText;
         _rewardOverlay.Visible = true;
     }
