@@ -18,6 +18,7 @@ public sealed class SaveProfile
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
     public List<int> NewItemIds { get; set; } = new();
     public Dictionary<int, int> BlindBoxClaimedCountsBySchedule { get; set; } = new();
+    public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
@@ -128,6 +129,8 @@ public static class SaveManager
         profile.EquippedItemIdsByType ??= new Dictionary<string, int>();
         profile.NewItemIds ??= new List<int>();
         profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
+        profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
+        profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
         profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 
         var validIds = LubanData.Tables.TbItem.DataList
@@ -159,6 +162,18 @@ public static class SaveManager
             .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value > 0)
             .OrderBy(pair => pair.Key)
             .ToDictionary(pair => pair.Key, pair => pair.Value);
+        profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
+        profile.BlindBoxRuntimeState.LastClaimSeconds = Math.Max(0, profile.BlindBoxRuntimeState.LastClaimSeconds);
+        profile.BlindBoxRuntimeState.LoopTrackStates = profile.BlindBoxRuntimeState.LoopTrackStates
+            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
+            .OrderBy(pair => pair.Key)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => new BlindBoxScheduleState
+                {
+                    PendingCount = Math.Max(0, pair.Value.PendingCount),
+                    ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
+                });
 
         if (profile.PendingBlindBoxReward != null)
         {

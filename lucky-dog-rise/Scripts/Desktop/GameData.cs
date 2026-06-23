@@ -33,7 +33,7 @@ public partial class GameData : Node
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
 
-    private readonly Dictionary<int, int> _blindBoxClaimedCountsBySchedule = new();
+    private BlindBoxRuntimeState _blindBoxRuntimeState = new();
     private BlindBoxService _blindBoxService;
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -97,7 +97,7 @@ public partial class GameData : Node
     {
         return _blindBoxService.GetNextAvailableBox(
             TotalPlaySeconds,
-            _blindBoxClaimedCountsBySchedule,
+            _blindBoxRuntimeState,
             PendingBlindBoxReward);
     }
 
@@ -111,12 +111,12 @@ public partial class GameData : Node
         if (PendingBlindBoxReward != null)
             return PendingBlindBoxReward;
 
-        var result = _blindBoxService.TryOpenNext(TotalPlaySeconds, _blindBoxClaimedCountsBySchedule);
+        var result = _blindBoxService.TryOpenNext(TotalPlaySeconds, _blindBoxRuntimeState);
         if (result == null)
             return null;
 
         PendingBlindBoxReward = result.PendingReward;
-        IncrementBlindBoxClaimedCount(result.Schedule.Id);
+        _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule, TotalPlaySeconds);
         EmitSignal(SignalName.BlindBoxStateChanged);
         QueueSaveIfUsingLocalSave();
         return PendingBlindBoxReward;
@@ -149,7 +149,7 @@ public partial class GameData : Node
         Chips = StartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
-        _blindBoxClaimedCountsBySchedule.Clear();
+        _blindBoxRuntimeState = new BlindBoxRuntimeState();
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -201,7 +201,7 @@ public partial class GameData : Node
         Chips = StartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
-        _blindBoxClaimedCountsBySchedule.Clear();
+        _blindBoxRuntimeState = new BlindBoxRuntimeState();
         Inventory.ResetToDebugAllItems(emitChanged: false);
         _saveDirty = false;
         _saveTimer = 0.0;
@@ -241,28 +241,15 @@ public partial class GameData : Node
             OwnedItemCounts = Inventory.GetOwnedItemCounts(),
             EquippedItemIdsByType = Inventory.GetEquippedIdsByTypeName(),
             NewItemIds = Inventory.GetNewItemIds().ToList(),
-            BlindBoxClaimedCountsBySchedule = _blindBoxClaimedCountsBySchedule
-                .OrderBy(pair => pair.Key)
-                .ToDictionary(pair => pair.Key, pair => pair.Value),
+            BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
         });
         _saveDirty = false;
     }
 
-    private void IncrementBlindBoxClaimedCount(int scheduleId)
-    {
-        _blindBoxClaimedCountsBySchedule.TryGetValue(scheduleId, out var count);
-        _blindBoxClaimedCountsBySchedule[scheduleId] = count + 1;
-    }
-
     private void LoadBlindBoxState(SaveProfile profile)
     {
-        _blindBoxClaimedCountsBySchedule.Clear();
-        foreach (var (scheduleId, count) in profile.BlindBoxClaimedCountsBySchedule)
-        {
-            if (count > 0)
-                _blindBoxClaimedCountsBySchedule[scheduleId] = count;
-        }
+        _blindBoxRuntimeState = profile.BlindBoxRuntimeState ?? new BlindBoxRuntimeState();
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
     }
 }

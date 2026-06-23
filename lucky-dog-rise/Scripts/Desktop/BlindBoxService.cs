@@ -25,6 +25,19 @@ public sealed class BlindBoxOpenResult
     public required PendingBlindBoxReward PendingReward { get; init; }
 }
 
+public sealed class BlindBoxScheduleState
+{
+    public int PendingCount { get; set; }
+    public int ProcessedGrantCount { get; set; }
+}
+
+public sealed class BlindBoxRuntimeState
+{
+    public int SequenceIndex { get; set; }
+    public double LastClaimSeconds { get; set; }
+    public Dictionary<int, BlindBoxScheduleState> LoopTrackStates { get; set; } = new();
+}
+
 public sealed class BlindBoxService
 {
     private readonly GameData _gameData;
@@ -37,13 +50,13 @@ public sealed class BlindBoxService
 
     public BlindBox? GetNextAvailableBox(
         double totalPlaySeconds,
-        IReadOnlyDictionary<int, int> claimedCountsBySchedule,
+        BlindBoxRuntimeState runtimeState,
         PendingBlindBoxReward? pendingReward)
     {
         if (pendingReward != null)
             return LubanData.Tables.TbBlindBox.GetOrDefault(pendingReward.BlindBoxId);
 
-        return GetAvailableSchedules(totalPlaySeconds, claimedCountsBySchedule)
+        return GetAvailableSchedules(totalPlaySeconds, runtimeState)
             .Select(entry => entry.Box)
             .FirstOrDefault();
     }
@@ -57,9 +70,11 @@ public sealed class BlindBoxService
 
     public BlindBoxOpenResult? TryOpenNext(
         double totalPlaySeconds,
-        IReadOnlyDictionary<int, int> claimedCountsBySchedule)
+        BlindBoxRuntimeState runtimeState)
     {
-        var candidate = GetAvailableSchedules(totalPlaySeconds, claimedCountsBySchedule).FirstOrDefault();
+        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+
+        var candidate = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
         if (candidate.Schedule == null || candidate.Box == null)
             return null;
 
@@ -99,33 +114,126 @@ public sealed class BlindBoxService
 
     private IEnumerable<(BlindBoxSchedule Schedule, BlindBox Box)> GetAvailableSchedules(
         double totalPlaySeconds,
-        IReadOnlyDictionary<int, int> claimedCountsBySchedule)
+        BlindBoxRuntimeState runtimeState)
     {
         var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+
+        var sequenceSchedule = GetCurrentSequenceSchedule(runtimeState);
+        if (sequenceSchedule != null && IsSequenceAvailable(sequenceSchedule, scaledSeconds, runtimeState))
+        {
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequenceSchedule.BlindBoxId);
+            if (box != null && box.IsEnabled)
+                return [(sequenceSchedule, box)];
+        }
+
+        if (sequenceSchedule != null)
+            return [];
 
         return LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.IsEnabled)
+            .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack)
             .Select(schedule => (Schedule: schedule, Box: LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId)))
             .Where(entry => entry.Box != null && entry.Box.IsEnabled)
-            .Where(entry => GetPendingCount(entry.Schedule, scaledSeconds, claimedCountsBySchedule) > 0)
+            .Where(entry => runtimeState.LoopTrackStates.TryGetValue(entry.Schedule.Id, out var state) && state.PendingCount > 0)
+            .Where(entry => IsClaimCooldownReady(entry.Schedule, scaledSeconds, runtimeState))
             .OrderByDescending(entry => entry.Schedule.Priority)
             .ThenBy(entry => entry.Schedule.StartSeconds)
             .ThenBy(entry => entry.Schedule.Id);
     }
 
-    private static int GetPendingCount(
+    public void ConsumeOpenedSchedule(BlindBoxRuntimeState runtimeState, BlindBoxSchedule schedule, double totalPlaySeconds)
+    {
+        if (schedule.IsLoopTrack)
+        {
+            if (runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var state))
+                state.PendingCount = Mathf.Max(0, state.PendingCount - 1);
+            runtimeState.LastClaimSeconds = GetScaledSeconds(totalPlaySeconds);
+            return;
+        }
+
+        var sequenceSchedules = GetSequenceSchedules();
+        if (runtimeState.SequenceIndex < sequenceSchedules.Count
+            && sequenceSchedules[runtimeState.SequenceIndex].Id == schedule.Id)
+        {
+            runtimeState.SequenceIndex++;
+            runtimeState.LastClaimSeconds = GetScaledSeconds(totalPlaySeconds);
+        }
+    }
+
+    private static BlindBoxSchedule? GetCurrentSequenceSchedule(BlindBoxRuntimeState runtimeState)
+    {
+        var sequenceSchedules = GetSequenceSchedules();
+        if (runtimeState.SequenceIndex < 0)
+            runtimeState.SequenceIndex = 0;
+        if (runtimeState.SequenceIndex >= sequenceSchedules.Count)
+            return null;
+        return sequenceSchedules[runtimeState.SequenceIndex];
+    }
+
+    private static List<BlindBoxSchedule> GetSequenceSchedules()
+    {
+        return LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.IsEnabled && !schedule.IsLoopTrack)
+            .OrderBy(schedule => schedule.StartSeconds)
+            .ThenBy(schedule => schedule.Id)
+            .ToList();
+    }
+
+    private static bool IsSequenceAvailable(
         BlindBoxSchedule schedule,
         double scaledSeconds,
-        IReadOnlyDictionary<int, int> claimedCountsBySchedule)
+        BlindBoxRuntimeState runtimeState)
     {
-        var due = GetDueGrantCount(schedule, scaledSeconds);
-        claimedCountsBySchedule.TryGetValue(schedule.Id, out var claimed);
-        var pending = Mathf.Max(0, due - claimed);
+        if (scaledSeconds < schedule.StartSeconds)
+            return false;
+
+        var waitSeconds = Mathf.Max(0, schedule.IntervalSeconds);
+        if (runtimeState.SequenceIndex == 0)
+            return scaledSeconds >= waitSeconds;
+
+        return scaledSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
+    }
+
+    private static bool IsClaimCooldownReady(
+        BlindBoxSchedule schedule,
+        double scaledSeconds,
+        BlindBoxRuntimeState runtimeState)
+    {
+        var waitSeconds = Mathf.Max(0, schedule.IntervalSeconds);
+        return scaledSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
+    }
+
+    private static void RefreshLoopTracks(double totalPlaySeconds, BlindBoxRuntimeState runtimeState)
+    {
+        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
+                     .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack))
+        {
+            if (!runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var state))
+            {
+                state = new BlindBoxScheduleState();
+                runtimeState.LoopTrackStates[schedule.Id] = state;
+            }
+
+            var due = GetDueGrantCount(schedule, scaledSeconds);
+            if (due <= state.ProcessedGrantCount)
+                continue;
+
+            var maxPending = GetMaxPendingCount(schedule);
+            for (var i = state.ProcessedGrantCount; i < due; i++)
+            {
+                if (state.PendingCount < maxPending)
+                    state.PendingCount++;
+            }
+            state.ProcessedGrantCount = due;
+        }
+    }
+
+    private static int GetMaxPendingCount(BlindBoxSchedule schedule)
+    {
         if (!schedule.CanAccumulate)
-            pending = Mathf.Min(pending, 1);
-        if (schedule.MaxPendingCount >= 0)
-            pending = Mathf.Min(pending, schedule.MaxPendingCount);
-        return pending;
+            return 1;
+        return schedule.MaxPendingCount < 0 ? int.MaxValue : Mathf.Max(0, schedule.MaxPendingCount);
     }
 
     private static int GetDueGrantCount(BlindBoxSchedule schedule, double scaledSeconds)
@@ -151,7 +259,7 @@ public sealed class BlindBoxService
     {
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
         var scale = config == null || config.BlindBoxTimeScale <= 0 ? 1f : config.BlindBoxTimeScale;
-        return totalPlaySeconds * scale;
+        return totalPlaySeconds / scale;
     }
 
     private Item? RollReward(BlindBox box)
