@@ -174,7 +174,6 @@ public sealed class BlindBoxService
             .Where(entry => entry.Weight > 0)
             .Where(entry => entry.Item.ItemRarity == rarity.Value)
             .Where(entry => entry.Item.AcquisitionType == expectedAcquisition)
-            .Where(entry => !entry.Item.IsUnique || !_gameData.Inventory.Owns(entry.Item.Id))
             .ToList();
 
         if (candidates.Count == 0)
@@ -183,7 +182,6 @@ public sealed class BlindBoxService
                 .Select(item => (Item: item, Weight: GetItemWeight(box.BoxType, item)))
                 .Where(entry => entry.Weight > 0)
                 .Where(entry => entry.Item.ItemRarity == rarity.Value)
-                .Where(entry => !entry.Item.IsUnique || !_gameData.Inventory.Owns(entry.Item.Id))
                 .ToList();
         }
 
