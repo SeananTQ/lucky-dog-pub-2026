@@ -77,6 +77,7 @@ public sealed class BlindBoxService
         RefreshLoopTracks(totalPlaySeconds, runtimeState);
 
         var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        var timeScale = GetTimeScale();
         var builder = new StringBuilder();
         builder.AppendLine($"游玩: {FormatSeconds(totalPlaySeconds)}");
         builder.AppendLine($"盲盒时间: {FormatSeconds(scaledSeconds)}");
@@ -111,11 +112,11 @@ public sealed class BlindBoxService
         if (sequence != null)
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequence.BlindBoxId);
-            var waitSeconds = runtimeState.SequenceIndex == 0
+            var waitScaledSeconds = runtimeState.SequenceIndex == 0
                 ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scaledSeconds)
                 : Math.Max(0, sequence.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
             builder.AppendLine($"新手: #{runtimeState.SequenceIndex}, 调度={sequence.Id}, {box?.Name ?? "缺失"}");
-            builder.AppendLine($"新手等待: {FormatSeconds(waitSeconds)}");
+            builder.AppendLine($"新手等待: {FormatSeconds(waitScaledSeconds * timeScale)}");
         }
         else
         {
@@ -130,8 +131,9 @@ public sealed class BlindBoxService
         {
             runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var state);
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
-            var cooldown = Math.Max(0, schedule.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
-            builder.AppendLine($"- {schedule.Id} {box?.Name ?? "缺失"} 待={state?.PendingCount ?? 0}, 已={state?.ProcessedGrantCount ?? 0}, CD={cooldown:0.0}s");
+            var cooldownScaledSeconds = Math.Max(0, schedule.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+            var cooldownRealSeconds = cooldownScaledSeconds * timeScale;
+            builder.AppendLine($"- {schedule.Id} {box?.Name ?? "缺失"} 待={state?.PendingCount ?? 0}, 已={state?.ProcessedGrantCount ?? 0}, CD={cooldownRealSeconds:0.0}s");
         }
 
         return builder.ToString().TrimEnd();
@@ -326,9 +328,13 @@ public sealed class BlindBoxService
 
     private static double GetScaledSeconds(double totalPlaySeconds)
     {
+        return totalPlaySeconds / GetTimeScale();
+    }
+
+    private static float GetTimeScale()
+    {
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        var scale = config == null || config.BlindBoxTimeScale <= 0 ? 1f : config.BlindBoxTimeScale;
-        return totalPlaySeconds / scale;
+        return config == null || config.BlindBoxTimeScale <= 0 ? 1f : config.BlindBoxTimeScale;
     }
 
     private Item? RollReward(BlindBox box)
