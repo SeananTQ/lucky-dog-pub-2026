@@ -5,10 +5,10 @@
 [ext_resource type="LabelSettings" uid="uid://e2wcrepsuxui" path="res://Themes/Label_KeyText.tres" id="3_keytext"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_ot0tl"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_eurth"]
-[ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="4_valtext"]
 [ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="5_valpanel"]
 [ext_resource type="Texture2D" uid="uid://cl6pu0qvkudwc" path="res://Assets/UI/Icon/cog.png" id="6_cog"]
 [ext_resource type="Texture2D" uid="uid://dluw3mxefbq7x" path="res://Assets/UI/Icon/present.png" id="7_present"]
+[ext_resource type="PackedScene" uid="uid://c3sx2dvn6xwlc" path="res://Scenes/Prefabs/BalloonHint.tscn" id="8_balloon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0dj43"]
 content_margin_left = 12.0
@@ -61,7 +61,7 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxCostLabel")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxHint")]
 script = ExtResource("1_ctrl")
 _chipsLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsValuePanel/ChipsValue")
 _rankNameLabel = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/RankNameLabel")
@@ -69,7 +69,7 @@ _winResultLabel = NodePath("Panel/RootVBox/WinResultLabel")
 _payoutGrid = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid")
 _settingsBtn = NodePath("Panel/RootVBox/ButtonRow/SettingsBtn")
 _blindBoxBtn = NodePath("Panel/RootVBox/ButtonRow/BlindBoxBtn")
-_blindBoxCostLabel = NodePath("Panel/RootVBox/BlindCostPanel/CostHBox/CostValuePanel/BlindCostValue")
+_blindBoxHint = NodePath("Panel/RootVBox/BlindBoxHint")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1220554571]
 custom_minimum_size = Vector2(240, 600)
@@ -248,30 +248,9 @@ text = "You win 250"
 label_settings = SubResource("LabelSettings_ot0tl")
 horizontal_alignment = 1
 
-[node name="BlindCostPanel" type="PanelContainer" parent="Panel/RootVBox" unique_id=467740741]
-custom_minimum_size = Vector2(180, 40)
+[node name="BlindBoxHint" parent="Panel/RootVBox" unique_id=569675950 instance=ExtResource("8_balloon")]
+z_index = 1
 layout_mode = 2
-
-[node name="CostHBox" type="HBoxContainer" parent="Panel/RootVBox/BlindCostPanel" unique_id=1792349716]
-layout_mode = 2
-
-[node name="BlindCostKey" type="Label" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=1435165420]
-layout_mode = 2
-text = "Blind Cost"
-label_settings = ExtResource("3_keytext")
-
-[node name="Spacer" type="Control" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=303613423]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="CostValuePanel" type="PanelContainer" parent="Panel/RootVBox/BlindCostPanel/CostHBox" unique_id=172127128]
-layout_mode = 2
-theme_override_styles/panel = ExtResource("5_valpanel")
-
-[node name="BlindCostValue" type="Label" parent="Panel/RootVBox/BlindCostPanel/CostHBox/CostValuePanel" unique_id=1230012961]
-layout_mode = 2
-text = "8000"
-label_settings = ExtResource("4_valtext")
 
 [node name="ButtonRow" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1754669997]
 layout_mode = 2

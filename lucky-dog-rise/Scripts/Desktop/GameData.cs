@@ -114,6 +114,14 @@ public partial class GameData : Node
             PendingBlindBoxReward);
     }
 
+    public BlindBoxHintState GetBlindBoxHintState()
+    {
+        return _blindBoxService.GetHintState(
+            TotalPlaySeconds,
+            _blindBoxRuntimeState,
+            PendingBlindBoxReward);
+    }
+
     public PendingBlindBoxReward TryOpenBlindBox()
     {
         if (PendingBlindBoxReward != null)

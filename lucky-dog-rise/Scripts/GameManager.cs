@@ -19,6 +19,9 @@ public enum GameState
 public partial class GameManager : Node2D
 {
     private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
+    private static readonly PackedScene ItemCellScene = GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
+
+    [Signal] public delegate void BlindBoxRewardClaimRequestedEventHandler();
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
@@ -56,6 +59,9 @@ public partial class GameManager : Node2D
     private HandAreaController _handArea = null!;
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
+    private CanvasLayer _blindBoxRewardLayer = null!;
+    private Label _blindBoxRewardDebugLabel = null!;
+    private ItemCellController _blindBoxRewardCell = null!;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
     public override void _Ready()
@@ -71,6 +77,7 @@ public partial class GameManager : Node2D
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
+        BuildBlindBoxRewardOverlay();
 
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
@@ -86,6 +93,99 @@ public partial class GameManager : Node2D
         }
 
         AudioManager.Instance.PlayBgmByName("MainTheme.ogg");
+    }
+
+    public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
+    {
+        var item = LubanData.Tables.TbItem.GetOrDefault(pending.ItemId);
+        if (item == null)
+            return;
+
+        _blindBoxRewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
+        _blindBoxRewardDebugLabel.Text = pending.DebugText;
+        _blindBoxRewardLayer.Visible = true;
+    }
+
+    public void HidePendingBlindBoxReward()
+    {
+        if (_blindBoxRewardLayer != null)
+            _blindBoxRewardLayer.Visible = false;
+    }
+
+    private void BuildBlindBoxRewardOverlay()
+    {
+        _blindBoxRewardLayer = new CanvasLayer
+        {
+            Name = "BlindBoxRewardOverlay",
+            Layer = 20,
+            Visible = false,
+        };
+        AddChild(_blindBoxRewardLayer);
+
+        var dim = new ColorRect
+        {
+            Color = new Color(0f, 0f, 0f, 0.45f),
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blindBoxRewardLayer.AddChild(dim);
+
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(360, 420),
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        panel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        panel.OffsetLeft = -180;
+        panel.OffsetTop = -210;
+        panel.OffsetRight = 180;
+        panel.OffsetBottom = 210;
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.05f, 0.07f, 0.075f, 0.96f),
+            CornerRadiusTopLeft = 16,
+            CornerRadiusTopRight = 16,
+            CornerRadiusBottomLeft = 16,
+            CornerRadiusBottomRight = 16,
+            ContentMarginLeft = 20,
+            ContentMarginRight = 20,
+            ContentMarginTop = 18,
+            ContentMarginBottom = 18,
+        });
+        _blindBoxRewardLayer.AddChild(panel);
+
+        var root = new VBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        root.AddThemeConstantOverride("separation", 16);
+        panel.AddChild(root);
+
+        var title = new Label
+        {
+            Text = "Blind Box Reward",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontSizeOverride("font_size", 28);
+        root.AddChild(title);
+
+        var center = new CenterContainer();
+        root.AddChild(center);
+
+        _blindBoxRewardCell = ItemCellScene.Instantiate<ItemCellController>();
+        _blindBoxRewardCell.CustomMinimumSize = new Vector2(150, 150);
+        _blindBoxRewardCell.Pressed += () => EmitSignal(SignalName.BlindBoxRewardClaimRequested);
+        center.AddChild(_blindBoxRewardCell);
+
+        _blindBoxRewardDebugLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            CustomMinimumSize = new Vector2(300, 130),
+        };
+        _blindBoxRewardDebugLabel.AddThemeFontSizeOverride("font_size", 16);
+        root.AddChild(_blindBoxRewardDebugLabel);
     }
 
     // === 信号处理 ===

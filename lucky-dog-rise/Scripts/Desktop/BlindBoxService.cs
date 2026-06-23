@@ -39,6 +39,22 @@ public sealed class BlindBoxRuntimeState
     public Dictionary<int, BlindBoxScheduleState> LoopTrackStates { get; set; } = new();
 }
 
+public enum BlindBoxHintStatus
+{
+    Waiting,
+    Ready,
+    NotEnoughChips,
+    PendingReward,
+}
+
+public sealed class BlindBoxHintState
+{
+    public BlindBoxHintStatus Status { get; init; }
+    public BlindBox? Box { get; init; }
+    public int Cost { get; init; }
+    public double RemainingSeconds { get; init; }
+}
+
 public sealed class BlindBoxService
 {
     private readonly GameData _gameData;
@@ -137,6 +153,40 @@ public sealed class BlindBoxService
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    public BlindBoxHintState GetHintState(
+        double totalPlaySeconds,
+        BlindBoxRuntimeState runtimeState,
+        PendingBlindBoxReward? pendingReward)
+    {
+        if (pendingReward != null)
+        {
+            return new BlindBoxHintState
+            {
+                Status = BlindBoxHintStatus.PendingReward,
+                Box = LubanData.Tables.TbBlindBox.GetOrDefault(pendingReward.BlindBoxId),
+            };
+        }
+
+        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+        var available = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
+        if (available.Schedule != null && available.Box != null)
+        {
+            var cost = GetDisplayCost(available.Box);
+            return new BlindBoxHintState
+            {
+                Status = _gameData.Chips >= cost ? BlindBoxHintStatus.Ready : BlindBoxHintStatus.NotEnoughChips,
+                Box = available.Box,
+                Cost = cost,
+            };
+        }
+
+        return new BlindBoxHintState
+        {
+            Status = BlindBoxHintStatus.Waiting,
+            RemainingSeconds = GetNextReadyRemainingSeconds(totalPlaySeconds, runtimeState),
+        };
     }
 
     public BlindBoxOpenResult? TryOpenNext(
@@ -273,6 +323,43 @@ public sealed class BlindBoxService
         var waitSeconds = Mathf.Max(0, schedule.IntervalSeconds);
         return scaledSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
     }
+
+    private static double GetNextReadyRemainingSeconds(double totalPlaySeconds, BlindBoxRuntimeState runtimeState)
+    {
+        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        var timeScale = GetTimeScale();
+
+        var sequence = GetCurrentSequenceSchedule(runtimeState);
+        if (sequence != null)
+        {
+            var waitScaledSeconds = runtimeState.SequenceIndex == 0
+                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scaledSeconds)
+                : Math.Max(0, sequence.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+            return waitScaledSeconds * timeScale;
+        }
+
+        var waits = new List<double>();
+        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
+                     .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack))
+        {
+            runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var state);
+            var cooldown = Math.Max(0, schedule.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+            if ((state?.PendingCount ?? 0) > 0)
+            {
+                waits.Add(cooldown);
+                continue;
+            }
+
+            var processed = state?.ProcessedGrantCount ?? 0;
+            var nextDue = schedule.IntervalSeconds <= 0
+                ? schedule.StartSeconds
+                : schedule.StartSeconds + processed * schedule.IntervalSeconds;
+            waits.Add(Math.Max(0, nextDue - scaledSeconds));
+        }
+
+        return waits.Count == 0 ? 0 : waits.Min() * timeScale;
+    }
+
 
     private static void RefreshLoopTracks(double totalPlaySeconds, BlindBoxRuntimeState runtimeState)
     {
