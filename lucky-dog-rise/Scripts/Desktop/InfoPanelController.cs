@@ -241,6 +241,7 @@ public partial class InfoPanelController : CanvasLayer
     {
         var panel = GetNode<PanelContainer>("Panel");
         panel.Position = pos;
+        UpdateRewardOverlayRect(panel);
     }
 
     private void RefreshBlindBoxButton()
@@ -267,14 +268,27 @@ public partial class InfoPanelController : CanvasLayer
     {
         var panel = GetNode<PanelContainer>("Panel");
 
-        _rewardOverlay = new PanelContainer
+        _rewardOverlay = new Control
         {
             Name = "BlindBoxRewardOverlay",
             Visible = false,
             MouseFilter = Control.MouseFilterEnum.Stop,
+            ClipContents = true,
         };
-        _rewardOverlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        panel.AddChild(_rewardOverlay);
+        AddChild(_rewardOverlay);
+        UpdateRewardOverlayRect(panel);
+
+        var background = new PanelContainer
+        {
+            Name = "Background",
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        background.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        background.OffsetLeft = 0;
+        background.OffsetTop = 0;
+        background.OffsetRight = 0;
+        background.OffsetBottom = 0;
+        _rewardOverlay.AddChild(background);
 
         var style = new StyleBoxFlat
         {
@@ -288,7 +302,7 @@ public partial class InfoPanelController : CanvasLayer
             ContentMarginTop = 16,
             ContentMarginBottom = 16,
         };
-        _rewardOverlay.AddThemeStyleboxOverride("panel", style);
+        background.AddThemeStyleboxOverride("panel", style);
 
         var root = new VBoxContainer
         {
@@ -296,7 +310,7 @@ public partial class InfoPanelController : CanvasLayer
             MouseFilter = Control.MouseFilterEnum.Stop,
         };
         root.AddThemeConstantOverride("separation", 14);
-        _rewardOverlay.AddChild(root);
+        background.AddChild(root);
 
         var title = new Label
         {
@@ -319,8 +333,21 @@ public partial class InfoPanelController : CanvasLayer
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Left,
+            ClipText = true,
+            CustomMinimumSize = new Vector2(200, 150),
         };
         _rewardDebugLabel.AddThemeFontSizeOverride("font_size", 12);
         root.AddChild(_rewardDebugLabel);
+    }
+
+    private void UpdateRewardOverlayRect(PanelContainer panel)
+    {
+        if (_rewardOverlay == null)
+            return;
+
+        var panelSize = panel.CustomMinimumSize;
+        _rewardOverlay.Position = panel.Position;
+        _rewardOverlay.Size = panelSize;
+        _rewardOverlay.CustomMinimumSize = Vector2.Zero;
     }
 }

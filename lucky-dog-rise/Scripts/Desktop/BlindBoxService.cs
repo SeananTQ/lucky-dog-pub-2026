@@ -80,7 +80,7 @@ public sealed class BlindBoxService
         var timeScale = GetTimeScale();
         var builder = new StringBuilder();
         builder.AppendLine($"游玩: {FormatSeconds(totalPlaySeconds)}");
-        builder.AppendLine($"盲盒时间: {FormatSeconds(scaledSeconds)}");
+        builder.AppendLine($"调度表时间: {FormatSeconds(scaledSeconds)}");
         builder.AppendLine($"上次领取: {FormatSeconds(runtimeState.LastClaimSeconds)}");
 
         if (pendingReward != null)
