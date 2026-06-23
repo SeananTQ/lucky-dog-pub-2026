@@ -1,0 +1,142 @@
+[
+  {
+    "Id": 100401,
+    "ActualRarity": 4,
+    "Weight": 100,
+    "StartRarity": 4,
+    "MiddleRarity": 4,
+    "FinalRarity": 4,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100501,
+    "ActualRarity": 3,
+    "Weight": 45,
+    "StartRarity": 4,
+    "MiddleRarity": 4,
+    "FinalRarity": 3,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100502,
+    "ActualRarity": 3,
+    "Weight": 45,
+    "StartRarity": 4,
+    "MiddleRarity": 3,
+    "FinalRarity": 3,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100503,
+    "ActualRarity": 3,
+    "Weight": 10,
+    "StartRarity": 3,
+    "MiddleRarity": 3,
+    "FinalRarity": 3,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100601,
+    "ActualRarity": 2,
+    "Weight": 45,
+    "StartRarity": 4,
+    "MiddleRarity": 3,
+    "FinalRarity": 2,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100602,
+    "ActualRarity": 2,
+    "Weight": 25,
+    "StartRarity": 4,
+    "MiddleRarity": 4,
+    "FinalRarity": 2,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100603,
+    "ActualRarity": 2,
+    "Weight": 20,
+    "StartRarity": 3,
+    "MiddleRarity": 3,
+    "FinalRarity": 2,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100604,
+    "ActualRarity": 2,
+    "Weight": 10,
+    "StartRarity": 4,
+    "MiddleRarity": 2,
+    "FinalRarity": 2,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100701,
+    "ActualRarity": 1,
+    "Weight": 40,
+    "StartRarity": 4,
+    "MiddleRarity": 2,
+    "FinalRarity": 1,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100702,
+    "ActualRarity": 1,
+    "Weight": 25,
+    "StartRarity": 4,
+    "MiddleRarity": 3,
+    "FinalRarity": 1,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100703,
+    "ActualRarity": 1,
+    "Weight": 20,
+    "StartRarity": 3,
+    "MiddleRarity": 2,
+    "FinalRarity": 1,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100704,
+    "ActualRarity": 1,
+    "Weight": 15,
+    "StartRarity": 2,
+    "MiddleRarity": 2,
+    "FinalRarity": 1,
+    "IsEnabled": true,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100801,
+    "ActualRarity": 5,
+    "Weight": 100,
+    "StartRarity": 5,
+    "MiddleRarity": 5,
+    "FinalRarity": 5,
+    "IsEnabled": false,
+    "CanEndEarly": true
+  },
+  {
+    "Id": 100901,
+    "ActualRarity": 6,
+    "Weight": 100,
+    "StartRarity": 6,
+    "MiddleRarity": 6,
+    "FinalRarity": 6,
+    "IsEnabled": false,
+    "CanEndEarly": true
+  }
+]

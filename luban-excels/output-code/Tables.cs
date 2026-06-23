@@ -14,41 +14,56 @@ namespace DataTables
 {
 public partial class Tables
 {
-    public TbItem TbItem {get; }
     public TbDogSkin TbDogSkin {get; }
     public TbPayTable TbPayTable {get; }
     public TbGameDevelopConfig TbGameDevelopConfig {get; }
     public TbRarityUI TbRarityUI {get; }
-    public TbTabGroup TbTabGroup {get; }
     public TbDogReaction TbDogReaction {get; }
-    public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
     public TbDesktopActivityState TbDesktopActivityState {get; }
+    public TbItem TbItem {get; }
+    public TbTabGroup TbTabGroup {get; }
+    public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
+    public TbBlindBox TbBlindBox {get; }
+    public TbBlindBoxSchedule TbBlindBoxSchedule {get; }
+    public TbBlindBoxRarityRate TbBlindBoxRarityRate {get; }
+    public TbBlindBoxRevealPath TbBlindBoxRevealPath {get; }
+    public TbBlindBoxVisual TbBlindBoxVisual {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
-        TbItem = new TbItem(loader("tbitem"));
         TbDogSkin = new TbDogSkin(loader("tbdogskin"));
         TbPayTable = new TbPayTable(loader("tbpaytable"));
         TbGameDevelopConfig = new TbGameDevelopConfig(loader("tbgamedevelopconfig"));
         TbRarityUI = new TbRarityUI(loader("tbrarityui"));
-        TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         TbDogReaction = new TbDogReaction(loader("tbdogreaction"));
-        TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
         TbDesktopActivityState = new TbDesktopActivityState(loader("tbdesktopactivitystate"));
+        TbItem = new TbItem(loader("tbitem"));
+        TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
+        TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
+        TbBlindBox = new TbBlindBox(loader("tbblindbox"));
+        TbBlindBoxSchedule = new TbBlindBoxSchedule(loader("tbblindboxschedule"));
+        TbBlindBoxRarityRate = new TbBlindBoxRarityRate(loader("tbblindboxrarityrate"));
+        TbBlindBoxRevealPath = new TbBlindBoxRevealPath(loader("tbblindboxrevealpath"));
+        TbBlindBoxVisual = new TbBlindBoxVisual(loader("tbblindboxvisual"));
         ResolveRef();
     }
     
     private void ResolveRef()
     {
-        TbItem.ResolveRef(this);
         TbDogSkin.ResolveRef(this);
         TbPayTable.ResolveRef(this);
         TbGameDevelopConfig.ResolveRef(this);
         TbRarityUI.ResolveRef(this);
-        TbTabGroup.ResolveRef(this);
         TbDogReaction.ResolveRef(this);
-        TbEquipmentSlotConfig.ResolveRef(this);
         TbDesktopActivityState.ResolveRef(this);
+        TbItem.ResolveRef(this);
+        TbTabGroup.ResolveRef(this);
+        TbEquipmentSlotConfig.ResolveRef(this);
+        TbBlindBox.ResolveRef(this);
+        TbBlindBoxSchedule.ResolveRef(this);
+        TbBlindBoxRarityRate.ResolveRef(this);
+        TbBlindBoxRevealPath.ResolveRef(this);
+        TbBlindBoxVisual.ResolveRef(this);
     }
 }
 

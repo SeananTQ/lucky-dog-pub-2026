@@ -51,7 +51,7 @@ namespace DataTables
         /// <summary>
         /// 例如烟酒
         /// </summary>
-        Treat = 9,
+        Refreshment = 9,
         /// <summary>
         /// 卡背
         /// </summary>

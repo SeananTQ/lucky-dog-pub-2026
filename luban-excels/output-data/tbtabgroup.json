@@ -37,9 +37,9 @@
     "Id": 1005,
     "TabName": "Theme",
     "TabItemTypeList": [
+      9,
       6,
-      7,
-      9
+      7
     ],
     "SortOrder": 5
   },

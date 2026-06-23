@@ -15,13 +15,13 @@ namespace DataTables
 {
 public partial class TbGameDevelopConfig
 {
-    private readonly System.Collections.Generic.Dictionary<bool, GameDevelopConfig> _dataMap;
+    private readonly System.Collections.Generic.Dictionary<float, GameDevelopConfig> _dataMap;
     private readonly System.Collections.Generic.List<GameDevelopConfig> _dataList;
     
     public TbGameDevelopConfig(JSONNode _buf)
     {
         int count = _buf.Count;
-        _dataMap = new System.Collections.Generic.Dictionary<bool, GameDevelopConfig>(count);
+        _dataMap = new System.Collections.Generic.Dictionary<float, GameDevelopConfig>(count);
         _dataList = new System.Collections.Generic.List<GameDevelopConfig>(count);
         
         foreach(JSONNode _ele in _buf.Children)
@@ -29,16 +29,16 @@ public partial class TbGameDevelopConfig
             GameDevelopConfig _v;
             { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.GameDevelopConfig.DeserializeGameDevelopConfig(_ele);  }
             _dataList.Add(_v);
-            _dataMap.Add(_v.IsSafeMode, _v);
+            _dataMap.Add(_v.BlindBoxTimeScale, _v);
         }
     }
 
-    public System.Collections.Generic.IReadOnlyDictionary<bool, GameDevelopConfig> DataMap => _dataMap;
+    public System.Collections.Generic.IReadOnlyDictionary<float, GameDevelopConfig> DataMap => _dataMap;
     public System.Collections.Generic.IReadOnlyList<GameDevelopConfig> DataList => _dataList;
 
-    public GameDevelopConfig GetOrDefault(bool key) => _dataMap.TryGetValue(key, out var v) ? v : default;
-    public GameDevelopConfig Get(bool key) => _dataMap[key];
-    public GameDevelopConfig this[bool key] => _dataMap[key];
+    public GameDevelopConfig GetOrDefault(float key) => _dataMap.TryGetValue(key, out var v) ? v : default;
+    public GameDevelopConfig Get(float key) => _dataMap[key];
+    public GameDevelopConfig this[float key] => _dataMap[key];
 
     public void ResolveRef(Tables tables)
     {

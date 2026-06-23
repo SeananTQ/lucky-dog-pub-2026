@@ -17,7 +17,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
 {
     public GameDevelopConfig(JSONNode _buf) 
     {
-        { if(!_buf["IsSafeMode"].IsBoolean) { throw new SerializationException(); }  IsSafeMode = _buf["IsSafeMode"]; }
+        { if(!_buf["BlindBoxTimeScale"].IsNumber) { throw new SerializationException(); }  BlindBoxTimeScale = _buf["BlindBoxTimeScale"]; }
+        { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -26,9 +27,13 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     }
 
     /// <summary>
-    /// 直播模式
+    /// 盲盒时间倍率
     /// </summary>
-    public readonly bool IsSafeMode;
+    public readonly float BlindBoxTimeScale;
+    /// <summary>
+    /// 盲盒消耗倍率
+    /// </summary>
+    public readonly float BlindBoxCostScale;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -40,7 +45,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     public override string ToString()
     {
         return "{ "
-        + "IsSafeMode:" + IsSafeMode + ","
+        + "BlindBoxTimeScale:" + BlindBoxTimeScale + ","
+        + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "}";
     }
 }

@@ -1,0 +1,68 @@
+[
+  {
+    "Id": 1001,
+    "Name": "Legendary",
+    "ItemRarity": 1,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Legendary_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "si",
+    "UpgradeEffectPath": ""
+  },
+  {
+    "Id": 1002,
+    "Name": "Epic",
+    "ItemRarity": 2,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Epic_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "sol",
+    "UpgradeEffectPath": ""
+  },
+  {
+    "Id": 1003,
+    "Name": "Rare",
+    "ItemRarity": 3,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Rare_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "mi",
+    "UpgradeEffectPath": ""
+  },
+  {
+    "Id": 1004,
+    "Name": "Common",
+    "ItemRarity": 4,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "do",
+    "UpgradeEffectPath": ""
+  },
+  {
+    "Id": 1005,
+    "Name": "Special1",
+    "ItemRarity": 5,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "",
+    "UpgradeEffectPath": ""
+  },
+  {
+    "Id": 1006,
+    "Name": "Special2",
+    "ItemRarity": 6,
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
+    "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
+    "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundPath": "",
+    "UpgradeSfxNamePath": "",
+    "UpgradeEffectPath": ""
+  }
+]

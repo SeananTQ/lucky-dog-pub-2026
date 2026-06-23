@@ -1,0 +1,58 @@
+[
+  {
+    "Id": 1001,
+    "Name": "标准盲盒",
+    "BoxType": 1,
+    "DisplayMode": 1,
+    "CostChips": 1000,
+    "MaxRevealClickCount": 3,
+    "AutoCollectSeconds": 2,
+    "IsSteamRequired": true,
+    "IsEnabled": true,
+    "SteamContainerItemDefId": 0,
+    "SteamGeneratorItemDefId": 0,
+    "SteamExchangeTargetItemDefId": 0
+  },
+  {
+    "Id": 1002,
+    "Name": "新手盲盒",
+    "BoxType": 2,
+    "DisplayMode": 1,
+    "CostChips": 1000,
+    "MaxRevealClickCount": 3,
+    "AutoCollectSeconds": 2,
+    "IsSteamRequired": true,
+    "IsEnabled": true,
+    "SteamContainerItemDefId": 0,
+    "SteamGeneratorItemDefId": 0,
+    "SteamExchangeTargetItemDefId": 0
+  },
+  {
+    "Id": 2001,
+    "Name": "消耗品盲盒",
+    "BoxType": 3,
+    "DisplayMode": 1,
+    "CostChips": 1000,
+    "MaxRevealClickCount": 3,
+    "AutoCollectSeconds": 2,
+    "IsSteamRequired": false,
+    "IsEnabled": true,
+    "SteamContainerItemDefId": 0,
+    "SteamGeneratorItemDefId": 0,
+    "SteamExchangeTargetItemDefId": 0
+  },
+  {
+    "Id": 3001,
+    "Name": "测试活动盲盒",
+    "BoxType": 4,
+    "DisplayMode": 2,
+    "CostChips": 0,
+    "MaxRevealClickCount": 0,
+    "AutoCollectSeconds": 2,
+    "IsSteamRequired": true,
+    "IsEnabled": true,
+    "SteamContainerItemDefId": 0,
+    "SteamGeneratorItemDefId": 0,
+    "SteamExchangeTargetItemDefId": 0
+  }
+]

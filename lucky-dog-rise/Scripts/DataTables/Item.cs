@@ -20,16 +20,32 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
         { if(!_buf["ItemType"].IsNumber) { throw new SerializationException(); }  ItemType = (EItemType)_buf["ItemType"].AsInt; }
+        { if(!_buf["HiddenRegionFlag"].IsNumber) { throw new SerializationException(); }  HiddenRegionFlag = (EHiddenRegionFlag)_buf["HiddenRegionFlag"].AsInt; }
+        { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
         { if(!_buf["ItemRarity"].IsNumber) { throw new SerializationException(); }  ItemRarity = (ERarity)_buf["ItemRarity"].AsInt; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["BlindBoxWeight"].IsNumber) { throw new SerializationException(); }  BlindBoxWeight = _buf["BlindBoxWeight"]; }
+        { if(!_buf["AcquisitionType"].IsNumber) { throw new SerializationException(); }  AcquisitionType = (EAcquisitionType)_buf["AcquisitionType"].AsInt; }
         { if(!_buf["IsUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["IsUnique"]; }
-        { if(!_buf["HiddenRegionFlag"].IsNumber) { throw new SerializationException(); }  HiddenRegionFlag = (EHiddenRegionFlag)_buf["HiddenRegionFlag"].AsInt; }
-        { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
+        { if(!_buf["StandardBoxWeight"].IsNumber) { throw new SerializationException(); }  StandardBoxWeight = _buf["StandardBoxWeight"]; }
+        { if(!_buf["NewbieBoxWeight"].IsNumber) { throw new SerializationException(); }  NewbieBoxWeight = _buf["NewbieBoxWeight"]; }
+        { if(!_buf["RefreshmentBoxWeight"].IsNumber) { throw new SerializationException(); }  RefreshmentBoxWeight = _buf["RefreshmentBoxWeight"]; }
+        { if(!_buf["EventBoxWeight"].IsNumber) { throw new SerializationException(); }  EventBoxWeight = _buf["EventBoxWeight"]; }
         { var __json0 = _buf["AssetPathList"]; if(!__json0.IsArray) { throw new SerializationException(); } AssetPathList = new System.Collections.Generic.List<string>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { string __v0;  { if(!__e0.IsString) { throw new SerializationException(); }  __v0 = __e0; }  AssetPathList.Add(__v0); }   }
         { if(!_buf["IconPath"].IsString) { throw new SerializationException(); }  IconPath = _buf["IconPath"]; }
         { if(!_buf["SkinId"].IsNumber) { throw new SerializationException(); }  SkinId = _buf["SkinId"]; }
+        { if(!_buf["SteamItemDefId"].IsNumber) { throw new SerializationException(); }  SteamItemDefId = _buf["SteamItemDefId"]; }
+        { if(!_buf["SteamItemDefType"].IsNumber) { throw new SerializationException(); }  SteamItemDefType = (ESteamItemDefType)_buf["SteamItemDefType"].AsInt; }
+        { if(!_buf["SteamGameOnly"].IsBoolean) { throw new SerializationException(); }  SteamGameOnly = _buf["SteamGameOnly"]; }
+        { if(!_buf["SteamTradable"].IsBoolean) { throw new SerializationException(); }  SteamTradable = _buf["SteamTradable"]; }
+        { if(!_buf["SteamMarketable"].IsBoolean) { throw new SerializationException(); }  SteamMarketable = _buf["SteamMarketable"]; }
+        { if(!_buf["SteamAutoStack"].IsBoolean) { throw new SerializationException(); }  SteamAutoStack = _buf["SteamAutoStack"]; }
+        { if(!_buf["SteamHidden"].IsBoolean) { throw new SerializationException(); }  SteamHidden = _buf["SteamHidden"]; }
+        { if(!_buf["SteamDisplayType"].IsString) { throw new SerializationException(); }  SteamDisplayType = _buf["SteamDisplayType"]; }
+        { if(!_buf["SteamTags"].IsString) { throw new SerializationException(); }  SteamTags = _buf["SteamTags"]; }
+        { if(!_buf["SteamIconUrl"].IsString) { throw new SerializationException(); }  SteamIconUrl = _buf["SteamIconUrl"]; }
+        { if(!_buf["SteamIconUrlLarge"].IsString) { throw new SerializationException(); }  SteamIconUrlLarge = _buf["SteamIconUrlLarge"]; }
     }
 
     public static Item DeserializeItem(JSONNode _buf)
@@ -40,6 +56,14 @@ public sealed partial class Item : Luban.BeanBase
     public readonly int Id;
     public readonly string Name;
     public readonly EItemType ItemType;
+    /// <summary>
+    /// 在哪些国家无法抽到
+    /// </summary>
+    public readonly EHiddenRegionFlag HiddenRegionFlag;
+    /// <summary>
+    /// 直播模式或者安全模式开启状态下，需要替换成和谐资源，该替换规则高于国家规则
+    /// </summary>
+    public readonly int SafeResourceId;
     public readonly ERarity ItemRarity;
     /// <summary>
     /// 排序权重，数字越小约靠前
@@ -49,22 +73,25 @@ public sealed partial class Item : Luban.BeanBase
     /// 盲盒权重
     /// </summary>
     public readonly int BlindBoxWeight;
+    public readonly EAcquisitionType AcquisitionType;
     /// <summary>
-    /// 非唯一的物品可以重复获得
+    /// 现在唯一的物品不可分解回收
     /// </summary>
     public readonly bool IsUnique;
-    /// <summary>
-    /// 在哪些国家无法抽到
-    /// </summary>
-    public readonly EHiddenRegionFlag HiddenRegionFlag;
-    /// <summary>
-    /// 直播模式或者安全模式开启状态下，需要替换成和谐资源，该替换规则高于国家规则
-    /// </summary>
-    public readonly int SafeResourceId;
     /// <summary>
     /// 所属盲盒的id，相同id的物品在同一个组里进行随机
     /// </summary>
     public readonly int BlindBoxId;
+    /// <summary>
+    /// 该物品在标准盲盒里的权重
+    /// </summary>
+    public readonly int StandardBoxWeight;
+    public readonly int NewbieBoxWeight;
+    public readonly int RefreshmentBoxWeight;
+    /// <summary>
+    /// 该物品在活动盲盒中的权重
+    /// </summary>
+    public readonly int EventBoxWeight;
     /// <summary>
     /// 由于部件拆的比较碎，因此需要文件夹路径如 `Assets\Eyewear\EyePatch.png`<br/>拿到字符串后需要自行转义<br/>该字段为列表，可以跨行填写多个<br/>要注意，也可以是tres文件<br/>由于小狗皮肤由多个文件组成，因此直接填写文件夹目录，卡面也是填文件夹
     /// </summary>
@@ -74,6 +101,50 @@ public sealed partial class Item : Luban.BeanBase
     /// </summary>
     public readonly string IconPath;
     public readonly int SkinId;
+    /// <summary>
+    /// Steam itemdef ID。现阶段可填 0
+    /// </summary>
+    public readonly int SteamItemDefId;
+    /// <summary>
+    /// Steam 类型。现阶段普通物品可先填 Item 或空
+    /// </summary>
+    public readonly ESteamItemDefType SteamItemDefType;
+    /// <summary>
+    /// 在Steam页面背包中隐藏<br/>默认 true
+    /// </summary>
+    public readonly bool SteamGameOnly;
+    /// <summary>
+    /// 默认 false
+    /// </summary>
+    public readonly bool SteamTradable;
+    /// <summary>
+    /// 默认 false
+    /// </summary>
+    public readonly bool SteamMarketable;
+    /// <summary>
+    /// Refreshment 可 true，装扮 false
+    /// </summary>
+    public readonly bool SteamAutoStack;
+    /// <summary>
+    /// 正式物品默认 false
+    /// </summary>
+    public readonly bool SteamHidden;
+    /// <summary>
+    /// 可空
+    /// </summary>
+    public readonly string SteamDisplayType;
+    /// <summary>
+    /// 可空
+    /// </summary>
+    public readonly string SteamTags;
+    /// <summary>
+    /// 可空
+    /// </summary>
+    public readonly string SteamIconUrl;
+    /// <summary>
+    /// 可空
+    /// </summary>
+    public readonly string SteamIconUrlLarge;
    
     public const int __ID__ = 2289459;
     public override int GetTypeId() => __ID__;
@@ -88,16 +159,32 @@ public sealed partial class Item : Luban.BeanBase
         + "Id:" + Id + ","
         + "Name:" + Name + ","
         + "ItemType:" + ItemType + ","
+        + "HiddenRegionFlag:" + HiddenRegionFlag + ","
+        + "SafeResourceId:" + SafeResourceId + ","
         + "ItemRarity:" + ItemRarity + ","
         + "SortOrder:" + SortOrder + ","
         + "BlindBoxWeight:" + BlindBoxWeight + ","
+        + "AcquisitionType:" + AcquisitionType + ","
         + "IsUnique:" + IsUnique + ","
-        + "HiddenRegionFlag:" + HiddenRegionFlag + ","
-        + "SafeResourceId:" + SafeResourceId + ","
         + "BlindBoxId:" + BlindBoxId + ","
+        + "StandardBoxWeight:" + StandardBoxWeight + ","
+        + "NewbieBoxWeight:" + NewbieBoxWeight + ","
+        + "RefreshmentBoxWeight:" + RefreshmentBoxWeight + ","
+        + "EventBoxWeight:" + EventBoxWeight + ","
         + "AssetPathList:" + Luban.StringUtil.CollectionToString(AssetPathList) + ","
         + "IconPath:" + IconPath + ","
         + "SkinId:" + SkinId + ","
+        + "SteamItemDefId:" + SteamItemDefId + ","
+        + "SteamItemDefType:" + SteamItemDefType + ","
+        + "SteamGameOnly:" + SteamGameOnly + ","
+        + "SteamTradable:" + SteamTradable + ","
+        + "SteamMarketable:" + SteamMarketable + ","
+        + "SteamAutoStack:" + SteamAutoStack + ","
+        + "SteamHidden:" + SteamHidden + ","
+        + "SteamDisplayType:" + SteamDisplayType + ","
+        + "SteamTags:" + SteamTags + ","
+        + "SteamIconUrl:" + SteamIconUrl + ","
+        + "SteamIconUrlLarge:" + SteamIconUrlLarge + ","
         + "}";
     }
 }

@@ -1,5 +1,6 @@
 [
   {
-    "IsSafeMode": false
+    "BlindBoxTimeScale": 1,
+    "BlindBoxCostScale": 1
   }
 ]
