@@ -19,6 +19,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
+        { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
         { if(!_buf["StartSeconds"].IsNumber) { throw new SerializationException(); }  StartSeconds = _buf["StartSeconds"]; }
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
         { if(!_buf["EndSeconds"].IsNumber) { throw new SerializationException(); }  EndSeconds = _buf["EndSeconds"]; }
@@ -39,16 +40,17 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 对应 BlindBox.Id
     /// </summary>
     public readonly int BlindBoxId;
+    public readonly bool IsLoopTrack;
     /// <summary>
-    /// 按玩家总游玩秒数计算的生效时间
+    /// 按玩家总游玩秒数计算的生效时间<br/>该数值主要用于Steam库存中判定玩家是否可以领取该奖励的时间下限
     /// </summary>
     public readonly int StartSeconds;
     /// <summary>
-    /// 循环间隔；固定时间点填 0
+    /// 间隔时间<br/>玩家领取一个盲盒之后，等待下一个盲盒到达需要多长间隔时间
     /// </summary>
     public readonly int IntervalSeconds;
     /// <summary>
-    /// 结束时间；无限循环填 -1
+    /// 结束时间；无限循环填 -1<br/>策划注意导SteamJSON是需要确认改字段的用途
     /// </summary>
     public readonly int EndSeconds;
     /// <summary>
@@ -84,6 +86,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "BlindBoxId:" + BlindBoxId + ","
+        + "IsLoopTrack:" + IsLoopTrack + ","
         + "StartSeconds:" + StartSeconds + ","
         + "IntervalSeconds:" + IntervalSeconds + ","
         + "EndSeconds:" + EndSeconds + ","
