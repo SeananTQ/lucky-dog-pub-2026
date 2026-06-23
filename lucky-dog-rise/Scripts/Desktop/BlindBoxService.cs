@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using DataTables;
 using Godot;
 
@@ -66,6 +67,74 @@ public sealed class BlindBoxService
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
         var scale = config == null || config.BlindBoxCostScale <= 0 ? 1f : config.BlindBoxCostScale;
         return Mathf.Max(0, Mathf.RoundToInt(box.CostChips * scale));
+    }
+
+    public string BuildDebugStatus(
+        double totalPlaySeconds,
+        BlindBoxRuntimeState runtimeState,
+        PendingBlindBoxReward? pendingReward)
+    {
+        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+
+        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        var builder = new StringBuilder();
+        builder.AppendLine($"游玩: {FormatSeconds(totalPlaySeconds)}");
+        builder.AppendLine($"盲盒时间: {FormatSeconds(scaledSeconds)}");
+        builder.AppendLine($"上次领取: {FormatSeconds(runtimeState.LastClaimSeconds)}");
+
+        if (pendingReward != null)
+        {
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(pendingReward.BlindBoxId);
+            var item = LubanData.Tables.TbItem.GetOrDefault(pendingReward.ItemId);
+            builder.AppendLine("状态: 待领取奖品");
+            builder.AppendLine($"盲盒: {box?.Name ?? "缺失"} ({pendingReward.BlindBoxId})");
+            builder.AppendLine($"调度: {pendingReward.ScheduleId}");
+            builder.AppendLine($"奖品: {item?.Name ?? "缺失"} ({pendingReward.ItemId})");
+            return builder.ToString().TrimEnd();
+        }
+
+        var available = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
+        if (available.Schedule != null && available.Box != null)
+        {
+            var cost = GetDisplayCost(available.Box);
+            builder.AppendLine(_gameData.Chips >= cost ? "状态: 可领取" : "状态: 筹码不足");
+            builder.AppendLine($"下个: {available.Box.Name} ({available.Box.Id})");
+            builder.AppendLine($"调度: {available.Schedule.Id}, 循环={available.Schedule.IsLoopTrack}, 优先={available.Schedule.Priority}");
+            builder.AppendLine($"消耗: {cost}, 筹码: {_gameData.Chips}");
+        }
+        else
+        {
+            builder.AppendLine("状态: 等待中");
+        }
+
+        var sequence = GetCurrentSequenceSchedule(runtimeState);
+        if (sequence != null)
+        {
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequence.BlindBoxId);
+            var waitSeconds = runtimeState.SequenceIndex == 0
+                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scaledSeconds)
+                : Math.Max(0, sequence.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+            builder.AppendLine($"新手: #{runtimeState.SequenceIndex}, 调度={sequence.Id}, {box?.Name ?? "缺失"}");
+            builder.AppendLine($"新手等待: {FormatSeconds(waitSeconds)}");
+        }
+        else
+        {
+            builder.AppendLine($"新手: 已完成 #{runtimeState.SequenceIndex}");
+        }
+
+        builder.AppendLine("循环轨道:");
+        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
+                     .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack)
+                     .OrderByDescending(schedule => schedule.Priority)
+                     .ThenBy(schedule => schedule.Id))
+        {
+            runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var state);
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+            var cooldown = Math.Max(0, schedule.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+            builder.AppendLine($"- {schedule.Id} {box?.Name ?? "缺失"} 待={state?.PendingCount ?? 0}, 已={state?.ProcessedGrantCount ?? 0}, CD={cooldown:0.0}s");
+        }
+
+        return builder.ToString().TrimEnd();
     }
 
     public BlindBoxOpenResult? TryOpenNext(
@@ -348,5 +417,10 @@ public sealed class BlindBoxService
             + $"Cost: {cost}\n"
             + $"Reward: {item.Name} ({item.Id})\n"
             + $"Type: {item.ItemType}, Rarity: {item.ItemRarity}";
+    }
+
+    private static string FormatSeconds(double seconds)
+    {
+        return TimeSpan.FromSeconds(Math.Max(0, seconds)).ToString(@"hh\:mm\:ss");
     }
 }

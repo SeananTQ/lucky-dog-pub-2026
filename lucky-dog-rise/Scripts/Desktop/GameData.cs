@@ -106,6 +106,14 @@ public partial class GameData : Node
         return _blindBoxService.GetDisplayCost(box);
     }
 
+    public string GetBlindBoxDebugStatus()
+    {
+        return _blindBoxService.BuildDebugStatus(
+            TotalPlaySeconds,
+            _blindBoxRuntimeState,
+            PendingBlindBoxReward);
+    }
+
     public PendingBlindBoxReward TryOpenBlindBox()
     {
         if (PendingBlindBoxReward != null)

@@ -232,6 +232,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "立即获得 50000 筹码"
 
+[node name="BlindBoxDebugToggle" type="Button" parent="Panel/Scroll/RootVBox/DebugContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "▶ BlindBox Debug"
+
+[node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+visible = false
+custom_minimum_size = Vector2(0, 260)
+layout_mode = 2
+
+[node name="BlindBoxDebugLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent"]
+custom_minimum_size = Vector2(0, 260)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "BlindBox debug status"
+autowrap_mode = 3
+
 [node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
 layout_mode = 2
 

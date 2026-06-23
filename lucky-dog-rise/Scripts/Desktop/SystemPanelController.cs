@@ -50,6 +50,9 @@ public partial class SystemPanelController : CanvasLayer
     // Debug 页
     private Label _seedLabel = null!;
     private Label _playTimeLabel = null!;
+    private Button _blindBoxDebugToggle = null!;
+    private Control _blindBoxDebugContent = null!;
+    private Label _blindBoxDebugLabel = null!;
     private LineEdit _seedInput = null!;
     private OptionButton _reactionOption = null!;
     private int _currentSeed;
@@ -156,6 +159,9 @@ public partial class SystemPanelController : CanvasLayer
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedLabel");
         _playTimeLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/PlayTimeLabel");
+        _blindBoxDebugToggle = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugToggle");
+        _blindBoxDebugContent = GetNode<Control>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent");
+        _blindBoxDebugLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
         var seedCopyBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/GrantChipsBtn");
@@ -167,6 +173,7 @@ public partial class SystemPanelController : CanvasLayer
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
+        _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
@@ -218,6 +225,24 @@ public partial class SystemPanelController : CanvasLayer
 
         var total = TimeSpan.FromSeconds(_gameData.TotalPlaySeconds);
         _playTimeLabel.Text = $"Play Time: {total:hh\\:mm\\:ss} ({_gameData.TotalPlaySeconds:0.0}s)";
+        RefreshBlindBoxDebugStatus();
+    }
+
+    private void ToggleBlindBoxDebug()
+    {
+        _blindBoxDebugContent.Visible = !_blindBoxDebugContent.Visible;
+        _blindBoxDebugToggle.Text = _blindBoxDebugContent.Visible
+            ? "▼ BlindBox Debug"
+            : "▶ BlindBox Debug";
+        RefreshBlindBoxDebugStatus();
+    }
+
+    private void RefreshBlindBoxDebugStatus()
+    {
+        if (_blindBoxDebugLabel == null || _gameData == null)
+            return;
+
+        _blindBoxDebugLabel.Text = _gameData.GetBlindBoxDebugStatus();
     }
 
     // ===== Wardrobe 页 =====
