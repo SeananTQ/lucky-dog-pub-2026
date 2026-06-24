@@ -31,6 +31,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
+    private Tween _rotationTween = null!;
     private bool _animating;
     private Vector2 _initialBoxSpritePosition;
     private Vector2 _initialBoxShadowPosition;
@@ -81,7 +82,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     public void HideOverlay()
     {
-        _tween?.Kill();
+        KillTweens();
         Visible = false;
         _animating = false;
     }
@@ -126,6 +127,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _boxShadow.Position = _boxShadowRestPosition;
         _hintLabel.Position = _initialHintPosition;
         _boxSprite.Scale = Vector2.One;
+        _boxSprite.RotationDegrees = 0f;
         _boxShadow.Scale = Vector2.One;
     }
 
@@ -180,7 +182,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void PlayAppear()
     {
-        _tween?.Kill();
+        KillTweens();
         _animating = true;
         _hintLabel.Text = "点击继续";
         _boxSprite.Scale = new Vector2(0.6f, 0.6f);
@@ -201,7 +203,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void PlayUpgrade(ERarity oldRarity, ERarity newRarity)
     {
-        _tween?.Kill();
+        KillTweens();
         _animating = true;
         _hintLabel.Modulate = Colors.Transparent;
 
@@ -234,24 +236,38 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void PlayPreRewardShake()
     {
-        _tween?.Kill();
+        KillTweens();
         _animating = false;
         _hintLabel.Text = "点击开奖";
         _hintLabel.Modulate = Colors.White;
         _boxSprite.Position = _boxSpriteRestPosition;
+        _boxSprite.RotationDegrees = 0f;
+        _boxShadow.Scale = Vector2.One;
 
         _tween = CreateTween();
         _tween.SetLoops(0);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.08f, 0.92f), 0.055);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(1.06f, 0.9f), 0.055);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.94f, 1.11f), 0.045);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(0.92f, 1.04f), 0.045);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.13f, 0.96f), 0.05);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(1.1f, 0.92f), 0.05);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.97f, 1.07f), 0.04);
-        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.05);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(0.94f, 1.02f), 0.04);
+        //_tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.05);
+
+        _rotationTween = CreateTween();
+        _rotationTween.SetLoops(0);
+        TweenShakeRotationStep(0f, -3f, 0.055);
+        TweenShakeRotationStep(0f, 3f, 0.045);
+        TweenShakeRotationStep(0f, -5f, 0.05);
+        TweenShakeRotationStep(0f, 5f, 0.04);
+        //TweenShakeRotationStep(0f, 0f, 0.05);
     }
 
     private void PlayFinalOpen()
     {
-        _tween?.Kill();
+        KillTweens();
         _animating = true;
         _hintLabel.Modulate = Colors.Transparent;
 
@@ -273,7 +289,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void PlayRewardDrop(bool animate, ERarity rarity)
     {
-        _tween?.Kill();
+        KillTweens();
         _rewardWhiteMask.Color = animate ? Colors.White : new Color(1f, 1f, 1f, 0f);
         _rewardCell.Position = animate ? _rewardCellPosition + _rewardDropOffset : _rewardCellPosition;
         _rewardCell.Scale = animate ? new Vector2(0.85f, 0.85f) : Vector2.One;
@@ -292,6 +308,20 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_rewardCellShadow, "scale", Vector2.One, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
         _tween.SetParallel(false);
+    }
+
+    private void TweenShakeRotationStep(float restDegrees, float peakDegrees, double duration)
+    {
+        var halfDuration = duration * 0.5;
+        _rotationTween.TweenProperty(_boxSprite, "rotation_degrees", peakDegrees, halfDuration);
+        _rotationTween.TweenProperty(_boxSprite, "rotation_degrees", restDegrees, halfDuration);
+    }
+
+    private void KillTweens()
+    {
+        _tween?.Kill();
+        _rotationTween?.Kill();
+        _rotationTween = null!;
     }
 
     private void ApplyBlindBoxVisual(ERarity rarity, bool instant)
