@@ -1,0 +1,114 @@
+[gd_scene format=3 uid="uid://c06g7xkwr7yvb"]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/BlindBoxRevealOverlayController.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bbxjsmyo8skhj" path="res://Scenes/Prefabs/ItemCell.tscn" id="2_itemcell"]
+
+[node name="BlindBoxRevealOverlay" type="CanvasLayer" node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardCell", "_debugLabel")]
+layer = 19
+script = ExtResource("1_script")
+_revealBackground = NodePath("RevealRoot/RevealBackground")
+_revealWhiteMask = NodePath("RevealRoot/RevealWhiteMask")
+_boxSprite = NodePath("RevealRoot/BoxSprite")
+_boxShadow = NodePath("RevealRoot/BoxShadow")
+_hintLabel = NodePath("RevealRoot/HintLabel")
+_rewardRoot = NodePath("RewardRoot")
+_rewardBackground = NodePath("RewardRoot/RewardBackground")
+_rewardWhiteMask = NodePath("RewardRoot/RewardWhiteMask")
+_rewardCell = NodePath("RewardRoot/RewardCell")
+_debugLabel = NodePath("RewardRoot/DebugLabel")
+
+[node name="RevealRoot" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RevealBackground" type="ColorRect" parent="RevealRoot"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 1)
+
+[node name="BoxShadow" type="TextureRect" parent="RevealRoot"]
+offset_left = 190.0
+offset_top = 388.0
+offset_right = 410.0
+offset_bottom = 468.0
+mouse_filter = 2
+pivot_offset = Vector2(110, 40)
+stretch_mode = 5
+
+[node name="BoxSprite" type="TextureRect" parent="RevealRoot"]
+offset_left = 190.0
+offset_top = 190.0
+offset_right = 410.0
+offset_bottom = 410.0
+mouse_filter = 2
+pivot_offset = Vector2(110, 110)
+stretch_mode = 5
+
+[node name="HintLabel" type="Label" parent="RevealRoot"]
+offset_left = 160.0
+offset_top = 475.0
+offset_right = 440.0
+offset_bottom = 515.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 20
+text = "点击继续"
+horizontal_alignment = 1
+
+[node name="RevealWhiteMask" type="ColorRect" parent="RevealRoot"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="RewardRoot" type="Control" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RewardBackground" type="ColorRect" parent="RewardRoot"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 1)
+
+[node name="RewardCell" parent="RewardRoot" instance=ExtResource("2_itemcell")]
+custom_minimum_size = Vector2(256, 256)
+offset_left = 172.0
+offset_top = 172.0
+offset_right = 428.0
+offset_bottom = 428.0
+
+[node name="DebugLabel" type="Label" parent="RewardRoot"]
+offset_left = 324.0
+offset_top = 16.0
+offset_right = 584.0
+offset_bottom = 176.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 12
+text = "BlindBox Debug"
+autowrap_mode = 3
+
+[node name="RewardWhiteMask" type="ColorRect" parent="RewardRoot"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
