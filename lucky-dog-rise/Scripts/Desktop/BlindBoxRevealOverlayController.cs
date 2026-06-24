@@ -25,9 +25,11 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Label _debugLabel = null!;
 
     [Export] private Vector2 _rewardDropOffset = new(0, -230);
-    [Export] private Vector2 _boxAppearOffset = new(0, -90);
-    [Export] private Vector2 _boxJumpOffset = new(0, -100);
+    [Export] private Vector2 _boxAppearOffset = new(0, -230);
+    [Export] private Vector2 _boxJumpOffset = new(0, -150);
     [Export] private Vector2 _boxFinalOpenOffset = new(0, -150);
+    [Export] private float _boxAppearAirborneShadowScale = 0.456f;
+    [Export] private float _boxJumpAirborneShadowScale = 0.7f;
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
@@ -185,19 +187,27 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         KillTweens();
         _animating = true;
         _hintLabel.Text = "点击继续";
-        _boxSprite.Scale = new Vector2(0.6f, 0.6f);
+        _boxSprite.Scale = new Vector2(0.4f, 0.4f);
         _boxSprite.Position = _boxSpriteRestPosition + _boxAppearOffset;
-        _boxShadow.Scale = new Vector2(0.55f, 0.55f);
+        _boxShadow.Scale = new Vector2(0.4f * _boxAppearAirborneShadowScale, 0.4f * _boxAppearAirborneShadowScale);
         _hintLabel.Modulate = Colors.Transparent;
 
         _tween = CreateTween();
+
+        // 出现
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.1f, 1.1f), 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", Vector2.One, 0.34).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.15).SetDelay(0.28);
+        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxAppearAirborneShadowScale, _boxAppearAirborneShadowScale), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
-        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.12).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+
+        // 落地弹跳
+        _tween.SetParallel(true);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", Vector2.One, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.SetParallel(false);
+
+        // 提示文字在落地完成后淡入，避免 SetDelay 把上一组并行动画的总时长拖长。
+        _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.15);
         _tween.TweenCallback(Callable.From(() => _animating = false));
     }
 
@@ -212,14 +222,14 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.78f, 0.72f), 0.08).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset, 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.Parallel().TweenProperty(_boxSprite, "scale", new Vector2(1.1f, 1.1f), 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(0.5f, 0.5f), 0.18);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.18);
         if (changed)
             _tween.Parallel().TweenProperty(_revealBackground, "color", GetBlindBoxBackgroundColor(newRarity), 0.18);
         _tween.TweenCallback(Callable.From(() => ApplyBlindBoxVisual(newRarity, instant: false)));
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.62f, 0.62f), 0.12).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.22).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.Parallel().TweenProperty(_boxSprite, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", Vector2.One, 0.22);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.12);
         _tween.TweenCallback(Callable.From(() =>
         {
@@ -275,7 +285,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxFinalOpenOffset, 0.22).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.18f, 1.18f), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(0.45f, 0.45f), 0.22);
+        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.22);
         _tween.TweenProperty(_revealWhiteMask, "color", Colors.White, 0.22);
         _tween.SetParallel(false);
         _tween.TweenCallback(Callable.From(() =>
