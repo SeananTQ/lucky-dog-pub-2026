@@ -234,7 +234,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         // 起跳 瘦高的上窜
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.8f, 1.2f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset* 0.8f, 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset * 0.8f, 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.18);
         if (changed)
             _tween.Parallel().TweenProperty(_revealBackground, "color", GetBlindBoxBackgroundColor(newRarity), 0.18);
@@ -245,7 +245,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         // 砰！换图标后引起的膨胀，Elastic之后回到正常尺寸
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", Vector2.One , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale) , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset , 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
@@ -278,6 +278,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _hintLabel.Modulate = Colors.White;
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxSprite.RotationDegrees = 0f;
+        _boxSprite.Scale = Vector2.One;
         _boxShadow.Scale = Vector2.One;
 
         _tween = CreateTween();
