@@ -6,6 +6,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Legendary_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "e3504a",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "si",
     "UpgradeEffectPath": ""
@@ -17,6 +18,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Epic_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "b574f0",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "sol",
     "UpgradeEffectPath": ""
@@ -28,6 +30,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Rare_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "0f7edc",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "mi",
     "UpgradeEffectPath": ""
@@ -39,6 +42,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "e4bf8f",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "do",
     "UpgradeEffectPath": ""
@@ -50,6 +54,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "e4bf8f",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "",
     "UpgradeEffectPath": ""
@@ -61,6 +66,7 @@
     "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Common_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
+    "BlindBoxBackgroundColor": "e4bf8f",
     "BlindBoxBackgroundPath": "",
     "UpgradeSfxNamePath": "",
     "UpgradeEffectPath": ""

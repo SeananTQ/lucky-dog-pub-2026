@@ -27,7 +27,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     }
 
     /// <summary>
-    /// 盲盒时间倍率
+    /// 等待盲盒时间倍率
     /// </summary>
     public readonly float BlindBoxTimeScale;
     /// <summary>

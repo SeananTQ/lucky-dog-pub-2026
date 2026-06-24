@@ -23,6 +23,7 @@ public sealed partial class BlindBoxVisual : Luban.BeanBase
         { if(!_buf["BlindBoxSpritePath"].IsString) { throw new SerializationException(); }  BlindBoxSpritePath = _buf["BlindBoxSpritePath"]; }
         { if(!_buf["BlindBoxShadowPath"].IsString) { throw new SerializationException(); }  BlindBoxShadowPath = _buf["BlindBoxShadowPath"]; }
         { if(!_buf["BlindBoxGlowPath"].IsString) { throw new SerializationException(); }  BlindBoxGlowPath = _buf["BlindBoxGlowPath"]; }
+        { if(!_buf["BlindBoxBackgroundColor"].IsString) { throw new SerializationException(); }  BlindBoxBackgroundColor = _buf["BlindBoxBackgroundColor"]; }
         { if(!_buf["BlindBoxBackgroundPath"].IsString) { throw new SerializationException(); }  BlindBoxBackgroundPath = _buf["BlindBoxBackgroundPath"]; }
         { if(!_buf["UpgradeSfxNamePath"].IsString) { throw new SerializationException(); }  UpgradeSfxNamePath = _buf["UpgradeSfxNamePath"]; }
         { if(!_buf["UpgradeEffectPath"].IsString) { throw new SerializationException(); }  UpgradeEffectPath = _buf["UpgradeEffectPath"]; }
@@ -49,6 +50,10 @@ public sealed partial class BlindBoxVisual : Luban.BeanBase
     /// </summary>
     public readonly string BlindBoxGlowPath;
     /// <summary>
+    /// 16进制颜色代码
+    /// </summary>
+    public readonly string BlindBoxBackgroundColor;
+    /// <summary>
     /// 可选
     /// </summary>
     public readonly string BlindBoxBackgroundPath;
@@ -74,6 +79,7 @@ public sealed partial class BlindBoxVisual : Luban.BeanBase
         + "BlindBoxSpritePath:" + BlindBoxSpritePath + ","
         + "BlindBoxShadowPath:" + BlindBoxShadowPath + ","
         + "BlindBoxGlowPath:" + BlindBoxGlowPath + ","
+        + "BlindBoxBackgroundColor:" + BlindBoxBackgroundColor + ","
         + "BlindBoxBackgroundPath:" + BlindBoxBackgroundPath + ","
         + "UpgradeSfxNamePath:" + UpgradeSfxNamePath + ","
         + "UpgradeEffectPath:" + UpgradeEffectPath + ","
