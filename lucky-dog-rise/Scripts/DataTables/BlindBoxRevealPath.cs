@@ -21,7 +21,8 @@ public sealed partial class BlindBoxRevealPath : Luban.BeanBase
         { if(!_buf["ActualRarity"].IsNumber) { throw new SerializationException(); }  ActualRarity = (ERarity)_buf["ActualRarity"].AsInt; }
         { if(!_buf["Weight"].IsNumber) { throw new SerializationException(); }  Weight = _buf["Weight"]; }
         { if(!_buf["StartRarity"].IsNumber) { throw new SerializationException(); }  StartRarity = (ERarity)_buf["StartRarity"].AsInt; }
-        { if(!_buf["MiddleRarity"].IsNumber) { throw new SerializationException(); }  MiddleRarity = (ERarity)_buf["MiddleRarity"].AsInt; }
+        { if(!_buf["MiddleRarity1"].IsNumber) { throw new SerializationException(); }  MiddleRarity1 = (ERarity)_buf["MiddleRarity1"].AsInt; }
+        { if(!_buf["MiddleRarity2"].IsNumber) { throw new SerializationException(); }  MiddleRarity2 = (ERarity)_buf["MiddleRarity2"].AsInt; }
         { if(!_buf["FinalRarity"].IsNumber) { throw new SerializationException(); }  FinalRarity = (ERarity)_buf["FinalRarity"].AsInt; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["CanEndEarly"].IsBoolean) { throw new SerializationException(); }  CanEndEarly = _buf["CanEndEarly"]; }
@@ -48,7 +49,11 @@ public sealed partial class BlindBoxRevealPath : Luban.BeanBase
     /// <summary>
     /// 点击过程中的中间品质
     /// </summary>
-    public readonly ERarity MiddleRarity;
+    public readonly ERarity MiddleRarity1;
+    /// <summary>
+    /// 点击过程中的中间品质
+    /// </summary>
+    public readonly ERarity MiddleRarity2;
     /// <summary>
     /// 揭晓前最终显示品质
     /// </summary>
@@ -76,7 +81,8 @@ public sealed partial class BlindBoxRevealPath : Luban.BeanBase
         + "ActualRarity:" + ActualRarity + ","
         + "Weight:" + Weight + ","
         + "StartRarity:" + StartRarity + ","
-        + "MiddleRarity:" + MiddleRarity + ","
+        + "MiddleRarity1:" + MiddleRarity1 + ","
+        + "MiddleRarity2:" + MiddleRarity2 + ","
         + "FinalRarity:" + FinalRarity + ","
         + "IsEnabled:" + IsEnabled + ","
         + "CanEndEarly:" + CanEndEarly + ","
