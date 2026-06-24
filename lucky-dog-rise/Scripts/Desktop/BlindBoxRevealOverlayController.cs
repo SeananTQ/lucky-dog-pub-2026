@@ -289,11 +289,9 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_rewardWhiteMask, "color", new Color(1f, 1f, 1f, 0f), 0.16);
         _tween.TweenProperty(_rewardCell, "position", _rewardCellPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCell, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCellShadow, "scale", Vector2.One, 0.28).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.2);
+        _tween.TweenProperty(_rewardCellShadow, "scale", Vector2.One, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
         _tween.SetParallel(false);
-        _tween.TweenProperty(_rewardCellShadow, "scale", new Vector2(0.78f, 0.78f), 0.11).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
-        _tween.TweenProperty(_rewardCellShadow, "scale", Vector2.One, 0.11).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
     }
 
     private void ApplyBlindBoxVisual(ERarity rarity, bool instant)
