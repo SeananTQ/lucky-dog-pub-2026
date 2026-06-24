@@ -219,18 +219,44 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         var changed = oldRarity != newRarity;
         _tween = CreateTween();
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.78f, 0.72f), 0.08).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
-        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset, 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxSprite, "scale", new Vector2(1.1f, 1.1f), 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.18);
+
+        // 蓄力压扁
+        _tween.SetParallel(true);
+        _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.2f, 0.8f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        _tween.TweenProperty(_boxShadow, "scale", new Vector2(1.2f, 0.8f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + new Vector2(0, 25f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        _tween.SetParallel(false);
+
+        // 压扁后停一小下，让玩家看见“蓄力完成”
+        _tween.TweenInterval(0.04);
+
+
+        // 起跳 瘦高的上窜
+        _tween.SetParallel(true);
+        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.8f, 1.2f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset* 0.8f, 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.18);
         if (changed)
             _tween.Parallel().TweenProperty(_revealBackground, "color", GetBlindBoxBackgroundColor(newRarity), 0.18);
+        _tween.SetParallel(false);
+
+        // 换盲盒图标
         _tween.TweenCallback(Callable.From(() => ApplyBlindBoxVisual(newRarity, instant: false)));
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.62f, 0.62f), 0.12).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
-        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.22).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxSprite, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+
+        // 砰！换图标后引起的膨胀，Elastic之后回到正常尺寸
+        _tween.SetParallel(true);
+        _tween.TweenProperty(_boxSprite, "scale", Vector2.One , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale) , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + _boxJumpOffset , 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _tween.SetParallel(false);
+
+        // 下落
+        _tween.SetParallel(true);
+        _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", Vector2.One, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.SetParallel(false);
         _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.12);
+
         _tween.TweenCallback(Callable.From(() =>
         {
             if (_pending.RevealStep >= 3)

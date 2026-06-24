@@ -24,7 +24,7 @@
     "Id": 100104,
     "BlindBoxId": 1001,
     "Rarity": 1,
-    "Weight": 100,
+    "Weight": 10000000,
     "IsEnabled": true
   },
   {
@@ -52,7 +52,7 @@
     "Id": 100204,
     "BlindBoxId": 1002,
     "Rarity": 1,
-    "Weight": 300,
+    "Weight": 30000000,
     "IsEnabled": true
   },
   {
