@@ -60,10 +60,14 @@ public partial class GameManager : Node2D
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     private CanvasLayer _blindBoxRewardLayer = null!;
+    private ColorRect _blindBoxRewardBackground = null!;
+    private ColorRect _blindBoxRewardWhiteMask = null!;
     private Label _blindBoxRewardDebugLabel = null!;
     private ItemCellController _blindBoxRewardCell = null!;
+    private Vector2 _blindBoxRewardCellBasePosition;
     private CanvasLayer _blindBoxRevealLayer = null!;
     private ColorRect _blindBoxRevealBackground = null!;
+    private ColorRect _blindBoxRevealWhiteMask = null!;
     private TextureRect _blindBoxSprite = null!;
     private TextureRect _blindBoxShadow = null!;
     private Label _blindBoxRevealHint = null!;
@@ -71,6 +75,7 @@ public partial class GameManager : Node2D
     private Vector2 _blindBoxShadowBasePosition;
     private PendingBlindBoxReward _activeBlindBoxReward = null!;
     private Tween _blindBoxRevealTween = null!;
+    private Tween _blindBoxRewardTween = null!;
     private bool _blindBoxRevealAnimating;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
@@ -122,7 +127,10 @@ public partial class GameManager : Node2D
         _blindBoxRevealLayer.Visible = false;
         _blindBoxRewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _blindBoxRewardDebugLabel.Text = pending.DebugText;
+        LayoutBlindBoxRewardElements();
+        _blindBoxRewardBackground.Color = GetBlindBoxBackgroundColor(item.ItemRarity);
         _blindBoxRewardLayer.Visible = true;
+        PlayBlindBoxRewardDrop(animate: false);
     }
 
     public void HidePendingBlindBoxReward()
@@ -151,6 +159,14 @@ public partial class GameManager : Node2D
         _blindBoxRevealBackground.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _blindBoxRevealBackground.GuiInput += OnBlindBoxRevealGuiInput;
         _blindBoxRevealLayer.AddChild(_blindBoxRevealBackground);
+
+        _blindBoxRevealWhiteMask = new ColorRect
+        {
+            Color = new Color(1f, 1f, 1f, 0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _blindBoxRevealWhiteMask.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blindBoxRevealLayer.AddChild(_blindBoxRevealWhiteMask);
 
         _blindBoxShadow = new TextureRect
         {
@@ -181,6 +197,7 @@ public partial class GameManager : Node2D
         _blindBoxRevealHint.AddThemeFontSizeOverride("font_size", 20);
         _blindBoxRevealHint.Size = new Vector2(280, 40);
         _blindBoxRevealLayer.AddChild(_blindBoxRevealHint);
+        _blindBoxRevealLayer.MoveChild(_blindBoxRevealWhiteMask, _blindBoxRevealLayer.GetChildCount() - 1);
     }
 
     private void ShowBlindBoxReveal(PendingBlindBoxReward pending)
@@ -195,9 +212,13 @@ public partial class GameManager : Node2D
 
         _blindBoxRewardLayer.Visible = false;
         _blindBoxRevealLayer.Visible = true;
+        _blindBoxRevealWhiteMask.Color = new Color(1f, 1f, 1f, 0f);
         LayoutBlindBoxRevealElements();
         ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
-        PlayBlindBoxAppear();
+        if (pending.RevealStep >= 4)
+            PlayBlindBoxPreRewardShake();
+        else
+            PlayBlindBoxAppear();
     }
 
     private void LayoutBlindBoxRevealElements()
@@ -221,6 +242,12 @@ public partial class GameManager : Node2D
         if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
             return;
 
+        if (_activeBlindBoxReward.RevealStep >= 4)
+        {
+            PlayBlindBoxFinalOpen();
+            return;
+        }
+
         AdvanceBlindBoxReveal();
     }
 
@@ -234,9 +261,11 @@ public partial class GameManager : Node2D
         }
 
         var nextStep = _activeBlindBoxReward.RevealStep + 1;
-        if (nextStep > 2)
+        if (nextStep > 3)
         {
-            ShowBlindBoxFinalReward();
+            _activeBlindBoxReward.RevealStep = 4;
+            _gameData.SetPendingBlindBoxRevealStep(4);
+            PlayBlindBoxPreRewardShake();
             return;
         }
 
@@ -255,10 +284,56 @@ public partial class GameManager : Node2D
         ShowPendingBlindBoxReward(_activeBlindBoxReward);
     }
 
+    private void PlayBlindBoxPreRewardShake()
+    {
+        _blindBoxRevealTween?.Kill();
+        _blindBoxRevealAnimating = false;
+        _blindBoxRevealHint.Text = "点击开奖";
+        _blindBoxRevealHint.Modulate = Colors.White;
+
+        _blindBoxRevealTween = CreateTween();
+        _blindBoxRevealTween.SetLoops(0);
+        _blindBoxSprite.Position = _blindBoxSpriteBasePosition;
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(1.08f, 0.92f), 0.055);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(0.94f, 1.11f), 0.045);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(1.13f, 0.96f), 0.05);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(0.97f, 1.07f), 0.04);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", Vector2.One, 0.05);
+    }
+
+    private void PlayBlindBoxFinalOpen()
+    {
+        _blindBoxRevealTween?.Kill();
+        _blindBoxRevealAnimating = true;
+        _blindBoxRevealHint.Modulate = Colors.Transparent;
+
+        _blindBoxRevealTween = CreateTween();
+        _blindBoxRevealTween.SetParallel(true);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "position", _blindBoxSpriteBasePosition + new Vector2(0, -150), 0.22)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(1.18f, 1.18f), 0.22)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenProperty(_blindBoxShadow, "scale", new Vector2(0.45f, 0.45f), 0.22);
+        _blindBoxRevealTween.TweenProperty(_blindBoxRevealWhiteMask, "color", Colors.White, 0.22);
+        _blindBoxRevealTween.SetParallel(false);
+        _blindBoxRevealTween.TweenCallback(Callable.From(() =>
+        {
+            _gameData.MarkPendingBlindBoxRewardShown();
+            _activeBlindBoxReward.RewardShown = true;
+            _blindBoxRevealLayer.Visible = false;
+            ShowPendingBlindBoxReward(_activeBlindBoxReward);
+            PlayBlindBoxRewardDrop(animate: true);
+            _blindBoxRevealAnimating = false;
+        }));
+    }
+
     private void PlayBlindBoxAppear()
     {
         _blindBoxRevealTween?.Kill();
         _blindBoxRevealAnimating = true;
+        _blindBoxRevealHint.Text = "点击继续";
         _blindBoxSprite.Scale = new Vector2(0.6f, 0.6f);
         _blindBoxSprite.Position = _blindBoxSpriteBasePosition + new Vector2(0, -90);
         _blindBoxShadow.Scale = new Vector2(0.55f, 0.55f);
@@ -317,7 +392,18 @@ public partial class GameManager : Node2D
             .SetEase(Tween.EaseType.Out);
         _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxShadow, "scale", Vector2.One, 0.22);
         _blindBoxRevealTween.TweenProperty(_blindBoxRevealHint, "modulate", Colors.White, 0.12);
-        _blindBoxRevealTween.TweenCallback(Callable.From(() => _blindBoxRevealAnimating = false));
+        _blindBoxRevealTween.TweenCallback(Callable.From(() =>
+        {
+            if (_activeBlindBoxReward.RevealStep >= 3)
+            {
+                _activeBlindBoxReward.RevealStep = 4;
+                _gameData.SetPendingBlindBoxRevealStep(4);
+                PlayBlindBoxPreRewardShake();
+                return;
+            }
+
+            _blindBoxRevealAnimating = false;
+        }));
 
         if (changed)
         {
@@ -344,7 +430,8 @@ public partial class GameManager : Node2D
         return step switch
         {
             <= 0 => path.StartRarity,
-            1 => path.MiddleRarity,
+            1 => path.MiddleRarity1,
+            2 => path.MiddleRarity2,
             _ => path.FinalRarity,
         };
     }
@@ -385,70 +472,75 @@ public partial class GameManager : Node2D
         };
         AddChild(_blindBoxRewardLayer);
 
-        var dim = new ColorRect
+        _blindBoxRewardBackground = new ColorRect
         {
-            Color = new Color(0f, 0f, 0f, 0.45f),
+            Color = Colors.Black,
             MouseFilter = Control.MouseFilterEnum.Stop,
         };
-        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _blindBoxRewardLayer.AddChild(dim);
+        _blindBoxRewardBackground.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blindBoxRewardLayer.AddChild(_blindBoxRewardBackground);
 
-        var panel = new PanelContainer
+        _blindBoxRewardWhiteMask = new ColorRect
         {
-            CustomMinimumSize = new Vector2(360, 420),
-            MouseFilter = Control.MouseFilterEnum.Stop,
+            Color = new Color(1f, 1f, 1f, 0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        panel.SetAnchorsPreset(Control.LayoutPreset.Center);
-        panel.OffsetLeft = -180;
-        panel.OffsetTop = -210;
-        panel.OffsetRight = 180;
-        panel.OffsetBottom = 210;
-        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.05f, 0.07f, 0.075f, 0.96f),
-            CornerRadiusTopLeft = 16,
-            CornerRadiusTopRight = 16,
-            CornerRadiusBottomLeft = 16,
-            CornerRadiusBottomRight = 16,
-            ContentMarginLeft = 20,
-            ContentMarginRight = 20,
-            ContentMarginTop = 18,
-            ContentMarginBottom = 18,
-        });
-        _blindBoxRewardLayer.AddChild(panel);
-
-        var root = new VBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            MouseFilter = Control.MouseFilterEnum.Stop,
-        };
-        root.AddThemeConstantOverride("separation", 16);
-        panel.AddChild(root);
-
-        var title = new Label
-        {
-            Text = "Blind Box Reward",
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        title.AddThemeFontSizeOverride("font_size", 28);
-        root.AddChild(title);
-
-        var center = new CenterContainer();
-        root.AddChild(center);
+        _blindBoxRewardWhiteMask.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blindBoxRewardLayer.AddChild(_blindBoxRewardWhiteMask);
 
         _blindBoxRewardCell = ItemCellScene.Instantiate<ItemCellController>();
-        _blindBoxRewardCell.CustomMinimumSize = new Vector2(150, 150);
+        _blindBoxRewardCell.CustomMinimumSize = new Vector2(256, 256);
+        _blindBoxRewardCell.Size = new Vector2(256, 256);
         _blindBoxRewardCell.Pressed += () => EmitSignal(SignalName.BlindBoxRewardClaimRequested);
-        center.AddChild(_blindBoxRewardCell);
+        _blindBoxRewardLayer.AddChild(_blindBoxRewardCell);
 
         _blindBoxRewardDebugLabel = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Left,
-            CustomMinimumSize = new Vector2(300, 130),
+            CustomMinimumSize = new Vector2(260, 160),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _blindBoxRewardDebugLabel.AddThemeFontSizeOverride("font_size", 16);
-        root.AddChild(_blindBoxRewardDebugLabel);
+        _blindBoxRewardDebugLabel.AddThemeFontSizeOverride("font_size", 12);
+        _blindBoxRewardLayer.AddChild(_blindBoxRewardDebugLabel);
+        _blindBoxRewardLayer.MoveChild(_blindBoxRewardWhiteMask, _blindBoxRewardLayer.GetChildCount() - 1);
+    }
+
+    private void LayoutBlindBoxRewardElements()
+    {
+        var viewportSize = GetViewportRect().Size;
+        var center = viewportSize * 0.5f;
+        _blindBoxRewardCellBasePosition = center + new Vector2(-128, -128);
+        _blindBoxRewardCell.Position = _blindBoxRewardCellBasePosition;
+        _blindBoxRewardDebugLabel.Position = new Vector2(Mathf.Max(16, viewportSize.X - 280), 16);
+        _blindBoxRewardDebugLabel.Size = new Vector2(260, 160);
+    }
+
+    private void PlayBlindBoxRewardDrop(bool animate)
+    {
+        _blindBoxRewardTween?.Kill();
+
+        if (!animate)
+        {
+            _blindBoxRewardWhiteMask.Color = new Color(1f, 1f, 1f, 0f);
+            _blindBoxRewardCell.Position = _blindBoxRewardCellBasePosition;
+            _blindBoxRewardCell.Scale = Vector2.One;
+            return;
+        }
+
+        _blindBoxRewardWhiteMask.Color = Colors.White;
+        _blindBoxRewardCell.Position = _blindBoxRewardCellBasePosition + new Vector2(0, -230);
+        _blindBoxRewardCell.Scale = new Vector2(0.85f, 0.85f);
+
+        _blindBoxRewardTween = CreateTween();
+        _blindBoxRewardTween.SetParallel(true);
+        _blindBoxRewardTween.TweenProperty(_blindBoxRewardWhiteMask, "color", new Color(1f, 1f, 1f, 0f), 0.16);
+        _blindBoxRewardTween.TweenProperty(_blindBoxRewardCell, "position", _blindBoxRewardCellBasePosition, 0.38)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRewardTween.TweenProperty(_blindBoxRewardCell, "scale", Vector2.One, 0.22)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
     }
 
     // === 信号处理 ===
