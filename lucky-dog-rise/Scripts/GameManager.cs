@@ -62,6 +62,16 @@ public partial class GameManager : Node2D
     private CanvasLayer _blindBoxRewardLayer = null!;
     private Label _blindBoxRewardDebugLabel = null!;
     private ItemCellController _blindBoxRewardCell = null!;
+    private CanvasLayer _blindBoxRevealLayer = null!;
+    private ColorRect _blindBoxRevealBackground = null!;
+    private TextureRect _blindBoxSprite = null!;
+    private TextureRect _blindBoxShadow = null!;
+    private Label _blindBoxRevealHint = null!;
+    private Vector2 _blindBoxSpriteBasePosition;
+    private Vector2 _blindBoxShadowBasePosition;
+    private PendingBlindBoxReward _activeBlindBoxReward = null!;
+    private Tween _blindBoxRevealTween = null!;
+    private bool _blindBoxRevealAnimating;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
     public override void _Ready()
@@ -78,6 +88,7 @@ public partial class GameManager : Node2D
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
         BuildBlindBoxRewardOverlay();
+        BuildBlindBoxRevealOverlay();
 
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
@@ -97,10 +108,18 @@ public partial class GameManager : Node2D
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
     {
+        _activeBlindBoxReward = pending;
+        if (!pending.RewardShown)
+        {
+            ShowBlindBoxReveal(pending);
+            return;
+        }
+
         var item = LubanData.Tables.TbItem.GetOrDefault(pending.ItemId);
         if (item == null)
             return;
 
+        _blindBoxRevealLayer.Visible = false;
         _blindBoxRewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _blindBoxRewardDebugLabel.Text = pending.DebugText;
         _blindBoxRewardLayer.Visible = true;
@@ -110,6 +129,250 @@ public partial class GameManager : Node2D
     {
         if (_blindBoxRewardLayer != null)
             _blindBoxRewardLayer.Visible = false;
+        if (_blindBoxRevealLayer != null)
+            _blindBoxRevealLayer.Visible = false;
+    }
+
+    private void BuildBlindBoxRevealOverlay()
+    {
+        _blindBoxRevealLayer = new CanvasLayer
+        {
+            Name = "BlindBoxRevealOverlay",
+            Layer = 19,
+            Visible = false,
+        };
+        AddChild(_blindBoxRevealLayer);
+
+        _blindBoxRevealBackground = new ColorRect
+        {
+            Color = Colors.Black,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        _blindBoxRevealBackground.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blindBoxRevealBackground.GuiInput += OnBlindBoxRevealGuiInput;
+        _blindBoxRevealLayer.AddChild(_blindBoxRevealBackground);
+
+        _blindBoxShadow = new TextureRect
+        {
+            CustomMinimumSize = new Vector2(220, 80),
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            PivotOffset = new Vector2(110, 40),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _blindBoxShadow.Size = new Vector2(220, 80);
+        _blindBoxRevealLayer.AddChild(_blindBoxShadow);
+
+        _blindBoxSprite = new TextureRect
+        {
+            CustomMinimumSize = new Vector2(220, 220),
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            PivotOffset = new Vector2(110, 110),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _blindBoxSprite.Size = new Vector2(220, 220);
+        _blindBoxRevealLayer.AddChild(_blindBoxSprite);
+
+        _blindBoxRevealHint = new Label
+        {
+            Text = "点击继续",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _blindBoxRevealHint.AddThemeFontSizeOverride("font_size", 20);
+        _blindBoxRevealHint.Size = new Vector2(280, 40);
+        _blindBoxRevealLayer.AddChild(_blindBoxRevealHint);
+    }
+
+    private void ShowBlindBoxReveal(PendingBlindBoxReward pending)
+    {
+        var path = LubanData.Tables.TbBlindBoxRevealPath.GetOrDefault(pending.RevealPathId);
+        if (path == null)
+        {
+            _gameData.MarkPendingBlindBoxRewardShown();
+            ShowPendingBlindBoxReward(pending);
+            return;
+        }
+
+        _blindBoxRewardLayer.Visible = false;
+        _blindBoxRevealLayer.Visible = true;
+        LayoutBlindBoxRevealElements();
+        ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
+        PlayBlindBoxAppear();
+    }
+
+    private void LayoutBlindBoxRevealElements()
+    {
+        var viewportSize = GetViewportRect().Size;
+        var center = viewportSize * 0.5f;
+
+        _blindBoxSpriteBasePosition = center + new Vector2(-110, -110);
+        _blindBoxShadowBasePosition = center + new Vector2(-110, 88);
+
+        _blindBoxSprite.Position = _blindBoxSpriteBasePosition;
+        _blindBoxShadow.Position = _blindBoxShadowBasePosition;
+        _blindBoxRevealHint.Position = center + new Vector2(-140, 175);
+    }
+
+    private void OnBlindBoxRevealGuiInput(InputEvent @event)
+    {
+        if (_activeBlindBoxReward == null || _blindBoxRevealAnimating)
+            return;
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+            return;
+
+        AdvanceBlindBoxReveal();
+    }
+
+    private void AdvanceBlindBoxReveal()
+    {
+        var path = LubanData.Tables.TbBlindBoxRevealPath.GetOrDefault(_activeBlindBoxReward.RevealPathId);
+        if (path == null)
+        {
+            ShowBlindBoxFinalReward();
+            return;
+        }
+
+        var nextStep = _activeBlindBoxReward.RevealStep + 1;
+        if (nextStep > 2)
+        {
+            ShowBlindBoxFinalReward();
+            return;
+        }
+
+        var oldRarity = GetRevealRarity(path, _activeBlindBoxReward.RevealStep);
+        var newRarity = GetRevealRarity(path, nextStep);
+        _activeBlindBoxReward.RevealStep = nextStep;
+        _gameData.SetPendingBlindBoxRevealStep(nextStep);
+        PlayBlindBoxUpgrade(oldRarity, newRarity);
+    }
+
+    private void ShowBlindBoxFinalReward()
+    {
+        _gameData.MarkPendingBlindBoxRewardShown();
+        _activeBlindBoxReward.RewardShown = true;
+        _blindBoxRevealLayer.Visible = false;
+        ShowPendingBlindBoxReward(_activeBlindBoxReward);
+    }
+
+    private void PlayBlindBoxAppear()
+    {
+        _blindBoxRevealTween?.Kill();
+        _blindBoxRevealAnimating = true;
+        _blindBoxSprite.Scale = new Vector2(0.6f, 0.6f);
+        _blindBoxSprite.Position = _blindBoxSpriteBasePosition + new Vector2(0, -90);
+        _blindBoxShadow.Scale = new Vector2(0.55f, 0.55f);
+        _blindBoxRevealHint.Modulate = Colors.Transparent;
+
+        _blindBoxRevealTween = CreateTween();
+        _blindBoxRevealTween.SetParallel(true);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(1.1f, 1.1f), 0.18)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "position", _blindBoxSpriteBasePosition, 0.34)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenProperty(_blindBoxShadow, "scale", Vector2.One, 0.34)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenProperty(_blindBoxRevealHint, "modulate", Colors.White, 0.15)
+            .SetDelay(0.28);
+        _blindBoxRevealTween.SetParallel(false);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", Vector2.One, 0.12)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.TweenCallback(Callable.From(() => _blindBoxRevealAnimating = false));
+    }
+
+    private void PlayBlindBoxUpgrade(ERarity oldRarity, ERarity newRarity)
+    {
+        _blindBoxRevealTween?.Kill();
+        _blindBoxRevealAnimating = true;
+        _blindBoxRevealHint.Modulate = Colors.Transparent;
+
+        var changed = oldRarity != newRarity;
+        var targetColor = GetBlindBoxBackgroundColor(newRarity);
+        _blindBoxRevealTween = CreateTween();
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(0.78f, 0.72f), 0.08)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.In);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "position", _blindBoxSpriteBasePosition + new Vector2(0, -100), 0.18)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxSprite, "scale", new Vector2(1.1f, 1.1f), 0.18)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxShadow, "scale", new Vector2(0.5f, 0.5f), 0.18);
+        if (changed)
+            _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxRevealBackground, "color", targetColor, 0.18);
+        _blindBoxRevealTween.TweenCallback(Callable.From(() => ApplyBlindBoxVisual(newRarity, instant: false)));
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "scale", new Vector2(0.62f, 0.62f), 0.12)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.In);
+        _blindBoxRevealTween.TweenProperty(_blindBoxSprite, "position", _blindBoxSpriteBasePosition, 0.22)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxSprite, "scale", Vector2.One, 0.22)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        _blindBoxRevealTween.Parallel().TweenProperty(_blindBoxShadow, "scale", Vector2.One, 0.22);
+        _blindBoxRevealTween.TweenProperty(_blindBoxRevealHint, "modulate", Colors.White, 0.12);
+        _blindBoxRevealTween.TweenCallback(Callable.From(() => _blindBoxRevealAnimating = false));
+
+        if (changed)
+        {
+            var visual = GetBlindBoxVisual(newRarity);
+            if (visual != null && !string.IsNullOrWhiteSpace(visual.UpgradeSfxNamePath))
+                GD.Print($"[BlindBox] Upgrade SFX: {visual.UpgradeSfxNamePath}");
+        }
+    }
+
+    private void ApplyBlindBoxVisual(ERarity rarity, bool instant)
+    {
+        var visual = GetBlindBoxVisual(rarity);
+        if (visual == null)
+            return;
+
+        _blindBoxSprite.Texture = LoadBlindBoxTexture(visual.BlindBoxSpritePath);
+        _blindBoxShadow.Texture = LoadBlindBoxTexture(visual.BlindBoxShadowPath);
+        if (instant)
+            _blindBoxRevealBackground.Color = GetBlindBoxBackgroundColor(rarity);
+    }
+
+    private static ERarity GetRevealRarity(BlindBoxRevealPath path, int step)
+    {
+        return step switch
+        {
+            <= 0 => path.StartRarity,
+            1 => path.MiddleRarity,
+            _ => path.FinalRarity,
+        };
+    }
+
+    private static BlindBoxVisual GetBlindBoxVisual(ERarity rarity)
+    {
+        return LubanData.Tables.TbBlindBoxVisual.DataList.FirstOrDefault(visual => visual.ItemRarity == rarity);
+    }
+
+    private static Texture2D LoadBlindBoxTexture(string lubanPath)
+    {
+        if (string.IsNullOrWhiteSpace(lubanPath))
+            return null;
+
+        var path = PlayerInventory.ToResPath(lubanPath);
+        return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
+    }
+
+    private static Color GetBlindBoxBackgroundColor(ERarity rarity)
+    {
+        var visual = GetBlindBoxVisual(rarity);
+        if (visual == null || string.IsNullOrWhiteSpace(visual.BlindBoxBackgroundColor))
+            return Colors.Black;
+
+        var hex = visual.BlindBoxBackgroundColor.Trim().TrimStart('#');
+        if (hex.Length == 6)
+            hex += "ff";
+        return Color.FromHtml(hex);
     }
 
     private void BuildBlindBoxRewardOverlay()

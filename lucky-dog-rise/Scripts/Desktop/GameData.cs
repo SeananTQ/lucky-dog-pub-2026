@@ -140,12 +140,31 @@ public partial class GameData : Node
 
     public void ClaimPendingBlindBoxReward()
     {
-        if (PendingBlindBoxReward == null)
+        if (PendingBlindBoxReward == null || !PendingBlindBoxReward.RewardShown)
             return;
 
         var itemId = PendingBlindBoxReward.ItemId;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true);
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        QueueSaveIfUsingLocalSave();
+    }
+
+    public void SetPendingBlindBoxRevealStep(int step)
+    {
+        if (PendingBlindBoxReward == null)
+            return;
+
+        PendingBlindBoxReward.RevealStep = Mathf.Max(0, step);
+        QueueSaveIfUsingLocalSave();
+    }
+
+    public void MarkPendingBlindBoxRewardShown()
+    {
+        if (PendingBlindBoxReward == null)
+            return;
+
+        PendingBlindBoxReward.RewardShown = true;
         EmitSignal(SignalName.BlindBoxStateChanged);
         QueueSaveIfUsingLocalSave();
     }

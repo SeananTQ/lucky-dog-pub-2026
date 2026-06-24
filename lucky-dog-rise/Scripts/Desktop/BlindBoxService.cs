@@ -14,6 +14,9 @@ public sealed class PendingBlindBoxReward
     public int BlindBoxId { get; set; }
     public int ScheduleId { get; set; }
     public int ItemId { get; set; }
+    public int RevealPathId { get; set; }
+    public int RevealStep { get; set; }
+    public bool RewardShown { get; set; }
     public double TotalPlaySeconds { get; set; }
     public string DebugText { get; set; } = "";
 }
@@ -213,6 +216,13 @@ public sealed class BlindBoxService
             return null;
         }
 
+        var revealPath = RollRevealPath(item.ItemRarity);
+        if (revealPath == null)
+        {
+            GD.PushError($"[BlindBox] No reveal path for rarity {item.ItemRarity}.");
+            return null;
+        }
+
         _gameData.ModifyChips(-cost);
 
         var pending = new PendingBlindBoxReward
@@ -220,8 +230,11 @@ public sealed class BlindBoxService
             BlindBoxId = candidate.Box.Id,
             ScheduleId = candidate.Schedule.Id,
             ItemId = item.Id,
+            RevealPathId = revealPath.Id,
+            RevealStep = 0,
+            RewardShown = candidate.Box.DisplayMode == EBlindBoxDisplayMode.DirectReward,
             TotalPlaySeconds = totalPlaySeconds,
-            DebugText = BuildDebugText(candidate.Box, candidate.Schedule, item, totalPlaySeconds, cost),
+            DebugText = BuildDebugText(candidate.Box, candidate.Schedule, item, revealPath, totalPlaySeconds, cost),
         };
 
         return new BlindBoxOpenResult
@@ -469,6 +482,17 @@ public sealed class BlindBoxService
         return PickWeighted(rates, rate => rate.Weight).Rarity;
     }
 
+    private BlindBoxRevealPath? RollRevealPath(ERarity actualRarity)
+    {
+        var paths = LubanData.Tables.TbBlindBoxRevealPath.DataList
+            .Where(path => path.IsEnabled && path.ActualRarity == actualRarity && path.Weight > 0)
+            .ToList();
+        if (paths.Count == 0)
+            return null;
+
+        return PickWeighted(paths, path => path.Weight);
+    }
+
     private static int GetItemWeight(EBlindBoxType boxType, Item item)
     {
         return boxType switch
@@ -501,11 +525,13 @@ public sealed class BlindBoxService
         BlindBox box,
         BlindBoxSchedule schedule,
         Item item,
+        BlindBoxRevealPath revealPath,
         double totalPlaySeconds,
         int cost)
     {
         return $"BlindBox: {box.Name} ({box.Id})\n"
             + $"Schedule: {schedule.Id}, Priority: {schedule.Priority}\n"
+            + $"RevealPath: {revealPath.Id}\n"
             + $"Time: {totalPlaySeconds:0.0}s\n"
             + $"Cost: {cost}\n"
             + $"Reward: {item.Name} ({item.Id})\n"
