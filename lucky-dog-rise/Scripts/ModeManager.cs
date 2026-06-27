@@ -139,7 +139,7 @@ public partial class ModeManager : Control
 
         _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
         _bossKeyContent.GetNode<Node2D>("ContentA").Position = _contentOffset;
-        _bossBlindBoxOverlay.Offset = _bossBlindBoxRevealAnchor.GlobalPosition;
+        UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
         SetWindowAboveTaskbar();
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
@@ -148,6 +148,7 @@ public partial class ModeManager : Control
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
+        RestoreBossBlindBoxRewardIfNeeded();
 
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
@@ -330,10 +331,10 @@ public partial class ModeManager : Control
     {
         _bossKeyContent.Visible = true;
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
+        UpdateBossBlindBoxOverlayPosition();
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
-        if (_gameData.PendingBlindBoxReward != null)
-            ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
+        RestoreBossBlindBoxRewardIfNeeded();
     }
 
     private void RefreshBossDogVisuals()
@@ -421,8 +422,25 @@ public partial class ModeManager : Control
 
     private void ShowBossBlindBoxReward(PendingBlindBoxReward pending)
     {
+        UpdateBossBlindBoxOverlayPosition();
         SetBossBlindBoxHintDisplayVisible(false);
         _bossBlindBoxOverlay.ShowReward(pending, animateDrop: !pending.RewardShown);
+    }
+
+    private void RestoreBossBlindBoxRewardIfNeeded()
+    {
+        if (CurrentMode != Mode.BossKey || _gameData.PendingBlindBoxReward == null)
+            return;
+
+        ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
+    }
+
+    private void UpdateBossBlindBoxOverlayPosition()
+    {
+        if (_bossBlindBoxOverlay == null || _bossBlindBoxRevealAnchor == null)
+            return;
+
+        _bossBlindBoxOverlay.Offset = _bossBlindBoxRevealAnchor.GlobalPosition;
     }
 
     private void OnBossBlindBoxRewardClaimRequested()
