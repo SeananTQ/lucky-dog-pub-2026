@@ -2,82 +2,124 @@
   {
     "Id": 100101,
     "BlindBoxId": 1001,
-    "Rarity": 4,
-    "Weight": 7000,
+    "Rarity": 6,
+    "Weight": 0,
     "IsEnabled": true
   },
   {
     "Id": 100102,
     "BlindBoxId": 1001,
-    "Rarity": 3,
-    "Weight": 2200,
+    "Rarity": 5,
+    "Weight": 6700,
     "IsEnabled": true
   },
   {
     "Id": 100103,
     "BlindBoxId": 1001,
-    "Rarity": 2,
-    "Weight": 700,
+    "Rarity": 4,
+    "Weight": 2200,
     "IsEnabled": true
   },
   {
     "Id": 100104,
     "BlindBoxId": 1001,
+    "Rarity": 3,
+    "Weight": 900,
+    "IsEnabled": true
+  },
+  {
+    "Id": 100105,
+    "BlindBoxId": 1001,
+    "Rarity": 2,
+    "Weight": 180,
+    "IsEnabled": true
+  },
+  {
+    "Id": 100106,
+    "BlindBoxId": 1001,
     "Rarity": 1,
-    "Weight": 100,
+    "Weight": 20,
     "IsEnabled": true
   },
   {
     "Id": 100201,
-    "BlindBoxId": 1002,
-    "Rarity": 4,
-    "Weight": 5000,
+    "BlindBoxId": 1001,
+    "Rarity": 6,
+    "Weight": 0,
     "IsEnabled": true
   },
   {
     "Id": 100202,
-    "BlindBoxId": 1002,
-    "Rarity": 3,
-    "Weight": 3000,
+    "BlindBoxId": 1001,
+    "Rarity": 5,
+    "Weight": 3700,
     "IsEnabled": true
   },
   {
     "Id": 100203,
-    "BlindBoxId": 1002,
-    "Rarity": 2,
-    "Weight": 1700,
+    "BlindBoxId": 1001,
+    "Rarity": 4,
+    "Weight": 4200,
     "IsEnabled": true
   },
   {
     "Id": 100204,
-    "BlindBoxId": 1002,
+    "BlindBoxId": 1001,
+    "Rarity": 3,
+    "Weight": 1700,
+    "IsEnabled": true
+  },
+  {
+    "Id": 100205,
+    "BlindBoxId": 1001,
+    "Rarity": 2,
+    "Weight": 380,
+    "IsEnabled": true
+  },
+  {
+    "Id": 100206,
+    "BlindBoxId": 1001,
     "Rarity": 1,
-    "Weight": 300,
+    "Weight": 20,
     "IsEnabled": true
   },
   {
     "Id": 200101,
     "BlindBoxId": 2001,
-    "Rarity": 4,
-    "Weight": 3000,
+    "Rarity": 6,
+    "Weight": 0,
     "IsEnabled": true
   },
   {
     "Id": 200102,
     "BlindBoxId": 2001,
-    "Rarity": 3,
-    "Weight": 7000,
+    "Rarity": 5,
+    "Weight": 3000,
     "IsEnabled": true
   },
   {
     "Id": 200103,
+    "BlindBoxId": 2001,
+    "Rarity": 4,
+    "Weight": 7000,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200104,
+    "BlindBoxId": 2001,
+    "Rarity": 3,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200105,
     "BlindBoxId": 2001,
     "Rarity": 2,
     "Weight": 0,
     "IsEnabled": true
   },
   {
-    "Id": 200104,
+    "Id": 200106,
     "BlindBoxId": 2001,
     "Rarity": 1,
     "Weight": 0,
@@ -86,7 +128,7 @@
   {
     "Id": 300101,
     "BlindBoxId": 3001,
-    "Rarity": 5,
+    "Rarity": 21,
     "Weight": 100,
     "IsEnabled": false
   }

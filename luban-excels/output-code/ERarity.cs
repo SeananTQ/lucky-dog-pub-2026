@@ -17,29 +17,37 @@ namespace DataTables
     public enum ERarity
     {
         /// <summary>
-        /// 传说
+        /// 普通
         /// </summary>
-        Legendary = 1,
+        Common = 6,
         /// <summary>
-        /// 史诗
+        /// 优秀
         /// </summary>
-        Epic = 2,
+        Uncommon = 5,
         /// <summary>
         /// 稀有
         /// </summary>
-        Rare = 3,
+        Rare = 4,
         /// <summary>
-        /// 普通
+        /// 史诗
         /// </summary>
-        Common = 4,
+        Epic = 3,
+        /// <summary>
+        /// 传说
+        /// </summary>
+        Legendary = 2,
+        /// <summary>
+        /// 神话
+        /// </summary>
+        Mythic = 1,
         /// <summary>
         /// 渠道奖励，不按传统系统度计算
         /// </summary>
-        Special1 = 5,
+        Special1 = 21,
         /// <summary>
         /// 渠道奖励，不按传统系统度计算
         /// </summary>
-        Special2 = 6,
+        Special2 = 22,
     }
 
 } 
