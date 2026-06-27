@@ -138,9 +138,9 @@ icon = SubResource("menu_icon")
 
 [node name="BlindBoxHint" parent="CanvasLayer" unique_id=169206824 instance=ExtResource("2_balloon")]
 offset_left = -4.0
-offset_top = -70.0
+offset_top = -34.0
 offset_right = 96.0
-offset_bottom = 6.0
+offset_bottom = 42.0
 TailPlacement = 1
 TailInset = 28.0
 

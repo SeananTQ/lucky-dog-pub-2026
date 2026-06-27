@@ -414,16 +414,27 @@ public partial class ModeManager : Control
 
     private Rect2 GetBossBlindBoxOverlayRect()
     {
-        return new Rect2(
-            _bossBlindBoxRevealAnchor.GlobalPosition + new Vector2(-18f, -150f),
-            new Vector2(300f, 332f)
-        );
+        var root = _bossBlindBoxOverlay.GetNodeOrNull<Control>("RevealRoot")
+            ?? _bossBlindBoxOverlay.GetNodeOrNull<Control>("RewardRoot");
+        if (root == null)
+        {
+            return new Rect2(
+                _bossBlindBoxRevealAnchor.GlobalPosition + new Vector2(-150f, -302f),
+                new Vector2(300f, 332f)
+            );
+        }
+
+        var rect = new Rect2(_bossBlindBoxOverlay.Offset + root.Position, root.Size);
+        // The speech-bubble tail extends below the 300x300 panel.
+        rect.Size += new Vector2(0f, 32f);
+        return rect;
     }
 
     private void ShowBossBlindBoxReward(PendingBlindBoxReward pending)
     {
         UpdateBossBlindBoxOverlayPosition();
         SetBossBlindBoxHintDisplayVisible(false);
+        SetClickThrough(false);
         _bossBlindBoxOverlay.ShowReward(pending, animateDrop: !pending.RewardShown);
     }
 
@@ -448,6 +459,8 @@ public partial class ModeManager : Control
         _gameData.ClaimPendingBlindBoxReward();
         _bossBlindBoxOverlay.HideOverlay();
         RefreshBossBlindBoxHint();
+        if (CurrentMode == Mode.BossKey)
+            SetClickThrough(true);
     }
 
     private void OnRandomizeScene()
