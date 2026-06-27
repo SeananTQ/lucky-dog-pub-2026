@@ -1,25 +1,22 @@
 [gd_scene format=3 uid="uid://c06g7xkwr7yvb"]
 
 [ext_resource type="Script" uid="uid://bgnjc483aelrf" path="res://Scripts/Desktop/BlindBoxRevealOverlayController.cs" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://b4k4nfde0beun" path="res://Assets/UI/BlindBox/BlindBox_General_Shadow.png" id="2_6ljpv"]
-[ext_resource type="PackedScene" uid="uid://bbxjsmyo8skhj" path="res://Scenes/Prefabs/ItemCell.tscn" id="2_itemcell"]
-[ext_resource type="Texture2D" uid="uid://bk27u00b88obv" path="res://Assets/UI/BlindBox/BlindBox_Common_Closed.png" id="3_hhytm"]
-[ext_resource type="Texture2D" uid="uid://ctk8d7nsxygrw" path="res://Assets/UI/ItemUI/Framel_Shadow.png" id="4_hhytm"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
 
 [node name="BlindBoxRevealOverlay" type="CanvasLayer" unique_id=1685080072 node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/RevealBackground")
-_revealWhiteMask = NodePath("RevealRoot/RevealWhiteMask")
-_boxSprite = NodePath("RevealRoot/BoxSprite")
-_boxShadow = NodePath("RevealRoot/BoxShadow")
-_hintLabel = NodePath("RevealRoot/HintLabel")
+_revealWhiteMask = NodePath("RevealWhiteMask")
+_boxSprite = NodePath("Stage/BoxSprite")
+_boxShadow = NodePath("Stage/BoxShadow")
+_hintLabel = NodePath("Stage/HintLabel")
 _rewardRoot = NodePath("RewardRoot")
 _rewardBackground = NodePath("RewardRoot/RewardBackground")
-_rewardWhiteMask = NodePath("RewardRoot/RewardWhiteMask")
-_rewardCellShadow = NodePath("RewardRoot/RewardCellShadow")
-_rewardCell = NodePath("RewardRoot/RewardCell")
-_debugLabel = NodePath("RewardRoot/DebugLabel")
+_rewardWhiteMask = NodePath("RewardWhiteMask")
+_rewardCellShadow = NodePath("Stage/RewardCellShadow")
+_rewardCell = NodePath("Stage/RewardCell")
+_debugLabel = NodePath("Stage/DebugLabel")
 
 [node name="RevealRoot" type="Control" parent="." unique_id=899057927]
 layout_mode = 3
@@ -38,69 +35,6 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
 
-[node name="BoxShadow" type="TextureRect" parent="RevealRoot" unique_id=237324093]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -215.0
-offset_top = 159.0
-offset_right = 216.0
-offset_bottom = 252.0
-grow_horizontal = 2
-grow_vertical = 2
-pivot_offset_ratio = Vector2(0.5, 0.5)
-mouse_filter = 2
-texture = ExtResource("2_6ljpv")
-stretch_mode = 5
-
-[node name="BoxSprite" type="TextureRect" parent="RevealRoot" unique_id=2009982466]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -225.0
-offset_top = -213.5
-offset_right = 225.0
-offset_bottom = 213.5
-grow_horizontal = 2
-grow_vertical = 2
-pivot_offset_ratio = Vector2(0.5, 0.5)
-mouse_filter = 2
-texture = ExtResource("3_hhytm")
-stretch_mode = 5
-
-[node name="HintLabel" type="Label" parent="RevealRoot" unique_id=652721368]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -140.0
-offset_top = -151.0
-offset_right = 140.0
-offset_bottom = -111.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 20
-text = "点击继续"
-horizontal_alignment = 1
-
-[node name="RevealWhiteMask" type="ColorRect" parent="RevealRoot" unique_id=2129723912]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(1, 1, 1, 0)
-
 [node name="RewardRoot" type="Control" parent="." unique_id=2029813112]
 layout_mode = 3
 anchors_preset = 15
@@ -110,59 +44,33 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="RewardBackground" type="ColorRect" parent="RewardRoot" unique_id=1927948556]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
 
-[node name="RewardCellShadow" type="TextureRect" parent="RewardRoot" unique_id=1924851369]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -128.0
-offset_top = 86.0
-offset_right = 128.0
-offset_bottom = 166.0
-grow_horizontal = 2
-grow_vertical = 2
-pivot_offset_ratio = Vector2(0.5, 0.5)
-mouse_filter = 2
-texture = ExtResource("4_hhytm")
-stretch_mode = 5
-
-[node name="RewardCell" parent="RewardRoot" unique_id=962294128 instance=ExtResource("2_itemcell")]
-custom_minimum_size = Vector2(512, 256)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -128.0
-offset_top = -128.0
-offset_right = 128.0
-offset_bottom = 128.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="DebugLabel" type="Label" parent="RewardRoot" unique_id=2030836465]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
+[node name="Stage" parent="." instance=ExtResource("2_stage")]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
-offset_left = -260.0
-offset_bottom = 645.0
-grow_horizontal = 0
-theme_override_font_sizes/font_size = 18
-text = "BlindBox Debug"
-autowrap_mode = 3
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="RewardWhiteMask" type="ColorRect" parent="RewardRoot" unique_id=479631087]
+[node name="RevealWhiteMask" type="ColorRect" parent="." unique_id=2129723912]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="RewardWhiteMask" type="ColorRect" parent="." unique_id=479631087]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

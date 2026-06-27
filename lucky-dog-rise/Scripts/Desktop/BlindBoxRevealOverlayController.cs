@@ -75,6 +75,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         Visible = true;
         _rewardRoot.Visible = true;
         SetRevealVisible(false);
+        SetRewardVisible(true);
         ApplyRewardLayout();
         _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _debugLabel.Text = pending.DebugText;
@@ -102,8 +103,10 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         Visible = true;
         _rewardRoot.Visible = false;
+        SetRewardVisible(false);
         SetRevealVisible(true);
         _revealWhiteMask.Color = new Color(1f, 1f, 1f, 0f);
+        _rewardWhiteMask.Visible = false;
         ApplyRevealLayout();
         ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
         if (pending.RevealStep >= 4)
@@ -119,6 +122,15 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _boxSprite.Visible = visible;
         _boxShadow.Visible = visible;
         _hintLabel.Visible = visible;
+    }
+
+    private void SetRewardVisible(bool visible)
+    {
+        _rewardRoot.Visible = visible;
+        _rewardWhiteMask.Visible = visible;
+        _rewardCellShadow.Visible = visible;
+        _rewardCell.Visible = visible;
+        _debugLabel.Visible = visible;
     }
 
     private void ApplyRevealLayout()
