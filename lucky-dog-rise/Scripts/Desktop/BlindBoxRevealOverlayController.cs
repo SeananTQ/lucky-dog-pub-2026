@@ -38,6 +38,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Vector2 _boxShadowRuntimeOffset = Vector2.Zero;
     [Export] private Vector2 _rewardShadowRuntimeOffset = Vector2.Zero;
     [Export] private bool _showDebugLabel = true;
+    [Export] private float _rewardAutoClaimSeconds = 3f;
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
@@ -53,6 +54,9 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private Vector2 _boxShadowRestPosition;
     private Vector2 _rewardVisualRootPosition;
     private Vector2 _rewardCellShadowPosition;
+    private bool _rewardAutoClaimActive;
+    private bool _rewardClaimRequested;
+    private double _rewardAutoClaimRemaining;
 
     public override void _Ready()
     {
@@ -65,7 +69,21 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _initialDebugLabelPosition = _debugLabel.Position;
         _revealBackground.GuiInput += OnRevealGuiInput;
         _rewardBackground.GuiInput += OnRewardGuiInput;
-        _rewardCell.Pressed += () => EmitSignal(SignalName.RewardClaimRequested);
+        _rewardCell.Pressed += RequestRewardClaim;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!_rewardAutoClaimActive || _pending == null || !_pending.RewardShown)
+            return;
+
+        if (_animating)
+            return;
+
+        _rewardAutoClaimRemaining -= delta;
+        UpdateRewardCountdownLabel();
+        if (_rewardAutoClaimRemaining <= 0.0)
+            RequestRewardClaim();
     }
 
     public void ShowReward(PendingBlindBoxReward pending, bool animateDrop)
@@ -90,11 +108,13 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _debugLabel.Text = pending.DebugText;
         SetBackgroundColor(_rewardBackground, _rewardTail, GetBlindBoxBackgroundColor(item.ItemRarity));
         PlayRewardDrop(animateDrop, item.ItemRarity);
+        StartRewardAutoClaimCountdown();
     }
 
     public void HideOverlay()
     {
         KillTweens();
+        StopRewardAutoClaimCountdown();
         Visible = false;
         _animating = false;
     }
@@ -144,6 +164,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardVisualRoot.Visible = visible;
         _rewardCellShadow.Visible = visible;
         _rewardCell.Visible = visible;
+        _hintLabel.Visible = visible;
         _debugLabel.Visible = visible && _showDebugLabel;
     }
 
@@ -170,6 +191,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardCellShadow.Position = _rewardCellShadowPosition;
         _rewardCellShadow.Scale = Vector2.One;
         _rewardCellShadow.Modulate = Colors.White;
+        _hintLabel.Position = _initialHintPosition;
+        _hintLabel.Modulate = Colors.White;
         _debugLabel.Position = _initialDebugLabelPosition;
         _debugLabel.Visible = _showDebugLabel;
     }
@@ -199,7 +222,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
             return;
 
-        EmitSignal(SignalName.RewardClaimRequested);
+        RequestRewardClaim();
     }
 
     private void AdvanceReveal()
@@ -384,6 +407,35 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_rewardVisualRoot, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
         _tween.SetParallel(false);
+    }
+
+    private void StartRewardAutoClaimCountdown()
+    {
+        _rewardClaimRequested = false;
+        _rewardAutoClaimActive = _rewardAutoClaimSeconds > 0f;
+        _rewardAutoClaimRemaining = _rewardAutoClaimSeconds;
+        UpdateRewardCountdownLabel();
+    }
+
+    private void StopRewardAutoClaimCountdown()
+    {
+        _rewardAutoClaimActive = false;
+    }
+
+    private void UpdateRewardCountdownLabel()
+    {
+        var seconds = Mathf.Max(0, Mathf.CeilToInt(_rewardAutoClaimRemaining));
+        _hintLabel.Text = $"{seconds}秒后自动领取";
+    }
+
+    private void RequestRewardClaim()
+    {
+        if (_rewardClaimRequested)
+            return;
+
+        _rewardClaimRequested = true;
+        StopRewardAutoClaimCountdown();
+        EmitSignal(SignalName.RewardClaimRequested);
     }
 
     private Vector2 BoxUpOffset(float heightRatio) => new(0f, -GetBoxDisplayHeight() * heightRatio);

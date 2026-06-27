@@ -78,7 +78,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 theme_override_styles/panel = SubResource("bubble_bg")
 
 [node name="Tail2" type="Polygon2D" parent="RewardRoot" unique_id=1569480431]
@@ -90,13 +89,16 @@ polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
 anchors_preset = 0
 anchor_right = 0.0
 anchor_bottom = 0.0
-offset_left = -76.0
-offset_top = -224.0
-offset_right = 524.0
-offset_bottom = 376.0
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 1050.0
+offset_bottom = 898.0
 grow_horizontal = 1
 grow_vertical = 1
 scale = Vector2(0.25, 0.25)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+metadata/_edit_use_anchors_ = true
 
 [node name="RevealWhiteMask" type="PanelContainer" parent="." unique_id=1948168656]
 offset_left = -150.0

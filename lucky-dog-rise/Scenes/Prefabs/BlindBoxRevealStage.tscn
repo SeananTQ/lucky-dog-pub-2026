@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://b4k4nfde0beun" path="res://Assets/UI/BlindBox/BlindBox_General_Shadow.png" id="1_box_shadow"]
 [ext_resource type="Texture2D" uid="uid://bk27u00b88obv" path="res://Assets/UI/BlindBox/BlindBox_Common_Closed.png" id="2_box"]
+[ext_resource type="LabelSettings" uid="uid://1hpk6e4vhepi" path="res://Themes/Label_ClickToContinue.tres" id="3_am2lq"]
 [ext_resource type="Texture2D" uid="uid://ctk8d7nsxygrw" path="res://Assets/UI/ItemUI/Framel_Shadow.png" id="3_reward_shadow"]
 [ext_resource type="PackedScene" uid="uid://bbxjsmyo8skhj" path="res://Scenes/Prefabs/ItemCell.tscn" id="4_itemcell"]
 
@@ -13,6 +14,25 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="HintLabel" type="Label" parent="." unique_id=1536268127]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -140.0
+offset_top = -99.0
+offset_right = 140.0
+offset_bottom = -55.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 20
+text = "点击尝试升级"
+label_settings = ExtResource("3_am2lq")
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="BoxShadow" type="TextureRect" parent="." unique_id=170059690]
 layout_mode = 1
@@ -49,23 +69,6 @@ pivot_offset_ratio = Vector2(0.5, 0.5)
 mouse_filter = 2
 texture = ExtResource("2_box")
 stretch_mode = 5
-
-[node name="HintLabel" type="Label" parent="." unique_id=1536268127]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -140.0
-offset_top = -151.0
-offset_right = 140.0
-offset_bottom = -111.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 20
-text = "点击继续"
-horizontal_alignment = 1
 
 [node name="RewardVisualRoot" type="Control" parent="." unique_id=314211533]
 layout_mode = 1
