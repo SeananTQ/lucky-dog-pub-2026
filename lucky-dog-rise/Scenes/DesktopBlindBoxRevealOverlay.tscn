@@ -78,7 +78,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+mouse_filter = 0
 theme_override_styles/panel = SubResource("bubble_bg")
 
 [node name="Tail2" type="Polygon2D" parent="RewardRoot" unique_id=1569480431]

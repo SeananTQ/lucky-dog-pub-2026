@@ -64,6 +64,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _initialRewardCellShadowPosition = _rewardCellShadow.Position;
         _initialDebugLabelPosition = _debugLabel.Position;
         _revealBackground.GuiInput += OnRevealGuiInput;
+        _rewardBackground.GuiInput += OnRewardGuiInput;
         _rewardCell.Pressed += () => EmitSignal(SignalName.RewardClaimRequested);
     }
 
@@ -188,6 +189,17 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         }
 
         AdvanceReveal();
+    }
+
+    private void OnRewardGuiInput(InputEvent @event)
+    {
+        if (_pending == null || _animating)
+            return;
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+            return;
+
+        EmitSignal(SignalName.RewardClaimRequested);
     }
 
     private void AdvanceReveal()
