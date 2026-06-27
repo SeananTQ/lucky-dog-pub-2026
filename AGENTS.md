@@ -22,12 +22,13 @@
 
 ## 当前实现状态
 
-- 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情。
+- 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情、桌宠气泡盲盒提示与开盒表演。
 - 小狗视觉：已迁移到 v1 资源和 `DogReaction` 数据驱动，旧硬编码入口仅保留 TODO 待清理。
 - 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
 - 存档：已支持本地 JSON 存档、版本号、缺字段兜底、损坏备份、重置存档确认。
-- 调试：Debug 页支持随机狗、随机场景、随机获得道具、播放狗反应、切换背包数据来源。
-- 待开发：正式盲盒/道具获取系统、LinkTree 免费领取、盲盒结果展示、重复补偿/分解等。
+- 调试：Debug 页支持随机狗、随机场景、随机获得道具、播放狗反应、切换背包数据来源、盲盒状态调试与时间/成本倍率。
+- 盲盒：已支持数据驱动调度、开盒升品表演、奖励展示、桌宠/扑克两种开盒外壳、中断恢复与自动领奖。
+- 待开发：LinkTree 免费领取、重复补偿/分解、正式 Steam 库存 API 接入等。
 
 ## 技术栈
 
@@ -87,6 +88,11 @@ lucky-dog-rise/
 │       ├── tbdogreaction.json
 │       ├── tbequipmentslotconfig.json
 │       ├── tbdesktopactivitystate.json
+│       ├── tbblindbox.json
+│       ├── tbblindboxschedule.json
+│       ├── tbblindboxrarityrate.json
+│       ├── tbblindboxrevealpath.json
+│       ├── tbblindboxvisual.json
 │       ├── tbtabgroup.json
 │       └── tbgamedevelopconfig.json
 ├── Audio/
@@ -97,6 +103,8 @@ lucky-dog-rise/
 │   ├── BossKeyContent.tscn  # BossKey A 区（狗+按钮+气泡）
 │   ├── PlayContent.tscn     # 游玩模式布局（SubViewportContainer）
 │   ├── InfoPanel.tscn       # 信息面板（240×600）
+│   ├── BlindBoxRevealOverlay.tscn        # 扑克模式全屏盲盒表演外壳
+│   ├── DesktopBlindBoxRevealOverlay.tscn # 桌宠模式圆角气泡盲盒表演外壳
 │   ├── Main.tscn            # 扑克游戏内容（SubViewport 内渲染）
 │   ├── SystemPanel.tscn     # 系统功能面板（设置/装扮/Debug 页签）
 │   ├── DogArea.tscn         # 小狗场景（表情系统）
@@ -106,6 +114,8 @@ lucky-dog-rise/
 │   ├── ChipReward.tscn      # 奖励筹码场景（收集动画）
 │   └── Prefabs/
 │       ├── ConfirmOverlay.tscn # 面板内确认遮罩（替代 Godot 原生弹窗）
+│       ├── BalloonHint.tscn # 气球提示（盲盒倒计时/消耗提示）
+│       ├── BlindBoxRevealStage.tscn # 盲盒表演共用舞台（盲盒、阴影、奖励图标）
 │       ├── DogClaw.tscn     # 狗爪子（手心/手背切换）
 │       └── ItemCell.tscn    # 背包单格道具（品质框+图标+New/装备中/数量）
 ├── Scripts/
@@ -122,6 +132,9 @@ lucky-dog-rise/
 │   │   ├── LubanData.cs               # Luban 数据表加载器（静态懒加载）
 │   │   ├── SettingsManager.cs         # 设置持久化（ConfigFile）
 │   │   ├── ConfirmOverlayController.cs # 通用确认遮罩控制器
+│   │   ├── BalloonHintController.cs     # 气球提示控制器
+│   │   ├── BlindBoxService.cs           # 盲盒调度/开奖/提示状态
+│   │   ├── BlindBoxRevealOverlayController.cs # 盲盒表演控制器（扑克/桌宠共用）
 │   │   └── GlobalInputTracker.cs      # 全局键鼠钩子（打字/点击统计）
 │   ├── CardEvaluator.cs      # 牌型判定（纯静态）
 │   ├── DeckManager.cs        # 牌组管理（作弊发牌）
@@ -145,7 +158,8 @@ lucky-dog-rise/
 │   ├── DogSkin.cs / TbDogSkin.cs
 │   ├── TabGroup.cs / TbTabGroup.cs
 │   ├── GameDevelopConfig.cs / TbGameDevelopConfig.cs
-│   └── 枚举：EItemType.cs / ERarity.cs / EHiddenRegionFlag.cs / EDogReactionTrigger.cs / EHandRank.cs
+│   ├── BlindBox.cs / TbBlindBox.cs 等盲盒表
+│   └── 枚举：EItemType.cs / ERarity.cs / EHiddenRegionFlag.cs / EDogReactionTrigger.cs / EHandRank.cs / EBlindBoxType.cs
 ├── Scripts/Luban/            # Luban 运行时库
 │   ├── BeanBase.cs
 │   ├── SimpleJSON/
@@ -170,18 +184,20 @@ lucky-dog-rise/
 
 **桌宠输入状态：** `GlobalInputTracker` 监听全局键鼠事件，`ModeManager` 根据 `DesktopActivityState` 表统计输入频率并切换小狗表情。桌宠吐舌头支持平滑模式和即时模式，设置项由 `SettingsManager` 持久化。
 
+**盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
+
 ## 背包与存档
 
 - 背包数据在 `PlayerInventory` 中维护，拥有状态使用 `Dictionary<int, int>` 表示 `itemId -> count`，支持重复道具堆叠显示。
 - `ItemCell.tscn` 显示品质框、图标、`MarkNew`、装备中标记和数量角标。数量为 1 时不显示数量。
 - `NewItemIds` 会写入存档。点击带 New 标记的已装备道具时，只清除 New，不立刻卸下装备。
 - 装备位规则来自 `EquipmentSlotConfig`。`CanUnequip=False` 的槽位需要默认装备玩家已拥有道具；`CanUnequip=True` 的槽位允许空闲。
-- 新建/重置本地存档时，默认只拥有 `Item.BlindBoxId == 0` 的道具。`调试全道具` 模式仍然拥有全部道具，不写入真实存档。
+- 新建/重置本地存档时，默认只拥有 `Item.AcquisitionType == Initial` 的道具。`调试全道具` 模式仍然拥有全部道具，不写入真实存档。
 - 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
 - `IsUnique=True` 的道具已拥有后不应重复获得；`IsUnique=False` 可重复获得并堆叠数量。
 - 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
-- 存档含 `Version`、`Chips`、`OwnedItemCounts`、兼容旧档的 `OwnedItemIds`、`EquippedItemIdsByType`、`NewItemIds`、`CreatedAt`、`UpdatedAt`。
-- 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆、动画中间状态等）。
+- 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、兼容旧档的 `OwnedItemIds`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`CreatedAt`、`UpdatedAt`。
+- 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆等）。盲盒开盒中断状态会保存并恢复，包括当前盲盒、奖励、RevealStep 与奖励是否已展示。
 
 ## 术语约定
 
@@ -233,7 +249,7 @@ lucky-dog-rise/
 - 置顶用 `SetWindowPos(hWnd, HWND_TOPMOST, ...)`
 
 **点击穿透机制**（ModeManager._Process）：
-- BossKey 模式：每帧检测鼠标是否在狗/按钮/面板区域，动态开关 WS_EX_TRANSPARENT
+- BossKey 模式：每帧检测鼠标是否在狗/按钮/面板/盲盒气球/盲盒表演气泡区域，动态开关 WS_EX_TRANSPARENT。视觉透明区域必须继续穿透，不可因临时模态 UI 让整个胖窗口拦截点击。
 - Play 模式：始终关闭穿透，保证游戏交互正常
 - 拖拽时强制关闭穿透，松开后恢复
 
@@ -276,6 +292,8 @@ ModeManager 持有设置面板实例，负责连接信号：
 - `SettingsPanel.RandomAcquireItemRequested` → `ModeManager.OnRandomAcquireItem()`
 - `SettingsPanel.DogReactionRequested` → 当前模式的小狗执行对应 `EDogReactionTrigger`
 - `InfoPanel.SettingsRequested` → `ModeManager.ToggleSettingsPanel()`
+- `InfoPanel.BlindBoxRequested` → `ModeManager.OnBlindBoxRequested()`
+- `GameManager.BlindBoxRewardClaimRequested` → `ModeManager.OnBlindBoxRewardClaimRequested()`
 
 `GameData` 持有全局筹码和 `PlayerInventory`，并发出：
 - `ChipsChanged`
@@ -283,6 +301,7 @@ ModeManager 持有设置面板实例，负责连接信号：
 - `InventoryChanged`
 - `HandResolved`
 - `NewHandStarted`
+- `BlindBoxStateChanged`
 
 ## 场景工作流
 
