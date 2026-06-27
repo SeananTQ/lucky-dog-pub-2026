@@ -43,42 +43,42 @@
   },
   {
     "Id": 100201,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 6,
     "Weight": 0,
     "IsEnabled": true
   },
   {
     "Id": 100202,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 5,
     "Weight": 3700,
     "IsEnabled": true
   },
   {
     "Id": 100203,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 4,
     "Weight": 4200,
     "IsEnabled": true
   },
   {
     "Id": 100204,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 3,
     "Weight": 1700,
     "IsEnabled": true
   },
   {
     "Id": 100205,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 2,
     "Weight": 380,
     "IsEnabled": true
   },
   {
     "Id": 100206,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 1002,
     "Rarity": 1,
     "Weight": 20,
     "IsEnabled": true
