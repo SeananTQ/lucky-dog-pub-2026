@@ -10,6 +10,13 @@ corner_radius_top_right = 28
 corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 
+[sub_resource type="StyleBoxFlat" id="white_mask_bg"]
+bg_color = Color(1, 1, 1, 0)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
 [node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
@@ -91,18 +98,18 @@ grow_horizontal = 1
 grow_vertical = 1
 scale = Vector2(0.25, 0.25)
 
-[node name="RevealWhiteMask" type="ColorRect" parent="." unique_id=1948168656]
+[node name="RevealWhiteMask" type="PanelContainer" parent="." unique_id=1948168656]
 offset_left = -150.0
 offset_top = -302.0
 offset_right = 150.0
 offset_bottom = -2.0
 mouse_filter = 2
-color = Color(1, 1, 1, 0)
+theme_override_styles/panel = SubResource("white_mask_bg")
 
-[node name="RewardWhiteMask" type="ColorRect" parent="." unique_id=569648093]
+[node name="RewardWhiteMask" type="PanelContainer" parent="." unique_id=569648093]
 offset_left = -150.0
 offset_top = -302.0
 offset_right = 150.0
 offset_bottom = -2.0
 mouse_filter = 2
-color = Color(1, 1, 1, 0)
+theme_override_styles/panel = SubResource("white_mask_bg")

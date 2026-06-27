@@ -14,14 +14,14 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     [Export] private Control _revealBackground = null!;
     [Export] private Polygon2D? _revealTail;
-    [Export] private ColorRect _revealWhiteMask = null!;
+    [Export] private Control _revealWhiteMask = null!;
     [Export] private TextureRect _boxSprite = null!;
     [Export] private TextureRect _boxShadow = null!;
     [Export] private Label _hintLabel = null!;
     [Export] private Control _rewardRoot = null!;
     [Export] private Control _rewardBackground = null!;
     [Export] private Polygon2D? _rewardTail;
-    [Export] private ColorRect _rewardWhiteMask = null!;
+    [Export] private Control _rewardWhiteMask = null!;
     [Export] private Control _rewardVisualRoot = null!;
     [Export] private TextureRect _rewardCellShadow = null!;
     [Export] private ItemCellController _rewardCell = null!;
@@ -113,7 +113,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardRoot.Visible = false;
         SetRewardVisible(false);
         SetRevealVisible(true);
-        _revealWhiteMask.Color = new Color(1f, 1f, 1f, 0f);
+        SetMaskColor(_revealWhiteMask, new Color(1f, 1f, 1f, 0f));
         _rewardWhiteMask.Visible = false;
         ApplyRevealLayout();
         ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
@@ -341,7 +341,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + BoxUpOffset(_boxFinalOpenHeightRatio), 0.22).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(1.18f, 1.18f)), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale)), 0.22);
-        _tween.TweenProperty(_revealWhiteMask, "color", Colors.White, 0.22);
+        TweenMaskColor(_revealWhiteMask, Colors.White, 0.22);
         _tween.SetParallel(false);
         _tween.TweenCallback(Callable.From(() =>
         {
@@ -355,7 +355,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void PlayRewardDrop(bool animate, ERarity rarity)
     {
         KillTweens();
-        _rewardWhiteMask.Color = animate ? Colors.White : new Color(1f, 1f, 1f, 0f);
+        SetMaskColor(_rewardWhiteMask, animate ? Colors.White : new Color(1f, 1f, 1f, 0f));
         _rewardVisualRoot.Position = animate ? _rewardVisualRootPosition + RewardUpOffset(_rewardDropHeightRatio) : _rewardVisualRootPosition;
         _rewardVisualRoot.Scale = animate ? GetRewardScale(new Vector2(0.85f, 0.85f)) : GetRewardScale(Vector2.One);
         _rewardCellShadow.Position = _rewardCellShadowPosition;
@@ -367,7 +367,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         _tween = CreateTween();
         _tween.SetParallel(true);
-        _tween.TweenProperty(_rewardWhiteMask, "color", new Color(1f, 1f, 1f, 0f), 0.16);
+        TweenMaskColor(_rewardWhiteMask, new Color(1f, 1f, 1f, 0f), 0.16);
         _tween.TweenProperty(_rewardVisualRoot, "position", _rewardVisualRootPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardVisualRoot, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
@@ -468,6 +468,38 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
             var startColor = GetPanelBackgroundColor(panel);
             _tween.Parallel().TweenMethod(
                 Callable.From<Color>(color => SetBackgroundColor(background, tail, color)),
+                startColor,
+                targetColor,
+                duration);
+        }
+    }
+
+    private void SetMaskColor(Control mask, Color color)
+    {
+        switch (mask)
+        {
+            case ColorRect colorRect:
+                colorRect.Color = color;
+                break;
+            case PanelContainer panel:
+                ApplyPanelBackgroundColor(panel, color);
+                break;
+        }
+    }
+
+    private void TweenMaskColor(Control mask, Color targetColor, double duration)
+    {
+        if (mask is ColorRect colorRect)
+        {
+            _tween.TweenProperty(colorRect, "color", targetColor, duration);
+            return;
+        }
+
+        if (mask is PanelContainer panel)
+        {
+            var startColor = GetPanelBackgroundColor(panel);
+            _tween.TweenMethod(
+                Callable.From<Color>(color => SetMaskColor(mask, color)),
                 startColor,
                 targetColor,
                 duration);
