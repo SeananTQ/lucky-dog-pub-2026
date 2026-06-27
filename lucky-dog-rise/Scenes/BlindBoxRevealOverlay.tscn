@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c06g7xkwr7yvb"]
 
 [ext_resource type="Script" uid="uid://bgnjc483aelrf" path="res://Scripts/Desktop/BlindBoxRevealOverlayController.cs" id="1_script"]
-[ext_resource type="PackedScene" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
+[ext_resource type="PackedScene" uid="uid://cn1sb6nwr4o2r" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
 
 [node name="BlindBoxRevealOverlay" type="CanvasLayer" unique_id=1685080072 node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
@@ -52,16 +52,9 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
 
-[node name="Stage" parent="." instance=ExtResource("2_stage")]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="Stage" parent="." unique_id=1057738150 instance=ExtResource("2_stage")]
 
 [node name="RevealWhiteMask" type="ColorRect" parent="." unique_id=2129723912]
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -71,7 +64,6 @@ mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="RewardWhiteMask" type="ColorRect" parent="." unique_id=479631087]
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

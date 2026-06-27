@@ -12,13 +12,15 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Signal] public delegate void RevealStepChangedEventHandler(int step);
     [Signal] public delegate void RewardShownEventHandler();
 
-    [Export] private ColorRect _revealBackground = null!;
+    [Export] private Control _revealBackground = null!;
+    [Export] private Polygon2D? _revealTail;
     [Export] private ColorRect _revealWhiteMask = null!;
     [Export] private TextureRect _boxSprite = null!;
     [Export] private TextureRect _boxShadow = null!;
     [Export] private Label _hintLabel = null!;
     [Export] private Control _rewardRoot = null!;
-    [Export] private ColorRect _rewardBackground = null!;
+    [Export] private Control _rewardBackground = null!;
+    [Export] private Polygon2D? _rewardTail;
     [Export] private ColorRect _rewardWhiteMask = null!;
     [Export] private TextureRect _rewardCellShadow = null!;
     [Export] private ItemCellController _rewardCell = null!;
@@ -30,6 +32,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private float _boxFinalOpenHeightRatio = 0.35f;
     [Export] private float _boxAppearAirborneShadowScale = 0.456f;
     [Export] private float _boxJumpAirborneShadowScale = 0.7f;
+    [Export] private float _boxVisualScale = 1f;
+    [Export] private float _rewardVisualScale = 1f;
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
@@ -79,7 +83,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         ApplyRewardLayout();
         _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _debugLabel.Text = pending.DebugText;
-        _rewardBackground.Color = GetBlindBoxBackgroundColor(item.ItemRarity);
+        SetBackgroundColor(_rewardBackground, _rewardTail, GetBlindBoxBackgroundColor(item.ItemRarity));
         PlayRewardDrop(animateDrop, item.ItemRarity);
     }
 
@@ -118,6 +122,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void SetRevealVisible(bool visible)
     {
         _revealBackground.Visible = visible;
+        if (_revealTail != null)
+            _revealTail.Visible = visible;
         _revealWhiteMask.Visible = visible;
         _boxSprite.Visible = visible;
         _boxShadow.Visible = visible;
@@ -127,6 +133,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void SetRewardVisible(bool visible)
     {
         _rewardRoot.Visible = visible;
+        if (_rewardTail != null)
+            _rewardTail.Visible = visible;
         _rewardWhiteMask.Visible = visible;
         _rewardCellShadow.Visible = visible;
         _rewardCell.Visible = visible;
@@ -140,9 +148,9 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxShadow.Position = _boxShadowRestPosition;
         _hintLabel.Position = _initialHintPosition;
-        _boxSprite.Scale = Vector2.One;
+        _boxSprite.Scale = GetBoxScale(Vector2.One);
         _boxSprite.RotationDegrees = 0f;
-        _boxShadow.Scale = Vector2.One;
+        _boxShadow.Scale = GetBoxScale(Vector2.One);
     }
 
     private void ApplyRewardLayout()
@@ -150,10 +158,10 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardCellPosition = _initialRewardCellPosition;
         _rewardCellShadowPosition = _initialRewardCellShadowPosition;
         _rewardCell.Position = _rewardCellPosition;
-        _rewardCell.Scale = Vector2.One;
+        _rewardCell.Scale = GetRewardScale(Vector2.One);
         _rewardCellShadow.Visible = true;
         _rewardCellShadow.Position = _rewardCellShadowPosition;
-        _rewardCellShadow.Scale = Vector2.One;
+        _rewardCellShadow.Scale = GetRewardScale(Vector2.One);
         _rewardCellShadow.Modulate = Colors.White;
         _debugLabel.Position = _initialDebugLabelPosition;
     }
@@ -199,23 +207,23 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         KillTweens();
         _animating = true;
         _hintLabel.Text = "点击继续";
-        _boxSprite.Scale = new Vector2(0.4f, 0.4f);
+        _boxSprite.Scale = GetBoxScale(new Vector2(0.4f, 0.4f));
         _boxSprite.Position = _boxSpriteRestPosition + BoxUpOffset(_boxAppearHeightRatio);
-        _boxShadow.Scale = new Vector2(0.4f * _boxAppearAirborneShadowScale, 0.4f * _boxAppearAirborneShadowScale);
+        _boxShadow.Scale = GetBoxScale(new Vector2(0.4f * _boxAppearAirborneShadowScale, 0.4f * _boxAppearAirborneShadowScale));
         _hintLabel.Modulate = Colors.Transparent;
 
         _tween = CreateTween();
 
         // 出现
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxAppearAirborneShadowScale, _boxAppearAirborneShadowScale), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(Vector2.One), 0.18).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxAppearAirborneShadowScale, _boxAppearAirborneShadowScale)), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
 
         // 落地弹跳
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", Vector2.One, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(Vector2.One), 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
 
         // 提示文字在落地完成后淡入，避免 SetDelay 把上一组并行动画的总时长拖长。
@@ -235,8 +243,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         // 蓄力压扁
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", squashScale, 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(1.2f, 0.8f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(squashScale), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(1.2f, 0.8f)), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + GetBoxGroundCompensationOffset(squashScale.Y), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
         _tween.SetParallel(false);
 
@@ -246,11 +254,11 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         // 起跳 瘦高的上窜
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.8f, 1.2f), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(0.8f, 1.2f)), 0.18).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + BoxUpOffset(_boxJumpHeightRatio * 0.8f), 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.18);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale)), 0.18);
         if (changed)
-            _tween.Parallel().TweenProperty(_revealBackground, "color", GetBlindBoxBackgroundColor(newRarity), 0.18);
+            TweenRevealBackgroundColor(GetBlindBoxBackgroundColor(newRarity), 0.18);
         _tween.SetParallel(false);
 
         // 换盲盒图标
@@ -258,15 +266,15 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         // 砰！换图标后引起的膨胀，Elastic之后回到正常尺寸
         _tween.SetParallel(true);
-        _tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale) , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(Vector2.One), 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale)) , 0.18).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + BoxUpOffset(_boxJumpHeightRatio) , 0.18).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
 
         // 下落
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", Vector2.One, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(Vector2.One), 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.SetParallel(false);
         _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.12);
 
@@ -291,19 +299,19 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _hintLabel.Modulate = Colors.White;
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxSprite.RotationDegrees = 0f;
-        _boxSprite.Scale = Vector2.One;
-        _boxShadow.Scale = Vector2.One;
+        _boxSprite.Scale = GetBoxScale(Vector2.One);
+        _boxShadow.Scale = GetBoxScale(Vector2.One);
 
         _tween = CreateTween();
         _tween.SetLoops(0);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.08f, 0.92f), 0.055);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(1.06f, 0.9f), 0.055);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.94f, 1.11f), 0.045);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(0.92f, 1.04f), 0.045);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.13f, 0.96f), 0.05);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(1.1f, 0.92f), 0.05);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(0.97f, 1.07f), 0.04);
-        _tween.Parallel().TweenProperty(_boxShadow, "scale", new Vector2(0.94f, 1.02f), 0.04);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(1.08f, 0.92f)), 0.055);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(1.06f, 0.9f)), 0.055);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(0.94f, 1.11f)), 0.045);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(0.92f, 1.04f)), 0.045);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(1.13f, 0.96f)), 0.05);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(1.1f, 0.92f)), 0.05);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(0.97f, 1.07f)), 0.04);
+        _tween.Parallel().TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(0.94f, 1.02f)), 0.04);
         //_tween.TweenProperty(_boxSprite, "scale", Vector2.One, 0.05);
 
         _rotationTween = CreateTween();
@@ -324,8 +332,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween = CreateTween();
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + BoxUpOffset(_boxFinalOpenHeightRatio), 0.22).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxSprite, "scale", new Vector2(1.18f, 1.18f), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_boxShadow, "scale", new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale), 0.22);
+        _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(1.18f, 1.18f)), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale)), 0.22);
         _tween.TweenProperty(_revealWhiteMask, "color", Colors.White, 0.22);
         _tween.SetParallel(false);
         _tween.TweenCallback(Callable.From(() =>
@@ -342,9 +350,9 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         KillTweens();
         _rewardWhiteMask.Color = animate ? Colors.White : new Color(1f, 1f, 1f, 0f);
         _rewardCell.Position = animate ? _rewardCellPosition + RewardUpOffset(_rewardDropHeightRatio) : _rewardCellPosition;
-        _rewardCell.Scale = animate ? new Vector2(0.85f, 0.85f) : Vector2.One;
+        _rewardCell.Scale = animate ? GetRewardScale(new Vector2(0.85f, 0.85f)) : GetRewardScale(Vector2.One);
         _rewardCellShadow.Position = _rewardCellShadowPosition;
-        _rewardCellShadow.Scale = animate ? new Vector2(0.35f, 0.35f) : Vector2.One;
+        _rewardCellShadow.Scale = animate ? GetRewardScale(new Vector2(0.35f, 0.35f)) : GetRewardScale(Vector2.One);
         _rewardCellShadow.Modulate = animate ? new Color(1f, 1f, 1f, 0.45f) : Colors.White;
 
         if (!animate)
@@ -354,8 +362,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.SetParallel(true);
         _tween.TweenProperty(_rewardWhiteMask, "color", new Color(1f, 1f, 1f, 0f), 0.16);
         _tween.TweenProperty(_rewardCell, "position", _rewardCellPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCell, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCellShadow, "scale", Vector2.One, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_rewardCell, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_rewardCellShadow, "scale", GetRewardScale(Vector2.One), 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
         _tween.SetParallel(false);
     }
@@ -363,6 +371,10 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private Vector2 BoxUpOffset(float heightRatio) => new(0f, -GetBoxDisplayHeight() * heightRatio);
 
     private Vector2 RewardUpOffset(float heightRatio) => new(0f, -GetRewardCellDisplayHeight() * heightRatio);
+
+    private Vector2 GetBoxScale(Vector2 animationScale) => animationScale * _boxVisualScale;
+
+    private Vector2 GetRewardScale(Vector2 animationScale) => animationScale * _rewardVisualScale;
 
     private Vector2 GetBoxGroundCompensationOffset(float scaleY)
     {
@@ -406,7 +418,71 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _boxSprite.Texture = LoadBlindBoxTexture(visual.BlindBoxSpritePath);
         _boxShadow.Texture = LoadBlindBoxTexture(visual.BlindBoxShadowPath);
         if (instant)
-            _revealBackground.Color = GetBlindBoxBackgroundColor(rarity);
+            SetRevealBackgroundColor(GetBlindBoxBackgroundColor(rarity));
+    }
+
+    private void SetRevealBackgroundColor(Color color)
+    {
+        SetBackgroundColor(_revealBackground, _revealTail, color);
+    }
+
+    private void TweenRevealBackgroundColor(Color targetColor, double duration)
+    {
+        TweenBackgroundColor(_revealBackground, _revealTail, targetColor, duration);
+    }
+
+    private void SetBackgroundColor(Control background, Polygon2D? tail, Color color)
+    {
+        switch (background)
+        {
+            case ColorRect colorRect:
+                colorRect.Color = color;
+                break;
+            case PanelContainer panel:
+                ApplyPanelBackgroundColor(panel, color);
+                break;
+        }
+
+        if (tail != null)
+            tail.Color = color;
+    }
+
+    private void TweenBackgroundColor(Control background, Polygon2D? tail, Color targetColor, double duration)
+    {
+        if (background is ColorRect colorRect)
+        {
+            _tween.Parallel().TweenProperty(colorRect, "color", targetColor, duration);
+            if (tail != null)
+                _tween.Parallel().TweenProperty(tail, "color", targetColor, duration);
+            return;
+        }
+
+        if (background is PanelContainer panel)
+        {
+            var startColor = GetPanelBackgroundColor(panel);
+            _tween.Parallel().TweenMethod(
+                Callable.From<Color>(color => SetBackgroundColor(background, tail, color)),
+                startColor,
+                targetColor,
+                duration);
+        }
+    }
+
+    private static void ApplyPanelBackgroundColor(PanelContainer panel, Color color)
+    {
+        if (panel.GetThemeStylebox("panel") is not StyleBoxFlat style)
+            return;
+
+        var localStyle = (StyleBoxFlat)style.Duplicate();
+        localStyle.BgColor = color;
+        panel.AddThemeStyleboxOverride("panel", localStyle);
+    }
+
+    private static Color GetPanelBackgroundColor(PanelContainer panel)
+    {
+        return panel.GetThemeStylebox("panel") is StyleBoxFlat style
+            ? style.BgColor
+            : Colors.Black;
     }
 
     private static ERarity GetRevealRarity(BlindBoxRevealPath path, int step) => step switch

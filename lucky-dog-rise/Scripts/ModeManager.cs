@@ -16,6 +16,7 @@ public partial class ModeManager : Control
     private Node2D _bossKeyContent = null!;
     private DogVisual _bossDogVisual = null!;
     private BalloonHintController _bossBlindBoxHint = null!;
+    private BlindBoxRevealOverlayController _bossBlindBoxOverlay = null!;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -123,6 +124,15 @@ public partial class ModeManager : Control
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
 
+        _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
+            .Instantiate<BlindBoxRevealOverlayController>();
+        _bossBlindBoxOverlay.Name = "DesktopBlindBoxRevealOverlay";
+        _bossBlindBoxOverlay.Offset = _contentOffset;
+        _bossBlindBoxOverlay.RewardClaimRequested += OnBossBlindBoxRewardClaimRequested;
+        _bossBlindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
+        _bossBlindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
+        _bossKeyContent.AddChild(_bossBlindBoxOverlay);
+
         _dogHitRect = new Rect2(60 + _contentOffset.X, 90 + _contentOffset.Y, 180, 180);
         _btnHitRect = new Rect2(50 + _contentOffset.X, 265 + _contentOffset.Y, 240, 40);
 
@@ -183,6 +193,8 @@ public partial class ModeManager : Control
             over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
             if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
                 over |= GetBossBlindBoxHintRect().HasPoint(localPos);
+            if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
+                over |= GetBossBlindBoxOverlayRect().HasPoint(localPos);
         }
         else if (CurrentMode == Mode.Play)
         {
@@ -308,6 +320,7 @@ public partial class ModeManager : Control
         _bossKeyContent.Visible = false;
         // CanvasLayer 不继承 Node2D 的 Visible，需单独隐藏
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = false;
+        _bossBlindBoxOverlay?.HideOverlay();
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
     }
 
@@ -317,6 +330,8 @@ public partial class ModeManager : Control
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
+        if (_gameData.PendingBlindBoxReward != null)
+            ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
     }
 
     private void RefreshBossDogVisuals()
@@ -329,6 +344,12 @@ public partial class ModeManager : Control
     {
         if (_bossBlindBoxHint == null || _gameData == null)
             return;
+
+        if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
+        {
+            SetBossBlindBoxHintDisplayVisible(false);
+            return;
+        }
 
         var state = _gameData.GetBlindBoxHintState();
         SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward);
@@ -355,8 +376,21 @@ public partial class ModeManager : Control
         var state = _gameData.GetBlindBoxHintState();
         GD.Print($"[BossKey BlindBoxHint] pressed, status={state.Status}, cost={state.Cost}, remaining={state.RemainingSeconds:0.0}");
 
-        if (state.Status == BlindBoxHintStatus.NotEnoughChips)
-            _bossBlindBoxHint.FlashTextRed();
+        switch (state.Status)
+        {
+            case BlindBoxHintStatus.PendingReward:
+                if (_gameData.PendingBlindBoxReward != null)
+                    ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
+                break;
+            case BlindBoxHintStatus.Ready:
+                var pending = _gameData.TryOpenBlindBox();
+                if (pending != null)
+                    ShowBossBlindBoxReward(pending);
+                break;
+            case BlindBoxHintStatus.NotEnoughChips:
+                _bossBlindBoxHint.FlashTextRed();
+                break;
+        }
     }
 
     private void SetBossBlindBoxHintDisplayVisible(bool visible)
@@ -373,6 +407,27 @@ public partial class ModeManager : Control
             _contentOffset + _bossBlindBoxHint.Position,
             _bossBlindBoxHint.Size
         );
+    }
+
+    private Rect2 GetBossBlindBoxOverlayRect()
+    {
+        return new Rect2(
+            _contentOffset + new Vector2(-18f, -150f),
+            new Vector2(300f, 332f)
+        );
+    }
+
+    private void ShowBossBlindBoxReward(PendingBlindBoxReward pending)
+    {
+        SetBossBlindBoxHintDisplayVisible(false);
+        _bossBlindBoxOverlay.ShowReward(pending, animateDrop: !pending.RewardShown);
+    }
+
+    private void OnBossBlindBoxRewardClaimRequested()
+    {
+        _gameData.ClaimPendingBlindBoxReward();
+        _bossBlindBoxOverlay.HideOverlay();
+        RefreshBossBlindBoxHint();
     }
 
     private void OnRandomizeScene()
