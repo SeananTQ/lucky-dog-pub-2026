@@ -22,6 +22,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Control _rewardBackground = null!;
     [Export] private Polygon2D? _rewardTail;
     [Export] private ColorRect _rewardWhiteMask = null!;
+    [Export] private Control _rewardVisualRoot = null!;
     [Export] private TextureRect _rewardCellShadow = null!;
     [Export] private ItemCellController _rewardCell = null!;
     [Export] private Label _debugLabel = null!;
@@ -34,6 +35,9 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private float _boxJumpAirborneShadowScale = 0.7f;
     [Export] private float _boxVisualScale = 1f;
     [Export] private float _rewardVisualScale = 1f;
+    [Export] private Vector2 _boxShadowRuntimeOffset = Vector2.Zero;
+    [Export] private Vector2 _rewardShadowRuntimeOffset = Vector2.Zero;
+    [Export] private bool _showDebugLabel = true;
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
@@ -42,12 +46,12 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private Vector2 _initialBoxSpritePosition;
     private Vector2 _initialBoxShadowPosition;
     private Vector2 _initialHintPosition;
-    private Vector2 _initialRewardCellPosition;
+    private Vector2 _initialRewardVisualRootPosition;
     private Vector2 _initialRewardCellShadowPosition;
     private Vector2 _initialDebugLabelPosition;
     private Vector2 _boxSpriteRestPosition;
     private Vector2 _boxShadowRestPosition;
-    private Vector2 _rewardCellPosition;
+    private Vector2 _rewardVisualRootPosition;
     private Vector2 _rewardCellShadowPosition;
 
     public override void _Ready()
@@ -56,7 +60,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _initialBoxSpritePosition = _boxSprite.Position;
         _initialBoxShadowPosition = _boxShadow.Position;
         _initialHintPosition = _hintLabel.Position;
-        _initialRewardCellPosition = _rewardCell.Position;
+        _initialRewardVisualRootPosition = _rewardVisualRoot.Position;
         _initialRewardCellShadowPosition = _rewardCellShadow.Position;
         _initialDebugLabelPosition = _debugLabel.Position;
         _revealBackground.GuiInput += OnRevealGuiInput;
@@ -136,15 +140,16 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (_rewardTail != null)
             _rewardTail.Visible = visible;
         _rewardWhiteMask.Visible = visible;
+        _rewardVisualRoot.Visible = visible;
         _rewardCellShadow.Visible = visible;
         _rewardCell.Visible = visible;
-        _debugLabel.Visible = visible;
+        _debugLabel.Visible = visible && _showDebugLabel;
     }
 
     private void ApplyRevealLayout()
     {
         _boxSpriteRestPosition = _initialBoxSpritePosition;
-        _boxShadowRestPosition = _initialBoxShadowPosition;
+        _boxShadowRestPosition = _initialBoxShadowPosition + _boxShadowRuntimeOffset;
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxShadow.Position = _boxShadowRestPosition;
         _hintLabel.Position = _initialHintPosition;
@@ -155,15 +160,17 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void ApplyRewardLayout()
     {
-        _rewardCellPosition = _initialRewardCellPosition;
-        _rewardCellShadowPosition = _initialRewardCellShadowPosition;
-        _rewardCell.Position = _rewardCellPosition;
-        _rewardCell.Scale = GetRewardScale(Vector2.One);
+        _rewardVisualRootPosition = _initialRewardVisualRootPosition;
+        _rewardCellShadowPosition = _initialRewardCellShadowPosition + _rewardShadowRuntimeOffset;
+        _rewardVisualRoot.Position = _rewardVisualRootPosition;
+        _rewardVisualRoot.Scale = GetRewardScale(Vector2.One);
+        _rewardCell.Scale = Vector2.One;
         _rewardCellShadow.Visible = true;
         _rewardCellShadow.Position = _rewardCellShadowPosition;
-        _rewardCellShadow.Scale = GetRewardScale(Vector2.One);
+        _rewardCellShadow.Scale = Vector2.One;
         _rewardCellShadow.Modulate = Colors.White;
         _debugLabel.Position = _initialDebugLabelPosition;
+        _debugLabel.Visible = _showDebugLabel;
     }
 
     private void OnRevealGuiInput(InputEvent @event)
@@ -349,10 +356,10 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         KillTweens();
         _rewardWhiteMask.Color = animate ? Colors.White : new Color(1f, 1f, 1f, 0f);
-        _rewardCell.Position = animate ? _rewardCellPosition + RewardUpOffset(_rewardDropHeightRatio) : _rewardCellPosition;
-        _rewardCell.Scale = animate ? GetRewardScale(new Vector2(0.85f, 0.85f)) : GetRewardScale(Vector2.One);
+        _rewardVisualRoot.Position = animate ? _rewardVisualRootPosition + RewardUpOffset(_rewardDropHeightRatio) : _rewardVisualRootPosition;
+        _rewardVisualRoot.Scale = animate ? GetRewardScale(new Vector2(0.85f, 0.85f)) : GetRewardScale(Vector2.One);
         _rewardCellShadow.Position = _rewardCellShadowPosition;
-        _rewardCellShadow.Scale = animate ? GetRewardScale(new Vector2(0.35f, 0.35f)) : GetRewardScale(Vector2.One);
+        _rewardCellShadow.Scale = Vector2.One;
         _rewardCellShadow.Modulate = animate ? new Color(1f, 1f, 1f, 0.45f) : Colors.White;
 
         if (!animate)
@@ -361,9 +368,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween = CreateTween();
         _tween.SetParallel(true);
         _tween.TweenProperty(_rewardWhiteMask, "color", new Color(1f, 1f, 1f, 0f), 0.16);
-        _tween.TweenProperty(_rewardCell, "position", _rewardCellPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCell, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_rewardCellShadow, "scale", GetRewardScale(Vector2.One), 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_rewardVisualRoot, "position", _rewardVisualRootPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _tween.TweenProperty(_rewardVisualRoot, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
         _tween.SetParallel(false);
     }

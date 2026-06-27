@@ -10,7 +10,7 @@ corner_radius_top_right = 28
 corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 
-[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
+[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/BubblePanel")
@@ -23,15 +23,16 @@ _rewardRoot = NodePath("RewardRoot")
 _rewardBackground = NodePath("RewardRoot/BubblePanel")
 _rewardTail = NodePath("RewardRoot/Tail2")
 _rewardWhiteMask = NodePath("RewardWhiteMask")
-_rewardCellShadow = NodePath("Stage/RewardCellShadow")
-_rewardCell = NodePath("Stage/RewardCell")
+_rewardVisualRoot = NodePath("Stage/RewardVisualRoot")
+_rewardCellShadow = NodePath("Stage/RewardVisualRoot/RewardCellShadow")
+_rewardCell = NodePath("Stage/RewardVisualRoot/RewardCell")
 _debugLabel = NodePath("Stage/DebugLabel")
 _rewardDropHeightRatio = 1.35
 _boxAppearHeightRatio = 0.92
 _boxJumpHeightRatio = 0.58
 _boxFinalOpenHeightRatio = 0.32
-_boxVisualScale = 0.55
-_rewardVisualScale = 0.7
+_rewardVisualScale = 1.8
+_showDebugLabel = false
 
 [node name="RevealRoot" type="Control" parent="." unique_id=1868952886]
 layout_mode = 3
@@ -82,13 +83,13 @@ polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
 anchors_preset = 0
 anchor_right = 0.0
 anchor_bottom = 0.0
-offset_left = -150.0
-offset_top = -302.0
-offset_right = 450.0
-offset_bottom = 298.0
+offset_left = -76.0
+offset_top = -224.0
+offset_right = 524.0
+offset_bottom = 376.0
 grow_horizontal = 1
 grow_vertical = 1
-scale = Vector2(0.5, 0.5)
+scale = Vector2(0.25, 0.25)
 
 [node name="RevealWhiteMask" type="ColorRect" parent="." unique_id=1948168656]
 offset_left = -150.0

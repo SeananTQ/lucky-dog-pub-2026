@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bgnjc483aelrf" path="res://Scripts/Desktop/BlindBoxRevealOverlayController.cs" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://cn1sb6nwr4o2r" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
 
-[node name="BlindBoxRevealOverlay" type="CanvasLayer" unique_id=1685080072 node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
+[node name="BlindBoxRevealOverlay" type="CanvasLayer" unique_id=1685080072 node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/RevealBackground")
@@ -14,8 +14,9 @@ _hintLabel = NodePath("Stage/HintLabel")
 _rewardRoot = NodePath("RewardRoot")
 _rewardBackground = NodePath("RewardRoot/RewardBackground")
 _rewardWhiteMask = NodePath("RewardWhiteMask")
-_rewardCellShadow = NodePath("Stage/RewardCellShadow")
-_rewardCell = NodePath("Stage/RewardCell")
+_rewardVisualRoot = NodePath("Stage/RewardVisualRoot")
+_rewardCellShadow = NodePath("Stage/RewardVisualRoot/RewardCellShadow")
+_rewardCell = NodePath("Stage/RewardVisualRoot/RewardCell")
 _debugLabel = NodePath("Stage/DebugLabel")
 
 [node name="RevealRoot" type="Control" parent="." unique_id=899057927]
