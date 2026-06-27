@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bucc0k8foyvtv"
-path="res://.godot/imported/Plate_Common.png-f599e94c5748997511ee7549cd9eb243.ctex"
+uid="uid://dgevnrbwvwof1"
+path="res://.godot/imported/Plate_Mythic.png-ae3ff4ba47aa22155ac3c9e26e1d4679.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/ItemUI/Plate_Common.png"
-dest_files=["res://.godot/imported/Plate_Common.png-f599e94c5748997511ee7549cd9eb243.ctex"]
+source_file="res://Assets/UI/ItemUI/Plate_Mythic.png"
+dest_files=["res://.godot/imported/Plate_Mythic.png-ae3ff4ba47aa22155ac3c9e26e1d4679.ctex"]
 
 [params]
 
