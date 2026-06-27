@@ -8,4 +8,4 @@
 Game Over的逻辑还在，需要处理掉
 
 
-歌曲名：Walpurgis Night，歌手名：Xomu，专辑名：Walpurgis Night
+歌曲名：ひゅるりらぱっぱ (松弛波形)，歌手名：tuki.，专辑名：ひゅるりらぱっぱ

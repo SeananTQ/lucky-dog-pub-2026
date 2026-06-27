@@ -15,6 +15,7 @@ public partial class ModeManager : Control
     public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
     private DogVisual _bossDogVisual = null!;
+    private BalloonHintController _bossBlindBoxHint = null!;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -31,6 +32,7 @@ public partial class ModeManager : Control
 
     private Rect2 _dogHitRect;
     private Rect2 _btnHitRect;
+    private Texture2D _blindBoxIcon = null!;
 
     private GameData _gameData = null!;
     public GameData GameDataObj => _gameData;
@@ -88,15 +90,21 @@ public partial class ModeManager : Control
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
         _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
+        _bossBlindBoxHint = _bossKeyContent.GetNode<BalloonHintController>("CanvasLayer/BlindBoxHint");
         _bossDogVisual.ShowEquippedEyewearByDefault = true;
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
         _gameData.EquipmentChanged += RefreshBossDogVisuals;
+        _gameData.BlindBoxStateChanged += RefreshBossBlindBoxHint;
+        _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
+        _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
         var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
         modeBtn.Pressed += SwitchToPlay;
         sysBtn.Pressed += ToggleSettingsPanel;
+        _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
+        RefreshBossBlindBoxHint();
 
         // 先实例化面板以读取实际尺寸
         _settingsPanel = GD.Load<PackedScene>("res://Scenes/SystemPanel.tscn").Instantiate<SystemPanelController>();
@@ -173,6 +181,8 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey)
         {
             over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
+                over |= GetBossBlindBoxHintRect().HasPoint(localPos);
         }
         else if (CurrentMode == Mode.Play)
         {
@@ -306,12 +316,63 @@ public partial class ModeManager : Control
         _bossKeyContent.Visible = true;
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
         RefreshBossDogVisuals();
+        RefreshBossBlindBoxHint();
     }
 
     private void RefreshBossDogVisuals()
     {
         _bossDogVisual.RefreshEquippedDisguiseVisuals();
         _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
+    }
+
+    private void RefreshBossBlindBoxHint()
+    {
+        if (_bossBlindBoxHint == null || _gameData == null)
+            return;
+
+        var state = _gameData.GetBlindBoxHintState();
+        SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward);
+
+        switch (state.Status)
+        {
+            case BlindBoxHintStatus.PendingReward:
+                break;
+            case BlindBoxHintStatus.Ready:
+            case BlindBoxHintStatus.NotEnoughChips:
+                _bossBlindBoxHint.ShowCost(_blindBoxIcon, state.Cost);
+                break;
+            default:
+                _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
+                break;
+        }
+    }
+
+    private void OnBossBlindBoxHintPressed()
+    {
+        if (_gameData == null)
+            return;
+
+        var state = _gameData.GetBlindBoxHintState();
+        GD.Print($"[BossKey BlindBoxHint] pressed, status={state.Status}, cost={state.Cost}, remaining={state.RemainingSeconds:0.0}");
+
+        if (state.Status == BlindBoxHintStatus.NotEnoughChips)
+            _bossBlindBoxHint.FlashTextRed();
+    }
+
+    private void SetBossBlindBoxHintDisplayVisible(bool visible)
+    {
+        _bossBlindBoxHint.Modulate = Colors.White with { A = visible ? 1f : 0f };
+        _bossBlindBoxHint.MouseFilter = visible
+            ? Control.MouseFilterEnum.Stop
+            : Control.MouseFilterEnum.Ignore;
+    }
+
+    private Rect2 GetBossBlindBoxHintRect()
+    {
+        return new Rect2(
+            _contentOffset + _bossBlindBoxHint.Position,
+            _bossBlindBoxHint.Size
+        );
     }
 
     private void OnRandomizeScene()
