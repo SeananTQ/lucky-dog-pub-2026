@@ -1,11 +1,11 @@
 [gd_scene load_steps=9 format=3 uid="uid://bbxjsmyo8skhj"]
 
 [ext_resource type="Script" uid="uid://bad2jhr24ohsl" path="res://Scripts/Desktop/ItemCellController.cs" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://dwo1m6s75yko2" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
-[ext_resource type="Texture2D" uid="uid://u4q1jxbdtqww" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
-[ext_resource type="Texture2D" uid="uid://cgbhbfglpnwll" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
-[ext_resource type="Texture2D" uid="uid://ddc0m65634155" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
-[ext_resource type="Texture2D" uid="uid://cyrlv621yvpnj" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
+[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
+[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
+[ext_resource type="Texture2D" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
+[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
+[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ep3ge"]
 

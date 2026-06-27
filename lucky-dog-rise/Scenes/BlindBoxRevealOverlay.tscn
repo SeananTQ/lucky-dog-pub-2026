@@ -19,6 +19,9 @@ _rewardWhiteMask = NodePath("RewardRoot/RewardWhiteMask")
 _rewardCellShadow = NodePath("RewardRoot/RewardCellShadow")
 _rewardCell = NodePath("RewardRoot/RewardCell")
 _debugLabel = NodePath("RewardRoot/DebugLabel")
+_rewardDropOffset = Vector2(0, -460)
+_boxAppearOffset = Vector2(0, -460)
+_boxJumpOffset = Vector2(0, -300)
 
 [node name="RevealRoot" type="Control" parent="." unique_id=899057927]
 layout_mode = 3
@@ -44,13 +47,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -110.0
-offset_top = 64.0
-offset_right = 110.0
-offset_bottom = 144.0
+offset_left = -215.0
+offset_top = 159.0
+offset_right = 216.0
+offset_bottom = 252.0
 grow_horizontal = 2
 grow_vertical = 2
-pivot_offset = Vector2(110, 40)
+pivot_offset_ratio = Vector2(0.5, 0.5)
 mouse_filter = 2
 texture = ExtResource("2_6ljpv")
 stretch_mode = 5
@@ -62,13 +65,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -113.0
-offset_top = -110.0
-offset_right = 113.0
-offset_bottom = 110.0
+offset_left = -225.0
+offset_top = -213.5
+offset_right = 225.0
+offset_bottom = 213.5
 grow_horizontal = 2
 grow_vertical = 2
-pivot_offset = Vector2(110, 110)
+pivot_offset_ratio = Vector2(0.5, 0.5)
 mouse_filter = 2
 texture = ExtResource("3_hhytm")
 stretch_mode = 5
@@ -101,6 +104,7 @@ mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="RewardRoot" type="Control" parent="." unique_id=2029813112]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -117,6 +121,7 @@ grow_vertical = 2
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
 
 [node name="RewardCellShadow" type="TextureRect" parent="RewardRoot" unique_id=1924851369]
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

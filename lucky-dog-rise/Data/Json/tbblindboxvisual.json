@@ -51,7 +51,7 @@
     "Id": 1005,
     "Name": "Uncommon",
     "ItemRarity": 5,
-    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Unommon_Closed.png",
+    "BlindBoxSpritePath": "UI\\BlindBox\\BlindBox_Uncommon_Closed.png",
     "BlindBoxShadowPath": "UI\\BlindBox\\BlindBox_General_Shadow.png",
     "BlindBoxGlowPath": "",
     "BlindBoxBackgroundColor": "68c68c",

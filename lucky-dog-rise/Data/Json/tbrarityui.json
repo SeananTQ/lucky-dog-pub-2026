@@ -10,8 +10,8 @@
     "Id": 1002,
     "Name": "Unommon",
     "ItemRarity": 6,
-    "FrameAssetPath": "UI\\ItemUI\\Frame_Unommon.png",
-    "PlateAssetPath": "UI\\ItemUI\\Plate_Unommon.png"
+    "FrameAssetPath": "UI\\ItemUI\\Frame_Uncommon.png",
+    "PlateAssetPath": "UI\\ItemUI\\Plate_Uncommon.png"
   },
   {
     "Id": 1003,

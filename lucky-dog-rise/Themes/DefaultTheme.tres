@@ -1,6 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://iavownpnqk7j"]
 
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Action_Disabled.tres" id="1_5li03"]
+[ext_resource type="StyleBox" uid="uid://p38myrgep4ha" path="res://Themes/Buttons/Action_Disabled.tres" id="1_5li03"]
 [ext_resource type="StyleBox" uid="uid://dwvfed5lw108j" path="res://Themes/Buttons/Action_Normal.tres" id="1_l8k4y"]
 [ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="1_mi_reg"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_wn4m6"]
@@ -14,16 +14,16 @@
 [ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="6_xhhvy"]
 [ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_avwua"]
 [ext_resource type="StyleBox" uid="uid://b7v7v4bri36fj" path="res://Themes/Buttons/Destructive_Normal.tres" id="10_14jnw"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Disabled.tres" id="10_bcron"]
+[ext_resource type="StyleBox" uid="uid://cuqxqlmy6njxj" path="res://Themes/Buttons/Destructive_Disabled.tres" id="10_bcron"]
 [ext_resource type="StyleBox" uid="uid://bpcaxomtuehly" path="res://Themes/Buttons/Action_Hover.tres" id="10_kaug1"]
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="11_sts5i"]
 [ext_resource type="StyleBox" uid="uid://b8yhp1a07dop8" path="res://Themes/Buttons/Action_Pressed.tres" id="12_bcron"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Disabled.tres" id="13_kaug1"]
+[ext_resource type="StyleBox" uid="uid://cgqevrn26jc4v" path="res://Themes/Buttons/Secretary_Disabled.tres" id="13_kaug1"]
 [ext_resource type="StyleBox" uid="uid://deij2a8nbdvl5" path="res://Themes/Buttons/Secretary_Hover.tres" id="14_kaug1"]
 [ext_resource type="StyleBox" uid="uid://bi72kshd5vup8" path="res://Themes/Buttons/Destructive_Hover.tres" id="14_p7m14"]
 [ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="15_bcron"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_5gcxy"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
+[ext_resource type="StyleBox" uid="uid://bvffm2q3ajeu2" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_5gcxy"]
+[ext_resource type="StyleBox" uid="uid://cby4qnkqk5fsb" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
