@@ -136,7 +136,7 @@ theme_override_styles/hover = SubResource("bar_icon_hover")
 theme_override_styles/focus = SubResource("bar_icon_hover")
 icon = SubResource("menu_icon")
 
-[node name="BlindBoxHint" parent="CanvasLayer" instance=ExtResource("2_balloon")]
+[node name="BlindBoxHint" parent="CanvasLayer" unique_id=169206824 instance=ExtResource("2_balloon")]
 offset_left = -4.0
 offset_top = -70.0
 offset_right = 96.0
@@ -156,6 +156,9 @@ position = Vector2(265, 235)
 
 [node name="TaskBar" type="Marker2D" parent="ContentA" unique_id=461796764]
 position = Vector2(137, 184)
+
+[node name="DesktopBlindBoxRevealAnchor" type="Marker2D" parent="ContentA" unique_id=1999740836]
+position = Vector2(137, 11)
 
 [node name="Bubble" type="CanvasLayer" parent="." unique_id=277693440]
 layer = 2

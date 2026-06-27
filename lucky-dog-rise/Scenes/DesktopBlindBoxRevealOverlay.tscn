@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cwe51b56w8uq3"]
 
 [ext_resource type="Script" uid="uid://bgnjc483aelrf" path="res://Scripts/Desktop/BlindBoxRevealOverlayController.cs" id="1_script"]
-[ext_resource type="PackedScene" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
+[ext_resource type="PackedScene" uid="uid://cn1sb6nwr4o2r" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
 
 [sub_resource type="StyleBoxFlat" id="bubble_bg"]
 bg_color = Color(0.89411765, 0.7490196, 0.56078434, 1)
@@ -10,7 +10,7 @@ corner_radius_top_right = 28
 corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 
-[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
+[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/BubblePanel")
@@ -21,7 +21,7 @@ _boxShadow = NodePath("Stage/BoxShadow")
 _hintLabel = NodePath("Stage/HintLabel")
 _rewardRoot = NodePath("RewardRoot")
 _rewardBackground = NodePath("RewardRoot/BubblePanel")
-_rewardTail = NodePath("RewardRoot/Tail")
+_rewardTail = NodePath("RewardRoot/Tail2")
 _rewardWhiteMask = NodePath("RewardWhiteMask")
 _rewardCellShadow = NodePath("Stage/RewardCellShadow")
 _rewardCell = NodePath("Stage/RewardCell")
@@ -33,34 +33,37 @@ _boxFinalOpenHeightRatio = 0.32
 _boxVisualScale = 0.55
 _rewardVisualScale = 0.7
 
-[node name="RevealRoot" type="Control" parent="."]
-offset_left = -18.0
-offset_top = -150.0
-offset_right = 282.0
-offset_bottom = 150.0
+[node name="RevealRoot" type="Control" parent="." unique_id=1868952886]
+layout_mode = 3
+anchors_preset = 0
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 150.0
+offset_bottom = -2.0
 
-[node name="BubblePanel" type="PanelContainer" parent="RevealRoot"]
+[node name="BubblePanel" type="PanelContainer" parent="RevealRoot" unique_id=691120648]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 theme_override_styles/panel = SubResource("bubble_bg")
 
-[node name="Tail" type="Polygon2D" parent="RevealRoot"]
-position = Vector2(95, 300)
+[node name="Tail" type="Polygon2D" parent="RevealRoot" unique_id=467731378]
+position = Vector2(44, 299)
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
-polygon = PackedVector2Array(0, 0, 52, 0, 52, 32)
+polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
 
-[node name="RewardRoot" type="Control" parent="."]
-offset_left = -18.0
-offset_top = -150.0
-offset_right = 282.0
-offset_bottom = 150.0
+[node name="RewardRoot" type="Control" parent="." unique_id=1526496866]
+layout_mode = 3
+anchors_preset = 0
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 150.0
+offset_bottom = -2.0
 
-[node name="BubblePanel" type="PanelContainer" parent="RewardRoot"]
+[node name="BubblePanel" type="PanelContainer" parent="RewardRoot" unique_id=623275915]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -70,45 +73,35 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("bubble_bg")
 
-[node name="Tail" type="Polygon2D" parent="RewardRoot"]
-position = Vector2(95, 300)
+[node name="Tail2" type="Polygon2D" parent="RewardRoot" unique_id=1569480431]
+position = Vector2(44, 299)
 color = Color(0.89411765, 0.7490196, 0.56078434, 1)
-polygon = PackedVector2Array(0, 0, 52, 0, 52, 32)
+polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
 
-[node name="Stage" parent="." instance=ExtResource("2_stage")]
+[node name="Stage" parent="." unique_id=117768112 instance=ExtResource("2_stage")]
 anchors_preset = 0
 anchor_right = 0.0
 anchor_bottom = 0.0
-offset_left = -18.0
-offset_top = -150.0
-offset_right = 582.0
-offset_bottom = 450.0
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 450.0
+offset_bottom = 298.0
 grow_horizontal = 1
 grow_vertical = 1
 scale = Vector2(0.5, 0.5)
 
-[node name="RevealWhiteMask" type="ColorRect" parent="."]
-anchors_preset = 0
-anchor_right = 0.0
-anchor_bottom = 0.0
-offset_left = -18.0
-offset_top = -150.0
-offset_right = 282.0
-offset_bottom = 150.0
-grow_horizontal = 1
-grow_vertical = 1
+[node name="RevealWhiteMask" type="ColorRect" parent="." unique_id=1948168656]
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 150.0
+offset_bottom = -2.0
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
-[node name="RewardWhiteMask" type="ColorRect" parent="."]
-anchors_preset = 0
-anchor_right = 0.0
-anchor_bottom = 0.0
-offset_left = -18.0
-offset_top = -150.0
-offset_right = 282.0
-offset_bottom = 150.0
-grow_horizontal = 1
-grow_vertical = 1
+[node name="RewardWhiteMask" type="ColorRect" parent="." unique_id=569648093]
+offset_left = -150.0
+offset_top = -302.0
+offset_right = 150.0
+offset_bottom = -2.0
 mouse_filter = 2
 color = Color(1, 1, 1, 0)

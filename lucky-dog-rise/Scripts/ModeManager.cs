@@ -17,6 +17,7 @@ public partial class ModeManager : Control
     private DogVisual _bossDogVisual = null!;
     private BalloonHintController _bossBlindBoxHint = null!;
     private BlindBoxRevealOverlayController _bossBlindBoxOverlay = null!;
+    private Marker2D _bossBlindBoxRevealAnchor = null!;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -92,6 +93,7 @@ public partial class ModeManager : Control
         AddChild(_bossKeyContent);
         _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
         _bossBlindBoxHint = _bossKeyContent.GetNode<BalloonHintController>("CanvasLayer/BlindBoxHint");
+        _bossBlindBoxRevealAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/DesktopBlindBoxRevealAnchor");
         _bossDogVisual.ShowEquippedEyewearByDefault = true;
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
@@ -127,7 +129,6 @@ public partial class ModeManager : Control
         _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
             .Instantiate<BlindBoxRevealOverlayController>();
         _bossBlindBoxOverlay.Name = "DesktopBlindBoxRevealOverlay";
-        _bossBlindBoxOverlay.Offset = _contentOffset;
         _bossBlindBoxOverlay.RewardClaimRequested += OnBossBlindBoxRewardClaimRequested;
         _bossBlindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
         _bossBlindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
@@ -138,6 +139,7 @@ public partial class ModeManager : Control
 
         _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
         _bossKeyContent.GetNode<Node2D>("ContentA").Position = _contentOffset;
+        _bossBlindBoxOverlay.Offset = _bossBlindBoxRevealAnchor.GlobalPosition;
         SetupFatWindow();
         SetWindowAboveTaskbar();
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
@@ -412,7 +414,7 @@ public partial class ModeManager : Control
     private Rect2 GetBossBlindBoxOverlayRect()
     {
         return new Rect2(
-            _contentOffset + new Vector2(-18f, -150f),
+            _bossBlindBoxRevealAnchor.GlobalPosition + new Vector2(-18f, -150f),
             new Vector2(300f, 332f)
         );
     }
