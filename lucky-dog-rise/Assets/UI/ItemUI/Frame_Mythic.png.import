@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgwv66um304hl"
-path="res://.godot/imported/Frame_Epic_拷贝.png-c54443a98bc0222a313a3e5b1a684646.ctex"
+uid="uid://dutqd5hj8yejl"
+path="res://.godot/imported/Frame_Mythic.png-6847c26a6862dfa7aa326129a4bbebaa.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/ItemUI/Frame_Epic_拷贝.png"
-dest_files=["res://.godot/imported/Frame_Epic_拷贝.png-c54443a98bc0222a313a3e5b1a684646.ctex"]
+source_file="res://Assets/UI/ItemUI/Frame_Mythic.png"
+dest_files=["res://.godot/imported/Frame_Mythic.png-6847c26a6862dfa7aa326129a4bbebaa.ctex"]
 
 [params]
 
