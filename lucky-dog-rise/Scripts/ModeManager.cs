@@ -398,10 +398,7 @@ public partial class ModeManager : Control
 
     private void SetBossBlindBoxHintDisplayVisible(bool visible)
     {
-        _bossBlindBoxHint.Modulate = Colors.White with { A = visible ? 1f : 0f };
-        _bossBlindBoxHint.MouseFilter = visible
-            ? Control.MouseFilterEnum.Stop
-            : Control.MouseFilterEnum.Ignore;
+        _bossBlindBoxHint.SetDisplayVisible(visible);
     }
 
     private Rect2 GetBossBlindBoxHintRect()

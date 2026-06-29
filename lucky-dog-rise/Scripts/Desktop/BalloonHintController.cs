@@ -22,8 +22,10 @@ public partial class BalloonHintController : PanelContainer
     [Export] public float TailInset { get; set; } = 16f;
 
     private Tween? _flashTween;
+    private Tween? _visibilityTween;
     private Color _normalTextColor = Colors.White;
     private readonly Color _warningTextColor = new(1f, 0.18f, 0.18f);
+    private bool _isDisplayVisible = true;
 
     public override void _Ready()
     {
@@ -32,12 +34,16 @@ public partial class BalloonHintController : PanelContainer
         _textLabel.Text = "";
         _normalTextColor = _textLabel.GetThemeColor("font_color");
         UpdateTail();
+        PivotOffset = Size * 0.5f;
     }
 
     public override void _Notification(int what)
     {
         if (what == NotificationResized)
+        {
             UpdateTail();
+            PivotOffset = Size * 0.5f;
+        }
     }
 
     public override void _GuiInput(InputEvent @event)
@@ -82,6 +88,42 @@ public partial class BalloonHintController : PanelContainer
             _flashTween.TweenInterval(0.12);
             _flashTween.TweenCallback(Callable.From(ResetTextColor));
             _flashTween.TweenInterval(0.12);
+        }
+    }
+
+    public void SetDisplayVisible(bool visible, bool animate = true)
+    {
+        if (_isDisplayVisible == visible && animate)
+            return;
+
+        _isDisplayVisible = visible;
+        MouseFilter = visible ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
+        _visibilityTween?.Kill();
+
+        if (!animate || !IsInsideTree())
+        {
+            Modulate = Colors.White with { A = visible ? 1f : 0f };
+            Scale = visible ? Vector2.One : new Vector2(0.98f, 0.98f);
+            return;
+        }
+
+        if (visible)
+        {
+            Modulate = Colors.White with { A = 0f };
+            Scale = new Vector2(0.96f, 0.96f);
+            _visibilityTween = CreateTween();
+            _visibilityTween.SetEase(Tween.EaseType.Out);
+            _visibilityTween.SetTrans(Tween.TransitionType.Back);
+            _visibilityTween.TweenProperty(this, "scale", Vector2.One, 0.16);
+            _visibilityTween.Parallel().TweenProperty(this, "modulate:a", 1f, 0.12);
+        }
+        else
+        {
+            _visibilityTween = CreateTween();
+            _visibilityTween.SetEase(Tween.EaseType.Out);
+            _visibilityTween.SetTrans(Tween.TransitionType.Quad);
+            _visibilityTween.TweenProperty(this, "scale", new Vector2(0.98f, 0.98f), 0.1);
+            _visibilityTween.Parallel().TweenProperty(this, "modulate:a", 0f, 0.1);
         }
     }
 

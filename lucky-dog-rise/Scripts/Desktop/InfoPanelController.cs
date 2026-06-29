@@ -265,10 +265,7 @@ public partial class InfoPanelController : CanvasLayer
 
     private void SetBlindBoxHintDisplayVisible(bool visible)
     {
-        _blindBoxHint.Modulate = Colors.White with { A = visible ? 1f : 0f };
-        _blindBoxHint.MouseFilter = visible
-            ? Control.MouseFilterEnum.Stop
-            : Control.MouseFilterEnum.Ignore;
+        _blindBoxHint.SetDisplayVisible(visible);
     }
 
 }
