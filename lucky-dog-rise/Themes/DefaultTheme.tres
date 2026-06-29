@@ -42,10 +42,10 @@ fallbacks = Array[Font]([ExtResource("2_wn4m6")])
 base_font = ExtResource("4_inter_bold")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab"]
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -53,10 +53,10 @@ corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_hover"]
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.22352941, 0.3764706, 0.3529412, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -64,10 +64,10 @@ corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_pressed"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 2.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.078431375, 0.21568628, 0.24705882, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -75,10 +75,10 @@ corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_selected"]
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -86,10 +86,10 @@ corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_selected_hover"]
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.6745098, 0.76862746, 0.7921569, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -97,10 +97,10 @@ corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_selected_pressed"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 2.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -406,10 +406,10 @@ shadow_size = 1
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -417,10 +417,10 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_hover"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -428,19 +428,19 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_pressed"]
-content_margin_left = 14.0
-content_margin_top = 10.0
-content_margin_right = 14.0
-content_margin_bottom = 4.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.078431375, 0.21568628, 0.24705882, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_selected"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -448,10 +448,10 @@ shadow_color = Color(0.15686275, 0.22745098, 0.2509804, 1)
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_selected_hover"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.6745098, 0.76862746, 0.7921569, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -459,10 +459,10 @@ shadow_color = Color(0.15686275, 0.22745098, 0.2509804, 1)
 shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_selected_pressed"]
-content_margin_left = 14.0
-content_margin_top = 10.0
-content_margin_right = 14.0
-content_margin_bottom = 4.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -553,33 +553,6 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 corner_detail = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber"]
-bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.68)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber_hover"]
-bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.82)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber_pressed"]
-bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.95)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vscroll_track"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_sts5i"]
 content_margin_left = 0.0
 content_margin_top = 0.0
@@ -629,7 +602,7 @@ CategoryTab/colors/icon_hover_color = Color(1, 1, 1, 1)
 CategoryTab/colors/icon_hover_pressed_color = Color(1, 1, 1, 1)
 CategoryTab/colors/icon_normal_color = Color(1, 1, 1, 1)
 CategoryTab/colors/icon_pressed_color = Color(1, 1, 1, 1)
-CategoryTab/constants/icon_max_width = 16
+CategoryTab/constants/icon_max_width = 22
 CategoryTab/font_sizes/font_size = 13
 CategoryTab/fonts/font = SubResource("FontVariation_cme4l")
 CategoryTab/styles/disabled = SubResource("StyleBoxFlat_category_tab")
@@ -646,7 +619,7 @@ CategoryTabSelected/colors/icon_hover_color = Color(0.08235294, 0.19607843, 0.30
 CategoryTabSelected/colors/icon_hover_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
 CategoryTabSelected/colors/icon_normal_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
 CategoryTabSelected/colors/icon_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-CategoryTabSelected/constants/icon_max_width = 16
+CategoryTabSelected/constants/icon_max_width = 22
 CategoryTabSelected/font_sizes/font_size = 13
 CategoryTabSelected/fonts/font = SubResource("FontVariation_cme4l")
 CategoryTabSelected/styles/disabled = SubResource("StyleBoxFlat_category_tab_selected")

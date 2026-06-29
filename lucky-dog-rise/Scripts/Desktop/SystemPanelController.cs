@@ -83,8 +83,15 @@ public partial class SystemPanelController : CanvasLayer
     private static readonly StringName PanelTopTabSelectedStyle = "PanelTopTabSelected";
     private static readonly StringName CategoryTabStyle = "CategoryTab";
     private static readonly StringName CategoryTabSelectedStyle = "CategoryTabSelected";
-    private static readonly Texture2D WardrobeTabIcon = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Wardrobe.svg");
-    private static readonly Texture2D AlbumTabIcon = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Album.svg");
+    private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
+    {
+        [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
+        [1002] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Headwear.svg"),
+        [1003] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Eyewear.svg"),
+        [1004] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Player.svg"),
+        [1005] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Theme.svg"),
+        [1006] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Refreshment.svg"),
+    };
 
     public override void _Ready()
     {
@@ -283,7 +290,8 @@ public partial class SystemPanelController : CanvasLayer
             btn.CustomMinimumSize = new Vector2(0, 28);
             btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             btn.TooltipText = tab.TabName;
-            btn.Icon = _typeFilterButtons.Count % 2 == 0 ? WardrobeTabIcon : AlbumTabIcon;
+            if (TabIconsByGroupId.TryGetValue(tab.Id, out var icon))
+                btn.Icon = icon;
             btn.IconAlignment = HorizontalAlignment.Center;
             btn.VerticalIconAlignment = VerticalAlignment.Center;
             btn.ThemeTypeVariation = CategoryTabStyle;

@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Album.svg" id="5_album"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -30,8 +32,8 @@ custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Settings"
 theme_type_variation = &"PanelTopTab"
-theme_override_constants/icon_max_width = 24
-icon = ExtResource("5_album")
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("6_settings")
 icon_alignment = 1
 
 [node name="WardrobeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168622]
@@ -39,7 +41,7 @@ custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Wardrobe"
 theme_type_variation = &"PanelTopTab"
-theme_override_constants/icon_max_width = 24
+theme_override_constants/icon_max_width = 32
 icon = ExtResource("4_wardrobe")
 icon_alignment = 1
 
@@ -48,8 +50,8 @@ custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Debug"
 theme_type_variation = &"PanelTopTab"
-theme_override_constants/icon_max_width = 24
-icon = ExtResource("5_album")
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("7_debug")
 icon_alignment = 1
 
 [node name="HSpacer" type="Control" parent="Panel/RootVBox/TitleRow" unique_id=89865551]
