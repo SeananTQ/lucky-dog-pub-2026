@@ -4,7 +4,9 @@ namespace LuckyDogRise;
 
 public partial class TutorialManager : Node
 {
-    public bool Enabled { get; set; } = true;
+    // 录制 Steam 素材阶段先关闭空白点击新手提示：
+    // 当前实现会把鼠标滚轮也当成 MouseButton 触发 Bounce，连续滚动会让目标节点的 Y 坐标不断偏移。
+    public bool Enabled { get; set; } = false;
 
     private GameManager _game = null!;
     private Node2D _chipStack = null!;
