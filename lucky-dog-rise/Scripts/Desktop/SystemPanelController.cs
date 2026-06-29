@@ -79,6 +79,12 @@ public partial class SystemPanelController : CanvasLayer
     private readonly Button[] _tabs = new Button[3];
     private readonly Dictionary<Button, TabGroup> _filterTabs = new();
     private readonly List<Button> _typeFilterButtons = new();
+    private static readonly StringName PanelTopTabStyle = "PanelTopTab";
+    private static readonly StringName PanelTopTabSelectedStyle = "PanelTopTabSelected";
+    private static readonly StringName CategoryTabStyle = "CategoryTab";
+    private static readonly StringName CategoryTabSelectedStyle = "CategoryTabSelected";
+    private static readonly Texture2D WardrobeTabIcon = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Wardrobe.svg");
+    private static readonly Texture2D AlbumTabIcon = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Album.svg");
 
     public override void _Ready()
     {
@@ -210,7 +216,7 @@ public partial class SystemPanelController : CanvasLayer
         for (int i = 0; i < _tabs.Length; i++)
         {
             contents[i].Visible = i == index;
-            _tabs[i].Modulate = i == index ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+            _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
         if (index == 1 && _gameData != null)
             BuildWardrobe();
@@ -274,8 +280,13 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var tab in tabs)
         {
             var btn = new Button();
-            btn.Text = tab.TabName;
-            btn.AddThemeFontSizeOverride("font_size", 13);
+            btn.CustomMinimumSize = new Vector2(0, 28);
+            btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            btn.TooltipText = tab.TabName;
+            btn.Icon = _typeFilterButtons.Count % 2 == 0 ? WardrobeTabIcon : AlbumTabIcon;
+            btn.IconAlignment = HorizontalAlignment.Center;
+            btn.VerticalIconAlignment = VerticalAlignment.Center;
+            btn.ThemeTypeVariation = CategoryTabStyle;
             btn.Pressed += () =>
             {
                 _selectedTab = tab;
@@ -297,7 +308,7 @@ public partial class SystemPanelController : CanvasLayer
     private void UpdateFilterButtonStyles(int activeTabId)
     {
         foreach (var (btn, tab) in _filterTabs)
-            btn.Modulate = tab.Id == activeTabId ? Colors.White : new Color(0.5f, 0.5f, 0.5f);
+            btn.ThemeTypeVariation = tab.Id == activeTabId ? CategoryTabSelectedStyle : CategoryTabStyle;
     }
 
     private void PopulateWardrobeGrid(TabGroup tab)

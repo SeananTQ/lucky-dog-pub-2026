@@ -1,6 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://dxsmkr5xu6of7"]
 
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Action_Disabled.tres" id="1_hgkal"]
+[ext_resource type="StyleBox" uid="uid://p38myrgep4ha" path="res://Themes/Buttons/Action_Disabled.tres" id="1_hgkal"]
 [ext_resource type="StyleBox" uid="uid://bpcaxomtuehly" path="res://Themes/Buttons/Action_Hover.tres" id="2_io7bs"]
 [ext_resource type="StyleBox" uid="uid://dwvfed5lw108j" path="res://Themes/Buttons/Action_Normal.tres" id="3_l3s1b"]
 [ext_resource type="StyleBox" uid="uid://b8yhp1a07dop8" path="res://Themes/Buttons/Action_Pressed.tres" id="4_iegqy"]
@@ -12,18 +12,18 @@
 [ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="10_txa6i"]
 [ext_resource type="Texture2D" uid="uid://cavh1d2gudd1n" path="res://Assets/UI/CheckBox_Checked.png" id="11_th86r"]
 [ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="12_utela"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Disabled.tres" id="13_huyyg"]
+[ext_resource type="StyleBox" uid="uid://cuqxqlmy6njxj" path="res://Themes/Buttons/Destructive_Disabled.tres" id="13_huyyg"]
 [ext_resource type="StyleBox" uid="uid://bi72kshd5vup8" path="res://Themes/Buttons/Destructive_Hover.tres" id="14_c5v36"]
 [ext_resource type="StyleBox" uid="uid://b7v7v4bri36fj" path="res://Themes/Buttons/Destructive_Normal.tres" id="15_6g414"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_q6gto"]
+[ext_resource type="StyleBox" uid="uid://bvffm2q3ajeu2" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_q6gto"]
 [ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="17_o12vw"]
 [ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="18_sry3a"]
 [ext_resource type="FontFile" uid="uid://bwc4imqni5ads" path="res://Assets/Fonts/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf" id="19_4rb12"]
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="20_ibr8d"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Disabled.tres" id="21_m7mqn"]
+[ext_resource type="StyleBox" uid="uid://cgqevrn26jc4v" path="res://Themes/Buttons/Secretary_Disabled.tres" id="21_m7mqn"]
 [ext_resource type="StyleBox" uid="uid://deij2a8nbdvl5" path="res://Themes/Buttons/Secretary_Hover.tres" id="22_mvkvk"]
 [ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="23_plb6l"]
-[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Pressed.tres" id="24_p5ob3"]
+[ext_resource type="StyleBox" uid="uid://cby4qnkqk5fsb" path="res://Themes/Buttons/Secretary_Pressed.tres" id="24_p5ob3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
@@ -253,10 +253,6 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p7m14"]
 content_margin_left = 6.0
@@ -427,7 +423,7 @@ Button/colors/icon_pressed_color = Color(1, 1, 1, 1)
 Button/constants/align_to_largest_stylebox = 0
 Button/constants/h_separation = 4
 Button/constants/icon_max_width = 0
-Button/font_sizes/font_size = 32
+Button/font_sizes/font_size = 18
 Button/fonts/font = SubResource("FontVariation_cme4l")
 Button/styles/disabled = ExtResource("7_w6av3")
 Button/styles/focus = ExtResource("8_tb5xr")
@@ -447,7 +443,6 @@ CheckBox/colors/font_pressed_color = Color(1, 1, 1, 1)
 CheckBox/constants/check_v_offset = 0
 CheckBox/constants/h_separation = 8
 CheckBox/constants/outline_size = 0
-CheckBox/font_sizes/font_size = 26
 CheckBox/icons/checked = ExtResource("11_th86r")
 CheckBox/icons/checked_disabled = SubResource("DPITexture_p0un0")
 CheckBox/icons/radio_checked = SubResource("DPITexture_eevlq")
@@ -474,7 +469,6 @@ CheckButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 CheckButton/constants/check_v_offset = 0
 CheckButton/constants/h_separation = 4
 CheckButton/constants/outline_size = 0
-CheckButton/font_sizes/font_size = 26
 CheckButton/icons/checked = SubResource("DPITexture_sts5i")
 CheckButton/icons/checked_disabled = SubResource("DPITexture_hevoe")
 CheckButton/icons/checked_disabled_mirrored = SubResource("DPITexture_msoka")
@@ -515,7 +509,7 @@ Label/constants/outline_size = 0
 Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
 Label/constants/shadow_outline_size = 1
-Label/font_sizes/font_size = 26
+Label/font_sizes/font_size = 18
 Label/fonts/font = SubResource("FontVar_regular")
 Label/styles/focus = SubResource("StyleBoxFlat_q4vyd")
 LineEdit/colors/caret_color = Color(0.95, 0.95, 0.95, 1)
@@ -530,7 +524,7 @@ LineEdit/colors/selection_color = Color(0.5, 0.5, 0.5, 1)
 LineEdit/constants/caret_width = 1
 LineEdit/constants/minimum_character_width = 4
 LineEdit/constants/outline_size = 0
-LineEdit/font_sizes/font_size = 26
+LineEdit/font_sizes/font_size = 22
 LineEdit/fonts/font = SubResource("FontVariation_hevoe")
 LineEdit/icons/clear = SubResource("DPITexture_ox3pi")
 LineEdit/styles/focus = SubResource("StyleBoxFlat_5li03")
@@ -545,12 +539,13 @@ SecondaryButton/styles/disabled = ExtResource("21_m7mqn")
 SecondaryButton/styles/hover = ExtResource("22_mvkvk")
 SecondaryButton/styles/normal = ExtResource("23_plb6l")
 SecondaryButton/styles/pressed = ExtResource("24_p5ob3")
-TextEdit/font_sizes/font_size = 26
+TextEdit/font_sizes/font_size = 24
 TextEdit/fonts/font = SubResource("FontVariation_hgkal")
 TextEdit/styles/focus = SubResource("StyleBoxFlat_io7bs")
 TextEdit/styles/normal = SubResource("StyleBoxFlat_hgkal")
 TextEdit/styles/read_only = SubResource("StyleBoxFlat_l3s1b")
 TooltipLabel/font_sizes/font_size = 18
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_sts5i")
+VBoxContainer/constants/separation = 8
 VSeparator/constants/separation = 4
 VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")

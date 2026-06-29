@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://c2rtl3vl2waso" path="res://Scripts/Desktop/SystemPanelController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Album.svg" id="5_album"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -21,42 +23,63 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 0
 
 [node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1627757193]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="SettingsTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168624]
+custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "Settings"
+tooltip_text = "Settings"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 24
+icon = ExtResource("5_album")
+icon_alignment = 1
 
 [node name="WardrobeTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168622]
+custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "Wardrobe"
+tooltip_text = "Wardrobe"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 24
+icon = ExtResource("4_wardrobe")
+icon_alignment = 1
 
 [node name="DebugTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168623]
+custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "Debug"
+tooltip_text = "Debug"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 24
+icon = ExtResource("5_album")
+icon_alignment = 1
 
 [node name="HSpacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=89865551]
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="CloseBtn" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=184556203]
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+size_flags_vertical = 4
+theme_type_variation = &"PanelCloseButton"
 text = "X"
 
 [node name="Sep1" type="HSeparator" parent="Panel/Scroll/RootVBox" unique_id=2137006305]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="SettingsContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283480]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SettingsTopGap" type="Control" parent="Panel/Scroll/RootVBox/SettingsContent"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
 
 [node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1890114490]
 layout_mode = 2
@@ -172,11 +195,15 @@ text = "重置存档"
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 14
+
+[node name="WardrobeTopGap" type="Control" parent="Panel/Scroll/RootVBox/WardrobeContent"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
 
 [node name="TypeFilterRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220242]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="WardrobeScroll" type="ScrollContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220243]
 layout_mode = 2
@@ -206,6 +233,11 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DebugTopGap" type="Control" parent="Panel/Scroll/RootVBox/DebugContent"]
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
 [node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1028578028]
