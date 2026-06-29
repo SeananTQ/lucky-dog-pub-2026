@@ -37,6 +37,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private float _boxJumpAirborneShadowScale = 0.7f;
     [Export] private float _boxVisualScale = 1f;
     [Export] private float _rewardVisualScale = 1f;
+    [Export] private int _hintTextFontSize = 32;
     [Export] private Vector2 _boxShadowRuntimeOffset = Vector2.Zero;
     [Export] private Vector2 _rewardShadowRuntimeOffset = Vector2.Zero;
     [Export] private bool _showDebugLabel = true;
@@ -72,6 +73,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _revealBackground.GuiInput += OnRevealGuiInput;
         _rewardBackground.GuiInput += OnRewardGuiInput;
         _rewardCell.Pressed += RequestRewardClaim;
+        ApplyHintTextFontSize();
     }
 
     public override void _Process(double delta)
@@ -453,6 +455,19 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private Vector2 GetBoxScale(Vector2 animationScale) => animationScale * _boxVisualScale;
 
     private Vector2 GetRewardScale(Vector2 animationScale) => animationScale * _rewardVisualScale;
+
+    private void ApplyHintTextFontSize()
+    {
+        if (_hintTextFontSize <= 0)
+            return;
+
+        // 桌宠模式会整体缩放共用舞台，所以提示文字需要单独放大；复制设置以免改到共享资源。
+        var settings = _hintLabel.LabelSettings == null
+            ? new LabelSettings()
+            : (LabelSettings)_hintLabel.LabelSettings.Duplicate();
+        settings.FontSize = _hintTextFontSize;
+        _hintLabel.LabelSettings = settings;
+    }
 
     private Vector2 GetBoxGroundCompensationOffset(float scaleY)
     {

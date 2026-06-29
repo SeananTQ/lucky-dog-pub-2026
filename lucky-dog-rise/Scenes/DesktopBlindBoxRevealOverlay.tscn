@@ -41,6 +41,7 @@ _boxAppearHeightRatio = 0.92
 _boxJumpHeightRatio = 0.58
 _boxFinalOpenHeightRatio = 0.32
 _rewardVisualScale = 1.8
+_hintTextFontSize = 48
 _showDebugLabel = false
 
 [node name="RevealRoot" type="Control" parent="." unique_id=1868952886]
