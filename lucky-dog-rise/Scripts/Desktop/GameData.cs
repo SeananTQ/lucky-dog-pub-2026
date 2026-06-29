@@ -134,7 +134,7 @@ public partial class GameData : Node
         PendingBlindBoxReward = result.PendingReward;
         _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule, TotalPlaySeconds);
         EmitSignal(SignalName.BlindBoxStateChanged);
-        QueueSaveIfUsingLocalSave();
+        SaveImmediatelyIfUsingLocalSave();
         return PendingBlindBoxReward;
     }
 
@@ -156,7 +156,7 @@ public partial class GameData : Node
             return;
 
         PendingBlindBoxReward.RevealStep = Mathf.Max(0, step);
-        QueueSaveIfUsingLocalSave();
+        SaveImmediatelyIfUsingLocalSave();
     }
 
     public void MarkPendingBlindBoxRewardShown()
@@ -166,7 +166,7 @@ public partial class GameData : Node
 
         PendingBlindBoxReward.RewardShown = true;
         EmitSignal(SignalName.BlindBoxStateChanged);
-        QueueSaveIfUsingLocalSave();
+        SaveImmediatelyIfUsingLocalSave();
     }
 
     public void ModifyChips(int delta)
@@ -261,6 +261,12 @@ public partial class GameData : Node
 
         _saveDirty = true;
         _saveTimer = SaveDebounceSeconds;
+    }
+
+    private void SaveImmediatelyIfUsingLocalSave()
+    {
+        QueueSaveIfUsingLocalSave();
+        FlushSave();
     }
 
     private void FlushSave()

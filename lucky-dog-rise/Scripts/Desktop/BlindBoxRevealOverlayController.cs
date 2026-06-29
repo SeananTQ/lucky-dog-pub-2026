@@ -15,6 +15,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Control _revealBackground = null!;
     [Export] private Polygon2D? _revealTail;
     [Export] private Control _revealWhiteMask = null!;
+    [Export] private Polygon2D? _revealWhiteMaskTail;
     [Export] private TextureRect _boxSprite = null!;
     [Export] private TextureRect _boxShadow = null!;
     [Export] private Label _hintLabel = null!;
@@ -22,6 +23,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Control _rewardBackground = null!;
     [Export] private Polygon2D? _rewardTail;
     [Export] private Control _rewardWhiteMask = null!;
+    [Export] private Polygon2D? _rewardWhiteMaskTail;
     [Export] private Control _rewardVisualRoot = null!;
     [Export] private TextureRect _rewardCellShadow = null!;
     [Export] private ItemCellController _rewardCell = null!;
@@ -134,8 +136,10 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardRoot.Visible = false;
         SetRewardVisible(false);
         SetRevealVisible(true);
-        SetMaskColor(_revealWhiteMask, new Color(1f, 1f, 1f, 0f));
+        SetMaskColor(_revealWhiteMask, _revealWhiteMaskTail, new Color(1f, 1f, 1f, 0f));
         _rewardWhiteMask.Visible = false;
+        if (_rewardWhiteMaskTail != null)
+            _rewardWhiteMaskTail.Visible = false;
         ApplyRevealLayout();
         ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
         if (pending.RevealStep >= 4)
@@ -150,6 +154,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (_revealTail != null)
             _revealTail.Visible = visible;
         _revealWhiteMask.Visible = visible;
+        if (_revealWhiteMaskTail != null)
+            _revealWhiteMaskTail.Visible = visible;
         _boxSprite.Visible = visible;
         _boxShadow.Visible = visible;
         _hintLabel.Visible = visible;
@@ -161,6 +167,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (_rewardTail != null)
             _rewardTail.Visible = visible;
         _rewardWhiteMask.Visible = visible;
+        if (_rewardWhiteMaskTail != null)
+            _rewardWhiteMaskTail.Visible = visible;
         _rewardVisualRoot.Visible = visible;
         _rewardCellShadow.Visible = visible;
         _rewardCell.Visible = visible;
@@ -376,7 +384,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition + BoxUpOffset(_boxFinalOpenHeightRatio), 0.22).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxSprite, "scale", GetBoxScale(new Vector2(1.18f, 1.18f)), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(new Vector2(_boxJumpAirborneShadowScale, _boxJumpAirborneShadowScale)), 0.22);
-        TweenMaskColor(_revealWhiteMask, Colors.White, 0.22);
+        TweenMaskColor(_revealWhiteMask, _revealWhiteMaskTail, Colors.White, 0.22);
         _tween.SetParallel(false);
         _tween.TweenCallback(Callable.From(() =>
         {
@@ -390,7 +398,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void PlayRewardDrop(bool animate, ERarity rarity)
     {
         KillTweens();
-        SetMaskColor(_rewardWhiteMask, animate ? Colors.White : new Color(1f, 1f, 1f, 0f));
+        SetMaskColor(_rewardWhiteMask, _rewardWhiteMaskTail, animate ? Colors.White : new Color(1f, 1f, 1f, 0f));
         _rewardVisualRoot.Position = animate ? _rewardVisualRootPosition + RewardUpOffset(_rewardDropHeightRatio) : _rewardVisualRootPosition;
         _rewardVisualRoot.Scale = animate ? GetRewardScale(new Vector2(0.85f, 0.85f)) : GetRewardScale(Vector2.One);
         _rewardCellShadow.Position = _rewardCellShadowPosition;
@@ -402,7 +410,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         _tween = CreateTween();
         _tween.SetParallel(true);
-        TweenMaskColor(_rewardWhiteMask, new Color(1f, 1f, 1f, 0f), 0.16);
+        TweenMaskColor(_rewardWhiteMask, _rewardWhiteMaskTail, new Color(1f, 1f, 1f, 0f), 0.16);
         _tween.TweenProperty(_rewardVisualRoot, "position", _rewardVisualRootPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardVisualRoot, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
@@ -538,7 +546,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         }
     }
 
-    private void SetMaskColor(Control mask, Color color)
+    private void SetMaskColor(Control mask, Polygon2D? tailMask, Color color)
     {
         switch (mask)
         {
@@ -549,13 +557,18 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
                 ApplyPanelBackgroundColor(panel, color);
                 break;
         }
+
+        if (tailMask != null)
+            tailMask.Color = color;
     }
 
-    private void TweenMaskColor(Control mask, Color targetColor, double duration)
+    private void TweenMaskColor(Control mask, Polygon2D? tailMask, Color targetColor, double duration)
     {
         if (mask is ColorRect colorRect)
         {
             _tween.TweenProperty(colorRect, "color", targetColor, duration);
+            if (tailMask != null)
+                _tween.Parallel().TweenProperty(tailMask, "color", targetColor, duration);
             return;
         }
 
@@ -563,7 +576,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         {
             var startColor = GetPanelBackgroundColor(panel);
             _tween.TweenMethod(
-                Callable.From<Color>(color => SetMaskColor(mask, color)),
+                Callable.From<Color>(color => SetMaskColor(mask, tailMask, color)),
                 startColor,
                 targetColor,
                 duration);

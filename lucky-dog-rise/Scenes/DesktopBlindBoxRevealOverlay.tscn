@@ -17,12 +17,13 @@ corner_radius_top_right = 28
 corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 
-[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
+[node name="DesktopBlindBoxRevealOverlay" type="CanvasLayer" unique_id=341897382 node_paths=PackedStringArray("_revealBackground", "_revealTail", "_revealWhiteMask", "_revealWhiteMaskTail", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardTail", "_rewardWhiteMask", "_rewardWhiteMaskTail", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
 layer = 19
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/BubblePanel")
 _revealTail = NodePath("RevealRoot/Tail")
 _revealWhiteMask = NodePath("RevealWhiteMask")
+_revealWhiteMaskTail = NodePath("RevealWhiteMaskTail")
 _boxSprite = NodePath("Stage/BoxSprite")
 _boxShadow = NodePath("Stage/BoxShadow")
 _hintLabel = NodePath("Stage/HintLabel")
@@ -30,6 +31,7 @@ _rewardRoot = NodePath("RewardRoot")
 _rewardBackground = NodePath("RewardRoot/BubblePanel")
 _rewardTail = NodePath("RewardRoot/Tail2")
 _rewardWhiteMask = NodePath("RewardWhiteMask")
+_rewardWhiteMaskTail = NodePath("RewardWhiteMaskTail")
 _rewardVisualRoot = NodePath("Stage/RewardVisualRoot")
 _rewardCellShadow = NodePath("Stage/RewardVisualRoot/RewardCellShadow")
 _rewardCell = NodePath("Stage/RewardVisualRoot/RewardCell")
@@ -100,6 +102,11 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 metadata/_edit_use_anchors_ = true
 
+[node name="RevealWhiteMaskTail" type="Polygon2D" parent="." unique_id=2105986646]
+position = Vector2(-106, -3)
+color = Color(1, 1, 1, 0)
+polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
+
 [node name="RevealWhiteMask" type="PanelContainer" parent="." unique_id=1948168656]
 offset_left = -150.0
 offset_top = -302.0
@@ -107,6 +114,11 @@ offset_right = 150.0
 offset_bottom = -2.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("white_mask_bg")
+
+[node name="RewardWhiteMaskTail" type="Polygon2D" parent="." unique_id=796436095]
+position = Vector2(-106, -3)
+color = Color(1, 1, 1, 0)
+polygon = PackedVector2Array(0, 0, 36, 0, 52, 32)
 
 [node name="RewardWhiteMask" type="PanelContainer" parent="." unique_id=569648093]
 offset_left = -150.0

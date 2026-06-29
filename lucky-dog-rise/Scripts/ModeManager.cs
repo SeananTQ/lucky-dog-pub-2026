@@ -149,6 +149,7 @@ public partial class ModeManager : Control
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
         RestoreBossBlindBoxRewardIfNeeded();
+        CallDeferred(MethodName.RestoreBossBlindBoxRewardIfNeeded);
 
         var tracker = new GlobalInputTracker();
         tracker.Name = "GlobalInputTracker";
@@ -438,6 +439,8 @@ public partial class ModeManager : Control
     private void RestoreBossBlindBoxRewardIfNeeded()
     {
         if (CurrentMode != Mode.BossKey || _gameData.PendingBlindBoxReward == null)
+            return;
+        if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
             return;
 
         ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
