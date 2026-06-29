@@ -90,16 +90,16 @@ public partial class SystemPanelController : CanvasLayer
     {
         _panel = GetNode<PanelContainer>("Panel");
 
-        _settingsTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/SettingsTab");
-        _wardrobeTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/WardrobeTab");
-        _debugTab = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/DebugTab");
+        _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
+        _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
+        _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
         _tabs[0] = _settingsTab;
         _tabs[1] = _wardrobeTab;
         _tabs[2] = _debugTab;
 
-        _settingsContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/SettingsContent");
-        _wardrobeContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/WardrobeContent");
-        _debugContent = GetNode<VBoxContainer>("Panel/Scroll/RootVBox/DebugContent");
+        _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
+        _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
+        _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
 
         _settingsTab.Pressed += () => SwitchTab(0);
         _wardrobeTab.Pressed += () => SwitchTab(1);
@@ -107,13 +107,13 @@ public partial class SystemPanelController : CanvasLayer
         SwitchTab(0);
 
         // === Settings 页 ===
-        _audioToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AudioRow/AudioToggle");
-        _displayOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/SettingsContent/DisplayRow/DisplayOption");
-        _saveDataModeOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
+        _audioToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow/AudioToggle");
+        _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
+        _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
-        var closeBtn = GetNode<Button>("Panel/Scroll/RootVBox/TitleRow/CloseBtn");
-        var quitBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/QuitBtn");
-        var resetSaveBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/ResetSaveBtn");
+        var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
+        var quitBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuitBtn");
+        var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ResetSaveBtn");
 
         _displayOption.AddItem("Clock", 0);
         _displayOption.AddItem("Chips", 1);
@@ -127,19 +127,19 @@ public partial class SystemPanelController : CanvasLayer
         _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
         ApplyAudio(_audioToggle.ButtonPressed);
 
-        var autoHideToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/AutoHideRow/AutoHideToggle");
+        var autoHideToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow/AutoHideToggle");
         autoHideToggle.ButtonPressed = SettingsManager.LoadAutoHidePanel();
         autoHideToggle.Toggled += enabled => SettingsManager.SaveAutoHidePanel(enabled);
 
-        var tongueImmediateToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow/TongueImmediateToggle");
+        var tongueImmediateToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow/TongueImmediateToggle");
         tongueImmediateToggle.ButtonPressed = SettingsManager.LoadDesktopTongueImmediateMode();
         tongueImmediateToggle.Toggled += enabled => SettingsManager.SaveDesktopTongueImmediateMode(enabled);
 
-        var showFullscreenToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle");
+        var showFullscreenToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle");
         showFullscreenToggle.ButtonPressed = SettingsManager.LoadShowOverFullscreenApps();
         showFullscreenToggle.Toggled += enabled => SettingsManager.SaveShowOverFullscreenApps(enabled);
 
-        var enhancedTopmostToggle = GetNode<CheckButton>("Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle");
+        var enhancedTopmostToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle");
         enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
         enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
 
@@ -153,8 +153,8 @@ public partial class SystemPanelController : CanvasLayer
                 "取消");
         _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
 
-        var switchToPlayBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToPlayBtn");
-        var switchToBossKeyBtn = GetNode<Button>("Panel/Scroll/RootVBox/SettingsContent/SwitchToBossKeyBtn");
+        var switchToPlayBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SwitchToPlayBtn");
+        var switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SwitchToBossKeyBtn");
         switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
         switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
 
@@ -163,19 +163,19 @@ public partial class SystemPanelController : CanvasLayer
         _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
 
         // === Debug 页 ===
-        _seedLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedLabel");
-        _playTimeLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/PlayTimeLabel");
-        _blindBoxDebugToggle = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugToggle");
-        _blindBoxDebugContent = GetNode<Control>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent");
-        _blindBoxDebugLabel = GetNode<Label>("Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
-        var seedCopyBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/SeedRow/SeedCopyBtn");
-        _seedInput = GetNode<LineEdit>("Panel/Scroll/RootVBox/DebugContent/SeedInput");
-        var grantChipsBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/GrantChipsBtn");
-        var randomizeSceneBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeSceneBtn");
-        var randomizeDogBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomizeDogBtn");
-        var randomAcquireItemBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/RandomAcquireItemBtn");
-        _reactionOption = GetNode<OptionButton>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/ReactionOption");
-        var playReactionBtn = GetNode<Button>("Panel/Scroll/RootVBox/DebugContent/ReactionRow/PlayReactionBtn");
+        _seedLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedLabel");
+        _playTimeLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayTimeLabel");
+        _blindBoxDebugToggle = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugToggle");
+        _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
+        _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
+        var seedCopyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedCopyBtn");
+        _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
+        var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
+        var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
+        var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
+        var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
+        _reactionOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/ReactionOption");
+        var playReactionBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
@@ -188,10 +188,10 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.DogReactionRequested, _reactionOption.GetSelectedId());
 
         // === Wardrobe 页 ===
-        _wardrobeGrid = GetNode<GridContainer>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
-        _typeFilterRow = GetNode<HBoxContainer>("Panel/Scroll/RootVBox/WardrobeContent/TypeFilterRow");
-        _emptyWardrobeCenter = GetNode<Control>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter");
-        _emptyWardrobeLabel = GetNode<Label>("Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter/EmptyWardrobeLabel");
+        _wardrobeGrid = GetNode<GridContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
+        _typeFilterRow = GetNode<HBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/TypeFilterRow");
+        _emptyWardrobeCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter");
+        _emptyWardrobeLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter/EmptyWardrobeLabel");
 
         _panel.Visible = false;
         RefreshDebugPlayTime();

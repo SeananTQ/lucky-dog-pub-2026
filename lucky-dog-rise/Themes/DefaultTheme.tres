@@ -553,6 +553,33 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 corner_detail = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber"]
+bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.68)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber_hover"]
+bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.82)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vscroll_grabber_pressed"]
+bg_color = Color(0.7176471, 0.7176471, 0.7176471, 0.95)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vscroll_track"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_sts5i"]
 content_margin_left = 0.0
 content_margin_top = 0.0

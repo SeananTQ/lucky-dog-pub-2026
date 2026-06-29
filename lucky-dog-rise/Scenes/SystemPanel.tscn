@@ -15,21 +15,17 @@ offset_right = 420.0
 offset_bottom = 420.0
 theme = ExtResource("2_rixui")
 
-[node name="Scroll" type="ScrollContainer" parent="Panel" unique_id=1384469647]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="RootVBox" type="VBoxContainer" parent="Panel/Scroll" unique_id=1245391682]
+[node name="RootVBox" type="VBoxContainer" parent="Panel" unique_id=1245391682]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 0
 
-[node name="TitleRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=1627757193]
+[node name="TitleRow" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1627757193]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="SettingsTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168624]
+[node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Settings"
@@ -38,7 +34,7 @@ theme_override_constants/icon_max_width = 24
 icon = ExtResource("5_album")
 icon_alignment = 1
 
-[node name="WardrobeTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168622]
+[node name="WardrobeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168622]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Wardrobe"
@@ -47,7 +43,7 @@ theme_override_constants/icon_max_width = 24
 icon = ExtResource("4_wardrobe")
 icon_alignment = 1
 
-[node name="DebugTab" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=-363168623]
+[node name="DebugTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168623]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 tooltip_text = "Debug"
@@ -56,173 +52,188 @@ theme_override_constants/icon_max_width = 24
 icon = ExtResource("5_album")
 icon_alignment = 1
 
-[node name="HSpacer" type="Control" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=89865551]
+[node name="HSpacer" type="Control" parent="Panel/RootVBox/TitleRow" unique_id=89865551]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CloseBtn" type="Button" parent="Panel/Scroll/RootVBox/TitleRow" unique_id=184556203]
+[node name="CloseBtn" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=184556203]
 custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"PanelCloseButton"
 text = "X"
 
-[node name="Sep1" type="HSeparator" parent="Panel/Scroll/RootVBox" unique_id=2137006305]
+[node name="Sep1" type="HSeparator" parent="Panel/RootVBox" unique_id=2137006305]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="SettingsContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283480]
+[node name="ScrollTopGap" type="Control" parent="Panel/RootVBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/RootVBox" unique_id=1384469647]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 4
+
+[node name="ContentVBox" type="VBoxContainer" parent="Panel/RootVBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="SettingsContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283480]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="SettingsTopGap" type="Control" parent="Panel/Scroll/RootVBox/SettingsContent"]
+[node name="SettingsTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
-[node name="QuitBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1890114490]
+[node name="QuitBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1890114490]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "Quit Game"
 
-[node name="SettingsSep0" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=826391324]
+[node name="SettingsSep0" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=826391324]
 layout_mode = 2
 
-[node name="AudioRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1724876092]
+[node name="AudioRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1724876092]
 layout_mode = 2
 
-[node name="AudioLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/AudioRow" unique_id=1830034355]
+[node name="AudioLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1830034355]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Sound Effects"
 
-[node name="AudioToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/AudioRow" unique_id=1581395180]
+[node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
 layout_mode = 2
 
-[node name="SettingsSep1" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=700966535]
+[node name="SettingsSep1" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=700966535]
 layout_mode = 2
 
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1556867985]
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
 layout_mode = 2
 
-[node name="DisplayLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/DisplayRow" unique_id=634754941]
+[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Display Mode"
 
-[node name="DisplayOption" type="OptionButton" parent="Panel/Scroll/RootVBox/SettingsContent/DisplayRow" unique_id=356464326]
+[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
-[node name="SettingsSep2" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=578985512]
+[node name="SettingsSep2" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=578985512]
 layout_mode = 2
 
-[node name="AutoHideRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1556867986]
+[node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
 layout_mode = 2
 
-[node name="AutoHideLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/AutoHideRow" unique_id=634754942]
+[node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Auto-hide on focus lost"
 
-[node name="AutoHideToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
+[node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
 layout_mode = 2
 
-[node name="AutoHideSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=700966536]
+[node name="AutoHideSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=700966536]
 layout_mode = 2
 
-[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1889982942]
+[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
 layout_mode = 2
 
-[node name="TongueImmediateLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
+[node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Tongue instant mode"
 
-[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
+[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
 layout_mode = 2
 
-[node name="TongueImmediateSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1114726695]
+[node name="TongueImmediateSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1114726695]
 layout_mode = 2
 
-[node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=2044158914]
+[node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2044158914]
 layout_mode = 2
 
-[node name="ShowFullscreenLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
+[node name="ShowFullscreenLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "全屏时显示"
 
-[node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
+[node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
 layout_mode = 2
 
-[node name="ShowFullscreenSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1855807597]
+[node name="ShowFullscreenSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1855807597]
 layout_mode = 2
 
-[node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=5683608]
+[node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=5683608]
 layout_mode = 2
 
-[node name="EnhancedTopmostLabel" type="Label" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
+[node name="EnhancedTopmostLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "增强置顶"
 
-[node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/Scroll/RootVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
+[node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
 layout_mode = 2
 
-[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=846027549]
+[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=846027549]
 layout_mode = 2
 
-[node name="SwitchToPlayBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=764447966]
+[node name="SwitchToPlayBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=764447966]
 layout_mode = 2
 text = "Switch to Play"
 
-[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=246680196]
+[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=246680196]
 layout_mode = 2
 text = "Switch to BossKey"
 
-[node name="VSpacer" type="Control" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=1928220240]
+[node name="VSpacer" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1928220240]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ResetSaveBtn" type="Button" parent="Panel/Scroll/RootVBox/SettingsContent" unique_id=240889279]
+[node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=240889279]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "重置存档"
 
-[node name="WardrobeContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283482]
+[node name="WardrobeContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283482]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 14
 
-[node name="WardrobeTopGap" type="Control" parent="Panel/Scroll/RootVBox/WardrobeContent"]
+[node name="WardrobeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent"]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
-[node name="TypeFilterRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220242]
+[node name="TypeFilterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent" unique_id=1928220242]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="WardrobeScroll" type="ScrollContainer" parent="Panel/Scroll/RootVBox/WardrobeContent" unique_id=1928220243]
+[node name="WardrobeScroll" type="ScrollContainer" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent" unique_id=1928220243]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="WardrobeGrid" type="GridContainer" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll" unique_id=1928220244]
+[node name="WardrobeGrid" type="GridContainer" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll" unique_id=1928220244]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 4
 
-[node name="EmptyWardrobeCenter" type="CenterContainer" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll" unique_id=26666424]
+[node name="EmptyWardrobeCenter" type="CenterContainer" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll" unique_id=26666424]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="EmptyWardrobeLabel" type="Label" parent="Panel/Scroll/RootVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter" unique_id=130236510]
+[node name="EmptyWardrobeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter" unique_id=130236510]
 custom_minimum_size = Vector2(320, 160)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -232,49 +243,49 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="DebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox" unique_id=372283481]
+[node name="DebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283481]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="DebugTopGap" type="Control" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="DebugTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
-[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1028578028]
+[node name="SaveDataModeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1028578028]
 layout_mode = 2
 
-[node name="SaveDataModeLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow" unique_id=792698923]
+[node name="SaveDataModeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow" unique_id=792698923]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "背包数据来源"
 
-[node name="SaveDataModeOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/SaveDataModeRow" unique_id=1397872734]
+[node name="SaveDataModeOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow" unique_id=1397872734]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
-[node name="SaveDataModeSep" type="HSeparator" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1993035049]
+[node name="SaveDataModeSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1993035049]
 layout_mode = 2
 
-[node name="PlayTimeLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="PlayTimeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
 text = "Play Time: 00:00:00 (0.0s)"
 
-[node name="GrantChipsBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="GrantChipsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "立即获得 50000 筹码"
 
-[node name="BlindBoxDebugToggle" type="Button" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "▶ BlindBox Debug"
 
-[node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent"]
+[node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 visible = false
 custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 
-[node name="BlindBoxDebugLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/BlindBoxDebugContent"]
+[node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -282,46 +293,46 @@ theme_override_font_sizes/font_size = 12
 text = "BlindBox debug status"
 autowrap_mode = 3
 
-[node name="SeedRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=984207457]
+[node name="SeedRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=984207457]
 layout_mode = 2
 
-[node name="SeedLabel" type="Label" parent="Panel/Scroll/RootVBox/DebugContent/SeedRow" unique_id=629482953]
+[node name="SeedLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow" unique_id=629482953]
 layout_mode = 2
 text = "Seed: N/A"
 
-[node name="SeedCopyBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent/SeedRow" unique_id=84726519]
+[node name="SeedCopyBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow" unique_id=84726519]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Copy"
 
-[node name="SeedInput" type="LineEdit" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=45613217]
+[node name="SeedInput" type="LineEdit" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=45613217]
 layout_mode = 2
 placeholder_text = "Fixed seed (empty = random)"
 
-[node name="RandomizeSceneBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=98234571]
+[node name="RandomizeSceneBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=98234571]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Randomize Scene"
 
-[node name="RandomizeDogBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=98234572]
+[node name="RandomizeDogBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=98234572]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Randomize Dog"
 
-[node name="RandomAcquireItemBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=478263499]
+[node name="RandomAcquireItemBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=478263499]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "随机获得道具"
 
-[node name="ReactionRow" type="HBoxContainer" parent="Panel/Scroll/RootVBox/DebugContent" unique_id=1733918955]
+[node name="ReactionRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1733918955]
 layout_mode = 2
 
-[node name="ReactionOption" type="OptionButton" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow" unique_id=287358163]
+[node name="ReactionOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow" unique_id=287358163]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
 
-[node name="PlayReactionBtn" type="Button" parent="Panel/Scroll/RootVBox/DebugContent/ReactionRow" unique_id=1763972397]
+[node name="PlayReactionBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow" unique_id=1763972397]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Play"
