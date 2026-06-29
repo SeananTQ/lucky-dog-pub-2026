@@ -68,7 +68,7 @@ content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 2.0
-bg_color = Color(0.17729667, 0.23874459, 0.2570845, 1)
+bg_color = Color(0.078431375, 0.21568628, 0.24705882, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
 corner_radius_bottom_right = 18
@@ -80,6 +80,28 @@ content_margin_top = 3.0
 content_margin_right = 10.0
 content_margin_bottom = 3.0
 bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_selected_hover"]
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.6745098, 0.76862746, 0.7921569, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab_selected_pressed"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 2.0
+bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
 corner_radius_bottom_right = 18
@@ -399,7 +421,7 @@ content_margin_left = 14.0
 content_margin_top = 8.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
-bg_color = Color(0.043137256, 0.25490198, 0.25490198, 1)
+bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 shadow_color = Color(0, 0, 0, 0.55)
@@ -410,7 +432,7 @@ content_margin_left = 14.0
 content_margin_top = 10.0
 content_margin_right = 14.0
 content_margin_bottom = 4.0
-bg_color = Color(0.019607844, 0.14509805, 0.14509805, 1)
+bg_color = Color(0.078431375, 0.21568628, 0.24705882, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 
@@ -424,6 +446,26 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 shadow_color = Color(0.15686275, 0.22745098, 0.2509804, 1)
 shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_selected_hover"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.6745098, 0.76862746, 0.7921569, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+shadow_color = Color(0.15686275, 0.22745098, 0.2509804, 1)
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_top_tab_selected_pressed"]
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 4.0
+bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7eo5n"]
 bg_color = Color(0, 0.14652029, 0.28276542, 1)
@@ -581,10 +623,10 @@ CategoryTabSelected/constants/icon_max_width = 16
 CategoryTabSelected/font_sizes/font_size = 13
 CategoryTabSelected/fonts/font = SubResource("FontVariation_cme4l")
 CategoryTabSelected/styles/disabled = SubResource("StyleBoxFlat_category_tab_selected")
-CategoryTabSelected/styles/focus = SubResource("StyleBoxFlat_category_tab_selected")
-CategoryTabSelected/styles/hover = SubResource("StyleBoxFlat_category_tab_selected")
+CategoryTabSelected/styles/focus = SubResource("StyleBoxFlat_category_tab_selected_hover")
+CategoryTabSelected/styles/hover = SubResource("StyleBoxFlat_category_tab_selected_hover")
 CategoryTabSelected/styles/normal = SubResource("StyleBoxFlat_category_tab_selected")
-CategoryTabSelected/styles/pressed = SubResource("StyleBoxFlat_category_tab_pressed")
+CategoryTabSelected/styles/pressed = SubResource("StyleBoxFlat_category_tab_selected_pressed")
 CheckBox/colors/checkbox_checked_color = Color(1, 1, 1, 1)
 CheckBox/colors/checkbox_unchecked_color = Color(1, 1, 1, 1)
 CheckBox/colors/font_color = Color(0.875, 0.875, 0.875, 1)
@@ -726,10 +768,10 @@ PanelTopTabSelected/constants/icon_max_width = 28
 PanelTopTabSelected/font_sizes/font_size = 14
 PanelTopTabSelected/fonts/font = SubResource("FontVariation_cme4l")
 PanelTopTabSelected/styles/disabled = SubResource("StyleBoxFlat_panel_top_tab_selected")
-PanelTopTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selected")
-PanelTopTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PanelTopTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
+PanelTopTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
 PanelTopTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
-PanelTopTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_pressed")
+PanelTopTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_pressed")
 ProgressBar/font_sizes/font_size = 22
 ProgressBar/styles/background = SubResource("StyleBoxFlat_7eo5n")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_i6fns")
