@@ -6,8 +6,8 @@
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_ot0tl"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_eurth"]
 [ext_resource type="StyleBox" uid="uid://62rkgra4ufwl" path="res://Themes/Panel_ValuePanel.tres" id="5_valpanel"]
-[ext_resource type="Texture2D" uid="uid://cl6pu0qvkudwc" path="res://Assets/UI/Icon/cog.png" id="6_cog"]
-[ext_resource type="Texture2D" uid="uid://dluw3mxefbq7x" path="res://Assets/UI/Icon/present.png" id="7_present"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Menu.svg" id="6_menu"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_BlindBox.svg" id="7_blindbox"]
 [ext_resource type="PackedScene" uid="uid://c3sx2dvn6xwlc" path="res://Scenes/Prefabs/BalloonHint.tscn" id="8_balloon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0dj43"]
@@ -263,7 +263,7 @@ size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 24
 theme_override_font_sizes/font_size = 14
 text = "Claim"
-icon = ExtResource("7_present")
+icon = ExtResource("7_blindbox")
 
 [node name="SettingsBtn" type="Button" parent="Panel/RootVBox/ButtonRow" unique_id=640000321]
 layout_mode = 2
@@ -271,4 +271,4 @@ size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 20
 theme_override_font_sizes/font_size = 14
 text = "Menu"
-icon = ExtResource("6_cog")
+icon = ExtResource("6_menu")
