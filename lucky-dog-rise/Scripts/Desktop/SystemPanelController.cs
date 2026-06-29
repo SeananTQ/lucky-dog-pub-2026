@@ -40,6 +40,10 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _debugContent = null!;
+    private Control _settingsActionTopGap = null!;
+    private Control _settingsActionRow = null!;
+    private Control _settingsActionBottomGap = null!;
+    private Control _settingsActionSep = null!;
 
     // Settings 页
     private CheckButton _audioToggle = null!;
@@ -107,6 +111,10 @@ public partial class SystemPanelController : CanvasLayer
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
+        _settingsActionTopGap = GetNode<Control>("Panel/RootVBox/ActionTopGap");
+        _settingsActionRow = GetNode<Control>("Panel/RootVBox/SettingsActionRow");
+        _settingsActionBottomGap = GetNode<Control>("Panel/RootVBox/ActionBottomGap");
+        _settingsActionSep = GetNode<Control>("Panel/RootVBox/ActionSep");
 
         _settingsTab.Pressed += () => SwitchTab(0);
         _wardrobeTab.Pressed += () => SwitchTab(1);
@@ -119,7 +127,7 @@ public partial class SystemPanelController : CanvasLayer
         _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
-        var quitBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuitBtn");
+        var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ResetSaveBtn");
 
         _displayOption.AddItem("Clock", 0);
@@ -154,14 +162,14 @@ public partial class SystemPanelController : CanvasLayer
         quitBtn.Pressed += () => GetTree().Quit();
         resetSaveBtn.Pressed += () =>
             _resetSaveConfirm.ShowConfirm(
-                "重置存档",
-                "确定要重置本地存档吗？此操作会清空筹码、背包拥有状态和装备状态，并创建一份新的默认存档。",
-                "重置",
-                "取消");
+                "Reset Save Data",
+                "Reset local save data? This will clear chips, owned items, equipment, and create a fresh default save.",
+                "Reset",
+                "Cancel");
         _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
 
-        var switchToPlayBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SwitchToPlayBtn");
-        var switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SwitchToBossKeyBtn");
+        var switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
+        var switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
         switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
         switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
 
@@ -225,6 +233,10 @@ public partial class SystemPanelController : CanvasLayer
             contents[i].Visible = i == index;
             _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
+        _settingsActionTopGap.Visible = index == 0;
+        _settingsActionRow.Visible = index == 0;
+        _settingsActionBottomGap.Visible = index == 0;
+        _settingsActionSep.Visible = index == 0;
         if (index == 1 && _gameData != null)
             BuildWardrobe();
         if (index == 2)

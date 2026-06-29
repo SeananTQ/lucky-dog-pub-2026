@@ -1,0 +1,14 @@
+[gd_resource type="LabelSettings" format=3 uid="uid://cw0whg8jho3rf"]
+
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_group_inter"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_group_misans"]
+
+[sub_resource type="FontVariation" id="FontVariation_group"]
+fallbacks = Array[Font]([ExtResource("2_group_misans")])
+base_font = ExtResource("1_group_inter")
+
+[resource]
+line_spacing = 2.0
+font = SubResource("FontVariation_group")
+font_size = 16
+font_color = Color(0.6627451, 0.8352941, 0.85882354, 1)

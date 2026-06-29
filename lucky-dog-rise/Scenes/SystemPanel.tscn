@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://c2rtl3vl2waso" path="res://Scripts/Desktop/SystemPanelController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Album.svg" id="5_album"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
+[ext_resource type="Texture2D" uid="uid://4upal3vc8wlb" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
+[ext_resource type="Texture2D" uid="uid://cwilhq5lum061" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
+[ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
+[ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
+[ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="9_option_label"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -69,16 +70,52 @@ text = "X"
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="ScrollTopGap" type="Control" parent="Panel/RootVBox"]
+[node name="ActionTopGap" type="Control" parent="Panel/RootVBox" unique_id=963105582]
+visible = false
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="SettingsActionRow" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1622253443]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="QuitBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=1890114490]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"DestructiveButton"
+text = "Quit"
+
+[node name="SwitchToPlayBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=764447966]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Play"
+
+[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=246680196]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Desktop"
+
+[node name="ActionBottomGap" type="Control" parent="Panel/RootVBox" unique_id=116590249]
+visible = false
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="ActionSep" type="HSeparator" parent="Panel/RootVBox" unique_id=1852708895]
+visible = false
+layout_mode = 2
+
+[node name="ScrollTopGap" type="Control" parent="Panel/RootVBox" unique_id=1649726284]
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 
 [node name="Scroll" type="ScrollContainer" parent="Panel/RootVBox" unique_id=1384469647]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/h_separation = 4
 
-[node name="ContentVBox" type="VBoxContainer" parent="Panel/RootVBox/Scroll"]
+[node name="ContentVBox" type="VBoxContainer" parent="Panel/RootVBox/Scroll" unique_id=1956769742]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -90,17 +127,14 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="SettingsTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-custom_minimum_size = Vector2(0, 6)
+[node name="SettingsTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1569866430]
+custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 
-[node name="QuitBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1890114490]
+[node name="GeneralLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=544242767]
 layout_mode = 2
-theme_type_variation = &"DestructiveButton"
-text = "Quit Game"
-
-[node name="SettingsSep0" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=826391324]
-layout_mode = 2
+text = "General"
+label_settings = ExtResource("8_group_title")
 
 [node name="AudioRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1724876092]
 layout_mode = 2
@@ -109,54 +143,9 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Sound Effects"
+label_settings = ExtResource("9_option_label")
 
 [node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
-layout_mode = 2
-
-[node name="SettingsSep1" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=700966535]
-layout_mode = 2
-
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
-layout_mode = 2
-
-[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Display Mode"
-
-[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-
-[node name="SettingsSep2" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=578985512]
-layout_mode = 2
-
-[node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
-layout_mode = 2
-
-[node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Auto-hide on focus lost"
-
-[node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
-layout_mode = 2
-
-[node name="AutoHideSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=700966536]
-layout_mode = 2
-
-[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
-layout_mode = 2
-
-[node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Tongue instant mode"
-
-[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
-layout_mode = 2
-
-[node name="TongueImmediateSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1114726695]
 layout_mode = 2
 
 [node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2044158914]
@@ -165,12 +154,10 @@ layout_mode = 2
 [node name="ShowFullscreenLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "全屏时显示"
+text = "Show Over Fullscreen Apps"
+label_settings = ExtResource("9_option_label")
 
 [node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
-layout_mode = 2
-
-[node name="ShowFullscreenSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1855807597]
 layout_mode = 2
 
 [node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=5683608]
@@ -179,30 +166,141 @@ layout_mode = 2
 [node name="EnhancedTopmostLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "增强置顶"
+text = "Enhanced Always On Top"
+label_settings = ExtResource("9_option_label")
 
 [node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
 layout_mode = 2
 
-[node name="EnhancedTopmostSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=846027549]
+[node name="GeneralSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1721861634]
 layout_mode = 2
 
-[node name="SwitchToPlayBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=764447966]
+[node name="DesktopPetLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1702498419]
 layout_mode = 2
-text = "Switch to Play"
+text = "Desktop Pet"
+label_settings = ExtResource("8_group_title")
 
-[node name="SwitchToBossKeyBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=246680196]
+[node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
 layout_mode = 2
-text = "Switch to BossKey"
 
-[node name="VSpacer" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1928220240]
+[node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
+text = "Auto-hide Panel on Focus Loss"
+label_settings = ExtResource("9_option_label")
+
+[node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
+layout_mode = 2
+
+[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
+layout_mode = 2
+
+[node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tongue Instant Mode"
+label_settings = ExtResource("9_option_label")
+
+[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
+layout_mode = 2
+
+[node name="BlindBoxBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=739196546]
+layout_mode = 2
+
+[node name="BlindBoxBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=487480890]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Always Show Blind Box Bubble"
+label_settings = ExtResource("9_option_label")
+
+[node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
+layout_mode = 2
+
+[node name="DesktopPetSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1623273464]
+layout_mode = 2
+
+[node name="ConvenienceLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1009223726]
+layout_mode = 2
+text = "Convenience"
+label_settings = ExtResource("8_group_title")
+
+[node name="AutoEquipRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=87456177]
+layout_mode = 2
+
+[node name="AutoEquipLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=1157129014]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Auto-equip New Outfits"
+label_settings = ExtResource("9_option_label")
+
+[node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
+layout_mode = 2
+
+[node name="TaskbarSnapRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1404126057]
+layout_mode = 2
+
+[node name="TaskbarSnapLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1748010630]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Snap to Windows Taskbar"
+label_settings = ExtResource("9_option_label")
+
+[node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
+layout_mode = 2
+
+[node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
+layout_mode = 2
+
+[node name="PrivacyLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2010729476]
+layout_mode = 2
+text = "Privacy & Safety"
+label_settings = ExtResource("8_group_title")
+
+[node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
+layout_mode = 2
+
+[node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Streamer Safe Mode"
+label_settings = ExtResource("9_option_label")
+
+[node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
+layout_mode = 2
+
+[node name="PrivacySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=859794950]
+layout_mode = 2
+
+[node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
+layout_mode = 2
+text = "Display"
+label_settings = ExtResource("8_group_title")
+
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Counter Display"
+label_settings = ExtResource("9_option_label")
+
+[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="DisplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1350721495]
+layout_mode = 2
+
+[node name="SaveLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1903712818]
+layout_mode = 2
+text = "Save Data"
+label_settings = ExtResource("8_group_title")
 
 [node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=240889279]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
-text = "重置存档"
+text = "Reset Save Data"
 
 [node name="WardrobeContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283482]
 visible = false
@@ -210,7 +308,7 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 14
 
-[node name="WardrobeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent"]
+[node name="WardrobeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/WardrobeContent" unique_id=314610183]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
@@ -249,7 +347,7 @@ autowrap_mode = 3
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="DebugTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="DebugTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=259777972]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
@@ -268,26 +366,26 @@ theme_override_font_sizes/font_size = 16
 [node name="SaveDataModeSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1993035049]
 layout_mode = 2
 
-[node name="PlayTimeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="PlayTimeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1286543218]
 layout_mode = 2
 text = "Play Time: 00:00:00 (0.0s)"
 
-[node name="GrantChipsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="GrantChipsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1780254158]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "立即获得 50000 筹码"
 
-[node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1340448601]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "▶ BlindBox Debug"
 
-[node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
 visible = false
 custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 
-[node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+[node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent" unique_id=299064770]
 custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 size_flags_horizontal = 3
