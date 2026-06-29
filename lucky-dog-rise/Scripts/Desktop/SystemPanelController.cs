@@ -34,11 +34,13 @@ public partial class SystemPanelController : CanvasLayer
     // 页签按钮
     private Button _settingsTab = null!;
     private Button _wardrobeTab = null!;
+    private Button _linkTreeTab = null!;
     private Button _debugTab = null!;
 
     // 页签内容容器
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
+    private Control _linkTreeContent = null!;
     private VBoxContainer _debugContent = null!;
     private Control _settingsActionTopGap = null!;
     private Control _settingsActionRow = null!;
@@ -77,10 +79,11 @@ public partial class SystemPanelController : CanvasLayer
             _gameData = value;
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
+            EnsureCurrentTabReady();
         }
     }
 
-    private readonly Button[] _tabs = new Button[3];
+    private readonly Button[] _tabs = new Button[4];
     private readonly Dictionary<Button, TabGroup> _filterTabs = new();
     private readonly List<Button> _typeFilterButtons = new();
     private static readonly StringName PanelTopTabStyle = "PanelTopTab";
@@ -103,22 +106,26 @@ public partial class SystemPanelController : CanvasLayer
 
         _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
         _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
+        _linkTreeTab = GetNode<Button>("Panel/RootVBox/TitleRow/LinkTreeTab");
         _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
-        _tabs[0] = _settingsTab;
-        _tabs[1] = _wardrobeTab;
-        _tabs[2] = _debugTab;
+        _tabs[0] = _wardrobeTab;
+        _tabs[1] = _linkTreeTab;
+        _tabs[2] = _settingsTab;
+        _tabs[3] = _debugTab;
 
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
+        _linkTreeContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
         _settingsActionTopGap = GetNode<Control>("Panel/RootVBox/ActionTopGap");
         _settingsActionRow = GetNode<Control>("Panel/RootVBox/SettingsActionRow");
         _settingsActionBottomGap = GetNode<Control>("Panel/RootVBox/ActionBottomGap");
         _settingsActionSep = GetNode<Control>("Panel/RootVBox/ActionSep");
 
-        _settingsTab.Pressed += () => SwitchTab(0);
-        _wardrobeTab.Pressed += () => SwitchTab(1);
-        _debugTab.Pressed += () => SwitchTab(2);
+        _wardrobeTab.Pressed += () => SwitchTab(0);
+        _linkTreeTab.Pressed += () => SwitchTab(1);
+        _settingsTab.Pressed += () => SwitchTab(2);
+        _debugTab.Pressed += () => SwitchTab(3);
         SwitchTab(0);
 
         // === Settings 页 ===
@@ -227,19 +234,30 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SwitchTab(int index)
     {
-        var contents = new[] { _settingsContent, _wardrobeContent, _debugContent };
+        var contents = new Control[] { _wardrobeContent, _linkTreeContent, _settingsContent, _debugContent };
         for (int i = 0; i < _tabs.Length; i++)
         {
             contents[i].Visible = i == index;
             _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
-        _settingsActionTopGap.Visible = index == 0;
-        _settingsActionRow.Visible = index == 0;
-        _settingsActionBottomGap.Visible = index == 0;
-        _settingsActionSep.Visible = index == 0;
-        if (index == 1 && _gameData != null)
+        _settingsActionTopGap.Visible = index == 2;
+        _settingsActionRow.Visible = index == 2;
+        _settingsActionBottomGap.Visible = index == 2;
+        _settingsActionSep.Visible = index == 2;
+        if (index == 0 && _gameData != null)
             BuildWardrobe();
-        if (index == 2)
+        if (index == 3)
+            RefreshDebugPlayTime();
+    }
+
+    private void EnsureCurrentTabReady()
+    {
+        if (_gameData == null)
+            return;
+
+        if (_wardrobeContent?.Visible == true)
+            BuildWardrobe();
+        if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
     }
 
@@ -381,6 +399,7 @@ public partial class SystemPanelController : CanvasLayer
     public void Open()
     {
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
+        EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
         _tween = CreateTween();

@@ -4,6 +4,7 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_rixui"]
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 [ext_resource type="Texture2D" uid="uid://4upal3vc8wlb" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
+[ext_resource type="Texture2D" uid="uid://y8vkbcba3ytw" path="res://Assets/UI/Icon/TabIcon_LinkTree.svg" id="5_linktree"]
 [ext_resource type="Texture2D" uid="uid://cwilhq5lum061" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
 [ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
@@ -28,17 +29,8 @@ theme_override_constants/separation = 0
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
-custom_minimum_size = Vector2(88, 44)
-layout_mode = 2
-tooltip_text = "Settings"
-theme_type_variation = &"PanelTopTab"
-theme_override_constants/icon_max_width = 32
-icon = ExtResource("6_settings")
-icon_alignment = 1
-
 [node name="WardrobeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168622]
-custom_minimum_size = Vector2(88, 44)
+custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
 tooltip_text = "Wardrobe"
 theme_type_variation = &"PanelTopTab"
@@ -46,8 +38,26 @@ theme_override_constants/icon_max_width = 32
 icon = ExtResource("4_wardrobe")
 icon_alignment = 1
 
+[node name="LinkTreeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=1598720541]
+custom_minimum_size = Vector2(68, 44)
+layout_mode = 2
+tooltip_text = "LinkTree"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("5_linktree")
+icon_alignment = 1
+
+[node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
+custom_minimum_size = Vector2(68, 44)
+layout_mode = 2
+tooltip_text = "Settings"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("6_settings")
+icon_alignment = 1
+
 [node name="DebugTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168623]
-custom_minimum_size = Vector2(88, 44)
+custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
 tooltip_text = "Debug"
 theme_type_variation = &"PanelTopTab"
@@ -342,6 +352,17 @@ text = "还没有这个分类的物品，想办法去搞点吧汪~"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="LinkTreeContent" type="CenterContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=516038212]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ComingSoonLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
+layout_mode = 2
+text = "Coming soon"
+label_settings = ExtResource("8_group_title")
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283481]
 layout_mode = 2
