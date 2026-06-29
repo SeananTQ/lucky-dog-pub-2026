@@ -226,7 +226,7 @@ public partial class InfoPanelController : CanvasLayer
 
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status == BlindBoxHintStatus.Waiting;
-        _blindBoxBtn.Text = "Claim";
+        _blindBoxBtn.Text = "Open";
         SetBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward);
 
         switch (state.Status)

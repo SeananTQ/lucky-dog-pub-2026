@@ -10,5 +10,4 @@ base_font = ExtResource("1_group_inter")
 [resource]
 line_spacing = 2.0
 font = SubResource("FontVariation_group")
-font_size = 16
 font_color = Color(0.6627451, 0.8352941, 0.85882354, 1)

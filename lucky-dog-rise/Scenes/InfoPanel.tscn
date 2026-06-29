@@ -261,14 +261,12 @@ custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 24
-theme_override_font_sizes/font_size = 14
-text = "Claim"
+text = "Open"
 icon = ExtResource("7_blindbox")
 
 [node name="SettingsBtn" type="Button" parent="Panel/RootVBox/ButtonRow" unique_id=640000321]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 20
-theme_override_font_sizes/font_size = 14
 text = "Menu"
 icon = ExtResource("6_menu")
