@@ -248,7 +248,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         KillTweens();
         _animating = true;
-        _hintLabel.Text = "点击继续";
+        _hintLabel.Text = "Tap to power up...";
         _boxSprite.Scale = GetBoxScale(new Vector2(0.4f, 0.4f));
         _boxSprite.Position = _boxSpriteRestPosition + BoxUpOffset(_boxAppearHeightRatio);
         _boxShadow.Scale = GetBoxScale(new Vector2(0.4f * _boxAppearAirborneShadowScale, 0.4f * _boxAppearAirborneShadowScale));
@@ -337,7 +337,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         KillTweens();
         _animating = false;
-        _hintLabel.Text = "点击开奖";
+        _hintLabel.Text = "Open it up!";
         _hintLabel.Modulate = Colors.White;
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxSprite.RotationDegrees = 0f;
@@ -425,7 +425,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void UpdateRewardCountdownLabel()
     {
         var seconds = Mathf.Max(0, Mathf.CeilToInt(_rewardAutoClaimRemaining));
-        _hintLabel.Text = $"{seconds}秒后自动领取";
+        _hintLabel.Text = $"Auto-claiming in {seconds}s";
     }
 
     private void RequestRewardClaim()

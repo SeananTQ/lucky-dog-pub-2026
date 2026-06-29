@@ -18,6 +18,7 @@ _rewardVisualRoot = NodePath("Stage/RewardVisualRoot")
 _rewardCellShadow = NodePath("Stage/RewardVisualRoot/RewardCellShadow")
 _rewardCell = NodePath("Stage/RewardVisualRoot/RewardCell")
 _debugLabel = NodePath("Stage/DebugLabel")
+_showDebugLabel = false
 
 [node name="RevealRoot" type="Control" parent="." unique_id=899057927]
 layout_mode = 3
