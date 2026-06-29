@@ -76,7 +76,7 @@ public partial class InfoPanelController : CanvasLayer
         {
             int gridIdx = payList.Count - 1 - i; // JSON 是低→高，Grid 是高→低
             if (gridIdx < _payoutNames.Count)
-                _payoutNames[gridIdx].Text = payList[i].SafeNameCN;
+                _payoutNames[gridIdx].Text = payList[i].SafeNameEN;
             if (gridIdx < _payoutValues.Count)
                 _payoutValues[gridIdx].Text = payList[i].PayoutMultiplier.ToString();
         }
