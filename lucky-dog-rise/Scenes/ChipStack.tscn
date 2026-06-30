@@ -13,6 +13,7 @@ script = ExtResource("1_ctrl")
 texture = ExtResource("2_jipm3")
 
 [node name="HintLabel" type="Label" parent="." unique_id=532194033]
+visible = false
 offset_left = -81.0
 offset_top = 68.0
 offset_right = 79.0

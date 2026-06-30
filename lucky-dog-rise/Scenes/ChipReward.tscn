@@ -14,6 +14,7 @@ position = Vector2(0, -30)
 texture = ExtResource("2_uiumv")
 
 [node name="AmountLabel" type="Label" parent="." unique_id=428280680]
+visible = false
 offset_left = -60.0
 offset_top = 20.0
 offset_right = 60.0

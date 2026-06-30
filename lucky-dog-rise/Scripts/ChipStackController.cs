@@ -9,6 +9,7 @@ public partial class ChipStackController : Node2D
 
     private Button _clickButton = null!;
     private Label _hintLabel = null!;
+    private const bool ShowBetHintText = false;
 
     public override void _Ready()
     {
@@ -20,7 +21,7 @@ public partial class ChipStackController : Node2D
     public void ShowHint(string text)
     {
         _hintLabel.Text = text;
-        _hintLabel.Visible = true;
+        _hintLabel.Visible = ShowBetHintText;
     }
 
     public void HideHint()
