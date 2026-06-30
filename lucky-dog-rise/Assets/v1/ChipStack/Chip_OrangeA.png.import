@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwa15cq1ex2q6"
-path="res://.godot/imported/OrangeA.png-3a22cf877816c4d86e90ca4ebc5cfcc0.ctex"
+uid="uid://dqedqv38acka3"
+path="res://.godot/imported/Chip_OrangeA.png-6caaaf266509d1813d05bb7dc2e71c2f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ChipStack/OrangeA.png"
-dest_files=["res://.godot/imported/OrangeA.png-3a22cf877816c4d86e90ca4ebc5cfcc0.ctex"]
+source_file="res://Assets/v1/ChipStack/Chip_OrangeA.png"
+dest_files=["res://.godot/imported/Chip_OrangeA.png-6caaaf266509d1813d05bb7dc2e71c2f.ctex"]
 
 [params]
 

@@ -68,6 +68,7 @@ position = Vector2(610, 677)
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 z_index = 5
 position = Vector2(-50, 1127)
+scale = Vector2(0.8, 0.8)
 
 [node name="RewardSpawnPoint" type="Marker2D" parent="." unique_id=1297724527]
 z_index = 4
