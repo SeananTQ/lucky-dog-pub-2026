@@ -36,7 +36,7 @@ public partial class ItemCellController : PanelContainer
         _markEquipped.Visible = isEquipped;
         _markNew.Visible = isNew;
         _countBadge.Visible = count > 1;
-        _countLabel.Text = $"x{count}";
+        _countLabel.Text = count.ToString();
     }
 
     private static void LoadTextureOrClear(TextureRect rect, string path)

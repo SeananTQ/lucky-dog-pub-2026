@@ -1,29 +1,31 @@
-[gd_scene load_steps=9 format=3 uid="uid://bbxjsmyo8skhj"]
+[gd_scene format=3 uid="uid://bbxjsmyo8skhj"]
 
 [ext_resource type="Script" uid="uid://bad2jhr24ohsl" path="res://Scripts/Desktop/ItemCellController.cs" id="1_script"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
-[ext_resource type="Texture2D" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
+[ext_resource type="Texture2D" uid="uid://bucc0k8foyvtv" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
+[ext_resource type="Texture2D" uid="uid://6lntwacy3nxl" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
+[ext_resource type="Texture2D" uid="uid://cgbhbfglpnwll" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
+[ext_resource type="Texture2D" uid="uid://cexiau3fabmyy" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
+[ext_resource type="Texture2D" uid="uid://dvfaahskvire7" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="7_count_inter"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="8_count_misans"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ep3ge"]
 
-[sub_resource type="StyleBoxFlat" id="count_bg"]
-content_margin_left = 4.0
-content_margin_top = 1.0
-content_margin_right = 4.0
-content_margin_bottom = 1.0
-bg_color = Color(0.05, 0.055, 0.06, 0.82)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+[sub_resource type="FontVariation" id="FontVariation_count"]
+fallbacks = Array[Font]([ExtResource("8_count_misans")])
+base_font = ExtResource("7_count_inter")
+
+[sub_resource type="LabelSettings" id="LabelSettings_count"]
+font = SubResource("FontVariation_count")
+font_size = 18
+font_color = Color(0.9372549, 0.972549, 1, 1)
+shadow_color = Color(0, 0, 0, 1)
+stacked_outline_count = 1
 
 [node name="ItemCell" type="PanelContainer" unique_id=1967701219 node_paths=PackedStringArray("_iconRect", "_markEquipped", "_markNew", "_countBadge", "_countLabel")]
 custom_minimum_size = Vector2(90, 90)
-offset_right = 256.0
-offset_bottom = 256.0
+offset_right = 90.0
+offset_bottom = 90.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_ep3ge")
 script = ExtResource("1_script")
 _iconRect = NodePath("Content/IconRect")
@@ -81,24 +83,32 @@ texture = ExtResource("6_260rb")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="CountBadge" type="PanelContainer" parent="Content"]
-visible = false
-layout_mode = 0
+[node name="CountBadge" type="Control" parent="Content" unique_id=1069195096]
+layout_mode = 1
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -36.0
-offset_top = -22.0
+offset_left = -35.0
+offset_top = -24.0
 offset_right = -4.0
-offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("count_bg")
 
-[node name="CountLabel" type="Label" parent="Content/CountBadge"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 12
-text = "x2"
-horizontal_alignment = 1
+[node name="CountLabel" type="Label" parent="Content/CountBadge" unique_id=1062244590]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -25.0
+offset_top = -25.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "23"
+label_settings = SubResource("LabelSettings_count")
+horizontal_alignment = 2
 vertical_alignment = 1
