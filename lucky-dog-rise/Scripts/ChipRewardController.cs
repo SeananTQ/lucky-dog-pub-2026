@@ -1,4 +1,8 @@
 using Godot;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -9,21 +13,118 @@ public partial class ChipRewardController : Node2D
 
     private const float SlideDuration = 0.4f;
     private const float SlideDistance = 300f;
+    private const float ChipSpawnInterval = 0.025f;
+    private const float ChipPopDuration = 0.09f;
+    private const string ChipPathPrefix = "res://Assets/v1/ChipStack/Chip_";
 
     private Button _clickButton = null!;
     private Label _amountLabel = null!;
+    [Export] private Godot.Collections.Array<Marker2D> _pileMarkers = new();
+    private Vector2 _chipLayerOffset = new(0f, -8f);
+    private readonly List<Tween> _spawnTweens = new();
     private bool _collected;
 
     public override void _Ready()
     {
         _clickButton = GetNode<Button>("ClickButton");
         _amountLabel = GetNode<Label>("AmountLabel");
+        CacheSampleOffsetAndClearSamples();
         _clickButton.Pressed += OnClicked;
     }
 
-    public void Setup(int amount)
+    public void Setup(int amount, EHandRank rank)
     {
         _amountLabel.Text = $"+{amount}";
+        BuildChipPile(rank);
+    }
+
+    private void CacheSampleOffsetAndClearSamples()
+    {
+        if (_pileMarkers.Count > 0)
+        {
+            var samples = _pileMarkers[0].GetChildren().OfType<Sprite2D>().OrderBy(sprite => sprite.Position.Y).ToArray();
+            if (samples.Length >= 2)
+                _chipLayerOffset = samples[0].Position - samples[1].Position;
+        }
+
+        foreach (var marker in _pileMarkers)
+        {
+            foreach (var sample in marker.GetChildren().OfType<Sprite2D>().ToArray())
+                sample.QueueFree();
+        }
+    }
+
+    private void BuildChipPile(EHandRank rank)
+    {
+        var layout = GetLayout(rank);
+        var pileZIndices = GetPileZIndices();
+        var spawnDelay = 0f;
+        for (var pileIndex = 0; pileIndex < layout.Length && pileIndex < _pileMarkers.Count; pileIndex++)
+        {
+            var pile = layout[pileIndex];
+            for (var layer = 0; layer < pile.Count; layer++)
+            {
+                var chip = new Sprite2D
+                {
+                    Texture = LoadChipTexture(pile.Color, layer),
+                    Position = _chipLayerOffset * layer,
+                    ZIndex = pileZIndices.GetValueOrDefault(_pileMarkers[pileIndex], pileIndex * 100) + layer,
+                    Scale = new Vector2(0.75f, 0.75f),
+                    Modulate = Colors.Transparent,
+                };
+                _pileMarkers[pileIndex].AddChild(chip);
+                QueueChipSpawn(chip, spawnDelay);
+                spawnDelay += ChipSpawnInterval;
+            }
+        }
+    }
+
+    private Dictionary<Marker2D, int> GetPileZIndices()
+    {
+        return _pileMarkers
+            .Where(marker => marker != null)
+            .OrderBy(marker => marker.GlobalPosition.Y)
+            .Select((marker, index) => new { marker, zIndex = index * 100 })
+            .ToDictionary(item => item.marker, item => item.zIndex);
+    }
+
+    private void QueueChipSpawn(Sprite2D chip, float delay)
+    {
+        var tween = CreateTween();
+        _spawnTweens.Add(tween);
+        tween.TweenInterval(delay);
+        tween.TweenCallback(Callable.From(() =>
+        {
+            chip.Modulate = Colors.White;
+            var chipTween = CreateTween();
+            _spawnTweens.Add(chipTween);
+            chipTween.SetParallel(true);
+            chipTween.TweenProperty(chip, "scale", Vector2.One, ChipPopDuration)
+                .SetTrans(Tween.TransitionType.Back)
+                .SetEase(Tween.EaseType.Out);
+            chipTween.TweenProperty(chip, "modulate:a", 1f, ChipPopDuration * 0.6f);
+        }));
+    }
+
+    private static ChipPileSpec[] GetLayout(EHandRank rank) => rank switch
+    {
+        EHandRank.JacksOrBetter => [new("Green", 2)],
+        EHandRank.TwoPair => [new("Blue", 3), new("Green", 1)],
+        EHandRank.ThreeOfAKind => [new("Red", 4), new("Green", 2)],
+        EHandRank.Straight => [new("Red", 4), new("Black", 3), new("Green", 1)],
+        EHandRank.Flush => [new("Blue", 5), new("Green", 3), new("Purple", 1)],
+        EHandRank.FullHouse => [new("Purple", 6), new("Black", 3), new("Green", 2)],
+        EHandRank.FourOfAKind => [new("Green", 7), new("Purple", 4), new("Black", 2)],
+        EHandRank.StraightFlush => [new("Green", 8), new("Purple", 5), new("Black", 3), new("Orange", 1)],
+        EHandRank.RoyalFlush => [new("Orange", 9), new("Black", 6), new("Purple", 4), new("Green", 2)],
+        _ => Array.Empty<ChipPileSpec>(),
+    };
+
+    private static Texture2D LoadChipTexture(string color, int layer)
+    {
+        var variant = layer % 2 == 0 ? "A" : "B";
+        var path = $"{ChipPathPrefix}{color}_{variant}.png";
+        return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
     }
 
     private void OnClicked()
@@ -31,6 +132,7 @@ public partial class ChipRewardController : Node2D
         if (_collected) return;
         _collected = true;
         _clickButton.Disabled = true;
+        KillSpawnTweens();
 
         AudioManager.Instance.PlaySfxByName("ChipCollect.wav");
 
@@ -45,4 +147,13 @@ public partial class ChipRewardController : Node2D
             QueueFree();
         }));
     }
+
+    private void KillSpawnTweens()
+    {
+        foreach (var tween in _spawnTweens)
+            tween?.Kill();
+        _spawnTweens.Clear();
+    }
+
+    private readonly record struct ChipPileSpec(string Color, int Count);
 }

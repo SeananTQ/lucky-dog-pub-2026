@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
 [ext_resource type="Texture2D" uid="uid://bogg7o8a4ngr3" path="res://Assets/v1/Table/FeltEmerald.png" id="3_grg3l"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
-[ext_resource type="Texture2D" uid="uid://dgt02glenv5vy" path="res://Assets/v1/ChipStack/GreenA.png" id="8_4kpch"]
+[ext_resource type="Texture2D" uid="uid://dy5wyyxas45x7" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="8_4kpch"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
 [ext_resource type="PackedScene" uid="uid://csak1ybmnwp72" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
 [ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
@@ -72,7 +72,7 @@ scale = Vector2(0.8, 0.8)
 
 [node name="RewardSpawnPoint" type="Marker2D" parent="." unique_id=1297724527]
 z_index = 4
-position = Vector2(700, 1115)
+position = Vector2(582, 1115)
 
 [node name="PreviewSprite" type="Sprite2D" parent="RewardSpawnPoint" unique_id=1109649533]
 visible = false
@@ -80,7 +80,7 @@ texture = ExtResource("8_4kpch")
 
 [node name="ChipStack" parent="." unique_id=1896668962 instance=ExtResource("9_chipstack")]
 z_index = 4
-position = Vector2(976, 1105)
+position = Vector2(897, 1128)
 
 [node name="TutorialManager" type="Node" parent="." unique_id=381839165]
 script = ExtResource("13_tutorial")

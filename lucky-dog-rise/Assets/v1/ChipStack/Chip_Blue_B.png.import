@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8osyg2o7er8g"
-path="res://.godot/imported/Chip_BlackA.png-99851febdbecad59fc55edf8b20b42f5.ctex"
+uid="uid://bohb17b4bjqwv"
+path="res://.godot/imported/Chip_Blue_B.png-fed294d443afb096de26dcc73f1333b8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ChipStack/Chip_BlackA.png"
-dest_files=["res://.godot/imported/Chip_BlackA.png-99851febdbecad59fc55edf8b20b42f5.ctex"]
+source_file="res://Assets/v1/ChipStack/Chip_Blue_B.png"
+dest_files=["res://.godot/imported/Chip_Blue_B.png-fed294d443afb096de26dcc73f1333b8.ctex"]
 
 [params]
 

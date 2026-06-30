@@ -214,7 +214,7 @@ public partial class GameManager : Node2D
         {
             _pendingPayout = payout;
             _hud.SetMessage("");
-            SpawnChipReward(payout);
+            SpawnChipReward(payout, rank);
             State = GameState.Settled;
         }
         else
@@ -238,12 +238,12 @@ public partial class GameManager : Node2D
         RefreshUI();
     }
 
-    private void SpawnChipReward(int amount)
+    private void SpawnChipReward(int amount, EHandRank rank)
     {
         var reward = ChipRewardScene.Instantiate<ChipRewardController>();
         _rewardSpawnPoint.AddChild(reward);
         reward.Position = Vector2.Zero;
-        reward.Setup(amount);
+        reward.Setup(amount, rank);
         reward.Collected += OnChipCollected;
         _pendingReward = reward;
     }
