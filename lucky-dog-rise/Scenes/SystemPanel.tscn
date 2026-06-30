@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
 [ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="9_option_label"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="10_exit"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -74,7 +75,9 @@ custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"PanelCloseButton"
-text = "X"
+theme_override_constants/icon_max_width = 20
+icon = ExtResource("10_exit")
+icon_alignment = 1
 
 [node name="Sep1" type="HSeparator" parent="Panel/RootVBox" unique_id=2137006305]
 layout_mode = 2

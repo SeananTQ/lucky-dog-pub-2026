@@ -85,9 +85,9 @@ mouse_filter = 2
 
 [node name="RewardCellShadow" type="TextureRect" parent="RewardVisualRoot" unique_id=1437477505]
 layout_mode = 0
-offset_top = 214.0
+offset_top = 128.0
 offset_right = 256.0
-offset_bottom = 294.0
+offset_bottom = 384.0
 pivot_offset_ratio = Vector2(0.5, 0.5)
 mouse_filter = 2
 texture = ExtResource("3_reward_shadow")
