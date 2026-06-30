@@ -196,6 +196,7 @@ public partial class SystemPanelController : CanvasLayer
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
+        var hideDebugTabBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideDebugTabBtn");
         _reactionOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/ReactionOption");
         var playReactionBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
@@ -205,6 +206,7 @@ public partial class SystemPanelController : CanvasLayer
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
+        hideDebugTabBtn.Pressed += HideDebugTabForSession;
         BuildReactionOptions();
         playReactionBtn.Pressed += () =>
             EmitSignal(SignalName.DogReactionRequested, _reactionOption.GetSelectedId());
@@ -278,6 +280,13 @@ public partial class SystemPanelController : CanvasLayer
             ? "▼ BlindBox Debug"
             : "▶ BlindBox Debug";
         RefreshBlindBoxDebugStatus();
+    }
+
+    private void HideDebugTabForSession()
+    {
+        // 仅用于录制前清理界面：不写入设置或存档，重启游戏后调试页签会自然恢复。
+        _debugTab.Visible = false;
+        SwitchTab(0);
     }
 
     private void RefreshBlindBoxDebugStatus()

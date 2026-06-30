@@ -445,6 +445,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "随机获得道具"
 
+[node name="HideDebugTabBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "本次隐藏调试页签"
+
 [node name="ReactionRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1733918955]
 layout_mode = 2
 

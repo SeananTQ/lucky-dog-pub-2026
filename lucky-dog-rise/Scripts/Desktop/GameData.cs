@@ -8,6 +8,7 @@ namespace LuckyDogRise;
 public partial class GameData : Node
 {
     public const int StartingChips = 1000;
+    public const int DebugAllItemsStartingChips = 36500;
 
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
     [Signal] public delegate void HandResolvedEventHandler(EHandRank rank, int payout);
@@ -181,7 +182,7 @@ public partial class GameData : Node
 
     public void ResetToStart()
     {
-        Chips = StartingChips;
+        Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
