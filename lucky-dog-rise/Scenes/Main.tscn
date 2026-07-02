@@ -2,9 +2,9 @@
 
 [ext_resource type="Texture2D" uid="uid://cbrr1ts2stgqk" path="res://Assets/v1/Background/GreenB.png" id="2_4kpch"]
 [ext_resource type="Script" uid="uid://btxs0jc1ng0x5" path="res://Scripts/GameManager.cs" id="3_gm"]
-[ext_resource type="Texture2D" uid="uid://bogg7o8a4ngr3" path="res://Assets/v1/Table/FeltEmerald.png" id="3_grg3l"]
+[ext_resource type="Texture2D" uid="uid://j4eirc7h32rq" path="res://Assets/v1/Table/Felt_Emerald.png" id="3_grg3l"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="4_dog_scene"]
-[ext_resource type="Texture2D" uid="uid://dy5wyyxas45x7" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="8_4kpch"]
+[ext_resource type="Texture2D" uid="uid://dsh7n8dygnnlj" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="8_4kpch"]
 [ext_resource type="PackedScene" uid="uid://bkycxynrannka" path="res://Scenes/HandArea.tscn" id="8_hand_scene"]
 [ext_resource type="PackedScene" uid="uid://csak1ybmnwp72" path="res://Scenes/ChipStack.tscn" id="9_chipstack"]
 [ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
