@@ -1,0 +1,314 @@
+"""
+PSD 图层重命名工具（v2）
+按项目命名规范标准化 PSD 内的图层名称，使图层名可直接对应导出路径。
+
+用法：
+    python rename_layers.py --psd <PSD路径> [--apply]
+    默认仅预览，加 --apply 执行修改。
+"""
+
+import os, re, argparse, sys
+from pathlib import Path
+from psd_tools import PSDImage
+from psd_tools.api.layers import Layer, Group
+
+
+# ============================================================
+# 分类规则（复用 export_layers.py 的逻辑）
+# ============================================================
+
+SKIP_KEYWORDS = ["模板", "图层"]
+
+SUIT_MAP = {"S": "Spade", "H": "Heart", "D": "Diamond", "C": "Club"}
+RANK_MAP = {
+    "A": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+    "6": "6", "7": "7", "8": "8", "9": "9", "T": "10",
+    "J": "11", "Q": "12", "K": "13",
+}
+
+CHINESE_RENAME = {
+    "绿色筹码A": ("Chip", "GreenA"),
+    "绿色筹码B": ("Chip", "GreenB"),
+    "红色筹码A": ("Chip", "RedA"),
+    "红色筹码B": ("Chip", "RedB"),
+    "蓝色筹码A": ("Chip", "BlueA"),
+    "蓝色筹码B": ("Chip", "BlueB"),
+    "黑色筹码A": ("Chip", "BlackA"),
+    "黑色筹码B": ("Chip", "BlackB"),
+    "紫色筹码A": ("Chip", "PurpleA"),
+    "紫色筹码B": ("Chip", "PurpleB"),
+    "橙色筹码A": ("Chip", "OrangeA"),
+    "橙色筹码C": ("Chip", "OrangeC"),
+}
+
+
+def to_pascal(s: str) -> str:
+    if s and s[0].isalpha():
+        return s[0].upper() + s[1:]
+    return s
+
+
+def classify_layer(name: str):
+    """
+    返回 (folder, filename) 或 None。
+    与 export_layers.py 的 classify_layer 逻辑一致。
+    """
+    # 扑克牌
+    m = re.match(r"^pub_pk1_([SHDC])([A2-9TJQK])$", name)
+    if m:
+        suit = SUIT_MAP[m.group(1)]
+        rank = RANK_MAP[m.group(2)]
+        return ("Card", f"{suit}{rank}")
+
+    # 中文名兜底
+    if name in CHINESE_RENAME:
+        return CHINESE_RENAME[name]
+
+    # pub_background_XXX → Background/XXX
+    m = re.match(r"^pub_background_(.+)$", name)
+    if m:
+        return ("Background", to_pascal(m.group(1)))
+
+    # pub_tablecloth_XXX → Table/XXX
+    m = re.match(r"^pub_tablecloth_(.+)$", name)
+    if m:
+        return ("Table", to_pascal(m.group(1)))
+
+    # pub_chips_XXX → Chip/XXX
+    m = re.match(r"^pub_chips_(.+)$", name)
+    if m:
+        return ("Chip", to_pascal(m.group(1)))
+
+    # pub_clothes_XXX → Clothes/XXX
+    m = re.match(r"^pub_clothes_(.+)$", name)
+    if m:
+        return ("Clothes", to_pascal(m.group(1)))
+
+    # pub_hand_maleX → Hand/MaleX
+    m = re.match(r"^pub_hand_(.+)$", name)
+    if m:
+        return ("Hand", to_pascal(m.group(1)))
+
+    # pub_eyewear_XXX → Eyewear/XXX
+    m = re.match(r"^pub_eyewear_(.+)$", name)
+    if m:
+        return ("Eyewear", to_pascal(m.group(1)))
+
+    # pub_headwear_XXX → Headwear/XXX
+    m = re.match(r"^pub_headwear_(.+)$", name)
+    if m:
+        return ("Headwear", to_pascal(m.group(1)))
+
+    # pub_hobby_XXX → Item/XXX
+    m = re.match(r"^pub_hobby_(.+)$", name)
+    if m:
+        return ("Item", to_pascal(m.group(1)))
+
+    # pub_special_XXX → Accessory/XXX
+    m = re.match(r"^pub_special_(.+)$", name)
+    if m:
+        return ("Accessory", to_pascal(m.group(1)))
+
+    # shiba{Color}_{part1}_{part2}... → Shiba/{Color}/{Part1}_{Part2}...
+    m = re.match(r"^shiba(\w+?)_(.+)$", name)
+    if m:
+        color_raw = m.group(1)
+        rest = m.group(2)
+        color = color_raw.capitalize()
+        parts = rest.split("_")
+        filename = "_".join(p.capitalize() for p in parts)
+        return (f"Shiba/{color}", filename)
+
+    return None
+
+
+def new_layer_name(name: str) -> str | None:
+    """
+    根据分类规则计算新图层名。
+    返回新名字，或 None（无需修改/无法分类）。
+    """
+    result = classify_layer(name)
+    if result is None:
+        return None
+    folder, filename = result
+    # 将 folder/ 路径转换为下划线连接作为图层名
+    flat = folder.replace("/", "_")
+    new_name = f"{flat}_{filename}"
+    if new_name == name:
+        return None
+    return new_name
+
+
+# ============================================================
+# 分组命名
+# ============================================================
+
+GROUP_NAME_MAP = {
+    "背景": "Background",
+    "桌布": "Tablecloth",
+    "柴犬组": "ShibaGroup",
+    "赤柴": "Shiba_Red",
+    "黑柴": "Shiba_Black",
+    "白柴": "Shiba_Cream",
+    "芝麻柴": "Shiba_Sesame",
+    "装备": "Equipment",
+    "装饰": "Accessories",
+    "扑克": "Poker",
+    "手": "Hand",
+    "手臂": "Arm",
+    "手部": "Hand",
+    "大拇指": "Thumb",
+    "拳头": "Fist",
+    "手牌": "HandCards",
+    "手牌1": "HandCards1",
+    "手牌2": "HandCards2",
+    "手部装饰": "HandAccessories",
+    "衣服": "Clothes",
+    "西装": "Suit",
+    "道具": "Items",
+    "筹码": "Chips",
+    "桌面物品": "TableItems",
+    "模板": "Templates",
+    "筹码模板": "ChipTemplates",
+    "奖品": "Rewards",
+    "扑克模板": "PokerTemplates",
+    "玩家手臂装饰": "HandAccessories",
+    "玩家大拇指": "Thumb",
+    "桌面物品": "TableItems",
+    "玩家手臂": "Arm",
+    "玩家手牌1": "Hand1",
+    "玩家手牌2": "Hand2",
+}
+
+CATEGORY_MAP_FROM_CHILD = {
+    "background": "Background",
+    "tablecloth": "Tablecloth",
+    "chips": "Chips",
+    "clothes": "Clothes",
+    "hand": "Hand",
+    "eyewear": "Eyewear",
+    "headwear": "Headwear",
+    "hobby": "Items",
+    "special": "Accessories",
+}
+
+
+def is_chinese(s: str) -> bool:
+    return bool(re.search(r"[一-鿿]", s))
+
+
+def suggest_group_name(group: Group, known_children: list[str]) -> str:
+    """给分组建议英文名"""
+    # 已知映射
+    if group.name in GROUP_NAME_MAP:
+        return GROUP_NAME_MAP[group.name]
+    for ch_name, en_name in GROUP_NAME_MAP.items():
+        if ch_name in group.name:
+            return en_name
+
+    # 从子图层推断
+    for child_name in known_children:
+        m = re.match(r"^pub_(background|tablecloth|chips|clothes|hand|eyewear|headwear|hobby|special)_", child_name)
+        if m:
+            return CATEGORY_MAP_FROM_CHILD.get(m.group(1), m.group(1).capitalize())
+        m = re.match(r"^shiba(\w+)", child_name)
+        if m:
+            return f"Shiba_{m.group(1).capitalize()}"
+
+    if not is_chinese(group.name) and re.match(r"^[A-Za-z0-9_ ]+$", group.name):
+        return group.name
+    return "Group_" + group.name[:4]
+
+
+# ============================================================
+# 主流程
+# ============================================================
+
+def rename_layers(psd_path: str, dry_run: bool = True):
+    psd = PSDImage.open(psd_path)
+    print(f"PSD: {psd_path} ({psd.width}x{psd.height})")
+
+    # 收集子图层名
+    all_child_names: dict = {}
+    for layer in psd.descendants():
+        parent = layer.parent
+        if parent is not None and not layer.is_group():
+            all_child_names.setdefault(parent, []).append(layer.name)
+
+    changes = []
+    total = 0
+
+    # 重命名分组（只改有中文名的组）
+    for layer in psd.descendants():
+        if not layer.is_group():
+            continue
+        total += 1
+        if not is_chinese(layer.name) and layer.name not in GROUP_NAME_MAP:
+            continue
+        children = all_child_names.get(layer, [])
+        new_name = suggest_group_name(layer, children)
+        if new_name != layer.name:
+            changes.append((layer.name, new_name, "group"))
+            if not dry_run:
+                layer.name = new_name
+
+    # 重命名图层
+    for layer in psd.descendants():
+        if layer.is_group():
+            continue
+        total += 1
+        # 跳过模板/辅助图层
+        if any(kw in layer.name for kw in SKIP_KEYWORDS):
+            continue
+
+        new_name = new_layer_name(layer.name)
+        if new_name is None:
+            continue
+        if new_name != layer.name:
+            changes.append((layer.name, new_name, "layer"))
+            if not dry_run:
+                layer.name = new_name
+
+    # 输出
+    print(f"\n总计检查: {total} 个节点")
+    if not changes:
+        print("无需修改。")
+        return
+
+    print(f"修改: {len(changes)} 处\n")
+
+    group_changes = [c for c in changes if c[2] == "group"]
+    layer_changes = [c for c in changes if c[2] == "layer"]
+
+    if group_changes:
+        print("--- 分组重命名 ---")
+        for old, new, _ in group_changes:
+            print(f"  [{old}] -> [{new}]")
+
+    if layer_changes:
+        print("--- 图层重命名 ---")
+        for old, new, _ in layer_changes:
+            print(f"  {old} -> {new}")
+
+    if dry_run:
+        print("\n[预览模式] 未实际保存。加 --apply 执行修改。")
+    else:
+        psd.save(psd_path)
+        print(f"\n已保存到: {psd_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="PSD 图层重命名工具")
+    parser.add_argument("--psd", required=True, help="PSD 文件路径")
+    parser.add_argument("--apply", action="store_true", help="实际修改")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.psd):
+        print(f"错误: PSD 文件不存在 - {args.psd}")
+        sys.exit(1)
+
+    rename_layers(args.psd, dry_run=not args.apply)
+
+
+if __name__ == "__main__":
+    main()

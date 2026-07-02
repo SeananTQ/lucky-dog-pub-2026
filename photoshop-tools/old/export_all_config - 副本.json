@@ -1,0 +1,7 @@
+{
+    "_说明": "PSD 全量导出配置",
+    "psd路径": "LuckyDogPub-Test02.psd",
+    "输出目录": "output\\v1\\",
+    "裁剪空白": true,
+    "使用合成渲染": true
+}
