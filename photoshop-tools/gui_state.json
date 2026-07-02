@@ -1,0 +1,28 @@
+{
+  "generic": {
+    "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/ItemBoderV1.psd",
+    "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
+    "crop": false,
+    "composite": true,
+    "excluded_groups": []
+  },
+  "lucky": {
+    "psd": "",
+    "out": "",
+    "crop": true,
+    "composite": false,
+    "excluded_groups": []
+  },
+  "icons": {
+    "psd": "",
+    "item_json": "",
+    "dog_json": "",
+    "out": "",
+    "canvas": "256",
+    "content": "240",
+    "margin": "16",
+    "short_groups": "Background,Table",
+    "export_dogs": true
+  },
+  "updated_at": "2026-07-02T21:02:12"
+}

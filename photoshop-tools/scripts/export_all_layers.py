@@ -60,6 +60,9 @@ def is_in_excluded_group(layer, excluded: set):
     if not excluded:
         return False
     group_path = get_group_path(layer)
+    group_path_text = "/".join(group_path)
+    if group_path_text in excluded:
+        return True
     for g in group_path:
         if g in excluded:
             return True
@@ -234,12 +237,12 @@ def main():
     parser.add_argument("--out", default="output", help="导出目录")
     args = parser.parse_args()
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
     if args.config:
-        cfg = load_config(args.config)
-        psd_path = resolve_path(script_dir, cfg["psd路径"])
-        out_dir = resolve_path(script_dir, cfg["输出目录"])
+        cfg_path = os.path.abspath(args.config)
+        cfg = load_config(cfg_path)
+        base_dir = os.getcwd()
+        psd_path = resolve_path(base_dir, cfg["psd路径"])
+        out_dir = resolve_path(base_dir, cfg["输出目录"])
         crop_blank = cfg.get("裁剪空白", True)
         use_composite = cfg.get("使用合成渲染", False)
         excluded_groups = cfg.get("排除组", "")
@@ -247,8 +250,9 @@ def main():
         if not args.psd:
             print("错误: 需要 --psd 或 --config")
             sys.exit(1)
-        psd_path = resolve_path(script_dir, args.psd)
-        out_dir = resolve_path(script_dir, args.out)
+        base_dir = os.getcwd()
+        psd_path = resolve_path(base_dir, args.psd)
+        out_dir = resolve_path(base_dir, args.out)
         crop_blank = True
         use_composite = False
         excluded_groups = ""

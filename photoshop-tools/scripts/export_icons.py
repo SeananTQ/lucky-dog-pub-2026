@@ -8,7 +8,7 @@
     python export_icons.py [--config export_config.json]
 """
 
-import json, os, sys
+import argparse, json, os, sys
 from psd_tools import PSDImage
 from PIL import Image, ImageDraw
 import numpy as np
@@ -146,14 +146,19 @@ def postprocess(img, use_short, canvas_size, content_size, margin):
 # ─── 主流程 ──────────────────────────────────────────────
 
 def main():
-    cfg_path = sys.argv[1] if len(sys.argv) > 1 else "export_config.json"
+    parser = argparse.ArgumentParser(description="道具图标导出工具")
+    parser.add_argument("config_path", nargs="?", help="配置文件路径")
+    parser.add_argument("--config", dest="config_option", help="配置文件路径")
+    args = parser.parse_args()
+
+    cfg_path = args.config_option or args.config_path or os.path.join("configs", "export_config.json")
     with open(cfg_path, encoding="utf-8") as f:
         cfg = json.load(f)
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.getcwd()
 
     def resolve(p):
-        return p if os.path.isabs(p) else os.path.normpath(os.path.join(script_dir, p))
+        return p if os.path.isabs(p) else os.path.normpath(os.path.join(base_dir, p))
 
     psd_path = resolve(cfg["psd路径"])
     item_json = resolve(cfg["道具表路径"])
