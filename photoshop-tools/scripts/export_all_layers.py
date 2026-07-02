@@ -88,16 +88,15 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
         if not has_content(layer):
             skipped_count += 1
             continue
-        if should_skip(layer) or is_in_excluded_group(layer, excluded):
+
+        skip_layer = should_skip(layer) or is_in_excluded_group(layer, excluded)
+        if skip_layer:
             skipped_count += 1
-            continue
 
         # 构建组路径
         group_path = get_group_path(layer)
-        # 如果组路径为空，放到根层级
         folder = os.path.join(*group_path) if group_path else "_root"
 
-        # 文件名
         filename = f"{safe_filename(layer.name)}.png"
         file_rel = os.path.join(folder, filename)
 
@@ -170,16 +169,16 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
                 actual_x, actual_y = 0, 0
                 actual_w, actual_h = psd.width, psd.height
 
-        # 保存
-        save_dir = os.path.join(out_dir, folder)
-        os.makedirs(save_dir, exist_ok=True)
-        filepath = os.path.join(save_dir, filename)
-
-        try:
-            img_cropped.save(filepath)
-        except Exception as e:
-            print(f"  [!] 保存失败 [{layer.name}]: {e}")
-            continue
+        # 保存 PNG（仅非跳过图层）
+        if not skip_layer:
+            save_dir = os.path.join(out_dir, folder)
+            os.makedirs(save_dir, exist_ok=True)
+            filepath = os.path.join(save_dir, filename)
+            try:
+                img_cropped.save(filepath)
+            except Exception as e:
+                print(f"  [!] 保存失败 [{layer.name}]: {e}")
+                # 仍然记录到 JSON，但标记保存失败
 
         exported.append({
             "name": layer.name,
@@ -195,7 +194,7 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
         exported_count += 1
 
         if exported_count % 100 == 0:
-            print(f"  进度: {exported_count} 图层已导出...")
+            print(f"  进度: {exported_count} 图层已处理...")
 
     # JSON
     json_path = os.path.join(out_dir, "layer_index.json")
