@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://csak1ybmnwp72"]
 
 [ext_resource type="Script" uid="uid://c15gkme8ursaq" path="res://Scripts/ChipStackController.cs" id="1_ctrl"]
-[ext_resource type="Texture2D" uid="uid://5nb5hhyt2n1a" path="res://Assets/v1/ChipStack/JacksOrBetter.png" id="2_jipm3"]
+[ext_resource type="Texture2D" uid="uid://dsh7n8dygnnlj" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="2_kdb67"]
+[ext_resource type="Texture2D" uid="uid://0b3gcua1juhd" path="res://Assets/v1/ChipStack/Chip_Green_B.png" id="3_naqxy"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
@@ -10,7 +11,11 @@ bg_color = Color(1, 1, 1, 0)
 script = ExtResource("1_ctrl")
 
 [node name="ChipSprite" type="Sprite2D" parent="." unique_id=892807914]
-texture = ExtResource("2_jipm3")
+texture = ExtResource("2_kdb67")
+
+[node name="ChipSprite2" type="Sprite2D" parent="." unique_id=1131025267]
+position = Vector2(0, -6)
+texture = ExtResource("3_naqxy")
 
 [node name="HintLabel" type="Label" parent="." unique_id=532194033]
 visible = false
