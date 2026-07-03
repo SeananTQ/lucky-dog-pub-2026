@@ -234,7 +234,7 @@ public partial class GameData : Node
             return;
         }
 
-        Chips = StartingChips;
+        Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();

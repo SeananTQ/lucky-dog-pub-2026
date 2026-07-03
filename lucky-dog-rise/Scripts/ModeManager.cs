@@ -495,7 +495,7 @@ public partial class ModeManager : Control
 
     private void OnDebugGrantChips()
     {
-        _gameData.ModifyChips(50000);
+        _gameData.ModifyChips(8000);
     }
 
     private void OnBlindBoxRequested()

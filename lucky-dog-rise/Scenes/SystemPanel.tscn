@@ -397,7 +397,7 @@ text = "Play Time: 00:00:00 (0.0s)"
 [node name="GrantChipsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1780254158]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "立即获得 50000 筹码"
+text = "立即获得 8000 筹码"
 
 [node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1340448601]
 layout_mode = 2

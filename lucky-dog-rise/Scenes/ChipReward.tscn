@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://b1vqwt5qb5i6a"]
 
 [ext_resource type="Script" uid="uid://bfj6hgln0xem3" path="res://Scripts/ChipRewardController.cs" id="1_ctrl"]
-[ext_resource type="Texture2D" uid="uid://dy5wyyxas45x7" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="2_green_a"]
-[ext_resource type="Texture2D" uid="uid://dkc0jdblmwnwr" path="res://Assets/v1/ChipStack/Chip_Green_B.png" id="3_green_b"]
+[ext_resource type="Texture2D" uid="uid://dsh7n8dygnnlj" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="2_green_a"]
+[ext_resource type="Texture2D" uid="uid://0b3gcua1juhd" path="res://Assets/v1/ChipStack/Chip_Green_B.png" id="3_green_b"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
