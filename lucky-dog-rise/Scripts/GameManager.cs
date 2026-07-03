@@ -13,7 +13,6 @@ public enum GameState
     Holding,
     Drawing,
     Settled,
-    GameOver
 }
 
 public partial class GameManager : Node2D
@@ -112,7 +111,7 @@ public partial class GameManager : Node2D
     private void OnBetPlaced()
     {
         if (State != GameState.WaitingForBet) return;
-        if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
+        if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
         DealNewHand();
@@ -222,19 +221,19 @@ public partial class GameManager : Node2D
             _hud.SetMessage("");
             State = GameState.WaitingForBet;
             _chipStack.ShowHint("Click to bet");
-            if (!_gameData.CanAffordBet) { TriggerGameOver(); return; }
+            if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
         }
         if (_gameData.Progression.CheckRankUp())
             _hud.ShowOverlay($"Rank Up: {_gameData.Progression.CurrentRank}!");
         RefreshUI();
     }
 
-    private void TriggerGameOver()
+    private void HandleInsufficientChips()
     {
-        State = GameState.GameOver;
-        _hud.ShowOverlay(DogProverbs.GetRandom());
+        State = GameState.WaitingForBet;
+        _hud.HideOverlay();
         _hud.SetMessage("");
-        _chipStack.HideHint();
+        _chipStack.ShowHint("Click to bet");
         RefreshUI();
     }
 
