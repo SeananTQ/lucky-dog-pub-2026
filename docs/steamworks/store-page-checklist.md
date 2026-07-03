@@ -10,6 +10,10 @@ status: draft
 
 本文档记录 `Lucky Dog Rise` 进入 Steam 商店页“即将推出”状态前的填写决策、素材清单、审核注意事项与后台操作记录。
 
+关联材料准备文档：
+
+- `docs/steamworks/store-page-materials.md`
+
 本轮工作的目标包含三件事：
 
 1. 帮主人完成 Steamworks 后台商店页填写。
@@ -54,6 +58,30 @@ flowchart TD
 
 - 后台入口：`Store Presence / Basic Info`
 - 当前状态：未完成
+- 2026-07-03 页面观察：
+  - 应用类型已选：游戏
+  - 游戏名称已填：`Lucky Dog Rise`
+  - 开发者为空
+  - 发行商为空
+  - 系列为空
+  - 外部链接为空
+  - 当前支持平台仅 Windows 已选
+  - 系统需求为空
+  - 发行日期未设置
+  - 支持语言尚未确认
+  - 玩家数尚未勾选
+  - 支持功能尚未勾选
+  - 主要类型未选
+  - 标签数量为 0
+  - 控制器支持向导未启动
+  - 辅助功能向导未启动
+  - 第三方 DRM、第三方账户、反作弊为空
+  - 客服联系信息为空
+- 2026-07-03 已在后台表单中设置但尚未点击保存：
+  - 支持平台：`Windows`
+  - 玩家数：`单人`
+  - 类型：`休闲`
+  - 主要类型：`Casual`
 - 教学重点：
   - 这里决定商店页最基础的产品身份、分类、功能勾选、开发者/发行商显示。
   - 功能勾选必须与当前游戏实际支持一致；未实现的 Steam Cloud、成就、控制器支持等不应提前勾选。
@@ -65,19 +93,70 @@ flowchart TD
   - 支持平台
   - 支持功能
 
+#### 基本信息建议草案
+
+- 应用类型：保持 `游戏`
+- 游戏名称：暂保持 `Lucky Dog Rise`
+- 开发者：`Seanan Studio`
+- 发行商：`Seanan Studio`
+- 支持平台：首轮仅勾选 `Windows`
+- 玩家数：勾选 `单人`
+- 支持功能：首轮不勾选 Steam 成就、Steam 云、统计数据、排行榜、应用内购买、创意工坊、远程同乐、HDR、时间轴等尚未验证的功能
+- 第三方 DRM：留空
+- 第三方账户：留空
+- 反作弊：留空
+- 主要类型：建议优先选择 `休闲`
+- 次要类型候选：`独立`、`模拟`、`策略` 中按商店定位选择，不建议过多
+- 标签候选：`Casual`、`Cute`、`Card Game`、`Poker`、`Idler`、`Dog`、`Singleplayer`
+- 控制器支持：如果当前游戏主要依赖鼠标/键盘与桌面交互，建议完成向导时明确为不主打控制器支持
+- 辅助功能：先按当前实际支持填写，不夸大
+- 系统要求：先填保守 Windows 配置，后续在发布包验证后修正
+- 外部链接：无长期维护页面时可暂不填；隐私政策如果未来涉及联网、分析、账户或 Steam 库存服务，需要准备
+- 客服联系信息：至少准备一个长期可用的客服邮箱
+
 ### 描述
 
 - 后台入口：`Store Presence / Description`
-- 当前状态：未完成
+- 当前状态：已在后台页面填入英文草案，尚未由主人确认保存
 - 教学重点：
   - 短描述影响列表页和商店首屏理解成本。
   - 长描述需要清楚说明玩家能实际获得什么体验。
   - 不应把尚未确定首发可用的功能写成已上线功能。
+- 2026-07-03 已填入后台页面的英文短描述草案：
+
+```text
+Lucky Dog Rise is a cozy desktop dog companion with idle progression and casual video poker. Let a lucky pup stay on your screen, earn chips as you type and click, open blind boxes, collect outfits, and take quick card-game breaks whenever you want.
+```
+
+- 2026-07-03 已填入后台页面的英文长描述草案：
+
+```text
+Lucky Dog Rise is a cozy desktop companion game about a lucky little dog who hangs out on your screen while you work, type, click, and take small breaks.
+
+Your dog reacts to your desktop activity, gives playful feedback, and helps turn idle moments into a light collection loop. Keep the companion on your desk, earn chips through typing and clicking, open blind boxes, and dress your dog with new looks and accessories.
+
+When you want a more focused break, switch into a casual video poker mode inspired by Jacks or Better. Bet chips, hold cards, draw new ones, and chase better hands at your own pace.
+
+Features
+
+A cute desktop dog companion that can stay with you while you work or relax
+
+Typing and clicking activity that feeds into lightweight progression
+
+Casual video poker gameplay with chips, hands, and rewards
+
+Blind boxes, collectible items, dog skins, and outfit customization
+
+A cozy 2D style designed for short sessions and background play
+
+Lucky Dog Rise is made for players who enjoy desktop companions, idle collection, cute animals, and card-based mini games.
+```
+
 - 待填写/确认：
-  - 短描述
-  - 长描述
-  - 核心卖点列表
-  - 关于桌宠模式、扑克玩法、盲盒/装扮的表述边界
+  - 主人确认是否保存当前英文草案
+  - 是否继续补充简体中文商店页描述
+  - 后续根据实际截图与宣传素材微调文案节奏
+  - 关于首发功能范围的最终承诺边界
 
 ### 内容调查
 
@@ -177,6 +256,8 @@ flowchart TD
 - 待填写/确认：
   - 支持邮箱
   - 官方网站或支持页面
+- 当前决策：
+  - 客服电子邮件：`seanan.lucky@gmail.com`
 
 ### 开发者与发行商名称
 
@@ -193,6 +274,14 @@ flowchart TD
 
 - 后台入口：`Basic Info / Genre And Tags`
 - 当前状态：未完成
+- 2026-07-03 标签向导已选择但尚未确认最终保存状态：
+  - 主类型：`休闲`
+  - 类型：`卡牌游戏`
+  - 视觉效果与视角：`2D`、`可爱`、`卡通风格`
+  - 主题与气氛：`狗`、`放松`、`温馨惬意`
+  - 特色：`角色自定义`、`库存管理`
+  - 玩家人数：`单人`
+  - 未选择：`赌博`、`免费游玩`、`多人`、`Steam 云`、`Steam 成就`、`牌组构建`
 - 教学重点：
   - 标签影响 Steam 推荐与玩家搜索。
   - 标签应兼顾真实玩法和目标受众，不应只堆热门词。
@@ -244,5 +333,3 @@ Steamworks 当前页面提示以下项目为推荐项，非发布商店页的必
 - @主人 [请确认商店页最终展示名称使用 `Lucky Dog Rise` 还是另一个正式名称。]
 - @主人 [请确认公开开发者/发行商名称。]
 - @主人 [请确认玩家可见发行日期倾向：Coming Soon、年份、季度、月份或具体日期。]
-- @主人 [请确认支持邮箱或支持页面是否已经准备好。]
-

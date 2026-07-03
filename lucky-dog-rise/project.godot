@@ -14,6 +14,7 @@ config/name="LuckyDogRise"
 run/main_scene="res://Scenes/ModeManager.tscn"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
+config/windows_native_icon="res://windows_icon.ico"
 
 [audio]
 
