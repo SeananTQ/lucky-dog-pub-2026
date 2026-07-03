@@ -4,7 +4,8 @@ PSD 导出工具 GUI
 三个独立页签对应三种常用工作流：
 - 通用 PSD 导出
 - LuckyDogPub 总 PSD 导出
-- 道具图标生成
+- 普通道具图标生成
+- 狗皮肤图标生成
 
 启动: python gui_app.pyw  (或双击 gui_app.bat)
 """
@@ -130,11 +131,13 @@ class App(ctk.CTk):
         self.tabs.grid(row=0, column=0, padx=12, pady=(12, 8), sticky="nsew")
         self.tabs.add("通用 PSD 导出")
         self.tabs.add("LuckyDogPub 总 PSD")
-        self.tabs.add("道具图标生成")
+        self.tabs.add("普通道具图标")
+        self.tabs.add("狗皮肤图标")
 
         self._build_generic_tab(self.tabs.tab("通用 PSD 导出"))
         self._build_lucky_tab(self.tabs.tab("LuckyDogPub 总 PSD"))
-        self._build_icons_tab(self.tabs.tab("道具图标生成"))
+        self._build_item_icons_tab(self.tabs.tab("普通道具图标"))
+        self._build_dog_icons_tab(self.tabs.tab("狗皮肤图标"))
 
         bottom = ctk.CTkFrame(self)
         bottom.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
@@ -183,30 +186,39 @@ class App(ctk.CTk):
         )
         note.grid(row=row, column=0, padx=12, pady=(8, 0), sticky="ew")
 
-    def _build_icons_tab(self, tab):
+    def _build_item_icons_tab(self, tab):
         tab.grid_columnconfigure(0, weight=1)
         row = 0
-        self._section(tab, "从主 PSD 和 JSON 生成背包图标", row); row += 1
-        row = self._file_row(tab, row, "icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        row = self._file_row(tab, row, "icons.item_json", "道具表", "选择 tbitem.json")
-        row = self._file_row(tab, row, "icons.dog_json", "狗皮肤表", "选择 tbdogskin.json")
-        row = self._file_row(tab, row, "icons.out", "输出目录", "选择图标输出目录", directory=True)
+        self._section(tab, "普通道具图标生成", row); row += 1
+        row = self._file_row(tab, row, "item_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        row = self._file_row(tab, row, "item_icons.item_json", "道具表", "选择 tbitem.json")
+        row = self._file_row(tab, row, "item_icons.out", "输出目录", "选择图标输出目录", directory=True)
+        self._icon_settings_grid(tab, row, "item_icons")
 
-        settings = ctk.CTkFrame(tab)
+    def _build_dog_icons_tab(self, tab):
+        tab.grid_columnconfigure(0, weight=1)
+        row = 0
+        self._section(tab, "狗皮肤图标生成", row); row += 1
+        row = self._file_row(tab, row, "dog_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        row = self._file_row(tab, row, "dog_icons.item_json", "道具表", "选择 tbitem.json")
+        row = self._file_row(tab, row, "dog_icons.dog_json", "狗皮肤表", "选择 tbdogskin.json")
+        row = self._file_row(tab, row, "dog_icons.out", "输出目录", "选择图标输出目录", directory=True)
+        self._icon_settings_grid(tab, row, "dog_icons")
+
+    def _icon_settings_grid(self, parent, row, prefix):
+        settings = ctk.CTkFrame(parent)
         settings.grid(row=row, column=0, padx=12, pady=(10, 4), sticky="ew")
         settings.grid_columnconfigure((0, 1, 2, 3), weight=1)
         fields = [
-            ("icons.canvas", "画布尺寸", "256"),
-            ("icons.content", "内容尺寸", "240"),
-            ("icons.margin", "边框留白", "16"),
-            ("icons.short_groups", "短边缩放组", "Background,Table"),
+            (f"{prefix}.canvas", "画布尺寸", "256"),
+            (f"{prefix}.content", "内容尺寸", "240"),
+            (f"{prefix}.margin", "边框留白", "16"),
+            (f"{prefix}.short_groups", "短边缩放组", "Background,Table"),
         ]
         for col, (key, label, default) in enumerate(fields):
             ctk.CTkLabel(settings, text=label, anchor="w").grid(row=0, column=col, padx=8, pady=(8, 2), sticky="ew")
             var = self._var(key, default)
             ctk.CTkEntry(settings, textvariable=var).grid(row=1, column=col, padx=8, pady=(0, 8), sticky="ew")
-        row += 1
-        row = self._option_row(tab, row, "icons.export_dogs", "导出狗皮肤图标", True)
 
     def _section(self, parent, text, row):
         label = ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w")
@@ -278,7 +290,16 @@ class App(ctk.CTk):
                 "crop": True,
                 "composite": False,
             },
-            "icons": {
+            "item_icons": {
+                "psd": DEFAULT_MAIN_PSD,
+                "item_json": DEFAULT_ITEM_JSON,
+                "out": DEFAULT_ICON_OUTPUT,
+                "canvas": "256",
+                "content": "240",
+                "margin": "16",
+                "short_groups": "Background,Table",
+            },
+            "dog_icons": {
                 "psd": DEFAULT_MAIN_PSD,
                 "item_json": DEFAULT_ITEM_JSON,
                 "dog_json": DEFAULT_DOG_JSON,
@@ -287,9 +308,15 @@ class App(ctk.CTk):
                 "content": "240",
                 "margin": "16",
                 "short_groups": "Background,Table",
-                "export_dogs": True,
             },
         }
+
+        if "icons" in self.app_state:
+            old_icons = self.app_state["icons"]
+            for section in ("item_icons", "dog_icons"):
+                migrated = defaults[section].copy()
+                migrated.update({k: v for k, v in old_icons.items() if k in migrated})
+                defaults[section] = migrated
 
         for section, values in defaults.items():
             saved = self.app_state.get(section, {})
@@ -318,16 +345,24 @@ class App(ctk.CTk):
                 "composite": self._get_bool("lucky.composite"),
                 "excluded_groups": self.excluded_groups["lucky"],
             },
-            "icons": {
-                "psd": self._get("icons.psd"),
-                "item_json": self._get("icons.item_json"),
-                "dog_json": self._get("icons.dog_json"),
-                "out": self._get("icons.out"),
-                "canvas": self._get("icons.canvas"),
-                "content": self._get("icons.content"),
-                "margin": self._get("icons.margin"),
-                "short_groups": self._get("icons.short_groups"),
-                "export_dogs": self._get_bool("icons.export_dogs"),
+            "item_icons": {
+                "psd": self._get("item_icons.psd"),
+                "item_json": self._get("item_icons.item_json"),
+                "out": self._get("item_icons.out"),
+                "canvas": self._get("item_icons.canvas"),
+                "content": self._get("item_icons.content"),
+                "margin": self._get("item_icons.margin"),
+                "short_groups": self._get("item_icons.short_groups"),
+            },
+            "dog_icons": {
+                "psd": self._get("dog_icons.psd"),
+                "item_json": self._get("dog_icons.item_json"),
+                "dog_json": self._get("dog_icons.dog_json"),
+                "out": self._get("dog_icons.out"),
+                "canvas": self._get("dog_icons.canvas"),
+                "content": self._get("dog_icons.content"),
+                "margin": self._get("dog_icons.margin"),
+                "short_groups": self._get("dog_icons.short_groups"),
             },
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }
@@ -437,8 +472,10 @@ class App(ctk.CTk):
             job = "generic"
         elif tab_name == "LuckyDogPub 总 PSD":
             job = "lucky"
+        elif tab_name == "普通道具图标":
+            job = "item_icons"
         else:
-            job = "icons"
+            job = "dog_icons"
 
         self._save_current_state()
         self.running = True
@@ -451,7 +488,7 @@ class App(ctk.CTk):
             if job in ("generic", "lucky"):
                 self._run_layer_export(job)
             else:
-                self._run_icon_export()
+                self._run_icon_export(job)
             self._after_progress(1)
             self._after_log("\n--- 完成 ---")
         except Exception:
@@ -482,28 +519,32 @@ class App(ctk.CTk):
         finally:
             self._remove_tmp(tmp_cfg)
 
-    def _run_icon_export(self):
-        psd = self._get("icons.psd")
-        item_json = self._get("icons.item_json")
+    def _run_icon_export(self, mode: str):
+        psd = self._get(f"{mode}.psd")
+        item_json = self._get(f"{mode}.item_json")
         if not os.path.exists(psd):
             raise FileNotFoundError(f"PSD 文件不存在: {psd}")
         if not os.path.exists(item_json):
             raise FileNotFoundError(f"道具表不存在: {item_json}")
 
-        tmp_cfg = os.path.join(SCRIPT_DIR, "_tmp_icons_export.json")
+        is_dog_mode = mode == "dog_icons"
+        tmp_cfg = os.path.join(SCRIPT_DIR, f"_tmp_{mode}_export.json")
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
                 "道具表路径": item_json,
-                "狗皮肤表路径": self._get("icons.dog_json") if self._get_bool("icons.export_dogs") else "",
-                "输出目录": self._get("icons.out"),
-                "画布尺寸": parse_int(self._get("icons.canvas"), 256),
-                "内容尺寸": parse_int(self._get("icons.content"), 240),
-                "边框留白": parse_int(self._get("icons.margin"), 16),
-                "短边缩放组": split_csv(self._get("icons.short_groups")),
+                "狗皮肤表路径": self._get("dog_icons.dog_json") if is_dog_mode else "",
+                "输出目录": self._get(f"{mode}.out"),
+                "画布尺寸": parse_int(self._get(f"{mode}.canvas"), 256),
+                "内容尺寸": parse_int(self._get(f"{mode}.content"), 240),
+                "边框留白": parse_int(self._get(f"{mode}.margin"), 16),
+                "短边缩放组": split_csv(self._get(f"{mode}.short_groups")),
+                "导出普通道具": not is_dog_mode,
+                "导出狗皮肤": is_dog_mode,
             }, f, ensure_ascii=False)
 
-        self._after_log("\n--- 道具图标生成 ---")
+        title = "狗皮肤图标生成" if is_dog_mode else "普通道具图标生成"
+        self._after_log(f"\n--- {title} ---")
         try:
             self._run_script("export_icons.py", ["--config", tmp_cfg])
             self._after_progress(0.85)

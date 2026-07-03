@@ -79,7 +79,26 @@ def _hide_all(container):
             _hide_all(l)
 
 
-def export_dog(psd, color_name, head_file, default_ears, default_eyes):
+def _layer_name(value):
+    if not value:
+        return ""
+    return os.path.splitext(os.path.basename(value))[0]
+
+
+def _first_layer_name(skin, *keys):
+    for key in keys:
+        name = _layer_name(skin.get(key, ""))
+        if name:
+            return name
+    return ""
+
+
+def _replacement_name(layer_names, name):
+    replacement = f"~{name}"
+    return replacement if replacement in layer_names else name
+
+
+def export_dog(psd, color_name, parts):
     _hide_all(psd)
     for layer in psd.descendants():
         if layer.is_group() and layer.name == "Shiba":
@@ -87,12 +106,13 @@ def export_dog(psd, color_name, head_file, default_ears, default_eyes):
             for sub in layer:
                 if hasattr(sub, 'is_group') and sub.is_group() and sub.name == color_name:
                     sub.visible = True
+                    layer_names = {child.name for child in sub if not child.is_group()}
+                    required_parts = {_replacement_name(layer_names, part) for part in parts}
                     for child in sub:
                         if child.is_group():
                             continue
                         n = child.name
-                        if (n.startswith("Skin_") or n.startswith("Claw_")
-                                or n == head_file or n == default_ears or n == default_eyes):
+                        if n.startswith("Skin_") or n in required_parts:
                             child.visible = True
     full = psd.composite()
     if full is None:
@@ -174,6 +194,8 @@ def main():
     content = cfg.get("内容尺寸", 240)
     margin = cfg.get("边框留白", 16)
     short_side_groups = set(cfg.get("短边缩放组", []))
+    export_items = cfg.get("导出普通道具", True)
+    export_dogs = cfg.get("导出狗皮肤", True)
 
     psd = PSDImage.open(psd_path)
     index = build_index(psd)
@@ -184,58 +206,70 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     ok = 0
 
-    for item in items:
-        item_id = item["Id"]
-        item_name = item["Name"]
-        icon_name = os.path.basename(item.get("IconPath", f"item_{item_id}.png"))
-        out_path = os.path.join(out_dir, icon_name)
+    if export_items:
+        for item in items:
+            item_id = item["Id"]
+            item_name = item["Name"]
+            icon_name = os.path.basename(item.get("IconPath", f"item_{item_id}.png"))
+            out_path = os.path.join(out_dir, icon_name)
 
-        if item["ItemType"] == 1:
-            continue
+            if item["ItemType"] == 1:
+                continue
 
-        for ap in item["AssetPathList"]:
-            hint_group, fname = parse_path(ap)
-            if not fname:
+            for ap in item["AssetPathList"]:
+                hint_group, fname = parse_path(ap)
+                if not fname:
+                    break
+
+                entry = find_layer(index, fname, hint_group)
+                if not entry:
+                    print(f"  [MISS] [{item_id}] {item_name}: '{fname}'")
+                    break
+
+                lo, actual_group = entry
+                use_short = actual_group in short_side_groups
+
+                img = render_layer(lo)
+                if not img:
+                    print(f"  [FAIL] [{item_id}] {item_name}")
+                    break
+
+                canvas = postprocess(img, use_short, size, content, margin)
+                canvas.save(out_path)
+                ok += 1
                 break
-
-            entry = find_layer(index, fname, hint_group)
-            if not entry:
-                print(f"  [MISS] [{item_id}] {item_name}: '{fname}'")
-                break
-
-            lo, actual_group = entry
-            use_short = actual_group in short_side_groups
-
-            img = render_layer(lo)
-            if not img:
-                print(f"  [FAIL] [{item_id}] {item_name}")
-                break
-
-            canvas = postprocess(img, use_short, size, content, margin)
-            canvas.save(out_path)
-            ok += 1
-            break
+    else:
+        print("跳过普通道具图标")
 
     # 狗皮肤
-    if dog_json and os.path.exists(dog_json):
+    if export_dogs and dog_json and os.path.exists(dog_json):
         with open(dog_json, encoding="utf-8") as f:
             skins = json.load(f)
 
         for skin in skins:
             color_name = os.path.basename(skin["FolderPath"])
-            head_file = skin["Head"].replace(".png", "")
-            default_ears = skin.get("DefaultEars", "Ears_Happy.png").replace(".png", "")
-            default_eyes = skin.get("DefaultEyes", "Eyes_Happy.png").replace(".png", "")
+            parts = [
+                _first_layer_name(skin, "Head"),
+                _first_layer_name(skin, "DefaultEars", "Ears_Happy"),
+                _first_layer_name(skin, "DefaultEyes", "Eyes_Happy"),
+                _first_layer_name(skin, "DefaultTongue", "Tongue_Regular"),
+                _first_layer_name(skin, "Claw_Left_Back"),
+                _first_layer_name(skin, "Claw_Right_Palms"),
+            ]
             icon_name = skin.get("IconName", f"dog_{skin['Id']}.png")
             out_path = os.path.join(out_dir, icon_name)
 
-            img = export_dog(psd, color_name, head_file, default_ears, default_eyes)
+            img = export_dog(psd, color_name, [p for p in parts if p])
             if img:
                 postprocess(img, False, size, content, margin).save(out_path)
                 ok += 1
-                print(f"  [OK]   [{skin['Id']}] {color_name}/{head_file} {icon_name}")
+                print(f"  [OK]   [{skin['Id']}] {color_name}/{_first_layer_name(skin, 'Head')} {icon_name}")
             else:
                 print(f"  [FAIL] [{skin['Id']}] {color_name}")
+    elif export_dogs:
+        print("跳过狗皮肤图标：狗皮肤表不存在")
+    else:
+        print("跳过狗皮肤图标")
 
     print(f"\n完成: 共导出 {ok} 张图标")
 
