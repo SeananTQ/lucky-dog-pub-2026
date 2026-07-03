@@ -562,7 +562,7 @@
   },
   {
     "Id": 2006,
-    "Name": "Lucky",
+    "Name": "Lucky Hat",
     "ItemType": 2,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -577,9 +577,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Headwear\\Lucky.png"
+      "v1\\Headwear\\LuckyHat.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Headwear_Lucky.png",
+    "IconPath": "v1\\ItemIcon\\Headwear_LuckyHat.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1303,9 +1303,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\FeltEmerald.png"
+      "v1\\Table\\Felt_Emerald.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_FeltEmerald.png",
+    "IconPath": "v1\\ItemIcon\\Table_Felt_Emerald.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1321,7 +1321,7 @@
   },
   {
     "Id": 6002,
-    "Name": "Full Tilt Like",
+    "Name": "Red Bone",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1336,9 +1336,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\FullTiltLike.png"
+      "v1\\Table\\RedBone.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_FullTiltLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_RedBone.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1354,7 +1354,7 @@
   },
   {
     "Id": 6003,
-    "Name": "Hustler Like",
+    "Name": "Howl Club",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1369,9 +1369,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\HustlerLike.png"
+      "v1\\Table\\HowlClub.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_HustlerLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_HowlClub.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1387,7 +1387,7 @@
   },
   {
     "Id": 6004,
-    "Name": "Les Ambassadeurs Like",
+    "Name": "Le Cercle Des Pattes",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1402,9 +1402,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\LesAmbassadeursLike.png"
+      "v1\\Table\\LeCercleDesPattes.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_LesAmbassadeursLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_LeCercleDesPattes.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1420,7 +1420,7 @@
   },
   {
     "Id": 6005,
-    "Name": "Maestral Like",
+    "Name": "Pawstral",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1435,9 +1435,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\MaestralLike.png"
+      "v1\\Table\\Pawstral.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_MaestralLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_Pawstral.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1453,7 +1453,7 @@
   },
   {
     "Id": 6006,
-    "Name": "Mezcal Like",
+    "Name": "Muscle",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1468,9 +1468,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\MezcalLike.png"
+      "v1\\Table\\Muscle.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_MezcalLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_Muscle.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1486,7 +1486,7 @@
   },
   {
     "Id": 6007,
-    "Name": "Poker Go Like",
+    "Name": "Paw Cast",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1501,9 +1501,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\PokerGoLike.png"
+      "v1\\Table\\PawCast.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_PokerGoLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_PawCast.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1519,7 +1519,7 @@
   },
   {
     "Id": 6008,
-    "Name": "Pure Indigo",
+    "Name": "Felt Pure Indigo",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1534,9 +1534,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\PureIndigo.png"
+      "v1\\Table\\Felt_PureIndigo.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_PureIndigo.png",
+    "IconPath": "v1\\ItemIcon\\Table_Felt_PureIndigo.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1552,7 +1552,7 @@
   },
   {
     "Id": 6009,
-    "Name": "Pure Purple",
+    "Name": "Felt Pure Purple",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1567,9 +1567,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\PurePurple.png"
+      "v1\\Table\\Felt_PurePurple.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_PurePurple.png",
+    "IconPath": "v1\\ItemIcon\\Table_Felt_PurePurple.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1585,7 +1585,7 @@
   },
   {
     "Id": 6010,
-    "Name": "Pure Teal",
+    "Name": "Felt Pure Teal",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1600,9 +1600,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\PureTeal.png"
+      "v1\\Table\\Felt_PureTeal.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_PureTeal.png",
+    "IconPath": "v1\\ItemIcon\\Table_Felt_PureTeal.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1618,7 +1618,7 @@
   },
   {
     "Id": 6011,
-    "Name": "The King of Hill Like",
+    "Name": "The King of Howl",
     "ItemType": 6,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1633,9 +1633,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Table\\TheKingOfHillLike.png"
+      "v1\\Table\\TheKingOfHowl.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Table_TheKingOfHillLike.png",
+    "IconPath": "v1\\ItemIcon\\Table_TheKingOfHowl.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1882,7 +1882,7 @@
   },
   {
     "Id": 7008,
-    "Name": "Highstakes Poker Like",
+    "Name": "Evergreen Parlor",
     "ItemType": 7,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1897,9 +1897,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Background\\HighstakesPokerLike.png"
+      "v1\\Background\\EvergreenParlor.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Background_HighstakesPokerLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_EvergreenParlor.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1948,7 +1948,7 @@
   },
   {
     "Id": 7010,
-    "Name": "Part Poker Like",
+    "Name": "Honey Hall",
     "ItemType": 7,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -1963,9 +1963,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Background\\PartPokerLike.png"
+      "v1\\Background\\HoneyHall.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Background_PartPokerLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_HoneyHall.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2014,7 +2014,7 @@
   },
   {
     "Id": 7012,
-    "Name": "Poker King Like",
+    "Name": "Midnight Theater",
     "ItemType": 7,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2029,9 +2029,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Background\\PokerKingLike.png"
+      "v1\\Background\\MidnightTheater.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Background_PokerKingLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_MidnightTheater.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2179,7 +2179,7 @@
   },
   {
     "Id": 7017,
-    "Name": "World Poker Tour Like",
+    "Name": "Sage Manor",
     "ItemType": 7,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2194,9 +2194,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Background\\WorldPokerTourtLike.png"
+      "v1\\Background\\SageManor.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Background_WorldPokerTourtLike.png",
+    "IconPath": "v1\\ItemIcon\\Background_SageManor.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2245,7 +2245,7 @@
   },
   {
     "Id": 8001,
-    "Name": "A158UUA",
+    "Name": "Canine D21",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2260,9 +2260,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\A158UUA.png"
+      "v1\\Player\\Accessory\\Canine_D21.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_A158UUA.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_Canine_D21.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2293,7 +2293,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\AnchorTattoo.png"
+      "v1\\Player\\Surface\\AnchorTattoo.png"
     ],
     "IconPath": "v1\\ItemIcon\\Accessory_AnchorTattoo.png",
     "SkinId": 0,
@@ -2311,7 +2311,7 @@
   },
   {
     "Id": 8003,
-    "Name": "F91UU",
+    "Name": "Canine D88",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2326,9 +2326,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\F91UU.png"
+      "v1\\Player\\Accessory\\Canine_D88.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_F91UU.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_Canine_D88.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2344,7 +2344,7 @@
   },
   {
     "Id": 8004,
-    "Name": "Feng Shui Bracelet",
+    "Name": "Bracelet Feng Shui",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2359,9 +2359,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\FengShuiBracelet.png"
+      "v1\\Player\\Accessory\\Bracelet_FengShui.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_FengShuiBracelet.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_Bracelet_FengShui.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2377,7 +2377,7 @@
   },
   {
     "Id": 8005,
-    "Name": "Good Luck Bracelet",
+    "Name": "Bracelet Good Luck",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2392,9 +2392,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\GoodLuckBracelet.png"
+      "v1\\Player\\Accessory\\Bracelet_GoodLuck.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_GoodLuckBracelet.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_Bracelet_GoodLuck.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2425,7 +2425,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\Hair.png"
+      "v1\\Player\\Surface\\Hair.png"
     ],
     "IconPath": "v1\\ItemIcon\\Accessory_Hair.png",
     "SkinId": 0,
@@ -2443,7 +2443,7 @@
   },
   {
     "Id": 8007,
-    "Name": "Relax Driver Black",
+    "Name": "Royal Mariner Onyx",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2458,9 +2458,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\RelaxDriver_Black.png"
+      "v1\\Player\\Accessory\\RoyalMariner_Onyx.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_RelaxDriver_Black.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_RoyalMariner_Onyx.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2476,7 +2476,7 @@
   },
   {
     "Id": 8008,
-    "Name": "Relax Driver Green",
+    "Name": "Royal Mariner Emerald",
     "ItemType": 8,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
@@ -2491,9 +2491,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Accessory\\RelaxDriver_Green.png"
+      "v1\\Player\\Accessory\\RoyalMariner_Emerald.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_RelaxDriver_Green.png",
+    "IconPath": "v1\\ItemIcon\\Accessory_RoyalMariner_Emerald.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -2986,7 +2986,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Card\\CardBack\\Basic.png"
+      "v1\\CardBack\\Basic.png"
     ],
     "IconPath": "v1\\ItemIcon\\CardBack_Basic.png",
     "SkinId": 0,
@@ -3019,7 +3019,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Card\\CardFace\\Classic\\"
+      "v1\\CardFace\\Classic\\"
     ],
     "IconPath": "v1\\ItemIcon\\CardFace_Kibble.png",
     "SkinId": 0,
@@ -3052,7 +3052,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Card\\CardFace\\Classic\\"
+      "v1\\CardFace\\Classic\\"
     ],
     "IconPath": "v1\\ItemIcon\\CardFace_Classic.png",
     "SkinId": 0,
@@ -3122,6 +3122,171 @@
     ],
     "IconPath": "v1\\ItemIcon\\Shiba_UnshavenSesame.png",
     "SkinId": 1012,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 2011,
+    "Name": "Red Tyrolean Hat",
+    "ItemType": 2,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "AcquisitionType": 2,
+    "IsUnique": false,
+    "BlindBoxId": 1001,
+    "StandardBoxWeight": 300,
+    "NewbieBoxWeight": 300,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Headwear\\TyroleanHat_Red.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Headwear_TyroleanHat_Red.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 2012,
+    "Name": "Green Tyrolean Hat",
+    "ItemType": 2,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 5,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "AcquisitionType": 2,
+    "IsUnique": false,
+    "BlindBoxId": 1001,
+    "StandardBoxWeight": 300,
+    "NewbieBoxWeight": 300,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Headwear\\TyroleanHat_Green.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Headwear_TyroleanHat_Green.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 8012,
+    "Name": "Canine D35",
+    "ItemType": 8,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 4,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "AcquisitionType": 2,
+    "IsUnique": false,
+    "BlindBoxId": 1001,
+    "StandardBoxWeight": 300,
+    "NewbieBoxWeight": 300,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Player\\Accessory\\Canine_D35.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Accessory_Canine_D35.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 8013,
+    "Name": "Royal Mariner Ruby",
+    "ItemType": 8,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 2,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "AcquisitionType": 2,
+    "IsUnique": false,
+    "BlindBoxId": 1001,
+    "StandardBoxWeight": 300,
+    "NewbieBoxWeight": 300,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Player\\Accessory\\RoyalMariner_Ruby.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Accessory_RoyalMariner_Ruby.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 7019,
+    "Name": "Evergreen Parlor Burgundy",
+    "ItemType": 7,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 3,
+    "SortOrder": 300,
+    "BlindBoxWeight": 300,
+    "AcquisitionType": 2,
+    "IsUnique": false,
+    "BlindBoxId": 1001,
+    "StandardBoxWeight": 300,
+    "NewbieBoxWeight": 300,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Background\\EvergreenParlor_Burgundy.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Background_EvergreenParlor_Burgundy.png",
+    "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
     "SteamGameOnly": true,

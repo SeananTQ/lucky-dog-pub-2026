@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmxxo5ax26gau"
-path="res://.godot/imported/Table_TheKingOfHillLike.png-860f905ebafa8f7cbc83b6a23a92a319.ctex"
+uid="uid://boa8m2f05s38b"
+path="res://.godot/imported/Table_Felt_Emerald.png-e560ad0b4319c087a51b8377f30eb59c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ItemIcon/Table_TheKingOfHillLike.png"
-dest_files=["res://.godot/imported/Table_TheKingOfHillLike.png-860f905ebafa8f7cbc83b6a23a92a319.ctex"]
+source_file="res://Assets/v1/ItemIcon/Table_Felt_Emerald.png"
+dest_files=["res://.godot/imported/Table_Felt_Emerald.png-e560ad0b4319c087a51b8377f30eb59c.ctex"]
 
 [params]
 

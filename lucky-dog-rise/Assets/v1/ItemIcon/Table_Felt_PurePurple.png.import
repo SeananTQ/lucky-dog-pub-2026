@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3v4v18r760tt"
-path="res://.godot/imported/Table_MezcalLike.png-9b0958dc81b549f38ad47815f35edc54.ctex"
+uid="uid://fn8yhui5b3xr"
+path="res://.godot/imported/Table_Felt_PurePurple.png-9b06c458d3909d2a2592772f99eb1de3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ItemIcon/Table_MezcalLike.png"
-dest_files=["res://.godot/imported/Table_MezcalLike.png-9b0958dc81b549f38ad47815f35edc54.ctex"]
+source_file="res://Assets/v1/ItemIcon/Table_Felt_PurePurple.png"
+dest_files=["res://.godot/imported/Table_Felt_PurePurple.png-9b06c458d3909d2a2592772f99eb1de3.ctex"]
 
 [params]
 

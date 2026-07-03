@@ -24,6 +24,7 @@ public partial class BalloonHintController : PanelContainer
     private Tween? _flashTween;
     private Tween? _visibilityTween;
     private Color _normalTextColor = Colors.White;
+    private LabelSettings? _textLabelSettings;
     private readonly Color _warningTextColor = new(1f, 0.18f, 0.18f);
     private bool _isDisplayVisible = true;
 
@@ -32,7 +33,16 @@ public partial class BalloonHintController : PanelContainer
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
         _textLabel.Text = "";
-        _normalTextColor = _textLabel.GetThemeColor("font_color");
+        _textLabelSettings = _textLabel.LabelSettings?.Duplicate() as LabelSettings;
+        if (_textLabelSettings != null)
+        {
+            _textLabel.LabelSettings = _textLabelSettings;
+            _normalTextColor = _textLabelSettings.FontColor;
+        }
+        else
+        {
+            _normalTextColor = _textLabel.GetThemeColor("font_color");
+        }
         UpdateTail();
         PivotOffset = Size * 0.5f;
     }
@@ -83,8 +93,7 @@ public partial class BalloonHintController : PanelContainer
         _flashTween = CreateTween();
         for (var i = 0; i < 2; i++)
         {
-            _flashTween.TweenCallback(Callable.From(() =>
-                _textLabel.AddThemeColorOverride("font_color", _warningTextColor)));
+            _flashTween.TweenCallback(Callable.From(() => SetTextColor(_warningTextColor)));
             _flashTween.TweenInterval(0.12);
             _flashTween.TweenCallback(Callable.From(ResetTextColor));
             _flashTween.TweenInterval(0.12);
@@ -129,7 +138,18 @@ public partial class BalloonHintController : PanelContainer
 
     private void ResetTextColor()
     {
-        _textLabel.AddThemeColorOverride("font_color", _normalTextColor);
+        SetTextColor(_normalTextColor);
+    }
+
+    private void SetTextColor(Color color)
+    {
+        if (_textLabelSettings != null)
+        {
+            _textLabelSettings.FontColor = color;
+            return;
+        }
+
+        _textLabel.AddThemeColorOverride("font_color", color);
     }
 
     private void UpdateTail()

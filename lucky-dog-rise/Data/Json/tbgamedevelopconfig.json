@@ -1,6 +1,6 @@
 [
   {
-    "BlindBoxTimeScale": 0.1,
+    "BlindBoxTimeScale": 1,
     "BlindBoxCostScale": 1
   }
 ]

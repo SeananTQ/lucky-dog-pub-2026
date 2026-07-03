@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fryud1tuldxu"
-path="res://.godot/imported/Headwear_Lucky.png-7abc6c57d9ff44f23df38f1c90c3f1fb.ctex"
+uid="uid://bu1h031aspttx"
+path="res://.godot/imported/Background_EvergreenParlor.png-7062a2a07f479489785557dd3576a242.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ItemIcon/Headwear_Lucky.png"
-dest_files=["res://.godot/imported/Headwear_Lucky.png-7abc6c57d9ff44f23df38f1c90c3f1fb.ctex"]
+source_file="res://Assets/v1/ItemIcon/Background_EvergreenParlor.png"
+dest_files=["res://.godot/imported/Background_EvergreenParlor.png-7062a2a07f479489785557dd3576a242.ctex"]
 
 [params]
 
