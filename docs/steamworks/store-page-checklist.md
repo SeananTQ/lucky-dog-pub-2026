@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-03
+last_edit: 2026-07-06
 status: draft
 ---
 
@@ -13,6 +13,7 @@ status: draft
 关联材料准备文档：
 
 - `docs/steamworks/store-page-materials.md`
+- `docs/steamworks/store-page-submission-summary.md`
 
 本轮工作的目标包含三件事：
 
@@ -25,9 +26,15 @@ status: draft
 - Steam App ID：`2583700`
 - Steamworks 应用页：`https://partner.steamgames.com/apps/landing/2583700`
 - 当前后台标题：`Lucky Dog Rise (2583700)`
-- 当前商店状态：清单未完成
+- 当前商店状态：已提交 Steam 商店页审核，等待 Valve 审批
 - 目标公开状态：`Coming Soon / 即将推出`
 - 愿望单入口：商店页公开为“即将推出”后，玩家即可加入愿望单。
+
+## 当前提交状态
+
+2026-07-06，主人已在 Steamworks 后台提交 `Lucky Dog Rise` 的商店页审核。
+
+本文件保留早期填写清单与字段解释。提交时的最终决策、素材策略、语言策略与后续待办，记录在 `docs/steamworks/store-page-submission-summary.md`。
 
 ## 操作边界
 
@@ -330,6 +337,6 @@ Steamworks 当前页面提示以下项目为推荐项，非发布商店页的必
 
 ## 待主人确认
 
-- @主人 [请确认商店页最终展示名称使用 `Lucky Dog Rise` 还是另一个正式名称。]
-- @主人 [请确认公开开发者/发行商名称。]
-- @主人 [请确认玩家可见发行日期倾向：Coming Soon、年份、季度、月份或具体日期。]
+- @主人 [请确认商店页最终展示名称使用 `Lucky Dog Rise` 还是另一个正式名称。] @AI [Lucky Dog Rise]
+- @主人 [请确认公开开发者/发行商名称。] @AI [Seanan Studio]
+- @主人 [请确认玩家可见发行日期倾向：Coming Soon、年份、季度、月份或具体日期。] @AI [目前我选的是第三季度]
