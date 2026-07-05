@@ -21,6 +21,7 @@ public sealed partial class DogSkin : Luban.BeanBase
         { if(!_buf["IconName"].IsString) { throw new SerializationException(); }  IconName = _buf["IconName"]; }
         { if(!_buf["DefaultEars"].IsString) { throw new SerializationException(); }  DefaultEars = _buf["DefaultEars"]; }
         { if(!_buf["DefaultEyes"].IsString) { throw new SerializationException(); }  DefaultEyes = _buf["DefaultEyes"]; }
+        { if(!_buf["DefaultTongue"].IsString) { throw new SerializationException(); }  DefaultTongue = _buf["DefaultTongue"]; }
         { if(!_buf["FolderPath"].IsString) { throw new SerializationException(); }  FolderPath = _buf["FolderPath"]; }
         { if(!_buf["Head"].IsString) { throw new SerializationException(); }  Head = _buf["Head"]; }
         { if(!_buf["Claw_Left_Back"].IsString) { throw new SerializationException(); }  ClawLeftBack = _buf["Claw_Left_Back"]; }
@@ -51,6 +52,7 @@ public sealed partial class DogSkin : Luban.BeanBase
     /// 只影响图标和伪装模式，不影响打牌模式
     /// </summary>
     public readonly string DefaultEyes;
+    public readonly string DefaultTongue;
     public readonly string FolderPath;
     public readonly string Head;
     public readonly string ClawLeftBack;
@@ -79,6 +81,7 @@ public sealed partial class DogSkin : Luban.BeanBase
         + "IconName:" + IconName + ","
         + "DefaultEars:" + DefaultEars + ","
         + "DefaultEyes:" + DefaultEyes + ","
+        + "DefaultTongue:" + DefaultTongue + ","
         + "FolderPath:" + FolderPath + ","
         + "Head:" + Head + ","
         + "ClawLeftBack:" + ClawLeftBack + ","

@@ -25,6 +25,7 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["ItemRarity"].IsNumber) { throw new SerializationException(); }  ItemRarity = (ERarity)_buf["ItemRarity"].AsInt; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["BlindBoxWeight"].IsNumber) { throw new SerializationException(); }  BlindBoxWeight = _buf["BlindBoxWeight"]; }
+        { if(!_buf["IsHiddenInBag"].IsBoolean) { throw new SerializationException(); }  IsHiddenInBag = _buf["IsHiddenInBag"]; }
         { if(!_buf["AcquisitionType"].IsNumber) { throw new SerializationException(); }  AcquisitionType = (EAcquisitionType)_buf["AcquisitionType"].AsInt; }
         { if(!_buf["IsUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["IsUnique"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
@@ -73,6 +74,7 @@ public sealed partial class Item : Luban.BeanBase
     /// 盲盒权重
     /// </summary>
     public readonly int BlindBoxWeight;
+    public readonly bool IsHiddenInBag;
     public readonly EAcquisitionType AcquisitionType;
     /// <summary>
     /// 现在唯一的物品不可分解回收
@@ -164,6 +166,7 @@ public sealed partial class Item : Luban.BeanBase
         + "ItemRarity:" + ItemRarity + ","
         + "SortOrder:" + SortOrder + ","
         + "BlindBoxWeight:" + BlindBoxWeight + ","
+        + "IsHiddenInBag:" + IsHiddenInBag + ","
         + "AcquisitionType:" + AcquisitionType + ","
         + "IsUnique:" + IsUnique + ","
         + "BlindBoxId:" + BlindBoxId + ","
