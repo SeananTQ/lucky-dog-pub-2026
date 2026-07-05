@@ -219,7 +219,7 @@ public partial class InfoPanelController : CanvasLayer
         panel.Position = pos;
     }
 
-    private void RefreshBlindBoxButton()
+    public void RefreshBlindBoxButton()
     {
         if (_gameData == null)
             return;
@@ -227,7 +227,9 @@ public partial class InfoPanelController : CanvasLayer
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status == BlindBoxHintStatus.Waiting;
         _blindBoxBtn.Text = "Open";
-        SetBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward);
+        var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
+            && SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
+        SetBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
 
         switch (state.Status)
         {

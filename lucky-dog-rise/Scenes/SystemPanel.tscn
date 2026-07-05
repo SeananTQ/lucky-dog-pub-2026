@@ -404,6 +404,17 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "▶ BlindBox Debug"
 
+[node name="HideCountdownBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+
+[node name="HideCountdownBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "倒计时中隐藏盲盒气球"
+
+[node name="HideCountdownBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow"]
+layout_mode = 2
+
 [node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
 visible = false
 custom_minimum_size = Vector2(0, 260)

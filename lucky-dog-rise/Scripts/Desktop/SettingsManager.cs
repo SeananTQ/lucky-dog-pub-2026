@@ -15,6 +15,7 @@ public static class SettingsManager
     private const string KeyDesktopTongueImmediateMode = "desktop_tongue_immediate_mode";
     private const string KeyShowOverFullscreenApps = "show_over_fullscreen_apps";
     private const string KeyEnhancedTopmostMode = "enhanced_topmost_mode";
+    private const string KeyDebugHideBlindBoxCountdownBubble = "debug_hide_blind_box_countdown_bubble";
     private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
 
@@ -121,6 +122,19 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyEnhancedTopmostMode, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadDebugHideBlindBoxCountdownBubble()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyDebugHideBlindBoxCountdownBubble, false);
+    }
+
+    public static void SaveDebugHideBlindBoxCountdownBubble(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyDebugHideBlindBoxCountdownBubble, enabled);
         config.Save(Path);
     }
 

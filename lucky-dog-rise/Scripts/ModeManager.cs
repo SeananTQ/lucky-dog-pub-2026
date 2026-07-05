@@ -125,6 +125,7 @@ public partial class ModeManager : Control
         _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
+        _settingsPanel.DebugBlindBoxCountdownBubbleVisibilityChanged += OnDebugBlindBoxCountdownBubbleVisibilityChanged;
 
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
@@ -360,7 +361,9 @@ public partial class ModeManager : Control
         }
 
         var state = _gameData.GetBlindBoxHintState();
-        SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward);
+        var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
+            && SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
+        SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
 
         switch (state.Status)
         {
@@ -374,6 +377,12 @@ public partial class ModeManager : Control
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
                 break;
         }
+    }
+
+    private void OnDebugBlindBoxCountdownBubbleVisibilityChanged()
+    {
+        RefreshBossBlindBoxHint();
+        _infoPanel?.RefreshBlindBoxButton();
     }
 
     private void OnBossBlindBoxHintPressed()
