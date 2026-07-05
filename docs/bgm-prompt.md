@@ -1,0 +1,1 @@
+Minimalist indie game soundtrack, warm acoustic guitar, playful piano, soft bells, light percussion, relaxing exploration mood, wholesome, charming, peaceful, inspired by cozy indie games.
