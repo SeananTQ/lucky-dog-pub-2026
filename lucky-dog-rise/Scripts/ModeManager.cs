@@ -27,6 +27,9 @@ public partial class ModeManager : Control
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
     private const float DragThreshold = 5f;
+    // Poker mode visual gaps between the side panels and the 600x600 game panel.
+    private const int PlayInfoGameGap = 7;
+    private const int PlayGameSettingsGap = 1;
 
     private bool _taskbarSnapped;
     private const int SnapThreshold = 15;
@@ -210,7 +213,7 @@ public partial class ModeManager : Control
             }
             if (_infoPanel != null && _infoPanel.Visible)
             {
-                int infoX = _infoPanelOnRight ? 240 + 600 : 0;
+                int infoX = _infoPanelOnRight ? 240 + PlayInfoGameGap + 600 + PlayGameSettingsGap : 0;
                 over |= new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos);
             }
         }
@@ -274,7 +277,7 @@ public partial class ModeManager : Control
                 _gameManager.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
         }
 
-        // 切换游玩模式的胖窗口尺寸（840×600 内容 + 420 缓冲）
+        // 切换游玩模式的胖窗口尺寸（左信息面板 + 视觉缝隙 + 600×600 游戏内容 + 420 缓冲）
         SetupPlayFatWindow();
         KeepPlayContentWithinScreen();
         SetClickThrough(false);
@@ -292,6 +295,7 @@ public partial class ModeManager : Control
         const int gameW = 600;
         const int infoW = 240;
         const int pad = 5;
+        int gameX = infoW + PlayInfoGameGap;
 
         // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + 240
         bool leftOk = winPos.X >= -pad && winPos.X + infoW <= scrSize.X + pad;
@@ -299,8 +303,8 @@ public partial class ModeManager : Control
         _infoPanelOnRight = !leftOk;
 
         // 游戏面板位置固定，信息面板自己绕到右侧
-        _playViewport.Position = new Vector2(infoW, baseY);
-        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? infoW + gameW : 0, baseY));
+        _playViewport.Position = new Vector2(gameX, baseY);
+        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameW + PlayGameSettingsGap : 0, baseY));
     }
 
     private void SwitchToBossKey()
@@ -871,7 +875,7 @@ public partial class ModeManager : Control
             if (CurrentMode == Mode.Play && _infoPanel != null && _infoPanel.Visible)
             {
                 int infoX = _infoPanelOnRight
-                    ? (int)aX + aw : 0;
+                    ? (int)aX + aw + PlayGameSettingsGap : 0;
                 int infoY = (int)aY;
                 var setRect = new Rect2(sx, sy, pw, ph);
                 // info 坐标是窗口空间，Fits 是屏幕空间，需加 winPos
@@ -890,6 +894,8 @@ public partial class ModeManager : Control
         foreach (var slot in slotPriority)
         {
             var (wx, wy) = GetPanelSlotPosition(slot, aX, aY, aw, ah, pw, ph, bY, centerX);
+            if (CurrentMode == Mode.Play && (slot == 6 || slot == 9 || slot == 3))
+                wx += PlayGameSettingsGap;
             if (Fits(winPos.X + wx, winPos.Y + wy))
             {
                 _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
@@ -960,7 +966,7 @@ public partial class ModeManager : Control
     {
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
-        int contentW = 840;
+        int contentW = 840 + PlayInfoGameGap;
         int contentH = 600;
         int winW = contentW + pw * 2;
         int winH = Math.Max(contentH, ph) + ph * 2;
@@ -972,7 +978,7 @@ public partial class ModeManager : Control
 
     private void KeepPlayContentWithinScreen()
     {
-        const int contentW = 840;
+        const int contentW = 840 + PlayInfoGameGap;
         const int contentH = 600;
         const int pad = 5;
 
@@ -1085,7 +1091,7 @@ public partial class ModeManager : Control
                 if (_settingsPanel.ContainsPoint(localPos)) return;
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
-                    int infoX = _infoPanelOnRight ? 840 : 0;
+                    int infoX = _infoPanelOnRight ? 240 + PlayInfoGameGap + 600 + PlayGameSettingsGap : 0;
                     if (new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos)) return;
                 }
 
