@@ -47,6 +47,8 @@ public partial class SystemPanelController : CanvasLayer
     private Control _settingsActionRow = null!;
     private Control _settingsActionBottomGap = null!;
     private Control _settingsActionSep = null!;
+    private Button _switchToPlayBtn = null!;
+    private Button _switchToBossKeyBtn = null!;
 
     // Settings 页
     private CheckButton _audioToggle = null!;
@@ -136,6 +138,7 @@ public partial class SystemPanelController : CanvasLayer
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
+        var restartBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/RestartBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ResetSaveBtn");
 
         _displayOption.AddItem("Clock", 0);
@@ -168,6 +171,7 @@ public partial class SystemPanelController : CanvasLayer
 
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();
+        restartBtn.Pressed += RestartGame;
         resetSaveBtn.Pressed += () =>
             _resetSaveConfirm.ShowConfirm(
                 "Reset Save Data",
@@ -176,10 +180,10 @@ public partial class SystemPanelController : CanvasLayer
                 "Cancel");
         _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
 
-        var switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
-        var switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
-        switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
-        switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
+        _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
+        _switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
+        _switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
+        _switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
 
         _audioToggle.Toggled += OnAudioToggled;
         _displayOption.ItemSelected += OnDisplayModeChanged;
@@ -414,6 +418,15 @@ public partial class SystemPanelController : CanvasLayer
 
     public void Toggle() { if (_panel.Visible) Close(); else Open(); }
 
+    public void SetCurrentMode(bool isBossKeyMode)
+    {
+        if (_switchToPlayBtn == null || _switchToBossKeyBtn == null)
+            return;
+
+        _switchToPlayBtn.Visible = isBossKeyMode;
+        _switchToBossKeyBtn.Visible = !isBossKeyMode;
+    }
+
     public void Open()
     {
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
@@ -447,6 +460,12 @@ public partial class SystemPanelController : CanvasLayer
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
+    }
+
+    private void RestartGame()
+    {
+        OS.CreateInstance(OS.GetCmdlineArgs());
+        GetTree().Quit();
     }
 
     public bool ContainsPoint(Vector2 windowPos)

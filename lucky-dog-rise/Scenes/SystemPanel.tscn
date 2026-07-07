@@ -99,6 +99,12 @@ size_flags_horizontal = 3
 theme_type_variation = &"DestructiveButton"
 text = "Quit"
 
+[node name="RestartBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=1538965194]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restart"
+
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=764447966]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2

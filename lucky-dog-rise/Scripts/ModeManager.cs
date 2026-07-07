@@ -15,9 +15,11 @@ public partial class ModeManager : Control
     public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
     private DogVisual _bossDogVisual = null!;
+    private DesktopRiseIntroController _bossRiseIntro = null!;
     private BalloonHintController _bossBlindBoxHint = null!;
     private BlindBoxRevealOverlayController _bossBlindBoxOverlay = null!;
     private Marker2D _bossBlindBoxRevealAnchor = null!;
+    private PanelContainer _bossStatusPanel = null!;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -104,6 +106,7 @@ public partial class ModeManager : Control
         _gameData.BlindBoxStateChanged += RefreshBossBlindBoxHint;
         _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
+        _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
         var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
@@ -126,6 +129,7 @@ public partial class ModeManager : Control
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
         _settingsPanel.DebugBlindBoxCountdownBubbleVisibilityChanged += OnDebugBlindBoxCountdownBubbleVisibilityChanged;
+        RefreshSettingsPanelModeActions();
 
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
@@ -138,11 +142,20 @@ public partial class ModeManager : Control
         _bossBlindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
         _bossKeyContent.AddChild(_bossBlindBoxOverlay);
 
+        _bossRiseIntro = GD.Load<PackedScene>("res://Scenes/DesktopRiseIntro.tscn")
+            .Instantiate<DesktopRiseIntroController>();
+        _bossRiseIntro.Name = "DesktopRiseIntro";
+        _bossRiseIntro.Finished += OnBossRiseIntroFinished;
+        _bossKeyContent.AddChild(_bossRiseIntro);
+        _bossRiseIntro.BindGameData(_gameData);
+
         _dogHitRect = new Rect2(60 + _contentOffset.X, 90 + _contentOffset.Y, 180, 180);
         _btnHitRect = new Rect2(50 + _contentOffset.X, 265 + _contentOffset.Y, 240, 40);
 
         _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
-        _bossKeyContent.GetNode<Node2D>("ContentA").Position = _contentOffset;
+        var bossContentA = _bossKeyContent.GetNode<Node2D>("ContentA");
+        bossContentA.Position = _contentOffset;
+        ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
         SetWindowAboveTaskbar();
@@ -163,6 +176,8 @@ public partial class ModeManager : Control
         tracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
         tracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
         AddChild(tracker);
+
+        CallDeferred(MethodName.PlayBossRiseIntro);
     }
 
     private double _displayTimer;
@@ -286,6 +301,7 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+        RefreshSettingsPanelModeActions();
     }
 
     private void UpdatePlayLayout()
@@ -322,10 +338,16 @@ public partial class ModeManager : Control
         SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
+        RefreshSettingsPanelModeActions();
     }
 
     private void HideBossKeyContent()
     {
+        _bossRiseIntro?.HideImmediate();
+        if (_bossDogVisual != null)
+            _bossDogVisual.Visible = true;
+        if (_bossStatusPanel != null)
+            _bossStatusPanel.Visible = true;
         _bossKeyContent.Visible = false;
         // CanvasLayer 不继承 Node2D 的 Visible，需单独隐藏
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = false;
@@ -347,6 +369,38 @@ public partial class ModeManager : Control
     {
         _bossDogVisual.RefreshEquippedDisguiseVisuals();
         _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
+        _bossRiseIntro?.RefreshVisuals();
+    }
+
+    private void ConfigureBossRiseIntro()
+    {
+        if (_bossRiseIntro == null || _bossDogVisual == null)
+            return;
+
+        _bossRiseIntro.Configure(_contentOffset, _bossDogVisual.Position, _bossDogVisual.Scale);
+    }
+
+    private void PlayBossRiseIntro()
+    {
+        if (_bossRiseIntro == null || _hiddenByFullscreenApp || CurrentMode != Mode.BossKey)
+            return;
+
+        ConfigureBossRiseIntro();
+        _bossDogVisual.Visible = false;
+        _bossStatusPanel.Visible = false;
+        SetBossBlindBoxHintDisplayVisible(false);
+        _bossRiseIntro.Play();
+    }
+
+    private void OnBossRiseIntroFinished()
+    {
+        if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
+            return;
+
+        _bossDogVisual.Visible = true;
+        _bossStatusPanel.Visible = true;
+        RefreshBossDogVisuals();
+        RefreshBossBlindBoxHint();
     }
 
     private void RefreshBossBlindBoxHint()
@@ -846,8 +900,14 @@ public partial class ModeManager : Control
             _settingsPanel.Close();
             return;
         }
+        RefreshSettingsPanelModeActions();
         PositionPanelInBestSlot();
         _settingsPanel.Open();
+    }
+
+    private void RefreshSettingsPanelModeActions()
+    {
+        _settingsPanel?.SetCurrentMode(CurrentMode == Mode.BossKey);
     }
 
     private void PositionPanelInBestSlot()

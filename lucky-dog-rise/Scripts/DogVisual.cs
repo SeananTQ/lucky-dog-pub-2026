@@ -287,6 +287,40 @@ public partial class DogVisual : Node2D
         ReapplyCurrentReaction();
     }
 
+    public void SetHitButtonEnabled(bool enabled)
+    {
+        if (!IsNodeReady()) return;
+
+        _hitButton.Visible = enabled;
+        _hitButton.Disabled = !enabled;
+        _hitButton.MouseFilter = enabled
+            ? Control.MouseFilterEnum.Stop
+            : Control.MouseFilterEnum.Ignore;
+    }
+
+    public void SetIntroPartVisibility(bool showHeadParts, bool showTongue, bool showClaws)
+    {
+        if (!IsNodeReady()) return;
+
+        if (showHeadParts)
+            ReapplyCurrentReaction();
+
+        _ears.Visible = showHeadParts;
+        _head.Visible = showHeadParts;
+        _eyes.Visible = showHeadParts;
+        if (!showHeadParts)
+        {
+            _eyewear.Visible = false;
+            _headwear.Visible = false;
+        }
+
+        if (_tongue != null)
+            _tongue.Visible = showTongue;
+
+        _clawLeft.Visible = showClaws;
+        _clawRight.Visible = showClaws;
+    }
+
     public void RefreshEquippedHeadwear()
     {
         if (!IsNodeReady()) return;

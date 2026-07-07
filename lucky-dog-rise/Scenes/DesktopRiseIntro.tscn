@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://cj6per4gbtfxp"]
+
+[ext_resource type="Script" uid="uid://cuxbjrpsdsrrd" path="res://Scripts/Desktop/DesktopRiseIntroController.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="2_dog"]
+
+[node name="DesktopRiseIntro" type="Node2D"]
+visible = false
+script = ExtResource("1_script")
+
+[node name="BehindLayer" type="CanvasLayer" parent="."]
+visible = false
+layer = 1
+
+[node name="BehindClip" type="Control" parent="BehindLayer"]
+clip_contents = true
+offset_right = 265.0
+offset_bottom = 184.0
+
+[node name="BehindHeadDog" parent="BehindLayer/BehindClip" instance=ExtResource("2_dog")]
+
+[node name="BehindClawDog" parent="BehindLayer/BehindClip" instance=ExtResource("2_dog")]
+
+[node name="FrontLayer" type="CanvasLayer" parent="."]
+visible = false
+layer = 2
+
+[node name="FrontClawDog" parent="FrontLayer" instance=ExtResource("2_dog")]
+
+[node name="FrontTongueDog" parent="FrontLayer" instance=ExtResource("2_dog")]
