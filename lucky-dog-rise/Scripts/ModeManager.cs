@@ -23,6 +23,7 @@ public partial class ModeManager : Control
     private PanelContainer _bossStatusPanel = null!;
     private Button _bossModeButton = null!;
     private Button _bossSystemButton = null!;
+    private Vector2 _bossStatusPanelBasePosition;
     private bool _bossStatusBarInteractable = true;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
@@ -112,6 +113,7 @@ public partial class ModeManager : Control
         _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
+        _bossStatusPanelBasePosition = _bossStatusPanel.Position;
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
         _bossModeButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         _bossSystemButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
@@ -134,6 +136,7 @@ public partial class ModeManager : Control
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
         _settingsPanel.DebugBlindBoxCountdownBubbleVisibilityChanged += OnDebugBlindBoxCountdownBubbleVisibilityChanged;
+        _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
         RefreshSettingsPanelModeActions();
 
         _panelSize = _settingsPanel.PanelSize;
@@ -169,6 +172,7 @@ public partial class ModeManager : Control
         EnableLayeredWindow();
 
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
+        ApplyBossCounterLayout();
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
         _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
         RestoreBossBlindBoxRewardIfNeeded();
@@ -366,6 +370,7 @@ public partial class ModeManager : Control
     {
         _bossKeyContent.Visible = true;
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
+        ApplyBossCounterLayout();
         UpdateBossBlindBoxOverlayPosition();
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
@@ -431,6 +436,36 @@ public partial class ModeManager : Control
         _bossSystemButton.Disabled = false;
         _bossModeButton.MouseFilter = Control.MouseFilterEnum.Stop;
         _bossSystemButton.MouseFilter = Control.MouseFilterEnum.Stop;
+    }
+
+    private void ApplyBossCounterLayout()
+    {
+        if (_bossStatusPanel == null || _bossTaskBarAnchor == null)
+            return;
+
+        if (!SettingsManager.LoadCenterCounterOnTaskbar())
+        {
+            _bossStatusPanel.Position = _bossStatusPanelBasePosition;
+            return;
+        }
+
+        var taskbarHeight = GetBottomTaskbarHeightAtWindow();
+        if (taskbarHeight <= 0)
+        {
+            _bossStatusPanel.Position = _bossStatusPanelBasePosition;
+            return;
+        }
+
+        var panelHeight = _bossStatusPanel.Size.Y > 0
+            ? _bossStatusPanel.Size.Y
+            : _bossStatusPanel.CustomMinimumSize.Y;
+        if (panelHeight <= 0)
+            panelHeight = _bossStatusPanelBasePosition.Y - _bossTaskBarAnchor.Position.Y;
+
+        _bossStatusPanel.Position = new Vector2(
+            _bossStatusPanelBasePosition.X,
+            _bossTaskBarAnchor.Position.Y + (taskbarHeight - panelHeight) / 2f
+        );
     }
 
     private void OnBossModeButtonPressed()
@@ -1144,6 +1179,27 @@ public partial class ModeManager : Control
         return best;
     }
 
+    private static int GetBottomTaskbarHeightAtWindow()
+    {
+        var windowRect = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+        var windowCenter = windowRect.Position + windowRect.Size / 2;
+        int fallback = 0;
+
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = new Rect2I(DisplayServer.ScreenGetPosition(i), DisplayServer.ScreenGetSize(i));
+            var usable = DisplayServer.ScreenGetUsableRect(i);
+            var bottomHeight = Math.Max(0, screen.End.Y - usable.End.Y);
+            if (bottomHeight > 0 && fallback == 0)
+                fallback = bottomHeight;
+
+            if (screen.HasPoint(windowCenter) || screen.Intersects(windowRect))
+                return bottomHeight;
+        }
+
+        return fallback;
+    }
+
     private void SetWindowAboveTaskbar()
     {
         var scrRect = DisplayServer.ScreenGetUsableRect();
@@ -1154,6 +1210,7 @@ public partial class ModeManager : Control
         int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
         int y = taskbarTop - anchorY;
         DisplayServer.WindowSetPosition(new Vector2I(x, y));
+        ApplyBossCounterLayout();
     }
 
     private void EnableLayeredWindow()
@@ -1231,6 +1288,8 @@ public partial class ModeManager : Control
                 var newPos = _windowPosStart + d;
                 ApplyTaskbarSnap(ref newPos);
                 DisplayServer.WindowSetPosition(newPos);
+                if (CurrentMode == Mode.BossKey)
+                    ApplyBossCounterLayout();
                 if (_settingsPanel.IsOpen)
                     PositionPanelInBestSlot();
                 if (CurrentMode == Mode.Play)

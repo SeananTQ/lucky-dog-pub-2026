@@ -16,6 +16,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
     [Signal] public delegate void DebugBlindBoxCountdownBubbleVisibilityChangedEventHandler();
+    [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     public bool IsOpen => _panel.Visible;
 
@@ -168,6 +169,14 @@ public partial class SystemPanelController : CanvasLayer
         var enhancedTopmostToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle");
         enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
         enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
+
+        var counterCenterToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow/CounterCenterToggle");
+        counterCenterToggle.ButtonPressed = SettingsManager.LoadCenterCounterOnTaskbar();
+        counterCenterToggle.Toggled += enabled =>
+        {
+            SettingsManager.SaveCenterCounterOnTaskbar(enabled);
+            EmitSignal(SignalName.CounterLayoutChanged);
+        };
 
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => GetTree().Quit();

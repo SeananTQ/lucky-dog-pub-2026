@@ -18,6 +18,7 @@ public static class SettingsManager
     private const string KeyDebugHideBlindBoxCountdownBubble = "debug_hide_blind_box_countdown_bubble";
     private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
+    private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
 
     public enum DisplayMode
     {
@@ -166,6 +167,19 @@ public static class SettingsManager
         CurrentDisplayMode = mode;
         var config = Load();
         config.SetValue(SectionDisplay, KeyDisplayMode, (int)mode);
+        config.Save(Path);
+    }
+
+    public static bool LoadCenterCounterOnTaskbar()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDisplay, KeyCenterCounterOnTaskbar, true);
+    }
+
+    public static void SaveCenterCounterOnTaskbar(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDisplay, KeyCenterCounterOnTaskbar, enabled);
         config.Save(Path);
     }
 
