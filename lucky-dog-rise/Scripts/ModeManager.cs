@@ -19,6 +19,7 @@ public partial class ModeManager : Control
     private BalloonHintController _bossBlindBoxHint = null!;
     private BlindBoxRevealOverlayController _bossBlindBoxOverlay = null!;
     private Marker2D _bossBlindBoxRevealAnchor = null!;
+    private Marker2D _bossTaskBarAnchor = null!;
     private PanelContainer _bossStatusPanel = null!;
     private Button _bossModeButton = null!;
     private Button _bossSystemButton = null!;
@@ -102,6 +103,7 @@ public partial class ModeManager : Control
         _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
         _bossBlindBoxHint = _bossKeyContent.GetNode<BalloonHintController>("CanvasLayer/BlindBoxHint");
         _bossBlindBoxRevealAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/DesktopBlindBoxRevealAnchor");
+        _bossTaskBarAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar");
         _bossDogVisual.ShowEquippedEyewearByDefault = true;
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
@@ -382,7 +384,7 @@ public partial class ModeManager : Control
         if (_bossRiseIntro == null || _bossDogVisual == null)
             return;
 
-        _bossRiseIntro.Configure(_contentOffset, _bossDogVisual.Position, _bossDogVisual.Scale);
+        _bossRiseIntro.Configure(_contentOffset, _bossDogVisual.Position, _bossDogVisual.Scale, _bossTaskBarAnchor.Position.Y);
     }
 
     private void PlayBossRiseIntro()

@@ -16,14 +16,16 @@ public partial class DesktopRiseIntroController : Node2D
     private DogVisual _behindClawDog = null!;
     private DogVisual _frontClawDog = null!;
     private DogVisual _frontTongueDog = null!;
+    private Sprite2D _behindTongue = null!;
+    private Sprite2D _frontTongue = null!;
     private Tween _tween = null!;
     private Tween _tongueLayerTween = null!;
 
     private Vector2 _dogPosition;
     private Vector2 _dogScale = Vector2.One;
+    private float _taskbarTopY;
 
-    private const double DebugTimeScale = 2.0;
-
+    [Export] private float _playbackTimeScale = 2.0f;
     [Export] private float _clawRiseOffset = 80f;
     [Export] private float _clawLatchOffset = 0f;
     [Export] private float _headPeekOffset = 64f;
@@ -31,7 +33,13 @@ public partial class DesktopRiseIntroController : Node2D
     [Export] private float _tongueSwitchDistance = 5f;
     [Export] private float _tongueSquashScaleY = 0.16f;
     [Export] private float _tongueSquashOffsetY = -34f;
-    [Export] private float _clipWidth = 265f;
+    [Export] private float _taskbarClipWidth = 265f;
+    [Export] private float _headPeekSeconds = 0.10f;
+    [Export] private float _clawRiseSeconds = 0.18f;
+    [Export] private float _postClawLatchPauseSeconds = 0.08f;
+    [Export] private float _headRiseSeconds = 0.38f;
+    [Export] private float _tongueSquashSeconds = 0.08f;
+    [Export] private float _endHoldSeconds = 0.08f;
 
     public override void _Ready()
     {
@@ -42,6 +50,8 @@ public partial class DesktopRiseIntroController : Node2D
         _behindClawDog = GetNode<DogVisual>("BehindLayer/BehindClip/BehindClawDog");
         _frontClawDog = GetNode<DogVisual>("FrontLayer/FrontClawDog");
         _frontTongueDog = GetNode<DogVisual>("FrontLayer/FrontTongueDog");
+        _behindTongue = GetNode<Sprite2D>("BehindLayer/BehindClip/BehindHeadDog/HeadRoot/Tonghe");
+        _frontTongue = GetNode<Sprite2D>("FrontLayer/FrontTongueDog/HeadRoot/Tonghe");
 
         _behindHeadDog.ShowEquippedEyewearByDefault = true;
         _behindClawDog.ShowEquippedEyewearByDefault = true;
@@ -65,17 +75,20 @@ public partial class DesktopRiseIntroController : Node2D
         RefreshVisuals();
     }
 
-    public void Configure(Vector2 contentOffset, Vector2 dogPosition, Vector2 dogScale)
+    public void Configure(Vector2 contentOffset, Vector2 dogPosition, Vector2 dogScale, float taskbarTopY)
     {
         _dogPosition = dogPosition;
         _dogScale = dogScale;
+        _taskbarTopY = taskbarTopY;
 
         if (!IsNodeReady()) return;
 
         _behindLayer.Offset = contentOffset;
         _frontLayer.Offset = contentOffset;
         _behindClip.Position = Vector2.Zero;
-        _behindClip.Size = new Vector2(_clipWidth, _dogPosition.Y);
+        // Clip at the taskbar top marker. The actual OS taskbar height can vary by
+        // monitor or Windows settings; only this top edge matters for the illusion.
+        _behindClip.Size = new Vector2(_taskbarClipWidth, _taskbarTopY);
         ApplyDogTransform(_dogPosition);
     }
 
@@ -107,8 +120,6 @@ public partial class DesktopRiseIntroController : Node2D
         var clawLatch = _dogPosition + new Vector2(0f, _clawLatchOffset);
         var headHiddenStart = _dogPosition + new Vector2(0f, _headHiddenOffset);
         var headStart = _dogPosition + new Vector2(0f, _headPeekOffset);
-        var behindTongue = _behindHeadDog.GetNode<Sprite2D>("HeadRoot/Tonghe");
-        var frontTongue = _frontTongueDog.GetNode<Sprite2D>("HeadRoot/Tonghe");
 
         ApplyDogTransform(headHiddenStart);
         _behindClawDog.Position = clawStart;
@@ -119,20 +130,20 @@ public partial class DesktopRiseIntroController : Node2D
         _frontTongueDog.SetIntroPartVisibility(showHeadParts: false, showTongue: false, showClaws: false);
         _behindHeadDog.SetIntroTongueScaleY(1f);
         _frontTongueDog.SetIntroTongueScaleY(1f);
-        var tongueBasePosition = behindTongue.Position;
+        var tongueBasePosition = _behindTongue.Position;
         var tongueSquashPosition = tongueBasePosition + new Vector2(0f, _tongueSquashOffsetY);
-        behindTongue.Position = tongueBasePosition;
-        frontTongue.Position = tongueBasePosition;
+        _behindTongue.Position = tongueBasePosition;
+        _frontTongue.Position = tongueBasePosition;
 
         _tween = CreateTween();
         _tween.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
-        _tween.TweenProperty(_behindHeadDog, "position", headStart, 0.10 * DebugTimeScale)
+        _tween.TweenProperty(_behindHeadDog, "position", headStart, Seconds(_headPeekSeconds))
             .SetTrans(Tween.TransitionType.Cubic)
             .SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_frontTongueDog, "position", headStart, 0.10 * DebugTimeScale)
+        _tween.Parallel().TweenProperty(_frontTongueDog, "position", headStart, Seconds(_headPeekSeconds))
             .SetTrans(Tween.TransitionType.Cubic)
             .SetEase(Tween.EaseType.Out);
-        _tween.Parallel().TweenProperty(_behindClawDog, "position", clawLatch, 0.18 * DebugTimeScale)
+        _tween.Parallel().TweenProperty(_behindClawDog, "position", clawLatch, Seconds(_clawRiseSeconds))
             .SetTrans(Tween.TransitionType.Quart)
             .SetEase(Tween.EaseType.Out);
         _tween.TweenCallback(Callable.From(() =>
@@ -142,7 +153,7 @@ public partial class DesktopRiseIntroController : Node2D
             _frontClawDog.ShowClawBack();
             _frontClawDog.SetIntroPartVisibility(showHeadParts: false, showTongue: false, showClaws: true);
         }));
-        _tween.TweenInterval(0.08 * DebugTimeScale);
+        _tween.TweenInterval(Seconds(_postClawLatchPauseSeconds));
         _tween.TweenCallback(Callable.From(() =>
         {
             _frontTongueDog.Position = headStart;
@@ -168,24 +179,24 @@ public partial class DesktopRiseIntroController : Node2D
                 _tongueLayerTween?.Kill();
                 _tongueLayerTween = CreateTween();
                 _tongueLayerTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-                _tongueLayerTween.TweenProperty(behindTongue, "scale:y", _tongueSquashScaleY, 0.08 * DebugTimeScale);
-                _tongueLayerTween.Parallel().TweenProperty(behindTongue, "position", tongueSquashPosition, 0.08 * DebugTimeScale);
+                _tongueLayerTween.TweenProperty(_behindTongue, "scale:y", _tongueSquashScaleY, Seconds(_tongueSquashSeconds));
+                _tongueLayerTween.Parallel().TweenProperty(_behindTongue, "position", tongueSquashPosition, Seconds(_tongueSquashSeconds));
                 _tongueLayerTween.TweenCallback(Callable.From(() =>
                 {
                     _behindHeadDog.SetIntroPartVisibility(showHeadParts: true, showTongue: false, showClaws: false);
                     _frontTongueDog.Position = _behindHeadDog.Position;
                     _frontTongueDog.SetIntroTongueScaleY(_tongueSquashScaleY);
-                    frontTongue.Position = tongueSquashPosition;
+                    _frontTongue.Position = tongueSquashPosition;
                     _frontTongueDog.SetIntroPartVisibility(showHeadParts: false, showTongue: true, showClaws: false);
                     frontTongueVisible = true;
                     EmitSignal(SignalName.StatusBarRevealRequested);
                 }));
-                _tongueLayerTween.TweenProperty(frontTongue, "scale:y", 1f, 0.08 * DebugTimeScale);
-                _tongueLayerTween.Parallel().TweenProperty(frontTongue, "position", tongueBasePosition, 0.08 * DebugTimeScale);
+                _tongueLayerTween.TweenProperty(_frontTongue, "scale:y", 1f, Seconds(_tongueSquashSeconds));
+                _tongueLayerTween.Parallel().TweenProperty(_frontTongue, "position", tongueBasePosition, Seconds(_tongueSquashSeconds));
             }),
             0f,
             1f,
-            0.38 * DebugTimeScale)
+            Seconds(_headRiseSeconds))
             .SetTrans(Tween.TransitionType.Linear)
             .SetEase(Tween.EaseType.InOut);
         _tween.TweenCallback(Callable.From(() =>
@@ -198,7 +209,7 @@ public partial class DesktopRiseIntroController : Node2D
                 _frontTongueDog.SetIntroPartVisibility(showHeadParts: false, showTongue: true, showClaws: false);
             }
         }));
-        _tween.TweenInterval(0.08 * DebugTimeScale);
+        _tween.TweenInterval(Seconds(_endHoldSeconds));
         _tween.TweenCallback(Callable.From(() =>
         {
             HideImmediate();
@@ -240,5 +251,10 @@ public partial class DesktopRiseIntroController : Node2D
         t = Mathf.Clamp(t, 0f, 1f);
         var inv = 1f - t;
         return 1f - inv * inv * inv * inv;
+    }
+
+    private double Seconds(float baseSeconds)
+    {
+        return baseSeconds * _playbackTimeScale;
     }
 }
