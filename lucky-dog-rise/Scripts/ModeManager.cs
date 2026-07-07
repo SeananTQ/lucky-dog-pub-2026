@@ -20,6 +20,9 @@ public partial class ModeManager : Control
     private BlindBoxRevealOverlayController _bossBlindBoxOverlay = null!;
     private Marker2D _bossBlindBoxRevealAnchor = null!;
     private PanelContainer _bossStatusPanel = null!;
+    private Button _bossModeButton = null!;
+    private Button _bossSystemButton = null!;
+    private bool _bossStatusBarInteractable = true;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -108,10 +111,10 @@ public partial class ModeManager : Control
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
-        var modeBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
-        var sysBtn = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
-        modeBtn.Pressed += SwitchToPlay;
-        sysBtn.Pressed += ToggleSettingsPanel;
+        _bossModeButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
+        _bossSystemButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
+        _bossModeButton.Pressed += OnBossModeButtonPressed;
+        _bossSystemButton.Pressed += OnBossSystemButtonPressed;
         _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
         RefreshBossBlindBoxHint();
 
@@ -145,6 +148,7 @@ public partial class ModeManager : Control
         _bossRiseIntro = GD.Load<PackedScene>("res://Scenes/DesktopRiseIntro.tscn")
             .Instantiate<DesktopRiseIntroController>();
         _bossRiseIntro.Name = "DesktopRiseIntro";
+        _bossRiseIntro.StatusBarRevealRequested += OnBossRiseIntroStatusBarRevealRequested;
         _bossRiseIntro.Finished += OnBossRiseIntroFinished;
         _bossKeyContent.AddChild(_bossRiseIntro);
         _bossRiseIntro.BindGameData(_gameData);
@@ -348,6 +352,7 @@ public partial class ModeManager : Control
             _bossDogVisual.Visible = true;
         if (_bossStatusPanel != null)
             _bossStatusPanel.Visible = true;
+        SetBossStatusBarInteractable(true);
         _bossKeyContent.Visible = false;
         // CanvasLayer 不继承 Node2D 的 Visible，需单独隐藏
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = false;
@@ -388,8 +393,18 @@ public partial class ModeManager : Control
         ConfigureBossRiseIntro();
         _bossDogVisual.Visible = false;
         _bossStatusPanel.Visible = false;
+        SetBossStatusBarInteractable(false);
         SetBossBlindBoxHintDisplayVisible(false);
         _bossRiseIntro.Play();
+    }
+
+    private void OnBossRiseIntroStatusBarRevealRequested()
+    {
+        if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
+            return;
+
+        _bossStatusPanel.Visible = true;
+        SetBossStatusBarInteractable(false);
     }
 
     private void OnBossRiseIntroFinished()
@@ -399,8 +414,37 @@ public partial class ModeManager : Control
 
         _bossDogVisual.Visible = true;
         _bossStatusPanel.Visible = true;
+        SetBossStatusBarInteractable(true);
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
+    }
+
+    private void SetBossStatusBarInteractable(bool interactable)
+    {
+        if (_bossModeButton == null || _bossSystemButton == null)
+            return;
+
+        _bossStatusBarInteractable = interactable;
+        _bossModeButton.Disabled = false;
+        _bossSystemButton.Disabled = false;
+        _bossModeButton.MouseFilter = Control.MouseFilterEnum.Stop;
+        _bossSystemButton.MouseFilter = Control.MouseFilterEnum.Stop;
+    }
+
+    private void OnBossModeButtonPressed()
+    {
+        if (!_bossStatusBarInteractable)
+            return;
+
+        SwitchToPlay();
+    }
+
+    private void OnBossSystemButtonPressed()
+    {
+        if (!_bossStatusBarInteractable)
+            return;
+
+        ToggleSettingsPanel();
     }
 
     private void RefreshBossBlindBoxHint()
