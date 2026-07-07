@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-03
+last_edit: 2026-07-07
 status: draft
 ---
 
@@ -9,6 +9,8 @@ status: draft
 ## 文档目的
 
 本文档用于准备 `Lucky Dog Rise` 的 Steam 商店页后续填写材料，包括文本、图片、截图、视频、动图、内容调查与审核前检查项。
+
+当前商店页已经提交 Steam 审核，本文档中的早期文本草案仅保留为历史参考。最终提交状态、语言策略和后续待办以 `docs/steamworks/store-page-submission-summary.md` 为准。
 
 本文档不替代 Steamworks 后台，以后台实际清单和 Steam 官方文档为准。
 
@@ -35,90 +37,27 @@ status: draft
 - 不写发行日期、即将推出、现在可玩等时间敏感文字。
 - 先讲清楚产品是什么，再讲关键差异点。
 
-建议英文版本：
+当前建议：
 
-```text
-A cozy desktop dog companion that reacts as you type, click, work, and play. Earn chips, open blind boxes, collect outfits, and switch into quick video poker breaks whenever your lucky pup is ready.
-```
-
-建议简体中文版本：
-
-```text
-一只会陪在桌面上的幸运小狗，会在玩家打字、点击、工作和游玩时作出反应。赚取筹码、开启盲盒、收集装扮，也可以随时切入一局轻松的视频扑克小休息。
-```
+- 优先使用 `Lucky Points / 幸运点数`，避免在玩家尚未理解玩法前使用“筹码”作为主要公开表达。
+- 简体中文、繁体中文、英语、日语短描述都需要以 Steam 预览为准，重点检查侧边栏截断。
+- 短描述应先建立“桌面小狗陪伴”印象，再补充打牌、盲盒和装扮循环。
+- 若文本在侧边栏被截断，优先保证前半段完整表达产品类型和情绪钩子。
 
 ### 关于此游戏
 
-建议结构：
+当前定稿维护位置：
 
-- 开场用一小段说明“桌面小狗伴侣”的核心体验。
-- 按功能模块分段，每段短而可扫读。
-- 使用清晰小标题，不堆长段落。
-- 可插入无文字动图或截图辅助说明。
+- `docs/steamworks/关于此游戏-简体中文.md`
+- `docs/steamworks/关于此游戏-繁体中文.md`
+- `docs/steamworks/关于此游戏-English.md`
+- `docs/steamworks/关于此游戏-日本語.md`
 
-建议英文草案：
+当前排版策略：
 
-```text
-Lucky Dog Rise brings a lucky little dog to your desktop.
-
-Your dog can stay with you while you work, type, click, play, or take a short break. It reacts to your desktop activity, gives playful feedback, and turns small moments on your computer into a cozy collection loop.
-
-Your Desktop Dog Companion
-
-Keep a cute 2D dog on your screen while you use your computer. The dog can react to typing, clicking, and different activity states, making the desktop feel a little more alive.
-
-Earn Chips While You Type and Click
-
-Typing and clicking can feed into lightweight progression. Earn chips over time, watch your companion respond, and let background activity become part of the game.
-
-Quick Video Poker Breaks
-
-Switch into a casual video poker mode inspired by Jacks or Better. Bet chips, hold cards, draw new ones, and chase better hands at your own pace.
-
-Blind Boxes and Outfits
-
-Open blind boxes, collect items, unlock dog skins, and dress up your companion with different looks and accessories.
-
-Made for Background Play
-
-Lucky Dog Rise is designed for short sessions, background play, and players who enjoy desktop companions, cute animals, idle collection, and casual card games.
-```
-
-建议简体中文草案：
-
-```text
-你也许已经在电脑上养过猫、鱼、小虫，甚至各种奇妙的桌面伙伴。
-
-但这一次，是一只小狗。
-
-Lucky Dog Rise 会把一只幸运小狗带到你的桌面上。它不会打扰你，也不会催你做什么。它会安静地守在屏幕旁边，看着你打字、点击、工作、游玩，并因为你努力的样子而兴奋起来。
-
-当你专注工作时，小狗会默默陪伴你。每一次打字和点击，都会让它感受到主人的努力，并逐渐积累筹码。你的日常操作不再只是敲键盘和点鼠标，也会变成小狗成长与收获的一部分。
-
-当你想要消遣一下时，可以切换到打牌模式。
-
-在这个模式中，主人和小狗将一起面对一局又一局的视频扑克。下注、保留手牌、抽取新牌，凭借一点判断、一点运气，还有和小狗之间的默契，赢下更多筹码。
-
-筹码可以带来新的盲盒。打开盲盒，获得装扮、道具和新的外观，让这只一直陪着你的桌面小狗变得更可爱、更特别，也更像属于你的伙伴。
-
-主要特色
-
-一只少见的桌面小狗伙伴，陪伴你工作、游玩和休息
-
-桌宠模式与打牌模式自由切换
-
-打字和点击会推动轻量成长，积累筹码
-
-受 Jacks or Better 启发的视频扑克玩法
-
-盲盒、装扮、道具和小狗外观收集
-
-适合短暂休息、后台陪伴和喜欢可爱动物的玩家
-
-Lucky Dog Rise 不是要占用你整晚的游戏。
-
-它更像是在电脑旁边多了一只小狗：你努力时，它陪着你；你想偷闲时，它陪你玩一局。
-```
+- 不使用多段小标题，改用短段落形成类似种草文/摘句感的阅读节奏。
+- 不在当前版本投入多张 WebM/GIF，避免 About This Game 区域过早折叠。
+- 结尾使用静态小狗图作为视觉收束，配合“给小狗留一个位置”的文案。
 
 ### 内容调查说明
 
@@ -129,10 +68,11 @@ Lucky Dog Rise 不是要占用你整晚的游戏。
 - 若后台内容调查询问博彩/赌博，应诚实说明存在虚拟筹码扑克玩法，但不可兑换现金、奖品或真实货币价值。
 - 当前不涉及成人内容、血腥暴力、药物、恐怖、仇恨或在线多人互动。
 
-需要主人确认：
+当前确认口径：
 
-- @主人 [请确认首发版本是否完全不含真实货币购买、付费抽取、可交易库存或现金价值奖励。]
-- @主人 [请确认是否公开展示盲盒掉落概率；如展示，需要以 Luban 表最终配置为准。]
+- 首发商店页不宣传真实货币购买、付费抽取、可交易库存或现金价值奖励。
+- 打牌和盲盒均作为游戏内虚拟进度与装扮收集循环，不提供现金、现实奖品或现实价值兑换。
+- 掉落概率是否公开展示留待后续版本决定；如展示，需要以 Luban 表最终配置为准。
 
 ### 发行日期文案
 
@@ -142,9 +82,10 @@ Lucky Dog Rise 不是要占用你整晚的游戏。
 - 后台真实目标日期可以先按开发排期保守填写，后续再调整。
 - 不在短描述或胶囊图中写日期，避免过期。
 
-需要主人确认：
+当前确认口径：
 
-- @主人 [请确认玩家可见发行日期使用 Coming Soon、2026、2026 Q4、月份，还是具体日期。]
+- 本轮目标为审核通过后手动发布 `Coming Soon / 即将推出` 页面以积累愿望单。
+- 发行日期不会自动触发正式发行，正式发行仍需要主人手动发布。
 
 ## 图片素材清单
 
@@ -279,9 +220,15 @@ Steam 要求发行流程中上传至少一个预告片。
 - 关于此游戏区域的截图和 GIF 总文件体积建议低于 `15MB`。
 - 动图尽量不含文字；如果含文字，后续本地化时需要为每个语言重新上传。
 
-建议动图数量：
+当前投入判断：
 
-- 首轮准备 3 个短循环 GIF 即可。
+- 首轮不优先制作 About This Game 用 WebM/GIF。
+- 原因是当前可展示内容与截图、未来预告片重叠较多，且动图会占用高度，让 About This Game 更早出现展开按钮。
+- 若公开后数据表明玩家需要更强的动态说明，再制作少量 WebM/GIF。
+
+历史建议动图数量：
+
+- 如后续制作，首轮准备 1-3 个短循环 WebM/GIF 即可。
 
 建议动图内容：
 
@@ -338,11 +285,10 @@ Steam 要求发行流程中上传至少一个预告片。
 
 ### 主人回来后优先一起处理
 
-1. 确认最终英文短描述。
-2. 确认关于此游戏的英文结构。
-3. 确认是否同时填简体中文商店页文本。
-4. 确认发行日期展示策略。
-5. 确认内容调查中扑克与盲盒的口径。
+1. 核对四语短描述最终版，重点看 Steam 首屏是否截断。
+2. 核对 Steam 语言支持表，避免在游戏内 UI 未本地化前承诺中文、繁中或日文 `Interface`。
+3. 等待 Valve 商店页审核反馈，并按反馈修正。
+4. 审核通过后，最终预览四种语言页面，再决定公开 Coming Soon 的时机。
 
 ### 后续素材优先制作
 
@@ -350,7 +296,7 @@ Steam 要求发行流程中上传至少一个预告片。
 2. 至少 5 张真实截图。
 3. 一套 Steam 商店胶囊图。
 4. 一套 Steam 库资产。
-5. 3 个关于此游戏用的短循环 GIF。
+5. 根据公开后转化表现，再决定是否补充关于此游戏用的短循环 WebM/GIF。
 
 ### 当前不建议投入过多
 

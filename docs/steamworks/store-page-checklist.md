@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-06
+last_edit: 2026-07-07
 status: draft
 ---
 
@@ -35,6 +35,12 @@ status: draft
 2026-07-06，主人已在 Steamworks 后台提交 `Lucky Dog Rise` 的商店页审核。
 
 本文件保留早期填写清单与字段解释。提交时的最终决策、素材策略、语言策略与后续待办，记录在 `docs/steamworks/store-page-submission-summary.md`。
+
+2026-07-07 补充：
+
+- “关于此游戏”四语长描述已经单独整理为 `docs/steamworks/关于此游戏-*` 文件，本清单中的早期描述草案不再作为最终文本来源。
+- 当前不优先制作 About This Game 用 WebM/GIF，避免页面过早折叠；结尾静态小狗图更适合当前阶段。
+- 公开 Coming Soon 前，应重点核对四语短描述截断情况和 Steam 语言支持表。
 
 ## 操作边界
 
@@ -335,8 +341,9 @@ Steamworks 当前页面提示以下项目为推荐项，非发布商店页的必
 - Steam 成就：首轮商店页可暂不承诺，待成就系统设计与 Steam API 接入后再决定。
 - 辅助功能：可先记录当前实际支持情况，不夸大。
 
-## 待主人确认
+## 待公开前确认
 
-- @主人 [请确认商店页最终展示名称使用 `Lucky Dog Rise` 还是另一个正式名称。] @AI [Lucky Dog Rise]
-- @主人 [请确认公开开发者/发行商名称。] @AI [Seanan Studio]
-- @主人 [请确认玩家可见发行日期倾向：Coming Soon、年份、季度、月份或具体日期。] @AI [目前我选的是第三季度]
+- 商店页最终展示名称：`Lucky Dog Rise`
+- 公开开发者/发行商名称：`Seanan Studio`
+- 当前目标公开状态：审核通过后手动发布为 `Coming Soon / 即将推出`
+- 公开前核对：短描述、关于此游戏、截图、胶囊图、年龄评级、语言支持表和客服信息。
