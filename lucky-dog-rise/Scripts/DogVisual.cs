@@ -321,6 +321,13 @@ public partial class DogVisual : Node2D
         _clawRight.Visible = showClaws;
     }
 
+    public void SetIntroTongueScaleY(float scaleY)
+    {
+        if (!IsNodeReady() || _tongue == null) return;
+
+        _tongue.Scale = new Vector2(1f, scaleY);
+    }
+
     public void RefreshEquippedHeadwear()
     {
         if (!IsNodeReady()) return;
