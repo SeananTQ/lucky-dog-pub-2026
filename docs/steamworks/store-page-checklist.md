@@ -32,7 +32,7 @@ status: draft
 
 ## 当前提交状态
 
-2026-07-06，主人已在 Steamworks 后台提交 `Lucky Dog Rise` 的商店页审核。
+2026-07-05，主人已在 Steamworks 后台提交 `Lucky Dog Rise` 的商店页审核。
 
 本文件保留早期填写清单与字段解释。提交时的最终决策、素材策略、语言策略与后续待办，记录在 `docs/steamworks/store-page-submission-summary.md`。
 
@@ -41,6 +41,7 @@ status: draft
 - “关于此游戏”四语长描述已经单独整理为 `docs/steamworks/关于此游戏-*` 文件，本清单中的早期描述草案不再作为最终文本来源。
 - 当前不优先制作 About This Game 用 WebM/GIF，避免页面过早折叠；结尾静态小狗图更适合当前阶段。
 - 公开 Coming Soon 前，应重点核对四语短描述截断情况和 Steam 语言支持表。
+- 2026-07-07 后台只读核对：商店页已在审核队列中；商店清单已完成；游戏生成版本清单仍未完成；当前最需要公开前修正的是支持语言表的 `Interface` 承诺。
 
 ## 操作边界
 
@@ -65,12 +66,14 @@ flowchart TD
 
 ## 商店页必填清单
 
+注意：本节保留的是 2026-07-03 首次填写 Steamworks 后台时的观察记录和教学说明。2026-07-05 已完成并提交商店页审核，因此本节中的“未完成”“待填写”等表述均指提交前状态，不代表当前仍缺失。
+
 以下清单来自 2026-07-03 Steamworks 应用页的只读观察。
 
 ### 基本信息
 
 - 后台入口：`Store Presence / Basic Info`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 2026-07-03 页面观察：
   - 应用类型已选：游戏
   - 游戏名称已填：`Lucky Dog Rise`
@@ -98,7 +101,7 @@ flowchart TD
 - 教学重点：
   - 这里决定商店页最基础的产品身份、分类、功能勾选、开发者/发行商显示。
   - 功能勾选必须与当前游戏实际支持一致；未实现的 Steam Cloud、成就、控制器支持等不应提前勾选。
-- 待填写/确认：
+- 当时待填写/确认：
   - 正式游戏名
   - 开发者名称
   - 发行商名称
@@ -130,7 +133,7 @@ flowchart TD
 ### 描述
 
 - 后台入口：`Store Presence / Description`
-- 当前状态：已在后台页面填入英文草案，尚未由主人确认保存
+- 2026-07-03 观察状态：已在后台页面填入英文草案，尚未由主人确认保存
 - 教学重点：
   - 短描述影响列表页和商店首屏理解成本。
   - 长描述需要清楚说明玩家能实际获得什么体验。
@@ -165,7 +168,7 @@ A cozy 2D style designed for short sessions and background play
 Lucky Dog Rise is made for players who enjoy desktop companions, idle collection, cute animals, and card-based mini games.
 ```
 
-- 待填写/确认：
+- 当时待填写/确认：
   - 主人确认是否保存当前英文草案
   - 是否继续补充简体中文商店页描述
   - 后续根据实际截图与宣传素材微调文案节奏
@@ -174,22 +177,22 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 内容调查
 
 - 后台入口：`Content Survey`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 内容调查影响年龄提示、地区显示与审核判断。
   - 应按游戏实际内容填写，不为了“看起来安全”而隐瞒，也不把不存在的内容勾上。
-- 待填写/确认：
+- 当时待填写/确认：
   - 扑克/博彩表达的边界说明
   - 是否涉及真实货币博彩
   - 是否存在成人、暴力、药物、恐怖等内容
 
 ### 预定发行日期
 
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 可设置精确日期或较模糊的顾客可见日期。
   - “即将推出”页面需公开至少两周后才可正式发行。
-- 待填写/确认：
+- 当时待填写/确认：
   - 后台指定日期
   - 玩家可见日期文案
   - 是否先使用模糊窗口
@@ -197,11 +200,11 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 系统要求
 
 - 后台入口：`Basic Info / System Requirements`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 系统要求应与 Godot Windows 构建实际运行需求相符。
   - 不确定项可以先保守填写，后续通过测试机或发布包验证。
-- 待填写/确认：
+- 当时待填写/确认：
   - 最低配置
   - 推荐配置
   - 存储空间
@@ -210,23 +213,23 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 控制器支持描述
 
 - 后台入口：`Basic Info / Controller`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 如果游戏主要依赖鼠标、键盘和桌面交互，不应夸大控制器支持。
   - 控制器支持会影响商店功能标签与玩家预期。
-- 待填写/确认：
+- 当时待填写/确认：
   - 是否支持控制器
   - 如果不支持，后台应如何标记
 
 ### 截图
 
 - 后台入口：`Graphical Assets / Screenshots`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 要求：5 张或更多截图
 - 教学重点：
   - 截图应为真实 gameplay，不应使用概念图、纯宣传图或带大段营销文字的图。
   - 截图需要覆盖玩家最关心的体验：桌宠、扑克、装扮、盲盒、系统面板等。
-- 待准备素材：
+- 当时待准备素材：
   - 桌宠模式截图
   - 扑克模式截图
   - 装扮/背包截图
@@ -236,11 +239,11 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 宣传图
 
 - 后台入口：`Graphical Assets / Store`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 胶囊图必须包含清晰可读的产品标题或 logo。
   - 图像风格应与当前美化后的游戏视觉一致。
-- 待准备素材：
+- 当时待准备素材：
   - Header capsule
   - Small capsule
   - Main capsule
@@ -250,11 +253,11 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 库资产
 
 - 后台入口：`Graphical Assets / Library`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 库资产影响玩家购买后在 Steam 客户端库中的展示。
   - 应与商店胶囊图保持同一套视觉识别。
-- 待准备素材：
+- 当时待准备素材：
   - Library capsule
   - Library hero
   - Library logo
@@ -262,11 +265,11 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 支持信息
 
 - 后台入口：`Basic Info / Support Info`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 用于玩家遇到问题时联系开发者。
   - 应填写主人愿意公开并长期维护的邮箱或支持入口。
-- 待填写/确认：
+- 当时待填写/确认：
   - 支持邮箱
   - 官方网站或支持页面
 - 当前决策：
@@ -275,18 +278,18 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 开发者与发行商名称
 
 - 后台入口：`Basic Info`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 这是商店页公开展示的主体名称。
   - 需要与 Steamworks 账户、品牌规划和后续游戏保持一致。
-- 待填写/确认：
+- 当时待填写/确认：
   - 开发者显示名
   - 发行商显示名
 
 ### 商店页描述性标签
 
 - 后台入口：`Basic Info / Genre And Tags`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 2026-07-03 标签向导已选择但尚未确认最终保存状态：
   - 主类型：`休闲`
   - 类型：`卡牌游戏`
@@ -306,7 +309,7 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
   - Idler
   - Dog
   - Desktop Pet
-- 待确认：
+- 当时待确认：
   - Steam 后台可选标签中的最终组合
 
 ## 社区与客户端图标清单
@@ -314,7 +317,7 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 应用图标
 
 - 后台入口：`Apps / Client Images`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - 应用图标用于 Steam 客户端、快捷方式等位置。
   - 建议使用简洁、可小尺寸识别的小狗或品牌符号。
@@ -322,7 +325,7 @@ Lucky Dog Rise is made for players who enjoy desktop companions, idle collection
 ### 快捷方式图标
 
 - 后台入口：`Apps / Client Images`
-- 当前状态：未完成
+- 2026-07-03 观察状态：未完成
 - 教学重点：
   - Windows 快捷方式图标需要在小尺寸下仍然清楚。
   - 不建议使用复杂截图裁切。
