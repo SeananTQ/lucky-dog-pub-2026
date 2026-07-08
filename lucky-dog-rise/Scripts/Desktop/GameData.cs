@@ -264,7 +264,7 @@ public partial class GameData : Node
         _saveTimer = SaveDebounceSeconds;
     }
 
-    private void SaveImmediatelyIfUsingLocalSave()
+    public void SaveImmediatelyIfUsingLocalSave()
     {
         QueueSaveIfUsingLocalSave();
         FlushSave();

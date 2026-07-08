@@ -473,6 +473,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void RestartGame()
     {
+        _gameData?.SaveImmediatelyIfUsingLocalSave();
         OS.CreateInstance(OS.GetCmdlineArgs());
         GetTree().Quit();
     }
