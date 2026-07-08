@@ -39,8 +39,8 @@ public partial class ModeManager : Control
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
     private const float DragThreshold = 5f;
-    // Poker mode visual gaps between the side panels and the 600x600 game panel.
-    private const int PlayInfoGameGap = 7;
+    private const int PlayInfoPanelWidth = 246;
+    private const int PlayGameWidth = 600;
     private const int PlayGameSettingsGap = 1;
 
     private bool _taskbarSnapped;
@@ -251,8 +251,8 @@ public partial class ModeManager : Control
             }
             if (_infoPanel != null && _infoPanel.Visible)
             {
-                int infoX = _infoPanelOnRight ? 240 + PlayInfoGameGap + 600 + PlayGameSettingsGap : 0;
-                over |= new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos);
+                int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
+                over |= new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos);
             }
         }
 
@@ -331,19 +331,17 @@ public partial class ModeManager : Control
         var scrSize = DisplayServer.ScreenGetSize();
         var winPos = DisplayServer.WindowGetPosition();
         int baseY = (int)_contentOffset.Y;
-        const int gameW = 600;
-        const int infoW = 240;
         const int pad = 5;
-        int gameX = infoW + PlayInfoGameGap;
+        int gameX = PlayInfoPanelWidth;
 
-        // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + 240
-        bool leftOk = winPos.X >= -pad && winPos.X + infoW <= scrSize.X + pad;
+        // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + PlayInfoPanelWidth
+        bool leftOk = winPos.X >= -pad && winPos.X + PlayInfoPanelWidth <= scrSize.X + pad;
 
         _infoPanelOnRight = !leftOk;
 
         // 游戏面板位置固定，信息面板自己绕到右侧
         _playViewport.Position = new Vector2(gameX, baseY);
-        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameW + PlayGameSettingsGap : 0, baseY));
+        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + PlayGameWidth + PlayGameSettingsGap : 0, baseY));
     }
 
     private void SwitchToBossKey()
@@ -1110,7 +1108,7 @@ public partial class ModeManager : Control
                 int infoY = (int)aY;
                 var setRect = new Rect2(sx, sy, pw, ph);
                 // info 坐标是窗口空间，Fits 是屏幕空间，需加 winPos
-                var infoRect = new Rect2(winPos.X + infoX, winPos.Y + infoY, 240, 600);
+                var infoRect = new Rect2(winPos.X + infoX, winPos.Y + infoY, PlayInfoPanelWidth, 600);
                 if (setRect.Intersects(infoRect))
                     return false;
             }
@@ -1197,7 +1195,7 @@ public partial class ModeManager : Control
     {
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
-        int contentW = 840 + PlayInfoGameGap;
+        int contentW = PlayInfoPanelWidth + PlayGameWidth;
         int contentH = 600;
         int winW = contentW + pw * 2;
         int winH = Math.Max(contentH, ph) + ph * 2;
@@ -1209,7 +1207,7 @@ public partial class ModeManager : Control
 
     private void KeepPlayContentWithinScreen()
     {
-        const int contentW = 840 + PlayInfoGameGap;
+        const int contentW = PlayInfoPanelWidth + PlayGameWidth;
         const int contentH = 600;
         const int pad = 5;
 
@@ -1344,8 +1342,8 @@ public partial class ModeManager : Control
                 if (_settingsPanel.ContainsPoint(localPos)) return;
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
-                    int infoX = _infoPanelOnRight ? 240 + PlayInfoGameGap + 600 + PlayGameSettingsGap : 0;
-                    if (new Rect2(infoX, _contentOffset.Y, 240, 600).HasPoint(localPos)) return;
+                    int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
+                    if (new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos)) return;
                 }
 
                 _mouseScreenStart = DisplayServer.MouseGetPosition();

@@ -10,6 +10,7 @@ public partial class InfoPanelController : CanvasLayer
     [Signal] public delegate void SettingsRequestedEventHandler();
     [Signal] public delegate void BlindBoxRequestedEventHandler();
 
+    [Export] private PanelContainer _panel = null!;
     [Export] private Label _chipsKeyLabel = null!;
     [Export] private Label _chipsLabel = null!;
     [Export] private Label _rankNameLabel = null!;
@@ -20,6 +21,7 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private BalloonHintController _blindBoxHint = null!;
 
     // ===== 动画参数 =====
+    private static readonly Vector2 PanelSize = new(246, 600);
     private const float ChipsAnimDuration = 0.4f;
     private const float BlinkVisibleDuration = 0.8f;
     private const float BlinkHiddenDuration = 0.4f;
@@ -58,6 +60,8 @@ public partial class InfoPanelController : CanvasLayer
 
     public override void _Ready()
     {
+        LockPanelSize();
+
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
         _blindBoxBtn.Pressed += () => EmitSignal(SignalName.BlindBoxRequested);
         _blindBoxHint.Pressed += OnBlindBoxHintPressed;
@@ -229,8 +233,14 @@ public partial class InfoPanelController : CanvasLayer
 
     public void SetPanelPosition(Vector2 pos)
     {
-        var panel = GetNode<PanelContainer>("Panel");
-        panel.Position = pos;
+        _panel.Position = pos;
+        LockPanelSize();
+    }
+
+    private void LockPanelSize()
+    {
+        _panel.CustomMinimumSize = PanelSize;
+        _panel.Size = PanelSize;
     }
 
     public void RefreshBlindBoxButton()
@@ -240,7 +250,7 @@ public partial class InfoPanelController : CanvasLayer
 
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status == BlindBoxHintStatus.Waiting;
-        _blindBoxBtn.Text = L10n.Tr(L10nKey.InfoPanel_Open);
+        RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
         SetBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
@@ -287,8 +297,8 @@ public partial class InfoPanelController : CanvasLayer
     private void RefreshLocalizedText()
     {
         _chipsKeyLabel.Text = L10n.Tr(L10nKey.InfoPanel_Chips);
-        _settingsBtn.Text = L10n.Tr(L10nKey.InfoPanel_Menu);
-        _blindBoxBtn.Text = L10n.Tr(L10nKey.InfoPanel_Open);
+        RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
+        RefreshActionButtonText(_settingsBtn, L10nKey.InfoPanel_Menu);
 
         var payList = LubanData.Tables.TbPayTable.DataList;
         for (int i = 0; i < payList.Count; i++)
@@ -310,6 +320,13 @@ public partial class InfoPanelController : CanvasLayer
         _winResultLabel.Text = _currentPayout > 0
             ? L10n.Format(L10nKey.InfoPanel_YouWin, _currentPayout)
             : "";
+    }
+
+    private static void RefreshActionButtonText(Button button, string key)
+    {
+        var showText = L10n.CurrentLocale == L10n.SimplifiedChineseLocale;
+        button.Text = showText ? L10n.Tr(key) : string.Empty;
+        button.IconAlignment = showText ? HorizontalAlignment.Left : HorizontalAlignment.Center;
     }
 
 }

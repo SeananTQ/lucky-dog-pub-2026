@@ -11,6 +11,7 @@ CSV_PATH = PROJECT_ROOT / "Data" / "Localization" / "LocalizationText.csv"
 KEYS_PATH = PROJECT_ROOT / "Scripts" / "Desktop" / "L10nKey.cs"
 KEY_RE = re.compile(r"^[A-Z][A-Za-z0-9]*(?:_[A-Z][A-Za-z0-9]*)*$")
 CONST_RE = re.compile(r"public const string ([A-Za-z_][A-Za-z0-9_]*) = nameof\(\1\);")
+EMPTY_TEXT_MARKER = "@empty"
 
 
 def fail(message: str) -> None:
@@ -52,8 +53,11 @@ def main() -> None:
         if len(row) < len(header):
             fail(f"key {key} at line {line_no} has too few columns")
         for col, locale in language_columns:
-            if not row[col].strip():
+            value = row[col].strip()
+            if not value:
                 fail(f"key {key} is missing {locale} text at line {line_no}")
+            if value.startswith("@") and value != EMPTY_TEXT_MARKER:
+                fail(f"key {key} has unknown localization marker {value} for {locale} at line {line_no}")
         if id_column is not None:
             id_value = row[id_column].strip()
             if not id_value:

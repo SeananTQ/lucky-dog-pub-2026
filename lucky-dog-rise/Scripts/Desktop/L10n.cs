@@ -17,8 +17,10 @@ public static class L10n
     public const string JapaneseLocale = "ja";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
+    private const string EmptyTextMarker = "@empty";
     private static bool _loaded;
     private static bool _safeMode;
+    private static readonly HashSet<string> ExplicitEmptyTexts = new();
 
     public static event Action? Changed;
 
@@ -54,6 +56,9 @@ public static class L10n
     {
         EnsureLoaded();
         var resolvedKey = ResolveSafeKey(key);
+        if (IsExplicitEmptyText(CurrentLocale, resolvedKey))
+            return string.Empty;
+
         return TranslationServer.Translate(resolvedKey);
     }
 
@@ -130,7 +135,7 @@ public static class L10n
 
     private static bool HasTranslation(string key)
     {
-        return TranslationServer.Translate(key) != key;
+        return IsExplicitEmptyText(CurrentLocale, key) || TranslationServer.Translate(key) != key;
     }
 
     private static void EnsureLoaded()
@@ -187,9 +192,33 @@ public static class L10n
             for (int col = 1; col < locales.Length && col < fields.Length; col++)
             {
                 if (translations.TryGetValue(locales[col], out var translation))
-                    translation.AddMessage(key, fields[col]);
+                {
+                    var text = fields[col];
+                    if (IsEmptyTextMarker(text))
+                    {
+                        ExplicitEmptyTexts.Add(GetTranslationId(locales[col], key));
+                        continue;
+                    }
+
+                    translation.AddMessage(key, text);
+                }
             }
         }
+    }
+
+    private static bool IsEmptyTextMarker(string text)
+    {
+        return text.Trim() == EmptyTextMarker;
+    }
+
+    private static bool IsExplicitEmptyText(string locale, string key)
+    {
+        return ExplicitEmptyTexts.Contains(GetTranslationId(locale, key));
+    }
+
+    private static string GetTranslationId(string locale, string key)
+    {
+        return $"{locale}\u001f{key}";
     }
 
     private static string[] ParseCsvLine(string line)
