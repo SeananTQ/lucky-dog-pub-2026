@@ -353,6 +353,28 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_option_button_normal"]
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 22.0
+content_margin_bottom = 2.0
+bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_option_button_hover"]
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 22.0
+content_margin_bottom = 2.0
+bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_close_button"]
 content_margin_left = 8.0
 content_margin_top = 8.0
@@ -466,6 +488,28 @@ content_margin_bottom = 1.0
 bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_hover"]
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_panel"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7eo5n"]
 bg_color = Color(0, 0.14652029, 0.28276542, 1)
@@ -726,6 +770,22 @@ LineEdit/icons/clear = SubResource("DPITexture_ox3pi")
 LineEdit/styles/focus = SubResource("StyleBoxFlat_5li03")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_p7m14")
 LineEdit/styles/read_only = SubResource("StyleBoxFlat_5gcxy")
+OptionButton/colors/font_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+OptionButton/colors/font_focus_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_hover_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_outline_color = Color(0, 0, 0, 1)
+OptionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+OptionButton/constants/h_separation = 6
+OptionButton/font_sizes/font_size = 15
+OptionButton/fonts/font = SubResource("FontVariation_cme4l")
+OptionButton/styles/disabled = SubResource("StyleBoxFlat_option_button_normal")
+OptionButton/styles/focus = SubResource("StyleBoxFlat_option_button_hover")
+OptionButton/styles/hover = SubResource("StyleBoxFlat_option_button_hover")
+OptionButton/styles/hover_pressed = SubResource("StyleBoxFlat_option_button_hover")
+OptionButton/styles/normal = SubResource("StyleBoxFlat_option_button_normal")
+OptionButton/styles/pressed = SubResource("StyleBoxFlat_option_button_hover")
 PanelCloseButton/base_type = &"Button"
 PanelCloseButton/colors/font_color = Color(1, 1, 1, 1)
 PanelCloseButton/colors/font_hover_color = Color(1, 1, 1, 1)
@@ -772,6 +832,17 @@ PanelTopTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selec
 PanelTopTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
 PanelTopTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
 PanelTopTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_pressed")
+PopupMenu/colors/font_color = Color(1, 1, 1, 1)
+PopupMenu/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+PopupMenu/colors/font_hover_color = Color(1, 1, 1, 1)
+PopupMenu/colors/font_separator_color = Color(0.6627451, 0.8352941, 0.85882354, 1)
+PopupMenu/constants/item_end_padding = 8
+PopupMenu/constants/item_start_padding = 8
+PopupMenu/constants/v_separation = 2
+PopupMenu/font_sizes/font_size = 15
+PopupMenu/fonts/font = SubResource("FontVariation_cme4l")
+PopupMenu/styles/hover = SubResource("StyleBoxFlat_popup_hover")
+PopupMenu/styles/panel = SubResource("StyleBoxFlat_popup_panel")
 ProgressBar/font_sizes/font_size = 22
 ProgressBar/styles/background = SubResource("StyleBoxFlat_7eo5n")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_i6fns")
