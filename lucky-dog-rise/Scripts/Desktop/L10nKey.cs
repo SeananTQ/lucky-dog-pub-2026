@@ -6,6 +6,8 @@ public static class L10nKey
     public const string Common_Restart = nameof(Common_Restart);
     public const string Common_Play = nameof(Common_Play);
     public const string Common_Desktop = nameof(Common_Desktop);
+    public const string Common_Cancel = nameof(Common_Cancel);
+    public const string Common_Confirm = nameof(Common_Confirm);
     public const string Settings_Tab_Wardrobe = nameof(Settings_Tab_Wardrobe);
     public const string Settings_Tab_LinkTree = nameof(Settings_Tab_LinkTree);
     public const string Settings_Tab_Settings = nameof(Settings_Tab_Settings);
@@ -32,6 +34,9 @@ public static class L10nKey
     public const string Settings_CenterCounterOnTaskbar = nameof(Settings_CenterCounterOnTaskbar);
     public const string Settings_SaveData = nameof(Settings_SaveData);
     public const string Settings_ResetSaveData = nameof(Settings_ResetSaveData);
+    public const string Settings_ResetSaveMessage = nameof(Settings_ResetSaveMessage);
+    public const string Settings_ResetSaveConfirm = nameof(Settings_ResetSaveConfirm);
+    public const string Wardrobe_EmptyCategory = nameof(Wardrobe_EmptyCategory);
     public const string LinkTree_ComingSoon = nameof(LinkTree_ComingSoon);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
     public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);

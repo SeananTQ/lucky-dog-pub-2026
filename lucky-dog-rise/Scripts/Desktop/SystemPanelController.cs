@@ -201,11 +201,11 @@ public partial class SystemPanelController : CanvasLayer
         quitBtn.Pressed += () => GetTree().Quit();
         restartBtn.Pressed += RestartGame;
         resetSaveBtn.Pressed += () =>
-            _resetSaveConfirm.ShowConfirm(
-                "Reset Save Data",
-                "Reset local save data? This will clear chips, owned items, equipment, and create a fresh default save.",
-                "Reset",
-                "Cancel");
+            _resetSaveConfirm.ShowConfirmKey(
+                L10nKey.Settings_ResetSaveData,
+                L10nKey.Settings_ResetSaveMessage,
+                L10nKey.Settings_ResetSaveConfirm,
+                L10nKey.Common_Cancel);
         _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
 
         _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
