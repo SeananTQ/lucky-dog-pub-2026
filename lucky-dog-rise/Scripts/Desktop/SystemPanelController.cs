@@ -100,6 +100,8 @@ public partial class SystemPanelController : CanvasLayer
         L10n.SystemLocale,
         L10n.EnglishLocale,
         L10n.SimplifiedChineseLocale,
+        L10n.TraditionalChineseLocale,
+        L10n.JapaneseLocale,
     ];
     private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
     {

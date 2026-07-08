@@ -13,6 +13,8 @@ public static class L10n
     public const string SystemLocale = "system";
     public const string EnglishLocale = "en";
     public const string SimplifiedChineseLocale = "zh_CN";
+    public const string TraditionalChineseLocale = "zh_TW";
+    public const string JapaneseLocale = "ja";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
     private static bool _loaded;
@@ -67,6 +69,8 @@ public static class L10n
             SystemLocale => Tr(L10nKey.Settings_Language_System),
             EnglishLocale => Tr(L10nKey.Settings_Language_English),
             SimplifiedChineseLocale => Tr(L10nKey.Settings_Language_SimplifiedChinese),
+            TraditionalChineseLocale => Tr(L10nKey.Settings_Language_TraditionalChinese),
+            JapaneseLocale => Tr(L10nKey.Settings_Language_Japanese),
             _ => locale,
         };
     }
@@ -98,6 +102,16 @@ public static class L10n
             || locale.StartsWith("zh-Hans", StringComparison.OrdinalIgnoreCase)
             || locale.StartsWith("zh_Hans", StringComparison.OrdinalIgnoreCase))
             return SimplifiedChineseLocale;
+
+        if (locale.StartsWith("zh_TW", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("zh_HK", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("zh_MO", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("zh-Hant", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("zh_Hant", StringComparison.OrdinalIgnoreCase))
+            return TraditionalChineseLocale;
+
+        if (locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
+            return JapaneseLocale;
 
         if (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             return EnglishLocale;

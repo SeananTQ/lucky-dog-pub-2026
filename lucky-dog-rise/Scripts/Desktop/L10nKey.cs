@@ -18,6 +18,8 @@ public static class L10nKey
     public const string Settings_Language_System = nameof(Settings_Language_System);
     public const string Settings_Language_English = nameof(Settings_Language_English);
     public const string Settings_Language_SimplifiedChinese = nameof(Settings_Language_SimplifiedChinese);
+    public const string Settings_Language_TraditionalChinese = nameof(Settings_Language_TraditionalChinese);
+    public const string Settings_Language_Japanese = nameof(Settings_Language_Japanese);
     public const string Settings_ShowOverFullscreenApps = nameof(Settings_ShowOverFullscreenApps);
     public const string Settings_EnhancedAlwaysOnTop = nameof(Settings_EnhancedAlwaysOnTop);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);
