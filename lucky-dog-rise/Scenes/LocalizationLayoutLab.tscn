@@ -3,645 +3,128 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="2_group_title"]
 [ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="3_option_label"]
-[ext_resource type="Script" uid="uid://b28uuqtp2j0y8" path="res://Scripts/Desktop/LocalizationLayoutLabController.cs" id="4_lab_controller"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_option_normal"]
-content_margin_left = 10.0
-content_margin_top = 2.0
-content_margin_right = 22.0
-content_margin_bottom = 2.0
-bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_option_pressed"]
-content_margin_left = 10.0
-content_margin_top = 2.0
-content_margin_right = 22.0
-content_margin_bottom = 2.0
-bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_option_hover"]
-content_margin_left = 10.0
-content_margin_top = 2.0
-content_margin_right = 22.0
-content_margin_bottom = 2.0
-bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[node name="LocalizationLayoutLab" type="Control" unique_id=1954699700]
+[node name="LocalizationLayoutLab" type="Control"]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 420.0
 offset_bottom = 600.0
 theme = ExtResource("1_theme")
-script = ExtResource("4_lab_controller")
 
-[node name="Panel" type="PanelContainer" parent="." unique_id=123194515]
+[node name="Panel" type="PanelContainer" parent="."]
 custom_minimum_size = Vector2(420, 600)
 layout_mode = 0
 offset_right = 420.0
 offset_bottom = 600.0
 
-[node name="Margin" type="MarginContainer" parent="Panel" unique_id=1289194276]
+[node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Margin" unique_id=1303114999]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll" unique_id=2144018971]
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll"]
 custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=837324975]
+[node name="Title" type="Label" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 text = "Localization Layout Lab"
 label_settings = ExtResource("2_group_title")
 
-[node name="Note" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=2081610366]
+[node name="Note" type="Label" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
-text = "Check which row wraps cleanly in Japanese / Chinese / English."
+text = "Clean reference scene for setting row wrapping and themed dropdowns."
 label_settings = ExtResource("3_option_label")
-autowrap_mode = 2
+autowrap_mode = 3
 
-[node name="Sep0" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=1940742698]
+[node name="Sep0" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 
-[node name="GroupD" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=941383285]
+[node name="WrapGroup" type="Label" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
-text = "D. Label wrap parameter matrix"
+text = "A. Wrapping setting rows"
 label_settings = ExtResource("2_group_title")
 
-[node name="D1Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=837340685]
-layout_mode = 2
-text = "D1 Label: arbitrary wrap, no clip, overrun off"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowD1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=29684493]
+[node name="RowShortZh" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 8
-alignment = 1
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD1" unique_id=1837029499]
-custom_minimum_size = Vector2(300, 80)
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowShortZh"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-text = "ブラインドボックスの吹き出しを常に表示"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 1
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD1" unique_id=200464324]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="D2Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1148464241]
-layout_mode = 2
-text = "D2 Label: smart wrap, no clip, overrun off"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowD2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1386817370]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD2" unique_id=1951944322]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "ブラインドボックスの吹き出しを常に表示"
+size_flags_horizontal = 3
+text = "音效"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD2" unique_id=305447763]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowShortZh"]
 layout_mode = 2
 size_flags_vertical = 4
 button_pressed = true
 
-[node name="D3Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1132521573]
-layout_mode = 2
-text = "D3 RichTextLabel: arbitrary wrap"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowD3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=673047812]
+[node name="RowLongJa" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 8
-alignment = 1
 
-[node name="Label" type="RichTextLabel" parent="Panel/Margin/Scroll/Content/RowD3" unique_id=117930982]
-custom_minimum_size = Vector2(300, 80)
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongJa"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-text = "ブラインドボックスの吹き出しを常に表示"
-scroll_active = false
-autowrap_mode = 1
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD3" unique_id=687775494]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="D4Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=977780494]
-layout_mode = 2
-text = "D4 RichTextLabel: smart wrap + fit content"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowD4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1341285330]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="RichTextLabel" parent="Panel/Margin/Scroll/Content/RowD4" unique_id=810337170]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "ブラインドボックスの吹き出しを常に表示"
-fit_content = true
-scroll_active = false
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD4" unique_id=1349999416]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="D5Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1815709050]
-layout_mode = 2
-text = "D5 Label: manual newline"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowD5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=668872405]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD5" unique_id=1157205049]
-custom_minimum_size = Vector2(300, 46)
-layout_mode = 2
-text = "ブラインドボックスの
-吹き出しを常に表示"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-clip_text = true
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD5" unique_id=1138964006]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="SepD" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=383114859]
-layout_mode = 2
-
-[node name="GroupE" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=493640262]
-layout_mode = 2
-text = "E. English wrap comparison"
-label_settings = ExtResource("2_group_title")
-
-[node name="E1Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1537921782]
-layout_mode = 2
-text = "E1 Label: arbitrary wrap"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowE1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=351695686]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE1" unique_id=1731049833]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Always show Blind Box bubble above desktop companion"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 1
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE1" unique_id=1940867746]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="E2Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=747004058]
-layout_mode = 2
-text = "E2 Label: smart wrap"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowE2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1271038552]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE2" unique_id=210565695]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Always show Blind Box bubble above desktop companion"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE2" unique_id=227003840]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="E3Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=474211152]
-layout_mode = 2
-text = "E3 Label: long German-like compound, smart wrap"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowE3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1768388760]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE3" unique_id=357652329]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Always show desktop companion notification bubble"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE3" unique_id=1865752714]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="SepE" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=1788306500]
-layout_mode = 2
-
-[node name="GroupF" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1076068501]
-layout_mode = 2
-text = "F. Real list: smart wrap mixed rows"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowF1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1344735590]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF1" unique_id=1095907286]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Sound Effects"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF1" unique_id=586196281]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowF2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=739456782]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF2" unique_id=2035741160]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Show Over Fullscreen Apps"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF2" unique_id=426178889]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowF3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1383926165]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF3" unique_id=319854297]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Auto-hide Panel on Focus Loss"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF3" unique_id=1779289050]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowF4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=100462608]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF4" unique_id=1792682294]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Always show Blind Box bubble above desktop companion"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF4" unique_id=569245114]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowF5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1057368629]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF5" unique_id=1542443565]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Auto-equip New Outfits"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF5" unique_id=136012353]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowF6" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=638776247]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF6" unique_id=2063089328]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "Center Counter on Windows Taskbar"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF6" unique_id=1295979017]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="SepF" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=942499307]
-layout_mode = 2
-
-[node name="GroupG" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1074621073]
-layout_mode = 2
-text = "G. Real list: Japanese smart wrap mixed rows"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowG1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=269713669]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG1" unique_id=1763843223]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "効果音"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG1" unique_id=287688670]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowG2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1784928953]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG2" unique_id=1214815983]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "全画面アプリの上に表示"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG2" unique_id=233609109]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowG3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=956320450]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG3" unique_id=1619005025]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
+size_flags_horizontal = 3
 text = "フォーカス喪失時にパネルを自動で隠す"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG3" unique_id=1160961696]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongJa"]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="RowG4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=2052556365]
+[node name="RowLongEn" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 8
-alignment = 1
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG4" unique_id=1041544178]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "ブラインドボックスの吹き出しを常に表示"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG4" unique_id=587736741]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowG5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=491694840]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG5" unique_id=700033587]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "新しい衣装を自動装備"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG5" unique_id=1106090932]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowG6" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=300597107]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG6" unique_id=1208484503]
-custom_minimum_size = Vector2(300, 80)
-layout_mode = 2
-text = "カウンターをタスクバー中央に配置"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG6" unique_id=1827400014]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="SepG" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=2074539670]
-layout_mode = 2
-
-[node name="GroupH" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=627821604]
-layout_mode = 2
-text = "H. Auto height: fixed width only"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowH1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1255016761]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH1" unique_id=1553249964]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongEn"]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-text = "効果音"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH1" unique_id=315332715]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowH2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1034466541]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH2" unique_id=1358454631]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "フォーカス喪失時にパネルを自動で隠す"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH2" unique_id=1278222421]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowH3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=975517829]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH3" unique_id=1654794024]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
+size_flags_horizontal = 3
 text = "Always show Blind Box bubble above desktop companion"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH3" unique_id=884981229]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongEn"]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="SepH" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=537418121]
+[node name="SepA" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 
-[node name="GroupI" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=738125351]
+[node name="DropdownGroup" type="Label" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
-text = "I. Auto height: minimum one-line row"
+text = "B. Theme OptionButton in Scroll"
 label_settings = ExtResource("2_group_title")
 
-[node name="RowI1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=464913650]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI1" unique_id=395050426]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "効果音"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI1" unique_id=1050236827]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
-
-[node name="RowI2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1821474943]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI2" unique_id=981711942]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "フォーカス喪失時にパネルを自動で隠す"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI2" unique_id=596308900]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RowI3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=373722629]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI3" unique_id=280254768]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "Always show Blind Box bubble above desktop companion"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI3" unique_id=1281198579]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="SepI" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=1863219358]
-layout_mode = 2
-
-[node name="GroupJ" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=2025447507]
-layout_mode = 2
-text = "J. Compact OptionButton test"
-label_settings = ExtResource("2_group_title")
-
-[node name="RowJ1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=955921124]
+[node name="LanguageRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowJ1" unique_id=2051472607]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/LanguageRow"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -649,22 +132,12 @@ text = "Language"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
-[node name="LanguageOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/RowJ1" unique_id=1001570272]
-custom_minimum_size = Vector2(112, 28)
+[node name="LanguageOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/LanguageRow"]
+custom_minimum_size = Vector2(172, 28)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_constants/h_separation = 6
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
-theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
 selected = 3
 item_count = 12
 popup/item_0/text = "System"
@@ -692,15 +165,11 @@ popup/item_10/id = 10
 popup/item_11/text = "Norsk"
 popup/item_11/id = 11
 
-[node name="RightScrollbarGap" type="Control" parent="Panel/Margin/Scroll/Content/RowJ1" unique_id=579150944]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-
-[node name="RowJ2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=655576187]
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowJ2" unique_id=641406271]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/DisplayRow"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -708,203 +177,10 @@ text = "Counter Display"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
-[node name="CounterDisplayOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/RowJ2" unique_id=2086200423]
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 2
-selected = 0
-item_count = 2
-popup/item_0/text = "Chips"
-popup/item_0/id = 0
-popup/item_1/text = "Rank"
-popup/item_1/id = 1
-
-[node name="RightScrollbarGap" type="Control" parent="Panel/Margin/Scroll/Content/RowJ2" unique_id=1001889865]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-
-[node name="LanguageOption" type="OptionButton" parent="." unique_id=633390331]
-visible = false
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 0
-offset_left = 71.0
-offset_top = 127.0
-offset_right = 198.0
-offset_bottom = 155.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_constants/h_separation = 6
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
-theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
-selected = 3
-item_count = 12
-popup/item_0/text = "System"
-popup/item_0/id = 0
-popup/item_1/text = "English"
-popup/item_1/id = 1
-popup/item_2/text = "简体中文"
-popup/item_2/id = 2
-popup/item_3/text = "日本語"
-popup/item_3/id = 3
-popup/item_4/text = "繁體中文"
-popup/item_4/id = 4
-popup/item_5/text = "Deutsch"
-popup/item_5/id = 5
-popup/item_6/text = "Français"
-popup/item_6/id = 6
-popup/item_7/text = "Italiano"
-popup/item_7/id = 7
-popup/item_8/text = "Español"
-popup/item_8/id = 8
-popup/item_9/text = "Português"
-popup/item_9/id = 9
-popup/item_10/text = "한국어"
-popup/item_10/id = 10
-popup/item_11/text = "Norsk"
-popup/item_11/id = 11
-
-[node name="RowJ1" type="HBoxContainer" parent="." unique_id=1733105937]
-visible = false
-layout_mode = 0
-theme_override_constants/separation = 8
-
-[node name="Label" type="Label" parent="RowJ1" unique_id=1724789864]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Language"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="LanguageOption" type="OptionButton" parent="RowJ1" unique_id=1751103358]
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_constants/h_separation = 6
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
-theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
-selected = 3
-item_count = 12
-popup/item_0/text = "System"
-popup/item_0/id = 0
-popup/item_1/text = "English"
-popup/item_1/id = 1
-popup/item_2/text = "简体中文"
-popup/item_2/id = 2
-popup/item_3/text = "日本語"
-popup/item_3/id = 3
-popup/item_4/text = "繁體中文"
-popup/item_4/id = 4
-popup/item_5/text = "Deutsch"
-popup/item_5/id = 5
-popup/item_6/text = "Français"
-popup/item_6/id = 6
-popup/item_7/text = "Italiano"
-popup/item_7/id = 7
-popup/item_8/text = "Español"
-popup/item_8/id = 8
-popup/item_9/text = "Português"
-popup/item_9/id = 9
-popup/item_10/text = "한국어"
-popup/item_10/id = 10
-popup/item_11/text = "Norsk"
-popup/item_11/id = 11
-
-[node name="Scroll" type="ScrollContainer" parent="." unique_id=229921697]
-layout_mode = 0
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Content" type="VBoxContainer" parent="Scroll" unique_id=1324030935]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 12
-
-[node name="RowJ1" type="HBoxContainer" parent="Scroll/Content" unique_id=1170498643]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Label" type="Label" parent="Scroll/Content/RowJ1" unique_id=421255679]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Language"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="LanguageOption" type="OptionButton" parent="Scroll/Content/RowJ1" unique_id=540079758]
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_constants/h_separation = 6
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
-theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_option_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_option_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
-selected = 3
-item_count = 12
-popup/item_0/text = "System"
-popup/item_0/id = 0
-popup/item_1/text = "English"
-popup/item_1/id = 1
-popup/item_2/text = "简体中文"
-popup/item_2/id = 2
-popup/item_3/text = "日本語"
-popup/item_3/id = 3
-popup/item_4/text = "繁體中文"
-popup/item_4/id = 4
-popup/item_5/text = "Deutsch"
-popup/item_5/id = 5
-popup/item_6/text = "Français"
-popup/item_6/id = 6
-popup/item_7/text = "Italiano"
-popup/item_7/id = 7
-popup/item_8/text = "Español"
-popup/item_8/id = 8
-popup/item_9/text = "Português"
-popup/item_9/id = 9
-popup/item_10/text = "한국어"
-popup/item_10/id = 10
-popup/item_11/text = "Norsk"
-popup/item_11/id = 11
-
-[node name="RowJ2" type="HBoxContainer" parent="Scroll/Content" unique_id=1720333084]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Label" type="Label" parent="Scroll/Content/RowJ2" unique_id=442214729]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Counter Display"
-label_settings = ExtResource("3_option_label")
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="CounterDisplayOption" type="OptionButton" parent="Scroll/Content/RowJ2" unique_id=1618801858]
+[node name="DisplayOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/DisplayRow"]
 custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
 selected = 0
