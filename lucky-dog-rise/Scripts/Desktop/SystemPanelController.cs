@@ -154,10 +154,7 @@ public partial class SystemPanelController : CanvasLayer
 
         BuildLanguageOptions();
 
-        _displayOption.AddItem("Clock", 0);
-        _displayOption.AddItem(L10n.Tr(L10nKey.InfoPanel_Chips), 1);
-        _displayOption.AddItem("Hidden", 2);
-        _displayOption.Select((int)SettingsManager.LoadDisplayMode());
+        BuildDisplayOptions();
 
         _saveDataModeOption.AddItem("调试全道具", (int)SettingsManager.SaveDataMode.DebugAllItems);
         _saveDataModeOption.AddItem("本地存档", (int)SettingsManager.SaveDataMode.LocalSave);
@@ -571,6 +568,15 @@ public partial class SystemPanelController : CanvasLayer
         _languageOption.Select(selectedIndex);
     }
 
+    private void BuildDisplayOptions()
+    {
+        _displayOption.Clear();
+        _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Clock), (int)SettingsManager.DisplayMode.Clock);
+        _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Chips), (int)SettingsManager.DisplayMode.Chips);
+        _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden), (int)SettingsManager.DisplayMode.Hidden);
+        _displayOption.Select((int)SettingsManager.LoadDisplayMode());
+    }
+
     private void RefreshLocalizedOptionText()
     {
         if (_languageOption == null)
@@ -582,8 +588,12 @@ public partial class SystemPanelController : CanvasLayer
         if (selected >= 0)
             _languageOption.Select(selected);
 
-        if (_displayOption != null && _displayOption.ItemCount >= 2)
-            _displayOption.SetItemText(1, L10n.Tr(L10nKey.InfoPanel_Chips));
+        if (_displayOption != null && _displayOption.ItemCount >= 3)
+        {
+            _displayOption.SetItemText(0, L10n.Tr(L10nKey.Settings_CounterDisplay_Clock));
+            _displayOption.SetItemText(1, L10n.Tr(L10nKey.Settings_CounterDisplay_Chips));
+            _displayOption.SetItemText(2, L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden));
+        }
     }
 
     private void OnLanguageSelected(long index)
