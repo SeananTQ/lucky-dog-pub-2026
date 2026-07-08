@@ -61,8 +61,9 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxHint")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxHint")]
 script = ExtResource("1_ctrl")
+_chipsKeyLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsKey")
 _chipsLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsValuePanel/ChipsValue")
 _rankNameLabel = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/RankNameLabel")
 _winResultLabel = NodePath("Panel/RootVBox/WinResultLabel")
@@ -92,7 +93,7 @@ alignment = 1
 
 [node name="ChipsKey" type="Label" parent="Panel/RootVBox/ChipsPanel/ChipsVBox" unique_id=1869870124]
 layout_mode = 2
-text = "Chips"
+text = "InfoPanel_Chips"
 label_settings = SubResource("LabelSettings_vy1hc")
 horizontal_alignment = 1
 
@@ -261,12 +262,12 @@ custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 24
-text = "Open"
+text = "InfoPanel_Open"
 icon = ExtResource("7_blindbox")
 
 [node name="SettingsBtn" type="Button" parent="Panel/RootVBox/ButtonRow" unique_id=640000321]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 20
-text = "Menu"
+text = "InfoPanel_Menu"
 icon = ExtResource("6_menu")

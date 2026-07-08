@@ -53,6 +53,7 @@ public partial class SystemPanelController : CanvasLayer
 
     // Settings 页
     private CheckButton _audioToggle = null!;
+    private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
     private OptionButton _saveDataModeOption = null!;
     private ConfirmOverlayController _resetSaveConfirm = null!;
@@ -94,6 +95,12 @@ public partial class SystemPanelController : CanvasLayer
     private static readonly StringName PanelTopTabSelectedStyle = "PanelTopTabSelected";
     private static readonly StringName CategoryTabStyle = "CategoryTab";
     private static readonly StringName CategoryTabSelectedStyle = "CategoryTabSelected";
+    private static readonly string[] LocaleOptions =
+    [
+        L10n.SystemLocale,
+        L10n.EnglishLocale,
+        L10n.SimplifiedChineseLocale,
+    ];
     private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
     {
         [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
@@ -134,6 +141,7 @@ public partial class SystemPanelController : CanvasLayer
 
         // === Settings 页 ===
         _audioToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow/AudioToggle");
+        _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
         _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
@@ -142,8 +150,10 @@ public partial class SystemPanelController : CanvasLayer
         var restartBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/RestartBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ResetSaveBtn");
 
+        BuildLanguageOptions();
+
         _displayOption.AddItem("Clock", 0);
-        _displayOption.AddItem("Chips", 1);
+        _displayOption.AddItem(L10n.Tr(L10nKey.InfoPanel_Chips), 1);
         _displayOption.AddItem("Hidden", 2);
         _displayOption.Select((int)SettingsManager.LoadDisplayMode());
 
@@ -170,6 +180,15 @@ public partial class SystemPanelController : CanvasLayer
         enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
         enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
 
+        var streamerSafeToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle");
+        streamerSafeToggle.ButtonPressed = SettingsManager.LoadStreamerSafeMode();
+        streamerSafeToggle.Toggled += enabled =>
+        {
+            SettingsManager.SaveStreamerSafeMode(enabled);
+            L10n.SetSafeMode(enabled);
+            RefreshLocalizedOptionText();
+        };
+
         var counterCenterToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow/CounterCenterToggle");
         counterCenterToggle.ButtonPressed = SettingsManager.LoadCenterCounterOnTaskbar();
         counterCenterToggle.Toggled += enabled =>
@@ -195,8 +214,10 @@ public partial class SystemPanelController : CanvasLayer
         _switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
 
         _audioToggle.Toggled += OnAudioToggled;
+        _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
         _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
+        L10n.Changed += RefreshLocalizedOptionText;
 
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedLabel");
@@ -483,6 +504,7 @@ public partial class SystemPanelController : CanvasLayer
         if (!_panel.Visible) return false;
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
+            || PopupContainsPoint(_languageOption.GetPopup(), windowPos)
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPos);
     }
@@ -530,6 +552,44 @@ public partial class SystemPanelController : CanvasLayer
     }
 
     // ===== 设置回调 =====
+
+    private void BuildLanguageOptions()
+    {
+        _languageOption.Clear();
+        var savedLocale = SettingsManager.LoadLocale();
+        var selectedIndex = 0;
+        for (int i = 0; i < LocaleOptions.Length; i++)
+        {
+            var locale = LocaleOptions[i];
+            _languageOption.AddItem(L10n.GetDisplayName(locale), i);
+            if (locale == savedLocale)
+                selectedIndex = i;
+        }
+
+        _languageOption.Select(selectedIndex);
+    }
+
+    private void RefreshLocalizedOptionText()
+    {
+        if (_languageOption == null)
+            return;
+
+        var selected = _languageOption.GetSelectedId();
+        for (int i = 0; i < LocaleOptions.Length; i++)
+            _languageOption.SetItemText(i, L10n.GetDisplayName(LocaleOptions[i]));
+        if (selected >= 0)
+            _languageOption.Select(selected);
+
+        if (_displayOption != null && _displayOption.ItemCount >= 2)
+            _displayOption.SetItemText(1, L10n.Tr(L10nKey.InfoPanel_Chips));
+    }
+
+    private void OnLanguageSelected(long index)
+    {
+        var i = Mathf.Clamp((int)index, 0, LocaleOptions.Length - 1);
+        L10n.SetLocale(LocaleOptions[i]);
+        RefreshLocalizedOptionText();
+    }
 
     private void OnAudioToggled(bool enabled)
     {

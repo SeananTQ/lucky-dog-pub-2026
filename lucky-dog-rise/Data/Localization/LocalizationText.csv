@@ -1,0 +1,38 @@
+keys,en,zh_CN
+Common_Quit,Quit,退出
+Common_Restart,Restart,重启
+Common_Play,Play,游玩
+Common_Desktop,Desktop,桌宠
+Settings_Language,Language,语言
+Settings_Language_System,System,跟随系统
+Settings_Language_English,English,English
+Settings_Language_SimplifiedChinese,Simplified Chinese,简体中文
+InfoPanel_Chips,Chips,筹码
+InfoPanel_Chips_Safe,Lucky Points,幸运点数
+InfoPanel_Open,Open,打开
+InfoPanel_Menu,Menu,菜单
+InfoPanel_GoodLuck,Good Luck!,祝你好运！
+InfoPanel_Nothing,Nothing,无牌型
+InfoPanel_YouWin,You win {0},赢得 {0}
+Paytable_JacksOrBetter,Jacks or Better,J 或更好的对子
+Paytable_JacksOrBetter_Safe,Top Dogs,好犬优选
+Paytable_TwoPair,Two Pair,两对
+Paytable_TwoPair_Safe,Twin Pairs,双犬配对
+Paytable_ThreeOfAKind,Three of a Kind,三条
+Paytable_ThreeOfAKind_Safe,Triple Pals,三犬同行
+Paytable_Straight,Straight,顺子
+Paytable_Straight_Safe,Chain Walk,顺位犬链
+Paytable_Flush,Flush,同花
+Paytable_Flush_Safe,Matching Den,同色犬舍
+Paytable_FullHouse,Full House,葫芦
+Paytable_FullHouse_Safe,Puppy Party,狗狗满堂
+Paytable_FourOfAKind,Four of a Kind,四条
+Paytable_FourOfAKind_Safe,Dog Squad,四犬成团
+Paytable_StraightFlush,Straight Flush,同花顺
+Paytable_StraightFlush_Safe,Purebred Strike,纯种犬连击
+Paytable_RoyalFlush,Royal Flush,皇家同花顺
+Paytable_RoyalFlush_Safe,Royal Feast,皇家盛宴
+BlindBox_TapToPowerUp,Tap to power up...,点击蓄力……
+BlindBox_OpenItUp,Open it up!,打开它！
+BlindBox_TapToClaim,Tap to claim,点击领取
+BlindBox_AutoClaimingInSeconds,Auto-claiming in {0}s,{0} 秒后自动领取

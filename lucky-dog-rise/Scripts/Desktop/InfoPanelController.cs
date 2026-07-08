@@ -10,6 +10,7 @@ public partial class InfoPanelController : CanvasLayer
     [Signal] public delegate void SettingsRequestedEventHandler();
     [Signal] public delegate void BlindBoxRequestedEventHandler();
 
+    [Export] private Label _chipsKeyLabel = null!;
     [Export] private Label _chipsLabel = null!;
     [Export] private Label _rankNameLabel = null!;
     [Export] private Label _winResultLabel = null!;
@@ -36,6 +37,9 @@ public partial class InfoPanelController : CanvasLayer
     private Tween _chipsTween;
     private Tween _blinkTween;
     private Texture2D _blindBoxIcon = null!;
+    private EHandRank _currentRank = EHandRank.Nothing;
+    private int _currentPayout;
+    private bool _hasResolvedHand;
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
@@ -76,7 +80,7 @@ public partial class InfoPanelController : CanvasLayer
         {
             int gridIdx = payList.Count - 1 - i; // JSON 是低→高，Grid 是高→低
             if (gridIdx < _payoutNames.Count)
-                _payoutNames[gridIdx].Text = payList[i].SafeNameEN;
+                _payoutNames[gridIdx].Text = L10n.Tr(L10n.GetHandRankKey(payList[i].HandRank));
             if (gridIdx < _payoutValues.Count)
                 _payoutValues[gridIdx].Text = payList[i].PayoutMultiplier.ToString();
         }
@@ -90,7 +94,9 @@ public partial class InfoPanelController : CanvasLayer
         // 初始状态：清除 .tscn 占位文本
         _winResultLabel.Text = "";
         _winResultLabel.SelfModulate = new Color(1, 1, 1, 0);
-        _rankNameLabel.Text = "Good Luck!";
+        _rankNameLabel.Text = L10n.Tr(L10nKey.InfoPanel_GoodLuck);
+        RefreshLocalizedText();
+        L10n.Changed += RefreshLocalizedText;
     }
 
     public void Bind(GameData data)
@@ -132,24 +138,32 @@ public partial class InfoPanelController : CanvasLayer
         ClearHighlight();
         _winResultLabel.Text = "";
         _winResultLabel.SelfModulate = new Color(1, 1, 1, 0);
-        _rankNameLabel.Text = "Good Luck!";
+        _rankNameLabel.Text = L10n.Tr(L10nKey.InfoPanel_GoodLuck);
+        _currentRank = EHandRank.Nothing;
+        _currentPayout = 0;
+        _hasResolvedHand = false;
     }
 
     private void OnHandResolved(EHandRank rank, int payout)
     {
         StopBlink();
         _winResultLabel.SelfModulate = Colors.White;
+        _currentRank = rank;
+        _currentPayout = payout;
+        _hasResolvedHand = true;
 
         if (payout > 0)
         {
-            _rankNameLabel.Text = rank.ToString();
-            _winResultLabel.Text = $"You win {payout}";
+            _rankNameLabel.Text = L10n.Tr(L10n.GetHandRankKey(rank));
+            _winResultLabel.Text = L10n.Format(L10nKey.InfoPanel_YouWin, payout);
             HighlightPayoutRow(rank);
             StartBlink();
         }
         else
         {
-            _rankNameLabel.Text = rank == EHandRank.Nothing ? "Nothing" : rank.ToString();
+            _rankNameLabel.Text = rank == EHandRank.Nothing
+                ? L10n.Tr(L10nKey.InfoPanel_Nothing)
+                : L10n.Tr(L10n.GetHandRankKey(rank));
             _winResultLabel.Text = "";
             ClearHighlight();
         }
@@ -226,7 +240,7 @@ public partial class InfoPanelController : CanvasLayer
 
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status == BlindBoxHintStatus.Waiting;
-        _blindBoxBtn.Text = "Open";
+        _blindBoxBtn.Text = L10n.Tr(L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
         SetBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
@@ -268,6 +282,34 @@ public partial class InfoPanelController : CanvasLayer
     private void SetBlindBoxHintDisplayVisible(bool visible)
     {
         _blindBoxHint.SetDisplayVisible(visible);
+    }
+
+    private void RefreshLocalizedText()
+    {
+        _chipsKeyLabel.Text = L10n.Tr(L10nKey.InfoPanel_Chips);
+        _settingsBtn.Text = L10n.Tr(L10nKey.InfoPanel_Menu);
+        _blindBoxBtn.Text = L10n.Tr(L10nKey.InfoPanel_Open);
+
+        var payList = LubanData.Tables.TbPayTable.DataList;
+        for (int i = 0; i < payList.Count; i++)
+        {
+            int gridIdx = payList.Count - 1 - i;
+            if (gridIdx < _payoutNames.Count)
+                _payoutNames[gridIdx].Text = L10n.Tr(L10n.GetHandRankKey(payList[i].HandRank));
+        }
+
+        if (!_hasResolvedHand)
+        {
+            _rankNameLabel.Text = L10n.Tr(L10nKey.InfoPanel_GoodLuck);
+            return;
+        }
+
+        _rankNameLabel.Text = _currentRank == EHandRank.Nothing
+            ? L10n.Tr(L10nKey.InfoPanel_Nothing)
+            : L10n.Tr(L10n.GetHandRankKey(_currentRank));
+        _winResultLabel.Text = _currentPayout > 0
+            ? L10n.Format(L10nKey.InfoPanel_YouWin, _currentPayout)
+            : "";
     }
 
 }

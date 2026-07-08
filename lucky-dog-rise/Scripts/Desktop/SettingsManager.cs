@@ -8,6 +8,7 @@ public static class SettingsManager
     private const string SectionAudio = "audio";
     private const string SectionSystem = "system";
     private const string SectionDisplay = "display";
+    private const string SectionLocalization = "localization";
     private const string KeyAudioEnabled = "enabled";
     private const string KeyAlwaysOnTop = "always_on_top";
     private const string KeyTaskbarIcon = "taskbar_icon";
@@ -15,10 +16,12 @@ public static class SettingsManager
     private const string KeyDesktopTongueImmediateMode = "desktop_tongue_immediate_mode";
     private const string KeyShowOverFullscreenApps = "show_over_fullscreen_apps";
     private const string KeyEnhancedTopmostMode = "enhanced_topmost_mode";
+    private const string KeyStreamerSafeMode = "streamer_safe_mode";
     private const string KeyDebugHideBlindBoxCountdownBubble = "debug_hide_blind_box_countdown_bubble";
     private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
+    private const string KeyLocale = "locale";
 
     public enum DisplayMode
     {
@@ -126,6 +129,19 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    public static bool LoadStreamerSafeMode()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyStreamerSafeMode, false);
+    }
+
+    public static void SaveStreamerSafeMode(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyStreamerSafeMode, enabled);
+        config.Save(Path);
+    }
+
     public static bool LoadDebugHideBlindBoxCountdownBubble()
     {
         var config = Load();
@@ -180,6 +196,19 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionDisplay, KeyCenterCounterOnTaskbar, enabled);
+        config.Save(Path);
+    }
+
+    public static string LoadLocale()
+    {
+        var config = Load();
+        return (string)config.GetValue(SectionLocalization, KeyLocale, L10n.SystemLocale);
+    }
+
+    public static void SaveLocale(string locale)
+    {
+        var config = Load();
+        config.SetValue(SectionLocalization, KeyLocale, locale);
         config.Save(Path);
     }
 

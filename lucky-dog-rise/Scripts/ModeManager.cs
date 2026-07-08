@@ -101,6 +101,8 @@ public partial class ModeManager : Control
 
     public override void _Ready()
     {
+        L10n.ApplySavedOrSystemLocale();
+
         _gameData = new GameData();
         _gameData.Name = "GameData";
         AddChild(_gameData);

@@ -1,0 +1,42 @@
+namespace LuckyDogRise;
+
+public static class L10nKey
+{
+    public const string Common_Quit = nameof(Common_Quit);
+    public const string Common_Restart = nameof(Common_Restart);
+    public const string Common_Play = nameof(Common_Play);
+    public const string Common_Desktop = nameof(Common_Desktop);
+    public const string Settings_Language = nameof(Settings_Language);
+    public const string Settings_Language_System = nameof(Settings_Language_System);
+    public const string Settings_Language_English = nameof(Settings_Language_English);
+    public const string Settings_Language_SimplifiedChinese = nameof(Settings_Language_SimplifiedChinese);
+    public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
+    public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);
+    public const string InfoPanel_Open = nameof(InfoPanel_Open);
+    public const string InfoPanel_Menu = nameof(InfoPanel_Menu);
+    public const string InfoPanel_GoodLuck = nameof(InfoPanel_GoodLuck);
+    public const string InfoPanel_Nothing = nameof(InfoPanel_Nothing);
+    public const string InfoPanel_YouWin = nameof(InfoPanel_YouWin);
+    public const string Paytable_JacksOrBetter = nameof(Paytable_JacksOrBetter);
+    public const string Paytable_JacksOrBetter_Safe = nameof(Paytable_JacksOrBetter_Safe);
+    public const string Paytable_TwoPair = nameof(Paytable_TwoPair);
+    public const string Paytable_TwoPair_Safe = nameof(Paytable_TwoPair_Safe);
+    public const string Paytable_ThreeOfAKind = nameof(Paytable_ThreeOfAKind);
+    public const string Paytable_ThreeOfAKind_Safe = nameof(Paytable_ThreeOfAKind_Safe);
+    public const string Paytable_Straight = nameof(Paytable_Straight);
+    public const string Paytable_Straight_Safe = nameof(Paytable_Straight_Safe);
+    public const string Paytable_Flush = nameof(Paytable_Flush);
+    public const string Paytable_Flush_Safe = nameof(Paytable_Flush_Safe);
+    public const string Paytable_FullHouse = nameof(Paytable_FullHouse);
+    public const string Paytable_FullHouse_Safe = nameof(Paytable_FullHouse_Safe);
+    public const string Paytable_FourOfAKind = nameof(Paytable_FourOfAKind);
+    public const string Paytable_FourOfAKind_Safe = nameof(Paytable_FourOfAKind_Safe);
+    public const string Paytable_StraightFlush = nameof(Paytable_StraightFlush);
+    public const string Paytable_StraightFlush_Safe = nameof(Paytable_StraightFlush_Safe);
+    public const string Paytable_RoyalFlush = nameof(Paytable_RoyalFlush);
+    public const string Paytable_RoyalFlush_Safe = nameof(Paytable_RoyalFlush_Safe);
+    public const string BlindBox_TapToPowerUp = nameof(BlindBox_TapToPowerUp);
+    public const string BlindBox_OpenItUp = nameof(BlindBox_OpenItUp);
+    public const string BlindBox_TapToClaim = nameof(BlindBox_TapToClaim);
+    public const string BlindBox_AutoClaimingInSeconds = nameof(BlindBox_AutoClaimingInSeconds);
+}

@@ -73,6 +73,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardBackground.GuiInput += OnRewardGuiInput;
         _rewardCell.Pressed += RequestRewardClaim;
         ApplyHintTextFontSize();
+        L10n.Changed += RefreshCurrentHintText;
     }
 
     public override void _Process(double delta)
@@ -257,7 +258,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         KillTweens();
         _animating = true;
-        _hintLabel.Text = "Tap to power up...";
+        _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_TapToPowerUp);
         _boxSprite.Scale = GetBoxScale(new Vector2(0.4f, 0.4f));
         _boxSprite.Position = _boxSpriteRestPosition + BoxUpOffset(_boxAppearHeightRatio);
         _boxShadow.Scale = GetBoxScale(new Vector2(0.4f * _boxAppearAirborneShadowScale, 0.4f * _boxAppearAirborneShadowScale));
@@ -346,7 +347,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         KillTweens();
         _animating = false;
-        _hintLabel.Text = "Open it up!";
+        _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_OpenItUp);
         _hintLabel.Modulate = Colors.White;
         _boxSprite.Position = _boxSpriteRestPosition;
         _boxSprite.RotationDegrees = 0f;
@@ -427,7 +428,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (_rewardAutoClaimActive)
             UpdateRewardCountdownLabel();
         else
-            _hintLabel.Text = "Tap to claim";
+            _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_TapToClaim);
     }
 
     private void StopRewardAutoClaimCountdown()
@@ -438,7 +439,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void UpdateRewardCountdownLabel()
     {
         var seconds = Mathf.Max(0, Mathf.CeilToInt(_rewardAutoClaimRemaining));
-        _hintLabel.Text = $"Auto-claiming in {seconds}s";
+        _hintLabel.Text = L10n.Format(L10nKey.BlindBox_AutoClaimingInSeconds, seconds);
     }
 
     private float GetRewardAutoClaimSeconds()
@@ -459,6 +460,25 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardClaimRequested = true;
         StopRewardAutoClaimCountdown();
         EmitSignal(SignalName.RewardClaimRequested);
+    }
+
+    private void RefreshCurrentHintText()
+    {
+        if (_pending == null)
+            return;
+
+        if (_pending.RewardShown)
+        {
+            if (_rewardAutoClaimActive)
+                UpdateRewardCountdownLabel();
+            else
+                _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_TapToClaim);
+            return;
+        }
+
+        _hintLabel.Text = _pending.RevealStep >= 4
+            ? L10n.Tr(L10nKey.BlindBox_OpenItUp)
+            : L10n.Tr(L10nKey.BlindBox_TapToPowerUp);
     }
 
     private Vector2 BoxUpOffset(float heightRatio) => new(0f, -GetBoxDisplayHeight() * heightRatio);
