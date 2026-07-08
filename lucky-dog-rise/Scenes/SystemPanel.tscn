@@ -33,7 +33,7 @@ theme_override_constants/separation = 4
 [node name="WardrobeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168622]
 custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
-tooltip_text = "Wardrobe"
+tooltip_text = "Settings_Tab_Wardrobe"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("4_wardrobe")
@@ -42,7 +42,7 @@ icon_alignment = 1
 [node name="LinkTreeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=1598720541]
 custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
-tooltip_text = "LinkTree"
+tooltip_text = "Settings_Tab_LinkTree"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("5_linktree")
@@ -51,7 +51,7 @@ icon_alignment = 1
 [node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
 custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
-tooltip_text = "Settings"
+tooltip_text = "Settings_Tab_Settings"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("6_settings")
@@ -60,7 +60,7 @@ icon_alignment = 1
 [node name="DebugTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168623]
 custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
-tooltip_text = "Debug"
+tooltip_text = "Settings_Tab_Debug"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("7_debug")
@@ -152,7 +152,7 @@ layout_mode = 2
 
 [node name="GeneralLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=544242767]
 layout_mode = 2
-text = "General"
+text = "Settings_General"
 label_settings = ExtResource("8_group_title")
 
 [node name="AudioRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1724876092]
@@ -161,7 +161,7 @@ layout_mode = 2
 [node name="AudioLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1830034355]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Sound Effects"
+text = "Settings_SoundEffects"
 label_settings = ExtResource("9_option_label")
 
 [node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
@@ -186,7 +186,7 @@ layout_mode = 2
 [node name="ShowFullscreenLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Show Over Fullscreen Apps"
+text = "Settings_ShowOverFullscreenApps"
 label_settings = ExtResource("9_option_label")
 
 [node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
@@ -198,7 +198,7 @@ layout_mode = 2
 [node name="EnhancedTopmostLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Enhanced Always On Top"
+text = "Settings_EnhancedAlwaysOnTop"
 label_settings = ExtResource("9_option_label")
 
 [node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
@@ -209,7 +209,7 @@ layout_mode = 2
 
 [node name="DesktopPetLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1702498419]
 layout_mode = 2
-text = "Desktop Pet"
+text = "Settings_DesktopPet"
 label_settings = ExtResource("8_group_title")
 
 [node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
@@ -218,7 +218,7 @@ layout_mode = 2
 [node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Auto-hide Panel on Focus Loss"
+text = "Settings_AutoHidePanelOnFocusLoss"
 label_settings = ExtResource("9_option_label")
 
 [node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
@@ -230,7 +230,7 @@ layout_mode = 2
 [node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Tongue Instant Mode"
+text = "Settings_TongueInstantMode"
 label_settings = ExtResource("9_option_label")
 
 [node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
@@ -242,7 +242,7 @@ layout_mode = 2
 [node name="BlindBoxBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=487480890]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Always Show Blind Box Bubble"
+text = "Settings_AlwaysShowBlindBoxBubble"
 label_settings = ExtResource("9_option_label")
 
 [node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
@@ -253,7 +253,7 @@ layout_mode = 2
 
 [node name="ConvenienceLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1009223726]
 layout_mode = 2
-text = "Convenience"
+text = "Settings_Convenience"
 label_settings = ExtResource("8_group_title")
 
 [node name="AutoEquipRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=87456177]
@@ -262,7 +262,7 @@ layout_mode = 2
 [node name="AutoEquipLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=1157129014]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Auto-equip New Outfits"
+text = "Settings_AutoEquipNewOutfits"
 label_settings = ExtResource("9_option_label")
 
 [node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
@@ -274,7 +274,7 @@ layout_mode = 2
 [node name="TaskbarSnapLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1748010630]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snap to Windows Taskbar"
+text = "Settings_SnapToWindowsTaskbar"
 label_settings = ExtResource("9_option_label")
 
 [node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
@@ -285,7 +285,7 @@ layout_mode = 2
 
 [node name="PrivacyLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2010729476]
 layout_mode = 2
-text = "Privacy & Safety"
+text = "Settings_PrivacyAndSafety"
 label_settings = ExtResource("8_group_title")
 
 [node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
@@ -294,7 +294,7 @@ layout_mode = 2
 [node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Streamer Safe Mode"
+text = "Settings_StreamerSafeMode"
 label_settings = ExtResource("9_option_label")
 
 [node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
@@ -305,7 +305,7 @@ layout_mode = 2
 
 [node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
 layout_mode = 2
-text = "Display"
+text = "Settings_Display"
 label_settings = ExtResource("8_group_title")
 
 [node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
@@ -314,7 +314,7 @@ layout_mode = 2
 [node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Counter Display"
+text = "Settings_CounterDisplay"
 label_settings = ExtResource("9_option_label")
 
 [node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
@@ -327,7 +327,7 @@ layout_mode = 2
 [node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Center Counter on Taskbar"
+text = "Settings_CenterCounterOnTaskbar"
 label_settings = ExtResource("9_option_label")
 
 [node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
@@ -338,13 +338,13 @@ layout_mode = 2
 
 [node name="SaveLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1903712818]
 layout_mode = 2
-text = "Save Data"
+text = "Settings_SaveData"
 label_settings = ExtResource("8_group_title")
 
 [node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=240889279]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
-text = "Reset Save Data"
+text = "Settings_ResetSaveData"
 
 [node name="WardrobeContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283482]
 visible = false
@@ -395,7 +395,7 @@ size_flags_vertical = 3
 
 [node name="ComingSoonLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
 layout_mode = 2
-text = "Coming soon"
+text = "LinkTree_ComingSoon"
 label_settings = ExtResource("8_group_title")
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283481]
