@@ -41,7 +41,6 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private Vector2 _boxShadowRuntimeOffset = Vector2.Zero;
     [Export] private Vector2 _rewardShadowRuntimeOffset = Vector2.Zero;
     [Export] private bool _showDebugLabel = true;
-    [Export] private float _rewardAutoClaimSeconds = 3f;
 
     private PendingBlindBoxReward _pending = null!;
     private Tween _tween = null!;
@@ -422,9 +421,13 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void StartRewardAutoClaimCountdown()
     {
         _rewardClaimRequested = false;
-        _rewardAutoClaimActive = _rewardAutoClaimSeconds > 0f;
-        _rewardAutoClaimRemaining = _rewardAutoClaimSeconds;
-        UpdateRewardCountdownLabel();
+        var autoClaimSeconds = GetRewardAutoClaimSeconds();
+        _rewardAutoClaimActive = autoClaimSeconds > 0f;
+        _rewardAutoClaimRemaining = autoClaimSeconds;
+        if (_rewardAutoClaimActive)
+            UpdateRewardCountdownLabel();
+        else
+            _hintLabel.Text = "Tap to claim";
     }
 
     private void StopRewardAutoClaimCountdown()
@@ -436,6 +439,16 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     {
         var seconds = Mathf.Max(0, Mathf.CeilToInt(_rewardAutoClaimRemaining));
         _hintLabel.Text = $"Auto-claiming in {seconds}s";
+    }
+
+    private float GetRewardAutoClaimSeconds()
+    {
+        var box = LubanData.Tables.TbBlindBox.GetOrDefault(_pending.BlindBoxId);
+        if (box != null)
+            return box.AutoCollectSeconds;
+
+        GD.PushWarning($"[BlindBox] Missing BlindBox config for auto-claim: {_pending.BlindBoxId}.");
+        return 0f;
     }
 
     private void RequestRewardClaim()

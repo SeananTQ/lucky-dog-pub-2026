@@ -29,6 +29,7 @@ public partial class ModeManager : Control
     private float _bossStatusPanelBaseMarginTop;
     private float _bossStatusPanelBaseMarginBottom;
     private bool _bossStatusBarInteractable = true;
+    private bool _bossRiseIntroSuppressesBlindBoxHint;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Vector2 _windowBaseSize;
@@ -363,6 +364,7 @@ public partial class ModeManager : Control
     private void HideBossKeyContent()
     {
         _bossRiseIntro?.HideImmediate();
+        _bossRiseIntroSuppressesBlindBoxHint = false;
         if (_bossDogVisual != null)
             _bossDogVisual.Visible = true;
         if (_bossStatusPanel != null)
@@ -410,7 +412,8 @@ public partial class ModeManager : Control
         _bossDogVisual.Visible = false;
         _bossStatusPanel.Visible = false;
         SetBossStatusBarInteractable(false);
-        SetBossBlindBoxHintDisplayVisible(false);
+        _bossRiseIntroSuppressesBlindBoxHint = true;
+        RefreshBossBlindBoxHint();
         _bossRiseIntro.Play();
     }
 
@@ -425,6 +428,7 @@ public partial class ModeManager : Control
 
     private void OnBossRiseIntroFinished()
     {
+        _bossRiseIntroSuppressesBlindBoxHint = false;
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
             return;
 
@@ -549,6 +553,12 @@ public partial class ModeManager : Control
     {
         if (_bossBlindBoxHint == null || _gameData == null)
             return;
+
+        if (_bossRiseIntroSuppressesBlindBoxHint)
+        {
+            SetBossBlindBoxHintDisplayVisible(false);
+            return;
+        }
 
         if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
         {
