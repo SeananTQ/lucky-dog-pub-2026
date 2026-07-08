@@ -47,14 +47,12 @@ theme = ExtResource("1_theme")
 script = ExtResource("4_lab_controller")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=123194515]
-visible = false
 custom_minimum_size = Vector2(420, 600)
 layout_mode = 0
 offset_right = 420.0
 offset_bottom = 600.0
 
 [node name="Margin" type="MarginContainer" parent="Panel" unique_id=1289194276]
-visible = false
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
@@ -62,13 +60,12 @@ theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
 [node name="Scroll" type="ScrollContainer" parent="Panel/Margin" unique_id=1303114999]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll" unique_id=2144018971]
-visible = false
+custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -695,6 +692,10 @@ popup/item_10/id = 10
 popup/item_11/text = "Norsk"
 popup/item_11/id = 11
 
+[node name="RightScrollbarGap" type="Control" parent="Panel/Margin/Scroll/Content/RowJ1" unique_id=579150944]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
 [node name="RowJ2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=655576187]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -717,6 +718,10 @@ popup/item_0/text = "Chips"
 popup/item_0/id = 0
 popup/item_1/text = "Rank"
 popup/item_1/id = 1
+
+[node name="RightScrollbarGap" type="Control" parent="Panel/Margin/Scroll/Content/RowJ2" unique_id=1001889865]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
 
 [node name="LanguageOption" type="OptionButton" parent="." unique_id=633390331]
 visible = false
