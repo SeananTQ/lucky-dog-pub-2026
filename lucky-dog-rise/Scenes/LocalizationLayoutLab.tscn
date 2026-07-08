@@ -1,0 +1,644 @@
+[gd_scene format=3 uid="uid://ccwhaxlhsr2xl"]
+
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="1_theme"]
+[ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="2_group_title"]
+[ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="3_option_label"]
+
+[node name="LocalizationLayoutLab" type="Control" unique_id=1954699700]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 420.0
+offset_bottom = 600.0
+theme = ExtResource("1_theme")
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=123194515]
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 0
+offset_right = 420.0
+offset_bottom = 600.0
+
+[node name="Margin" type="MarginContainer" parent="Panel" unique_id=1289194276]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin" unique_id=1303114999]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll" unique_id=2144018971]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=837324975]
+layout_mode = 2
+text = "Localization Layout Lab"
+label_settings = ExtResource("2_group_title")
+
+[node name="Note" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=2081610366]
+layout_mode = 2
+text = "Check which row wraps cleanly in Japanese / Chinese / English."
+label_settings = ExtResource("3_option_label")
+autowrap_mode = 2
+
+[node name="Sep0" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=1940742698]
+layout_mode = 2
+
+[node name="GroupD" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D. Label wrap parameter matrix"
+label_settings = ExtResource("2_group_title")
+
+[node name="D1Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D1 Label: arbitrary wrap, no clip, overrun off"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowD1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD1"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "ブラインドボックスの吹き出しを常に表示"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 1
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="D2Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D2 Label: smart wrap, no clip, overrun off"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowD2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD2"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "ブラインドボックスの吹き出しを常に表示"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD2"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="D3Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D3 RichTextLabel: arbitrary wrap"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowD3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="RichTextLabel" parent="Panel/Margin/Scroll/Content/RowD3"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+bbcode_enabled = false
+text = "ブラインドボックスの吹き出しを常に表示"
+fit_content = false
+scroll_active = false
+autowrap_mode = 1
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD3"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="D4Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D4 RichTextLabel: smart wrap + fit content"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowD4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="RichTextLabel" parent="Panel/Margin/Scroll/Content/RowD4"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+bbcode_enabled = false
+text = "ブラインドボックスの吹き出しを常に表示"
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD4"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="D5Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "D5 Label: manual newline"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowD5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowD5"]
+custom_minimum_size = Vector2(300, 46)
+layout_mode = 2
+text = "ブラインドボックスの
+吹き出しを常に表示"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+clip_text = true
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowD5"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="SepD" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="GroupE" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "E. English wrap comparison"
+label_settings = ExtResource("2_group_title")
+
+[node name="E1Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "E1 Label: arbitrary wrap"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowE1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE1"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Always show Blind Box bubble above desktop companion"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 1
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="E2Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "E2 Label: smart wrap"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowE2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE2"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Always show Blind Box bubble above desktop companion"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE2"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="E3Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "E3 Label: long German-like compound, smart wrap"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowE3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowE3"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Always show desktop companion notification bubble"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowE3"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="SepE" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="GroupF" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "F. Real list: smart wrap mixed rows"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowF1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF1"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Sound Effects"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowF2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF2"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Show Over Fullscreen Apps"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF2"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowF3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF3"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Auto-hide Panel on Focus Loss"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF3"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowF4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF4"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Always show Blind Box bubble above desktop companion"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF4"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowF5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF5"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Auto-equip New Outfits"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF5"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowF6" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowF6"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "Center Counter on Windows Taskbar"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowF6"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="SepF" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="GroupG" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "G. Real list: Japanese smart wrap mixed rows"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowG1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG1"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "効果音"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowG2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG2"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "全画面アプリの上に表示"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG2"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowG3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG3"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "フォーカス喪失時にパネルを自動で隠す"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG3"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowG4" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG4"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "ブラインドボックスの吹き出しを常に表示"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG4"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowG5" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG5"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "新しい衣装を自動装備"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG5"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowG6" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowG6"]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+text = "カウンターをタスクバー中央に配置"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowG6"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="SepG" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="GroupH" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "H. Auto height: fixed width only"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowH1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH1"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "効果音"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowH2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH2"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "フォーカス喪失時にパネルを自動で隠す"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH2"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowH3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowH3"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Always show Blind Box bubble above desktop companion"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowH3"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="SepH" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="GroupI" type="Label" parent="Panel/Margin/Scroll/Content"]
+layout_mode = 2
+text = "I. Auto height: minimum one-line row"
+label_settings = ExtResource("2_group_title")
+
+[node name="RowI1" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI1"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "効果音"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI1"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="RowI2" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI2"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "フォーカス喪失時にパネルを自動で隠す"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI2"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RowI3" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowI3"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Always show Blind Box bubble above desktop companion"
+label_settings = ExtResource("3_option_label")
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
+
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowI3"]
+layout_mode = 2
+size_flags_vertical = 4
