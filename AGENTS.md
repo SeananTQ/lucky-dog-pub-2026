@@ -1,14 +1,4 @@
 # 偏好设置
-写计划时不要采用子 AGENT
-
-宫格顺序按键盘顺序，而非手机顺序。
-```
-789
-456
-123
-```
-
-
 
 ---
 
@@ -22,7 +12,7 @@
 
 ## 当前实现状态
 
-- 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情、桌宠气泡盲盒提示与开盒表演。
+- 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情、启动 Rise 动画、桌宠气泡盲盒提示与开盒表演。
 - 小狗视觉：已迁移到 v1 资源和 `DogReaction` 数据驱动，旧硬编码入口仅保留 TODO 待清理。
 - 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
 - 存档：已支持本地 JSON 存档、版本号、缺字段兜底、损坏备份、重置存档确认。
@@ -43,7 +33,7 @@
 ```
 ModeManager.tscn（主入口, Control）
 ├── BossKeyContent.tscn（Node2D, 伪装模式 A 区）
-│   ├── CanvasLayer（桌宠信息栏：模式切换/数值显示/系统按钮）
+│   ├── CanvasLayer（桌宠 Counter 状态栏：模式切换/数值显示/系统按钮）
 │   ├── ContentA（DogArea/WindowSize/TaskBar 标记）
 │   └── Bubble（CanvasLayer）
 ├── PlayContent.tscn（Node2D, 游玩模式内容）
@@ -250,6 +240,7 @@ lucky-dog-rise/
 
 **点击穿透机制**（ModeManager._Process）：
 - BossKey 模式：每帧检测鼠标是否在狗/按钮/面板/盲盒气球/盲盒表演气泡区域，动态开关 WS_EX_TRANSPARENT。视觉透明区域必须继续穿透，不可因临时模态 UI 让整个胖窗口拦截点击。
+- 桌宠 Counter 状态栏会根据任务栏高度和舌头位置动态调整位置/高度，点击穿透命中区必须使用运行时实际 `Panel` 矩形，不要依赖场景里的固定按钮矩形。
 - Play 模式：始终关闭穿透，保证游戏交互正常
 - 拖拽时强制关闭穿透，松开后恢复
 
@@ -274,10 +265,18 @@ lucky-dog-rise/
 
 从伪装模式切到扑克模式时，优先原地展开；若 840×600 的扑克内容区会超出屏幕，则移动宿主窗口，保证扑克内容区留在屏幕内。无需强行保证整个胖窗口都在屏幕内。
 
+**桌宠 Counter 布局**：
+- `BossKeyContent.tscn` 的 `ContentA/TaskBar` 标记表示 Windows 任务栏上沿参考线。任务栏高度根据屏幕尺寸和可用工作区计算，不写死固定像素。
+- 设置页 Display 组里的 `Center Counter on Taskbar` 控制 Counter 是否按 Windows 任务栏高度居中；关闭时使用场景中手调的原始位置/高度。
+- 居中后如果 Counter 会挡住狗舌头，优先把 Counter 的 Y 上限压到舌头下方；剩余空间不足时缩小 Counter 高度。
+- 缩小 Counter 高度时必须同时减少 `Panel` 样式的 `ContentMarginTop` 和 `ContentMarginBottom`，否则容器最小高度会把面板撑回去。
+- 爪子和舌头视觉上应压在 Counter 前方；当前实现通过 Counter 自身避让舌头，而不是额外复制一层 DogArea 盖在状态栏上。
+
 ## 系统面板与确认遮罩
 
 - `SystemPanel.tscn` 是系统功能面板，含 Settings / Wardrobe / Debug 三个页签。
 - Settings 页放玩家可见设置；Debug 页放开发/内测功能，例如数据来源、随机获得道具、随机狗/场景、狗反应测试。
+- Settings 页的 Display 组负责桌宠显示类设置，包括 Counter 显示方式和 Counter 是否按任务栏高度居中。
 - `背包数据来源` 属于 Debug 页：`调试全道具` 不读写真实存档，`本地存档` 读写 `profile_0.json`。
 - 危险操作使用 `ConfirmOverlay.tscn`，不要使用 Godot 原生 `ConfirmationDialog`。原生 Dialog 会脱离面板、可拖出窗口，并且容易和透明窗口点击穿透冲突。
 - `ConfirmOverlay` 覆盖系统面板区域，黑色 70% 遮罩，按钮区自动布局。
