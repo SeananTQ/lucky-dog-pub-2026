@@ -185,6 +185,10 @@ label_settings = ExtResource("9_option_label")
 custom_minimum_size = Vector2(172, 28)
 layout_mode = 2
 
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow"]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
 [node name="ShowFullscreenRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2044158914]
 layout_mode = 2
 
@@ -363,8 +367,12 @@ text = "Settings_CounterDisplay"
 label_settings = ExtResource("9_option_label")
 
 [node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
+custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow"]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
 
 [node name="CounterCenterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1962368471]
 layout_mode = 2
