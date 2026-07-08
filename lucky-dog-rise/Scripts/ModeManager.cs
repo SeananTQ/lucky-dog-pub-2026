@@ -24,6 +24,10 @@ public partial class ModeManager : Control
     private Button _bossModeButton = null!;
     private Button _bossSystemButton = null!;
     private Vector2 _bossStatusPanelBasePosition;
+    private Vector2 _bossStatusPanelBaseSize;
+    private StyleBoxFlat _bossStatusPanelStyle = null!;
+    private float _bossStatusPanelBaseMarginTop;
+    private float _bossStatusPanelBaseMarginBottom;
     private bool _bossStatusBarInteractable = true;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
@@ -91,6 +95,8 @@ public partial class ModeManager : Control
     private bool _waitingForWinMenuDismiss;
     private double _recoverTopmostOnNextMousePressTimer;
     private const double RecoverTopmostOnNextMousePressSeconds = 5.0;
+    private const float BossCounterTongueClearance = 2f;
+    private const float BossCounterMinimumHeight = 22f;
 
     public override void _Ready()
     {
@@ -114,6 +120,8 @@ public partial class ModeManager : Control
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
         _bossStatusPanelBasePosition = _bossStatusPanel.Position;
+        _bossStatusPanelBaseSize = _bossStatusPanel.Size;
+        CaptureBossStatusPanelStyle();
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
         _bossModeButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
         _bossSystemButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
@@ -224,6 +232,7 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey)
         {
             over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            over |= GetBossStatusPanelRect().HasPoint(localPos);
             if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
                 over |= GetBossBlindBoxHintRect().HasPoint(localPos);
             if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
@@ -445,6 +454,7 @@ public partial class ModeManager : Control
 
         if (!SettingsManager.LoadCenterCounterOnTaskbar())
         {
+            ApplyBossStatusPanelHeight(_bossStatusPanelBaseSize.Y);
             _bossStatusPanel.Position = _bossStatusPanelBasePosition;
             return;
         }
@@ -452,20 +462,71 @@ public partial class ModeManager : Control
         var taskbarHeight = GetBottomTaskbarHeightAtWindow();
         if (taskbarHeight <= 0)
         {
+            ApplyBossStatusPanelHeight(_bossStatusPanelBaseSize.Y);
             _bossStatusPanel.Position = _bossStatusPanelBasePosition;
             return;
         }
 
-        var panelHeight = _bossStatusPanel.Size.Y > 0
-            ? _bossStatusPanel.Size.Y
-            : _bossStatusPanel.CustomMinimumSize.Y;
+        var panelHeight = _bossStatusPanelBaseSize.Y > 0
+            ? _bossStatusPanelBaseSize.Y
+            : _bossStatusPanel.Size.Y;
         if (panelHeight <= 0)
-            panelHeight = _bossStatusPanelBasePosition.Y - _bossTaskBarAnchor.Position.Y;
+            panelHeight = 29f;
 
-        _bossStatusPanel.Position = new Vector2(
-            _bossStatusPanelBasePosition.X,
-            _bossTaskBarAnchor.Position.Y + (taskbarHeight - panelHeight) / 2f
-        );
+        var taskbarTop = _bossTaskBarAnchor.Position.Y;
+        var taskbarBottom = taskbarTop + taskbarHeight;
+        var desiredTop = taskbarTop + (taskbarHeight - panelHeight) / 2f;
+        var tongueLimitTop = GetBossTongueClearTopY();
+        if (desiredTop < tongueLimitTop)
+            desiredTop = tongueLimitTop;
+
+        var availableHeight = taskbarBottom - desiredTop;
+        var finalHeight = Mathf.Clamp(availableHeight, BossCounterMinimumHeight, panelHeight);
+        ApplyBossStatusPanelHeight(finalHeight);
+
+        _bossStatusPanel.Position = new Vector2(_bossStatusPanelBasePosition.X, desiredTop);
+    }
+
+    private void CaptureBossStatusPanelStyle()
+    {
+        if (_bossStatusPanel.GetThemeStylebox("panel") is not StyleBoxFlat style)
+            return;
+
+        _bossStatusPanelStyle = (StyleBoxFlat)style.Duplicate();
+        _bossStatusPanel.AddThemeStyleboxOverride("panel", _bossStatusPanelStyle);
+        _bossStatusPanelBaseMarginTop = _bossStatusPanelStyle.GetContentMargin(Side.Top);
+        _bossStatusPanelBaseMarginBottom = _bossStatusPanelStyle.GetContentMargin(Side.Bottom);
+    }
+
+    private void ApplyBossStatusPanelHeight(float height)
+    {
+        if (_bossStatusPanel == null)
+            return;
+
+        var baseHeight = _bossStatusPanelBaseSize.Y > 0 ? _bossStatusPanelBaseSize.Y : _bossStatusPanel.Size.Y;
+        if (baseHeight <= 0)
+            baseHeight = height;
+
+        var clampedHeight = Mathf.Clamp(height, BossCounterMinimumHeight, baseHeight);
+        if (_bossStatusPanelStyle != null)
+        {
+            var shrink = Mathf.Max(0f, baseHeight - clampedHeight);
+            _bossStatusPanelStyle.SetContentMargin(Side.Top, Mathf.Max(0f, _bossStatusPanelBaseMarginTop - shrink / 2f));
+            _bossStatusPanelStyle.SetContentMargin(Side.Bottom, Mathf.Max(0f, _bossStatusPanelBaseMarginBottom - shrink / 2f));
+        }
+
+        _bossStatusPanel.Size = new Vector2(_bossStatusPanelBaseSize.X, clampedHeight);
+    }
+
+    private float GetBossTongueClearTopY()
+    {
+        var tongue = _bossDogVisual.GetNodeOrNull<Sprite2D>("HeadRoot/Tonghe");
+        if (tongue?.Texture == null)
+            return float.NegativeInfinity;
+
+        var tongueHalfHeight = tongue.Texture.GetHeight() * Mathf.Abs(tongue.Scale.Y) * 0.5f;
+        var dogScaleY = Mathf.Abs(_bossDogVisual.Scale.Y);
+        return _bossDogVisual.Position.Y + (tongue.Position.Y + tongueHalfHeight) * dogScaleY + BossCounterTongueClearance;
     }
 
     private void OnBossModeButtonPressed()
@@ -555,6 +616,14 @@ public partial class ModeManager : Control
         return new Rect2(
             _contentOffset + _bossBlindBoxHint.Position,
             _bossBlindBoxHint.Size
+        );
+    }
+
+    private Rect2 GetBossStatusPanelRect()
+    {
+        return new Rect2(
+            _contentOffset + _bossStatusPanel.Position,
+            _bossStatusPanel.Size
         );
     }
 
