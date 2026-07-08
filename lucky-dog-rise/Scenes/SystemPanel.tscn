@@ -159,13 +159,18 @@ label_settings = ExtResource("8_group_title")
 layout_mode = 2
 
 [node name="AudioLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1830034355]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_SoundEffects"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="LanguageRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
@@ -184,25 +189,35 @@ theme_override_font_sizes/font_size = 16
 layout_mode = 2
 
 [node name="ShowFullscreenLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1580113349]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_ShowOverFullscreenApps"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="EnhancedTopmostRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=5683608]
 layout_mode = 2
 
 [node name="EnhancedTopmostLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=595865605]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_EnhancedAlwaysOnTop"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="GeneralSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1721861634]
 layout_mode = 2
@@ -216,37 +231,52 @@ label_settings = ExtResource("8_group_title")
 layout_mode = 2
 
 [node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_AutoHidePanelOnFocusLoss"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
 layout_mode = 2
 
 [node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_TongueInstantMode"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="BlindBoxBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=739196546]
 layout_mode = 2
 
 [node name="BlindBoxBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=487480890]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_AlwaysShowBlindBoxBubble"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="DesktopPetSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1623273464]
 layout_mode = 2
@@ -260,25 +290,35 @@ label_settings = ExtResource("8_group_title")
 layout_mode = 2
 
 [node name="AutoEquipLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=1157129014]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_AutoEquipNewOutfits"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="TaskbarSnapRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1404126057]
 layout_mode = 2
 
 [node name="TaskbarSnapLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1748010630]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_SnapToWindowsTaskbar"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
 layout_mode = 2
@@ -292,13 +332,18 @@ label_settings = ExtResource("8_group_title")
 layout_mode = 2
 
 [node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_StreamerSafeMode"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="PrivacySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=859794950]
 layout_mode = 2
@@ -325,13 +370,18 @@ theme_override_font_sizes/font_size = 16
 layout_mode = 2
 
 [node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_CenterCounterOnTaskbar"
 label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+clip_text = false
+text_overrun_behavior = 0
 
 [node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="DisplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1350721495]
 layout_mode = 2
