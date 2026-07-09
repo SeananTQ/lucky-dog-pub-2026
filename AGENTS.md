@@ -323,13 +323,11 @@ ModeManager 持有设置面板实例，负责连接信号：
 - **必须确保每个 `[Export]` 字段都在 .tscn 中有对应的 NodePath 赋值**，否则运行时为 null
 - `GetNode` 仅在以下场景保留使用：动态创建的子节点（如 `new Button()` 后需要引用），或临时查找（如 `GetParent()`）
 
-## MCP 坑
+## MCP 工作流
 
-- `scene_add_node` 不可用 → Write 直接改 .tscn
-- `scene_save` 超时 → 同上
-- 改 project.godot 窗口设置可能不生效 → 用户在编辑器手动改
-- Wick 进程会堆积：`kill-wick.bat` 清理
-- `.godot` 损坏：删掉 `.godot/` → 重开编辑器 → 重新 build
+- Wick/Godot MCP 通用流程见 `.agents/codex-godot-wick-mcp/SKILL.md`；本项目补充见同目录 `LUCKY_DOG_RISE.md`。
+- 常规 `.cs/.tscn` 修改仍优先直接读写文件并 `dotnet build`；`scene_get_tree` 主要用于校验场景树、节点类型和路径。
+- `scene_add_node`、`scene_save` 不可靠，改 `.tscn` 时直接写文本；`.godot` 损坏时删 `.godot/` 后重开编辑器并重新 build。
 
 ## 协作规则
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Godot Wick MCP"
+  short_description: "Use Wick MCP safely in Godot C# projects."
+  default_prompt: "Use $codex-godot-wick-mcp to inspect Godot scenes, run Wick editor/runtime checks, and avoid unnecessary Godot bridge connections."
