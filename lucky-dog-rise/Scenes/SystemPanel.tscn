@@ -112,7 +112,10 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Common_Play"
+theme_override_constants/h_separation = 0
 theme_override_constants/icon_max_width = 28
+clip_text = true
+text_overrun_behavior = 3
 icon = ExtResource("12_play")
 icon_alignment = 1
 
@@ -121,7 +124,10 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Common_Desktop"
+theme_override_constants/h_separation = 0
 theme_override_constants/icon_max_width = 28
+clip_text = true
+text_overrun_behavior = 3
 icon = ExtResource("11_desktop_pet")
 icon_alignment = 1
 

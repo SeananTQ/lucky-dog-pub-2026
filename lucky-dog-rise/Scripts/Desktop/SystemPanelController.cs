@@ -211,6 +211,7 @@ public partial class SystemPanelController : CanvasLayer
         _switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
         _switchToPlayBtn.Pressed += () => EmitSignal(SignalName.SwitchToPlayRequested);
         _switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
+        RefreshModeButtonText();
 
         _audioToggle.Toggled += OnAudioToggled;
         _languageOption.ItemSelected += OnLanguageSelected;
@@ -594,6 +595,24 @@ public partial class SystemPanelController : CanvasLayer
             _displayOption.SetItemText(1, L10n.Tr(L10nKey.Settings_CounterDisplay_Chips));
             _displayOption.SetItemText(2, L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden));
         }
+
+        RefreshModeButtonText();
+    }
+
+    private void RefreshModeButtonText()
+    {
+        if (_switchToPlayBtn == null || _switchToBossKeyBtn == null)
+            return;
+
+        RefreshModeButtonText(_switchToPlayBtn, L10nKey.Common_Play);
+        RefreshModeButtonText(_switchToBossKeyBtn, L10nKey.Common_Desktop);
+    }
+
+    private static void RefreshModeButtonText(Button button, string key)
+    {
+        var showText = L10n.CurrentLocale == L10n.SimplifiedChineseLocale;
+        button.Text = showText ? L10n.Tr(key) : string.Empty;
+        button.IconAlignment = showText ? HorizontalAlignment.Left : HorizontalAlignment.Center;
     }
 
     private void OnLanguageSelected(long index)
