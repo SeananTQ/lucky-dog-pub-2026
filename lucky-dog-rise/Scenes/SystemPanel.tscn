@@ -9,9 +9,9 @@
 [ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
 [ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="9_option_label"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="10_exit"]
-[ext_resource type="Texture2D" uid="uid://cl8devcbuqbog" path="res://Assets/UI/Icon/Icon_DesktopPet.svg" id="11_desktop_pet"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Play.svg" id="12_play"]
+[ext_resource type="Texture2D" uid="uid://b5l2jgbq7uee8" path="res://Assets/UI/Icon/Icon_Exit.svg" id="10_exit"]
+[ext_resource type="Texture2D" uid="uid://cdele6a3l6hta" path="res://Assets/UI/Icon/Icon_DesktopPet.svg" id="11_desktop_pet"]
+[ext_resource type="Texture2D" uid="uid://um8si1oamvjt" path="res://Assets/UI/Icon/Icon_Play.svg" id="12_play"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -114,9 +114,9 @@ size_flags_horizontal = 3
 tooltip_text = "Common_Play"
 theme_override_constants/h_separation = 0
 theme_override_constants/icon_max_width = 28
-clip_text = true
-text_overrun_behavior = 3
 icon = ExtResource("12_play")
+text_overrun_behavior = 3
+clip_text = true
 icon_alignment = 1
 
 [node name="SwitchToBossKeyBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=246680196]
@@ -126,9 +126,9 @@ size_flags_horizontal = 3
 tooltip_text = "Common_Desktop"
 theme_override_constants/h_separation = 0
 theme_override_constants/icon_max_width = 28
-clip_text = true
-text_overrun_behavior = 3
 icon = ExtResource("11_desktop_pet")
+text_overrun_behavior = 3
+clip_text = true
 icon_alignment = 1
 
 [node name="ActionBottomGap" type="Control" parent="Panel/RootVBox" unique_id=116590249]
@@ -179,27 +179,25 @@ size_flags_horizontal = 3
 text = "Settings_SoundEffects"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="LanguageRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+[node name="LanguageRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1126453754]
 layout_mode = 2
 
-[node name="LanguageLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow"]
+[node name="LanguageLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow" unique_id=256070727]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_Language"
 label_settings = ExtResource("9_option_label")
 
-[node name="LanguageOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow"]
+[node name="LanguageOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow" unique_id=1279972610]
 custom_minimum_size = Vector2(172, 28)
 layout_mode = 2
 
-[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow"]
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow" unique_id=1422739035]
 custom_minimum_size = Vector2(4, 0)
 layout_mode = 2
 
@@ -213,8 +211,6 @@ size_flags_horizontal = 3
 text = "Settings_ShowOverFullscreenApps"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="ShowFullscreenToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow" unique_id=1440494732]
 layout_mode = 2
@@ -230,8 +226,6 @@ size_flags_horizontal = 3
 text = "Settings_EnhancedAlwaysOnTop"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="EnhancedTopmostToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow" unique_id=1624442459]
 layout_mode = 2
@@ -255,8 +249,6 @@ size_flags_horizontal = 3
 text = "Settings_AutoHidePanelOnFocusLoss"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
 layout_mode = 2
@@ -272,8 +264,6 @@ size_flags_horizontal = 3
 text = "Settings_TongueInstantMode"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
 layout_mode = 2
@@ -289,8 +279,6 @@ size_flags_horizontal = 3
 text = "Settings_AlwaysShowBlindBoxBubble"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
 layout_mode = 2
@@ -314,8 +302,6 @@ size_flags_horizontal = 3
 text = "Settings_AutoEquipNewOutfits"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
 layout_mode = 2
@@ -331,8 +317,6 @@ size_flags_horizontal = 3
 text = "Settings_SnapToWindowsTaskbar"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
 layout_mode = 2
@@ -356,8 +340,6 @@ size_flags_horizontal = 3
 text = "Settings_StreamerSafeMode"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
 layout_mode = 2
@@ -384,7 +366,7 @@ label_settings = ExtResource("9_option_label")
 custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
 
-[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow"]
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=462672903]
 custom_minimum_size = Vector2(4, 0)
 layout_mode = 2
 
@@ -398,8 +380,6 @@ size_flags_horizontal = 3
 text = "Settings_CenterCounterOnTaskbar"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
 [node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
 layout_mode = 2
@@ -507,15 +487,15 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "▶ BlindBox Debug"
 
-[node name="HideCountdownBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="HideCountdownBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=349382565]
 layout_mode = 2
 
-[node name="HideCountdownBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow"]
+[node name="HideCountdownBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow" unique_id=1182992240]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "倒计时中隐藏盲盒气球"
 
-[node name="HideCountdownBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow"]
+[node name="HideCountdownBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow" unique_id=1222754100]
 layout_mode = 2
 
 [node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
@@ -562,7 +542,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "随机获得道具"
 
-[node name="HideDebugTabBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="HideDebugTabBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=637548531]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "本次隐藏调试页签"
