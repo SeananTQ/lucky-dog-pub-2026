@@ -56,6 +56,10 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
     private OptionButton _saveDataModeOption = null!;
+    private CheckButton _blindBoxBubbleToggle = null!;
+    private CheckButton _autoEquipToggle = null!;
+    private CheckButton _taskbarSnapToggle = null!;
+    private CheckButton _hideCountdownBubbleToggle = null!;
     private ConfirmOverlayController _resetSaveConfirm = null!;
 
     // Debug 页
@@ -171,6 +175,10 @@ public partial class SystemPanelController : CanvasLayer
         tongueImmediateToggle.ButtonPressed = SettingsManager.LoadDesktopTongueImmediateMode();
         tongueImmediateToggle.Toggled += enabled => SettingsManager.SaveDesktopTongueImmediateMode(enabled);
 
+        _blindBoxBubbleToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow/BlindBoxBubbleToggle");
+        _blindBoxBubbleToggle.ButtonPressed = SettingsManager.LoadAlwaysShowBlindBoxBubble();
+        _blindBoxBubbleToggle.Toggled += OnAlwaysShowBlindBoxBubbleToggled;
+
         var showFullscreenToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle");
         showFullscreenToggle.ButtonPressed = SettingsManager.LoadShowOverFullscreenApps();
         showFullscreenToggle.Toggled += enabled => SettingsManager.SaveShowOverFullscreenApps(enabled);
@@ -178,6 +186,14 @@ public partial class SystemPanelController : CanvasLayer
         var enhancedTopmostToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle");
         enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
         enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
+
+        _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
+        _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
+        _autoEquipToggle.Toggled += enabled => SettingsManager.SaveAutoEquipNewOutfits(enabled);
+
+        _taskbarSnapToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow/TaskbarSnapToggle");
+        _taskbarSnapToggle.ButtonPressed = SettingsManager.LoadSnapToWindowsTaskbar();
+        _taskbarSnapToggle.Toggled += enabled => SettingsManager.SaveSnapToWindowsTaskbar(enabled);
 
         var streamerSafeToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle");
         streamerSafeToggle.ButtonPressed = SettingsManager.LoadStreamerSafeMode();
@@ -232,16 +248,12 @@ public partial class SystemPanelController : CanvasLayer
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
         var hideDebugTabBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideDebugTabBtn");
-        var hideCountdownBubbleToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow/HideCountdownBubbleToggle");
+        _hideCountdownBubbleToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow/HideCountdownBubbleToggle");
         _reactionOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/ReactionOption");
         var playReactionBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
-        hideCountdownBubbleToggle.ButtonPressed = SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
-        hideCountdownBubbleToggle.Toggled += enabled =>
-        {
-            SettingsManager.SaveDebugHideBlindBoxCountdownBubble(enabled);
-            EmitSignal(SignalName.DebugBlindBoxCountdownBubbleVisibilityChanged);
-        };
+        _hideCountdownBubbleToggle.ButtonPressed = SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
+        _hideCountdownBubbleToggle.Toggled += OnDebugHideCountdownBubbleToggled;
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
@@ -627,6 +639,20 @@ public partial class SystemPanelController : CanvasLayer
     {
         SettingsManager.SaveAudioEnabled(enabled);
         ApplyAudio(enabled);
+    }
+
+    private void OnAlwaysShowBlindBoxBubbleToggled(bool enabled)
+    {
+        SettingsManager.SaveAlwaysShowBlindBoxBubble(enabled);
+        _hideCountdownBubbleToggle?.SetPressedNoSignal(!enabled);
+        EmitSignal(SignalName.DebugBlindBoxCountdownBubbleVisibilityChanged);
+    }
+
+    private void OnDebugHideCountdownBubbleToggled(bool enabled)
+    {
+        SettingsManager.SaveDebugHideBlindBoxCountdownBubble(enabled);
+        _blindBoxBubbleToggle?.SetPressedNoSignal(!enabled);
+        EmitSignal(SignalName.DebugBlindBoxCountdownBubbleVisibilityChanged);
     }
 
     private void OnDisplayModeChanged(long index)

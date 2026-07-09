@@ -90,7 +90,7 @@ public partial class GameData : Node
 
     public void AddItem(int itemId, int count = 1, bool markNew = true)
     {
-        Inventory.AddItem(itemId, count, markNew);
+        Inventory.AddItem(itemId, count, markNew, SettingsManager.LoadAutoEquipNewOutfits());
         QueueSaveIfUsingLocalSave();
     }
 

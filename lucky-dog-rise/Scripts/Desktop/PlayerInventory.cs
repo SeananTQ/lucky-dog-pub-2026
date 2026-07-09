@@ -188,7 +188,7 @@ public class PlayerInventory
             emitChanged);
     }
 
-    public void AddItem(int itemId, int count = 1, bool markNew = true)
+    public void AddItem(int itemId, int count = 1, bool markNew = true, bool autoEquipIfSlotEmpty = true)
     {
         var item = FindItem(itemId);
         if (item == null || count <= 0)
@@ -198,7 +198,7 @@ public class PlayerInventory
         if (markNew)
             _newItemIds.Add(itemId);
 
-        var equipmentChanged = EquipAcquiredItemIfSlotEmpty(item);
+        var equipmentChanged = autoEquipIfSlotEmpty && EquipAcquiredItemIfSlotEmpty(item);
         if (equipmentChanged)
             EquipmentChanged?.Invoke();
         InventoryChanged?.Invoke();

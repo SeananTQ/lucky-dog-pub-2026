@@ -568,7 +568,7 @@ public partial class ModeManager : Control
 
         var state = _gameData.GetBlindBoxHintState();
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
-            && SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
+            && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
         SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
 
         switch (state.Status)
@@ -1169,6 +1169,12 @@ public partial class ModeManager : Control
 
     private void ApplyTaskbarSnap(ref Vector2I newPos)
     {
+        if (!SettingsManager.LoadSnapToWindowsTaskbar())
+        {
+            _taskbarSnapped = false;
+            return;
+        }
+
         var scrRect = DisplayServer.ScreenGetUsableRect();
         int taskbarTop = scrRect.Position.Y + scrRect.Size.Y;
         var anchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar").Position;

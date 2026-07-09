@@ -16,6 +16,8 @@ public static class SettingsManager
     private const string KeyDesktopTongueImmediateMode = "desktop_tongue_immediate_mode";
     private const string KeyShowOverFullscreenApps = "show_over_fullscreen_apps";
     private const string KeyEnhancedTopmostMode = "enhanced_topmost_mode";
+    private const string KeyAutoEquipNewOutfits = "auto_equip_new_outfits";
+    private const string KeySnapToWindowsTaskbar = "snap_to_windows_taskbar";
     private const string KeyStreamerSafeMode = "streamer_safe_mode";
     private const string KeyDebugHideBlindBoxCountdownBubble = "debug_hide_blind_box_countdown_bubble";
     private const string KeySaveDataMode = "save_data_mode";
@@ -103,6 +105,16 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    public static bool LoadAlwaysShowBlindBoxBubble()
+    {
+        return !LoadDebugHideBlindBoxCountdownBubble();
+    }
+
+    public static void SaveAlwaysShowBlindBoxBubble(bool enabled)
+    {
+        SaveDebugHideBlindBoxCountdownBubble(!enabled);
+    }
+
     public static bool LoadShowOverFullscreenApps()
     {
         var config = Load();
@@ -126,6 +138,32 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyEnhancedTopmostMode, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadAutoEquipNewOutfits()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyAutoEquipNewOutfits, true);
+    }
+
+    public static void SaveAutoEquipNewOutfits(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyAutoEquipNewOutfits, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadSnapToWindowsTaskbar()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeySnapToWindowsTaskbar, true);
+    }
+
+    public static void SaveSnapToWindowsTaskbar(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeySnapToWindowsTaskbar, enabled);
         config.Save(Path);
     }
 
