@@ -243,6 +243,7 @@ public partial class SystemPanelController : CanvasLayer
         var seedCopyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
+        var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
@@ -252,6 +253,7 @@ public partial class SystemPanelController : CanvasLayer
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
+        resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
@@ -662,6 +664,44 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeBuilt = false;
         if (_wardrobeContent.Visible)
             BuildWardrobe();
+    }
+
+    private void ResetSettingsToDefaults()
+    {
+        SettingsManager.ResetToDefaults();
+        L10n.SetSafeMode(SettingsManager.LoadStreamerSafeMode(), notify: false);
+        L10n.SetLocale(SettingsManager.LoadLocale(), save: false);
+
+        RefreshSettingsControlsFromStorage();
+        ApplyAudio(_audioToggle.ButtonPressed);
+        _gameData.SetSaveDataMode(SettingsManager.LoadSaveDataMode());
+        EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
+        EmitSignal(SignalName.CounterLayoutChanged);
+    }
+
+    private void RefreshSettingsControlsFromStorage()
+    {
+        _audioToggle.SetPressedNoSignal(SettingsManager.LoadAudioEnabled());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow/AutoHideToggle")
+            .SetPressedNoSignal(SettingsManager.LoadAutoHidePanel());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow/TongueImmediateToggle")
+            .SetPressedNoSignal(SettingsManager.LoadDesktopTongueImmediateMode());
+        _blindBoxBubbleToggle.SetPressedNoSignal(SettingsManager.LoadAlwaysShowBlindBoxBubble());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle")
+            .SetPressedNoSignal(SettingsManager.LoadShowOverFullscreenApps());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle")
+            .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
+        _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
+        _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle")
+            .SetPressedNoSignal(SettingsManager.LoadStreamerSafeMode());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow/CounterCenterToggle")
+            .SetPressedNoSignal(SettingsManager.LoadCenterCounterOnTaskbar());
+
+        BuildLanguageOptions();
+        BuildDisplayOptions();
+        _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+        RefreshLocalizedOptionText();
     }
 
     private static void ApplyAudio(bool enabled)

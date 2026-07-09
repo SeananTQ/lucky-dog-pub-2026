@@ -95,7 +95,9 @@ public partial class ModeManager : Control
     private double _enhancedTopmostDelayedBoostTimer;
     private bool _waitingForWinMenuDismiss;
     private double _recoverTopmostOnNextMousePressTimer;
+    private double _settingsPanelOpenedAtSeconds;
     private const double RecoverTopmostOnNextMousePressSeconds = 5.0;
+    private const double SettingsPanelAutoHideOpenGraceSeconds = 0.2;
     private const float BossCounterTongueClearance = 2f;
     private const float BossCounterMinimumHeight = 22f;
 
@@ -751,6 +753,8 @@ public partial class ModeManager : Control
 
     private void OnGlobalMousePressed(Vector2I screenPosition)
     {
+        AutoHideSettingsPanelIfClickedOutside(screenPosition);
+
         if (!SettingsManager.LoadEnhancedTopmostMode())
         {
             _waitingForWinMenuDismiss = false;
@@ -777,6 +781,24 @@ public partial class ModeManager : Control
         {
             StartEnhancedTopmostBoost();
         }
+    }
+
+    private void AutoHideSettingsPanelIfClickedOutside(Vector2I screenPosition)
+    {
+        if (_settingsPanel == null
+            || !_settingsPanel.IsOpen
+            || !SettingsManager.LoadAutoHidePanel())
+            return;
+
+        var now = Time.GetTicksMsec() / 1000.0;
+        if (now - _settingsPanelOpenedAtSeconds < SettingsPanelAutoHideOpenGraceSeconds)
+            return;
+
+        var windowLocalPosition = screenPosition - DisplayServer.WindowGetPosition();
+        if (_settingsPanel.ContainsPoint(windowLocalPosition))
+            return;
+
+        _settingsPanel.CloseImmediate();
     }
 
     private void OnGlobalWinKeyPressed()
@@ -1063,6 +1085,7 @@ public partial class ModeManager : Control
         RefreshSettingsPanelModeActions();
         PositionPanelInBestSlot();
         _settingsPanel.Open();
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
 
     private void RefreshSettingsPanelModeActions()

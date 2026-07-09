@@ -240,6 +240,13 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    public static void ResetToDefaults()
+    {
+        CurrentDisplayMode = DisplayMode.Clock;
+        var config = new ConfigFile();
+        config.Save(Path);
+    }
+
     private static ConfigFile Load()
     {
         var config = new ConfigFile();
