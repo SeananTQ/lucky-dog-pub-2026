@@ -146,7 +146,7 @@ public partial class ModeManager : Control
         _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
-        _settingsPanel.DebugBlindBoxCountdownBubbleVisibilityChanged += OnDebugBlindBoxCountdownBubbleVisibilityChanged;
+        _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
         RefreshSettingsPanelModeActions();
 
@@ -585,7 +585,7 @@ public partial class ModeManager : Control
         }
     }
 
-    private void OnDebugBlindBoxCountdownBubbleVisibilityChanged()
+    private void OnBlindBoxBubbleVisibilityChanged()
     {
         RefreshBossBlindBoxHint();
         _infoPanel?.RefreshBlindBoxButton();

@@ -15,7 +15,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
-    [Signal] public delegate void DebugBlindBoxCountdownBubbleVisibilityChangedEventHandler();
+    [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     public bool IsOpen => _panel.Visible;
@@ -59,7 +59,6 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _blindBoxBubbleToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
-    private CheckButton _hideCountdownBubbleToggle = null!;
     private ConfirmOverlayController _resetSaveConfirm = null!;
 
     // Debug 页
@@ -248,12 +247,9 @@ public partial class SystemPanelController : CanvasLayer
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
         var hideDebugTabBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideDebugTabBtn");
-        _hideCountdownBubbleToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/HideCountdownBubbleRow/HideCountdownBubbleToggle");
         _reactionOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/ReactionOption");
         var playReactionBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ReactionRow/PlayReactionBtn");
 
-        _hideCountdownBubbleToggle.ButtonPressed = SettingsManager.LoadDebugHideBlindBoxCountdownBubble();
-        _hideCountdownBubbleToggle.Toggled += OnDebugHideCountdownBubbleToggled;
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
@@ -644,15 +640,7 @@ public partial class SystemPanelController : CanvasLayer
     private void OnAlwaysShowBlindBoxBubbleToggled(bool enabled)
     {
         SettingsManager.SaveAlwaysShowBlindBoxBubble(enabled);
-        _hideCountdownBubbleToggle?.SetPressedNoSignal(!enabled);
-        EmitSignal(SignalName.DebugBlindBoxCountdownBubbleVisibilityChanged);
-    }
-
-    private void OnDebugHideCountdownBubbleToggled(bool enabled)
-    {
-        SettingsManager.SaveDebugHideBlindBoxCountdownBubble(enabled);
-        _blindBoxBubbleToggle?.SetPressedNoSignal(!enabled);
-        EmitSignal(SignalName.DebugBlindBoxCountdownBubbleVisibilityChanged);
+        EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
     }
 
     private void OnDisplayModeChanged(long index)
