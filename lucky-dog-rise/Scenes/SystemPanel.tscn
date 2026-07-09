@@ -10,6 +10,8 @@
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
 [ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="9_option_label"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="10_exit"]
+[ext_resource type="Texture2D" uid="uid://cl8devcbuqbog" path="res://Assets/UI/Icon/Icon_DesktopPet.svg" id="11_desktop_pet"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Play.svg" id="12_play"]
 
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
@@ -109,13 +111,19 @@ text = "Common_Restart"
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Common_Play"
+tooltip_text = "Common_Play"
+theme_override_constants/icon_max_width = 28
+icon = ExtResource("12_play")
+icon_alignment = 1
 
 [node name="SwitchToBossKeyBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=246680196]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Common_Desktop"
+tooltip_text = "Common_Desktop"
+theme_override_constants/icon_max_width = 28
+icon = ExtResource("11_desktop_pet")
+icon_alignment = 1
 
 [node name="ActionBottomGap" type="Control" parent="Panel/RootVBox" unique_id=116590249]
 visible = false

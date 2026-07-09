@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: #22282d;
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <g id="_图层_3" data-name="图层 3">
+    <polygon class="cls-1" points="56 32 11 57 11 7 56 32"/>
+  </g>
+  <g id="_图层_4" data-name="图层 4">
+    <rect class="cls-2" width="3" height="3"/>
+    <rect class="cls-2" x="61" y="61" width="3" height="3"/>
+  </g>
+</svg>

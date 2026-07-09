@@ -3,6 +3,8 @@
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_0222e"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="1_dog"]
 [ext_resource type="PackedScene" uid="uid://c3sx2dvn6xwlc" path="res://Scenes/Prefabs/BalloonHint.tscn" id="2_balloon"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Play_Dark.svg" id="3_play_dark"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Menu_Dark.svg" id="4_menu_dark"]
 
 [sub_resource type="StyleBoxFlat" id="panel_bg"]
 content_margin_left = 5.0
@@ -56,16 +58,6 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="DPITexture" id="play_icon"]
-_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path fill=\"#22282d\" d=\"M5 3.4v9.2l7-4.6z\"/></svg>
-"
-base_scale = 1.15
-
-[sub_resource type="DPITexture" id="menu_icon"]
-_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path fill=\"#22282d\" d=\"M3 4h10v2H3zm0 3h10v2H3zm0 3h10v2H3z\"/></svg>
-"
-base_scale = 1.15
-
 [sub_resource type="StyleBoxFlat" id="bubble_bg"]
 bg_color = Color(1, 1, 1, 0.9)
 corner_radius_top_left = 12
@@ -104,7 +96,7 @@ theme_override_styles/normal = SubResource("bar_icon_normal")
 theme_override_styles/pressed = SubResource("bar_icon_pressed")
 theme_override_styles/hover = SubResource("bar_icon_hover")
 theme_override_styles/focus = SubResource("bar_icon_hover")
-icon = SubResource("play_icon")
+icon = ExtResource("3_play_dark")
 
 [node name="MainText" type="Label" parent="CanvasLayer/Panel/HBoxContainer" unique_id=1153589655]
 custom_minimum_size = Vector2(104, 22)
@@ -134,7 +126,7 @@ theme_override_styles/normal = SubResource("bar_icon_normal")
 theme_override_styles/pressed = SubResource("bar_icon_pressed")
 theme_override_styles/hover = SubResource("bar_icon_hover")
 theme_override_styles/focus = SubResource("bar_icon_hover")
-icon = SubResource("menu_icon")
+icon = ExtResource("4_menu_dark")
 
 [node name="BlindBoxHint" parent="CanvasLayer" unique_id=169206824 instance=ExtResource("2_balloon")]
 offset_left = -4.0
