@@ -17,6 +17,7 @@ public static class L10n
     public const string JapaneseLocale = "ja";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
+    private const string ImportedTranslationPathFormat = "res://Data/Localization/LocalizationText.{0}.translation";
     private const string EmptyTextMarker = "@empty";
     private static bool _loaded;
     private static bool _safeMode;
@@ -151,7 +152,8 @@ public static class L10n
     {
         if (!FileAccess.FileExists(path))
         {
-            GD.PushWarning($"[L10n] Missing localization CSV: {path}");
+            GD.PushWarning($"[L10n] Missing localization CSV: {path}. Falling back to imported Translation resources.");
+            LoadImportedTranslations();
             return;
         }
 
@@ -203,6 +205,36 @@ public static class L10n
                     translation.AddMessage(key, text);
                 }
             }
+        }
+    }
+
+    private static void LoadImportedTranslations()
+    {
+        string[] locales =
+        [
+            EnglishLocale,
+            SimplifiedChineseLocale,
+            TraditionalChineseLocale,
+            JapaneseLocale,
+        ];
+
+        foreach (var locale in locales)
+        {
+            var path = string.Format(CultureInfo.InvariantCulture, ImportedTranslationPathFormat, locale);
+            if (!ResourceLoader.Exists(path))
+            {
+                GD.PushWarning($"[L10n] Missing imported translation resource: {path}");
+                continue;
+            }
+
+            var translation = ResourceLoader.Load<Translation>(path);
+            if (translation == null)
+            {
+                GD.PushWarning($"[L10n] Failed to load imported translation resource: {path}");
+                continue;
+            }
+
+            TranslationServer.AddTranslation(translation);
         }
     }
 
