@@ -25,6 +25,8 @@ public partial class InfoPanelController : CanvasLayer
     private const float ChipsAnimDuration = 0.4f;
     private const float BlinkVisibleDuration = 0.8f;
     private const float BlinkHiddenDuration = 0.4f;
+    private const int DefaultPayoutNameFontSize = 13;
+    private const int JapanesePayoutNameFontSize = 12;
 
     private GameData _gameData = null!;
     private readonly List<Label> _payoutNames = new();
@@ -88,6 +90,7 @@ public partial class InfoPanelController : CanvasLayer
             if (gridIdx < _payoutValues.Count)
                 _payoutValues[gridIdx].Text = payList[i].PayoutMultiplier.ToString();
         }
+        RefreshPayoutNameFontSize();
 
         if (_payoutNames.Count > 0)
             _defaultNameColor = _payoutNames[0].GetThemeColor("font_color");
@@ -307,6 +310,7 @@ public partial class InfoPanelController : CanvasLayer
             if (gridIdx < _payoutNames.Count)
                 _payoutNames[gridIdx].Text = L10n.Tr(L10n.GetHandRankKey(payList[i].HandRank));
         }
+        RefreshPayoutNameFontSize();
 
         if (!_hasResolvedHand)
         {
@@ -327,6 +331,23 @@ public partial class InfoPanelController : CanvasLayer
         var showText = L10n.CurrentLocale == L10n.SimplifiedChineseLocale;
         button.Text = showText ? L10n.Tr(key) : string.Empty;
         button.IconAlignment = showText ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+    }
+
+    private void RefreshPayoutNameFontSize()
+    {
+        var fontSize = GetPayoutNameFontSizeForLocale(L10n.CurrentLocale);
+
+        foreach (var label in _payoutNames)
+            label.AddThemeFontSizeOverride("font_size", fontSize);
+    }
+
+    private static int GetPayoutNameFontSizeForLocale(string locale)
+    {
+        return locale switch
+        {
+            L10n.JapaneseLocale => JapanesePayoutNameFontSize,
+            _ => DefaultPayoutNameFontSize,
+        };
     }
 
 }

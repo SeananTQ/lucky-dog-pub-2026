@@ -4,61 +4,61 @@
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="2_group_title"]
 [ext_resource type="LabelSettings" uid="uid://boqb4vx8nxgjj" path="res://Themes/Label_SettingsOption.tres" id="3_option_label"]
 
-[node name="LocalizationLayoutLab" type="Control"]
+[node name="LocalizationLayoutLab" type="Control" unique_id=1582959488]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 420.0
 offset_bottom = 600.0
 theme = ExtResource("1_theme")
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="." unique_id=2052633473]
 custom_minimum_size = Vector2(420, 600)
 layout_mode = 0
 offset_right = 420.0
 offset_bottom = 600.0
 
-[node name="Margin" type="MarginContainer" parent="Panel"]
+[node name="Margin" type="MarginContainer" parent="Panel" unique_id=1296419885]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Margin"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin" unique_id=1977664654]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll"]
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/Scroll" unique_id=326316844]
 custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="Panel/Margin/Scroll/Content"]
+[node name="Title" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1701705249]
 layout_mode = 2
 text = "Localization Layout Lab"
 label_settings = ExtResource("2_group_title")
 
-[node name="Note" type="Label" parent="Panel/Margin/Scroll/Content"]
+[node name="Note" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=931388344]
 layout_mode = 2
 text = "Clean reference scene for setting row wrapping and themed dropdowns."
 label_settings = ExtResource("3_option_label")
 autowrap_mode = 3
 
-[node name="Sep0" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+[node name="Sep0" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=341452403]
 layout_mode = 2
 
-[node name="WrapGroup" type="Label" parent="Panel/Margin/Scroll/Content"]
+[node name="WrapGroup" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1730980144]
 layout_mode = 2
 text = "A. Wrapping setting rows"
 label_settings = ExtResource("2_group_title")
 
-[node name="RowShortZh" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+[node name="RowShortZh" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=833456412]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowShortZh"]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowShortZh" unique_id=756504827]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -66,19 +66,17 @@ text = "音效"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowShortZh"]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowShortZh" unique_id=2129910143]
 layout_mode = 2
 size_flags_vertical = 4
 button_pressed = true
 
-[node name="RowLongJa" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+[node name="RowLongJa" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1592261878]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongJa"]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongJa" unique_id=989139151]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -86,18 +84,16 @@ text = "フォーカス喪失時にパネルを自動で隠す"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongJa"]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongJa" unique_id=398140331]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="RowLongEn" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+[node name="RowLongEn" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1696289254]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongEn"]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/RowLongEn" unique_id=1054457030]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -105,26 +101,24 @@ text = "Always show Blind Box bubble above desktop companion"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
-[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongEn"]
+[node name="Toggle" type="CheckButton" parent="Panel/Margin/Scroll/Content/RowLongEn" unique_id=800908090]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="SepA" type="HSeparator" parent="Panel/Margin/Scroll/Content"]
+[node name="SepA" type="HSeparator" parent="Panel/Margin/Scroll/Content" unique_id=465932317]
 layout_mode = 2
 
-[node name="DropdownGroup" type="Label" parent="Panel/Margin/Scroll/Content"]
+[node name="DropdownGroup" type="Label" parent="Panel/Margin/Scroll/Content" unique_id=1644690474]
 layout_mode = 2
 text = "B. Theme OptionButton in Scroll"
 label_settings = ExtResource("2_group_title")
 
-[node name="LanguageRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+[node name="LanguageRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=1866882129]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/LanguageRow"]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/LanguageRow" unique_id=825425982]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -132,10 +126,8 @@ text = "Language"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
-[node name="LanguageOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/LanguageRow"]
+[node name="LanguageOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/LanguageRow" unique_id=793406306]
 custom_minimum_size = Vector2(172, 28)
 layout_mode = 2
 selected = 3
@@ -165,11 +157,11 @@ popup/item_10/id = 10
 popup/item_11/text = "Norsk"
 popup/item_11/id = 11
 
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content"]
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/Margin/Scroll/Content" unique_id=173517156]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/DisplayRow"]
+[node name="Label" type="Label" parent="Panel/Margin/Scroll/Content/DisplayRow" unique_id=586328721]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -177,10 +169,8 @@ text = "Counter Display"
 label_settings = ExtResource("3_option_label")
 vertical_alignment = 1
 autowrap_mode = 3
-clip_text = false
-text_overrun_behavior = 0
 
-[node name="DisplayOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/DisplayRow"]
+[node name="DisplayOption" type="OptionButton" parent="Panel/Margin/Scroll/Content/DisplayRow" unique_id=981120389]
 custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
 selected = 0
