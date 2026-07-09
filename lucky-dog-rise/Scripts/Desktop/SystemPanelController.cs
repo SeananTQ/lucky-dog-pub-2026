@@ -410,7 +410,8 @@ public partial class SystemPanelController : CanvasLayer
         var items = tab.TabItemTypeList
             .SelectMany(type => _gameData.Inventory.GetOwnedOfType(type))
             .Where(item => !item.IsHiddenInBag)
-            .OrderByDescending(item => _gameData.Inventory.IsNew(item.Id))
+            .OrderBy(item => (int)item.ItemRarity)
+            .ThenBy(item => (int)item.ItemType)
             .ThenByDescending(item => item.SortOrder)
             .ThenBy(item => item.Id)
             .ToList();
