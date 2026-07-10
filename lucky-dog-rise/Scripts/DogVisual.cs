@@ -24,6 +24,7 @@ public partial class DogVisual : Node2D
     private DogSkin _dogSkin = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     private Tween _tongueTween = null!;
+    private Tween _pawTween = null!;
     private Vector2 _desktopTongueBasePosition;
     private float _desktopTongueTimer;
     private float _desktopTongueActiveTimer;
@@ -410,6 +411,7 @@ public partial class DogVisual : Node2D
 
     public void HideClaw()
     {
+        StopPawAnimation();
         _clawLeft.Visible = false;
         _clawRight.Visible = false;
     }
@@ -418,16 +420,17 @@ public partial class DogVisual : Node2D
     // 摇手拒绝动画（双手旋转摆动）
     public void ShakePaw()
     {
+        StopPawAnimation();
         float angle = 0.25f; // ~15度
-        var tween = CreateTween().SetParallel(true);
-        tween.TweenProperty(_clawLeft, "rotation", angle, 0.06);
-        tween.TweenProperty(_clawRight, "rotation", -angle, 0.06);
-        tween.Chain().TweenProperty(_clawLeft, "rotation", -angle, 0.06);
-        tween.TweenProperty(_clawRight, "rotation", angle, 0.06);
-        tween.Chain().TweenProperty(_clawLeft, "rotation", angle * 0.6f, 0.05);
-        tween.TweenProperty(_clawRight, "rotation", -angle * 0.6f, 0.05);
-        tween.Chain().TweenProperty(_clawLeft, "rotation", 0f, 0.04);
-        tween.TweenProperty(_clawRight, "rotation", 0f, 0.04);
+        _pawTween = CreateTween().SetParallel(true);
+        _pawTween.TweenProperty(_clawLeft, "rotation", angle, 0.06);
+        _pawTween.TweenProperty(_clawRight, "rotation", -angle, 0.06);
+        _pawTween.Chain().TweenProperty(_clawLeft, "rotation", -angle, 0.06);
+        _pawTween.TweenProperty(_clawRight, "rotation", angle, 0.06);
+        _pawTween.Chain().TweenProperty(_clawLeft, "rotation", angle * 0.6f, 0.05);
+        _pawTween.TweenProperty(_clawRight, "rotation", -angle * 0.6f, 0.05);
+        _pawTween.Chain().TweenProperty(_clawLeft, "rotation", 0f, 0.04);
+        _pawTween.TweenProperty(_clawRight, "rotation", 0f, 0.04);
     }
 
     private void SetClawState(Node2D claw, string state)
@@ -489,6 +492,9 @@ public partial class DogVisual : Node2D
             result.RightPawAnimation = reaction.RightPawAnimation;
         if (!string.IsNullOrEmpty(reaction.TongueAnimation))
             result.TongueAnimation = reaction.TongueAnimation;
+        if (reaction.DogReactionTrigger == EDogReactionTrigger.Hello
+            || reaction.AssetRef == EDogReactionTrigger.Hello)
+            result.IsHello = true;
 
         return result;
     }
@@ -600,6 +606,13 @@ public partial class DogVisual : Node2D
 
     private void ApplyPawVisual(DogReactionVisual visual)
     {
+        StopPawAnimation();
+        if (visual.IsHello)
+        {
+            PlayHelloPawAnimation();
+            return;
+        }
+
         var left = visual.LeftPawAnimation;
         var right = visual.RightPawAnimation;
         if (left.Contains("手心") || right.Contains("手心"))
@@ -609,6 +622,42 @@ public partial class DogVisual : Node2D
 
         if (left.Contains("摆手") || right.Contains("摆手"))
             ShakePaw();
+    }
+
+    /// <summary>
+    /// 1009 Hello 的约定动作：左爪保持手背，右爪翻手心并摆两次。
+    /// 2009 通过 AssetRef=1009 继承同一套动作。
+    /// </summary>
+    private void PlayHelloPawAnimation()
+    {
+        SetClawPresentation(_clawLeft, "Back", 3);
+        SetClawPresentation(_clawRight, "Palm", 1);
+
+        const float waveAngle = 0.20f;
+        _pawTween = CreateTween();
+        _pawTween.TweenProperty(_clawRight, "rotation", waveAngle, 0.09)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+        _pawTween.TweenProperty(_clawRight, "rotation", -waveAngle, 0.11)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _pawTween.TweenProperty(_clawRight, "rotation", waveAngle * 0.8f, 0.10)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _pawTween.TweenProperty(_clawRight, "rotation", -waveAngle * 0.65f, 0.10)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _pawTween.TweenProperty(_clawRight, "rotation", 0f, 0.08)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+    }
+
+    private void SetClawPresentation(Node2D claw, string state, int zIndex)
+    {
+        claw.Visible = true;
+        claw.ZAsRelative = false;
+        claw.ZIndex = zIndex;
+        SetClawState(claw, state);
     }
 
     private void ApplyTongueVisual(DogReactionVisual visual)
@@ -639,6 +688,14 @@ public partial class DogVisual : Node2D
 
         _tongueTween.Kill();
         _tongueTween = null;
+    }
+
+    private void StopPawAnimation()
+    {
+        _pawTween?.Kill();
+        _pawTween = null;
+        _clawLeft.Rotation = 0f;
+        _clawRight.Rotation = 0f;
     }
 
     private string ResolveDogAsset(string asset, string defaultAsset)
@@ -686,6 +743,7 @@ public partial class DogVisual : Node2D
         public string LeftPawAnimation;
         public string RightPawAnimation;
         public string TongueAnimation;
+        public bool IsHello;
 
         public static DogReactionVisual Default => new()
         {
@@ -696,6 +754,7 @@ public partial class DogVisual : Node2D
             LeftPawAnimation = "手背",
             RightPawAnimation = "手背",
             TongueAnimation = "正常",
+            IsHello = false,
         };
     }
 
