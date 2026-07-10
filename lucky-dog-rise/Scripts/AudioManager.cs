@@ -6,8 +6,9 @@ namespace LuckyDogRise;
 
 /// <summary>
 /// 全局音效入口。
-/// 调用方只传逻辑名（例如 "ChipDrop" 或 "PlayCard/CardDeal"），
-/// 本类会依次查找 .ogg、.wav、.mp3；同名 .xxx.txt 仅作为开发占位并打印文件名。
+/// 调用方只传不含变体号的逻辑名（例如 "Chip_BetStackLanding"）。
+/// 本类会在 _1、_2… 变体中等权随机选择，并优先查找 .ogg、.wav、.mp3；
+/// 同名 .xxx.txt 仅作为开发占位并打印文件名。
 /// </summary>
 public partial class AudioManager : Node
 {
@@ -47,10 +48,13 @@ public partial class AudioManager : Node
         ApplyBusVolume(AudioKind.Bgm, BgmVolume);
     }
 
-    /// <summary>播放短音效。cue 不带扩展名，例如 PlaySfx("Chip_BetStackLanding_1")。</summary>
-    public void PlaySfx(string cue)
+    /// <summary>
+    /// 播放短音效。cue 不含变体号；持续音效的状态单独传入，
+    /// 例如 PlaySfx("Tool_ElectricDrill", "Loop") 会匹配 Tool_ElectricDrill_1_Loop。
+    /// </summary>
+    public void PlaySfx(string cue, string state = null)
     {
-        if (!TryResolve(AudioKind.Sfx, cue, out var stream))
+        if (!TryResolve(AudioKind.Sfx, cue, state, out var stream))
             return;
 
         var player = GetAvailableSfxPlayer();
@@ -64,7 +68,7 @@ public partial class AudioManager : Node
     /// <summary>播放 BGM。cue 不带扩展名，例如 PlayBgm("MainTheme")。</summary>
     public void PlayBgm(string cue)
     {
-        if (!TryResolve(AudioKind.Bgm, cue, out var stream))
+        if (!TryResolve(AudioKind.Bgm, cue, null, out var stream))
             return;
 
         _bgmPlayer.Stream = stream;
@@ -96,7 +100,7 @@ public partial class AudioManager : Node
         return new AudioStreamPlayer { Bus = GetBusName(kind) };
     }
 
-    private bool TryResolve(AudioKind kind, string inputCue, out AudioStream stream)
+    private bool TryResolve(AudioKind kind, string inputCue, string state, out AudioStream stream)
     {
         stream = null!;
         var cue = NormalizeCue(kind, inputCue);
@@ -106,11 +110,23 @@ public partial class AudioManager : Node
             return false;
         }
 
-        var cacheKey = $"{kind}:{cue}";
-        if (_streamCache.TryGetValue(cacheKey, out stream))
-            return true;
-
         var folder = kind == AudioKind.Sfx ? "res://Audio/SFX" : "res://Audio/BGM";
+        var variantPaths = FindVariantPaths(folder, cue, state, placeholders: false);
+        if (variantPaths.Count > 0)
+        {
+            var selectedPath = variantPaths[GD.RandRange(0, variantPaths.Count - 1)];
+            return TryLoadStream(selectedPath, out stream);
+        }
+
+        var placeholderPaths = FindVariantPaths(folder, cue, state, placeholders: true);
+        if (placeholderPaths.Count > 0)
+        {
+            var selectedPath = placeholderPaths[GD.RandRange(0, placeholderPaths.Count - 1)];
+            GD.Print($"[{(kind == AudioKind.Sfx ? "SFX" : "BGM")} Placeholder] {selectedPath.GetFile()}");
+            return false;
+        }
+
+        // 兼容没有变体号的旧资源（例如当前 BGM MainTheme.ogg）。
         var basePath = $"{folder}/{cue}";
         foreach (var extension in SupportedExtensions)
         {
@@ -118,15 +134,7 @@ public partial class AudioManager : Node
             if (!ResourceLoader.Exists(audioPath))
                 continue;
 
-            stream = GD.Load<AudioStream>(audioPath);
-            if (stream == null)
-            {
-                GD.PushWarning($"[Audio] Failed to load: {audioPath}");
-                return false;
-            }
-
-            _streamCache[cacheKey] = stream;
-            return true;
+            return TryLoadStream(audioPath, out stream);
         }
 
         foreach (var extension in SupportedExtensions)
@@ -141,6 +149,59 @@ public partial class AudioManager : Node
 
         GD.PushWarning($"[{(kind == AudioKind.Sfx ? "SFX" : "BGM")} Missing] {cue}");
         return false;
+    }
+
+    private List<string> FindVariantPaths(string rootFolder, string cue, string state, bool placeholders)
+    {
+        var slashIndex = cue.LastIndexOf('/');
+        var relativeFolder = slashIndex >= 0 ? cue[..slashIndex] : string.Empty;
+        var cueName = slashIndex >= 0 ? cue[(slashIndex + 1)..] : cue;
+        var folder = string.IsNullOrEmpty(relativeFolder) ? rootFolder : $"{rootFolder}/{relativeFolder}";
+        var stateSuffix = string.IsNullOrEmpty(state) ? string.Empty : $"_{state}";
+        var files = DirAccess.GetFilesAt(folder);
+        var variants = new SortedDictionary<int, string>();
+
+        // 外层按扩展名遍历，保证同一编号同时存在多种格式时仍优先 OGG。
+        foreach (var extension in SupportedExtensions)
+        {
+            var suffix = stateSuffix + extension + (placeholders ? ".txt" : string.Empty);
+            var prefix = cueName + "_";
+            foreach (var fileName in files)
+            {
+                if (!fileName.StartsWith(prefix, StringComparison.Ordinal)
+                    || !fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var variantTextLength = fileName.Length - prefix.Length - suffix.Length;
+                if (variantTextLength <= 0
+                    || !int.TryParse(fileName.Substring(prefix.Length, variantTextLength), out var variant)
+                    || variant <= 0
+                    || variants.ContainsKey(variant))
+                    continue;
+
+                var candidatePath = $"{folder}/{fileName}";
+                if (placeholders ? FileAccess.FileExists(candidatePath) : ResourceLoader.Exists(candidatePath))
+                    variants.Add(variant, candidatePath);
+            }
+        }
+
+        return new List<string>(variants.Values);
+    }
+
+    private bool TryLoadStream(string audioPath, out AudioStream stream)
+    {
+        if (_streamCache.TryGetValue(audioPath, out stream))
+            return true;
+
+        stream = GD.Load<AudioStream>(audioPath);
+        if (stream == null)
+        {
+            GD.PushWarning($"[Audio] Failed to load: {audioPath}");
+            return false;
+        }
+
+        _streamCache[audioPath] = stream;
+        return true;
     }
 
     private static string NormalizeCue(AudioKind kind, string cue)

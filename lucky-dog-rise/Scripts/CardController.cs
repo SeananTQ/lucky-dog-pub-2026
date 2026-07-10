@@ -122,7 +122,7 @@ public partial class CardController : Node2D
 
         GetTree().CreateTimer(delay).Timeout += () =>
         {
-            AudioManager.Instance.PlaySfx("Card_PokerHandDeal_1");
+            AudioManager.Instance.PlaySfx("Card_PokerHandDeal");
             // CardBody 在高处的起始状态
             _body.Position = new Vector2(0, -80);
             _body.Scale = new Vector2(1.3f, 1.3f);
@@ -174,7 +174,7 @@ public partial class CardController : Node2D
     // 反悔翻回：背面→正面（与阴影同步）
     public void AnimateRehold()
     {
-        AudioManager.Instance.PlaySfx("Card_PokerHandFlip_1");
+        AudioManager.Instance.PlaySfx("Card_PokerHandFlip");
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
@@ -199,7 +199,7 @@ public partial class CardController : Node2D
     // 弃牌动画：翻转显示卡背（与阴影同步）
     public void AnimateDiscard()
     {
-        AudioManager.Instance.PlaySfx("Card_PokerHandFlip_1");
+        AudioManager.Instance.PlaySfx("Card_PokerHandFlip");
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
@@ -225,7 +225,7 @@ public partial class CardController : Node2D
     // 补牌翻转（与阴影同步，模仿发牌翻转的风格）
     public void AnimateReplace()
     {
-        AudioManager.Instance.PlaySfx("Card_PokerHandFlip_1");
+        AudioManager.Instance.PlaySfx("Card_PokerHandFlip");
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;

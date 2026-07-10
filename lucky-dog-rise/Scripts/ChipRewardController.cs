@@ -174,7 +174,7 @@ public partial class ChipRewardController : Node2D
         EmitSignal(SignalName.InteractionActivated);
         KillSpawnTweens();
 
-        AudioManager.Instance.PlaySfx("Chip_RewardStackCollect_1");
+        AudioManager.Instance.PlaySfx("Chip_RewardStackCollect");
 
         var tween = CreateTween();
         tween.TweenProperty(this, "position:y", Position.Y + SlideDistance, SlideDuration)
@@ -201,7 +201,7 @@ public partial class ChipRewardController : Node2D
             return;
 
         _rewardSpawnSoundPlayed = true;
-        AudioManager.Instance.PlaySfx("Chip_RewardStackLanding_1");
+        AudioManager.Instance.PlaySfx("Chip_RewardStackLanding");
     }
 
     public void PlayInteractionHint()
@@ -211,7 +211,7 @@ public partial class ChipRewardController : Node2D
 
         ResetHintAnimations();
         // 整堆提示只播一次，具体每个筹码仍保持各自错拍的视觉节奏。
-        AudioManager.Instance.PlaySfx("Chip_RewardStackHint_1");
+        AudioManager.Instance.PlaySfx("Chip_RewardStackHint");
 
         var activeMarkers = _pileMarkers.Where(marker => marker.GetChildCount() > 0).ToArray();
         for (var index = 0; index < activeMarkers.Length; index++)
