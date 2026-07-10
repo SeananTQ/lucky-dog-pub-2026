@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 namespace LuckyDogRise;
@@ -7,6 +8,9 @@ public enum InteractionHintTargetId
 {
     BetStack,
     RewardStack,
+    HandConfirm,
+    CardSelection,
+    DogAdvice,
 }
 
 public interface IInteractionHintTarget
@@ -22,6 +26,7 @@ public interface IInteractionHintTarget
 public partial class InteractionHintController : Node
 {
     private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();
+    private readonly Dictionary<InteractionHintTargetId, Action> _hintActions = new();
     private readonly HashSet<InteractionHintTargetId> _availableTargets = new();
     private bool _hasPendingClick;
     private bool _pendingClickWasHandled;
@@ -29,6 +34,14 @@ public partial class InteractionHintController : Node
     public void RegisterTarget(InteractionHintTargetId id, IInteractionHintTarget target)
     {
         _targets[id] = target;
+    }
+
+    /// <summary>
+    /// 在目标的提示动画尚未实现时，也可先登记一项可替换的提示行为，例如诊断输出。
+    /// </summary>
+    public void RegisterHintAction(InteractionHintTargetId id, Action hintAction)
+    {
+        _hintActions[id] = hintAction;
     }
 
     public void SetAvailableTargets(params InteractionHintTargetId[] targetIds)
@@ -74,8 +87,11 @@ public partial class InteractionHintController : Node
         {
             if (_targets.TryGetValue(id, out var target) && target.CanPlayInteractionHint)
             {
-                GD.Print($"[InteractionHint] Dispatch hint: {id}");
                 target.PlayInteractionHint();
+            }
+            else if (_hintActions.TryGetValue(id, out var hintAction))
+            {
+                hintAction();
             }
         }
     }

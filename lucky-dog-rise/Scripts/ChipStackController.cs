@@ -151,7 +151,6 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         if (!CanPlayInteractionHint)
             return;
 
-        GD.Print("[ChipStack] Play interaction hint");
         ResetHintAnimation();
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Rotation = 0f;

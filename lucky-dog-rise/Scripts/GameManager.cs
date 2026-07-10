@@ -78,6 +78,15 @@ public partial class GameManager : Node2D
         _handArea = GetNode<HandAreaController>("HandArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
         _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
+        _interactionHints.RegisterHintAction(
+            InteractionHintTargetId.HandConfirm,
+            () => GD.Print("[交互提示] 当前正面牌已能得分：提示手臂确认补牌。"));
+        _interactionHints.RegisterHintAction(
+            InteractionHintTargetId.CardSelection,
+            () => GD.Print("[交互提示] 当前正面牌无法得分，且尚未弃牌：提示卡牌调整保留/弃牌。"));
+        _interactionHints.RegisterHintAction(
+            InteractionHintTargetId.DogAdvice,
+            () => GD.Print("[交互提示] 当前正面牌无法得分，且已弃牌：提示狗头，请小狗看看。"));
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
@@ -328,11 +337,58 @@ public partial class GameManager : Node2D
             case GameState.Settled when _pendingReward != null && IsInstanceValid(_pendingReward):
                 _interactionHints.SetAvailableTargets(InteractionHintTargetId.RewardStack);
                 break;
+            case GameState.Dealt:
+            case GameState.Holding:
+                _interactionHints.SetAvailableTargets(GetPlayDecisionHintTarget());
+                break;
             default:
                 _interactionHints.SetAvailableTargets();
                 break;
         }
     }
+
+    private InteractionHintTargetId GetPlayDecisionHintTarget()
+    {
+        var faceUpCards = _deck.CurrentHand
+            .Where((_, index) => _held[index])
+            .ToArray();
+
+        if (CanFaceUpCardsScore(faceUpCards))
+            return InteractionHintTargetId.HandConfirm;
+
+        return _held.Any(isHeld => !isHeld)
+            ? InteractionHintTargetId.DogAdvice
+            : InteractionHintTargetId.CardSelection;
+    }
+
+    /// <summary>
+    /// 正面牌不足五张时，不把未出现的补牌纳入判断；只识别当前已经形成的可计分组合。
+    /// </summary>
+    private static bool CanFaceUpCardsScore(int[] faceUpCards)
+    {
+        if (faceUpCards.Length == 5)
+            return CardEvaluator.Evaluate(faceUpCards) != EHandRank.Nothing;
+
+        var groups = faceUpCards
+            .Select(CardEvaluator.GetRank)
+            .GroupBy(rank => rank)
+            .Select(group => new { Rank = group.Key, Count = group.Count() })
+            .OrderByDescending(group => group.Count)
+            .ToArray();
+
+        if (groups.Length == 0)
+            return false;
+
+        if (groups.Any(group => group.Count >= 3))
+            return true;
+
+        if (groups.Count(group => group.Count >= 2) >= 2)
+            return true;
+
+        return groups.Any(group => group.Count >= 2 && IsJacksOrBetter(group.Rank));
+    }
+
+    private static bool IsJacksOrBetter(int rank) => rank == 0 || rank >= 10;
 
     private static EDogReactionTrigger GetSawReaction(EHandRank rank)
     {

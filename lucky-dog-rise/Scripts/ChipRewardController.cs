@@ -196,7 +196,6 @@ public partial class ChipRewardController : Node2D
         if (!CanPlayInteractionHint)
             return;
 
-        GD.Print("[ChipReward] Play interaction hint");
         ResetHintAnimations();
 
         var activeMarkers = _pileMarkers.Where(marker => marker.GetChildCount() > 0).ToArray();
