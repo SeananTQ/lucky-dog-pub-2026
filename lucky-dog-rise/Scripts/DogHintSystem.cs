@@ -16,11 +16,13 @@ public class DogHintSystem
 {
     public bool HasGivenHint { get; set; }
     public bool IsLocked { get; set; }
+    public bool HasRefusedAfterLock { get; set; }
 
     public void ResetForNewHand()
     {
         HasGivenHint = false;
         IsLocked = false;
+        HasRefusedAfterLock = false;
     }
 
     public DogSignal EvaluateHold(int[] currentHand, bool[] held, int[] finalHand)

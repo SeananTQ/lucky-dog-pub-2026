@@ -196,14 +196,21 @@ public partial class GameManager : Node2D
     private void OnDogClicked()
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
-        _interactionHints.NotifyInteractionHandled();
 
         if (_dogHint.HasGivenHint)
         {
-            _dogVisual.ApplyReaction(EDogReactionTrigger.RefuseHint);
-            _hud.SetMessage("");
+            // 已展示过询问结果：狗头本身无效。
+            // 但如果玩家随后改过牌，第一次再点狗头需要展示拒绝状态。
+            if (_dogHint.IsLocked && !_dogHint.HasRefusedAfterLock)
+            {
+                _dogHint.HasRefusedAfterLock = true;
+                _interactionHints.NotifyInteractionHandled();
+                _dogVisual.ApplyReaction(EDogReactionTrigger.RefuseHint);
+            }
             return;
         }
+
+        _interactionHints.NotifyInteractionHandled();
 
         var previewHand = _deck.PreviewFinalHand(_held);
         var previewRank = _dogHint.EvaluateHoldRank(_deck.CurrentHand, _held, previewHand);
