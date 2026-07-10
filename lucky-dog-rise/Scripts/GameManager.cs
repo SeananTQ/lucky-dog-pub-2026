@@ -64,6 +64,7 @@ public partial class GameManager : Node2D
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
+    private bool _isPokerModeActive;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
     public override void _Ready()
@@ -81,6 +82,8 @@ public partial class GameManager : Node2D
         _interactionHints.RegisterTarget(InteractionHintTargetId.HandConfirm, _handArea);
         _interactionHints.RegisterTarget(InteractionHintTargetId.CardSelection, _cardTable);
         _interactionHints.RegisterTarget(InteractionHintTargetId.DogAdvice, _dogVisual);
+        _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
+        SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
@@ -107,6 +110,26 @@ public partial class GameManager : Node2D
         }
 
         AudioManager.Instance.PlayBgmByName("MainTheme.ogg");
+    }
+
+    public override void _ExitTree()
+    {
+        SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_interactionHints == null || _blindBoxOverlay == null)
+            return;
+
+        _interactionHints.SetProactiveHintContextActive(_isPokerModeActive && !_blindBoxOverlay.Visible);
+    }
+
+    public void SetInteractionHintPokerModeActive(bool active)
+    {
+        _isPokerModeActive = active;
+        if (_interactionHints != null && _blindBoxOverlay != null)
+            _interactionHints.SetProactiveHintContextActive(active && !_blindBoxOverlay.Visible);
     }
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)

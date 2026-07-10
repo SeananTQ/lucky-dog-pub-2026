@@ -325,6 +325,7 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+        _gameManager.SetInteractionHintPokerModeActive(true);
         RefreshSettingsPanelModeActions();
     }
 
@@ -355,6 +356,7 @@ public partial class ModeManager : Control
             _playRoot.Visible = false;
         if (_infoPanel != null)
             _infoPanel.Visible = false;
+        _gameManager?.SetInteractionHintPokerModeActive(false);
 
         ShowBossKeyContent();
         SetupFatWindow();

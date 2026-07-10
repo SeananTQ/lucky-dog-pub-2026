@@ -23,6 +23,7 @@ public static class SettingsManager
     private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
+    private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyLocale = "locale";
 
     public enum DisplayMode
@@ -220,6 +221,23 @@ public static class SettingsManager
         return (bool)config.GetValue(SectionDisplay, KeyCenterCounterOnTaskbar, true);
     }
 
+    // === 扑克 ===
+    public static bool LoadProactiveInteractionHints()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyProactiveInteractionHints, true);
+    }
+
+    public static void SaveProactiveInteractionHints(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyProactiveInteractionHints, enabled);
+        config.Save(Path);
+        ProactiveInteractionHintsChanged?.Invoke(enabled);
+    }
+
+    public static event System.Action<bool> ProactiveInteractionHintsChanged;
+
     public static void SaveCenterCounterOnTaskbar(bool enabled)
     {
         var config = Load();
@@ -245,6 +263,7 @@ public static class SettingsManager
         CurrentDisplayMode = DisplayMode.Clock;
         var config = new ConfigFile();
         config.Save(Path);
+        ProactiveInteractionHintsChanged?.Invoke(true);
     }
 
     private static ConfigFile Load()

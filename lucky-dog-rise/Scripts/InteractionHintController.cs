@@ -26,12 +26,20 @@ public interface IInteractionHintTarget
 /// </summary>
 public partial class InteractionHintController : Node
 {
+    private const double ProactiveHintIdleSeconds = 5.0;
+    [Export(PropertyHint.Range, "0,10,0.05")]
+    private double _proactiveHintRepeatIntervalSeconds = 0.8;
     private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();
     private readonly Dictionary<InteractionHintTargetId, Action> _hintActions = new();
     private readonly HashSet<InteractionHintTargetId> _availableTargets = new();
     private bool _hasPendingClick;
     private bool _shouldResolvePendingClick;
     private bool _pendingClickWasHandled;
+    private bool _proactiveHintsEnabled = true;
+    private bool _proactiveHintContextActive;
+    private double _secondsSinceEffectiveInteraction;
+    private bool _proactiveHintAnimationWasPlaying;
+    private double _proactiveHintRepeatDelayRemaining;
 
     public void RegisterTarget(InteractionHintTargetId id, IInteractionHintTarget target)
     {
@@ -51,6 +59,28 @@ public partial class InteractionHintController : Node
         _availableTargets.Clear();
         foreach (var id in targetIds)
             _availableTargets.Add(id);
+        ResetProactiveHintIdlePeriod();
+    }
+
+    public void SetProactiveHintsEnabled(bool enabled)
+    {
+        if (_proactiveHintsEnabled == enabled)
+            return;
+
+        _proactiveHintsEnabled = enabled;
+        ResetProactiveHintIdlePeriod();
+    }
+
+    /// <summary>
+    /// 仅在扑克模式且没有全屏覆盖交互时允许无操作后的主动提示。
+    /// </summary>
+    public void SetProactiveHintContextActive(bool active)
+    {
+        if (_proactiveHintContextActive == active)
+            return;
+
+        _proactiveHintContextActive = active;
+        ResetProactiveHintIdlePeriod();
     }
 
     /// <summary>
@@ -59,6 +89,7 @@ public partial class InteractionHintController : Node
     public void NotifyInteractionHandled()
     {
         _pendingClickWasHandled = true;
+        ResetProactiveHintIdlePeriod();
     }
 
     public override void _Input(InputEvent @event)
@@ -80,17 +111,59 @@ public partial class InteractionHintController : Node
 
     public override void _Process(double delta)
     {
+        ResolveIncorrectClickHint();
+        ProcessProactiveHint(delta);
+    }
+
+    private void ResolveIncorrectClickHint()
+    {
         if (!_hasPendingClick || !_shouldResolvePendingClick)
             return;
 
         // Button.Pressed 在鼠标松开时触发；等到松开后的 _Process 再结算，
         // 才能正确区分翻牌、下注等有效点击与真正的误点。
-        // NotifyInteractionHandled() 标记本次点击，未标记才播放提示。
         _hasPendingClick = false;
         _shouldResolvePendingClick = false;
-        if (_pendingClickWasHandled)
+        if (!_pendingClickWasHandled)
+            TryPlayAvailableHints();
+    }
+
+    private void ProcessProactiveHint(double delta)
+    {
+        if (!_proactiveHintsEnabled
+            || !_proactiveHintContextActive
+            || _availableTargets.Count == 0)
             return;
 
+        _secondsSinceEffectiveInteraction += delta;
+        if (_secondsSinceEffectiveInteraction < ProactiveHintIdleSeconds)
+            return;
+
+        if (IsAvailableHintAnimationPlaying())
+        {
+            _proactiveHintAnimationWasPlaying = true;
+            return;
+        }
+
+        if (_proactiveHintAnimationWasPlaying)
+        {
+            _proactiveHintAnimationWasPlaying = false;
+            _proactiveHintRepeatDelayRemaining = Mathf.Max(0.0, _proactiveHintRepeatIntervalSeconds);
+            return;
+        }
+
+        if (_proactiveHintRepeatDelayRemaining > 0.0)
+        {
+            _proactiveHintRepeatDelayRemaining -= delta;
+            return;
+        }
+
+        if (TryPlayAvailableHints())
+            _proactiveHintAnimationWasPlaying = true;
+    }
+
+    private bool TryPlayAvailableHints()
+    {
         foreach (var id in _availableTargets)
         {
             if (_targets.TryGetValue(id, out var target)
@@ -98,11 +171,34 @@ public partial class InteractionHintController : Node
                 && !target.IsInteractionHintPlaying)
             {
                 target.PlayInteractionHint();
+                return true;
             }
-            else if (_hintActions.TryGetValue(id, out var hintAction))
+
+            if (_hintActions.TryGetValue(id, out var hintAction))
             {
                 hintAction();
+                return true;
             }
         }
+
+        return false;
+    }
+
+    private bool IsAvailableHintAnimationPlaying()
+    {
+        foreach (var id in _availableTargets)
+        {
+            if (_targets.TryGetValue(id, out var target) && target.IsInteractionHintPlaying)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ResetProactiveHintIdlePeriod()
+    {
+        _secondsSinceEffectiveInteraction = 0.0;
+        _proactiveHintAnimationWasPlaying = false;
+        _proactiveHintRepeatDelayRemaining = 0.0;
     }
 }

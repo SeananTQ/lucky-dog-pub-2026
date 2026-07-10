@@ -186,6 +186,10 @@ public partial class SystemPanelController : CanvasLayer
         enhancedTopmostToggle.ButtonPressed = SettingsManager.LoadEnhancedTopmostMode();
         enhancedTopmostToggle.Toggled += enabled => SettingsManager.SaveEnhancedTopmostMode(enabled);
 
+        var proactiveInteractionHintsToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle");
+        proactiveInteractionHintsToggle.ButtonPressed = SettingsManager.LoadProactiveInteractionHints();
+        proactiveInteractionHintsToggle.Toggled += enabled => SettingsManager.SaveProactiveInteractionHints(enabled);
+
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
         _autoEquipToggle.Toggled += enabled => SettingsManager.SaveAutoEquipNewOutfits(enabled);
@@ -691,6 +695,8 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadShowOverFullscreenApps());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/EnhancedTopmostRow/EnhancedTopmostToggle")
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
+            .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle")

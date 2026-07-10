@@ -22,6 +22,7 @@ public static class L10nKey
     public const string Settings_Language_Japanese = nameof(Settings_Language_Japanese);
     public const string Settings_ShowOverFullscreenApps = nameof(Settings_ShowOverFullscreenApps);
     public const string Settings_EnhancedAlwaysOnTop = nameof(Settings_EnhancedAlwaysOnTop);
+    public const string Settings_ProactiveInteractionHints = nameof(Settings_ProactiveInteractionHints);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);
     public const string Settings_AutoHidePanelOnFocusLoss = nameof(Settings_AutoHidePanelOnFocusLoss);
     public const string Settings_TongueInstantMode = nameof(Settings_TongueInstantMode);
