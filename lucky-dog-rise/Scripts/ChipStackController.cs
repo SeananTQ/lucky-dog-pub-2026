@@ -90,6 +90,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _appearTween.TweenProperty(_chipSprite, "rotation", 0f, FirstChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
+        _appearTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("Chip_BetStackLanding_1")));
 
         _secondChipAppearTween = CreateTween();
         _secondChipAppearTween.TweenInterval(SecondChipDelay);
@@ -103,6 +104,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _secondChipLandingTween?.Kill();
         ResetHintAnimation();
         _clickButton.Disabled = true;
+        AudioManager.Instance.PlaySfx("Chip_BetStackLeave_1");
 
         var leaveTween = CreateTween().SetParallel(true);
         leaveTween.TweenProperty(_visualRoot, "position", VisualRestPosition + LeaveOffset, LeaveDuration)
@@ -132,7 +134,8 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _secondChipLandingTween.TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _secondChipLandingTween.Chain().TweenCallback(Callable.From(() => _clickButton.Disabled = false));
+        _secondChipLandingTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("Chip_BetStackLanding_1")));
+        _secondChipLandingTween.TweenCallback(Callable.From(() => _clickButton.Disabled = false));
     }
 
     public void ShowHint(string text)
@@ -157,6 +160,8 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         ResetHintAnimation();
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Rotation = 0f;
+        // 提示动作每轮只播一次聚合音效，避免两枚筹码与自动提示循环造成叠音。
+        AudioManager.Instance.PlaySfx("Chip_BetStackHint_1");
 
         _bottomChipHintTween = CreateChipHintTween(
             _chipSprite, BottomChipRestPosition, 0.0, HintFirstLift, HintFirstRotation);

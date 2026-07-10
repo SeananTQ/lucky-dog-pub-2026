@@ -47,7 +47,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
     private void OnCardClicked(int index)
     {
-        AudioManager.Instance.PlaySfxByName("CardClick.wav");
+        AudioManager.Instance.PlaySfx("Card_PokerHandSelect_1");
         EmitSignal(SignalName.CardClicked, index);
     }
 

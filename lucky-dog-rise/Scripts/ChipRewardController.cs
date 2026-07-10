@@ -36,6 +36,7 @@ public partial class ChipRewardController : Node2D
     [Export] private Godot.Collections.Array<Marker2D> _pileMarkers = new();
     private Vector2 _chipLayerOffset = new(0f, -8f);
     private readonly List<Tween> _spawnTweens = new();
+    private bool _rewardSpawnSoundPlayed;
     private bool _collected;
     private readonly List<Tween> _hintTweens = new();
     private readonly Dictionary<Marker2D, Vector2> _markerRestPositions = new();
@@ -57,6 +58,7 @@ public partial class ChipRewardController : Node2D
     public void Setup(int amount, EHandRank rank)
     {
         _amountLabel.Text = $"+{amount}";
+        _rewardSpawnSoundPlayed = false;
         BuildChipPile(rank);
     }
 
@@ -138,6 +140,7 @@ public partial class ChipRewardController : Node2D
             chipTween.TweenProperty(chip, "rotation", 0f, ChipDropDuration)
                 .SetTrans(Tween.TransitionType.Quad)
                 .SetEase(Tween.EaseType.Out);
+            chipTween.Chain().TweenCallback(Callable.From(PlayRewardSpawnSoundOnce));
         }));
     }
 
@@ -171,7 +174,7 @@ public partial class ChipRewardController : Node2D
         EmitSignal(SignalName.InteractionActivated);
         KillSpawnTweens();
 
-        AudioManager.Instance.PlaySfxByName("ChipCollect.wav");
+        AudioManager.Instance.PlaySfx("Chip_RewardStackCollect_1");
 
         var tween = CreateTween();
         tween.TweenProperty(this, "position:y", Position.Y + SlideDistance, SlideDuration)
@@ -192,12 +195,23 @@ public partial class ChipRewardController : Node2D
         _spawnTweens.Clear();
     }
 
+    private void PlayRewardSpawnSoundOnce()
+    {
+        if (_rewardSpawnSoundPlayed)
+            return;
+
+        _rewardSpawnSoundPlayed = true;
+        AudioManager.Instance.PlaySfx("Chip_RewardStackLanding_1");
+    }
+
     public void PlayInteractionHint()
     {
         if (!CanPlayInteractionHint)
             return;
 
         ResetHintAnimations();
+        // 整堆提示只播一次，具体每个筹码仍保持各自错拍的视觉节奏。
+        AudioManager.Instance.PlaySfx("Chip_RewardStackHint_1");
 
         var activeMarkers = _pileMarkers.Where(marker => marker.GetChildCount() > 0).ToArray();
         for (var index = 0; index < activeMarkers.Length; index++)

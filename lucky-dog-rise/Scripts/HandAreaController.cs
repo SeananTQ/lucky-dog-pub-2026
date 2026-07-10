@@ -58,7 +58,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     {
         ResetHintAnimation();
         _isKnocking = true;
-        AudioManager.Instance.PlaySfxByName("Knock.wav");
+        AudioManager.Instance.PlaySfx("Player_HandKnockOnTable_1");
 
         var tween = CreateTween();
         tween.TweenProperty(this, "rotation", KnockAngle, KnockDownTime)
