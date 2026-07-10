@@ -14,7 +14,10 @@ public partial class ChipRewardController : Node2D
     private const float SlideDuration = 0.4f;
     private const float SlideDistance = 300f;
     private const float ChipSpawnInterval = 0.025f;
-    private const float ChipPopDuration = 0.09f;
+    private const float ChipDropDuration = 0.2f;
+    private const float ChipDropHeight = 42f;
+    private const float LeftChipStartRotation = -0.22f;
+    private const float RightChipStartRotation = 0.18f;
     private const string ChipPathPrefix = "res://Assets/v1/ChipStack/Chip_";
 
     private Button _clickButton = null!;
@@ -50,7 +53,7 @@ public partial class ChipRewardController : Node2D
         foreach (var marker in _pileMarkers)
         {
             foreach (var sample in marker.GetChildren().OfType<Sprite2D>().ToArray())
-                sample.QueueFree();
+                sample.Free();
         }
     }
 
@@ -64,16 +67,21 @@ public partial class ChipRewardController : Node2D
             var pile = layout[pileIndex];
             for (var layer = 0; layer < pile.Count; layer++)
             {
+                var restPosition = _chipLayerOffset * layer;
+                var startRotation = (pileIndex + layer) % 2 == 0
+                    ? LeftChipStartRotation
+                    : RightChipStartRotation;
                 var chip = new Sprite2D
                 {
                     Texture = LoadChipTexture(pile.Color, layer),
-                    Position = _chipLayerOffset * layer,
+                    Position = restPosition + new Vector2(0f, -ChipDropHeight),
                     ZIndex = pileZIndices.GetValueOrDefault(_pileMarkers[pileIndex], pileIndex * 100) + layer,
-                    Scale = new Vector2(0.75f, 0.75f),
+                    Rotation = startRotation,
                     Modulate = Colors.Transparent,
+                    Visible = false,
                 };
                 _pileMarkers[pileIndex].AddChild(chip);
-                QueueChipSpawn(chip, spawnDelay);
+                QueueChipSpawn(chip, restPosition, spawnDelay);
                 spawnDelay += ChipSpawnInterval;
             }
         }
@@ -88,21 +96,29 @@ public partial class ChipRewardController : Node2D
             .ToDictionary(item => item.marker, item => item.zIndex);
     }
 
-    private void QueueChipSpawn(Sprite2D chip, float delay)
+    private void QueueChipSpawn(Sprite2D chip, Vector2 restPosition, float delay)
     {
         var tween = CreateTween();
         _spawnTweens.Add(tween);
         tween.TweenInterval(delay);
         tween.TweenCallback(Callable.From(() =>
         {
+            chip.Visible = true;
             chip.Modulate = Colors.White;
             var chipTween = CreateTween();
             _spawnTweens.Add(chipTween);
             chipTween.SetParallel(true);
-            chipTween.TweenProperty(chip, "scale", Vector2.One, ChipPopDuration)
-                .SetTrans(Tween.TransitionType.Back)
+            // 旧的缩放弹出保留在这里，方便之后比较或回退。
+            // chipTween.TweenProperty(chip, "scale", Vector2.One, ChipPopDuration)
+            //     .SetTrans(Tween.TransitionType.Back)
+            //     .SetEase(Tween.EaseType.Out);
+            // chipTween.TweenProperty(chip, "modulate:a", 1f, ChipPopDuration * 0.6f);
+            chipTween.TweenProperty(chip, "position", restPosition, ChipDropDuration)
+                .SetTrans(Tween.TransitionType.Cubic)
                 .SetEase(Tween.EaseType.Out);
-            chipTween.TweenProperty(chip, "modulate:a", 1f, ChipPopDuration * 0.6f);
+            chipTween.TweenProperty(chip, "rotation", 0f, ChipDropDuration)
+                .SetTrans(Tween.TransitionType.Quad)
+                .SetEase(Tween.EaseType.Out);
         }));
     }
 

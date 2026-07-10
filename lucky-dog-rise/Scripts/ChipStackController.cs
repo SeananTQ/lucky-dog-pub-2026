@@ -24,7 +24,8 @@ public partial class ChipStackController : Node2D
     private const float BottomChipStartRotation = -0.22f;
     private const float TopChipStartRotation = 0.18f;
     private const double FirstChipDuration = 0.22;
-    private const double SecondChipDelay = 0.12;
+    // 第二颗只比第一颗晚一个轻微错拍；两段落下会自然重叠，不会黏成一次动作。
+    private const double SecondChipDelay = 0.15;
     private const double SecondChipDuration = 0.2;
     private const double LeaveDuration = 0.28;
     private const float LeaveDistance = 100f;
@@ -64,6 +65,7 @@ public partial class ChipStackController : Node2D
         _chipSprite.Rotation = BottomChipStartRotation;
         _chipSprite2.Position = TopChipRestPosition + new Vector2(0f, TopChipStartHeight);
         _chipSprite2.Rotation = TopChipStartRotation;
+        _chipSprite2.Visible = false;
 
         _appearTween = CreateTween().SetParallel(true);
         _appearTween.TweenProperty(_chipSprite, "position", BottomChipRestPosition, FirstChipDuration)
@@ -104,6 +106,7 @@ public partial class ChipStackController : Node2D
     {
         if (!_visualRoot.Visible) return;
 
+        _chipSprite2.Visible = true;
         _secondChipLandingTween = CreateTween().SetParallel(true);
         _secondChipLandingTween.TweenProperty(_chipSprite2, "position", TopChipRestPosition, SecondChipDuration)
             .SetTrans(Tween.TransitionType.Cubic)
