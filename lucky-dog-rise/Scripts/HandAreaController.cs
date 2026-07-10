@@ -8,6 +8,9 @@ public partial class HandAreaController : Node2D
     [Signal]
     public delegate void HandKnockedEventHandler();
 
+    [Signal]
+    public delegate void FirstKnockLandedEventHandler();
+
     private const float KnockAngle = 0.08f;
     private const float KnockDownTime = 0.1f;
     private const float KnockUpTime = 0.12f;
@@ -54,6 +57,7 @@ public partial class HandAreaController : Node2D
         tween.TweenProperty(this, "rotation", KnockAngle, KnockDownTime)
             .SetEase(Tween.EaseType.In)
             .SetTrans(Tween.TransitionType.Quad);
+        tween.TweenCallback(Callable.From(() => EmitSignal(SignalName.FirstKnockLanded)));
         tween.TweenProperty(this, "rotation", 0f, KnockUpTime)
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Bounce);

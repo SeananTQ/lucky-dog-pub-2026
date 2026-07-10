@@ -10,14 +10,16 @@ bg_color = Color(1, 1, 1, 0)
 [node name="ChipStack" type="Node2D" unique_id=1481223078]
 script = ExtResource("1_ctrl")
 
-[node name="ChipSprite" type="Sprite2D" parent="." unique_id=892807914]
+[node name="VisualRoot" type="Node2D" parent="." unique_id=2000000001]
+
+[node name="ChipSprite" type="Sprite2D" parent="VisualRoot" unique_id=892807914]
 texture = ExtResource("2_kdb67")
 
-[node name="ChipSprite2" type="Sprite2D" parent="." unique_id=1131025267]
+[node name="ChipSprite2" type="Sprite2D" parent="VisualRoot" unique_id=1131025267]
 position = Vector2(0, -6)
 texture = ExtResource("3_naqxy")
 
-[node name="HintLabel" type="Label" parent="." unique_id=532194033]
+[node name="HintLabel" type="Label" parent="VisualRoot" unique_id=532194033]
 visible = false
 offset_left = -81.0
 offset_top = 68.0

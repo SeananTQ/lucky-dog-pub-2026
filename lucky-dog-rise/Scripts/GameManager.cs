@@ -26,7 +26,11 @@ public partial class GameManager : Node2D
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
+    private EHandRank _pendingRewardRank;
     private Node2D _pendingReward;
+
+    [Export] private float _drawStartDelayAfterFirstKnock = 0.03f+0.22f;
+    [Export] private float _rewardSpawnDelayFromLastReplaceStart = 0.08f;
 
     private GameData _gameData = null!;
     public GameData GameData
@@ -83,8 +87,10 @@ public partial class GameManager : Node2D
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
         _handArea.HandKnocked += OnDrawPressed;
+        _handArea.FirstKnockLanded += OnFirstKnockLanded;
         _chipStack.BetPlaced += OnBetPlaced;
         _cardTable.CardClicked += OnCardClicked;
+        _cardTable.LastReplacementStarted += OnLastReplacementStarted;
 
         if (_gameData != null)
         {
@@ -119,8 +125,17 @@ public partial class GameManager : Node2D
 
     private void OnDrawPressed()
     {
-        if (State == GameState.Dealt || State == GameState.Holding)
-            CallDeferred(nameof(DoDraw));
+        // HandAreaController 会在第一下落地时通知，补牌不在点击瞬间启动。
+    }
+
+    private void OnFirstKnockLanded()
+    {
+        if (State != GameState.Dealt && State != GameState.Holding) return;
+        GetTree().CreateTimer(_drawStartDelayAfterFirstKnock).Timeout += () =>
+        {
+            if (State == GameState.Dealt || State == GameState.Holding)
+                DoDraw();
+        };
     }
 
     private void OnCardClicked(int index)
@@ -212,8 +227,8 @@ public partial class GameManager : Node2D
         if (payout > 0)
         {
             _pendingPayout = payout;
+            _pendingRewardRank = rank;
             _hud.SetMessage("");
-            SpawnChipReward(payout, rank);
             State = GameState.Settled;
         }
         else
@@ -245,6 +260,19 @@ public partial class GameManager : Node2D
         reward.Setup(amount, rank);
         reward.Collected += OnChipCollected;
         _pendingReward = reward;
+    }
+
+    private void OnLastReplacementStarted()
+    {
+        if (_pendingPayout <= 0) return;
+
+        GetTree().CreateTimer(Mathf.Max(0f, _rewardSpawnDelayFromLastReplaceStart)).Timeout += () =>
+        {
+            if (_pendingPayout <= 0 || IsQueuedForDeletion()) return;
+            int payout = _pendingPayout;
+            EHandRank rank = _pendingRewardRank;
+            SpawnChipReward(payout, rank);
+        };
     }
 
     private void RefreshUI()

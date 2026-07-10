@@ -7,6 +7,9 @@ public partial class CardTableController : Node2D
     [Signal]
     public delegate void CardClickedEventHandler(int index);
 
+    [Signal]
+    public delegate void LastReplacementStartedEventHandler();
+
     private static readonly PackedScene CardScene = GD.Load<PackedScene>("res://Scenes/Prefabs/Card.tscn");
     private const int CardCount = 5;
     private const float CardWidth = 120f;
@@ -60,6 +63,9 @@ public partial class CardTableController : Node2D
     public void ReplaceCards(int[] finalHand, bool[] held)
     {
         float perCardDelay = 0.2f;
+        int replacementCount = 0;
+        for (int i = 0; i < CardCount; i++)
+            if (!held[i]) replacementCount++;
         int replaced = 0;
         for (int i = 0; i < CardCount; i++)
         {
@@ -67,12 +73,25 @@ public partial class CardTableController : Node2D
             {
                 int idx = i;
                 _cards[idx].SetCard(finalHand[idx], idx);
-                float delay = replaced * perCardDelay;
+                int scheduledIndex = replaced;
+                float delay = scheduledIndex * perCardDelay;
                 GetTree().CreateTimer(delay).Timeout += () =>
+                {
+                    if (scheduledIndex == replacementCount - 1)
+                        EmitSignal(SignalName.LastReplacementStarted);
                     _cards[idx].AnimateReplace();
+                };
                 replaced++;
             }
         }
+
+        if (replacementCount == 0)
+            CallDeferred(nameof(EmitLastReplacementStarted));
+    }
+
+    private void EmitLastReplacementStarted()
+    {
+        EmitSignal(SignalName.LastReplacementStarted);
     }
 
     public void SetHeld(int index, bool held)
