@@ -14,6 +14,7 @@ public partial class ChipStackController : Node2D
     private Label _hintLabel = null!;
     private Tween _appearTween = null!;
     private Tween _secondChipAppearTween = null!;
+    private Tween _secondChipLandingTween = null!;
     private const bool ShowBetHintText = false;
 
     private static readonly Vector2 BottomChipRestPosition = Vector2.Zero;
@@ -53,6 +54,7 @@ public partial class ChipStackController : Node2D
     {
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
+        _secondChipLandingTween?.Kill();
         _visualRoot.Visible = true;
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Modulate = Colors.White;
@@ -73,20 +75,14 @@ public partial class ChipStackController : Node2D
 
         _secondChipAppearTween = CreateTween();
         _secondChipAppearTween.TweenInterval(SecondChipDelay);
-        _secondChipAppearTween.SetParallel(true);
-        _secondChipAppearTween.TweenProperty(_chipSprite2, "position", TopChipRestPosition, SecondChipDuration)
-            .SetTrans(Tween.TransitionType.Cubic)
-            .SetEase(Tween.EaseType.Out);
-        _secondChipAppearTween.TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _secondChipAppearTween.Chain().TweenCallback(Callable.From(() => _clickButton.Disabled = false));
+        _secondChipAppearTween.TweenCallback(Callable.From(StartSecondChipLanding));
     }
 
     public void PlayLeave()
     {
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
+        _secondChipLandingTween?.Kill();
         _clickButton.Disabled = true;
 
         var leaveTween = CreateTween().SetParallel(true);
@@ -102,6 +98,20 @@ public partial class ChipStackController : Node2D
             _visualRoot.Position = VisualRestPosition;
             _visualRoot.Modulate = Colors.White;
         }));
+    }
+
+    private void StartSecondChipLanding()
+    {
+        if (!_visualRoot.Visible) return;
+
+        _secondChipLandingTween = CreateTween().SetParallel(true);
+        _secondChipLandingTween.TweenProperty(_chipSprite2, "position", TopChipRestPosition, SecondChipDuration)
+            .SetTrans(Tween.TransitionType.Cubic)
+            .SetEase(Tween.EaseType.Out);
+        _secondChipLandingTween.TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _secondChipLandingTween.Chain().TweenCallback(Callable.From(() => _clickButton.Disabled = false));
     }
 
     public void ShowHint(string text)
