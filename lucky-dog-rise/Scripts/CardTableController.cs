@@ -8,7 +8,7 @@ public partial class CardTableController : Node2D
     public delegate void CardClickedEventHandler(int index);
 
     [Signal]
-    public delegate void LastReplacementStartedEventHandler();
+    public delegate void LastReplacementStartedEventHandler(bool hasReplacement);
 
     private static readonly PackedScene CardScene = GD.Load<PackedScene>("res://Scenes/Prefabs/Card.tscn");
     private const int CardCount = 5;
@@ -78,7 +78,7 @@ public partial class CardTableController : Node2D
                 GetTree().CreateTimer(delay).Timeout += () =>
                 {
                     if (scheduledIndex == replacementCount - 1)
-                        EmitSignal(SignalName.LastReplacementStarted);
+                        EmitSignal(SignalName.LastReplacementStarted, true);
                     _cards[idx].AnimateReplace();
                 };
                 replaced++;
@@ -91,7 +91,7 @@ public partial class CardTableController : Node2D
 
     private void EmitLastReplacementStarted()
     {
-        EmitSignal(SignalName.LastReplacementStarted);
+        EmitSignal(SignalName.LastReplacementStarted, false);
     }
 
     public void SetHeld(int index, bool held)

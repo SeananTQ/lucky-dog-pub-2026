@@ -13,6 +13,7 @@ public partial class ChipStackController : Node2D
     private Sprite2D _chipSprite2 = null!;
     private Label _hintLabel = null!;
     private Tween _appearTween = null!;
+    private Tween _secondChipAppearTween = null!;
     private const bool ShowBetHintText = false;
 
     private static readonly Vector2 BottomChipRestPosition = Vector2.Zero;
@@ -51,6 +52,7 @@ public partial class ChipStackController : Node2D
     public void PlayAppear()
     {
         _appearTween?.Kill();
+        _secondChipAppearTween?.Kill();
         _visualRoot.Visible = true;
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Modulate = Colors.White;
@@ -61,26 +63,30 @@ public partial class ChipStackController : Node2D
         _chipSprite2.Position = TopChipRestPosition + new Vector2(0f, TopChipStartHeight);
         _chipSprite2.Rotation = TopChipStartRotation;
 
-        _appearTween = CreateTween();
+        _appearTween = CreateTween().SetParallel(true);
         _appearTween.TweenProperty(_chipSprite, "position", BottomChipRestPosition, FirstChipDuration)
             .SetTrans(Tween.TransitionType.Cubic)
             .SetEase(Tween.EaseType.Out);
-        _appearTween.Parallel().TweenProperty(_chipSprite, "rotation", 0f, FirstChipDuration)
+        _appearTween.TweenProperty(_chipSprite, "rotation", 0f, FirstChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _appearTween.TweenInterval(SecondChipDelay);
-        _appearTween.TweenProperty(_chipSprite2, "position", TopChipRestPosition, SecondChipDuration)
+
+        _secondChipAppearTween = CreateTween();
+        _secondChipAppearTween.TweenInterval(SecondChipDelay);
+        _secondChipAppearTween.SetParallel(true);
+        _secondChipAppearTween.TweenProperty(_chipSprite2, "position", TopChipRestPosition, SecondChipDuration)
             .SetTrans(Tween.TransitionType.Cubic)
             .SetEase(Tween.EaseType.Out);
-        _appearTween.Parallel().TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
+        _secondChipAppearTween.TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _appearTween.TweenCallback(Callable.From(() => _clickButton.Disabled = false));
+        _secondChipAppearTween.Chain().TweenCallback(Callable.From(() => _clickButton.Disabled = false));
     }
 
     public void PlayLeave()
     {
         _appearTween?.Kill();
+        _secondChipAppearTween?.Kill();
         _clickButton.Disabled = true;
 
         var leaveTween = CreateTween().SetParallel(true);

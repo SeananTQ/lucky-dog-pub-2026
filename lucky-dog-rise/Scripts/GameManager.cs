@@ -30,7 +30,7 @@ public partial class GameManager : Node2D
     private Node2D _pendingReward;
 
     [Export] private float _drawStartDelayAfterFirstKnock = 0.03f+0.22f;
-    [Export] private float _rewardSpawnDelayFromLastReplaceStart = 0.08f;
+    [Export] private float _chipStackAppearanceDelayFromLastReplaceStart = 0.08f;
 
     private GameData _gameData = null!;
     public GameData GameData
@@ -234,9 +234,8 @@ public partial class GameManager : Node2D
         else
         {
             _hud.SetMessage("");
-            State = GameState.WaitingForBet;
-            _chipStack.ShowHint("Click to bet");
-            if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
+            // 等最后一张补牌开始翻面后，再与奖励筹码共用同一时序显示下注筹码。
+            // 在此之前保持 Drawing，避免下注筹码提前出现。
         }
         if (_gameData.Progression.CheckRankUp())
             _hud.ShowOverlay($"Rank Up: {_gameData.Progression.CurrentRank}!");
@@ -262,17 +261,35 @@ public partial class GameManager : Node2D
         _pendingReward = reward;
     }
 
-    private void OnLastReplacementStarted()
+    private void OnLastReplacementStarted(bool hasReplacement)
     {
-        if (_pendingPayout <= 0) return;
-
-        GetTree().CreateTimer(Mathf.Max(0f, _rewardSpawnDelayFromLastReplaceStart)).Timeout += () =>
+        void ShowNextChipState()
         {
-            if (_pendingPayout <= 0 || IsQueuedForDeletion()) return;
-            int payout = _pendingPayout;
-            EHandRank rank = _pendingRewardRank;
-            SpawnChipReward(payout, rank);
-        };
+            if (IsQueuedForDeletion()) return;
+
+            if (_pendingPayout > 0)
+            {
+                int payout = _pendingPayout;
+                EHandRank rank = _pendingRewardRank;
+                SpawnChipReward(payout, rank);
+                return;
+            }
+
+            if (State != GameState.Drawing) return;
+            State = GameState.WaitingForBet;
+            _chipStack.ShowHint("Click to bet");
+            if (!_gameData.CanAffordBet)
+                HandleInsufficientChips();
+            RefreshUI();
+        }
+
+        if (!hasReplacement)
+        {
+            ShowNextChipState();
+            return;
+        }
+
+        GetTree().CreateTimer(Mathf.Max(0f, _chipStackAppearanceDelayFromLastReplaceStart)).Timeout += ShowNextChipState;
     }
 
     private void RefreshUI()
