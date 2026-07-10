@@ -80,9 +80,7 @@ public partial class GameManager : Node2D
         _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
         _interactionHints.RegisterTarget(InteractionHintTargetId.HandConfirm, _handArea);
         _interactionHints.RegisterTarget(InteractionHintTargetId.CardSelection, _cardTable);
-        _interactionHints.RegisterHintAction(
-            InteractionHintTargetId.DogAdvice,
-            () => GD.Print("[交互提示] 当前正面牌无法得分，且已弃牌：提示狗头，请小狗看看。"));
+        _interactionHints.RegisterTarget(InteractionHintTargetId.DogAdvice, _dogVisual);
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;

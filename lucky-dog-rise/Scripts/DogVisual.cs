@@ -5,7 +5,7 @@ using DataTables;
 
 namespace LuckyDogRise;
 
-public partial class DogVisual : Node2D
+public partial class DogVisual : Node2D, IInteractionHintTarget
 {
     [Signal]
     public delegate void DogClickedEventHandler();
@@ -44,6 +44,12 @@ public partial class DogVisual : Node2D
     [Export] private float _desktopTongueBurstWindowSeconds = 0.25f;
     [Export] private int _desktopTongueBurstThreshold = 2;
     [Export] public bool ShowEquippedEyewearByDefault { get; set; }
+
+    public bool CanPlayInteractionHint => IsNodeReady()
+        && _hitButton.Visible
+        && !_hitButton.Disabled;
+    public bool IsInteractionHintPlaying => (_pawTween?.IsRunning() ?? false)
+        || (_tongueTween?.IsRunning() ?? false);
 
     public GameData GameData
     {
@@ -286,6 +292,17 @@ public partial class DogVisual : Node2D
 
         _currentReaction = trigger;
         ReapplyCurrentReaction();
+    }
+
+    /// <summary>
+    /// 新手交互提示：播放 2009，借由 AssetRef 继承 1009 的通用 Hello 动作。
+    /// </summary>
+    public void PlayInteractionHint()
+    {
+        if (!CanPlayInteractionHint || IsInteractionHintPlaying)
+            return;
+
+        ApplyReaction(EDogReactionTrigger.InteractionHint);
     }
 
     public void SetHitButtonEnabled(bool enabled)
