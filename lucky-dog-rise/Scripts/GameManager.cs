@@ -60,6 +60,7 @@ public partial class GameManager : Node2D
     private DogVisual _dogVisual = null!;
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
+    private InteractionHintController _interactionHints = null!;
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
@@ -75,6 +76,8 @@ public partial class GameManager : Node2D
         _dogVisual = GetNode<DogVisual>("DogArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
+        _interactionHints = GetNode<InteractionHintController>("InteractionHints");
+        _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
@@ -91,6 +94,7 @@ public partial class GameManager : Node2D
         _chipStack.BetPlaced += OnBetPlaced;
         _cardTable.CardClicked += OnCardClicked;
         _cardTable.LastReplacementStarted += OnLastReplacementStarted;
+        RefreshInteractionHintTargets();
 
         if (_gameData != null)
         {
@@ -117,6 +121,7 @@ public partial class GameManager : Node2D
     private void OnBetPlaced()
     {
         if (State != GameState.WaitingForBet) return;
+        _interactionHints.NotifyInteractionHandled();
         if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
@@ -126,6 +131,8 @@ public partial class GameManager : Node2D
     private void OnDrawPressed()
     {
         // HandAreaController 会在第一下落地时通知，补牌不在点击瞬间启动。
+        if (State == GameState.Dealt || State == GameState.Holding)
+            _interactionHints.NotifyInteractionHandled();
     }
 
     private void OnFirstKnockLanded()
@@ -141,10 +148,11 @@ public partial class GameManager : Node2D
     private void OnCardClicked(int index)
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
+        _interactionHints.NotifyInteractionHandled();
 
         _held[index] = !_held[index];
         _cardTable.SetHeld(index, _held[index]);
-        State = GameState.Holding;
+        SetState(GameState.Holding);
         _hud.SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
 
         if (_dogHint.HasGivenHint && !_dogHint.IsLocked)
@@ -162,6 +170,7 @@ public partial class GameManager : Node2D
     private void OnDogClicked()
     {
         if (State != GameState.Dealt && State != GameState.Holding) return;
+        _interactionHints.NotifyInteractionHandled();
 
         if (_dogHint.HasGivenHint)
         {
@@ -183,7 +192,7 @@ public partial class GameManager : Node2D
         _gameData.ModifyChips(_pendingPayout);
         _pendingPayout = 0;
         RefreshUI();
-        State = GameState.WaitingForBet;
+        SetState(GameState.WaitingForBet);
         OnBetPlaced();
     }
 
@@ -204,7 +213,7 @@ public partial class GameManager : Node2D
         _dogHint.ResetForNewHand();
         _chipStack.HideHint();
         _cardTable.DealCards(_deck.CurrentHand);
-        State = GameState.Dealt;
+        SetState(GameState.Dealt);
         _dogVisual.ApplyReaction(EDogReactionTrigger.Dealt);
         _handArea.Enabled = false;  // 发牌动画期间禁止敲桌
         GetTree().CreateTimer(1.1f).Timeout += () => _handArea.Enabled = true;
@@ -214,7 +223,7 @@ public partial class GameManager : Node2D
 
     private void DoDraw()
     {
-        State = GameState.Drawing;
+        SetState(GameState.Drawing);
         _handArea.Enabled = false;
         RefreshUI();
         _cardTable.BrightenAll();
@@ -229,7 +238,7 @@ public partial class GameManager : Node2D
             _pendingPayout = payout;
             _pendingRewardRank = rank;
             _hud.SetMessage("");
-            State = GameState.Settled;
+            SetState(GameState.Settled);
         }
         else
         {
@@ -244,7 +253,7 @@ public partial class GameManager : Node2D
 
     private void HandleInsufficientChips()
     {
-        State = GameState.WaitingForBet;
+        SetState(GameState.WaitingForBet);
         _hud.HideOverlay();
         _hud.SetMessage("");
         _chipStack.ShowHint("Click to bet");
@@ -258,7 +267,10 @@ public partial class GameManager : Node2D
         reward.Position = Vector2.Zero;
         reward.Setup(amount, rank);
         reward.Collected += OnChipCollected;
+        reward.InteractionActivated += _interactionHints.NotifyInteractionHandled;
         _pendingReward = reward;
+        _interactionHints.RegisterTarget(InteractionHintTargetId.RewardStack, reward);
+        RefreshInteractionHintTargets();
     }
 
     private void OnLastReplacementStarted(bool hasReplacement)
@@ -276,7 +288,7 @@ public partial class GameManager : Node2D
             }
 
             if (State != GameState.Drawing) return;
-            State = GameState.WaitingForBet;
+            SetState(GameState.WaitingForBet);
             _chipStack.ShowHint("Click to bet");
             if (!_gameData.CanAffordBet)
                 HandleInsufficientChips();
@@ -295,6 +307,31 @@ public partial class GameManager : Node2D
     private void RefreshUI()
     {
         SettingsPanel?.UpdateSeed(_deck.LastSeed);
+    }
+
+    private void SetState(GameState state)
+    {
+        State = state;
+        RefreshInteractionHintTargets();
+    }
+
+    private void RefreshInteractionHintTargets()
+    {
+        if (_interactionHints == null)
+            return;
+
+        switch (State)
+        {
+            case GameState.WaitingForBet:
+                _interactionHints.SetAvailableTargets(InteractionHintTargetId.BetStack);
+                break;
+            case GameState.Settled when _pendingReward != null && IsInstanceValid(_pendingReward):
+                _interactionHints.SetAvailableTargets(InteractionHintTargetId.RewardStack);
+                break;
+            default:
+                _interactionHints.SetAvailableTargets();
+                break;
+        }
     }
 
     private static EDogReactionTrigger GetSawReaction(EHandRank rank)

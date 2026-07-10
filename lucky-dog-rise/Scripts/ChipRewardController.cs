@@ -7,9 +7,13 @@ using DataTables;
 namespace LuckyDogRise;
 
 public partial class ChipRewardController : Node2D
+    , IInteractionHintTarget
 {
     [Signal]
     public delegate void CollectedEventHandler();
+
+    [Signal]
+    public delegate void InteractionActivatedEventHandler();
 
     private const float SlideDuration = 0.4f;
     private const float SlideDistance = 300f;
@@ -18,19 +22,30 @@ public partial class ChipRewardController : Node2D
     private const float ChipDropHeight = 42f;
     private const float LeftChipStartRotation = -0.22f;
     private const float RightChipStartRotation = 0.18f;
+    private const float HintFirstLift = 8f;
+    private const float HintSecondLift = 4f;
+    private const float HintFirstRotation = -0.06f;
+    private const float HintSecondRotation = 0.035f;
+    private const double HintFirstDuration = 0.11;
+    private const double HintSecondDuration = 0.09;
     private const string ChipPathPrefix = "res://Assets/v1/ChipStack/Chip_";
 
     private Button _clickButton = null!;
     private Label _amountLabel = null!;
+    private Node2D _pileAnchors = null!;
     [Export] private Godot.Collections.Array<Marker2D> _pileMarkers = new();
     private Vector2 _chipLayerOffset = new(0f, -8f);
     private readonly List<Tween> _spawnTweens = new();
     private bool _collected;
+    private Tween _hintTween = null!;
+
+    public bool CanPlayInteractionHint => !_collected && IsInstanceValid(_pileAnchors);
 
     public override void _Ready()
     {
         _clickButton = GetNode<Button>("ClickButton");
         _amountLabel = GetNode<Label>("AmountLabel");
+        _pileAnchors = GetNode<Node2D>("PileAnchors");
         CacheSampleOffsetAndClearSamples();
         _clickButton.Pressed += OnClicked;
     }
@@ -147,7 +162,11 @@ public partial class ChipRewardController : Node2D
     {
         if (_collected) return;
         _collected = true;
+        _hintTween?.Kill();
+        _pileAnchors.Position = Vector2.Zero;
+        _pileAnchors.Rotation = 0f;
         _clickButton.Disabled = true;
+        EmitSignal(SignalName.InteractionActivated);
         KillSpawnTweens();
 
         AudioManager.Instance.PlaySfxByName("ChipCollect.wav");
@@ -169,6 +188,43 @@ public partial class ChipRewardController : Node2D
         foreach (var tween in _spawnTweens)
             tween?.Kill();
         _spawnTweens.Clear();
+    }
+
+    public void PlayInteractionHint()
+    {
+        if (!CanPlayInteractionHint)
+            return;
+
+        GD.Print("[ChipReward] Play interaction hint");
+        _hintTween?.Kill();
+        _pileAnchors.Position = Vector2.Zero;
+        _pileAnchors.Rotation = 0f;
+
+        _hintTween = CreateTween();
+        _hintTween.TweenProperty(_pileAnchors, "position:y", -HintFirstLift, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", HintFirstRotation, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", 0f, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", 0f, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", -HintSecondLift, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", HintSecondRotation, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", 0f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", 0f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
     }
 
     private readonly record struct ChipPileSpec(string Color, int Count);

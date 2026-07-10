@@ -2,7 +2,7 @@ using Godot;
 
 namespace LuckyDogRise;
 
-public partial class ChipStackController : Node2D
+public partial class ChipStackController : Node2D, IInteractionHintTarget
 {
     [Signal]
     public delegate void BetPlacedEventHandler();
@@ -15,6 +15,7 @@ public partial class ChipStackController : Node2D
     private Tween _appearTween = null!;
     private Tween _secondChipAppearTween = null!;
     private Tween _secondChipLandingTween = null!;
+    private Tween _hintTween = null!;
     private const bool ShowBetHintText = false;
 
     private static readonly Vector2 BottomChipRestPosition = Vector2.Zero;
@@ -28,11 +29,19 @@ public partial class ChipStackController : Node2D
     private const double SecondChipDelay = 0.15;
     private const double SecondChipDuration = 0.2;
     private const double LeaveDuration = 0.28;
+    private const float HintFirstLift = 8f;
+    private const float HintSecondLift = 4f;
+    private const float HintFirstRotation = -0.06f;
+    private const float HintSecondRotation = 0.035f;
+    private const double HintFirstDuration = 0.11;
+    private const double HintSecondDuration = 0.09;
     private const float LeaveDistance = 100f;
     private static readonly Vector2 VisualRestPosition = Vector2.Zero;
     private static readonly Vector2 LeaveOffset = new(
         -Mathf.Cos(Mathf.DegToRad(60f)) * LeaveDistance,
         -Mathf.Sin(Mathf.DegToRad(60f)) * LeaveDistance);
+
+    public bool CanPlayInteractionHint => _visualRoot != null && _visualRoot.Visible;
 
     public override void _Ready()
     {
@@ -56,8 +65,10 @@ public partial class ChipStackController : Node2D
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
         _secondChipLandingTween?.Kill();
+        _hintTween?.Kill();
         _visualRoot.Visible = true;
         _visualRoot.Position = VisualRestPosition;
+        _visualRoot.Rotation = 0f;
         _visualRoot.Modulate = Colors.White;
         _clickButton.Disabled = true;
 
@@ -85,6 +96,7 @@ public partial class ChipStackController : Node2D
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
         _secondChipLandingTween?.Kill();
+        _hintTween?.Kill();
         _clickButton.Disabled = true;
 
         var leaveTween = CreateTween().SetParallel(true);
@@ -98,6 +110,7 @@ public partial class ChipStackController : Node2D
         {
             _visualRoot.Visible = false;
             _visualRoot.Position = VisualRestPosition;
+            _visualRoot.Rotation = 0f;
             _visualRoot.Modulate = Colors.White;
         }));
     }
@@ -129,5 +142,42 @@ public partial class ChipStackController : Node2D
     public void HideHint()
     {
         _hintLabel.Visible = false;
+    }
+
+    public void PlayInteractionHint()
+    {
+        if (!CanPlayInteractionHint)
+            return;
+
+        GD.Print("[ChipStack] Play interaction hint");
+        _hintTween?.Kill();
+        _visualRoot.Position = VisualRestPosition;
+        _visualRoot.Rotation = 0f;
+
+        _hintTween = CreateTween();
+        _hintTween.TweenProperty(_visualRoot, "position:y", -HintFirstLift, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", HintFirstRotation, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", 0f, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", 0f, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", -HintSecondLift, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", HintSecondRotation, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", 0f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", 0f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
     }
 }
