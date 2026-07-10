@@ -13,6 +13,22 @@
 [ext_resource type="Texture2D" uid="uid://cdele6a3l6hta" path="res://Assets/UI/Icon/Icon_DesktopPet.svg" id="11_desktop_pet"]
 [ext_resource type="Texture2D" uid="uid://um8si1oamvjt" path="res://Assets/UI/Icon/Icon_Play.svg" id="12_play"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.60446244, 0.7101088, 0.7392709, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
 [node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
 script = ExtResource("1_ctrl")
 
@@ -21,6 +37,7 @@ custom_minimum_size = Vector2(420, 600)
 offset_right = 420.0
 offset_bottom = 420.0
 theme = ExtResource("2_rixui")
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel_no_shadow")
 
 [node name="RootVBox" type="VBoxContainer" parent="Panel" unique_id=1245391682]
 layout_mode = 2

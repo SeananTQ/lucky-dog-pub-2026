@@ -41,7 +41,7 @@ public partial class ModeManager : Control
     private const float DragThreshold = 5f;
     private const int PlayInfoPanelWidth = 246;
     private const int PlayGameWidth = 600;
-    private const int PlayGameSettingsGap = 1;
+    private const int PlayGameSettingsGap = 0;
 
     private bool _taskbarSnapped;
     private const int SnapThreshold = 15;
