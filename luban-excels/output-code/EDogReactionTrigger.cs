@@ -54,6 +54,10 @@ namespace DataTables
         /// </summary>
         Reject = 1008,
         /// <summary>
+        /// 哈喽
+        /// </summary>
+        Hello = 1009,
+        /// <summary>
         /// 等待下注时
         /// </summary>
         WaitingForBet = 2001,
@@ -85,6 +89,10 @@ namespace DataTables
         /// 看到结算结果
         /// </summary>
         Settled = 2008,
+        /// <summary>
+        /// 提示玩家可以询问
+        /// </summary>
+        InteractionHint = 2009,
         /// <summary>
         /// 看到坏牌
         /// </summary>

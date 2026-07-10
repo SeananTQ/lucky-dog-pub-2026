@@ -48,6 +48,9 @@ public sealed partial class DogReaction : Luban.BeanBase
     /// </summary>
     public readonly string OverrideHeadwear;
     public readonly bool WearGlasses;
+    /// <summary>
+    /// 左指画面左侧，而非狗自己的左
+    /// </summary>
     public readonly string LeftPawAnimation;
     public readonly string RightPawAnimation;
     public readonly string TongueAnimation;

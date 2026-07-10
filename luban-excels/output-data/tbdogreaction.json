@@ -104,6 +104,19 @@
     "Notes": ""
   },
   {
+    "Id": 1009,
+    "DogReactionTrigger": 1009,
+    "AssetRef": 0,
+    "EarAsset": "Ears_Happy",
+    "EyeAsset": "Eyes_Cute",
+    "OverrideHeadwear": "",
+    "WearGlasses": false,
+    "LeftPawAnimation": "手背",
+    "RightPawAnimation": "手心，摆手两次",
+    "TongueAnimation": "哈气",
+    "Notes": "舌头上下略微移动"
+  },
+  {
     "Id": 2001,
     "DogReactionTrigger": 2001,
     "AssetRef": 1001,
@@ -206,6 +219,19 @@
     "RightPawAnimation": "",
     "TongueAnimation": "",
     "Notes": "根据牌型优劣作出相应表情"
+  },
+  {
+    "Id": 2009,
+    "DogReactionTrigger": 2009,
+    "AssetRef": 1009,
+    "EarAsset": "",
+    "EyeAsset": "",
+    "OverrideHeadwear": "",
+    "WearGlasses": false,
+    "LeftPawAnimation": "",
+    "RightPawAnimation": "",
+    "TongueAnimation": "",
+    "Notes": ""
   },
   {
     "Id": 3001,
