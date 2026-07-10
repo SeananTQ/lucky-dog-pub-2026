@@ -15,7 +15,8 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
     private Tween _appearTween = null!;
     private Tween _secondChipAppearTween = null!;
     private Tween _secondChipLandingTween = null!;
-    private Tween _hintTween = null!;
+    private Tween _bottomChipHintTween = null!;
+    private Tween _topChipHintTween = null!;
     private const bool ShowBetHintText = false;
 
     private static readonly Vector2 BottomChipRestPosition = Vector2.Zero;
@@ -35,6 +36,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
     private const float HintSecondRotation = 0.035f;
     private const double HintFirstDuration = 0.11;
     private const double HintSecondDuration = 0.09;
+    private const double TopChipHintDelay = 0.045;
     private const float LeaveDistance = 100f;
     private static readonly Vector2 VisualRestPosition = Vector2.Zero;
     private static readonly Vector2 LeaveOffset = new(
@@ -65,7 +67,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
         _secondChipLandingTween?.Kill();
-        _hintTween?.Kill();
+        ResetHintAnimation();
         _visualRoot.Visible = true;
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Rotation = 0f;
@@ -96,7 +98,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
         _secondChipLandingTween?.Kill();
-        _hintTween?.Kill();
+        ResetHintAnimation();
         _clickButton.Disabled = true;
 
         var leaveTween = CreateTween().SetParallel(true);
@@ -150,34 +152,62 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
             return;
 
         GD.Print("[ChipStack] Play interaction hint");
-        _hintTween?.Kill();
+        ResetHintAnimation();
         _visualRoot.Position = VisualRestPosition;
         _visualRoot.Rotation = 0f;
 
-        _hintTween = CreateTween();
-        _hintTween.TweenProperty(_visualRoot, "position:y", -HintFirstLift, HintFirstDuration)
+        _bottomChipHintTween = CreateChipHintTween(
+            _chipSprite, BottomChipRestPosition, 0.0, HintFirstLift, HintFirstRotation);
+        if (_chipSprite2.Visible)
+        {
+            _topChipHintTween = CreateChipHintTween(
+                _chipSprite2, TopChipRestPosition, TopChipHintDelay, HintFirstLift - 1f, -HintFirstRotation);
+        }
+    }
+
+    private Tween CreateChipHintTween(
+        Sprite2D chip,
+        Vector2 restPosition,
+        double delay,
+        float firstLift,
+        float firstRotation)
+    {
+        var tween = CreateTween();
+        tween.TweenInterval(delay);
+        tween.TweenProperty(chip, "position:y", restPosition.Y - firstLift, HintFirstDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", HintFirstRotation, HintFirstDuration)
+        tween.Parallel().TweenProperty(chip, "rotation", firstRotation, HintFirstDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", 0f, HintFirstDuration)
+        tween.Chain().TweenProperty(chip, "position:y", restPosition.Y, HintFirstDuration)
             .SetTrans(Tween.TransitionType.Bounce)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", 0f, HintFirstDuration)
+        tween.Parallel().TweenProperty(chip, "rotation", 0f, HintFirstDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", -HintSecondLift, HintSecondDuration)
+        tween.Chain().TweenProperty(chip, "position:y", restPosition.Y - HintSecondLift, HintSecondDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", HintSecondRotation, HintSecondDuration)
+        tween.Parallel().TweenProperty(chip, "rotation", -firstRotation * 0.5f, HintSecondDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_visualRoot, "position:y", 0f, HintSecondDuration)
+        tween.Chain().TweenProperty(chip, "position:y", restPosition.Y, HintSecondDuration)
             .SetTrans(Tween.TransitionType.Bounce)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_visualRoot, "rotation", 0f, HintSecondDuration)
+        tween.Parallel().TweenProperty(chip, "rotation", 0f, HintSecondDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
+        return tween;
+    }
+
+    private void ResetHintAnimation()
+    {
+        _bottomChipHintTween?.Kill();
+        _topChipHintTween?.Kill();
+        _chipSprite.Position = BottomChipRestPosition;
+        _chipSprite.Rotation = 0f;
+        _chipSprite2.Position = TopChipRestPosition;
+        _chipSprite2.Rotation = 0f;
     }
 }

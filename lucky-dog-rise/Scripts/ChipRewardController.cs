@@ -37,7 +37,8 @@ public partial class ChipRewardController : Node2D
     private Vector2 _chipLayerOffset = new(0f, -8f);
     private readonly List<Tween> _spawnTweens = new();
     private bool _collected;
-    private Tween _hintTween = null!;
+    private readonly List<Tween> _hintTweens = new();
+    private readonly Dictionary<Marker2D, Vector2> _markerRestPositions = new();
 
     public bool CanPlayInteractionHint => !_collected && IsInstanceValid(_pileAnchors);
 
@@ -46,6 +47,8 @@ public partial class ChipRewardController : Node2D
         _clickButton = GetNode<Button>("ClickButton");
         _amountLabel = GetNode<Label>("AmountLabel");
         _pileAnchors = GetNode<Node2D>("PileAnchors");
+        foreach (var marker in _pileMarkers)
+            _markerRestPositions[marker] = marker.Position;
         CacheSampleOffsetAndClearSamples();
         _clickButton.Pressed += OnClicked;
     }
@@ -162,9 +165,7 @@ public partial class ChipRewardController : Node2D
     {
         if (_collected) return;
         _collected = true;
-        _hintTween?.Kill();
-        _pileAnchors.Position = Vector2.Zero;
-        _pileAnchors.Rotation = 0f;
+        ResetHintAnimations();
         _clickButton.Disabled = true;
         EmitSignal(SignalName.InteractionActivated);
         KillSpawnTweens();
@@ -196,35 +197,62 @@ public partial class ChipRewardController : Node2D
             return;
 
         GD.Print("[ChipReward] Play interaction hint");
-        _hintTween?.Kill();
+        ResetHintAnimations();
+
+        var activeMarkers = _pileMarkers.Where(marker => marker.GetChildCount() > 0).ToArray();
+        for (var index = 0; index < activeMarkers.Length; index++)
+        {
+            var firstLift = HintFirstLift - (index % 3);
+            var firstRotation = index % 2 == 0 ? HintFirstRotation : -HintFirstRotation * 0.85f;
+            var delay = index * 0.04 + (index % 3 == 2 ? 0.012 : 0.0);
+            _hintTweens.Add(CreatePileHintTween(activeMarkers[index], delay, firstLift, firstRotation));
+        }
+    }
+
+    private Tween CreatePileHintTween(Marker2D marker, double delay, float firstLift, float firstRotation)
+    {
+        var restPosition = _markerRestPositions[marker];
+        var tween = CreateTween();
+        tween.TweenInterval(delay);
+        tween.TweenProperty(marker, "position:y", restPosition.Y - firstLift, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(marker, "rotation", firstRotation, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Chain().TweenProperty(marker, "position:y", restPosition.Y, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(marker, "rotation", 0f, HintFirstDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Chain().TweenProperty(marker, "position:y", restPosition.Y - HintSecondLift, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(marker, "rotation", -firstRotation * 0.5f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Chain().TweenProperty(marker, "position:y", restPosition.Y, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(marker, "rotation", 0f, HintSecondDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        return tween;
+    }
+
+    private void ResetHintAnimations()
+    {
+        foreach (var tween in _hintTweens)
+            tween?.Kill();
+        _hintTweens.Clear();
         _pileAnchors.Position = Vector2.Zero;
         _pileAnchors.Rotation = 0f;
-
-        _hintTween = CreateTween();
-        _hintTween.TweenProperty(_pileAnchors, "position:y", -HintFirstLift, HintFirstDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", HintFirstRotation, HintFirstDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", 0f, HintFirstDuration)
-            .SetTrans(Tween.TransitionType.Bounce)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", 0f, HintFirstDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", -HintSecondLift, HintSecondDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", HintSecondRotation, HintSecondDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_pileAnchors, "position:y", 0f, HintSecondDuration)
-            .SetTrans(Tween.TransitionType.Bounce)
-            .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_pileAnchors, "rotation", 0f, HintSecondDuration)
-            .SetTrans(Tween.TransitionType.Quad)
-            .SetEase(Tween.EaseType.Out);
+        foreach (var marker in _pileMarkers)
+        {
+            marker.Position = _markerRestPositions[marker];
+            marker.Rotation = 0f;
+        }
     }
 
     private readonly record struct ChipPileSpec(string Color, int Count);
