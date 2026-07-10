@@ -15,10 +15,12 @@ public partial class CardController : Node2D
     private Button _button = null!;
     private Node2D _body = null!;
     private Sprite2D _shadow = null!;
+    private Tween _hintTween;
 
     public int CardIndex { get; set; }
     public int CardValue { get; private set; } = -1;
     public bool IsHeld { get; private set; }
+    public bool IsInteractionHintPlaying => _hintTween?.IsRunning() ?? false;
 
     public override void _Ready()
     {
@@ -58,6 +60,7 @@ public partial class CardController : Node2D
 
     public void SetHeld(bool held)
     {
+        ResetInteractionHint();
         IsHeld = held;
         if (held)
             AnimateRehold();
@@ -69,6 +72,37 @@ public partial class CardController : Node2D
     {
         _front.Modulate = Colors.White;
         _back.Modulate = Colors.White;
+    }
+
+    /// <summary>
+    /// 提示选牌：单张牌轻抬并微倾，再回到原位；不翻面、不改变保留状态。
+    /// </summary>
+    public void PlayInteractionHint(double delay, float lift, float rotation)
+    {
+        ResetInteractionHint();
+        _hintTween = CreateTween();
+        _hintTween.TweenInterval(delay);
+        _hintTween.TweenProperty(_body, "position:y", -lift, 0.11f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+        _hintTween.Parallel().TweenProperty(_body, "rotation", rotation, 0.11f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+        _hintTween.Chain().TweenProperty(_body, "position:y", 0f, 0.14f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Bounce);
+        _hintTween.Parallel().TweenProperty(_body, "rotation", 0f, 0.14f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Quad);
+    }
+
+    private void ResetInteractionHint()
+    {
+        _hintTween?.Kill();
+        if (_body == null)
+            return;
+        _body.Position = Vector2.Zero;
+        _body.Rotation = 0f;
     }
 
 

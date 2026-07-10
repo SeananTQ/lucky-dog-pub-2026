@@ -78,12 +78,8 @@ public partial class GameManager : Node2D
         _handArea = GetNode<HandAreaController>("HandArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
         _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
-        _interactionHints.RegisterHintAction(
-            InteractionHintTargetId.HandConfirm,
-            () => GD.Print("[交互提示] 当前正面牌已能得分：提示手臂确认补牌。"));
-        _interactionHints.RegisterHintAction(
-            InteractionHintTargetId.CardSelection,
-            () => GD.Print("[交互提示] 当前正面牌无法得分，且尚未弃牌：提示卡牌调整保留/弃牌。"));
+        _interactionHints.RegisterTarget(InteractionHintTargetId.HandConfirm, _handArea);
+        _interactionHints.RegisterTarget(InteractionHintTargetId.CardSelection, _cardTable);
         _interactionHints.RegisterHintAction(
             InteractionHintTargetId.DogAdvice,
             () => GD.Print("[交互提示] 当前正面牌无法得分，且已弃牌：提示狗头，请小狗看看。"));
@@ -192,6 +188,7 @@ public partial class GameManager : Node2D
         var previewRank = _dogHint.EvaluateHoldRank(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ApplyReaction(GetSawReaction(previewRank));
         _dogHint.HasGivenHint = true;
+        RefreshInteractionHintTargets();
         _hud.SetMessage("");
     }
 
@@ -356,9 +353,12 @@ public partial class GameManager : Node2D
         if (CanFaceUpCardsScore(faceUpCards))
             return InteractionHintTargetId.HandConfirm;
 
-        return _held.Any(isHeld => !isHeld)
-            ? InteractionHintTargetId.DogAdvice
-            : InteractionHintTargetId.CardSelection;
+        if (!_held.Any(isHeld => !isHeld))
+            return InteractionHintTargetId.CardSelection;
+
+        return _dogHint.HasGivenHint
+            ? InteractionHintTargetId.HandConfirm
+            : InteractionHintTargetId.DogAdvice;
     }
 
     /// <summary>

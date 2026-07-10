@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LuckyDogRise;
 
-public partial class HandAreaController : Node2D
+public partial class HandAreaController : Node2D, IInteractionHintTarget
 {
     [Signal]
     public delegate void HandKnockedEventHandler();
@@ -29,7 +29,12 @@ public partial class HandAreaController : Node2D
     private Sprite2D _clothes = null!;
     private Sprite2D _accessory = null!;
     private bool _isKnocking;
+    private Tween _hintTween;
     private Dictionary<string, Vector2> _positionCache = null!;
+    private Vector2 _restPosition;
+
+    public bool CanPlayInteractionHint => Enabled && !_isKnocking;
+    public bool IsInteractionHintPlaying => _hintTween?.IsRunning() ?? false;
 
     public override void _Ready()
     {
@@ -37,6 +42,7 @@ public partial class HandAreaController : Node2D
         _arm = GetNode<Sprite2D>("Arm");
         _clothes = GetNode<Sprite2D>("Clothes");
         _accessory = GetNode<Sprite2D>("Accessory");
+        _restPosition = Position;
         _hitButton.Pressed += OnHitPressed;
         EnsurePositionCache();
     }
@@ -50,6 +56,7 @@ public partial class HandAreaController : Node2D
 
     private void PlayKnockAnimation()
     {
+        ResetHintAnimation();
         _isKnocking = true;
         AudioManager.Instance.PlaySfxByName("Knock.wav");
 
@@ -69,6 +76,37 @@ public partial class HandAreaController : Node2D
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Bounce);
         tween.TweenCallback(Callable.From(() => _isKnocking = false));
+    }
+
+    /// <summary>
+    /// 提示确认：手臂贴桌面左右擦两次，不播放敲击声，也不触发补牌。
+    /// </summary>
+    public void PlayInteractionHint()
+    {
+        if (!CanPlayInteractionHint)
+            return;
+
+        ResetHintAnimation();
+        _hintTween = CreateTween();
+        _hintTween.TweenProperty(this, "position:x", _restPosition.X - 10f, 0.11f)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _hintTween.TweenProperty(this, "position:x", _restPosition.X, 0.12f)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _hintTween.TweenProperty(this, "position:x", _restPosition.X - 8f, 0.10f)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+        _hintTween.TweenProperty(this, "position:x", _restPosition.X, 0.11f)
+            .SetEase(Tween.EaseType.InOut)
+            .SetTrans(Tween.TransitionType.Quad);
+    }
+
+    private void ResetHintAnimation()
+    {
+        _hintTween?.Kill();
+        Position = _restPosition;
+        Rotation = 0f;
     }
 
     public void SetArm(Texture2D texture, string fileName)

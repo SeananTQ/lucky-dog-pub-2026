@@ -1,8 +1,9 @@
 using Godot;
+using System.Linq;
 
 namespace LuckyDogRise;
 
-public partial class CardTableController : Node2D
+public partial class CardTableController : Node2D, IInteractionHintTarget
 {
     [Signal]
     public delegate void CardClickedEventHandler(int index);
@@ -16,6 +17,9 @@ public partial class CardTableController : Node2D
     private const float CardGap = 12f;
 
     private CardController[] _cards = new CardController[5];
+
+    public bool CanPlayInteractionHint => _cards.All(card => card != null && card.Visible);
+    public bool IsInteractionHintPlaying => _cards.Any(card => card != null && card.IsInteractionHintPlaying);
 
     public override void _Ready()
     {
@@ -103,6 +107,27 @@ public partial class CardTableController : Node2D
     {
         for (int i = 0; i < CardCount; i++)
             _cards[i].ResetModulate();
+    }
+
+    /// <summary>
+    /// 从中间向两侧扩散的错拍轻抬，表达整组卡牌可供选择，而不暗示具体哪张该弃。
+    /// </summary>
+    public void PlayInteractionHint()
+    {
+        if (!CanPlayInteractionHint)
+            return;
+
+        var order = new[] { 2, 1, 3, 0, 4 };
+        var delays = new[] { 0.0, 0.042, 0.072, 0.118, 0.146 };
+        var lifts = new[] { 9f, 7f, 8f, 6f, 6.5f };
+        var rotations = new[] { 0.028f, -0.022f, 0.032f, -0.018f, 0.024f };
+
+        for (var sequenceIndex = 0; sequenceIndex < order.Length; sequenceIndex++)
+        {
+            var cardIndex = order[sequenceIndex];
+            _cards[cardIndex].PlayInteractionHint(
+                delays[sequenceIndex], lifts[sequenceIndex], rotations[sequenceIndex]);
+        }
     }
 
     public CardController GetCard(int index) => _cards[index];

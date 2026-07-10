@@ -16,6 +16,7 @@ public enum InteractionHintTargetId
 public interface IInteractionHintTarget
 {
     bool CanPlayInteractionHint { get; }
+    bool IsInteractionHintPlaying { get; }
     void PlayInteractionHint();
 }
 
@@ -29,6 +30,7 @@ public partial class InteractionHintController : Node
     private readonly Dictionary<InteractionHintTargetId, Action> _hintActions = new();
     private readonly HashSet<InteractionHintTargetId> _availableTargets = new();
     private bool _hasPendingClick;
+    private bool _shouldResolvePendingClick;
     private bool _pendingClickWasHandled;
 
     public void RegisterTarget(InteractionHintTargetId id, IInteractionHintTarget target)
@@ -61,31 +63,39 @@ public partial class InteractionHintController : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton
-            {
-                Pressed: true,
-                ButtonIndex: MouseButton.Left,
-            })
+        if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton)
             return;
 
-        _pendingClickWasHandled = false;
-        _hasPendingClick = true;
+        if (mouseButton.Pressed)
+        {
+            _pendingClickWasHandled = false;
+            _hasPendingClick = true;
+            _shouldResolvePendingClick = false;
+            return;
+        }
+
+        if (_hasPendingClick)
+            _shouldResolvePendingClick = true;
     }
 
     public override void _Process(double delta)
     {
-        if (!_hasPendingClick)
+        if (!_hasPendingClick || !_shouldResolvePendingClick)
             return;
 
-        // _Input 先于按钮回调触发；等到本帧 _Process 时，正确目标已可调用
+        // Button.Pressed 在鼠标松开时触发；等到松开后的 _Process 再结算，
+        // 才能正确区分翻牌、下注等有效点击与真正的误点。
         // NotifyInteractionHandled() 标记本次点击，未标记才播放提示。
         _hasPendingClick = false;
+        _shouldResolvePendingClick = false;
         if (_pendingClickWasHandled)
             return;
 
         foreach (var id in _availableTargets)
         {
-            if (_targets.TryGetValue(id, out var target) && target.CanPlayInteractionHint)
+            if (_targets.TryGetValue(id, out var target)
+                && target.CanPlayInteractionHint
+                && !target.IsInteractionHintPlaying)
             {
                 target.PlayInteractionHint();
             }

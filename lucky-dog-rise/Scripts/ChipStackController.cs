@@ -44,6 +44,9 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         -Mathf.Sin(Mathf.DegToRad(60f)) * LeaveDistance);
 
     public bool CanPlayInteractionHint => _visualRoot != null && _visualRoot.Visible;
+    public bool IsInteractionHintPlaying =>
+        (_bottomChipHintTween?.IsRunning() ?? false)
+        || (_topChipHintTween?.IsRunning() ?? false);
 
     public override void _Ready()
     {

@@ -41,6 +41,7 @@ public partial class ChipRewardController : Node2D
     private readonly Dictionary<Marker2D, Vector2> _markerRestPositions = new();
 
     public bool CanPlayInteractionHint => !_collected && IsInstanceValid(_pileAnchors);
+    public bool IsInteractionHintPlaying => _hintTweens.Any(tween => tween?.IsRunning() ?? false);
 
     public override void _Ready()
     {
