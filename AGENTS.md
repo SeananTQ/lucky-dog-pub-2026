@@ -329,6 +329,17 @@ ModeManager 持有设置面板实例，负责连接信号：
 - 常规 `.cs/.tscn` 修改仍优先直接读写文件并 `dotnet build`；`scene_get_tree` 主要用于校验场景树、节点类型和路径。
 - `scene_add_node`、`scene_save` 不可靠，改 `.tscn` 时直接写文本；`.godot` 损坏时删 `.godot/` 后重开编辑器并重新 build。
 
+## 构建与发布
+
+- 构建渠道固定为 `Dev / Playtest / Release`。Dev 用于编辑器日常开发；Playtest/Release 使用渠道隔离、加密 PCK、存档 HMAC 和 C# 混淆。
+- 可外发的 Playtest/Release 包必须使用 `lucky-dog-rise/Build/Build-WindowsPackage.ps1` 生成，不能把 Godot“项目 > 导出”的手工产物发给测试者或玩家。
+- 当前本机 Godot 4.6.3 源码、自定义 Windows .NET Release 模板和密钥位于被忽略的 `.local-build/`；日常 Playtest 打包不重新编译模板。
+- `.local-build/secrets.psd1` 不得提交、打印或发送。换电脑时恢复原密钥；不要随意重新生成，否则旧 HMAC 存档会失效。
+- 新增 Godot 节点类时必须通过混淆保留列表检查；不能通过关闭混淆绕过。Godot 节点类的方法名需要保留，避免信号回调和 `CallDeferred` 失效。
+- 通过字符串动态加载的新资源不会自动可靠进入导出包；必须同步维护导出 `include_filter` 或增加运行时构建检查。
+- `data_LuckyDogRise_windows_x86_64` 是 Godot .NET 运行目录，必须与 EXE 一起分发并保持目录结构。
+- 详细实现、命令、验收结果和未完成项见 `docs/steamworks/playtest-build-protection.md`；主人操作指南见 `docs/guide/playtest-packaging-for-owner.md`。
+
 ## 协作规则
 
 - **先聊再写** — 主人提需求 → AI 调研 → 讨论 → 确认方向 → 写计划
@@ -343,7 +354,9 @@ ModeManager 持有设置面板实例，负责连接信号：
 ## 音效工作流
 
 - AI 在 `lucky-dog-rise/Audio/SFX/` 或 `lucky-dog-rise/Audio/BGM/` 创建 `.txt` 占位文件
-- 代码用 `AudioManager.Instance.PlaySfxByName("Xxx.wav")` 播放
-- 文件不存在时自动打印 `[SFX] xxx` 到控制台
+- 代码优先用 `AudioManager.Instance.PlaySfx("CueName")` 播放逻辑 cue，不在调用处写具体变体号
+- SFX 资源按 `CueName_1.ogg`、`CueName_2.ogg` 命名；AudioManager 在可用变体中随机选择，并优先 OGG
+- 加密导出包不能依赖 `DirAccess` 枚举音频源文件名；变体通过 `ResourceLoader.Exists` 探测，修改时必须兼容导出环境
+- 文件不存在时自动打印 `[SFX Missing] CueName` 或占位文件提示到控制台
 - 用户看到输出后找音效文件替换 .txt
-- **文件名必须大驼峰**（如 `Knock.wav`）
+- cue 和文件名使用大驼峰或项目现有的下划线分段约定（如 `Card_PokerHandDeal_1.ogg`）
