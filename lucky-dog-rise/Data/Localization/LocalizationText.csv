@@ -10,7 +10,8 @@ Settings_Tab_LinkTree,LinkTree,LinkTree,LinkTree,LinkTree,200002,Settings,系统
 Settings_Tab_Settings,Settings,设置,設定,設定,200003,Settings,系统面板顶部页签提示
 Settings_Tab_Debug,Debug,Debug,Debug,デバッグ,200004,Settings,系统面板顶部页签提示
 Settings_General,General,通用,一般,一般,200101,Settings,设置页分组标题
-Settings_SoundEffects,Sound Effects,音效,音效,効果音,200102,Settings,音效开关
+Settings_SoundEffects,SE,音效,音效,SE,200102,Settings,音效音量设置
+Settings_Music,BGM,音乐,音樂,BGM,200112,Settings,BGM 音量设置
 Settings_Language,Language,语言,語言,言語,200103,Settings,语言设置项
 Settings_Language_System,System,跟随系统,跟隨系統,システムに合わせる,200104,Settings,语言选项
 Settings_Language_English,English,English,English,English,200105,Settings,语言选项

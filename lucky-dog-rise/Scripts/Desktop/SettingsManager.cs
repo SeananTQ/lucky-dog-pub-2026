@@ -10,6 +10,8 @@ public static class SettingsManager
     private const string SectionDisplay = "display";
     private const string SectionLocalization = "localization";
     private const string KeyAudioEnabled = "enabled";
+    private const string KeySfxVolume = "sfx_volume";
+    private const string KeyBgmVolume = "bgm_volume";
     private const string KeyAlwaysOnTop = "always_on_top";
     private const string KeyTaskbarIcon = "taskbar_icon";
     private const string KeyAutoHidePanel = "auto_hide_panel";
@@ -50,6 +52,36 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionAudio, KeyAudioEnabled, enabled);
+        config.Save(Path);
+    }
+
+    public static float LoadSfxVolume() => LoadAudioVolume(KeySfxVolume, 0.5f, 1f);
+
+    public static float LoadBgmVolume() => LoadAudioVolume(KeyBgmVolume, 0.5f, 0.7f);
+
+    public static void SaveSfxVolume(float volume) => SaveAudioVolume(KeySfxVolume, volume);
+
+    public static void SaveBgmVolume(float volume) => SaveAudioVolume(KeyBgmVolume, volume);
+
+    private static float LoadAudioVolume(string key, float newUserDefault, float legacyEnabledVolume)
+    {
+        var config = Load();
+        if (config.HasSectionKey(SectionAudio, key))
+            return Mathf.Clamp((float)config.GetValue(SectionAudio, key, newUserDefault), 0f, 1f);
+
+        // 旧版只有一个总开关；新用户则采用独立音量的默认值。
+        var volume = config.HasSectionKey(SectionAudio, KeyAudioEnabled)
+            ? (bool)config.GetValue(SectionAudio, KeyAudioEnabled, true) ? legacyEnabledVolume : 0f
+            : newUserDefault;
+        config.SetValue(SectionAudio, key, volume);
+        config.Save(Path);
+        return volume;
+    }
+
+    private static void SaveAudioVolume(string key, float volume)
+    {
+        var config = Load();
+        config.SetValue(SectionAudio, key, Mathf.Clamp(volume, 0f, 1f));
         config.Save(Path);
     }
 

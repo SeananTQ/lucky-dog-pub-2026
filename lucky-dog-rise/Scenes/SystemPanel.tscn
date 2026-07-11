@@ -187,20 +187,61 @@ layout_mode = 2
 text = "Settings_General"
 label_settings = ExtResource("8_group_title")
 
-[node name="AudioRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1724876092]
+[node name="SfxVolumeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1724876092]
 layout_mode = 2
 
-[node name="AudioLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1830034355]
-custom_minimum_size = Vector2(300, 0)
+[node name="SfxVolumeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow" unique_id=1830034355]
+custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Settings_SoundEffects"
 label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
 
-[node name="AudioToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow" unique_id=1581395180]
+[node name="SfxVolumeSlider" type="HSlider" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow"]
+custom_minimum_size = Vector2(130, 28)
 layout_mode = 2
 size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="SfxVolumeValueLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+label_settings = ExtResource("9_option_label")
+clip_text = true
+horizontal_alignment = 2
+vertical_alignment = 1
+text = "50%"
+
+[node name="BgmVolumeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="BgmVolumeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_Music"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="BgmVolumeSlider" type="HSlider" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow"]
+custom_minimum_size = Vector2(130, 28)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="BgmVolumeValueLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+label_settings = ExtResource("9_option_label")
+clip_text = true
+horizontal_alignment = 2
+vertical_alignment = 1
+text = "50%"
 
 [node name="LanguageRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1126453754]
 layout_mode = 2

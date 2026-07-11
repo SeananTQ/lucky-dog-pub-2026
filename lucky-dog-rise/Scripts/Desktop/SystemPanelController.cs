@@ -60,7 +60,10 @@ public partial class SystemPanelController : CanvasLayer
     private Button _switchToBossKeyBtn = null!;
 
     // Settings 页
-    private CheckButton _audioToggle = null!;
+    private HSlider _sfxVolumeSlider = null!;
+    private HSlider _bgmVolumeSlider = null!;
+    private Label _sfxVolumeValueLabel = null!;
+    private Label _bgmVolumeValueLabel = null!;
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
 #if DEBUG
@@ -168,7 +171,10 @@ public partial class SystemPanelController : CanvasLayer
         _buildVersionLabel.Text = BuildInfo.DisplayVersion;
 
         // === Settings 页 ===
-        _audioToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow/AudioToggle");
+        _sfxVolumeSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeSlider");
+        _bgmVolumeSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow/BgmVolumeSlider");
+        _sfxVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeValueLabel");
+        _bgmVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow/BgmVolumeValueLabel");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
@@ -188,8 +194,7 @@ public partial class SystemPanelController : CanvasLayer
         _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
 #endif
 
-        _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
-        ApplyAudio(_audioToggle.ButtonPressed);
+        RefreshAudioControlsFromStorage();
 
         var autoHideToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow/AutoHideToggle");
         autoHideToggle.ButtonPressed = SettingsManager.LoadAutoHidePanel();
@@ -257,7 +262,8 @@ public partial class SystemPanelController : CanvasLayer
         _switchToBossKeyBtn.Pressed += () => EmitSignal(SignalName.SwitchToBossKeyRequested);
         RefreshModeButtonText();
 
-        _audioToggle.Toggled += OnAudioToggled;
+        _sfxVolumeSlider.ValueChanged += OnSfxVolumeChanged;
+        _bgmVolumeSlider.ValueChanged += OnBgmVolumeChanged;
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
 #if DEBUG
@@ -680,10 +686,20 @@ public partial class SystemPanelController : CanvasLayer
         RefreshLocalizedOptionText();
     }
 
-    private void OnAudioToggled(bool enabled)
+    private void OnSfxVolumeChanged(double value)
     {
-        SettingsManager.SaveAudioEnabled(enabled);
-        ApplyAudio(enabled);
+        var volume = (float)value;
+        SettingsManager.SaveSfxVolume(volume);
+        AudioManager.Instance.SetSfxVolume(volume);
+        RefreshVolumeLabel(_sfxVolumeValueLabel, volume);
+    }
+
+    private void OnBgmVolumeChanged(double value)
+    {
+        var volume = (float)value;
+        SettingsManager.SaveBgmVolume(volume);
+        AudioManager.Instance.SetBgmVolume(volume);
+        RefreshVolumeLabel(_bgmVolumeValueLabel, volume);
     }
 
     private void OnAlwaysShowBlindBoxBubbleToggled(bool enabled)
@@ -723,7 +739,7 @@ public partial class SystemPanelController : CanvasLayer
         L10n.SetLocale(SettingsManager.LoadLocale(), save: false);
 
         RefreshSettingsControlsFromStorage();
-        ApplyAudio(_audioToggle.ButtonPressed);
+        RefreshAudioControlsFromStorage();
         _gameData.SetSaveDataMode(SettingsManager.LoadSaveDataMode());
         EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
         EmitSignal(SignalName.CounterLayoutChanged);
@@ -732,7 +748,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void RefreshSettingsControlsFromStorage()
     {
-        _audioToggle.SetPressedNoSignal(SettingsManager.LoadAudioEnabled());
+        RefreshAudioControlsFromStorage();
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow/AutoHideToggle")
             .SetPressedNoSignal(SettingsManager.LoadAutoHidePanel());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow/TongueImmediateToggle")
@@ -759,9 +775,20 @@ public partial class SystemPanelController : CanvasLayer
         RefreshLocalizedOptionText();
     }
 
-    private static void ApplyAudio(bool enabled)
+    private void RefreshAudioControlsFromStorage()
     {
-        AudioManager.Instance.SetSfxVolume(enabled ? 1f : 0f);
-        AudioManager.Instance.SetBgmVolume(enabled ? 0.7f : 0f);
+        var sfxVolume = SettingsManager.LoadSfxVolume();
+        var bgmVolume = SettingsManager.LoadBgmVolume();
+        _sfxVolumeSlider.SetValueNoSignal(sfxVolume);
+        _bgmVolumeSlider.SetValueNoSignal(bgmVolume);
+        RefreshVolumeLabel(_sfxVolumeValueLabel, sfxVolume);
+        RefreshVolumeLabel(_bgmVolumeValueLabel, bgmVolume);
+        AudioManager.Instance.SetSfxVolume(sfxVolume);
+        AudioManager.Instance.SetBgmVolume(bgmVolume);
+    }
+
+    private static void RefreshVolumeLabel(Label label, float volume)
+    {
+        label.Text = $"{Mathf.RoundToInt(Mathf.Clamp(volume, 0f, 1f) * 100f)}%";
     }
 }

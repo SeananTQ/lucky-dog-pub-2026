@@ -28,8 +28,8 @@ public partial class AudioManager : Node
     private AudioStreamPlayer _bgmPlayer = null!;
 
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
-    public float SfxVolume { get; private set; } = 1f;
-    public float BgmVolume { get; private set; } = 0.7f;
+    public float SfxVolume { get; private set; } = 0.5f;
+    public float BgmVolume { get; private set; } = 0.5f;
 
     public static AudioManager Instance { get; private set; } = null!;
 

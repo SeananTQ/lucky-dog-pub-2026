@@ -14,6 +14,7 @@ public static class L10nKey
     public const string Settings_Tab_Debug = nameof(Settings_Tab_Debug);
     public const string Settings_General = nameof(Settings_General);
     public const string Settings_SoundEffects = nameof(Settings_SoundEffects);
+    public const string Settings_Music = nameof(Settings_Music);
     public const string Settings_Language = nameof(Settings_Language);
     public const string Settings_Language_System = nameof(Settings_Language_System);
     public const string Settings_Language_English = nameof(Settings_Language_English);
