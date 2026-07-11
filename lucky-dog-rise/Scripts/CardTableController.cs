@@ -118,12 +118,8 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
         AudioManager.Instance.PlaySfx("Card_PokerHandHint");
         var order = new[] { 0, 1, 2, 3, 4 };
-        // var delays = new[] { 0.0, 0.042, 0.072, 0.118, 0.146 };
         var delays = new[] { 0.0, 0.05, 0.1, 0.15, 0.2 };
-        // // 左侧起势最明确，向右逐步减弱，保持同向微倾以强调横向传递。
-        // var lifts = new[] { 8f, 7.5f, 7f, 6.5f, 6f };
         var lifts = new[] { 8f, 9f, 10f, 11f, 12f };
-        // var rotations = new[] { 0.026f, 0.023f, 0.020f, 0.017f, 0.014f };
         var rotations = new[] { 0.026f, 0.03f, 0.034f, 0.038f, 0.042f };
 
         for (var sequenceIndex = 0; sequenceIndex < order.Length; sequenceIndex++)

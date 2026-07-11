@@ -88,10 +88,10 @@ public partial class CardController : Node2D
         _hintTween.Parallel().TweenProperty(_body, "rotation", rotation, 0.14f)
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Quad);
-        _hintTween.Chain().TweenProperty(_body, "position:y", 0f, 0.14f+0.05f)
+        _hintTween.Chain().TweenProperty(_body, "position:y", 0f, 0.19f)
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Bounce);
-        _hintTween.Parallel().TweenProperty(_body, "rotation", 0f, 0.14f+0.05f)
+        _hintTween.Parallel().TweenProperty(_body, "rotation", 0f, 0.19f)
             .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Quad);
     }
