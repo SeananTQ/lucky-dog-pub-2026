@@ -26,7 +26,7 @@ public interface IInteractionHintTarget
 /// </summary>
 public partial class InteractionHintController : Node
 {
-    private const double ProactiveHintIdleSeconds = 5.0;
+    private const double ProactiveHintIdleSeconds = 9.0;
     [Export(PropertyHint.Range, "0,10,0.05")]
     private double _proactiveHintRepeatIntervalSeconds = 0.8;
     private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();

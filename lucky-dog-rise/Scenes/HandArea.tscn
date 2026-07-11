@@ -34,10 +34,9 @@ position = Vector2(285, -11)
 texture = ExtResource("4_0cj6n")
 
 [node name="HitButton" type="Button" parent="." unique_id=62838072]
-offset_left = 22.0
-offset_top = -113.0
-offset_right = 664.0
-offset_bottom = 71.0
+offset_left = 45.0
+offset_top = -70.0
+offset_right = 570.0
+offset_bottom = 45.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
 flat = true
-metadata/_edit_use_anchors_ = true
