@@ -166,7 +166,7 @@
     "LeftPawAnimation": "",
     "RightPawAnimation": "",
     "TongueAnimation": "",
-    "Notes": "如果玩家进行了询问，再作出相应的预测表情。"
+    "Notes": "如果玩家进行了询问，再作出相应的预测表情。（未真实现具体内容只做表内意图表达）"
   },
   {
     "Id": 2005,
@@ -218,7 +218,7 @@
     "LeftPawAnimation": "",
     "RightPawAnimation": "",
     "TongueAnimation": "",
-    "Notes": "根据牌型优劣作出相应表情"
+    "Notes": "根据牌型优劣作出相应表情（未真实现具体内容只做表内意图表达）"
   },
   {
     "Id": 2009,

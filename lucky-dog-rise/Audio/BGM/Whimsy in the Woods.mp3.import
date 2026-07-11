@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://b3woyixrd8yal"
+path="res://.godot/imported/Whimsy in the Woods.mp3-db9d8fdd470c92a8de9ecc981014f45d.mp3str"
+
+[deps]
+
+source_file="res://Audio/BGM/Whimsy in the Woods.mp3"
+dest_files=["res://.godot/imported/Whimsy in the Woods.mp3-db9d8fdd470c92a8de9ecc981014f45d.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
