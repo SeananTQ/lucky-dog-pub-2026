@@ -1,6 +1,8 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -20,12 +22,12 @@ public partial class AudioManager : Node
 
     private const int SfxPlayerCount = 12;
     private const int MaxAudioVariants = 64;
-    private const string RequiredBgmPath = "res://Audio/BGM/Puppy's Nap Time.mp3";
     private const string RequiredSfxPath = "res://Audio/SFX/Card_PokerHandDeal_1.ogg";
     private static readonly string[] SupportedExtensions = [".ogg", ".wav", ".mp3"];
     private readonly Dictionary<string, AudioStream> _streamCache = new(StringComparer.Ordinal);
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
     private AudioStreamPlayer _bgmPlayer = null!;
+    private int _lastBgmId = -1;
 
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
     public float SfxVolume { get; private set; } = 0.5f;
@@ -39,12 +41,13 @@ public partial class AudioManager : Node
 
         if (!DirAccess.DirExistsAbsolute("res://Audio/SFX"))
             GD.PushError("[Audio] Exported SFX directory is missing.");
-        if (!ResourceLoader.Exists(RequiredBgmPath) || !ResourceLoader.Exists(RequiredSfxPath))
-            GD.PushError("[Audio] Required audio resource is missing.");
+        if (!ResourceLoader.Exists(RequiredSfxPath))
+            GD.PushError("[Audio] Required SFX resource is missing.");
         if (!TryResolve(AudioKind.Sfx, "Card_PokerHandDeal", null, out _))
             GD.PushError("[Audio] Required SFX cue cannot be resolved.");
 
         _bgmPlayer = CreatePlayer(AudioKind.Bgm);
+        _bgmPlayer.Finished += PlayRandomBgm;
         AddChild(_bgmPlayer);
 
         for (var index = 0; index < SfxPlayerCount; index++)
@@ -100,11 +103,44 @@ public partial class AudioManager : Node
             return;
 
         _bgmPlayer.Stream = stream;
+        _bgmPlayer.VolumeDb = 0f;
         _bgmPlayer.Play();
     }
 
     /// <summary>兼容旧调用；可传 MainTheme.ogg，也可直接传 MainTheme。</summary>
     public void PlayBgmByName(string fileName) => PlayBgm(fileName);
+
+    /// <summary>
+    /// 从 Luban BGMList 中随机播放启用曲目；存在多首时不会连续播放同一首。
+    /// </summary>
+    public void PlayRandomBgm()
+    {
+        var enabledTracks = LubanData.Tables.TbBGMList.DataList
+            .Where(track => track.Enabled)
+            .ToArray();
+        if (enabledTracks.Length == 0)
+        {
+            GD.PushWarning("[BGM] No enabled tracks in BGMList.");
+            return;
+        }
+
+        var candidates = enabledTracks.Length > 1
+            ? enabledTracks.Where(track => track.Id != _lastBgmId).ToArray()
+            : enabledTracks;
+        foreach (var track in candidates.OrderBy(_ => GD.Randf()))
+        {
+            if (!TryResolve(AudioKind.Bgm, track.AudioPath, null, out var stream))
+                continue;
+
+            _bgmPlayer.Stream = stream;
+            _bgmPlayer.VolumeDb = track.VolumeDb;
+            _bgmPlayer.Play();
+            _lastBgmId = track.Id;
+            return;
+        }
+
+        GD.PushWarning("[BGM] No enabled BGMList track could be loaded.");
+    }
 
     public void StopBgm()
     {
@@ -230,8 +266,11 @@ public partial class AudioManager : Node
 
         cue = cue.Replace('\\', '/').Trim();
         var expectedPrefix = kind == AudioKind.Sfx ? "res://Audio/SFX/" : "res://Audio/BGM/";
+        var projectRelativePrefix = kind == AudioKind.Sfx ? "Audio/SFX/" : "Audio/BGM/";
         if (cue.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
             cue = cue[expectedPrefix.Length..];
+        else if (cue.StartsWith(projectRelativePrefix, StringComparison.OrdinalIgnoreCase))
+            cue = cue[projectRelativePrefix.Length..];
 
         foreach (var extension in SupportedExtensions)
         {

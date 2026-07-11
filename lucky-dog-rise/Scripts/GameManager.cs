@@ -109,7 +109,7 @@ public partial class GameManager : Node2D
             _chipStack.ShowHint("Click to bet");
         }
 
-        AudioManager.Instance.PlayBgmByName("Puppy's Nap Time.mp3");
+        AudioManager.Instance.PlayRandomBgm();
     }
 
     public override void _ExitTree()
