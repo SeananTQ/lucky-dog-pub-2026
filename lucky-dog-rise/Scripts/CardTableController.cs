@@ -47,7 +47,6 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
     private void OnCardClicked(int index)
     {
-        AudioManager.Instance.PlaySfx("Card_PokerHandSelect");
         EmitSignal(SignalName.CardClicked, index);
     }
 
@@ -110,17 +109,22 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
-    /// 从中间向两侧扩散的错拍轻抬，表达整组卡牌可供选择，而不暗示具体哪张该弃。
+    /// 从左向右传递的错拍轻抬，表达整组卡牌可供选择，而不暗示具体哪张该弃。
     /// </summary>
     public void PlayInteractionHint()
     {
         if (!CanPlayInteractionHint)
             return;
 
-        var order = new[] { 2, 1, 3, 0, 4 };
-        var delays = new[] { 0.0, 0.042, 0.072, 0.118, 0.146 };
-        var lifts = new[] { 9f, 7f, 8f, 6f, 6.5f };
-        var rotations = new[] { 0.028f, -0.022f, 0.032f, -0.018f, 0.024f };
+        AudioManager.Instance.PlaySfx("Card_PokerHandHint");
+        var order = new[] { 0, 1, 2, 3, 4 };
+        // var delays = new[] { 0.0, 0.042, 0.072, 0.118, 0.146 };
+        var delays = new[] { 0.0, 0.05, 0.1, 0.15, 0.2 };
+        // // 左侧起势最明确，向右逐步减弱，保持同向微倾以强调横向传递。
+        // var lifts = new[] { 8f, 7.5f, 7f, 6.5f, 6f };
+        var lifts = new[] { 8f, 9f, 10f, 11f, 12f };
+        // var rotations = new[] { 0.026f, 0.023f, 0.020f, 0.017f, 0.014f };
+        var rotations = new[] { 0.026f, 0.03f, 0.034f, 0.038f, 0.042f };
 
         for (var sequenceIndex = 0; sequenceIndex < order.Length; sequenceIndex++)
         {

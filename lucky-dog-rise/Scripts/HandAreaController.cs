@@ -87,6 +87,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
             return;
 
         ResetHintAnimation();
+        AudioManager.Instance.PlaySfx("Player_HandRubOnTable");
         _hintTween = CreateTween();
         _hintTween.TweenProperty(this, "position:x", _restPosition.X - 10f, 0.11f)
             .SetEase(Tween.EaseType.InOut)

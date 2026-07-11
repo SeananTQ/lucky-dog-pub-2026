@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://dj8vsaw1a2yi4"
-path="res://.godot/imported/Knock.wav-050d8cf6d3d50b4851cde07e288a7918.sample"
+path="res://.godot/imported/Player_HandKnockOnTable_1.wav-e6483f27a60afedd570f8215b4eeb917.sample"
 
 [deps]
 
-source_file="res://Audio/SFX/Knock.wav"
-dest_files=["res://.godot/imported/Knock.wav-050d8cf6d3d50b4851cde07e288a7918.sample"]
+source_file="res://Audio/SFX/Player_HandKnockOnTable_1.wav"
+dest_files=["res://.godot/imported/Player_HandKnockOnTable_1.wav-e6483f27a60afedd570f8215b4eeb917.sample"]
 
 [params]
 
