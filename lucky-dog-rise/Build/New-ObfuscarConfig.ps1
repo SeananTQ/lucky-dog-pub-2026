@@ -24,6 +24,9 @@ $skipTypes = $preserved | ForEach-Object {
     $fullName = if ($_ -match '\.') { $_ } else { "LuckyDogRise.$_" }
     "    <SkipType name=`"$fullName`" />"
 }
+$skipGodotMethods = $discovered | ForEach-Object {
+    "    <SkipMethod type=`"LuckyDogRise.$_`" name=`"*`" />"
+}
 $assemblyPath = Join-Path (Resolve-Path $AssemblyDirectory) 'LuckyDogRise.dll'
 if (!(Test-Path -LiteralPath $assemblyPath)) { throw "Game assembly not found: $assemblyPath" }
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
@@ -40,6 +43,7 @@ $xml = @"
   <Var name="RegenerateDebugInfo" value="false" />
   <Module file="$([Security.SecurityElement]::Escape($assemblyPath))">
 $($skipTypes -join "`n")
+$($skipGodotMethods -join "`n")
     <SkipMethod type="GodotPlugins.Game.Main" name="InitializeFromGameProject" />
   </Module>
 </Obfuscator>

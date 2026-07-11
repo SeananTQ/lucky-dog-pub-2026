@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$ExecutablePath,
-    [int]$RunSeconds = 5
+    [int]$RunSeconds = 10
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +32,9 @@ $output = @(
 $fatalPatterns = @(
     "Couldn't load project data",
     'Failed to get GodotPlugins initialization function pointer',
+    '\[Audio\] Exported SFX directory is missing',
+    '\[Audio\] Required audio resource is missing',
+    '\[Audio\] Required SFX cue cannot be resolved',
     'Unhandled exception',
     'SCRIPT ERROR',
     'Parameter .* is null'

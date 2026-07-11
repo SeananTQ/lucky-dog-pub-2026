@@ -19,6 +19,9 @@ public partial class AudioManager : Node
     }
 
     private const int SfxPlayerCount = 12;
+    private const int MaxAudioVariants = 64;
+    private const string RequiredBgmPath = "res://Audio/BGM/Puppy's Nap Time.mp3";
+    private const string RequiredSfxPath = "res://Audio/SFX/Card_PokerHandDeal_1.ogg";
     private static readonly string[] SupportedExtensions = [".ogg", ".wav", ".mp3"];
     private readonly Dictionary<string, AudioStream> _streamCache = new(StringComparer.Ordinal);
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
@@ -33,6 +36,13 @@ public partial class AudioManager : Node
     public override void _Ready()
     {
         Instance = this;
+
+        if (!DirAccess.DirExistsAbsolute("res://Audio/SFX"))
+            GD.PushError("[Audio] Exported SFX directory is missing.");
+        if (!ResourceLoader.Exists(RequiredBgmPath) || !ResourceLoader.Exists(RequiredSfxPath))
+            GD.PushError("[Audio] Required audio resource is missing.");
+        if (!TryResolve(AudioKind.Sfx, "Card_PokerHandDeal", null, out _))
+            GD.PushError("[Audio] Required SFX cue cannot be resolved.");
 
         _bgmPlayer = CreatePlayer(AudioKind.Bgm);
         AddChild(_bgmPlayer);
@@ -176,28 +186,19 @@ public partial class AudioManager : Node
         var cueName = slashIndex >= 0 ? cue[(slashIndex + 1)..] : cue;
         var folder = string.IsNullOrEmpty(relativeFolder) ? rootFolder : $"{rootFolder}/{relativeFolder}";
         var stateSuffix = string.IsNullOrEmpty(state) ? string.Empty : $"_{state}";
-        var files = DirAccess.GetFilesAt(folder);
         var variants = new SortedDictionary<int, string>();
 
-        // 外层按扩展名遍历，保证同一编号同时存在多种格式时仍优先 OGG。
+        // Exported encrypted PCKs do not expose imported source names through
+        // DirAccess, so probe the stable variant paths through ResourceLoader.
         foreach (var extension in SupportedExtensions)
         {
             var suffix = stateSuffix + extension + (placeholders ? ".txt" : string.Empty);
-            var prefix = cueName + "_";
-            foreach (var fileName in files)
+            for (var variant = 1; variant <= MaxAudioVariants; variant++)
             {
-                if (!fileName.StartsWith(prefix, StringComparison.Ordinal)
-                    || !fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                if (variants.ContainsKey(variant))
                     continue;
 
-                var variantTextLength = fileName.Length - prefix.Length - suffix.Length;
-                if (variantTextLength <= 0
-                    || !int.TryParse(fileName.Substring(prefix.Length, variantTextLength), out var variant)
-                    || variant <= 0
-                    || variants.ContainsKey(variant))
-                    continue;
-
-                var candidatePath = $"{folder}/{fileName}";
+                var candidatePath = $"{folder}/{cueName}_{variant}{suffix}";
                 if (placeholders ? FileAccess.FileExists(candidatePath) : ResourceLoader.Exists(candidatePath))
                     variants.Add(variant, candidatePath);
             }

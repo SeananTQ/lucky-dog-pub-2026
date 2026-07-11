@@ -136,7 +136,7 @@ Godot 参考：[Feature Tags](https://docs.godotengine.org/en/4.0/tutorials/expo
 
 仓库通过 `.config/dotnet-tools.json` 固定 `Obfuscar.GlobalTool 2.2.50`。只处理 `LuckyDogRise.dll`，不处理 GodotSharp、.NET Runtime 或第三方程序集。
 
-保留规则位于 `lucky-dog-rise/Build/godot-obfuscation-preserve.txt`。构建会扫描 Godot 派生类；发现新增节点类未加入保留列表时直接失败。Godot 生成入口 `GodotPlugins.Game.Main.InitializeFromGameProject` 也必须保留名称。
+保留规则位于 `lucky-dog-rise/Build/godot-obfuscation-preserve.txt`。构建会扫描 Godot 派生类；发现新增节点类未加入保留列表时直接失败。Godot 节点类的类型名和全部方法名均保留，避免私有信号回调、`CallDeferred` 和生成绑定被改名；Godot 生成入口 `GodotPlugins.Game.Main.InitializeFromGameProject` 也必须保留名称。
 
 混淆映射保存在 `.local-build/maps/<版本>/<渠道>/`。混淆失败、入口被改名或混淆后运行异常都使构建失败，不回退到未混淆 DLL。
 
