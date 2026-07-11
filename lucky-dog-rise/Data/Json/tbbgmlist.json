@@ -1,30 +1,30 @@
 [
   {
     "Id": 1001,
-    "Name": "Puppy's Nap Time",
-    "VolumeDb": -6,
+    "Name": "Rise and Shine",
+    "VolumeDb": 0,
     "Enabled": true,
-    "AudioPath": "Audio/BGM/Puppy's Nap Time"
+    "AudioPath": "Audio/BGM/01.Rise and Shine.mp3"
   },
   {
     "Id": 1002,
-    "Name": "Sunny Day Adventure",
+    "Name": "On a Roll",
     "VolumeDb": 0,
     "Enabled": true,
-    "AudioPath": "Audio/BGM/Sunny Day Adventure"
+    "AudioPath": "Audio/BGM/02.On a Roll.mp3"
   },
   {
     "Id": 1003,
-    "Name": "The Quiet Path",
+    "Name": "Little Wins",
     "VolumeDb": 0,
     "Enabled": true,
-    "AudioPath": "Audio/BGM/The Quiet Path"
+    "AudioPath": "Audio/BGM/03.Little Wins.mp3"
   },
   {
     "Id": 1004,
-    "Name": "Whimsy in the Woods",
+    "Name": "Call It a Day",
     "VolumeDb": 0,
     "Enabled": true,
-    "AudioPath": "Audio/BGM/Whimsy in the Woods"
+    "AudioPath": "Audio/BGM/04.Call It a Day.mp3"
   }
 ]

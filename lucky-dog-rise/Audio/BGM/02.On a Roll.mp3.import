@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://prln82try5rm"
+path="res://.godot/imported/02.On a Roll.mp3-fc132ae37dd134506a3644e9f7c2770a.mp3str"
+
+[deps]
+
+source_file="res://Audio/BGM/02.On a Roll.mp3"
+dest_files=["res://.godot/imported/02.On a Roll.mp3-fc132ae37dd134506a3644e9f7c2770a.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
