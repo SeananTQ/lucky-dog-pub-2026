@@ -20,6 +20,7 @@ public partial class Tables
     public TbRarityUI TbRarityUI {get; }
     public TbDogReaction TbDogReaction {get; }
     public TbDesktopActivityState TbDesktopActivityState {get; }
+    public TbBGMList TbBGMList {get; }
     public TbItem TbItem {get; }
     public TbTabGroup TbTabGroup {get; }
     public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
@@ -37,6 +38,7 @@ public partial class Tables
         TbRarityUI = new TbRarityUI(loader("tbrarityui"));
         TbDogReaction = new TbDogReaction(loader("tbdogreaction"));
         TbDesktopActivityState = new TbDesktopActivityState(loader("tbdesktopactivitystate"));
+        TbBGMList = new TbBGMList(loader("tbbgmlist"));
         TbItem = new TbItem(loader("tbitem"));
         TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
@@ -56,6 +58,7 @@ public partial class Tables
         TbRarityUI.ResolveRef(this);
         TbDogReaction.ResolveRef(this);
         TbDesktopActivityState.ResolveRef(this);
+        TbBGMList.ResolveRef(this);
         TbItem.ResolveRef(this);
         TbTabGroup.ResolveRef(this);
         TbEquipmentSlotConfig.ResolveRef(this);

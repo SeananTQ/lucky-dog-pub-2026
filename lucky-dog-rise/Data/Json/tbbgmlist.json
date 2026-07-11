@@ -1,0 +1,30 @@
+[
+  {
+    "Id": 1001,
+    "Name": "Puppy's Nap Time",
+    "VolumeDb": -6,
+    "Enabled": true,
+    "AudioPath": "Audio/BGM/Puppy's Nap Time"
+  },
+  {
+    "Id": 1002,
+    "Name": "Sunny Day Adventure",
+    "VolumeDb": 0,
+    "Enabled": true,
+    "AudioPath": "Audio/BGM/Sunny Day Adventure"
+  },
+  {
+    "Id": 1003,
+    "Name": "The Quiet Path",
+    "VolumeDb": 0,
+    "Enabled": true,
+    "AudioPath": "Audio/BGM/The Quiet Path"
+  },
+  {
+    "Id": 1004,
+    "Name": "Whimsy in the Woods",
+    "VolumeDb": 0,
+    "Enabled": true,
+    "AudioPath": "Audio/BGM/Whimsy in the Woods"
+  }
+]
