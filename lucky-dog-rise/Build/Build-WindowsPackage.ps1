@@ -34,21 +34,23 @@ if ($dirty) { $commit = "$commit-dirty" }
 
 $channelSlug = $Channel.ToLowerInvariant()
 $staging = Join-Path $localBuild "staging\$channelSlug"
-$outputExe = Join-Path $staging 'LuckyDogPub.exe'
+$outputExe = Join-Path $staging 'LuckyDogRise.exe'
 $packageDir = Join-Path $workspace 'GameBuild'
-$packagePath = Join-Path $packageDir "LuckyDogPub-$version-$channelSlug-win-x64.zip"
+$packagePath = Join-Path $packageDir "LuckyDogRise-$version-$channelSlug-win-x64.zip"
 if (Test-Path -LiteralPath $staging) { Remove-Item -Recurse -Force -LiteralPath $staging }
 New-Item -ItemType Directory -Force -Path $staging, $packageDir | Out-Null
 
-& (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe
+& (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe -Version $version
 Write-Host '[Build] Export preset generated.'
 $secrets = Read-LocalDataFile $secretPath
 $oldPckKey = $env:GODOT_SCRIPT_ENCRYPTION_KEY
 $oldSaveKey = $env:LUCKYDOG_SAVE_HMAC_KEY
 $oldCommit = $env:LUCKYDOG_BUILD_COMMIT
+$oldPlaytestExpiry = $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC
 $env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
 $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
 $env:LUCKYDOG_BUILD_COMMIT = $commit
+$env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-08-11T16:00:00Z' } else { '' }
 try {
     & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
     Write-Host "[Build] Godot export exit code: $LASTEXITCODE"
@@ -58,6 +60,7 @@ finally {
     $env:GODOT_SCRIPT_ENCRYPTION_KEY = $oldPckKey
     $env:LUCKYDOG_SAVE_HMAC_KEY = $oldSaveKey
     $env:LUCKYDOG_BUILD_COMMIT = $oldCommit
+    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = $oldPlaytestExpiry
 }
 
 $assemblyPath = Join-Path $staging 'data_LuckyDogRise_windows_x86_64\LuckyDogRise.dll'

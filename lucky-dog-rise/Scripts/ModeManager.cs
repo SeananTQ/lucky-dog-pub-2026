@@ -109,6 +109,7 @@ public partial class ModeManager : Control
     {
         if (!BuildInfo.ValidateCurrentBuild())
         {
+            OS.Alert(BuildInfo.ValidationError, "Lucky Dog Rise Playtest");
             GetTree().Quit(2);
             return;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Globalization;
 using Godot;
 
 namespace LuckyDogRise;
@@ -36,6 +37,7 @@ public static class BuildInfo
 #endif
 
     public static string BuildCommit { get; } = ReadAssemblyMetadata("BuildCommit", "unknown");
+    public static string ValidationError { get; private set; } = string.Empty;
 
     public static string DisplayVersion
     {
@@ -49,17 +51,49 @@ public static class BuildInfo
     public static bool ValidateCurrentBuild()
     {
 #if DEBUG
+        ValidationError = string.Empty;
         return true;
 #else
         var playtest = OS.HasFeature(PlaytestFeature);
         var release = OS.HasFeature(ReleaseFeature);
-        if ((playtest ^ release) && TryGetSaveHmacKey(out _))
-            return true;
+        if (!(playtest ^ release) || !TryGetSaveHmacKey(out _))
+        {
+            ValidationError = "This build is missing a valid channel tag or save key.";
+            GD.PushError($"[Build] {ValidationError}");
+            return false;
+        }
 
-        GD.PushError("[Build] Release build requires exactly one channel feature tag and a valid save HMAC key.");
-        return false;
+        if (playtest && !ValidatePlaytestExpiry())
+            return false;
+
+        ValidationError = string.Empty;
+        return true;
 #endif
     }
+
+#if !DEBUG
+    private static bool ValidatePlaytestExpiry()
+    {
+        var rawExpiry = ReadAssemblyMetadata("PlaytestExpiresUtc", string.Empty);
+        if (!DateTimeOffset.TryParse(
+                rawExpiry,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var expiresAt))
+        {
+            ValidationError = "This Playtest build has no valid expiration date.";
+            GD.PushError($"[Build] {ValidationError}");
+            return false;
+        }
+
+        if (DateTimeOffset.UtcNow < expiresAt)
+            return true;
+
+        ValidationError = "This Playtest build expired on August 11, 2026. Please request a newer build.";
+        GD.PushError($"[Build] {ValidationError}");
+        return false;
+    }
+#endif
 
     internal static bool TryGetSaveHmacKey(out byte[] key)
     {

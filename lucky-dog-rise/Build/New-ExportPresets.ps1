@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$TemplatePath,
-    [Parameter(Mandatory)] [string]$ExportPath
+    [Parameter(Mandatory)] [string]$ExportPath,
+    [Parameter(Mandatory)] [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +12,9 @@ $feature = if ($Channel -eq 'Playtest') { 'lucky_playtest' } else { 'lucky_relea
 $presetName = "Windows $Channel"
 $escapedTemplate = $TemplatePath.Replace('\', '/')
 $escapedExport = $ExportPath.Replace('\', '/')
+$versionParts = @($Version.Split('.'))
+while ($versionParts.Count -lt 4) { $versionParts += '0' }
+$fileVersion = ($versionParts[0..3] -join '.')
 $content = @"
 [preset.0]
 
@@ -43,10 +47,15 @@ shader_baker/enabled=false
 binary_format/architecture="x86_64"
 codesign/enable=false
 application/modify_resources=true
-application/file_version=""
-application/product_version=""
-application/product_name="Lucky Dog Pub"
-application/file_description="Lucky Dog Pub"
+application/icon="res://windows_icon.ico"
+application/icon_interpolation=4
+application/file_version="$fileVersion"
+application/product_version="$Version"
+application/company_name="Seanan Studio"
+application/product_name="Lucky Dog Rise"
+application/file_description="Lucky Dog Rise"
+application/copyright="Copyright (c) 2026 Seanan Studio"
+application/trademarks=""
 dotnet/include_scripts_content=false
 dotnet/include_debug_symbols=false
 dotnet/embed_build_outputs=false

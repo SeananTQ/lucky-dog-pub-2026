@@ -18,10 +18,21 @@ if ($forbidden) {
 
 $gameAssembly = $files | Where-Object Name -eq 'LuckyDogRise.dll' | Select-Object -First 1
 if (!$gameAssembly) { throw 'LuckyDogRise.dll is missing from the exported build.' }
+$gameExecutable = $files | Where-Object Name -eq 'LuckyDogRise.exe' | Select-Object -First 1
+if (!$gameExecutable) { throw 'LuckyDogRise.exe is missing from the exported build.' }
+$versionInfo = $gameExecutable.VersionInfo
+if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
+    ($versionInfo.ProductName -ne 'Lucky Dog Rise') -or
+    ($versionInfo.ProductVersion -ne $Version)) {
+    throw 'Windows executable metadata is missing or incorrect.'
+}
 $bytes = [System.IO.File]::ReadAllBytes($gameAssembly.FullName)
 $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
 foreach ($debugSymbol in 'RandomAcquireItemRequested', 'DebugGrantChipsRequested', 'ResetToDebugAllItems') {
     if ($ascii.Contains($debugSymbol)) { throw "Debug symbol remains in release assembly: $debugSymbol" }
+}
+if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-11T16:00:00Z')) {
+    throw 'Playtest expiration metadata is missing from the release assembly.'
 }
 
 $report = @"

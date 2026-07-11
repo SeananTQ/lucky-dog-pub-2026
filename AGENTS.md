@@ -338,6 +338,7 @@ ModeManager 持有设置面板实例，负责连接信号：
 - 新增 Godot 节点类时必须通过混淆保留列表检查；不能通过关闭混淆绕过。Godot 节点类的方法名需要保留，避免信号回调和 `CallDeferred` 失效。
 - 通过字符串动态加载的新资源不会自动可靠进入导出包；必须同步维护导出 `include_filter` 或增加运行时构建检查。
 - `data_LuckyDogRise_windows_x86_64` 是 Godot .NET 运行目录，必须与 EXE 一起分发并保持目录结构。
+- Playtest 截止到香港时间 2026-08-11 结束，过期检查只用于限制普通转发；Dev/Release 不得继承该到期限制。
 - 详细实现、命令、验收结果和未完成项见 `docs/steamworks/playtest-build-protection.md`；主人操作指南见 `docs/guide/playtest-packaging-for-owner.md`。
 
 ## 协作规则

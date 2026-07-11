@@ -47,7 +47,7 @@ G:\Workspace\godot-project\lucky-dog-pub-2026
 等待命令完成。看到以下提示表示成功：
 
 ```text
-Package ready: ...LuckyDogPub-0.3.1-playtest-win-x64.zip
+Package ready: ...LuckyDogRise-0.3.1-playtest-win-x64.zip
 ```
 
 最终 ZIP 位于：
@@ -56,7 +56,9 @@ Package ready: ...LuckyDogPub-0.3.1-playtest-win-x64.zip
 G:\Workspace\godot-project\lucky-dog-pub-2026\GameBuild\
 ```
 
-只需要把 `LuckyDogPub-<版本>-playtest-win-x64.zip` 发给测试者。
+只需要把 `LuckyDogRise-<版本>-playtest-win-x64.zip` 发给测试者。
+
+ZIP 解压后包含 `LuckyDogRise.exe` 和 `data_LuckyDogRise_windows_x86_64`。两者都属于完整游戏，测试者需要保持目录结构并运行 `LuckyDogRise.exe`，不能只单独复制 EXE。
 
 不要发送以下内容：
 
@@ -78,6 +80,8 @@ G:\Workspace\godot-project\lucky-dog-pub-2026\GameBuild\
 6. 检查 Debug 入口和敏感文件是否残留。
 7. 隐藏启动游戏十秒，检查 PCK、.NET、音频资源和 SFX cue。
 8. 所有检查通过后生成 ZIP。
+
+Playtest 包允许使用到香港时间 2026-08-11 结束。从 2026-08-12 00:00 起，游戏会提示测试包已过期并退出。该限制用于降低旧测试包继续转发的风险，但修改 Windows 系统时间仍可能绕过，因此不属于强 DRM。
 
 某一步失败时不会生成新的合格 ZIP。主人应保留 PowerShell 中的错误文字，并交给后续开发人员处理，不要为了出包手动关闭加密或混淆。
 
