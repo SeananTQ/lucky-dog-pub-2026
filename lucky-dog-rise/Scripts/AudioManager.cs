@@ -52,13 +52,31 @@ public partial class AudioManager : Node
     /// 播放短音效。cue 不含变体号；持续音效的状态单独传入，
     /// 例如 PlaySfx("Tool_ElectricDrill", "Loop") 会匹配 Tool_ElectricDrill_1_Loop。
     /// </summary>
-    public void PlaySfx(string cue, string state = null)
+    public void PlaySfx(string cue, string state = null, float pitchVariation = 0f)
+    {
+        PlaySfxInternal(cue, state, 1f, pitchVariation);
+    }
+
+    /// <summary>播放带随机变调的短音效，例如 PlaySfx("Card_PokerHandDeal", 0.06f)。</summary>
+    public void PlaySfx(string cue, float pitchVariation)
+    {
+        PlaySfxInternal(cue, null, 1f, pitchVariation);
+    }
+
+    /// <summary>以指定基准音高播放，并在该基准附近加入随机变调。</summary>
+    public void PlaySfx(string cue, float pitchCenter, float pitchVariation)
+    {
+        PlaySfxInternal(cue, null, pitchCenter, pitchVariation);
+    }
+
+    private void PlaySfxInternal(string cue, string state, float pitchCenter, float pitchVariation)
     {
         if (!TryResolve(AudioKind.Sfx, cue, state, out var stream))
             return;
 
         var player = GetAvailableSfxPlayer();
         player.Stream = stream;
+        player.PitchScale = GetRandomPitchScale(pitchCenter, pitchVariation);
         player.Play();
     }
 
@@ -255,5 +273,12 @@ public partial class AudioManager : Node
     private static float LinearToDb(float linear)
     {
         return linear <= 0.0001f ? -80f : Mathf.LinearToDb(linear);
+    }
+
+    private static float GetRandomPitchScale(float center, float variation)
+    {
+        variation = Mathf.Max(variation, 0f);
+        var offset = ((float)GD.Randf() * 2f - 1f) * variation;
+        return Mathf.Clamp(center + offset, 0.01f, 4f);
     }
 }

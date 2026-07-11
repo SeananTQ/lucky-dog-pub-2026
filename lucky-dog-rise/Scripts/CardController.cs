@@ -111,7 +111,7 @@ public partial class CardController : Node2D
     /// 发牌动画：第 delay 秒后开始动画
     /// </summary>
     /// <param name="delay"></param>
-    public void AnimateDeal(float delay)
+    public void AnimateDeal(float delay, float pitchCenter, float pitchVariation)
     {
         _body.Position = Vector2.Zero;
         _body.Scale = Vector2.Zero;
@@ -122,7 +122,7 @@ public partial class CardController : Node2D
 
         GetTree().CreateTimer(delay).Timeout += () =>
         {
-            AudioManager.Instance.PlaySfx("Card_PokerHandDeal");
+            AudioManager.Instance.PlaySfx("Card_PokerHandDeal", pitchCenter, pitchVariation);
             // CardBody 在高处的起始状态
             _body.Position = new Vector2(0, -80);
             _body.Scale = new Vector2(1.3f, 1.3f);
@@ -223,9 +223,9 @@ public partial class CardController : Node2D
     }
 
     // 补牌翻转（与阴影同步，模仿发牌翻转的风格）
-    public void AnimateReplace()
+    public void AnimateReplace(float pitchCenter, float pitchVariation)
     {
-        AudioManager.Instance.PlaySfx("Card_PokerHandFlipToFront");
+        AudioManager.Instance.PlaySfx("Card_PokerHandFlipToFront", pitchCenter, pitchVariation);
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;

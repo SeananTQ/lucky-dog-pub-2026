@@ -15,6 +15,9 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     private const int CardCount = 5;
     private const float CardWidth = 120f;
     private const float CardGap = 12f;
+    private const float SequentialPitchStartMinimum = 0.98f;
+    private const float SequentialPitchStartMaximum = 1.0f;
+    private const float SequentialPitchStep = 0.015f;
 
     private CardController[] _cards = new CardController[5];
 
@@ -54,12 +57,13 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     {
         SetCardsVisible(true);
         float perCardDuration = 0.2f;
+        var handPitchStart = GetSequentialPitchStart();
         for (int i = 0; i < CardCount; i++)
         {
             _cards[i].SetCard(hand[i], i);
             _cards[i].ResetModulate();
             _cards[i].ShowBack();
-            _cards[i].AnimateDeal(i * perCardDuration);
+            _cards[i].AnimateDeal(i * perCardDuration, GetSequentialPitch(handPitchStart, i), 0f);
         }
     }
 
@@ -69,6 +73,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
         int replacementCount = 0;
         for (int i = 0; i < CardCount; i++)
             if (!held[i]) replacementCount++;
+        var handPitchStart = GetSequentialPitchStart();
         int replaced = 0;
         for (int i = 0; i < CardCount; i++)
         {
@@ -82,7 +87,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
                 {
                     if (scheduledIndex == replacementCount - 1)
                         EmitSignal(SignalName.LastReplacementStarted, true);
-                    _cards[idx].AnimateReplace();
+                    _cards[idx].AnimateReplace(GetSequentialPitch(handPitchStart, scheduledIndex), 0f);
                 };
                 replaced++;
             }
@@ -95,6 +100,16 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     private void EmitLastReplacementStarted()
     {
         EmitSignal(SignalName.LastReplacementStarted, false);
+    }
+
+    private static float GetSequentialPitchStart()
+    {
+        return Mathf.Lerp(SequentialPitchStartMinimum, SequentialPitchStartMaximum, (float)GD.Randf());
+    }
+
+    private static float GetSequentialPitch(float start, int sequenceIndex)
+    {
+        return start + SequentialPitchStep * sequenceIndex;
     }
 
     public void SetHeld(int index, bool held)
