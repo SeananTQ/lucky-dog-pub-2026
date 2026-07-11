@@ -122,14 +122,20 @@ public partial class GameManager : Node2D
         if (_interactionHints == null || _blindBoxOverlay == null)
             return;
 
-        _interactionHints.SetProactiveHintContextActive(_isPokerModeActive && !_blindBoxOverlay.Visible);
+        var isPokerInputAvailable = _isPokerModeActive && !_blindBoxOverlay.Visible;
+        _interactionHints.SetInputContextActive(isPokerInputAvailable);
+        _interactionHints.SetProactiveHintContextActive(isPokerInputAvailable);
     }
 
     public void SetInteractionHintPokerModeActive(bool active)
     {
         _isPokerModeActive = active;
         if (_interactionHints != null && _blindBoxOverlay != null)
-            _interactionHints.SetProactiveHintContextActive(active && !_blindBoxOverlay.Visible);
+        {
+            var isPokerInputAvailable = active && !_blindBoxOverlay.Visible;
+            _interactionHints.SetInputContextActive(isPokerInputAvailable);
+            _interactionHints.SetProactiveHintContextActive(isPokerInputAvailable);
+        }
     }
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)

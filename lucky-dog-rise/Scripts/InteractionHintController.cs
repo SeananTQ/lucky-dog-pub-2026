@@ -37,6 +37,7 @@ public partial class InteractionHintController : Node
     private bool _pendingClickWasHandled;
     private bool _proactiveHintsEnabled = true;
     private bool _proactiveHintContextActive;
+    private bool _inputContextActive = true;
     private double _secondsSinceEffectiveInteraction;
     private bool _proactiveHintAnimationWasPlaying;
     private double _proactiveHintRepeatDelayRemaining;
@@ -84,6 +85,21 @@ public partial class InteractionHintController : Node
     }
 
     /// <summary>
+    /// 全屏交互遮罩显示时暂停点击误点判定，避免遮罩自身的点击被当作扑克区域误点。
+    /// </summary>
+    public void SetInputContextActive(bool active)
+    {
+        if (_inputContextActive == active)
+            return;
+
+        _inputContextActive = active;
+        _hasPendingClick = false;
+        _shouldResolvePendingClick = false;
+        _pendingClickWasHandled = false;
+        ResetProactiveHintIdlePeriod();
+    }
+
+    /// <summary>
     /// 由实际完成当前阶段操作的交互回调调用，阻止本次点击触发新手提示。
     /// </summary>
     public void NotifyInteractionHandled()
@@ -94,6 +110,9 @@ public partial class InteractionHintController : Node
 
     public override void _Input(InputEvent @event)
     {
+        if (!_inputContextActive)
+            return;
+
         if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton)
             return;
 
@@ -117,6 +136,9 @@ public partial class InteractionHintController : Node
 
     private void ResolveIncorrectClickHint()
     {
+        if (!_inputContextActive)
+            return;
+
         if (!_hasPendingClick || !_shouldResolvePendingClick)
             return;
 
@@ -130,7 +152,8 @@ public partial class InteractionHintController : Node
 
     private void ProcessProactiveHint(double delta)
     {
-        if (!_proactiveHintsEnabled
+        if (!_inputContextActive
+            || !_proactiveHintsEnabled
             || !_proactiveHintContextActive
             || _availableTargets.Count == 0)
             return;
