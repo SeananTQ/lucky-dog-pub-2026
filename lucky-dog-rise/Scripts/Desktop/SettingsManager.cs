@@ -186,12 +186,19 @@ public static class SettingsManager
 
     public static SaveDataMode LoadSaveDataMode()
     {
+#if !DEBUG
+        return SaveDataMode.LocalSave;
+#else
         var config = Load();
         return (SaveDataMode)(int)config.GetValue(SectionSystem, KeySaveDataMode, (int)SaveDataMode.DebugAllItems);
+#endif
     }
 
     public static void SaveSaveDataMode(SaveDataMode mode)
     {
+#if !DEBUG
+        mode = SaveDataMode.LocalSave;
+#endif
         var config = Load();
         config.SetValue(SectionSystem, KeySaveDataMode, (int)mode);
         config.Save(Path);

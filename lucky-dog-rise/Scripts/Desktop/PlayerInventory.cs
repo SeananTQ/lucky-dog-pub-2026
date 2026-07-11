@@ -19,7 +19,9 @@ public class PlayerInventory
 
     public PlayerInventory()
     {
+#if DEBUG
         ResetToDebugAllItems(emitChanged: false);
+#endif
     }
 
     public bool Owns(int itemId) => _ownedItemCounts.TryGetValue(itemId, out var count) && count > 0;
@@ -121,6 +123,7 @@ public class PlayerInventory
             .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);
     }
 
+#if DEBUG
     public void ResetToDebugAllItems(bool emitChanged = true)
     {
         _ownedItemCounts.Clear();
@@ -135,6 +138,7 @@ public class PlayerInventory
             InventoryChanged?.Invoke();
         }
     }
+#endif
 
     public void LoadState(
         IReadOnlyDictionary<int, int> ownedItemCounts,

@@ -152,7 +152,9 @@ public static class L10n
     {
         if (!FileAccess.FileExists(path))
         {
+#if DEBUG
             GD.PushWarning($"[L10n] Missing localization CSV: {path}. Falling back to imported Translation resources.");
+#endif
             LoadImportedTranslations();
             return;
         }

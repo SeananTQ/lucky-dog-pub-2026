@@ -149,8 +149,10 @@ public partial class GameManager : Node2D
         if (State != GameState.WaitingForBet) return;
         _interactionHints.NotifyInteractionHandled();
         if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
+#if DEBUG
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
             _deck.SetFixedSeed(fixedSeed);
+#endif
         DealNewHand();
     }
 
@@ -340,7 +342,9 @@ public partial class GameManager : Node2D
 
     private void RefreshUI()
     {
+#if DEBUG
         SettingsPanel?.UpdateSeed(_deck.LastSeed);
+#endif
     }
 
     private void SetState(GameState state)

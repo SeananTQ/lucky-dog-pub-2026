@@ -54,6 +54,7 @@ public partial class ModeManager : Control
     private GameData _gameData = null!;
     public GameData GameDataObj => _gameData;
 
+#if DEBUG
     private static readonly EItemType[] DebugDogItemTypes =
     [
         EItemType.Dog,
@@ -64,6 +65,7 @@ public partial class ModeManager : Control
     private static readonly EItemType[] DebugSceneItemTypes = Enum.GetValues<EItemType>()
         .Where(type => !DebugDogItemTypes.Contains(type))
         .ToArray();
+#endif
 
     // 面板避让九宫优先级：伪装模式。按数组顺序尝试，数字对应键盘九宫格：
     // 789 / 456 / 123
@@ -79,8 +81,10 @@ public partial class ModeManager : Control
         6, 8, 9, 7, 4, 2, 3, 1,
     ];
 
+#if DEBUG
     private readonly Random _debugRandom = new();
     private readonly Dictionary<EItemType, ShuffleBag<int>> _debugItemBags = new();
+#endif
     private readonly Queue<(double time, int count)> _desktopInputEvents = new();
     private const double DesktopActivitySampleSeconds = 10.0;
     private DesktopActivityState _currentDesktopActivityState;
@@ -103,6 +107,12 @@ public partial class ModeManager : Control
 
     public override void _Ready()
     {
+        if (!BuildInfo.ValidateCurrentBuild())
+        {
+            GetTree().Quit(2);
+            return;
+        }
+
         L10n.ApplySavedOrSystemLocale();
 
         _gameData = new GameData();
@@ -143,11 +153,13 @@ public partial class ModeManager : Control
         _settingsPanel.GameData = _gameData;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
+#if DEBUG
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
         _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
         _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
+#endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
         RefreshSettingsPanelModeActions();
@@ -694,6 +706,7 @@ public partial class ModeManager : Control
             SetClickThrough(true);
     }
 
+#if DEBUG
     private void OnRandomizeScene()
     {
         ApplyRandomEquipment(DebugSceneItemTypes);
@@ -728,6 +741,7 @@ public partial class ModeManager : Control
     {
         _gameData.ModifyChips(8000);
     }
+#endif
 
     private void OnBlindBoxRequested()
     {
@@ -1054,6 +1068,7 @@ public partial class ModeManager : Control
         _candidateDesktopActivitySeconds = 0.0;
     }
 
+#if DEBUG
     private void ApplyRandomEquipment(IEnumerable<EItemType> types)
     {
         foreach (var type in types)
@@ -1074,6 +1089,7 @@ public partial class ModeManager : Control
             _gameData.EquipItem(pickedId);
         }
     }
+#endif
 
     // ===== 面板切换 =====
 
@@ -1089,7 +1105,6 @@ public partial class ModeManager : Control
         _settingsPanel.Open();
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
-
     private void RefreshSettingsPanelModeActions()
     {
         _settingsPanel?.SetCurrentMode(CurrentMode == Mode.BossKey);
@@ -1409,6 +1424,7 @@ public partial class ModeManager : Control
         }
     }
 
+#if DEBUG
     private sealed class ShuffleBag<T>
     {
         private readonly Queue<T> _queue = new();
@@ -1471,4 +1487,5 @@ public partial class ModeManager : Control
                 && !candidates.Except(_lastCandidates).Any();
         }
     }
+#endif
 }

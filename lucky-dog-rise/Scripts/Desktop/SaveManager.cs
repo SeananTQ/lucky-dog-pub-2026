@@ -11,6 +11,8 @@ namespace LuckyDogRise;
 public sealed class SaveProfile
 {
     public int Version { get; set; } = SaveManager.CurrentVersion;
+    public int IntegrityVersion { get; set; }
+    public string IntegrityTag { get; set; } = "";
     public int Chips { get; set; } = GameData.StartingChips;
     public double TotalPlaySeconds { get; set; }
     public List<int> OwnedItemIds { get; set; } = new();
@@ -32,6 +34,7 @@ public static class SaveManager
     private const string SavePath = "user://saves/profile_0.json";
     private const string BackupPath = "user://saves/profile_0.backup.json";
     private const string CorruptBackupPath = "user://saves/profile_0.corrupt.json";
+    private const string InvalidSignaturePath = "user://saves/profile_0.invalid_signature.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -49,27 +52,29 @@ public static class SaveManager
             return fresh;
         }
 
-        try
-        {
-            using var file = FileAccess.Open(SavePath, FileAccess.ModeFlags.Read);
-            var json = file.GetAsText();
-            var profile = JsonSerializer.Deserialize<SaveProfile>(json, JsonOptions);
-            if (profile == null)
-                throw new InvalidOperationException("Save profile was empty.");
+        if (TryLoadVerified(SavePath, out var profile, out var failure))
+            return Normalize(profile!);
 
-            return Normalize(profile);
-        }
-        catch (Exception ex)
+        GD.PushError($"[Save] Primary save rejected: {failure}.");
+        if (TryLoadVerified(BackupPath, out profile, out _))
         {
-            GD.PushError($"[Save] Failed to load save. Creating a new profile. {ex.Message}");
-            BackupCorruptSave();
-            var fresh = CreateDefaultProfile();
-            Save(fresh);
-            return fresh;
+            CopyFile(BackupPath, SavePath);
+            GD.PushWarning("[Save] Restored the verified backup save.");
+            return Normalize(profile!);
         }
+
+        BackupRejectedSave(failure == "invalid signature" ? InvalidSignaturePath : CorruptBackupPath);
+        var replacement = CreateDefaultProfile();
+        SaveInternal(replacement, backupExisting: false);
+        return replacement;
     }
 
     public static void Save(SaveProfile profile)
+    {
+        SaveInternal(profile, backupExisting: true);
+    }
+
+    private static void SaveInternal(SaveProfile profile, bool backupExisting)
     {
         EnsureSaveDir();
         var existing = TryLoadExistingWithoutRecovery();
@@ -80,8 +85,11 @@ public static class SaveManager
                 : existing.CreatedAt;
         profile.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
 
-        var json = JsonSerializer.Serialize(Normalize(profile), JsonOptions);
-        if (FileAccess.FileExists(SavePath))
+        profile = Normalize(profile);
+        profile.IntegrityVersion = SaveIntegrity.CurrentVersion;
+        profile.IntegrityTag = SaveIntegrity.Sign(profile);
+        var json = JsonSerializer.Serialize(profile, JsonOptions);
+        if (backupExisting && FileAccess.FileExists(SavePath))
             CopyFile(SavePath, BackupPath);
 
         using var file = FileAccess.Open(SavePath, FileAccess.ModeFlags.Write);
@@ -197,12 +205,12 @@ public static class SaveManager
             DirAccess.MakeDirRecursiveAbsolute(SaveDir);
     }
 
-    private static void BackupCorruptSave()
+    private static void BackupRejectedSave(string destination)
     {
         if (!FileAccess.FileExists(SavePath))
             return;
 
-        CopyFile(SavePath, CorruptBackupPath);
+        CopyFile(SavePath, destination);
     }
 
     private static void CopyFile(string from, string to)
@@ -225,6 +233,46 @@ public static class SaveManager
         catch
         {
             return null;
+        }
+    }
+
+    private static bool TryLoadVerified(string path, out SaveProfile? profile, out string failure)
+    {
+        profile = null;
+        failure = "missing";
+        if (!FileAccess.FileExists(path))
+            return false;
+
+        try
+        {
+            using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+            profile = JsonSerializer.Deserialize<SaveProfile>(file.GetAsText(), JsonOptions);
+            if (profile == null)
+            {
+                failure = "empty profile";
+                return false;
+            }
+
+            var unsigned = profile.IntegrityVersion == 0 && string.IsNullOrWhiteSpace(profile.IntegrityTag);
+            if (unsigned && BuildInfo.IsDevelopment)
+            {
+                failure = string.Empty;
+                return true;
+            }
+
+            if (!SaveIntegrity.Verify(profile))
+            {
+                failure = "invalid signature";
+                return false;
+            }
+
+            failure = string.Empty;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            failure = ex.GetType().Name;
+            return false;
         }
     }
 }

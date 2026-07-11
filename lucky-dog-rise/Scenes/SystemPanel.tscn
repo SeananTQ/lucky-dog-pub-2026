@@ -29,8 +29,9 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel")]
 script = ExtResource("1_ctrl")
+_buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(420, 600)
@@ -429,6 +430,13 @@ label_settings = ExtResource("8_group_title")
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"
 text = "Settings_ResetSaveData"
+
+[node name="BuildVersionLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=240889280]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.68, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="WardrobeContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283482]
 visible = false

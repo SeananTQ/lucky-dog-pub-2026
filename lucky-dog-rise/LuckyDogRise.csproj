@@ -3,5 +3,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <LUCKYDOG_BUILD_COMMIT Condition=" '$(LUCKYDOG_BUILD_COMMIT)' == '' ">dev</LUCKYDOG_BUILD_COMMIT>
+    <LUCKYDOG_SAVE_HMAC_KEY Condition=" '$(LUCKYDOG_SAVE_HMAC_KEY)' == '' "></LUCKYDOG_SAVE_HMAC_KEY>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="BuildCommit" Value="$(LUCKYDOG_BUILD_COMMIT)" />
+    <AssemblyMetadata Include="SaveHmacKey" Value="$(LUCKYDOG_SAVE_HMAC_KEY)" />
+  </ItemGroup>
 </Project>

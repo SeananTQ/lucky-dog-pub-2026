@@ -8,7 +8,9 @@ namespace LuckyDogRise;
 public partial class GameData : Node
 {
     public const int StartingChips = 1000;
+#if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
+#endif
 
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
     [Signal] public delegate void HandResolvedEventHandler(EHandRank rank, int payout);
@@ -107,6 +109,7 @@ public partial class GameData : Node
         return _blindBoxService.GetDisplayCost(box);
     }
 
+#if DEBUG
     public string GetBlindBoxDebugStatus()
     {
         return _blindBoxService.BuildDebugStatus(
@@ -114,6 +117,7 @@ public partial class GameData : Node
             _blindBoxRuntimeState,
             PendingBlindBoxReward);
     }
+#endif
 
     public BlindBoxHintState GetBlindBoxHintState()
     {
@@ -180,6 +184,7 @@ public partial class GameData : Node
 
     public bool CanAffordBet => Chips >= BetAmount;
 
+#if DEBUG
     public void ResetToStart()
     {
         Chips = DebugAllItemsStartingChips;
@@ -191,9 +196,13 @@ public partial class GameData : Node
         EmitSignal(SignalName.BlindBoxStateChanged);
         QueueSaveIfUsingLocalSave();
     }
+#endif
 
     public void SetSaveDataMode(SettingsManager.SaveDataMode mode)
     {
+#if !DEBUG
+        mode = SettingsManager.SaveDataMode.LocalSave;
+#endif
         if (_saveDataMode == mode)
             return;
 
@@ -223,6 +232,14 @@ public partial class GameData : Node
 
     private void LoadDataForCurrentMode()
     {
+#if !DEBUG
+        var profile = SaveManager.LoadOrCreate();
+        Chips = profile.Chips;
+        TotalPlaySeconds = profile.TotalPlaySeconds;
+        LoadBlindBoxState(profile);
+        Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
+        QueueSaveIfUsingLocalSave();
+#else
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
         {
             var profile = SaveManager.LoadOrCreate();
@@ -241,6 +258,7 @@ public partial class GameData : Node
         Inventory.ResetToDebugAllItems(emitChanged: false);
         _saveDirty = false;
         _saveTimer = 0.0;
+#endif
     }
 
     private void OnInventoryEquipmentChanged()

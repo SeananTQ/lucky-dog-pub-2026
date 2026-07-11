@@ -8,15 +8,19 @@ namespace LuckyDogRise;
 
 public partial class SystemPanelController : CanvasLayer
 {
+#if DEBUG
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
     [Signal] public delegate void RandomAcquireItemRequestedEventHandler();
     [Signal] public delegate void DebugGrantChipsRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
+#endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
     [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
+
+    [Export] private Label _buildVersionLabel = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -37,13 +41,17 @@ public partial class SystemPanelController : CanvasLayer
     private Button _settingsTab = null!;
     private Button _wardrobeTab = null!;
     private Button _linkTreeTab = null!;
+#if DEBUG
     private Button _debugTab = null!;
+#endif
 
     // 页签内容容器
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
     private Control _linkTreeContent = null!;
+#if DEBUG
     private VBoxContainer _debugContent = null!;
+#endif
     private Control _settingsActionTopGap = null!;
     private Control _settingsActionRow = null!;
     private Control _settingsActionBottomGap = null!;
@@ -55,12 +63,15 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _audioToggle = null!;
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
+#if DEBUG
     private OptionButton _saveDataModeOption = null!;
+#endif
     private CheckButton _blindBoxBubbleToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
     private ConfirmOverlayController _resetSaveConfirm = null!;
 
+#if DEBUG
     // Debug 页
     private Label _seedLabel = null!;
     private Label _playTimeLabel = null!;
@@ -71,6 +82,7 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _reactionOption = null!;
     private int _currentSeed;
     private double _debugTimeRefreshTimer;
+#endif
 
     // Wardrobe 页
     private GridContainer _wardrobeGrid = null!;
@@ -91,7 +103,8 @@ public partial class SystemPanelController : CanvasLayer
         }
     }
 
-    private readonly Button[] _tabs = new Button[4];
+    private readonly List<Button> _tabs = new();
+    private readonly List<Control> _tabContents = new();
     private readonly Dictionary<Button, TabGroup> _filterTabs = new();
     private readonly List<Button> _typeFilterButtons = new();
     private static readonly StringName PanelTopTabStyle = "PanelTopTab";
@@ -123,16 +136,16 @@ public partial class SystemPanelController : CanvasLayer
         _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
         _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
         _linkTreeTab = GetNode<Button>("Panel/RootVBox/TitleRow/LinkTreeTab");
-        _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
-        _tabs[0] = _wardrobeTab;
-        _tabs[1] = _linkTreeTab;
-        _tabs[2] = _settingsTab;
-        _tabs[3] = _debugTab;
+        _tabs.Add(_wardrobeTab);
+        _tabs.Add(_linkTreeTab);
+        _tabs.Add(_settingsTab);
 
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
-        _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
+        _tabContents.Add(_wardrobeContent);
+        _tabContents.Add(_linkTreeContent);
+        _tabContents.Add(_settingsContent);
         _settingsActionTopGap = GetNode<Control>("Panel/RootVBox/ActionTopGap");
         _settingsActionRow = GetNode<Control>("Panel/RootVBox/SettingsActionRow");
         _settingsActionBottomGap = GetNode<Control>("Panel/RootVBox/ActionBottomGap");
@@ -141,14 +154,23 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeTab.Pressed += () => SwitchTab(0);
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _settingsTab.Pressed += () => SwitchTab(2);
+#if DEBUG
+        _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
+        _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
+        _tabs.Add(_debugTab);
+        _tabContents.Add(_debugContent);
         _debugTab.Pressed += () => SwitchTab(3);
+#else
+        GetNode("Panel/RootVBox/TitleRow/DebugTab").Free();
+        GetNode("Panel/RootVBox/Scroll/ContentVBox/DebugContent").Free();
+#endif
         SwitchTab(0);
+        _buildVersionLabel.Text = BuildInfo.DisplayVersion;
 
         // === Settings 页 ===
         _audioToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AudioRow/AudioToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
-        _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
@@ -159,9 +181,12 @@ public partial class SystemPanelController : CanvasLayer
 
         BuildDisplayOptions();
 
+#if DEBUG
+        _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _saveDataModeOption.AddItem("调试全道具", (int)SettingsManager.SaveDataMode.DebugAllItems);
         _saveDataModeOption.AddItem("本地存档", (int)SettingsManager.SaveDataMode.LocalSave);
         _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+#endif
 
         _audioToggle.ButtonPressed = SettingsManager.LoadAudioEnabled();
         ApplyAudio(_audioToggle.ButtonPressed);
@@ -235,9 +260,12 @@ public partial class SystemPanelController : CanvasLayer
         _audioToggle.Toggled += OnAudioToggled;
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
+#if DEBUG
         _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
+#endif
         L10n.Changed += RefreshLocalizedOptionText;
 
+#if DEBUG
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedLabel");
         _playTimeLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayTimeLabel");
@@ -266,6 +294,7 @@ public partial class SystemPanelController : CanvasLayer
         BuildReactionOptions();
         playReactionBtn.Pressed += () =>
             EmitSignal(SignalName.DogReactionRequested, _reactionOption.GetSelectedId());
+#endif
 
         // === Wardrobe 页 ===
         _wardrobeGrid = GetNode<GridContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/WardrobeGrid");
@@ -274,11 +303,14 @@ public partial class SystemPanelController : CanvasLayer
         _emptyWardrobeLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent/WardrobeScroll/EmptyWardrobeCenter/EmptyWardrobeLabel");
 
         _panel.Visible = false;
+#if DEBUG
         RefreshDebugPlayTime();
+#endif
     }
 
     public override void _Process(double delta)
     {
+#if DEBUG
         if (_gameData == null || !_debugContent.Visible)
             return;
 
@@ -288,14 +320,14 @@ public partial class SystemPanelController : CanvasLayer
 
         _debugTimeRefreshTimer = 1.0;
         RefreshDebugPlayTime();
+#endif
     }
 
     private void SwitchTab(int index)
     {
-        var contents = new Control[] { _wardrobeContent, _linkTreeContent, _settingsContent, _debugContent };
-        for (int i = 0; i < _tabs.Length; i++)
+        for (int i = 0; i < _tabs.Count; i++)
         {
-            contents[i].Visible = i == index;
+            _tabContents[i].Visible = i == index;
             _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
         _settingsActionTopGap.Visible = index == 2;
@@ -304,8 +336,10 @@ public partial class SystemPanelController : CanvasLayer
         _settingsActionSep.Visible = index == 2;
         if (index == 0 && _gameData != null)
             BuildWardrobe();
+        #if DEBUG
         if (index == 3)
             RefreshDebugPlayTime();
+        #endif
     }
 
     private void EnsureCurrentTabReady()
@@ -315,10 +349,13 @@ public partial class SystemPanelController : CanvasLayer
 
         if (_wardrobeContent?.Visible == true)
             BuildWardrobe();
+#if DEBUG
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
+#endif
     }
 
+#if DEBUG
     private void RefreshDebugPlayTime()
     {
         if (_playTimeLabel == null || _gameData == null)
@@ -352,6 +389,7 @@ public partial class SystemPanelController : CanvasLayer
 
         _blindBoxDebugLabel.Text = _gameData.GetBlindBoxDebugStatus();
     }
+#endif
 
     // ===== Wardrobe 页 =====
 
@@ -521,7 +559,10 @@ public partial class SystemPanelController : CanvasLayer
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
             || PopupContainsPoint(_languageOption.GetPopup(), windowPos)
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
-            || PopupContainsPoint(_reactionOption.GetPopup(), windowPos);
+#if DEBUG
+            || PopupContainsPoint(_reactionOption.GetPopup(), windowPos)
+#endif
+            ;
     }
 
     private static bool PopupContainsPoint(PopupMenu popup, Vector2 windowPos)
@@ -537,6 +578,7 @@ public partial class SystemPanelController : CanvasLayer
         return new Rect2(screenRelativePosition, popup.Size).HasPoint(windowPos);
     }
 
+#if DEBUG
     public void UpdateSeed(int seed)
     {
         _currentSeed = seed;
@@ -565,6 +607,7 @@ public partial class SystemPanelController : CanvasLayer
         if (_reactionOption.ItemCount > 0)
             _reactionOption.Select(0);
     }
+#endif
 
     // ===== 设置回调 =====
 
@@ -654,6 +697,7 @@ public partial class SystemPanelController : CanvasLayer
         SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
     }
 
+#if DEBUG
     private void OnSaveDataModeChanged(long index)
     {
         _gameData.SetSaveDataMode((SettingsManager.SaveDataMode)(int)index);
@@ -661,6 +705,7 @@ public partial class SystemPanelController : CanvasLayer
         if (_wardrobeContent.Visible)
             BuildWardrobe();
     }
+#endif
 
     private void OnResetSaveConfirmed()
     {
@@ -670,6 +715,7 @@ public partial class SystemPanelController : CanvasLayer
             BuildWardrobe();
     }
 
+#if DEBUG
     private void ResetSettingsToDefaults()
     {
         SettingsManager.ResetToDefaults();
@@ -682,6 +728,7 @@ public partial class SystemPanelController : CanvasLayer
         EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
         EmitSignal(SignalName.CounterLayoutChanged);
     }
+#endif
 
     private void RefreshSettingsControlsFromStorage()
     {
@@ -706,7 +753,9 @@ public partial class SystemPanelController : CanvasLayer
 
         BuildLanguageOptions();
         BuildDisplayOptions();
+#if DEBUG
         _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+#endif
         RefreshLocalizedOptionText();
     }
 

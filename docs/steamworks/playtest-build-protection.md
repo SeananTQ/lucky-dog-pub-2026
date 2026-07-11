@@ -1,301 +1,198 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-09
-status: draft
+last_edit: 2026-07-11
+status: revised
 ---
 
-# Playtest 构建隔离与基础防护决策
+# Playtest 构建隔离与基础防护
 
-## 文档目的
+## 目标与边界
 
-本文档记录 `Lucky Dog Rise` 在外部 Playtest、Steam 测试分支和正式发布前需要遵循的构建隔离、防破解、PCK 加密、C# 混淆和 Windows 导出模板决策。
+Playtest 测试者可能来自 Godot 开发者群或其它半公开渠道，不按可信内部成员处理。本轮防护目标是：
 
-本文档的目标不是设计重反作弊，也不是承诺防住专业逆向。当前项目是单人桌宠与单人扑克玩法，首发阶段不适合投入复杂反作弊系统。本文档只解决一个更现实的问题：
+- 默认 Godot PCK 解包工具不能在不知道密钥时列出并提取完整资源。
+- 外部包不包含可达的 Debug 页、全道具数据源、赠送筹码和随机道具等开发入口。
+- 普通文本修改 Playtest 或 Release 存档后不能直接加载作弊数据。
+- 日常编辑器运行和 Debug 编译保持原有开发效率。
 
-- Playtest 包不能像默认 Godot 导出包一样，被百度随手搜到的 Godot PCK 解包工具用默认流程直接完整拆开。
-- Playtest 包不能让外部测试者轻易看到或调用调试入口。
-- Playtest 包不能让玩家通过普通文本改档轻易获得无限筹码或全道具。
-- 日常开发和调 bug 不能因为这些防护措施变得笨重。
+本方案不承诺防住专业逆向、内存修改、DLL 注入或从客户端二进制中提取密钥，也不引入重型反作弊。
 
-## 测试对象假设
+## 构建渠道
 
-Playtest 测试者不应默认视为“好朋友”。测试者可能来自 Godot 开发者群、独立游戏开发同行或其他半公开渠道。
+项目只维护三个渠道：
 
-因此 Playtest 包应按半公开技术测试包处理：
+| 渠道 | 用途 | Debug 能力 | PCK 加密 | C# 混淆 |
+| --- | --- | --- | --- | --- |
+| Dev | 编辑器和日常开发 | 保留 | 不要求 | 不启用 |
+| Playtest | 半公开外部测试 | 编译移除 | 启用 | 启用 |
+| Release | 正式发布候选 | 编译移除 | 启用 | 启用 |
 
-- 测试者可能知道 Godot 项目常见导出结构。
-- 测试者可能知道 `.pck`、`.dll`、`.json`、存档路径等概念。
-- 测试者可能会尝试用公开工具解包资源或查看代码结构。
-- 测试者不应被当成恶意专业逆向人员，但 Playtest 包也不能把开发入口直接暴露出来。
+`BuildInfo` 是渠道判断的唯一入口：
 
-## 防护目标
+- `DEBUG` 编译固定为 Dev。
+- Playtest 由导出 feature tag `lucky_playtest` 识别。
+- Release 由导出 feature tag `lucky_release` 识别。
+- 非 Debug 编译缺少渠道 tag、同时存在多个 tag 或缺少合法存档密钥时，主场景启动后立即报错退出。
+- 设置页底部显示版本、渠道和 Git 短提交号；Playtest 允许 dirty worktree，并在提交号后追加 `dirty`。
+- Release 构建要求 clean worktree。
 
-Playtest 和 Release 构建的基础防护目标如下：
+实现入口：
 
-- 阻止低门槛 Godot PCK 解包工具直接读取完整项目资源。
-- 阻止普通文本编辑器直接篡改存档并通过加载。
-- 阻止外部测试者在 UI 中看到 Debug 页、随机道具、改筹码、全道具数据源等入口。
-- 阻止外部测试者通过明显字符串或普通菜单路径发现开发命令。
-- 保留足够的版本、构建类型和日志信息，方便主人收集反馈。
+- `lucky-dog-rise/Scripts/BuildInfo.cs`
+- `lucky-dog-rise/Scripts/ModeManager.cs`
+- `lucky-dog-rise/Scenes/SystemPanel.tscn`
 
-非目标如下：
+## Debug 隔离
 
-- 不承诺防住专业逆向。
-- 不承诺防住内存修改器。
-- 不承诺防住 DLL 注入或运行时 patch。
-- 不承诺防住从客户端中提取加密密钥。
-- 不在首发前引入会干扰桌宠窗口、全局输入、透明窗口或 Steam 启动链路的重反作弊。
+Debug 页信号、随机狗、随机场景、随机道具、赠送筹码、全道具数据源和相应处理方法均使用 `#if DEBUG` 编译隔离。
 
-## 构建变体
+外部构建启动系统面板时会将 `DebugTab` 和 `DebugContent` 从场景树中释放，而不是只设置 `Visible=false`。非 Debug 编译还会强制使用 `LocalSave`，忽略配置文件中遗留的 `DebugAllItems` 值。
 
-项目应区分以下构建变体。
+新增开发入口时，需要同时满足：
 
-### Dev
+1. UI 信号、处理方法和数据源使用 `#if DEBUG`。
+2. 不从普通玩家路径调用 Debug 逻辑。
+3. `Verify-Build.ps1` 中的敏感符号检查按需扩充。
 
-Dev 是主人和 AI 日常开发使用的默认模式。
+## 存档与设置隔离
 
-Dev 模式特征：
+渠道通过 Godot feature-tag 项目设置覆盖 `user://`：
 
-- Godot 编辑器运行默认进入 Dev。
-- 不启用 C# 混淆。
-- 不要求 PCK 加密。
-- 保留 Debug 页。
-- 保留随机狗、随机场景、随机获得道具、播放任意小狗反应、切换背包数据源等开发入口。
-- 保留完整日志。
-- 允许更宽松的存档调试、重置和修复路径。
+- Dev：保留现有目录。
+- Playtest：`%APPDATA%\LuckyDogRise\Playtest`。
+- Release：`%APPDATA%\LuckyDogRise\Release`。
 
-Dev 模式必须优先保证调 bug 方便。任何防护措施都不应要求主人日常修 UI、修盲盒、修窗口行为时频繁重新导出 Playtest 包。
+Playtest 不迁移到 Release。Dev 可读取旧的未签名存档，并在下次保存时升级；Playtest 和 Release 拒绝未签名存档。
 
-### InternalTest
+`SaveProfile` 使用以下完整性字段：
 
-InternalTest 用于非常可信的小范围内部验证。
+- `IntegrityVersion = 1`
+- `IntegrityTag = HMAC-SHA256(...)`
 
-InternalTest 可以保留部分诊断能力，但应开始接近外部包行为：
+签名使用独立 256 位密钥。计算前移除 `IntegrityTag`，对稳定排序后的紧凑 JSON 计算 HMAC。验签使用固定时间比较，日志不打印密钥、原始签名或规范化内容。
 
-- 可显示版本号和构建类型。
-- 可保留必要诊断入口。
-- 可保留完整日志。
-- 是否保留作弊入口由具体测试目的决定。
+加载顺序为：
 
-InternalTest 不是半公开测试包，不应发给 Godot 开发者群或其它不完全可信渠道。
+1. 验证主存档。
+2. 主存档无效时验证 backup。
+3. 有效 backup 恢复为主存档。
+4. 两者都无效时保留 `profile_0.invalid_signature.json` 并创建新档。
 
-### Playtest
+实现入口：
 
-Playtest 用于外部测试者，包括 Godot 开发者群同行。
+- `lucky-dog-rise/Scripts/Desktop/SaveIntegrity.cs`
+- `lucky-dog-rise/Scripts/Desktop/SaveManager.cs`
+- `lucky-dog-rise/project.godot`
 
-Playtest 模式特征：
+## 密钥管理
 
-- 不显示 Debug 页。
-- 不显示随机狗、随机场景、随机获得道具、改筹码、全道具数据源、跳流程等入口。
-- 调试命令不应只是 `Visible = false`，而应在构建变体下不可从普通 UI 路径调用。
-- 显示版本号和构建类型。
-- 保留简短反馈信息、日志位置或错误提示。
-- 启用存档基础校验。
-- 应使用加密 PCK 和自编译 Windows export template。
-- C# 混淆作为后续增强项，需先单独验证 Godot C# 兼容性。
+构建使用两把互相独立的 256 位密钥：
 
-Playtest 的核心目标是让外部测试者体验接近玩家环境，同时让主人仍然能定位安装、启动、窗口兼容、存档和主流程问题。
+- PCK AES 密钥：编译进自定义 Windows template，并用于导出资源包。
+- 存档 HMAC 密钥：通过 MSBuild assembly metadata 编入游戏程序集。
 
-### Release
+本机密钥位于被 Git 忽略的 `.local-build/secrets.psd1`。构建脚本不得打印密钥。主人需要将该文件另行离线备份；丢失 PCK 密钥后无法继续使用旧模板，丢失 HMAC 密钥后新版本无法验证旧存档。
 
-Release 用于正式 Steam 构建与发布候选版本。
+初始化命令：
 
-Release 模式特征：
+```powershell
+.\lucky-dog-rise\Build\Initialize-BuildSecrets.ps1
+```
 
-- 不显示 Debug 页。
-- 不保留公开作弊入口。
-- 不保留公开跳流程入口。
-- 不保留公开解锁道具或改筹码入口。
-- 日志等级适合玩家环境。
-- 启用存档基础校验。
-- 使用加密 PCK 和自编译 Windows export template。
-- C# 混淆需在验证稳定后再纳入正式链路。
-- 构建产物应带版本号。
+不得提交或发送以下文件：
 
-## 开发体验原则
+- `.local-build/secrets.psd1`
+- `.godot/export_credentials.cfg`
+- `.local-build/maps/`
+- 生成的 Obfuscar XML 和构建中间目录
 
-构建隔离和防护不应影响日常开发效率。
+## 自定义 Windows 模板
 
-开发体验原则如下：
+加密 PCK 必须由带相同密钥编译的自定义 Godot template 读取，官方预编译模板不能读取本项目的加密包。当前模板固定为 Godot `4.6.3-stable`、Windows x86_64、.NET Release：
 
-- 日常 Godot 编辑器运行始终默认 Dev。
-- Dev 不混淆 C#。
-- Dev 不强制 PCK 加密。
-- Dev 保留调试 UI 和完整日志。
-- Playtest/Release 防护只在导出和发包链路中启用。
-- 本地应支持用启动参数或构建配置模拟 Playtest/Release 行为，避免每次验证都必须完整上传 Steam。
+```text
+target=template_release
+module_mono_enabled=yes
+production=yes
+lto=none
+debug_symbols=no
+```
 
-如果 Playtest 包崩溃或报错，混淆后的堆栈可能难读。因此若后续启用 C# 混淆，必须在主人本地保存混淆映射文件，且映射文件不能进入导出包或 Steam depot。
+模板输出到 `.local-build/templates/windows_release_x86_64.exe`。脚本保存密钥指纹；密钥变化或旧模板没有指纹时，会先清理 SCons 产物再完整重编，避免误用无密钥模板。
 
-## Debug 入口隔离
+首次配置：
 
-Playtest 和 Release 下需要移除或禁用的入口包括：
+1. 复制 `lucky-dog-rise/Build/LocalConfig.example.psd1` 为被忽略的 `LocalConfig.psd1`。
+2. 设置 Godot 4.6.3 Mono 编辑器路径和源码路径。
+3. 执行：
 
-- Debug 页签。
-- 随机狗按钮。
-- 随机场景按钮。
-- 随机获得道具按钮。
-- 播放任意小狗反应按钮。
-- 切换背包数据来源入口。
-- 调试全道具数据源。
-- 直接改筹码入口。
-- 直接解锁物品入口。
-- 直接跳盲盒或奖励流程入口。
+```powershell
+.\lucky-dog-rise\Build\Build-CustomTemplate.ps1
+```
 
-隔离要求：
-
-- 不只隐藏 UI。
-- 普通玩家路径不应能调用这些命令。
-- 明显的 Debug-only 方法和命令名应逐步避免进入 Playtest/Release 可达路径。
-- Dev 模式仍需保留这些能力，避免开发效率下降。
-
-## 存档基础校验
-
-Playtest 和 Release 需要基础存档校验，用于阻止普通文本改档。
-
-建议目标：
-
-- 存档写入时计算签名或 hash。
-- 读取存档时验证签名。
-- 签名不匹配时，不应直接加载作弊数据。
-- Dev 模式可提供更宽松的修复、迁移或重置路径。
-
-存档基础校验不是重反作弊。密钥和算法都在客户端中，专业逆向仍可能绕过。当前阶段只要求阻止“打开 JSON 改数字后直接生效”的低门槛篡改。
-
-## PCK 加密
-
-Godot 默认导出的 `.pck` 容易被公开工具解包。对于 Playtest 和 Release，应启用 PCK 加密。
-
-关键决策：
-
-- Playtest/Release 不应只依赖“内嵌 PCK”。
-- 内嵌 PCK 可以减少裸 `.pck` 文件暴露，但不是安全边界。
-- 真正用于阻止普通 Godot 解包工具直接读取资源的是加密 PCK。
-- PCK 加密密钥最终仍在客户端中，因此它不是绝对防护。
-
-PCK 加密主要保护：
-
-- 场景文件。
-- Godot 资源文件。
-- 图片、音频等导入资源。
-- Luban 导出的 JSON 数据。
-- 其它打进 PCK 的游戏数据。
-
-PCK 加密不直接解决：
-
-- C# 程序集可读性。
-- 存档篡改。
-- 内存修改。
-- 专业逆向。
-
-## Windows 导出模板
-
-普通开发和普通导出可以继续使用 Godot 官方 Windows export template。
-
-但 Playtest/Release 若要启用 PCK 加密，需要使用自编译 Windows export template。原因是 Godot 的 PCK 加密读取需要将同一把密钥编译进导出模板中。官方预编译模板不能直接承担该项目的加密 PCK 读取职责。
-
-因此决策如下：
-
-- Dev 和日常导出可继续使用官方模板。
-- Playtest 和 Release 使用自编译 Godot 4.6.3 Windows .NET export template。
-- 自编译模板需要和项目使用的 Godot 版本、.NET 支持、目标架构保持一致。
-- 自编译模板完成后，必须先用最小导出包验证启动、主场景加载、存档读取、盲盒资源和 C# 脚本运行。
-
-参考文档：
-
-- Godot 官方文档：`Compiling with PCK encryption key`
-  - `https://docs.godotengine.org/en/stable/engine_details/development/compiling/compiling_with_script_encryption_key.html`
-- Godot 官方文档：`Exporting for Windows`
-  - `https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_windows.html`
+Godot 参考：[Feature Tags](https://docs.godotengine.org/en/4.0/tutorials/export/feature_tags.html)、[PCK Encryption](https://docs.godotengine.org/en/4.6/contributing/development/compiling/compiling_with_script_encryption_key.html)、[Data Paths](https://docs.godotengine.org/en/4.6/tutorials/io/data_paths.html)。
 
 ## C# 混淆
 
-C# 混淆是后续增强项，不应在第一步强行全量启用。
+仓库通过 `.config/dotnet-tools.json` 固定 `Obfuscar.GlobalTool 2.2.50`。只处理 `LuckyDogRise.dll`，不处理 GodotSharp、.NET Runtime 或第三方程序集。
 
-原因：
+保留规则位于 `lucky-dog-rise/Build/godot-obfuscation-preserve.txt`。构建会扫描 Godot 派生类；发现新增节点类未加入保留列表时直接失败。Godot 生成入口 `GodotPlugins.Game.Main.InitializeFromGameProject` 也必须保留名称。
 
-- Godot C# 依赖生命周期方法、导出字段、信号、节点绑定和反射。
-- 过度混淆可能破坏 `_Ready`、`_Process`、`_ExitTree`、`[Export]` 字段、信号方法或序列化相关路径。
-- 混淆会让 Playtest 崩溃堆栈难以阅读。
+混淆映射保存在 `.local-build/maps/<版本>/<渠道>/`。混淆失败、入口被改名或混淆后运行异常都使构建失败，不回退到未混淆 DLL。
 
-建议策略：
+## 构建命令
 
-- 先完成构建变体和 Debug 入口隔离。
-- 再完成存档基础校验和 PCK 加密导出。
-- 最后单独评估 C# 混淆。
-- 第一次混淆采用保守白名单。
-- Godot 脚本类、导出字段、信号方法、生命周期回调先不混或少混。
-- 优先混淆内部纯逻辑类、工具类和不依赖 Godot 反射的实现细节。
-- 每次混淆规则变更后，都需要导出包运行验证。
+Playtest：
 
-需要本地保留但不能打包的内容：
+```powershell
+.\lucky-dog-rise\Build\Build-WindowsPackage.ps1 -Channel Playtest
+```
 
-- 混淆配置。
-- 混淆映射文件。
-- Playtest/Release 加密密钥。
-- 签名密钥或签名盐值。
+Release：
 
-## 导出内容排除
+```powershell
+.\lucky-dog-rise\Build\Build-WindowsPackage.ps1 -Channel Release
+```
 
-Playtest 和 Release 导出时应排除不必要内容。
+流水线固定执行：生成本地预设、Release 导出、PCK 文件与目录加密、C# 混淆、删除 PDB/console wrapper、产物检查、隐藏启动冒烟测试、生成 ZIP。
 
-不应进入包体的内容包括：
+包名：`LuckyDogPub-<version>-<channel>-win-x64.zip`。
 
-- PSD 源文件。
-- Excel 源表。
-- Luban 工具链和生成脚本。
-- Photoshop 工具脚本。
-- 开发文档。
-- 测试场景草稿，除非被正式功能引用。
-- 调试数据。
-- 本地构建脚本中的密钥文件。
-- 混淆映射文件。
+产物不得包含松散的 PDB、C# 源码、PSD、Excel、Python、Markdown、密钥、混淆映射、旧 layer index 或 console wrapper。游戏运行所需资源位于加密的内嵌 PCK。`layer_index.json` 的本机 PSD 绝对路径已清理。
 
-需要进入包体的内容应以“游戏运行所需”为判断标准。游戏面对玩家的 JSON 数据可以进入加密 PCK，但导出-only 的开发工具配置不应混入游戏包。
+Windows Authenticode 签名暂未实施；检查报告明确标记 `unsigned`，其它电脑可能显示 SmartScreen 警告。
 
-## 实施顺序
+## 自动检查
 
-当前建议实施顺序如下：
+`Verify-Build.ps1` 检查禁止文件、游戏程序集、Debug 敏感符号和签名状态。`Test-ExportedRuntime.ps1` 会隐藏启动最终 EXE 五秒，并拦截以下问题：
 
-1. 先完成被动新手引导最小版。
-2. 实现构建变体判断：`Dev`、`InternalTest`、`Playtest`、`Release`。
-3. 在 Playtest/Release 下摘除 Debug 页和作弊入口。
-4. 增加版本号和构建类型显示。
-5. 增加存档基础签名或 hash 校验。
-6. 编译带 PCK 加密 key 的 Godot 4.6.3 Windows .NET export template。
-7. 导出加密 PCK 测试包并验证主流程。
-8. 评估 C# 混淆方案，并用小范围导出包验证。
-9. 将稳定后的流程纳入 Steam Playtest 或测试分支上传流程。
+- PCK 或项目数据无法加载。
+- Godot .NET 初始化入口缺失。
+- 未处理异常或脚本错误。
+- 关键参数为空。
 
-被动新手引导放在构建隔离前，是因为它属于真实玩法交互，适合在 Dev 环境中反复调试手感。构建隔离放在该功能之后，可以减少发包前的技术债。音效功能建议放在构建隔离后再接入，因为音效设置、默认音量和日志行为与玩家环境关系更大。
+只有检查通过后才会生成 ZIP。
 
-## 验证清单
+## 2026-07-11 实际验证
 
-Playtest 包发出前至少验证以下内容：
+已完成：
 
-- 构建类型显示为 `Playtest`。
-- 游戏版本号显示正确。
-- Debug 页不可见。
-- 随机道具、改筹码、全道具数据源等入口不可见且不可从普通 UI 路径调用。
-- 新建存档可以正常创建。
-- 正常存档可以正常读取。
-- 手动篡改存档后不会直接加载作弊数据。
-- 主场景可以启动。
-- 桌宠模式可以显示。
-- 扑克模式可以进入并完成一局。
-- 盲盒提示、开盒和领奖主流程可用。
-- 加密 PCK 导出包可以启动。
-- 常见 Godot PCK 解包工具不能用默认流程直接解出完整资源。
-- 日志中不暴露密钥、签名盐值或明显开发命令。
+- Debug 与 Release 编译均为 0 错误、0 警告。
+- `SystemPanel.tscn` 的版本标签 Export NodePath 已通过场景树检查。
+- 自定义 Godot 4.6.3 .NET template 可读取加密内嵌 PCK。
+- 混淆后的 Playtest 包通过隐藏启动测试，窗口输入 hook 正常安装。
+- Playtest 存档写入 `%APPDATA%\LuckyDogRise\Playtest`，初始筹码为 1000，签名长度为 64。
+- 将主档筹码改为 `987654321` 且保留旧签名后，主档被拒绝并从有效 backup 恢复为 1000。
+- GDRE Tools `2.6.0-beta.4` 在不给密钥时报告 `Incorrect encryption key`，列出和提取的文件数均为 0。[GDRE Tools](https://github.com/GDRETools/gdsdecomp)
+- Playtest 包内没有 PDB、松散源码、密钥或混淆映射。
 
-## 当前结论
+当前产物：`GameBuild/LuckyDogPub-0.3.1-playtest-win-x64.zip`。
 
-当前阶段的结论是：
+发给外部测试者前仍需主人进行人工验收：
 
-- 构建隔离有必要做，但不应先于被动新手引导最小版。
-- Playtest 测试者应视为半公开外部测试者，而不是默认可信朋友。
-- Playtest/Release 需要比默认 Godot 导出更强的基础防护。
-- PCK 加密需要自编译 Windows export template。
-- 内嵌 PCK 不是安全边界，只能作为减少裸文件暴露的辅助手段。
-- C# 混淆可以做，但必须保守验证，不能一开始全量强混淆。
-- Dev 模式必须保持开发效率，不应因为 Playtest/Release 防护而变难调试。
+- 设置页版本文字和 Debug 页不可见。
+- 桌宠启动、透明窗口、全局输入和模式切换。
+- 完成一局扑克、音效、被动新手提示、存档重启和盲盒流程。
+- 另一台 Windows 电脑上的启动、音频、透明窗口和 SmartScreen 行为。
+
+上述人工验收是 Playtest 发包门槛；本次自动验证不等同于视觉和完整玩法验收。
