@@ -15,6 +15,7 @@ public class DeckManager
     public int[] FinalHand { get; private set; } = new int[5];
     public EHandRank PredeterminedRank { get; private set; }
     public int LastSeed { get; private set; }
+    public LuckyDealPlan LuckyDealPlan { get; private set; }
 
     private int? _fixedSeed;
 
@@ -30,7 +31,7 @@ public class DeckManager
         _fixedSeed = seed;
     }
 
-    public void Deal()
+    public void Deal(float? luckyTriggerChance = null)
     {
         // 每手用新种子，方便复现
         int seed = _fixedSeed ?? new Random().Next();
@@ -42,11 +43,21 @@ public class DeckManager
         Shuffle(_fullDeck);
         _dealIndex = 0;
 
-        // Decide outcome distribution (biased toward near-miss excitement)
-        PredeterminedRank = RollOutcome();
+        LuckyDealPlan = null;
+        if (luckyTriggerChance.HasValue && _rng.NextDouble() < luckyTriggerChance.Value)
+        {
+            LuckyDealPlan = CreateLuckyDealPlan();
+            PredeterminedRank = CardEvaluator.Evaluate(LuckyDealPlan.WinnerHand);
+            CurrentHand = (int[])LuckyDealPlan.InitialVisibleHand.Clone();
+            FinalHand = (int[])CurrentHand.Clone();
+            return;
+        }
 
-        // Generate hand based on predetermined outcome
-        CurrentHand = GenerateHandForRank(PredeterminedRank);
+        // 自然发牌不创建幸运计划：直接从洗好的 NormalDeck 取前五张，
+        // 后续补牌会从第六张继续抽取。
+        CurrentHand = _fullDeck.Take(5).ToArray();
+        _dealIndex = 5;
+        PredeterminedRank = CardEvaluator.Evaluate(CurrentHand);
         FinalHand = (int[])CurrentHand.Clone();
     }
 
@@ -57,7 +68,9 @@ public class DeckManager
         {
             if (!held[i])
             {
-                FinalHand[i] = DrawNextCard();
+                FinalHand[i] = LuckyDealPlan is { ReplacementQueue.Count: > 0 }
+                    ? LuckyDealPlan.ReplacementQueue.Dequeue()
+                    : DrawNextCard();
             }
         }
         return FinalHand;
@@ -72,13 +85,22 @@ public class DeckManager
     {
         // 预览补牌结果，不修改内部状态
         var preview = (int[])FinalHand.Clone();
-        var usedCards = new HashSet<int>(CurrentHand.Concat(FinalHand));
+        var usedCards = GetReservedCards();
         int peekIndex = _dealIndex;
+        var replacementQueue = LuckyDealPlan == null
+            ? null
+            : new Queue<int>(LuckyDealPlan.ReplacementQueue);
 
         for (int i = 0; i < 5; i++)
         {
             if (!held[i])
             {
+                if (replacementQueue is { Count: > 0 })
+                {
+                    preview[i] = replacementQueue.Dequeue();
+                    continue;
+                }
+
                 while (peekIndex < 52)
                 {
                     int card = _fullDeck[peekIndex++];
@@ -94,24 +116,63 @@ public class DeckManager
         return preview;
     }
 
-    private EHandRank RollOutcome()
+    private LuckyDealPlan CreateLuckyDealPlan()
     {
-        // Weighted distribution: biased toward exciting near-miss outcomes
-        // Total weight: 1000
-        // Nothing: 250, JacksOrBetter: 300, TwoPair: 180, ThreeOfAKind: 120,
-        // Straight: 60, Flush: 40, FullHouse: 30, FourOfAKind: 12, StraightFlush: 6, RoyalFlush: 2
-        int roll = _rng.Next(1000);
+        var luckyRows = LubanData.Tables.TbPayTable.DataList
+            .Where(row => row.LuckyWeight > 0)
+            .ToArray();
+        int totalWeight = luckyRows.Sum(row => row.LuckyWeight);
+        if (totalWeight <= 0)
+            throw new InvalidOperationException("LuckyWeight must contain at least one positive entry.");
 
-        if (roll < 250) return EHandRank.Nothing;          // 25%
-        if (roll < 550) return EHandRank.JacksOrBetter;    // 30%
-        if (roll < 730) return EHandRank.TwoPair;          // 18%
-        if (roll < 850) return EHandRank.ThreeOfAKind;     // 12%
-        if (roll < 910) return EHandRank.Straight;          // 6%
-        if (roll < 950) return EHandRank.Flush;             // 4%
-        if (roll < 980) return EHandRank.FullHouse;         // 3%
-        if (roll < 992) return EHandRank.FourOfAKind;       // 1.2%
-        if (roll < 998) return EHandRank.StraightFlush;     // 0.6%
-        return EHandRank.RoyalFlush;                        // 0.2%
+        int roll = _rng.Next(totalWeight);
+        var selected = luckyRows[0];
+        foreach (var row in luckyRows)
+        {
+            if (roll < row.LuckyWeight)
+            {
+                selected = row;
+                break;
+            }
+            roll -= row.LuckyWeight;
+        }
+
+        var winnerHand = GenerateHandForRank(selected.HandRank);
+        int hiddenCount = RollHiddenCount();
+        var hiddenIndices = Enumerable.Range(0, 5)
+            .OrderBy(_ => _rng.Next())
+            .Take(hiddenCount)
+            .ToArray();
+        var initialVisibleHand = (int[])winnerHand.Clone();
+        var reservedCards = new HashSet<int>(winnerHand);
+
+        foreach (int index in hiddenIndices)
+        {
+            int bait = DrawRandomUnreservedCard(reservedCards);
+            initialVisibleHand[index] = bait;
+            reservedCards.Add(bait);
+        }
+
+        Shuffle(initialVisibleHand);
+        var replacementQueue = hiddenIndices
+            .Select(index => winnerHand[index])
+            .OrderBy(_ => _rng.Next())
+            .ToArray();
+        return new LuckyDealPlan(winnerHand, initialVisibleHand, replacementQueue);
+    }
+
+    private int RollHiddenCount()
+    {
+        int roll = _rng.Next(100);
+        return roll < 30 ? 1 : roll < 90 ? 2 : 3;
+    }
+
+    private int DrawRandomUnreservedCard(HashSet<int> reservedCards)
+    {
+        var candidates = Enumerable.Range(0, 52)
+            .Where(card => !reservedCards.Contains(card))
+            .ToArray();
+        return candidates[_rng.Next(candidates.Length)];
     }
 
     private int[] GenerateHandForRank(EHandRank rank)
@@ -254,7 +315,7 @@ public class DeckManager
     private int DrawNextCard()
     {
         // Draw from deck, skipping cards already in hand
-        var usedCards = new HashSet<int>(CurrentHand.Concat(FinalHand));
+        var usedCards = GetReservedCards();
         while (_dealIndex < 52)
         {
             int card = _fullDeck[_dealIndex++];
@@ -265,6 +326,19 @@ public class DeckManager
         int fallback;
         do { fallback = _rng.Next(52); } while (usedCards.Contains(fallback));
         return fallback;
+    }
+
+    private HashSet<int> GetReservedCards()
+    {
+        var usedCards = new HashSet<int>(CurrentHand.Concat(FinalHand));
+        if (LuckyDealPlan != null)
+        {
+            // 隐藏赢家牌和首轮诱饵牌都不能从 NormalDeck 再次抽到。
+            usedCards.UnionWith(LuckyDealPlan.WinnerHand);
+            usedCards.UnionWith(LuckyDealPlan.InitialVisibleHand);
+            usedCards.UnionWith(LuckyDealPlan.ReplacementQueue);
+        }
+        return usedCards;
     }
 
     private static bool IsConsecutive(int[] sortedRanks)

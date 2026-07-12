@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Godot;
 
 namespace LuckyDogRise;
@@ -22,13 +23,15 @@ public sealed class SaveProfile
     public Dictionary<int, int> BlindBoxClaimedCountsBySchedule { get; set; } = new();
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LuckyDealBuffState? LuckyDealBuffState { get; set; } = new();
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
 }
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -138,6 +141,9 @@ public static class SaveManager
         profile.NewItemIds ??= new List<int>();
         profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
         profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
+        profile.LuckyDealBuffState ??= new LuckyDealBuffState();
+        profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
+        profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);
         profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
         profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 

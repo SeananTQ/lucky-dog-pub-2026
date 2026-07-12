@@ -250,7 +250,7 @@ public partial class GameManager : Node2D
     {
         _gameData.ModifyChips(-_gameData.BetAmount);
         _gameData.EmitNewHandStarted();
-        _deck.Deal();
+        _deck.Deal(_gameData.TryConsumeLuckyDealBuff(out float triggerChance) ? triggerChance : null);
         _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
         _chipStack.HideHint();

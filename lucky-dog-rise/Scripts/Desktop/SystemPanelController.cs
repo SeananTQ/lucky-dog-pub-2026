@@ -13,6 +13,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
     [Signal] public delegate void RandomAcquireItemRequestedEventHandler();
     [Signal] public delegate void DebugGrantChipsRequestedEventHandler();
+    [Signal] public delegate void DebugGrantLuckyDealsRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
@@ -292,6 +293,7 @@ public partial class SystemPanelController : CanvasLayer
         var seedCopyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
+        var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
@@ -302,6 +304,7 @@ public partial class SystemPanelController : CanvasLayer
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
+        grantLuckyDealsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantLuckyDealsRequested);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);

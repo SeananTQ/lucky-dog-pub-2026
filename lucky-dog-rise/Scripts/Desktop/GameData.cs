@@ -37,6 +37,7 @@ public partial class GameData : Node
     public ProgressionManager Progression { get; } = new();
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
+    private LuckyDealBuffState _luckyDealBuffState = new();
     private BlindBoxService _blindBoxService;
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -183,6 +184,31 @@ public partial class GameData : Node
     }
 
     public bool CanAffordBet => Chips >= BetAmount;
+    public int LuckyDealRemainingHands => _luckyDealBuffState.RemainingHands;
+
+    /// <summary>供未来消耗品和当前 Debug 共用的幸运 Buff 发放接口。</summary>
+    public void GrantLuckyDealBuff(int turns, float triggerChance)
+    {
+        if (turns <= 0)
+            return;
+
+        _luckyDealBuffState.RemainingHands = checked(_luckyDealBuffState.RemainingHands + turns);
+        _luckyDealBuffState.TriggerChance = Mathf.Clamp(triggerChance, 0f, 1f);
+        QueueSaveIfUsingLocalSave();
+    }
+
+    /// <summary>在一局成功下注时消耗一次 Buff；未触发幸运牌局同样消耗。</summary>
+    public bool TryConsumeLuckyDealBuff(out float triggerChance)
+    {
+        triggerChance = 0f;
+        if (_luckyDealBuffState.RemainingHands <= 0)
+            return false;
+
+        _luckyDealBuffState.RemainingHands--;
+        triggerChance = _luckyDealBuffState.TriggerChance;
+        QueueSaveIfUsingLocalSave();
+        return true;
+    }
 
 #if DEBUG
     public void ResetToStart()
@@ -191,6 +217,7 @@ public partial class GameData : Node
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
+        _luckyDealBuffState = new LuckyDealBuffState();
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -223,6 +250,7 @@ public partial class GameData : Node
             Chips = profile.Chips;
             TotalPlaySeconds = profile.TotalPlaySeconds;
             LoadBlindBoxState(profile);
+            LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
@@ -237,6 +265,7 @@ public partial class GameData : Node
         Chips = profile.Chips;
         TotalPlaySeconds = profile.TotalPlaySeconds;
         LoadBlindBoxState(profile);
+        LoadLuckyDealBuffState(profile);
         Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         QueueSaveIfUsingLocalSave();
 #else
@@ -246,6 +275,7 @@ public partial class GameData : Node
             Chips = profile.Chips;
             TotalPlaySeconds = profile.TotalPlaySeconds;
             LoadBlindBoxState(profile);
+            LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             QueueSaveIfUsingLocalSave();
             return;
@@ -255,6 +285,7 @@ public partial class GameData : Node
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
+        _luckyDealBuffState = new LuckyDealBuffState();
         Inventory.ResetToDebugAllItems(emitChanged: false);
         _saveDirty = false;
         _saveTimer = 0.0;
@@ -303,6 +334,7 @@ public partial class GameData : Node
             NewItemIds = Inventory.GetNewItemIds().ToList(),
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
+            LuckyDealBuffState = _luckyDealBuffState,
         });
         _saveDirty = false;
     }
@@ -311,5 +343,10 @@ public partial class GameData : Node
     {
         _blindBoxRuntimeState = profile.BlindBoxRuntimeState ?? new BlindBoxRuntimeState();
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
+    }
+
+    private void LoadLuckyDealBuffState(SaveProfile profile)
+    {
+        _luckyDealBuffState = profile.LuckyDealBuffState ?? new LuckyDealBuffState();
     }
 }

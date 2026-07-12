@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -29,7 +29,7 @@ internal static class SaveIntegrity
 
     public static bool Verify(SaveProfile profile)
     {
-        if (profile.IntegrityVersion != CurrentVersion
+        if (profile.IntegrityVersion is not (1 or CurrentVersion)
             || string.IsNullOrWhiteSpace(profile.IntegrityTag)
             || !BuildInfo.TryGetSaveHmacKey(out var key))
             return false;
@@ -45,12 +45,12 @@ internal static class SaveIntegrity
         }
 
         using var hmac = new HMACSHA256(key);
-        var actual = hmac.ComputeHash(GetCanonicalBytes(profile));
+        var actual = hmac.ComputeHash(GetCanonicalBytes(profile, profile.IntegrityVersion));
         return expected.Length == actual.Length
             && CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 
-    private static byte[] GetCanonicalBytes(SaveProfile profile)
+    private static byte[] GetCanonicalBytes(SaveProfile profile, int integrityVersion = CurrentVersion)
     {
         var canonical = new SaveProfile
         {
@@ -68,11 +68,25 @@ internal static class SaveIntegrity
             BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
+            // v1 存档的签名没有这个字段；保持 null 并由 JsonIgnore 省略，兼容旧 HMAC。
+            LuckyDealBuffState = integrityVersion >= 2
+                ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState)
+                : null,
             CreatedAt = profile.CreatedAt ?? string.Empty,
             UpdatedAt = profile.UpdatedAt ?? string.Empty,
         };
 
         return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical, CanonicalJsonOptions));
+    }
+
+    private static LuckyDealBuffState CanonicalizeLuckyDealBuff(LuckyDealBuffState? state)
+    {
+        state ??= new LuckyDealBuffState();
+        return new LuckyDealBuffState
+        {
+            RemainingHands = Math.Max(0, state.RemainingHands),
+            TriggerChance = Math.Clamp(state.TriggerChance, 0f, 1f),
+        };
     }
 
     private static Dictionary<int, int> SortDictionary(Dictionary<int, int>? source)

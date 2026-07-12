@@ -166,6 +166,7 @@ public partial class ModeManager : Control
         _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
         _settingsPanel.RandomAcquireItemRequested += OnRandomAcquireItem;
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
+        _settingsPanel.DebugGrantLuckyDealsRequested += OnDebugGrantLuckyDeals;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
@@ -829,6 +830,11 @@ public partial class ModeManager : Control
     private void OnDebugGrantChips()
     {
         _gameData.ModifyChips(8000);
+    }
+
+    private void OnDebugGrantLuckyDeals()
+    {
+        _gameData.GrantLuckyDealBuff(10, 0.75f);
     }
 #endif
 
