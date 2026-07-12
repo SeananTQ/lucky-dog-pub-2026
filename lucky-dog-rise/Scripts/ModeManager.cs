@@ -357,9 +357,12 @@ public partial class ModeManager : Control
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
-            if (_gameData.PendingBlindBoxReward != null)
-                _gameManager.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
         }
+
+        // 扑克根节点会在模式切换时复用；每次回来都要以共享进度重建盲盒外壳，
+        // 否则它会保留离开扑克模式前的旧盲盒贴图。
+        if (_gameData.PendingBlindBoxReward != null)
+            _gameManager.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
 
         // 切换游玩模式的胖窗口尺寸（左信息面板 + 视觉缝隙 + 600×600 游戏内容 + 420 缓冲）
         SetupPlayFatWindow();
