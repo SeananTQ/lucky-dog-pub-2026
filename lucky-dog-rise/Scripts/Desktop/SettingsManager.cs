@@ -9,6 +9,7 @@ public static class SettingsManager
     private const string SectionSystem = "system";
     private const string SectionDisplay = "display";
     private const string SectionLocalization = "localization";
+    private const string SectionTutorialProgress = "tutorial_progress";
     private const string KeyAudioEnabled = "enabled";
     private const string KeySfxVolume = "sfx_volume";
     private const string KeyBgmVolume = "bgm_volume";
@@ -29,6 +30,14 @@ public static class SettingsManager
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyLocale = "locale";
+    public const int InitialMeetingTutorialId = 1001;
+
+    public enum TutorialStepState
+    {
+        NotStarted = 0,
+        Shown = 1,
+        Completed = 2,
+    }
 
     public enum DisplayMode
     {
@@ -325,13 +334,60 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    // === 教程进度 ===
+    // 以教程 ID -> 步骤状态保存，支持未来一套教程包含多个处于不同阶段的步骤。
+    public static TutorialStepState LoadTutorialStepState(int tutorialId)
+    {
+        var config = Load();
+        return (TutorialStepState)(int)config.GetValue(
+            SectionTutorialProgress,
+            GetTutorialStateKey(tutorialId),
+            (int)TutorialStepState.NotStarted);
+    }
+
+    public static void SaveTutorialStepState(int tutorialId, TutorialStepState state)
+    {
+        var config = Load();
+        config.SetValue(SectionTutorialProgress, GetTutorialStateKey(tutorialId), (int)state);
+        config.Save(Path);
+    }
+
+    /// <summary>
+    /// 在设置页创建默认配置前判定初次见面状态。
+    /// 已有旧版设置文件但没有教程状态的安装，视为已见面，避免版本更新后重复首次见面布局。
+    /// </summary>
+    public static TutorialStepState LoadInitialMeetingStateForStartup()
+    {
+        var hadSettingsFile = FileAccess.FileExists(Path);
+        var config = Load();
+        var key = GetTutorialStateKey(InitialMeetingTutorialId);
+        if (config.HasSectionKey(SectionTutorialProgress, key))
+            return (TutorialStepState)(int)config.GetValue(SectionTutorialProgress, key, (int)TutorialStepState.NotStarted);
+
+        if (!hadSettingsFile)
+            return TutorialStepState.NotStarted;
+
+        config.SetValue(SectionTutorialProgress, key, (int)TutorialStepState.Shown);
+        config.Save(Path);
+        return TutorialStepState.Shown;
+    }
+
     public static void ResetToDefaults()
     {
         CurrentDisplayMode = DisplayMode.Clock;
+        var previousConfig = Load();
+        var tutorialProgress = new System.Collections.Generic.Dictionary<string, Variant>();
+        foreach (var key in previousConfig.GetSectionKeys(SectionTutorialProgress))
+            tutorialProgress[key] = previousConfig.GetValue(SectionTutorialProgress, key);
+
         var config = new ConfigFile();
+        foreach (var (key, value) in tutorialProgress)
+            config.SetValue(SectionTutorialProgress, key, value);
         config.Save(Path);
         ProactiveInteractionHintsChanged?.Invoke(true);
     }
+
+    private static string GetTutorialStateKey(int tutorialId) => $"tutorial_{tutorialId}";
 
     private static ConfigFile Load()
     {

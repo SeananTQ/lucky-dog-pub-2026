@@ -115,6 +115,7 @@ public partial class ModeManager : Control
         }
 
         L10n.ApplySavedOrSystemLocale();
+        var initialMeetingState = SettingsManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
         _gameData.Name = "GameData";
@@ -194,7 +195,22 @@ public partial class ModeManager : Control
         ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
-        SetWindowAboveTaskbar();
+        if (initialMeetingState == SettingsManager.TutorialStepState.NotStarted)
+        {
+            // A：初次见面，保持当前居中出现的位置，为后续右侧新手引导预留空间。
+            SetWindowAboveTaskbar();
+            SettingsManager.SaveTutorialStepState(
+                SettingsManager.InitialMeetingTutorialId,
+                SettingsManager.TutorialStepState.Shown);
+        }
+        else
+        {
+            // B：非初次见面的启动位置，与 C：从扑克切回桌宠使用同一套右侧面板预留公式。
+            var startupScreen = GetBestScreenUsableRect(new Rect2I(
+                DisplayServer.WindowGetPosition(),
+                new Vector2I((int)_windowBaseSize.X, (int)_windowBaseSize.Y)));
+            PositionBossKeyForRightPlayPanel(startupScreen);
+        }
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
         EnableLayeredWindow();
 
@@ -365,6 +381,8 @@ public partial class ModeManager : Control
     private void SwitchToBossKey()
     {
         if (CurrentMode == Mode.BossKey) return;
+        var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
+        CancelWindowDrag();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         if (_playRoot != null)
@@ -376,6 +394,7 @@ public partial class ModeManager : Control
 
         ShowBossKeyContent();
         SetupFatWindow();
+        PositionBossKeyForRightPlayPanel(playScreen);
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
         RefreshSettingsPanelModeActions();
@@ -1217,6 +1236,39 @@ public partial class ModeManager : Control
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
     }
 
+    /// <summary>
+    /// 反推桌宠窗口位置，使切回扑克后 Main 右侧能完整展开运行时尺寸的系统设置面板。
+    /// 同时夹紧桌宠 A 区，避免桌宠跑出目标显示器工作区。
+    /// </summary>
+    private void PositionBossKeyForRightPlayPanel(Rect2I screen)
+    {
+        const int pad = 5;
+
+        var anchor = _bossTaskBarAnchor.Position;
+        int anchorY = (int)(_contentOffset.Y + anchor.Y);
+        int taskbarTop = screen.End.Y;
+
+        // _playViewport.Position.X 是扑克内容左侧信息面板的实际宽度；
+        // _panelSize 则直接来自系统设置面板的运行时尺寸，避免未来改面板宽度后坐标公式失效。
+        int playContentWidth = _playViewport == null
+            ? PlayInfoPanelWidth + PlayGameWidth
+            : Mathf.CeilToInt(_playViewport.Position.X
+                + _playViewport.Size.X * _playViewport.Scale.X);
+        int requiredRightSpace = playContentWidth + PlayGameSettingsGap + Mathf.CeilToInt(_panelSize.X);
+        int desiredWindowX = screen.End.X - pad - requiredRightSpace;
+
+        int minWindowX = screen.Position.X + pad - (int)_contentOffset.X;
+        int maxWindowX = screen.End.X - pad - (int)_contentOffset.X - (int)_windowBaseSize.X;
+        if (maxWindowX < minWindowX)
+            maxWindowX = minWindowX;
+
+        var windowPosition = new Vector2I(
+            Math.Clamp(desiredWindowX, minWindowX, maxWindowX),
+            taskbarTop - anchorY);
+        DisplayServer.WindowSetPosition(windowPosition);
+        ApplyBossCounterLayout();
+    }
+
     private void ApplyTaskbarSnap(ref Vector2I newPos)
     {
         if (!SettingsManager.LoadSnapToWindowsTaskbar())
@@ -1286,6 +1338,17 @@ public partial class ModeManager : Control
             newY -= contentRect.End.Y - (screen.End.Y - pad);
 
         DisplayServer.WindowSetPosition(new Vector2I(newX, newY));
+    }
+
+    private Rect2I GetPlayGameScreenRect()
+    {
+        var windowPosition = DisplayServer.WindowGetPosition();
+        if (_playViewport == null)
+            return new Rect2I(windowPosition, DisplayServer.WindowGetSize());
+
+        return new Rect2I(
+            windowPosition + (Vector2I)_playViewport.Position,
+            (Vector2I)(_playViewport.Size * _playViewport.Scale));
     }
 
     private static Rect2I GetBestScreenUsableRect(Rect2I targetRect)
@@ -1392,6 +1455,15 @@ public partial class ModeManager : Control
     {
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
             && CurrentMode == Mode.Play
+            && (_potentialDrag || _isDragging))
+        {
+            CancelWindowDrag();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
+            && CurrentMode == Mode.Play
             && SettingsManager.LoadRightClickQuickModeSwitch()
             && _playViewport != null)
         {
@@ -1447,6 +1519,13 @@ public partial class ModeManager : Control
                 GetViewport().SetInputAsHandled();
             }
         }
+    }
+
+    private void CancelWindowDrag()
+    {
+        _isDragging = false;
+        _potentialDrag = false;
+        _taskbarSnapped = false;
     }
 
 #if DEBUG
