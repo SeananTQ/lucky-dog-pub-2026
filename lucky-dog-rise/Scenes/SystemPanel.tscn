@@ -426,6 +426,21 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="PreventAccidentalDragRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="PreventAccidentalDragLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_PreventAccidentalDrag"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="PreventAccidentalDragToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
 layout_mode = 2
 

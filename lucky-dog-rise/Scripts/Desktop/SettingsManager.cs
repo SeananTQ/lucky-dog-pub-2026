@@ -29,6 +29,7 @@ public static class SettingsManager
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
+    private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
     private const string KeyLocale = "locale";
     public const int InitialMeetingTutorialId = 1001;
 
@@ -311,6 +312,19 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionSystem, KeyRightClickQuickModeSwitch, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadPreventAccidentalDrag()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyPreventAccidentalDrag, false);
+    }
+
+    public static void SavePreventAccidentalDrag(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyPreventAccidentalDrag, enabled);
         config.Save(Path);
     }
 

@@ -40,7 +40,10 @@ public partial class ModeManager : Control
 
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
-    private const float DragThreshold = 5f;
+    private ulong _dragPressStartedAtMsec;
+    private const float DefaultDragThreshold = 5f;
+    private const float ProtectedPlayDragThreshold = 6f;
+    private const ulong ProtectedPlayDragHoldDelayMsec = 70;
     private const int PlayInfoPanelWidth = 246;
     private const int PlayGameWidth = 600;
     private const int PlayGameSettingsGap = 0;
@@ -1564,9 +1567,9 @@ public partial class ModeManager : Control
                     int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
                     if (new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos)) return;
                 }
-
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();
+                _dragPressStartedAtMsec = Time.GetTicksMsec();
                 _potentialDrag = true;
             }
             else
@@ -1578,9 +1581,25 @@ public partial class ModeManager : Control
         }
         else if (@event is InputEventMouseMotion && _potentialDrag)
         {
-            var d = DisplayServer.MouseGetPosition() - _mouseScreenStart;
-            if (Mathf.Abs(d.X) > DragThreshold || Mathf.Abs(d.Y) > DragThreshold)
-            { _isDragging = true; SetClickThrough(false); }
+            var mouseScreenPosition = DisplayServer.MouseGetPosition();
+            var d = mouseScreenPosition - _mouseScreenStart;
+            bool useAccidentalDragProtection = CurrentMode == Mode.Play
+                && SettingsManager.LoadPreventAccidentalDrag();
+            float dragThreshold = useAccidentalDragProtection
+                ? ProtectedPlayDragThreshold
+                : DefaultDragThreshold;
+            bool movedFarEnough = d.LengthSquared() >= dragThreshold * dragThreshold;
+            bool heldLongEnough = !useAccidentalDragProtection
+                || Time.GetTicksMsec() - _dragPressStartedAtMsec >= ProtectedPlayDragHoldDelayMsec;
+            if (!_isDragging && movedFarEnough && heldLongEnough)
+            {
+                // 确认是拖拽意图后才重新取锚点，避免窗口补跳此前点击抖动产生的距离。
+                _isDragging = true;
+                _mouseScreenStart = mouseScreenPosition;
+                _windowPosStart = DisplayServer.WindowGetPosition();
+                d = Vector2I.Zero;
+                SetClickThrough(false);
+            }
             if (_isDragging)
             {
                 var newPos = _windowPosStart + d;
