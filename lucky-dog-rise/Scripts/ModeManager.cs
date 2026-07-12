@@ -35,6 +35,8 @@ public partial class ModeManager : Control
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
     private Vector2 _contentOffset;
+    // 延迟到桌宠已绘制一帧后才移动窗口；用于让过期的延迟移动失效。
+    private int _modeSwitchRevision;
 
     private bool _isDragging, _potentialDrag, _isClickThrough = true;
     private Vector2I _mouseScreenStart, _windowPosStart;
@@ -195,6 +197,8 @@ public partial class ModeManager : Control
         ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
+        bool deferBossStartupReveal = false;
+        Rect2I deferredBossStartupScreen = default;
         if (initialMeetingState == SettingsManager.TutorialStepState.NotStarted)
         {
             // A：初次见面，保持当前居中出现的位置，为后续右侧新手引导预留空间。
@@ -206,10 +210,13 @@ public partial class ModeManager : Control
         else
         {
             // B：非初次见面的启动位置，与 C：从扑克切回桌宠使用同一套右侧面板预留公式。
-            var startupScreen = GetBestScreenUsableRect(new Rect2I(
+            deferredBossStartupScreen = GetBestScreenUsableRect(new Rect2I(
                 DisplayServer.WindowGetPosition(),
                 new Vector2I((int)_windowBaseSize.X, (int)_windowBaseSize.Y)));
-            PositionBossKeyForRightPlayPanel(startupScreen);
+            // Godot 启动图仍在宿主窗口中时不能移动窗口，否则会看到启动图闪到任务栏。
+            // 先绘制一个透明首帧，再在首帧结束后移动并显示桌宠。
+            deferBossStartupReveal = true;
+            HideBossKeyContent();
         }
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
         EnableLayeredWindow();
@@ -230,7 +237,10 @@ public partial class ModeManager : Control
         tracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
         AddChild(tracker);
 
-        CallDeferred(MethodName.PlayBossRiseIntro);
+        if (deferBossStartupReveal)
+            RevealBossStartupAfterFirstDraw(deferredBossStartupScreen);
+        else
+            CallDeferred(MethodName.PlayBossRiseIntro);
     }
 
     private double _displayTimer;
@@ -317,6 +327,7 @@ public partial class ModeManager : Control
     private void SwitchToPlay()
     {
         if (CurrentMode == Mode.Play) return;
+        _modeSwitchRevision++;
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         HideBossKeyContent();
@@ -381,9 +392,14 @@ public partial class ModeManager : Control
     private void SwitchToBossKey()
     {
         if (CurrentMode == Mode.BossKey) return;
+        int switchRevision = ++_modeSwitchRevision;
         var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
         CancelWindowDrag();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
+
+        // DWM Cloak 会让窗口对玩家不可见，但仍允许 Godot 在后台继续 resize、移动和绘制。
+        // 因此窗口移动时不会再携带合成器中残留的扑克画面。
+        bool windowCloaked = SetNativeWindowCloaked(true);
 
         if (_playRoot != null)
             _playRoot.Visible = false;
@@ -392,12 +408,50 @@ public partial class ModeManager : Control
         _gameManager?.SetInteractionHintPokerModeActive(false);
         AudioManager.Instance.SetBgmPaused(!SettingsManager.LoadPlayBgmInDesktop());
 
-        ShowBossKeyContent();
+        // 先把扑克和桌宠都隐藏，进入透明交接；移动过程不会带着扑克矩形。
+        HideBossKeyContent();
         SetupFatWindow();
-        PositionBossKeyForRightPlayPanel(playScreen);
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
         RefreshSettingsPanelModeActions();
+
+        RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
+    }
+
+    private async void RevealBossKeyAfterTransparentHandoff(Rect2I screen, int switchRevision, bool windowCloaked)
+    {
+        // 此时扑克和桌宠均不可见。连续等待两次完整绘制，确保 Windows 合成器
+        // 已用透明画面替换掉此前正在显示的扑克帧，再移动宿主窗口。
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+
+        // 若这一帧内已经切回扑克模式，不能再移动宿主窗口。
+        if (switchRevision != _modeSwitchRevision || CurrentMode != Mode.BossKey)
+        {
+            if (windowCloaked)
+                SetNativeWindowCloaked(false);
+            return;
+        }
+
+        PositionBossKeyForRightPlayPanel(screen);
+        ShowBossKeyContent();
+
+        // 让桌宠画面在 Cloak 状态下真正进入交换链，再交还给 DWM 显示。
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+
+        if (windowCloaked)
+            SetNativeWindowCloaked(false);
+    }
+
+    private async void RevealBossStartupAfterFirstDraw(Rect2I screen)
+    {
+        // 启动图消失后的第一个游戏帧保持透明，避免移动时把 Godot Logo 一起带走。
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+
+        PositionBossKeyForRightPlayPanel(screen);
+        ShowBossKeyContent();
+        PlayBossRiseIntro();
     }
 
     private void OnDesktopBgmPlaybackChanged(bool enabled)
@@ -1437,6 +1491,28 @@ public partial class ModeManager : Control
         WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style);
         WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
             WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
+    }
+
+    private static bool SetNativeWindowCloaked(bool cloaked)
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd == IntPtr.Zero)
+            return false;
+
+        int value = cloaked ? 1 : 0;
+        int result = WindowNative.DwmSetWindowAttribute(
+            hWnd,
+            WindowNative.DWMWA_CLOAK,
+            ref value,
+            sizeof(int));
+        if (result >= 0)
+            return true;
+
+        GD.PushWarning($"DwmSetWindowAttribute(DWMWA_CLOAK) failed: 0x{result:X8}");
+        return false;
     }
 
     private static void ReassertTopmostNoActivate()
