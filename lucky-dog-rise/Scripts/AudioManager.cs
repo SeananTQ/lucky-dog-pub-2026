@@ -147,6 +147,13 @@ public partial class AudioManager : Node
         _bgmPlayer?.Stop();
     }
 
+    /// <summary>暂停或恢复当前 BGM，保留曲目与播放进度。</summary>
+    public void SetBgmPaused(bool paused)
+    {
+        if (_bgmPlayer != null)
+            _bgmPlayer.StreamPaused = paused;
+    }
+
     public void SetSfxVolume(float linear)
     {
         SfxVolume = Mathf.Clamp(linear, 0f, 1f);

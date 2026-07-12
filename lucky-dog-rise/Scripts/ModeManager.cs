@@ -154,6 +154,7 @@ public partial class ModeManager : Control
         _settingsPanel.GameData = _gameData;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
+        _settingsPanel.DesktopBgmPlaybackChanged += OnDesktopBgmPlaybackChanged;
 #if DEBUG
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
         _settingsPanel.RandomizeDogRequested += OnRandomizeDog;
@@ -338,6 +339,7 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+        AudioManager.Instance.SetBgmPaused(false);
         _gameManager.SetInteractionHintPokerModeActive(true);
         RefreshSettingsPanelModeActions();
     }
@@ -370,12 +372,19 @@ public partial class ModeManager : Control
         if (_infoPanel != null)
             _infoPanel.Visible = false;
         _gameManager?.SetInteractionHintPokerModeActive(false);
+        AudioManager.Instance.SetBgmPaused(!SettingsManager.LoadPlayBgmInDesktop());
 
         ShowBossKeyContent();
         SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
         RefreshSettingsPanelModeActions();
+    }
+
+    private void OnDesktopBgmPlaybackChanged(bool enabled)
+    {
+        if (CurrentMode == Mode.BossKey)
+            AudioManager.Instance.SetBgmPaused(!enabled);
     }
 
     private void HideBossKeyContent()

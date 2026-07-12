@@ -12,6 +12,7 @@ public static class SettingsManager
     private const string KeyAudioEnabled = "enabled";
     private const string KeySfxVolume = "sfx_volume";
     private const string KeyBgmVolume = "bgm_volume";
+    private const string KeyPlayBgmInDesktop = "play_bgm_in_desktop";
     private const string KeyAlwaysOnTop = "always_on_top";
     private const string KeyTaskbarIcon = "taskbar_icon";
     private const string KeyAutoHidePanel = "auto_hide_panel";
@@ -62,6 +63,19 @@ public static class SettingsManager
     public static void SaveSfxVolume(float volume) => SaveAudioVolume(KeySfxVolume, volume);
 
     public static void SaveBgmVolume(float volume) => SaveAudioVolume(KeyBgmVolume, volume);
+
+    public static bool LoadPlayBgmInDesktop()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionAudio, KeyPlayBgmInDesktop, false);
+    }
+
+    public static void SavePlayBgmInDesktop(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionAudio, KeyPlayBgmInDesktop, enabled);
+        config.Save(Path);
+    }
 
     private static float LoadAudioVolume(string key, float newUserDefault, float legacyEnabledVolume)
     {

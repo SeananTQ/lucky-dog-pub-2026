@@ -17,6 +17,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
+    [Signal] public delegate void DesktopBgmPlaybackChangedEventHandler(bool enabled);
     [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
@@ -64,6 +65,7 @@ public partial class SystemPanelController : CanvasLayer
     private HSlider _bgmVolumeSlider = null!;
     private Label _sfxVolumeValueLabel = null!;
     private Label _bgmVolumeValueLabel = null!;
+    private CheckButton _desktopBgmToggle = null!;
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
 #if DEBUG
@@ -175,6 +177,7 @@ public partial class SystemPanelController : CanvasLayer
         _bgmVolumeSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow/BgmVolumeSlider");
         _sfxVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeValueLabel");
         _bgmVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow/BgmVolumeValueLabel");
+        _desktopBgmToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopBgmRow/DesktopBgmToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
@@ -264,6 +267,7 @@ public partial class SystemPanelController : CanvasLayer
 
         _sfxVolumeSlider.ValueChanged += OnSfxVolumeChanged;
         _bgmVolumeSlider.ValueChanged += OnBgmVolumeChanged;
+        _desktopBgmToggle.Toggled += OnDesktopBgmToggled;
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
 #if DEBUG
@@ -702,6 +706,12 @@ public partial class SystemPanelController : CanvasLayer
         RefreshVolumeLabel(_bgmVolumeValueLabel, volume);
     }
 
+    private void OnDesktopBgmToggled(bool enabled)
+    {
+        SettingsManager.SavePlayBgmInDesktop(enabled);
+        EmitSignal(SignalName.DesktopBgmPlaybackChanged, enabled);
+    }
+
     private void OnAlwaysShowBlindBoxBubbleToggled(bool enabled)
     {
         SettingsManager.SaveAlwaysShowBlindBoxBubble(enabled);
@@ -740,6 +750,7 @@ public partial class SystemPanelController : CanvasLayer
 
         RefreshSettingsControlsFromStorage();
         RefreshAudioControlsFromStorage();
+        EmitSignal(SignalName.DesktopBgmPlaybackChanged, _desktopBgmToggle.ButtonPressed);
         _gameData.SetSaveDataMode(SettingsManager.LoadSaveDataMode());
         EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
         EmitSignal(SignalName.CounterLayoutChanged);
@@ -781,6 +792,7 @@ public partial class SystemPanelController : CanvasLayer
         var bgmVolume = SettingsManager.LoadBgmVolume();
         _sfxVolumeSlider.SetValueNoSignal(sfxVolume);
         _bgmVolumeSlider.SetValueNoSignal(bgmVolume);
+        _desktopBgmToggle.SetPressedNoSignal(SettingsManager.LoadPlayBgmInDesktop());
         RefreshVolumeLabel(_sfxVolumeValueLabel, sfxVolume);
         RefreshVolumeLabel(_bgmVolumeValueLabel, bgmVolume);
         AudioManager.Instance.SetSfxVolume(sfxVolume);
