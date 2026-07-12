@@ -20,6 +20,7 @@ public sealed partial class PayTable : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["PayoutMultiplier"].IsNumber) { throw new SerializationException(); }  PayoutMultiplier = _buf["PayoutMultiplier"]; }
         { if(!_buf["HandRank"].IsNumber) { throw new SerializationException(); }  HandRank = (EHandRank)_buf["HandRank"].AsInt; }
+        { if(!_buf["LuckyWeight"].IsNumber) { throw new SerializationException(); }  LuckyWeight = _buf["LuckyWeight"]; }
         { if(!_buf["OriginalName"].IsString) { throw new SerializationException(); }  OriginalName = _buf["OriginalName"]; }
         { if(!_buf["SafeName_EN"].IsString) { throw new SerializationException(); }  SafeNameEN = _buf["SafeName_EN"]; }
         { if(!_buf["SafeName_CN"].IsString) { throw new SerializationException(); }  SafeNameCN = _buf["SafeName_CN"]; }
@@ -33,6 +34,7 @@ public sealed partial class PayTable : Luban.BeanBase
     public readonly int Id;
     public readonly int PayoutMultiplier;
     public readonly EHandRank HandRank;
+    public readonly int LuckyWeight;
     public readonly string OriginalName;
     public readonly string SafeNameEN;
     public readonly string SafeNameCN;
@@ -50,6 +52,7 @@ public sealed partial class PayTable : Luban.BeanBase
         + "Id:" + Id + ","
         + "PayoutMultiplier:" + PayoutMultiplier + ","
         + "HandRank:" + HandRank + ","
+        + "LuckyWeight:" + LuckyWeight + ","
         + "OriginalName:" + OriginalName + ","
         + "SafeNameEN:" + SafeNameEN + ","
         + "SafeNameCN:" + SafeNameCN + ","
