@@ -28,6 +28,8 @@ public partial class AudioManager : Node
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
     private AudioStreamPlayer _bgmPlayer = null!;
     private int _lastBgmId = -1;
+    private bool _bgmPausedForDesktop;
+    private bool _bgmPausedForVolume;
 
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
     public float SfxVolume { get; private set; } = 0.5f;
@@ -84,6 +86,9 @@ public partial class AudioManager : Node
 
     private void PlaySfxInternal(string cue, string state, float pitchCenter, float pitchVariation)
     {
+        if (SfxVolume <= 0f)
+            return;
+
         if (!TryResolve(AudioKind.Sfx, cue, state, out var stream))
             return;
 
@@ -150,19 +155,23 @@ public partial class AudioManager : Node
     /// <summary>暂停或恢复当前 BGM，保留曲目与播放进度。</summary>
     public void SetBgmPaused(bool paused)
     {
-        if (_bgmPlayer != null)
-            _bgmPlayer.StreamPaused = paused;
+        _bgmPausedForDesktop = paused;
+        RefreshBgmPausedState();
     }
 
     public void SetSfxVolume(float linear)
     {
         SfxVolume = Mathf.Clamp(linear, 0f, 1f);
+        if (SfxVolume <= 0f)
+            StopAllSfx();
         ApplyBusVolume(AudioKind.Sfx, SfxVolume);
     }
 
     public void SetBgmVolume(float linear)
     {
         BgmVolume = Mathf.Clamp(linear, 0f, 1f);
+        _bgmPausedForVolume = BgmVolume <= 0f;
+        RefreshBgmPausedState();
         ApplyBusVolume(AudioKind.Bgm, BgmVolume);
     }
 
@@ -300,6 +309,18 @@ public partial class AudioManager : Node
 
         // 所有槽位繁忙时复用最早创建的槽位；普通 UI 音效不会因此阻塞主流程。
         return _sfxPlayers[0];
+    }
+
+    private void StopAllSfx()
+    {
+        foreach (var player in _sfxPlayers)
+            player.Stop();
+    }
+
+    private void RefreshBgmPausedState()
+    {
+        if (_bgmPlayer != null)
+            _bgmPlayer.StreamPaused = _bgmPausedForDesktop || _bgmPausedForVolume;
     }
 
     private void ApplyBusVolume(AudioKind kind, float linear)

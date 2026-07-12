@@ -22,6 +22,7 @@ Settings_Language_Japanese,日本語,日本語,日本語,日本語,200108,Settin
 Settings_ShowOverFullscreenApps,Show Over Fullscreen Apps,全屏应用上方显示,顯示於全螢幕應用程式上方,全画面アプリの上に表示,200109,Settings,全屏应用显示设置
 Settings_EnhancedAlwaysOnTop,Enhanced Always On Top,增强置顶,增強置頂,強化最前面表示,200110,Settings,窗口置顶增强设置
 Settings_ProactiveInteractionHints,Proactive Interaction Hints,主动操作提示,主動操作提示,操作ヒントを自動表示,200111,Settings,扑克模式无操作五秒后的主动提示
+Settings_RightClickQuickModeSwitch,Enable Right-click Quick Mode Switch,启用右键快速切换模式,啟用右鍵快速切換模式,右クリックでクイックモード切替を有効化,200114,Settings,扑克主场景右键切换桌宠模式
 Settings_DesktopPet,Desktop Pet,桌宠,桌面寵物,デスクトップコンパニオン,200201,Settings,设置页分组标题
 Settings_AutoHidePanelOnFocusLoss,Auto-hide Panel on Focus Loss,失焦时自动隐藏面板,失去焦點時自動隱藏面板,フォーカス喪失時にパネルを自動で隠す,200202,Settings,桌宠面板行为设置
 Settings_TongueInstantMode,Tongue Instant Mode,舌头即时模式,舌頭即時模式,舌の即時モード,200203,Settings,桌宠舌头反馈设置

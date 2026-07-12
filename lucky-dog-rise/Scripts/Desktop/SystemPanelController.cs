@@ -66,6 +66,7 @@ public partial class SystemPanelController : CanvasLayer
     private Label _sfxVolumeValueLabel = null!;
     private Label _bgmVolumeValueLabel = null!;
     private CheckButton _desktopBgmToggle = null!;
+    private CheckButton _rightClickQuickModeSwitchToggle = null!;
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
 #if DEBUG
@@ -178,6 +179,7 @@ public partial class SystemPanelController : CanvasLayer
         _sfxVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeValueLabel");
         _bgmVolumeValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BgmVolumeRow/BgmVolumeValueLabel");
         _desktopBgmToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopBgmRow/DesktopBgmToggle");
+        _rightClickQuickModeSwitchToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/RightClickQuickModeSwitchRow/RightClickQuickModeSwitchToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
@@ -268,6 +270,7 @@ public partial class SystemPanelController : CanvasLayer
         _sfxVolumeSlider.ValueChanged += OnSfxVolumeChanged;
         _bgmVolumeSlider.ValueChanged += OnBgmVolumeChanged;
         _desktopBgmToggle.Toggled += OnDesktopBgmToggled;
+        _rightClickQuickModeSwitchToggle.Toggled += enabled => SettingsManager.SaveRightClickQuickModeSwitch(enabled);
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
 #if DEBUG
@@ -771,6 +774,7 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
+        _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle")

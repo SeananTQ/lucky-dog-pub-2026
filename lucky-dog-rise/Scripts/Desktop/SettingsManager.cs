@@ -27,6 +27,7 @@ public static class SettingsManager
     private const string KeyDisplayMode = "mode";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
+    private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyLocale = "locale";
 
     public enum DisplayMode
@@ -290,6 +291,19 @@ public static class SettingsManager
     }
 
     public static event System.Action<bool> ProactiveInteractionHintsChanged;
+
+    public static bool LoadRightClickQuickModeSwitch()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyRightClickQuickModeSwitch, true);
+    }
+
+    public static void SaveRightClickQuickModeSwitch(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyRightClickQuickModeSwitch, enabled);
+        config.Save(Path);
+    }
 
     public static void SaveCenterCounterOnTaskbar(bool enabled)
     {

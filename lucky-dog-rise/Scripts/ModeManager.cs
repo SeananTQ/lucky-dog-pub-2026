@@ -1390,6 +1390,21 @@ public partial class ModeManager : Control
 
     public override void _Input(InputEvent @event)
     {
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
+            && CurrentMode == Mode.Play
+            && SettingsManager.LoadRightClickQuickModeSwitch()
+            && _playViewport != null)
+        {
+            var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
+            var gameRect = new Rect2(_playViewport.Position, _playViewport.Size * _playViewport.Scale);
+            if (gameRect.HasPoint(localPos))
+            {
+                SwitchToBossKey();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
+
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
             if (mb.Pressed)
