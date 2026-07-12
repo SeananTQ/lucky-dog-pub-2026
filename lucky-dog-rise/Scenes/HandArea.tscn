@@ -26,7 +26,7 @@ position = Vector2(166, -21)
 texture = ExtResource("3_0cj6n")
 
 [node name="Clothes" type="Sprite2D" parent="." unique_id=259657404]
-position = Vector2(126, -15)
+position = Vector2(170, -14)
 texture = ExtResource("3_oqccp")
 
 [node name="Accessory" type="Sprite2D" parent="." unique_id=1593680809]

@@ -18,11 +18,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
 
     public bool Enabled { get; set; }
 
-    // PSD → HandArea 本地坐标转换参数（不同部位独立偏移）
-    private const float OffsetX = -50f;
-    private const float OffsetY = 1127f;
-    private const float OffsetXAcc = -50f;
-    private const float OffsetYAcc = 1127f;
+    private const string V1ResourcePrefix = "res://Assets/v1/";
 
     private Button _hitButton = null!;
     private Sprite2D _arm = null!;
@@ -30,7 +26,13 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     private Sprite2D _accessory = null!;
     private bool _isKnocking;
     private Tween _hintTween;
-    private Dictionary<string, Vector2> _positionCache = null!;
+    private Dictionary<string, Vector2> _psdCenterCache = null!;
+    private Vector2 _armReferenceLocalPosition;
+    private Vector2 _clothesReferenceLocalPosition;
+    private Vector2 _accessoryReferenceLocalPosition;
+    private string _armReferenceLayerPath = "";
+    private string _clothesReferenceLayerPath = "";
+    private string _accessoryReferenceLayerPath = "";
     private Vector2 _restPosition;
 
     public bool CanPlayInteractionHint => Enabled && !_isKnocking;
@@ -42,9 +44,15 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         _arm = GetNode<Sprite2D>("Arm");
         _clothes = GetNode<Sprite2D>("Clothes");
         _accessory = GetNode<Sprite2D>("Accessory");
+        _armReferenceLocalPosition = _arm.Position;
+        _clothesReferenceLocalPosition = _clothes.Position;
+        _accessoryReferenceLocalPosition = _accessory.Position;
+        _armReferenceLayerPath = GetLayerPath(_arm.Texture);
+        _clothesReferenceLayerPath = GetLayerPath(_clothes.Texture);
+        _accessoryReferenceLayerPath = GetLayerPath(_accessory.Texture);
         _restPosition = Position;
         _hitButton.Pressed += OnHitPressed;
-        EnsurePositionCache();
+        EnsurePsdCenterCache();
     }
 
     private void OnHitPressed()
@@ -113,8 +121,8 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     public void SetArm(Texture2D texture, string fileName)
     {
         _arm.Texture = texture;
-        var pos = GetScenePosition(fileName);
-        if (pos != Vector2.Zero) _arm.Position = pos;
+        if (TryGetScenePosition(texture, fileName, _armReferenceLayerPath, _armReferenceLocalPosition, out var pos))
+            _arm.Position = pos;
     }
 
     public void SetClothes(Texture2D texture, string fileName)
@@ -123,8 +131,8 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         {
             _clothes.Texture = texture;
             _clothes.Visible = true;
-            var pos = GetScenePosition(fileName);
-            if (pos != Vector2.Zero) _clothes.Position = pos;
+            if (TryGetScenePosition(texture, fileName, _clothesReferenceLayerPath, _clothesReferenceLocalPosition, out var pos))
+                _clothes.Position = pos;
         }
         else
         {
@@ -138,8 +146,8 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         {
             _accessory.Texture = texture;
             _accessory.Visible = true;
-            var pos = GetScenePosition(fileName);
-            if (pos != Vector2.Zero) _accessory.Position = pos;
+            if (TryGetScenePosition(texture, fileName, _accessoryReferenceLayerPath, _accessoryReferenceLocalPosition, out var pos))
+                _accessory.Position = pos;
         }
         else
         {
@@ -147,19 +155,35 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         }
     }
 
-    private Vector2 GetScenePosition(string fileName)
+    private bool TryGetScenePosition(
+        Texture2D texture,
+        string fileName,
+        string referenceLayerPath,
+        Vector2 referenceLocalPosition,
+        out Vector2 position)
     {
-        if (_positionCache.TryGetValue(fileName, out var pos))
-            return pos;
+        position = referenceLocalPosition;
+        var currentLayerPath = GetLayerPath(texture);
+        if (!_psdCenterCache.TryGetValue(currentLayerPath, out var currentCenter))
+        {
+            GD.PushWarning($"[HandArea] PSD center not found for: {fileName} ({currentLayerPath})");
+            return false;
+        }
 
-        GD.PushWarning($"[HandArea] Position not found for: {fileName}");
-        return Vector2.Zero;
+        if (!_psdCenterCache.TryGetValue(referenceLayerPath, out var referenceCenter))
+        {
+            GD.PushWarning($"[HandArea] Reference PSD center not found for: {referenceLayerPath}");
+            return false;
+        }
+
+        position = referenceLocalPosition + currentCenter - referenceCenter;
+        return true;
     }
 
-    private void EnsurePositionCache()
+    private void EnsurePsdCenterCache()
     {
-        if (_positionCache != null) return;
-        _positionCache = new Dictionary<string, Vector2>();
+        if (_psdCenterCache != null) return;
+        _psdCenterCache = new Dictionary<string, Vector2>();
 
         using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
         if (file == null) return;
@@ -175,18 +199,23 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
-            var name = d["file"].AsString();
-            var fileOnly = name.Split('/')[^1];
+            var layerPath = d["file"].AsString().Replace('\\', '/');
             var w = d.ContainsKey("w") ? (float)d["w"].AsDouble() : (float)d["width"].AsDouble();
             var h = d.ContainsKey("h") ? (float)d["h"].AsDouble() : (float)d["height"].AsDouble();
             var cx = (float)d["x"].AsDouble() + w / 2f;
             var cy = (float)d["y"].AsDouble() + h / 2f;
-
-            var pos = name.Contains("Accessory")
-                ? new Vector2(cx - OffsetXAcc, cy - OffsetYAcc)
-                : new Vector2(cx - OffsetX, cy - OffsetY);
-
-            _positionCache[fileOnly] = pos;
+            _psdCenterCache[layerPath] = new Vector2(cx, cy);
         }
+    }
+
+    private static string GetLayerPath(Texture2D texture)
+    {
+        if (texture == null)
+            return "";
+
+        var resourcePath = texture.ResourcePath.Replace('\\', '/');
+        return resourcePath.StartsWith(V1ResourcePrefix)
+            ? resourcePath[V1ResourcePrefix.Length..]
+            : resourcePath;
     }
 }

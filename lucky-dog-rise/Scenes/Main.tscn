@@ -11,7 +11,7 @@
 [ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
 [ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
 [ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/ItemArea.tscn" id="14_items"]
-[ext_resource type="Script" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
+[ext_resource type="Script" uid="uid://bj45cgrcpjeor" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -67,7 +67,7 @@ position = Vector2(610, 677)
 
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 z_index = 5
-position = Vector2(-50, 1134)
+position = Vector2(-91, 1134)
 
 [node name="RewardSpawnPoint" type="Marker2D" parent="." unique_id=1297724527]
 z_index = 4
@@ -84,7 +84,7 @@ position = Vector2(897, 1128)
 [node name="TutorialManager" type="Node" parent="." unique_id=381839165]
 script = ExtResource("13_tutorial")
 
-[node name="InteractionHints" type="Node" parent="."]
+[node name="InteractionHints" type="Node" parent="." unique_id=1489800177]
 script = ExtResource("15_interaction_hints")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
