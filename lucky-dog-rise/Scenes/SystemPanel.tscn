@@ -29,9 +29,10 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_blindBoxPitchModeToggle")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
+_blindBoxPitchModeToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxPitchModeToggle")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(420, 600)
@@ -629,8 +630,13 @@ text = "▶ BlindBox Debug"
 
 [node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
 visible = false
-custom_minimum_size = Vector2(0, 260)
+custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
+
+[node name="BlindBoxPitchModeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "升品音高：音阶上行"
 
 [node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent" unique_id=299064770]
 custom_minimum_size = Vector2(0, 260)

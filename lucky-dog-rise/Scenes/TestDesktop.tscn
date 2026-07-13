@@ -1,10 +1,23 @@
-[gd_scene format=3 uid="uid://dpeyifod7bc1i"]
+[gd_scene load_steps=2 format=3 uid="uid://dpeyifod7bc1i"]
 
 [ext_resource type="Script" uid="uid://c3k3sg2qgwsir" path="res://Scripts/Desktop/TestDesktopController.cs" id="1_test"]
 [ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="2_dog"]
 
-[node name="TestDesktop" type="Node2D" unique_id=1675773000]
+[sub_resource type="ButtonGroup" id="ButtonGroup_pitch_scheme"]
+
+[node name="TestDesktop" type="Node2D" unique_id=1675773000 node_paths=PackedStringArray("_parentNode", "_childA", "_childB", "_scaleSchemeOption", "_arpeggioSchemeOption", "_playUpgradeButton", "_resetPitchButton", "_currentPitchLabel", "_playPitchShiftButton", "_resetPitchShiftButton", "_currentPitchShiftLabel")]
 script = ExtResource("1_test")
+_parentNode = NodePath("Parent")
+_childA = NodePath("Parent/ChildA")
+_childB = NodePath("Parent/ChildB")
+_scaleSchemeOption = NodePath("CanvasLayer/PitchSchemePanel/Margin/VBox/ScaleSchemeOption")
+_arpeggioSchemeOption = NodePath("CanvasLayer/PitchSchemePanel/Margin/VBox/ArpeggioSchemeOption")
+_playUpgradeButton = NodePath("CanvasLayer/SoundTestPanel/Margin/VBox/ButtonRow/PlayUpgradeButton")
+_resetPitchButton = NodePath("CanvasLayer/SoundTestPanel/Margin/VBox/ButtonRow/ResetPitchButton")
+_currentPitchLabel = NodePath("CanvasLayer/SoundTestPanel/Margin/VBox/CurrentPitchLabel")
+_playPitchShiftButton = NodePath("CanvasLayer/PitchShiftTestPanel/Margin/VBox/ButtonRow/PlayPitchShiftButton")
+_resetPitchShiftButton = NodePath("CanvasLayer/PitchShiftTestPanel/Margin/VBox/ButtonRow/ResetPitchShiftButton")
+_currentPitchShiftLabel = NodePath("CanvasLayer/PitchShiftTestPanel/Margin/VBox/CurrentPitchShiftLabel")
 
 [node name="DogArea" parent="." unique_id=786314185 instance=ExtResource("2_dog")]
 position = Vector2(133, 181)
@@ -19,6 +32,97 @@ offset_right = 110.0
 offset_bottom = 50.0
 text = "Quit"
 metadata/_edit_use_anchors_ = true
+
+[node name="SoundTestPanel" type="PanelContainer" parent="CanvasLayer"]
+offset_left = 10.0
+offset_top = 345.0
+offset_right = 390.0
+offset_bottom = 455.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/SoundTestPanel"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/SoundTestPanel/Margin"]
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="CanvasLayer/SoundTestPanel/Margin/VBox"]
+text = "PitchScale（变调，同时变速）"
+
+[node name="ButtonRow" type="HBoxContainer" parent="CanvasLayer/SoundTestPanel/Margin/VBox"]
+theme_override_constants/separation = 8
+
+[node name="PlayUpgradeButton" type="Button" parent="CanvasLayer/SoundTestPanel/Margin/VBox/ButtonRow"]
+size_flags_horizontal = 3
+text = "播放并升调"
+
+[node name="ResetPitchButton" type="Button" parent="CanvasLayer/SoundTestPanel/Margin/VBox/ButtonRow"]
+size_flags_horizontal = 3
+text = "重置"
+
+[node name="CurrentPitchLabel" type="Label" parent="CanvasLayer/SoundTestPanel/Margin/VBox"]
+text = "下一次升调：+0.000"
+
+[node name="PitchShiftTestPanel" type="PanelContainer" parent="CanvasLayer"]
+offset_left = 10.0
+offset_top = 465.0
+offset_right = 390.0
+offset_bottom = 575.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/PitchShiftTestPanel"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/PitchShiftTestPanel/Margin"]
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="CanvasLayer/PitchShiftTestPanel/Margin/VBox"]
+text = "AudioEffectPitchShift（仅变调，不变速）"
+
+[node name="ButtonRow" type="HBoxContainer" parent="CanvasLayer/PitchShiftTestPanel/Margin/VBox"]
+theme_override_constants/separation = 8
+
+[node name="PlayPitchShiftButton" type="Button" parent="CanvasLayer/PitchShiftTestPanel/Margin/VBox/ButtonRow"]
+size_flags_horizontal = 3
+text = "播放并升调"
+
+[node name="ResetPitchShiftButton" type="Button" parent="CanvasLayer/PitchShiftTestPanel/Margin/VBox/ButtonRow"]
+size_flags_horizontal = 3
+text = "重置"
+
+[node name="CurrentPitchShiftLabel" type="Label" parent="CanvasLayer/PitchShiftTestPanel/Margin/VBox"]
+text = "下一次升调：+0.000"
+
+[node name="PitchSchemePanel" type="PanelContainer" parent="CanvasLayer"]
+offset_left = 10.0
+offset_top = 255.0
+offset_right = 390.0
+offset_bottom = 335.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/PitchSchemePanel"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/PitchSchemePanel/Margin"]
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="CanvasLayer/PitchSchemePanel/Margin/VBox"]
+text = "升品音高方案"
+
+[node name="ScaleSchemeOption" type="CheckButton" parent="CanvasLayer/PitchSchemePanel/Margin/VBox"]
+button_group = SubResource("ButtonGroup_pitch_scheme")
+button_pressed = true
+text = "音阶上行：C、D、E、F、G、A、B"
+
+[node name="ArpeggioSchemeOption" type="CheckButton" parent="CanvasLayer/PitchSchemePanel/Margin/VBox"]
+button_group = SubResource("ButtonGroup_pitch_scheme")
+text = "三和弦跨八度：C、E、G、高八度 C、E、G"
 
 [node name="Parent" type="Node2D" parent="." unique_id=1541436056]
 

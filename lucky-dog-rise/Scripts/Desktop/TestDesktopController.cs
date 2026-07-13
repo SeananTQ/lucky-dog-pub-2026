@@ -12,6 +12,14 @@ public partial class TestDesktopController : Node2D
     [Export] private Node2D _parentNode = null!;
     [Export] private Sprite2D _childA = null!;
     [Export] private Sprite2D _childB = null!;
+    [Export] private CheckButton _scaleSchemeOption = null!;
+    [Export] private CheckButton _arpeggioSchemeOption = null!;
+    [Export] private Button _playUpgradeButton = null!;
+    [Export] private Button _resetPitchButton = null!;
+    [Export] private Label _currentPitchLabel = null!;
+    [Export] private Button _playPitchShiftButton = null!;
+    [Export] private Button _resetPitchShiftButton = null!;
+    [Export] private Label _currentPitchShiftLabel = null!;
 
     private bool _isDragging;
     private bool _potentialDrag;
@@ -24,11 +32,28 @@ public partial class TestDesktopController : Node2D
 
     private static readonly Rect2 DogHitRect = new(100, 70, 120, 120);
     private static readonly Rect2 BtnHitRect = new(5, 5, 110, 50);
+    private static readonly Rect2 SoundTestHitRect = new(10, 255, 380, 330);
+    private static readonly PitchStep[] ScaleSequence = [
+        new("C", 0), new("D", 2), new("E", 4), new("F", 5), new("G", 7), new("A", 9), new("B", 11),
+    ];
+    private static readonly PitchStep[] ArpeggioSequence = [
+        new("C", 0), new("E", 4), new("G", 7), new("高八度 C", 12), new("高八度 E", 16), new("高八度 G", 19),
+    ];
+    private int _pitchScaleSequenceIndex;
+    private int _pitchShiftSequenceIndex;
 
     public override void _Ready()
     {
         _quitButton = GetNode<Button>("CanvasLayer/QuitButton");
         _quitButton.Pressed += () => GetTree().Quit();
+        _playUpgradeButton.Pressed += PlayUpgradeSound;
+        _resetPitchButton.Pressed += ResetPitch;
+        _playPitchShiftButton.Pressed += PlayPitchShiftSound;
+        _resetPitchShiftButton.Pressed += ResetPitchShift;
+        _scaleSchemeOption.Toggled += OnSchemeOptionToggled;
+        _arpeggioSchemeOption.Toggled += OnSchemeOptionToggled;
+        UpdatePitchLabel();
+        UpdatePitchShiftLabel();
 
         // 演示 [Export] 引用：父节点移动，子节点跟随
         GD.Print($"[Export] _parentNode={_parentNode?.Name}, _childA={_childA?.Name}, _childB={_childB?.Name}");
@@ -50,7 +75,9 @@ public partial class TestDesktopController : Node2D
         var windowPos = DisplayServer.WindowGetPosition();
         var localPos = mouseScreen - windowPos;
 
-        bool overInteractive = DogHitRect.HasPoint(localPos) || BtnHitRect.HasPoint(localPos);
+        bool overInteractive = DogHitRect.HasPoint(localPos)
+            || BtnHitRect.HasPoint(localPos)
+            || SoundTestHitRect.HasPoint(localPos);
 
         if (_isClickThrough && overInteractive)
             SetClickThrough(false);
@@ -96,11 +123,79 @@ public partial class TestDesktopController : Node2D
     {
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
-        DisplayServer.WindowSetSize(new Vector2I(400, 400));
+        DisplayServer.WindowSetSize(new Vector2I(400, 600));
         var screenSize = DisplayServer.ScreenGetSize();
-        DisplayServer.WindowSetPosition((screenSize - new Vector2I(400, 400)) / 2);
+        DisplayServer.WindowSetPosition((screenSize - new Vector2I(400, 600)) / 2);
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
         EnableLayeredWindow();
+    }
+
+    private void PlayUpgradeSound()
+    {
+        var step = GetNextStep(ref _pitchScaleSequenceIndex);
+        AudioManager.Instance.PlaySfx("BlindBox/Box_Upgrade", SemitonesToPitchScale(step.Semitones), 0f);
+        UpdatePitchLabel();
+    }
+
+    private void ResetPitch()
+    {
+        _pitchScaleSequenceIndex = 0;
+        UpdatePitchLabel();
+    }
+
+    private void PlayPitchShiftSound()
+    {
+        var step = GetNextStep(ref _pitchShiftSequenceIndex);
+        AudioManager.Instance.PlayPitchShiftedSfx("BlindBox/Box_Upgrade", SemitonesToPitchScale(step.Semitones));
+        UpdatePitchShiftLabel();
+    }
+
+    private void ResetPitchShift()
+    {
+        _pitchShiftSequenceIndex = 0;
+        UpdatePitchShiftLabel();
+    }
+
+    private void OnSchemeOptionToggled(bool pressed)
+    {
+        if (!pressed)
+            return;
+
+        ResetPitch();
+        ResetPitchShift();
+    }
+
+    private void UpdatePitchLabel()
+    {
+        _currentPitchLabel.Text = GetNextStep(_pitchScaleSequenceIndex).DisplayText;
+    }
+
+    private void UpdatePitchShiftLabel()
+    {
+        _currentPitchShiftLabel.Text = GetNextStep(_pitchShiftSequenceIndex).DisplayText;
+    }
+
+    private PitchStep GetNextStep(ref int index)
+    {
+        var sequence = GetSelectedSequence();
+        var step = sequence[index % sequence.Length];
+        index = (index + 1) % sequence.Length;
+        return step;
+    }
+
+    private PitchStep GetNextStep(int index)
+    {
+        var sequence = GetSelectedSequence();
+        return sequence[index % sequence.Length];
+    }
+
+    private PitchStep[] GetSelectedSequence() => _arpeggioSchemeOption.ButtonPressed ? ArpeggioSequence : ScaleSequence;
+
+    private static float SemitonesToPitchScale(int semitones) => Mathf.Pow(2f, semitones / 12f);
+
+    private readonly record struct PitchStep(string NoteName, int Semitones)
+    {
+        public string DisplayText => $"下一次：{NoteName}（+{Semitones} 半音）";
     }
 
     private void EnableLayeredWindow()

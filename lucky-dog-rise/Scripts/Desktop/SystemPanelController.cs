@@ -23,6 +23,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
+    [Export] private CheckButton _blindBoxPitchModeToggle = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -313,6 +314,9 @@ public partial class SystemPanelController : CanvasLayer
         };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
+        _blindBoxPitchModeToggle.ButtonPressed = AudioManager.Instance.BlindBoxPitchMode == AudioManager.BlindBoxUpgradePitchMode.Arpeggio;
+        _blindBoxPitchModeToggle.Toggled += OnBlindBoxPitchModeToggled;
+        RefreshBlindBoxPitchModeToggleText();
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
@@ -400,6 +404,21 @@ public partial class SystemPanelController : CanvasLayer
             ? "▼ BlindBox Debug"
             : "▶ BlindBox Debug";
         RefreshBlindBoxDebugStatus();
+    }
+
+    private void OnBlindBoxPitchModeToggled(bool useArpeggio)
+    {
+        AudioManager.Instance.BlindBoxPitchMode = useArpeggio
+            ? AudioManager.BlindBoxUpgradePitchMode.Arpeggio
+            : AudioManager.BlindBoxUpgradePitchMode.Scale;
+        RefreshBlindBoxPitchModeToggleText();
+    }
+
+    private void RefreshBlindBoxPitchModeToggleText()
+    {
+        _blindBoxPitchModeToggle.Text = _blindBoxPitchModeToggle.ButtonPressed
+            ? "升品音高：三和弦跨八度"
+            : "升品音高：音阶上行";
     }
 
     private void HideDebugTabForSession()

@@ -14,6 +14,12 @@ namespace LuckyDogRise;
 /// </summary>
 public partial class AudioManager : Node
 {
+    public enum BlindBoxUpgradePitchMode
+    {
+        Scale,
+        Arpeggio,
+    }
+
     private enum AudioKind
     {
         Sfx,
@@ -22,11 +28,13 @@ public partial class AudioManager : Node
 
     private const int SfxPlayerCount = 12;
     private const int MaxAudioVariants = 64;
+    private const string PitchShiftSfxBus = "PitchShiftSFX";
     private const string RequiredSfxPath = "res://Audio/SFX/Card_PokerHandDeal_1.ogg";
     private static readonly string[] SupportedExtensions = [".ogg", ".wav", ".mp3"];
     private readonly Dictionary<string, AudioStream> _streamCache = new(StringComparer.Ordinal);
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
     private AudioStreamPlayer _bgmPlayer = null!;
+    private AudioStreamPlayer _pitchShiftSfxPlayer = null!;
     private int _lastBgmId = -1;
     private bool _bgmPausedForDesktop;
     private bool _bgmPausedForVolume;
@@ -34,6 +42,7 @@ public partial class AudioManager : Node
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
     public float SfxVolume { get; private set; } = 0.5f;
     public float BgmVolume { get; private set; } = 0.5f;
+    public BlindBoxUpgradePitchMode BlindBoxPitchMode { get; set; } = BlindBoxUpgradePitchMode.Scale;
 
     public static AudioManager Instance { get; private set; } = null!;
 
@@ -59,7 +68,11 @@ public partial class AudioManager : Node
             _sfxPlayers.Add(player);
         }
 
+        _pitchShiftSfxPlayer = new AudioStreamPlayer { Bus = PitchShiftSfxBus };
+        AddChild(_pitchShiftSfxPlayer);
+
         ApplyBusVolume(AudioKind.Sfx, SfxVolume);
+        ApplyBusVolume(PitchShiftSfxBus, SfxVolume);
         ApplyBusVolume(AudioKind.Bgm, BgmVolume);
     }
 
@@ -82,6 +95,56 @@ public partial class AudioManager : Node
     public void PlaySfx(string cue, float pitchCenter, float pitchVariation)
     {
         PlaySfxInternal(cue, null, pitchCenter, pitchVariation);
+    }
+
+    /// <summary>
+    /// 通过独立总线的 AudioEffectPitchShift 改变音高，保持播放速度。
+    /// </summary>
+    public void PlayPitchShiftedSfx(string cue, float pitchScale)
+    {
+        if (SfxVolume <= 0f || !TryResolve(AudioKind.Sfx, cue, null, out var stream))
+            return;
+
+        var busIndex = AudioServer.GetBusIndex(PitchShiftSfxBus);
+        if (busIndex < 0 || AudioServer.GetBusEffect(busIndex, 0) is not AudioEffectPitchShift effect)
+        {
+            GD.PushWarning("[Audio] PitchShiftSFX bus or AudioEffectPitchShift is unavailable.");
+            return;
+        }
+
+        effect.PitchScale = Mathf.Clamp(pitchScale, 0.01f, 4f);
+        _pitchShiftSfxPlayer.Stream = stream;
+        _pitchShiftSfxPlayer.PitchScale = 1f;
+        _pitchShiftSfxPlayer.Play();
+    }
+
+    public void PlayBlindBoxUpgradeSfx(ERarity rarity)
+    {
+        var semitones = BlindBoxPitchMode switch
+        {
+            BlindBoxUpgradePitchMode.Arpeggio => rarity switch
+            {
+                ERarity.Common => 0,
+                ERarity.Uncommon => 4,
+                ERarity.Rare => 7,
+                ERarity.Epic => 12,
+                ERarity.Legendary => 16,
+                ERarity.Mythic => 19,
+                _ => 0,
+            },
+            _ => rarity switch
+            {
+                ERarity.Common => 0,
+                ERarity.Uncommon => 2,
+                ERarity.Rare => 4,
+                ERarity.Epic => 5,
+                ERarity.Legendary => 7,
+                ERarity.Mythic => 9,
+                _ => 0,
+            },
+        };
+
+        PlayPitchShiftedSfx("BlindBox/Box_Upgrade", Mathf.Pow(2f, semitones / 12f));
     }
 
     private void PlaySfxInternal(string cue, string state, float pitchCenter, float pitchVariation)
@@ -165,6 +228,7 @@ public partial class AudioManager : Node
         if (SfxVolume <= 0f)
             StopAllSfx();
         ApplyBusVolume(AudioKind.Sfx, SfxVolume);
+        ApplyBusVolume(PitchShiftSfxBus, SfxVolume);
     }
 
     public void SetBgmVolume(float linear)
@@ -315,6 +379,7 @@ public partial class AudioManager : Node
     {
         foreach (var player in _sfxPlayers)
             player.Stop();
+        _pitchShiftSfxPlayer?.Stop();
     }
 
     private void RefreshBgmPausedState()
@@ -325,7 +390,12 @@ public partial class AudioManager : Node
 
     private void ApplyBusVolume(AudioKind kind, float linear)
     {
-        var busIndex = AudioServer.GetBusIndex(GetBusName(kind));
+        ApplyBusVolume(GetBusName(kind), linear);
+    }
+
+    private static void ApplyBusVolume(string busName, float linear)
+    {
+        var busIndex = AudioServer.GetBusIndex(busName);
         if (busIndex < 0)
             return;
 

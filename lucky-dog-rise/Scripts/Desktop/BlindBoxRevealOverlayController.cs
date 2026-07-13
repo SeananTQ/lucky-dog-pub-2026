@@ -143,11 +143,12 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (_rewardWhiteMaskTail != null)
             _rewardWhiteMaskTail.Visible = false;
         ApplyRevealLayout();
-        ApplyBlindBoxVisual(GetRevealRarity(path, pending.RevealStep), instant: true);
+        var currentRarity = GetRevealRarity(path, pending.RevealStep);
+        ApplyBlindBoxVisual(currentRarity, instant: true);
         if (pending.RevealStep >= 4)
             PlayPreRewardShake();
         else
-            PlayAppear();
+            PlayAppear(currentRarity);
     }
 
     private void SetRevealVisible(bool visible)
@@ -254,10 +255,11 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         PlayUpgrade(oldRarity, newRarity);
     }
 
-    private void PlayAppear()
+    private void PlayAppear(ERarity rarity)
     {
         KillTweens();
         _animating = true;
+        AudioManager.Instance.PlayBlindBoxUpgradeSfx(rarity);
         _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_TapToPowerUp);
         _boxSprite.Scale = GetBoxScale(new Vector2(0.4f, 0.4f));
         _boxSprite.Position = _boxSpriteRestPosition + BoxUpOffset(_boxAppearHeightRatio);
@@ -303,6 +305,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         // 压扁后停一小下，让玩家看见“蓄力完成”
         _tween.TweenInterval(0.04);
 
+        // 起跳时播放“升级后品质”的固定音高；初次出现走 PlayAppear，不会触发这里。
+        _tween.TweenCallback(Callable.From(() => AudioManager.Instance.PlayBlindBoxUpgradeSfx(newRarity)));
 
         // 起跳 瘦高的上窜
         _tween.SetParallel(true);
