@@ -83,6 +83,7 @@ public partial class SystemPanelController : CanvasLayer
     // Debug 页
     private Label _seedLabel = null!;
     private Label _playTimeLabel = null!;
+    private Label _luckyDealBuffLabel = null!;
     private Button _blindBoxDebugToggle = null!;
     private Control _blindBoxDebugContent = null!;
     private Label _blindBoxDebugLabel = null!;
@@ -287,6 +288,7 @@ public partial class SystemPanelController : CanvasLayer
         // === Debug 页 ===
         _seedLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedLabel");
         _playTimeLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayTimeLabel");
+        _luckyDealBuffLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LuckyDealBuffLabel");
         _blindBoxDebugToggle = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugToggle");
         _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
         _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
@@ -304,7 +306,11 @@ public partial class SystemPanelController : CanvasLayer
 
         seedCopyBtn.Pressed += () => DisplayServer.ClipboardSet(_currentSeed.ToString());
         grantChipsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantChipsRequested);
-        grantLuckyDealsBtn.Pressed += () => EmitSignal(SignalName.DebugGrantLuckyDealsRequested);
+        grantLuckyDealsBtn.Pressed += () =>
+        {
+            EmitSignal(SignalName.DebugGrantLuckyDealsRequested);
+            RefreshDebugPlayTime();
+        };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
@@ -383,6 +389,7 @@ public partial class SystemPanelController : CanvasLayer
 
         var total = TimeSpan.FromSeconds(_gameData.TotalPlaySeconds);
         _playTimeLabel.Text = $"Play Time: {total:hh\\:mm\\:ss} ({_gameData.TotalPlaySeconds:0.0}s)";
+        _luckyDealBuffLabel.Text = $"Lucky Deal Buff: {_gameData.LuckyDealRemainingHands} hands remaining";
         RefreshBlindBoxDebugStatus();
     }
 

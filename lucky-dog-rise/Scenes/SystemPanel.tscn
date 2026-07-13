@@ -608,6 +608,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "立即获得 8000 筹码"
 
+[node name="LuckyDealBuffLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=824230612]
+layout_mode = 2
+text = "Lucky Deal Buff: 0 hands remaining"
+
 [node name="GrantLuckyDealsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=213876544]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
