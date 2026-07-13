@@ -1,7 +1,7 @@
 [
   {
     "Id": 1001,
-    "PayoutMultiplier": 50,
+    "PayoutMultiplier": 1,
     "HandRank": 2,
     "LuckyWeight": 0,
     "OriginalName": "Jacks or Better",
@@ -10,7 +10,7 @@
   },
   {
     "Id": 1002,
-    "PayoutMultiplier": 100,
+    "PayoutMultiplier": 2,
     "HandRank": 3,
     "LuckyWeight": 80,
     "OriginalName": "Two Pair",
@@ -19,7 +19,7 @@
   },
   {
     "Id": 1003,
-    "PayoutMultiplier": 150,
+    "PayoutMultiplier": 3,
     "HandRank": 4,
     "LuckyWeight": 65,
     "OriginalName": "Three of a Kind",
@@ -28,7 +28,7 @@
   },
   {
     "Id": 1004,
-    "PayoutMultiplier": 200,
+    "PayoutMultiplier": 4,
     "HandRank": 5,
     "LuckyWeight": 65,
     "OriginalName": "Straight",
@@ -37,7 +37,7 @@
   },
   {
     "Id": 1005,
-    "PayoutMultiplier": 300,
+    "PayoutMultiplier": 6,
     "HandRank": 6,
     "LuckyWeight": 36,
     "OriginalName": "Flush",
@@ -46,7 +46,7 @@
   },
   {
     "Id": 1006,
-    "PayoutMultiplier": 450,
+    "PayoutMultiplier": 9,
     "HandRank": 7,
     "LuckyWeight": 28,
     "OriginalName": "Full House",
@@ -55,7 +55,7 @@
   },
   {
     "Id": 1007,
-    "PayoutMultiplier": 1000,
+    "PayoutMultiplier": 20,
     "HandRank": 8,
     "LuckyWeight": 14,
     "OriginalName": "Four of a Kind",
@@ -64,7 +64,7 @@
   },
   {
     "Id": 1008,
-    "PayoutMultiplier": 2500,
+    "PayoutMultiplier": 50,
     "HandRank": 9,
     "LuckyWeight": 9,
     "OriginalName": "Straight Flush",
@@ -73,7 +73,7 @@
   },
   {
     "Id": 1009,
-    "PayoutMultiplier": 12500,
+    "PayoutMultiplier": 250,
     "HandRank": 10,
     "LuckyWeight": 3,
     "OriginalName": "Royal Flush",
