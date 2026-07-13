@@ -87,8 +87,6 @@ public partial class InfoPanelController : CanvasLayer
             int gridIdx = payList.Count - 1 - i; // JSON 是低→高，Grid 是高→低
             if (gridIdx < _payoutNames.Count)
                 _payoutNames[gridIdx].Text = L10n.Tr(L10n.GetHandRankKey(payList[i].HandRank));
-            if (gridIdx < _payoutValues.Count)
-                _payoutValues[gridIdx].Text = payList[i].PayoutMultiplier.ToString();
         }
         RefreshPayoutNameFontSize();
 
@@ -115,6 +113,7 @@ public partial class InfoPanelController : CanvasLayer
         data.HandResolved += OnHandResolved;
         data.NewHandStarted += OnNewHandStarted;
         data.BlindBoxStateChanged += RefreshBlindBoxButton;
+        RefreshPayoutValues();
         RefreshBlindBoxButton();
     }
 
@@ -324,6 +323,21 @@ public partial class InfoPanelController : CanvasLayer
         _winResultLabel.Text = _currentPayout > 0
             ? L10n.Format(L10nKey.InfoPanel_YouWin, _currentPayout)
             : "";
+    }
+
+    /// <summary>赔率表填写倍率，面板展示本局下注额对应的实际奖励。</summary>
+    private void RefreshPayoutValues()
+    {
+        if (_gameData == null)
+            return;
+
+        var payList = LubanData.Tables.TbPayTable.DataList;
+        for (int i = 0; i < payList.Count; i++)
+        {
+            int gridIdx = payList.Count - 1 - i;
+            if (gridIdx < _payoutValues.Count)
+                _payoutValues[gridIdx].Text = (payList[i].PayoutMultiplier * _gameData.BetAmount).ToString();
+        }
     }
 
     private static void RefreshActionButtonText(Button button, string key)

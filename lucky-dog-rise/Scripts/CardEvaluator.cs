@@ -14,20 +14,6 @@ public static class CardEvaluator
     public static int GetSuit(int card) => card / 13;
     public static int GetRank(int card) => card % 13;
 
-    public static readonly Dictionary<EHandRank, int> PayTable = new()
-    {
-        { EHandRank.Nothing, 0 },
-        { EHandRank.JacksOrBetter, 1 },
-        { EHandRank.TwoPair, 2 },
-        { EHandRank.ThreeOfAKind, 3 },
-        { EHandRank.Straight, 4 },
-        { EHandRank.Flush, 6 },
-        { EHandRank.FullHouse, 9 },
-        { EHandRank.FourOfAKind, 25 },
-        { EHandRank.StraightFlush, 50 },
-        { EHandRank.RoyalFlush, 250 },
-    };
-
     public static EHandRank Evaluate(int[] cards)
     {
         if (cards.Length != 5) return EHandRank.Nothing;
@@ -57,7 +43,13 @@ public static class CardEvaluator
 
     public static int GetPayout(int[] cards, int bet)
     {
-        return PayTable[Evaluate(cards)] * bet;
+        var rank = Evaluate(cards);
+        if (rank == EHandRank.Nothing)
+            return 0;
+
+        var payTableRow = LubanData.Tables.TbPayTable.DataList
+            .FirstOrDefault(row => row.HandRank == rank);
+        return payTableRow == null ? 0 : payTableRow.PayoutMultiplier * bet;
     }
 
     private static bool IsStraight(int[] sortedRanks, out bool isRoyal)

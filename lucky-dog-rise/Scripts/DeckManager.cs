@@ -39,7 +39,10 @@ public class DeckManager
         _rng = new Random(seed);
         _fixedSeed = null; // 固定种子只用一次
 
-        // Shuffle full deck
+        // 每局都从标准 52 张牌的固定顺序开始洗牌。
+        // 不能沿用上一局已经洗乱的顺序，否则即便使用相同随机种子，
+        // 每次洗牌的输入也不同，既无法复现，也不符合独立牌局的随机规则。
+        _fullDeck = Enumerable.Range(0, 52).ToArray();
         Shuffle(_fullDeck);
         _dealIndex = 0;
 

@@ -20,3 +20,17 @@ Windows 可能显示“未知发布者”。
 SmartScreen 可能提示“Windows 已保护你的电脑”。
 某些杀毒软件可能因为程序小众、未签名且包含全局键鼠 hook 而更加警惕。
 我们之前的决策是：代码签名暂时不作为 Playtest 完成条件。当前先允许 SmartScreen 警告，等临近正式公开发布时再决定是否购买证书。
+
+
+
+
+
+Mary Johnson
+地址
+1010 NE 5th St
+Clatskanie
+Oregon
+97016
+美国
+
+194382485
