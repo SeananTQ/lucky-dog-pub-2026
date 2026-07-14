@@ -35,6 +35,9 @@ public partial class AudioManager : Node
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
     private AudioStreamPlayer _bgmPlayer = null!;
     private AudioStreamPlayer _pitchShiftSfxPlayer = null!;
+    private AudioStreamPlayer _loopSfxPlayer = null!;
+    private Tween _loopSfxFadeTween = null!;
+    private bool _loopSfxActive;
     private int _lastBgmId = -1;
     private bool _bgmPausedForDesktop;
     private bool _bgmPausedForVolume;
@@ -75,6 +78,10 @@ public partial class AudioManager : Node
         _pitchShiftSfxPlayer = new AudioStreamPlayer { Bus = PitchShiftSfxBus };
         AddChild(_pitchShiftSfxPlayer);
 
+        _loopSfxPlayer = CreatePlayer(AudioKind.Sfx);
+        _loopSfxPlayer.Finished += OnLoopSfxFinished;
+        AddChild(_loopSfxPlayer);
+
         ApplyBusVolume(AudioKind.Sfx, SfxVolume);
         ApplyBusVolume(PitchShiftSfxBus, SfxVolume);
         ApplyBusVolume(AudioKind.Bgm, BgmVolume);
@@ -99,6 +106,52 @@ public partial class AudioManager : Node
     public void PlaySfx(string cue, float pitchCenter, float pitchVariation)
     {
         PlaySfxInternal(cue, null, pitchCenter, pitchVariation);
+    }
+
+    /// <summary>播放持续状态音效；资源自身未启用循环时，播放结束后也会自动重播。</summary>
+    public void PlayLoopingSfx(string cue, string state = "Loop")
+    {
+        if (SfxVolume <= 0f || !TryResolve(AudioKind.Sfx, cue, state, out var stream))
+            return;
+
+        _loopSfxFadeTween?.Kill();
+        _loopSfxActive = true;
+        _loopSfxPlayer.Stream = stream;
+        _loopSfxPlayer.VolumeDb = 0f;
+        _loopSfxPlayer.Play();
+    }
+
+    public void StopLoopingSfx(float fadeOutSeconds = 0f)
+    {
+        _loopSfxActive = false;
+        _loopSfxFadeTween?.Kill();
+
+        if (!_loopSfxPlayer.Playing)
+        {
+            _loopSfxPlayer.VolumeDb = 0f;
+            return;
+        }
+
+        if (fadeOutSeconds <= 0f)
+        {
+            _loopSfxPlayer.Stop();
+            _loopSfxPlayer.VolumeDb = 0f;
+            return;
+        }
+
+        _loopSfxFadeTween = CreateTween();
+        _loopSfxFadeTween.TweenProperty(_loopSfxPlayer, "volume_db", -80f, fadeOutSeconds);
+        _loopSfxFadeTween.TweenCallback(Callable.From(() =>
+        {
+            _loopSfxPlayer.Stop();
+            _loopSfxPlayer.VolumeDb = 0f;
+        }));
+    }
+
+    private void OnLoopSfxFinished()
+    {
+        if (_loopSfxActive && _loopSfxPlayer.Stream != null)
+            _loopSfxPlayer.Play();
     }
 
     /// <summary>
@@ -406,6 +459,9 @@ public partial class AudioManager : Node
         foreach (var player in _sfxPlayers)
             player.Stop();
         _pitchShiftSfxPlayer?.Stop();
+        _loopSfxActive = false;
+        _loopSfxFadeTween?.Kill();
+        _loopSfxPlayer?.Stop();
     }
 
     private void RefreshBgmPausedState()

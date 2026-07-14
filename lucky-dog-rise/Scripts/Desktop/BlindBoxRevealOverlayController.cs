@@ -35,6 +35,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private float _boxFinalOpenHeightRatio = 0.35f;
     [Export] private float _boxLandingImpactSfxDelay = 0.07f;
     [Export] private float _rewardLandingImpactSfxDelay = 0.1f;
+    [Export] private float _preOpenShakeSfxFadeOutSeconds = 0.05f;
     [Export] private float _boxAppearAirborneShadowScale = 0.456f;
     [Export] private float _boxJumpAirborneShadowScale = 0.7f;
     [Export] private float _boxVisualScale = 1f;
@@ -120,6 +121,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     public void HideOverlay()
     {
         KillTweens();
+        AudioManager.Instance.StopLoopingSfx(_preOpenShakeSfxFadeOutSeconds);
         StopRewardAutoClaimCountdown();
         Visible = false;
         _animating = false;
@@ -354,6 +356,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private void PlayPreRewardShake()
     {
         KillTweens();
+        AudioManager.Instance.PlayLoopingSfx("BlindBox/BlindBox_PreOpenShake", "Loop");
         _animating = false;
         _hintLabel.Text = L10n.Tr(L10nKey.BlindBox_OpenItUp);
         _hintLabel.Modulate = Colors.White;
@@ -385,6 +388,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
     private void PlayFinalOpen()
     {
+        AudioManager.Instance.StopLoopingSfx(_preOpenShakeSfxFadeOutSeconds);
         KillTweens();
         _animating = true;
         _hintLabel.Modulate = Colors.Transparent;
@@ -476,6 +480,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         _rewardClaimRequested = true;
         StopRewardAutoClaimCountdown();
+        AudioManager.Instance.PlaySfx("BlindBox/BlindBox_RewardClaim");
         EmitSignal(SignalName.RewardClaimRequested);
     }
 
