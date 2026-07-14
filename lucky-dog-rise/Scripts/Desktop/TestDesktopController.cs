@@ -133,7 +133,7 @@ public partial class TestDesktopController : Node2D
     private void PlayUpgradeSound()
     {
         var step = GetNextStep(ref _pitchScaleSequenceIndex);
-        AudioManager.Instance.PlaySfx("BlindBox/Box_Upgrade", SemitonesToPitchScale(step.Semitones), 0f);
+        AudioManager.Instance.PlaySfx("BlindBox/BlindBox_RarityUpgrade", SemitonesToPitchScale(step.Semitones), 0f);
         UpdatePitchLabel();
     }
 
@@ -146,7 +146,7 @@ public partial class TestDesktopController : Node2D
     private void PlayPitchShiftSound()
     {
         var step = GetNextStep(ref _pitchShiftSequenceIndex);
-        AudioManager.Instance.PlayPitchShiftedSfx("BlindBox/Box_Upgrade", SemitonesToPitchScale(step.Semitones));
+        AudioManager.Instance.PlayPitchShiftedSfx("BlindBox/BlindBox_RarityUpgrade", SemitonesToPitchScale(step.Semitones));
         UpdatePitchShiftLabel();
     }
 

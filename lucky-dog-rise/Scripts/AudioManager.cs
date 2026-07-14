@@ -38,6 +38,10 @@ public partial class AudioManager : Node
     private int _lastBgmId = -1;
     private bool _bgmPausedForDesktop;
     private bool _bgmPausedForVolume;
+#if DEBUG
+    // TEMP DEBUG: 盲盒升品音效响度确定后可连同 Debug 页输入框一起删除。
+    private float _debugBlindBoxUpgradeGainDb;
+#endif
 
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
     public float SfxVolume { get; private set; } = 0.5f;
@@ -100,7 +104,7 @@ public partial class AudioManager : Node
     /// <summary>
     /// 通过独立总线的 AudioEffectPitchShift 改变音高，保持播放速度。
     /// </summary>
-    public void PlayPitchShiftedSfx(string cue, float pitchScale)
+    public void PlayPitchShiftedSfx(string cue, float pitchScale, float volumeDb = 0f)
     {
         if (SfxVolume <= 0f || !TryResolve(AudioKind.Sfx, cue, null, out var stream))
             return;
@@ -115,10 +119,32 @@ public partial class AudioManager : Node
         effect.PitchScale = Mathf.Clamp(pitchScale, 0.01f, 4f);
         _pitchShiftSfxPlayer.Stream = stream;
         _pitchShiftSfxPlayer.PitchScale = 1f;
+        _pitchShiftSfxPlayer.VolumeDb = volumeDb;
         _pitchShiftSfxPlayer.Play();
     }
 
     public void PlayBlindBoxUpgradeSfx(ERarity rarity)
+    {
+        var gainDb = 0f;
+#if DEBUG
+        gainDb = _debugBlindBoxUpgradeGainDb;
+#endif
+        PlayPitchShiftedSfx("BlindBox/BlindBox_RarityUpgrade", GetBlindBoxPitchScale(rarity), gainDb);
+    }
+
+#if DEBUG
+    public void SetDebugBlindBoxUpgradeGainDb(float gainDb)
+    {
+        _debugBlindBoxUpgradeGainDb = Mathf.Clamp(gainDb, -24f, 24f);
+    }
+#endif
+
+    public void PlayBlindBoxRewardRevealSfx(ERarity rarity)
+    {
+        PlayPitchShiftedSfx("BlindBox/BlindBox_RewardReveal", GetBlindBoxPitchScale(rarity));
+    }
+
+    private float GetBlindBoxPitchScale(ERarity rarity)
     {
         var semitones = BlindBoxPitchMode switch
         {
@@ -144,7 +170,7 @@ public partial class AudioManager : Node
             },
         };
 
-        PlayPitchShiftedSfx("BlindBox/Box_Upgrade", Mathf.Pow(2f, semitones / 12f));
+        return Mathf.Pow(2f, semitones / 12f);
     }
 
     private void PlaySfxInternal(string cue, string state, float pitchCenter, float pitchVariation)

@@ -33,6 +33,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     [Export] private float _boxAppearHeightRatio = 1.08f;
     [Export] private float _boxJumpHeightRatio = 0.7f;
     [Export] private float _boxFinalOpenHeightRatio = 0.35f;
+    [Export] private float _boxLandingImpactSfxDelay = 0.07f;
+    [Export] private float _rewardLandingImpactSfxDelay = 0.1f;
     [Export] private float _boxAppearAirborneShadowScale = 0.456f;
     [Export] private float _boxJumpAirborneShadowScale = 0.7f;
     [Export] private float _boxVisualScale = 1f;
@@ -278,6 +280,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(Vector2.One), 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        TweenBoxLandingImpactSfx();
         _tween.SetParallel(false);
 
         // 提示文字在落地完成后淡入，避免 SetDelay 把上一组并行动画的总时长拖长。
@@ -331,6 +334,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _tween.SetParallel(true);
         _tween.TweenProperty(_boxSprite, "position", _boxSpriteRestPosition, 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_boxShadow, "scale", GetBoxScale(Vector2.One), 0.34).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        TweenBoxLandingImpactSfx();
         _tween.SetParallel(false);
         _tween.TweenProperty(_hintLabel, "modulate", Colors.White, 0.12);
 
@@ -414,13 +418,22 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (!animate)
             return;
 
+        AudioManager.Instance.PlayBlindBoxRewardRevealSfx(rarity);
         _tween = CreateTween();
         _tween.SetParallel(true);
         TweenMaskColor(_rewardWhiteMask, _rewardWhiteMaskTail, new Color(1f, 1f, 1f, 0f), 0.16);
         _tween.TweenProperty(_rewardVisualRoot, "position", _rewardVisualRootPosition, 0.38).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardVisualRoot, "scale", GetRewardScale(Vector2.One), 0.22).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         _tween.TweenProperty(_rewardCellShadow, "modulate", Colors.White, 0.24);
+        _tween.TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("BlindBox/BlindBox_RewardLandingImpact")))
+            .SetDelay(Mathf.Max(0f, _rewardLandingImpactSfxDelay));
         _tween.SetParallel(false);
+    }
+
+    private void TweenBoxLandingImpactSfx()
+    {
+        _tween.TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("BlindBox/BlindBox_LandingImpact")))
+            .SetDelay(Mathf.Max(0f, _boxLandingImpactSfxDelay));
     }
 
     private void StartRewardAutoClaimCountdown()
