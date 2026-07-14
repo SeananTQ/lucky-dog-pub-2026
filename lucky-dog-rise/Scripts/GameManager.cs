@@ -140,6 +140,8 @@ public partial class GameManager : Node2D
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
     {
+        // 盲盒表演覆盖牌桌时，不应让后台尚未落地的下注筹码继续播落地音效。
+        _chipStack.CompleteAppearanceSilently();
         _blindBoxOverlay.ShowReward(pending, animateDrop: false);
     }
 

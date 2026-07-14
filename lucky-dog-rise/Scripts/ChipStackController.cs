@@ -97,6 +97,34 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _secondChipAppearTween.TweenCallback(Callable.From(StartSecondChipLanding));
     }
 
+    /// <summary>
+    /// 当更高层级的界面覆盖牌桌时，静默结束尚未完成的出现动作。
+    /// 筹码会直接停在桌面上的最终状态，不再补播尚未到达落点的音效。
+    /// </summary>
+    public void CompleteAppearanceSilently()
+    {
+        var isAppearing = (_appearTween?.IsRunning() ?? false)
+            || (_secondChipAppearTween?.IsRunning() ?? false)
+            || (_secondChipLandingTween?.IsRunning() ?? false);
+        if (!isAppearing)
+            return;
+
+        _appearTween?.Kill();
+        _secondChipAppearTween?.Kill();
+        _secondChipLandingTween?.Kill();
+        ResetHintAnimation();
+
+        _visualRoot.Position = VisualRestPosition;
+        _visualRoot.Rotation = 0f;
+        _visualRoot.Modulate = Colors.White;
+        _chipSprite.Position = BottomChipRestPosition;
+        _chipSprite.Rotation = 0f;
+        _chipSprite2.Position = TopChipRestPosition;
+        _chipSprite2.Rotation = 0f;
+        _chipSprite2.Visible = true;
+        _clickButton.Disabled = false;
+    }
+
     public void PlayLeave()
     {
         _appearTween?.Kill();
