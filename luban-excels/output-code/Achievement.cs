@@ -19,6 +19,11 @@ public sealed partial class Achievement : Luban.BeanBase
     {
         { if(!_buf["AchievementId"].IsNumber) { throw new SerializationException(); }  AchievementId = _buf["AchievementId"]; }
         { if(!_buf["ApiName"].IsString) { throw new SerializationException(); }  ApiName = _buf["ApiName"]; }
+        { if(!_buf["RuleType"].IsNumber) { throw new SerializationException(); }  RuleType = (EAchievementRuleType)_buf["RuleType"].AsInt; }
+        { if(!_buf["TargetKey"].IsString) { throw new SerializationException(); }  TargetKey = _buf["TargetKey"]; }
+        { if(!_buf["TargetValue"].IsNumber) { throw new SerializationException(); }  TargetValue = _buf["TargetValue"]; }
+        { if(!_buf["IsHidden"].IsBoolean) { throw new SerializationException(); }  IsHidden = _buf["IsHidden"]; }
+        { if(!_buf["Notes"].IsString) { throw new SerializationException(); }  Notes = _buf["Notes"]; }
     }
 
     public static Achievement DeserializeAchievement(JSONNode _buf)
@@ -26,8 +31,34 @@ public sealed partial class Achievement : Luban.BeanBase
         return new Achievement(_buf);
     }
 
+    /// <summary>
+    /// 成就唯一 ID；发布后不可复用
+    /// </summary>
     public readonly int AchievementId;
+    /// <summary>
+    /// 平台和存档使用的稳定机器名；发布后不要改名
+    /// </summary>
     public readonly string ApiName;
+    /// <summary>
+    /// FirstExternalItemType=首次非初始获得部位；FirstExternalItemRarity=首次非初始获得指定品质；FirstEvent=首次发生事件；StatisticAtLeast=统计达到数值
+    /// </summary>
+    public readonly EAchievementRuleType RuleType;
+    /// <summary>
+    /// 由 RuleType 决定含义：部位/品质/事件/PlayerStatistic 的 StatisticKey
+    /// </summary>
+    public readonly string TargetKey;
+    /// <summary>
+    /// StatisticAtLeast 的数值门槛；首次类规则填 1
+    /// </summary>
+    public readonly int TargetValue;
+    /// <summary>
+    /// 是否在平台/游戏内解锁前隐藏
+    /// </summary>
+    public readonly bool IsHidden;
+    /// <summary>
+    /// 填写策划说明或设计约束
+    /// </summary>
+    public readonly string Notes;
    
     public const int __ID__ = -879479025;
     public override int GetTypeId() => __ID__;
@@ -41,6 +72,11 @@ public sealed partial class Achievement : Luban.BeanBase
         return "{ "
         + "AchievementId:" + AchievementId + ","
         + "ApiName:" + ApiName + ","
+        + "RuleType:" + RuleType + ","
+        + "TargetKey:" + TargetKey + ","
+        + "TargetValue:" + TargetValue + ","
+        + "IsHidden:" + IsHidden + ","
+        + "Notes:" + Notes + ","
         + "}";
     }
 }

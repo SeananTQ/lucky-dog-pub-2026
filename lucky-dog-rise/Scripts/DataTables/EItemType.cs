@@ -29,7 +29,7 @@ namespace DataTables
         /// </summary>
         Eyewear = 3,
         /// <summary>
-        /// 例如纹身
+        /// 手臂层的装饰
         /// </summary>
         Arm = 4,
         /// <summary>
@@ -60,6 +60,10 @@ namespace DataTables
         /// 卡面
         /// </summary>
         CardFace = 11,
+        /// <summary>
+        /// 玩家身体装饰（体毛、纹身、美甲等）
+        /// </summary>
+        BodyDecoration = 12,
     }
 
 } 

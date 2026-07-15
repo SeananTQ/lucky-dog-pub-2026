@@ -28,7 +28,8 @@
     "TabName": "Player",
     "TabItemTypeList": [
       8,
-      5
+      5,
+      12
     ],
     "SortOrder": 4
   },

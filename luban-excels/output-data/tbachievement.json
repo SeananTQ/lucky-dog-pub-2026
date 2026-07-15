@@ -1,6 +1,236 @@
 [
   {
+    "AchievementId": 1000,
+    "ApiName": "ACH_FIRST_DOG",
+    "RuleType": 1,
+    "TargetKey": "Dog",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得一只狗；默认红柴不计入"
+  },
+  {
     "AchievementId": 1001,
-    "ApiName": "ACH_FIRST_HEADWEAR"
+    "ApiName": "ACH_FIRST_HEADWEAR",
+    "RuleType": 1,
+    "TargetKey": "Headwear",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得头部装饰"
+  },
+  {
+    "AchievementId": 1002,
+    "ApiName": "ACH_FIRST_EYEWEAR",
+    "RuleType": 1,
+    "TargetKey": "Eyewear",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得眼部装饰"
+  },
+  {
+    "AchievementId": 1003,
+    "ApiName": "ACH_FIRST_ARM",
+    "RuleType": 1,
+    "TargetKey": "Arm",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得玩家手臂"
+  },
+  {
+    "AchievementId": 1004,
+    "ApiName": "ACH_FIRST_CLOTHES",
+    "RuleType": 1,
+    "TargetKey": "Clothes",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得衣服"
+  },
+  {
+    "AchievementId": 1005,
+    "ApiName": "ACH_FIRST_TABLE",
+    "RuleType": 1,
+    "TargetKey": "Table",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得桌布"
+  },
+  {
+    "AchievementId": 1006,
+    "ApiName": "ACH_FIRST_BACKGROUND",
+    "RuleType": 1,
+    "TargetKey": "Background",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得背景"
+  },
+  {
+    "AchievementId": 1007,
+    "ApiName": "ACH_FIRST_ACCESSORY",
+    "RuleType": 1,
+    "TargetKey": "Accessory",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得手部装饰"
+  },
+  {
+    "AchievementId": 1008,
+    "ApiName": "ACH_FIRST_REFRESHMENT",
+    "RuleType": 1,
+    "TargetKey": "Refreshment",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次从非初始来源获得饮品/消耗品"
+  },
+  {
+    "AchievementId": 1009,
+    "ApiName": "ACH_FIRST_CARD_BACK",
+    "RuleType": 1,
+    "TargetKey": "CardBack",
+    "TargetValue": 1,
+    "IsHidden": true,
+    "Notes": "首次从非初始来源获得卡背"
+  },
+  {
+    "AchievementId": 1010,
+    "ApiName": "ACH_FIRST_CARD_FACE",
+    "RuleType": 1,
+    "TargetKey": "CardFace",
+    "TargetValue": 1,
+    "IsHidden": true,
+    "Notes": "首次从非初始来源获得卡面"
+  },
+  {
+    "AchievementId": 1101,
+    "ApiName": "ACH_FIRST_THREE_OF_A_KIND",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankThreeOfAKindCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成三条"
+  },
+  {
+    "AchievementId": 1102,
+    "ApiName": "ACH_FIRST_STRAIGHT",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankStraightCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成顺子"
+  },
+  {
+    "AchievementId": 1103,
+    "ApiName": "ACH_FIRST_FLUSH",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankFlushCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成同花"
+  },
+  {
+    "AchievementId": 1104,
+    "ApiName": "ACH_FIRST_FULL_HOUSE",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankFullHouseCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成葫芦"
+  },
+  {
+    "AchievementId": 1105,
+    "ApiName": "ACH_FIRST_FOUR_OF_A_KIND",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankFourOfAKindCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成四条"
+  },
+  {
+    "AchievementId": 1106,
+    "ApiName": "ACH_FIRST_STRAIGHT_FLUSH",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankStraightFlushCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成同花顺"
+  },
+  {
+    "AchievementId": 1107,
+    "ApiName": "ACH_FIRST_ROYAL_FLUSH",
+    "RuleType": 4,
+    "TargetKey": "PokerHandRankRoyalFlushCount",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次达成皇家同花顺"
+  },
+  {
+    "AchievementId": 1201,
+    "ApiName": "ACH_DOG_FIRST_HINT",
+    "RuleType": 3,
+    "TargetKey": "DogHintAsked",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次询问狗狗牌运"
+  },
+  {
+    "AchievementId": 1202,
+    "ApiName": "ACH_DOG_FIRST_REFUSAL",
+    "RuleType": 3,
+    "TargetKey": "DogHintRefused",
+    "TargetValue": 1,
+    "IsHidden": true,
+    "Notes": "首次被狗狗拒绝回答"
+  },
+  {
+    "AchievementId": 1203,
+    "ApiName": "ACH_DOG_FIRST_STARSTRUCK",
+    "RuleType": 3,
+    "TargetKey": "DesktopStarstruckEntered",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次打字使狗狗进入崇拜状态；仅状态切换时计一次"
+  },
+  {
+    "AchievementId": 1301,
+    "ApiName": "ACH_FIRST_RARE_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Rare",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得稀有物品"
+  },
+  {
+    "AchievementId": 1302,
+    "ApiName": "ACH_FIRST_EPIC_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Epic",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得史诗物品"
+  },
+  {
+    "AchievementId": 1303,
+    "ApiName": "ACH_FIRST_LEGENDARY_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Legendary",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得传说物品"
+  },
+  {
+    "AchievementId": 1304,
+    "ApiName": "ACH_FIRST_MYTHIC_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Mythic",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得神话物品"
+  },
+  {
+    "AchievementId": 1011,
+    "ApiName": "ACH_FIRST_BODY_DECORATION",
+    "RuleType": 1,
+    "TargetKey": "BodyDecoration",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得玩家体表装饰（体毛、纹身、美甲等）"
   }
 ]

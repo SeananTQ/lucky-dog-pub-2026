@@ -12,13 +12,22 @@
 namespace DataTables
 { 
     /// <summary>
-    /// 枚举类型
+    /// 玩家统计单位
     /// </summary>
-    public enum EEnumType
+    public enum EPlayerStatisticUnit
     {
-        EDogAction = 0,
-        GameState = 1,
-        EHandRank = 2,
+        /// <summary>
+        /// 次数
+        /// </summary>
+        Count = 1,
+        /// <summary>
+        /// 筹码
+        /// </summary>
+        Chips = 2,
+        /// <summary>
+        /// 秒
+        /// </summary>
+        Seconds = 3,
     }
 
 } 
