@@ -1,7 +1,6 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using DataTables;
 
@@ -24,8 +23,6 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
-    [Export] private CheckButton _blindBoxPitchModeToggle = null!;
-    [Export] private LineEdit _blindBoxUpgradeGainInput = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -315,13 +312,7 @@ public partial class SystemPanelController : CanvasLayer
             RefreshDebugPlayTime();
         };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
-        // TEMP DEBUG: 确定正式响度后，删除此输入绑定、场景行和 AudioManager 的 Debug 增益即可。
-        _blindBoxUpgradeGainInput.TextChanged += OnBlindBoxUpgradeGainTextChanged;
-        OnBlindBoxUpgradeGainTextChanged(_blindBoxUpgradeGainInput.Text);
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
-        _blindBoxPitchModeToggle.ButtonPressed = AudioManager.Instance.BlindBoxPitchMode == AudioManager.BlindBoxUpgradePitchMode.Arpeggio;
-        _blindBoxPitchModeToggle.Toggled += OnBlindBoxPitchModeToggled;
-        RefreshBlindBoxPitchModeToggleText();
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
@@ -409,30 +400,6 @@ public partial class SystemPanelController : CanvasLayer
             ? "▼ BlindBox Debug"
             : "▶ BlindBox Debug";
         RefreshBlindBoxDebugStatus();
-    }
-
-    private static void OnBlindBoxUpgradeGainTextChanged(string text)
-    {
-        var normalized = text.Trim().Replace(',', '.');
-        if (!float.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var gainDb))
-            return;
-
-        AudioManager.Instance.SetDebugBlindBoxUpgradeGainDb(gainDb);
-    }
-
-    private void OnBlindBoxPitchModeToggled(bool useArpeggio)
-    {
-        AudioManager.Instance.BlindBoxPitchMode = useArpeggio
-            ? AudioManager.BlindBoxUpgradePitchMode.Arpeggio
-            : AudioManager.BlindBoxUpgradePitchMode.Scale;
-        RefreshBlindBoxPitchModeToggleText();
-    }
-
-    private void RefreshBlindBoxPitchModeToggleText()
-    {
-        _blindBoxPitchModeToggle.Text = _blindBoxPitchModeToggle.ButtonPressed
-            ? "升品音高：三和弦跨八度"
-            : "升品音高：音阶上行";
     }
 
     private void HideDebugTabForSession()

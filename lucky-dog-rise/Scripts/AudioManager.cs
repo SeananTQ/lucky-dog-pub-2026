@@ -14,12 +14,6 @@ namespace LuckyDogRise;
 /// </summary>
 public partial class AudioManager : Node
 {
-    public enum BlindBoxUpgradePitchMode
-    {
-        Scale,
-        Arpeggio,
-    }
-
     private enum AudioKind
     {
         Sfx,
@@ -41,15 +35,10 @@ public partial class AudioManager : Node
     private int _lastBgmId = -1;
     private bool _bgmPausedForDesktop;
     private bool _bgmPausedForVolume;
-#if DEBUG
-    // TEMP DEBUG: 盲盒升品音效响度确定后可连同 Debug 页输入框一起删除。
-    private float _debugBlindBoxUpgradeGainDb;
-#endif
 
     // 保持与原设置页兼容：0 表示静音，1 表示原始音量。
     public float SfxVolume { get; private set; } = 0.5f;
     public float BgmVolume { get; private set; } = 0.5f;
-    public BlindBoxUpgradePitchMode BlindBoxPitchMode { get; set; } = BlindBoxUpgradePitchMode.Scale;
 
     public static AudioManager Instance { get; private set; } = null!;
 
@@ -178,19 +167,8 @@ public partial class AudioManager : Node
 
     public void PlayBlindBoxUpgradeSfx(ERarity rarity)
     {
-        var gainDb = 0f;
-#if DEBUG
-        gainDb = _debugBlindBoxUpgradeGainDb;
-#endif
-        PlayPitchShiftedSfx("BlindBox/BlindBox_RarityUpgrade", GetBlindBoxPitchScale(rarity), gainDb);
+        PlayPitchShiftedSfx("BlindBox/BlindBox_RarityUpgrade", GetBlindBoxPitchScale(rarity));
     }
-
-#if DEBUG
-    public void SetDebugBlindBoxUpgradeGainDb(float gainDb)
-    {
-        _debugBlindBoxUpgradeGainDb = Mathf.Clamp(gainDb, -24f, 24f);
-    }
-#endif
 
     public void PlayBlindBoxRewardRevealSfx(ERarity rarity)
     {
@@ -199,28 +177,15 @@ public partial class AudioManager : Node
 
     private float GetBlindBoxPitchScale(ERarity rarity)
     {
-        var semitones = BlindBoxPitchMode switch
+        var semitones = rarity switch
         {
-            BlindBoxUpgradePitchMode.Arpeggio => rarity switch
-            {
-                ERarity.Common => 0,
-                ERarity.Uncommon => 4,
-                ERarity.Rare => 7,
-                ERarity.Epic => 12,
-                ERarity.Legendary => 16,
-                ERarity.Mythic => 19,
-                _ => 0,
-            },
-            _ => rarity switch
-            {
-                ERarity.Common => 0,
-                ERarity.Uncommon => 2,
-                ERarity.Rare => 4,
-                ERarity.Epic => 5,
-                ERarity.Legendary => 7,
-                ERarity.Mythic => 9,
-                _ => 0,
-            },
+            ERarity.Common => 0,
+            ERarity.Uncommon => 2,
+            ERarity.Rare => 4,
+            ERarity.Epic => 5,
+            ERarity.Legendary => 7,
+            ERarity.Mythic => 9,
+            _ => 0,
         };
 
         return Mathf.Pow(2f, semitones / 12f);

@@ -29,11 +29,9 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_blindBoxPitchModeToggle", "_blindBoxUpgradeGainInput")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
-_blindBoxPitchModeToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxPitchModeToggle")
-_blindBoxUpgradeGainInput = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxUpgradeGainRow/BlindBoxUpgradeGainInput")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(420, 600)
@@ -624,21 +622,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "重置系统设置"
 
-[node name="BlindBoxUpgradeGainRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Label" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxUpgradeGainRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "盲盒升品音效增益（dB）"
-
-[node name="BlindBoxUpgradeGainInput" type="LineEdit" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxUpgradeGainRow"]
-custom_minimum_size = Vector2(96, 0)
-layout_mode = 2
-placeholder_text = "例如 3.0"
-text = "0.0"
-
 [node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1340448601]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -648,11 +631,6 @@ text = "▶ BlindBox Debug"
 visible = false
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
-
-[node name="BlindBoxPitchModeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "升品音高：音阶上行"
 
 [node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent" unique_id=299064770]
 custom_minimum_size = Vector2(0, 260)
