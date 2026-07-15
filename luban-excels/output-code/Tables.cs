@@ -21,6 +21,7 @@ public partial class Tables
     public TbDogReaction TbDogReaction {get; }
     public TbDesktopActivityState TbDesktopActivityState {get; }
     public TbBGMList TbBGMList {get; }
+    public TbAchievement TbAchievement {get; }
     public TbItem TbItem {get; }
     public TbTabGroup TbTabGroup {get; }
     public TbEquipmentSlotConfig TbEquipmentSlotConfig {get; }
@@ -39,6 +40,7 @@ public partial class Tables
         TbDogReaction = new TbDogReaction(loader("tbdogreaction"));
         TbDesktopActivityState = new TbDesktopActivityState(loader("tbdesktopactivitystate"));
         TbBGMList = new TbBGMList(loader("tbbgmlist"));
+        TbAchievement = new TbAchievement(loader("tbachievement"));
         TbItem = new TbItem(loader("tbitem"));
         TbTabGroup = new TbTabGroup(loader("tbtabgroup"));
         TbEquipmentSlotConfig = new TbEquipmentSlotConfig(loader("tbequipmentslotconfig"));
@@ -59,6 +61,7 @@ public partial class Tables
         TbDogReaction.ResolveRef(this);
         TbDesktopActivityState.ResolveRef(this);
         TbBGMList.ResolveRef(this);
+        TbAchievement.ResolveRef(this);
         TbItem.ResolveRef(this);
         TbTabGroup.ResolveRef(this);
         TbEquipmentSlotConfig.ResolveRef(this);
