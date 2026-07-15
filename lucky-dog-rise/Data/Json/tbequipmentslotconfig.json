@@ -42,5 +42,9 @@
   {
     "ItemType": 11,
     "CanUnequip": "False"
+  },
+  {
+    "ItemType": 12,
+    "CanUnequip": "True"
   }
 ]

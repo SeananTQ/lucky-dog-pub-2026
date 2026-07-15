@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbbjl1l6ch5n8"
-path="res://.godot/imported/Accessory_Hair.png-4854685ea03f72be4e655f473615ad28.ctex"
+uid="uid://sbol2n4053sm"
+path="res://.godot/imported/BodyDecoration_Hair.png-5339c6a04cc4f99da53ea4e51a6f086d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ItemIcon/Accessory_Hair.png"
-dest_files=["res://.godot/imported/Accessory_Hair.png-4854685ea03f72be4e655f473615ad28.ctex"]
+source_file="res://Assets/v1/ItemIcon/BodyDecoration_Hair.png"
+dest_files=["res://.godot/imported/BodyDecoration_Hair.png-5339c6a04cc4f99da53ea4e51a6f086d.ctex"]
 
 [params]
 

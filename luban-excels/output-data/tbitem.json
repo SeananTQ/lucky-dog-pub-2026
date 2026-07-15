@@ -2450,7 +2450,7 @@
   {
     "Id": 8002,
     "Name": "Anchor Tattoo",
-    "ItemType": 8,
+    "ItemType": 12,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
     "ItemRarity": 5,
@@ -2586,10 +2586,10 @@
   {
     "Id": 8006,
     "Name": "Hair",
-    "ItemType": 8,
+    "ItemType": 12,
     "HiddenRegionFlag": 0,
     "SafeResourceId": 0,
-    "ItemRarity": 5,
+    "ItemRarity": 6,
     "SortOrder": 300,
     "BlindBoxWeight": 300,
     "IsHiddenInBag": false,
@@ -2601,9 +2601,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Surface\\Hair.png"
+      "v1\\Player\\BodyDecoration\\Hair.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_Hair.png",
+    "IconPath": "v1\\ItemIcon\\BodyDecoration_Hair.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,

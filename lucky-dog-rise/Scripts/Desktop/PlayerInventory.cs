@@ -232,13 +232,21 @@ public class PlayerInventory
     private bool ApplyDefaultEquipment()
     {
         var changed = false;
-        // 新游戏默认只补齐不可空闲槽位；可空闲槽位允许保持空闲。
+        // 枚举值与装备位表应保持同步。未配置的类型先跳过默认装备补齐，
+        // 但明确记录 Warning，避免新装扮位漏配表时被静默掩盖。
         foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
         {
+            var slot = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type);
+            if (slot == null)
+            {
+                GD.PushWarning($"[Inventory] Item type has no equipment slot config; skipping default equipment: {type}");
+                continue;
+            }
+
             if (_equipped.ContainsKey(type))
                 continue;
 
-            if (CanUnequip(type))
+            if (string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             var first = GetOwnedOfType(type).FirstOrDefault();
@@ -247,7 +255,7 @@ public class PlayerInventory
                 _equipped[type] = first.Id;
                 changed = true;
             }
-            else if (!CanUnequip(type))
+            else
             {
                 GD.PushError($"[Inventory] Required equipment slot has no owned item: {type}");
             }
