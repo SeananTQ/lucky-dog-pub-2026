@@ -34,7 +34,7 @@ Thumbs.db
 /inbox/*.md
 
 # 测试文件夹不需要上传到版本控制系统
-/tests/
+#/tests/
 
 # 工具文件夹不需要上传到版本控制系统
 /tools/
