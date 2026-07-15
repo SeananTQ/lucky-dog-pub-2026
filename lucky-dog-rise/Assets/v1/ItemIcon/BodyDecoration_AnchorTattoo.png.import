@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dkafe1omyoye2"
-path="res://.godot/imported/Accessory_AnchorTattoo.png-f7fe9101fa966d17dc9336aaac42e60f.ctex"
+uid="uid://cnvg2nyuvebqi"
+path="res://.godot/imported/BodyDecoration_AnchorTattoo.png-a1a2a48731b739a9901d8a2318afbaa3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/ItemIcon/Accessory_AnchorTattoo.png"
-dest_files=["res://.godot/imported/Accessory_AnchorTattoo.png-f7fe9101fa966d17dc9336aaac42e60f.ctex"]
+source_file="res://Assets/v1/ItemIcon/BodyDecoration_AnchorTattoo.png"
+dest_files=["res://.godot/imported/BodyDecoration_AnchorTattoo.png-a1a2a48731b739a9901d8a2318afbaa3.ctex"]
 
 [params]
 

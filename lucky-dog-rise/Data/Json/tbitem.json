@@ -2465,7 +2465,7 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Surface\\AnchorTattoo.png"
+      "v1\\Player\\BodyDecoration\\AnchorTattoo.png"
     ],
     "IconPath": "v1\\ItemIcon\\BodyDecoration_AnchorTattoo.png",
     "SkinId": 0,
