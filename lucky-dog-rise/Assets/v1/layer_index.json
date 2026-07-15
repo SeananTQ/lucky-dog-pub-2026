@@ -1766,8 +1766,8 @@
     },
     {
       "name": "Hair",
-      "file": "Player/Surface/Hair.png",
-      "group": "Player/Surface",
+      "file": "Player/BodyDecoration/Hair.png",
+      "group": "Player/BodyDecoration",
       "x": 15,
       "y": 1068,
       "width": 213,
@@ -1777,8 +1777,8 @@
     },
     {
       "name": "AnchorTattoo",
-      "file": "Player/Surface/AnchorTattoo.png",
-      "group": "Player/Surface",
+      "file": "Player/BodyDecoration/AnchorTattoo.png",
+      "group": "Player/BodyDecoration",
       "x": 172,
       "y": 1089,
       "width": 75,

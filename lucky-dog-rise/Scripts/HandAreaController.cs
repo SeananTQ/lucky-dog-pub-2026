@@ -22,15 +22,18 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
 
     private Button _hitButton = null!;
     private Sprite2D _arm = null!;
+    private Sprite2D _bodyDecoration = null!;
     private Sprite2D _clothes = null!;
     private Sprite2D _accessory = null!;
     private bool _isKnocking;
     private Tween _hintTween;
     private Dictionary<string, Vector2> _psdCenterCache = null!;
     private Vector2 _armReferenceLocalPosition;
+    private Vector2 _bodyDecorationReferenceLocalPosition;
     private Vector2 _clothesReferenceLocalPosition;
     private Vector2 _accessoryReferenceLocalPosition;
     private string _armReferenceLayerPath = "";
+    private string _bodyDecorationReferenceLayerPath = "";
     private string _clothesReferenceLayerPath = "";
     private string _accessoryReferenceLayerPath = "";
     private Vector2 _restPosition;
@@ -42,12 +45,15 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     {
         _hitButton = GetNode<Button>("HitButton");
         _arm = GetNode<Sprite2D>("Arm");
+        _bodyDecoration = GetNode<Sprite2D>("BodyDecoration");
         _clothes = GetNode<Sprite2D>("Clothes");
         _accessory = GetNode<Sprite2D>("Accessory");
         _armReferenceLocalPosition = _arm.Position;
+        _bodyDecorationReferenceLocalPosition = _bodyDecoration.Position;
         _clothesReferenceLocalPosition = _clothes.Position;
         _accessoryReferenceLocalPosition = _accessory.Position;
         _armReferenceLayerPath = GetLayerPath(_arm.Texture);
+        _bodyDecorationReferenceLayerPath = GetLayerPath(_bodyDecoration.Texture);
         _clothesReferenceLayerPath = GetLayerPath(_clothes.Texture);
         _accessoryReferenceLayerPath = GetLayerPath(_accessory.Texture);
         _restPosition = Position;
@@ -137,6 +143,21 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         else
         {
             _clothes.Visible = false;
+        }
+    }
+
+    public void SetBodyDecoration(Texture2D texture, string fileName)
+    {
+        if (texture != null)
+        {
+            _bodyDecoration.Texture = texture;
+            _bodyDecoration.Visible = true;
+            if (TryGetScenePosition(texture, fileName, _bodyDecorationReferenceLayerPath, _bodyDecorationReferenceLocalPosition, out var pos))
+                _bodyDecoration.Position = pos;
+        }
+        else
+        {
+            _bodyDecoration.Visible = false;
         }
     }
 

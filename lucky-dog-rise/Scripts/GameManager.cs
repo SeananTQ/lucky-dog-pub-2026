@@ -448,6 +448,7 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.Background, (tex, _) => GetNode<TextureRect>("Background").Texture = tex);
         ApplyItemTexture(EItemType.Table, (tex, _) => GetNode<TextureRect>("Table").Texture = tex);
         ApplyItemTexture(EItemType.Arm, (tex, name) => _handArea.SetArm(tex, name));
+        ApplyItemTexture(EItemType.BodyDecoration, (tex, name) => _handArea.SetBodyDecoration(tex, name), () => _handArea.SetBodyDecoration(null, ""));
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name), () => _handArea.SetClothes(null, ""));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name), () => _handArea.SetAccessory(null, ""));
         ApplyItemTexture(EItemType.Refreshment, (tex, name) => _itemArea.SetTreat(tex, name), _itemArea.ClearTreat);

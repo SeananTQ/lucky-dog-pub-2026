@@ -2467,7 +2467,7 @@
     "AssetPathList": [
       "v1\\Player\\Surface\\AnchorTattoo.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_AnchorTattoo.png",
+    "IconPath": "v1\\ItemIcon\\BodyDecoration_AnchorTattoo.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
