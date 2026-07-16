@@ -50,7 +50,7 @@ public sealed partial class Achievement : Luban.BeanBase
     /// <summary>
     /// StatisticAtLeast 的数值门槛；首次类规则填 1
     /// </summary>
-    public readonly int TargetValue;
+    public readonly long TargetValue;
     /// <summary>
     /// 是否在平台/游戏内解锁前隐藏
     /// </summary>
