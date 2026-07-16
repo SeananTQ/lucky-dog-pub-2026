@@ -2,6 +2,8 @@
   {
     "BlindBoxTimeScale": 0.1,
     "BlindBoxCostScale": 2,
-    "PlayerStatisticScale": 10
+    "PlayerStatisticScale": 10,
+    "BlindBoxBacklogClaimDelaySeconds": 30,
+    "BlindBoxPostNewbieDelaySeconds": 60
   }
 ]

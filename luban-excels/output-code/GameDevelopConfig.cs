@@ -20,6 +20,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxTimeScale"].IsNumber) { throw new SerializationException(); }  BlindBoxTimeScale = _buf["BlindBoxTimeScale"]; }
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
+        { if(!_buf["BlindBoxBacklogClaimDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxBacklogClaimDelaySeconds = _buf["BlindBoxBacklogClaimDelaySeconds"]; }
+        { if(!_buf["BlindBoxPostNewbieDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxPostNewbieDelaySeconds = _buf["BlindBoxPostNewbieDelaySeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -39,6 +41,14 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// 统计倍率
     /// </summary>
     public readonly float PlayerStatisticScale;
+    /// <summary>
+    /// 积压盲盒展示时短间隔时间
+    /// </summary>
+    public readonly float BlindBoxBacklogClaimDelaySeconds;
+    /// <summary>
+    /// 新手与正式盲盒的间隔时间
+    /// </summary>
+    public readonly float BlindBoxPostNewbieDelaySeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -53,6 +63,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxTimeScale:" + BlindBoxTimeScale + ","
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
+        + "BlindBoxBacklogClaimDelaySeconds:" + BlindBoxBacklogClaimDelaySeconds + ","
+        + "BlindBoxPostNewbieDelaySeconds:" + BlindBoxPostNewbieDelaySeconds + ","
         + "}";
     }
 }
