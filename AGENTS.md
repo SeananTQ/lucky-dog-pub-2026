@@ -17,7 +17,7 @@
 - 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
 - 存档：已支持本地 JSON 存档、版本号、缺字段兜底、损坏备份、重置存档确认。
 - 调试：Debug 页支持随机狗、随机场景、随机获得道具、播放狗反应、切换背包数据来源、盲盒状态调试与时间/成本倍率。
-- 盲盒：已支持数据驱动调度、开盒升品表演、奖励展示、桌宠/扑克两种开盒外壳、中断恢复与自动领奖。
+- 盲盒：已支持资格生成与本地展示节奏分离、12 个新手盲盒顺序领取、双循环轨道积压与优先级、开盒升品表演、桌宠/扑克两种开盒外壳、中断恢复与自动领奖。
 - 待开发：LinkTree 免费领取、重复补偿/分解、正式 Steam 库存 API 接入等。
 
 ## 技术栈
@@ -176,6 +176,8 @@ lucky-dog-rise/
 
 **盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
 
+盲盒资格生成和本地展示节奏是两层逻辑。`BlindBoxSchedule.StartSeconds` 是调度生效下限；循环行的 `IntervalSeconds` 是单条轨道的资格间隔，不是全局领取 CD，非循环行的 `IntervalSeconds` 则是相对上一次实际领取的最短本地间隔。12 个新手盲盒未领完时，本地只显示新手顺序，但正式循环轨道仍在后台生成并按表中上限保留资格。第 12 个新手奖励实际进入背包后，使用 `GameDevelopConfig.BlindBoxPostNewbieDelaySeconds` 控制首个正式盲盒；领取正式盲盒后仍有积压时，使用 `BlindBoxBacklogClaimDelaySeconds` 控制下一次展示。所有基础秒数统一受 `BlindBoxTimeScale` 缩放，多资格积压时按 `BlindBoxSchedule.Priority` 选择。
+
 ## 背包与存档
 
 - 背包数据在 `PlayerInventory` 中维护，拥有状态使用 `Dictionary<int, int>` 表示 `itemId -> count`，支持重复道具堆叠显示。
@@ -188,6 +190,7 @@ lucky-dog-rise/
 - 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
 - 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、兼容旧档的 `OwnedItemIds`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`CreatedAt`、`UpdatedAt`。
 - 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆等）。盲盒开盒中断状态会保存并恢复，包括当前盲盒、奖励、RevealStep 与奖励是否已展示。
+- 盲盒倒计时每秒刷新 UI，但不应因此每秒写存档。普通存档变化使用 0.75 秒防抖，持续游玩时间每 60 秒保存一次快照；开盒资格消耗、奖励入账和待揭晓状态变化等关键节点立即保存。
 
 ## 术语约定
 
