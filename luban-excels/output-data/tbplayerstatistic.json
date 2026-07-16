@@ -467,6 +467,6 @@
     "StatisticType": 2,
     "PlatformApiName": "STAT_PEAK_HALF_HOUR_INPUT_CHIPS_EARNED",
     "SyncToPlatform": true,
-    "Notes": "每自然半小时内，通过打字获得的最高筹码数（本游戏包括鼠标）"
+    "Notes": "游戏运行期间，按系统本地时间的自然半小时分段累计键鼠获得的筹码；首尾分段可能不足 30 分钟。"
   }
 ]
