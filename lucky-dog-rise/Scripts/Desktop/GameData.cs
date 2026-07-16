@@ -44,8 +44,10 @@ public partial class GameData : Node
     private bool _saveDirty;
     private double _saveTimer;
     private double _blindBoxTickTimer;
+    private double _profileAutosaveTimer;
     private double _playerProgressSaveTimer;
     private const double SaveDebounceSeconds = 0.75;
+    private const double ProfileAutosaveSeconds = 60.0;
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
 
@@ -54,6 +56,7 @@ public partial class GameData : Node
         _blindBoxService = new BlindBoxService(this);
         _saveDataMode = SettingsManager.LoadSaveDataMode();
         PlayerProgress = new PlayerProgress();
+        _profileAutosaveTimer = ProfileAutosaveSeconds;
         _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
@@ -77,6 +80,12 @@ public partial class GameData : Node
         {
             _blindBoxTickTimer = BlindBoxTickSeconds;
             EmitSignal(SignalName.BlindBoxStateChanged);
+        }
+
+        _profileAutosaveTimer -= delta;
+        if (_profileAutosaveTimer <= 0.0)
+        {
+            _profileAutosaveTimer = ProfileAutosaveSeconds;
             QueueSaveIfUsingLocalSave();
         }
 
@@ -440,6 +449,7 @@ public partial class GameData : Node
             LuckyDealBuffState = _luckyDealBuffState,
         });
         _saveDirty = false;
+        _profileAutosaveTimer = ProfileAutosaveSeconds;
     }
 
     private void LoadBlindBoxState(SaveProfile profile)
