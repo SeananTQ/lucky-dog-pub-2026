@@ -622,6 +622,34 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "重置系统设置"
 
+[node name="PlayerProgressDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+text = "Player progress debug status"
+
+[node name="PlayerProgressMultiplierRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+
+[node name="PlayerProgressMultiplierLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressMultiplierRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "玩家统计测试倍率"
+
+[node name="PlayerProgressMultiplierOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressMultiplierRow"]
+custom_minimum_size = Vector2(150, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+
+[node name="ResetPlayerProgressBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
+theme_override_font_sizes/font_size = 14
+text = "重置本地成就与统计"
+
 [node name="BlindBoxDebugToggle" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1340448601]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14

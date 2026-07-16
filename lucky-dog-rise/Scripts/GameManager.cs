@@ -28,6 +28,7 @@ public partial class GameManager : Node2D
     private int _pendingPayout;
     private EHandRank _pendingRewardRank;
     private Node2D _pendingReward;
+    private PlayerProgressSource _currentHandProgressSource = PlayerProgressSource.Gameplay;
 
     [Export] private float _drawStartDelayAfterFirstKnock = 0.03f+0.22f;
     [Export] private float _chipStackAppearanceDelayFromLastReplaceStart = 0.08f;
@@ -159,7 +160,16 @@ public partial class GameManager : Node2D
         if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
 #if DEBUG
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
+        {
             _deck.SetFixedSeed(fixedSeed);
+            _currentHandProgressSource = PlayerProgressSource.Debug;
+        }
+        else
+        {
+            _currentHandProgressSource = PlayerProgressSource.Gameplay;
+        }
+#else
+        _currentHandProgressSource = PlayerProgressSource.Gameplay;
 #endif
         DealNewHand();
     }
@@ -216,6 +226,7 @@ public partial class GameManager : Node2D
                 _dogHint.HasRefusedAfterLock = true;
                 _interactionHints.NotifyInteractionHandled();
                 _dogVisual.ApplyReaction(EDogReactionTrigger.RefuseHint);
+                _gameData.RecordPlayerProgressEvent("DogHintRefused", _currentHandProgressSource);
             }
             return;
         }
@@ -226,6 +237,7 @@ public partial class GameManager : Node2D
         var previewRank = _dogHint.EvaluateHoldRank(_deck.CurrentHand, _held, previewHand);
         _dogVisual.ApplyReaction(GetSawReaction(previewRank));
         _dogHint.HasGivenHint = true;
+        _gameData.RecordPlayerProgressEvent("DogHintAsked", _currentHandProgressSource);
         RefreshInteractionHintTargets();
         _hud.SetMessage("");
     }
@@ -234,6 +246,7 @@ public partial class GameManager : Node2D
     {
         _pendingReward = null;
         _gameData.ModifyChips(_pendingPayout);
+        _gameData.RecordPokerPayoutCollected(_pendingPayout, _currentHandProgressSource);
         _pendingPayout = 0;
         RefreshUI();
         SetState(GameState.WaitingForBet);
@@ -251,6 +264,7 @@ public partial class GameManager : Node2D
     private void DealNewHand()
     {
         _gameData.ModifyChips(-_gameData.BetAmount);
+        _gameData.RecordPokerHandStarted(_gameData.BetAmount, _currentHandProgressSource);
         _gameData.EmitNewHandStarted();
         _deck.Deal(_gameData.TryConsumeLuckyDealBuff(out float triggerChance) ? triggerChance : null);
         _held = [true, true, true, true, true];
@@ -276,6 +290,7 @@ public partial class GameManager : Node2D
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
         _gameData.EmitHandResolved(rank, payout);
+        _gameData.RecordPokerHandResolved(rank, payout, _dogHint.HasGivenHint, _currentHandProgressSource);
         _dogVisual.ApplyReaction(GetSawReaction(rank));
         if (payout > 0)
         {

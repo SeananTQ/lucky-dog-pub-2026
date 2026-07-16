@@ -35,6 +35,7 @@ public partial class GameData : Node
     public PendingBlindBoxReward PendingBlindBoxReward { get; private set; }
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
+    public PlayerProgress PlayerProgress { get; private set; } = null!;
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
     private LuckyDealBuffState _luckyDealBuffState = new();
@@ -43,23 +44,34 @@ public partial class GameData : Node
     private bool _saveDirty;
     private double _saveTimer;
     private double _blindBoxTickTimer;
+    private double _playerProgressSaveTimer;
     private const double SaveDebounceSeconds = 0.75;
+    private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
 
     public override void _Ready()
     {
         _blindBoxService = new BlindBoxService(this);
         _saveDataMode = SettingsManager.LoadSaveDataMode();
+        PlayerProgress = new PlayerProgress();
+        _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
         Inventory.InventoryChanged += OnInventoryChanged;
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
+        if (CanRecordPlayerProgress)
+        {
+            PlayerProgress.BackfillExternalInventory(Inventory);
+            PlayerProgress.RecordAppLaunch();
+        }
     }
 
     public override void _Process(double delta)
     {
         TotalPlaySeconds += delta;
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordDuration("GameRuntimeSeconds", delta, PlayerProgressSource.Gameplay);
         _blindBoxTickTimer -= delta;
         if (_blindBoxTickTimer <= 0.0)
         {
@@ -68,17 +80,33 @@ public partial class GameData : Node
             QueueSaveIfUsingLocalSave();
         }
 
-        if (!_saveDirty)
-            return;
+        if (_saveDirty)
+        {
+            _saveTimer -= delta;
+            if (_saveTimer <= 0.0)
+                FlushSave();
+        }
 
-        _saveTimer -= delta;
-        if (_saveTimer <= 0.0)
-            FlushSave();
+        if (PlayerProgress.RequiresImmediateSave)
+        {
+            PlayerProgress.SaveIfDirty();
+            _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
+        }
+        else if (PlayerProgress.IsDirty)
+        {
+            _playerProgressSaveTimer -= delta;
+            if (_playerProgressSaveTimer <= 0.0)
+            {
+                PlayerProgress.SaveIfDirty();
+                _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
+            }
+        }
     }
 
     public override void _ExitTree()
     {
         FlushSave();
+        PlayerProgress?.FlushSession();
     }
 
     public void EquipItem(int itemId)
@@ -91,9 +119,15 @@ public partial class GameData : Node
         Inventory.ToggleEquip(itemId);
     }
 
-    public void AddItem(int itemId, int count = 1, bool markNew = true)
+    public void AddItem(int itemId, int count = 1, bool markNew = true, PlayerProgressSource source = PlayerProgressSource.Gameplay)
     {
         Inventory.AddItem(itemId, count, markNew, SettingsManager.LoadAutoEquipNewOutfits());
+        if (CanRecordPlayerProgress && source != PlayerProgressSource.Debug)
+        {
+            var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+            if (item != null)
+                PlayerProgress.RecordExternalItemAcquired(item, count, source);
+        }
         QueueSaveIfUsingLocalSave();
     }
 
@@ -139,6 +173,11 @@ public partial class GameData : Node
 
         PendingBlindBoxReward = result.PendingReward;
         _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule, TotalPlaySeconds);
+        if (CanRecordPlayerProgress)
+        {
+            PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
+            PlayerProgress.RecordBlindBoxChipsSpent(GetBlindBoxDisplayCost(result.Box), PlayerProgressSource.BlindBox);
+        }
         EmitSignal(SignalName.BlindBoxStateChanged);
         SaveImmediatelyIfUsingLocalSave();
         return PendingBlindBoxReward;
@@ -151,7 +190,9 @@ public partial class GameData : Node
 
         var itemId = PendingBlindBoxReward.ItemId;
         PendingBlindBoxReward = null;
-        AddItem(itemId, count: 1, markNew: true);
+        AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
         EmitSignal(SignalName.BlindBoxStateChanged);
         QueueSaveIfUsingLocalSave();
     }
@@ -185,6 +226,54 @@ public partial class GameData : Node
 
     public bool CanAffordBet => Chips >= BetAmount;
     public int LuckyDealRemainingHands => _luckyDealBuffState.RemainingHands;
+
+    public void RecordTypingInput(int count)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordInputChips(count, PlayerProgressSource.Gameplay);
+    }
+
+    public void RecordDesktopModeSeconds(double delta, bool visible)
+    {
+        if (visible && CanRecordPlayerProgress)
+            PlayerProgress.RecordDuration("DesktopModeSeconds", delta, PlayerProgressSource.Gameplay);
+    }
+
+    public void RecordPokerModeSeconds(double delta)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordDuration("PokerModeSeconds", delta, PlayerProgressSource.Gameplay);
+    }
+
+    public void RecordPokerHandStarted(int bet, PlayerProgressSource source)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordPokerHandStarted(bet, source);
+    }
+
+    public void RecordPokerHandResolved(EHandRank rank, int payout, bool askedDogHint, PlayerProgressSource source)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordPokerHandResolved(rank, payout, askedDogHint, source);
+    }
+
+    public void RecordPokerPayoutCollected(int payout, PlayerProgressSource source)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordPokerPayoutCollected(payout, source);
+    }
+
+    public void RecordPlayerProgressEvent(string eventKey, PlayerProgressSource source = PlayerProgressSource.Gameplay)
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordFirstEvent(eventKey, source);
+    }
+
+#if DEBUG
+    public void ResetPlayerProgress() => PlayerProgress.Reset();
+    public void SetPlayerProgressDebugMultiplier(int multiplier) => PlayerProgress.SetDebugMultiplier(multiplier);
+    public string GetPlayerProgressDebugStatus() => $"Progress file: {PlayerProgress.AbsoluteSavePath}\nUnlocked: {PlayerProgress.UnlockedAchievementApiNames.Count}\nStatistics: {PlayerProgress.Statistics.Count}";
+#endif
 
     /// <summary>供未来消耗品和当前 Debug 共用的幸运 Buff 发放接口。</summary>
     public void GrantLuckyDealBuff(int turns, float triggerChance)
@@ -237,6 +326,8 @@ public partial class GameData : Node
         _saveDataMode = mode;
         SettingsManager.SaveSaveDataMode(mode);
         LoadDataForCurrentMode();
+        if (CanRecordPlayerProgress)
+            PlayerProgress.BackfillExternalInventory(Inventory);
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
     }
@@ -311,6 +402,18 @@ public partial class GameData : Node
 
         _saveDirty = true;
         _saveTimer = SaveDebounceSeconds;
+    }
+
+    private bool CanRecordPlayerProgress
+    {
+        get
+        {
+#if DEBUG
+            return _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
+#else
+            return true;
+#endif
+        }
     }
 
     public void SaveImmediatelyIfUsingLocalSave()

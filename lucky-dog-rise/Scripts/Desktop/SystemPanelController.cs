@@ -87,10 +87,13 @@ public partial class SystemPanelController : CanvasLayer
     private Button _blindBoxDebugToggle = null!;
     private Control _blindBoxDebugContent = null!;
     private Label _blindBoxDebugLabel = null!;
+    private Label _playerProgressDebugLabel = null!;
+    private OptionButton _playerProgressMultiplierOption = null!;
     private LineEdit _seedInput = null!;
     private OptionButton _reactionOption = null!;
     private int _currentSeed;
     private double _debugTimeRefreshTimer;
+    private bool _resetPlayerProgressPending;
 #endif
 
     // Wardrobe 页
@@ -258,12 +261,17 @@ public partial class SystemPanelController : CanvasLayer
         quitBtn.Pressed += () => GetTree().Quit();
         restartBtn.Pressed += RestartGame;
         resetSaveBtn.Pressed += () =>
+        {
+#if DEBUG
+            _resetPlayerProgressPending = false;
+#endif
             _resetSaveConfirm.ShowConfirmKey(
                 L10nKey.Settings_ResetSaveData,
                 L10nKey.Settings_ResetSaveMessage,
                 L10nKey.Settings_ResetSaveConfirm,
                 L10nKey.Common_Cancel);
-        _resetSaveConfirm.Confirmed += OnResetSaveConfirmed;
+        };
+        _resetSaveConfirm.Confirmed += OnResetConfirmed;
 
         _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
         _switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
@@ -292,11 +300,14 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxDebugToggle = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugToggle");
         _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
         _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
+        _playerProgressDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressDebugLabel");
+        _playerProgressMultiplierOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressMultiplierRow/PlayerProgressMultiplierOption");
         var seedCopyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedCopyBtn");
         _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
+        var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
@@ -312,6 +323,14 @@ public partial class SystemPanelController : CanvasLayer
             RefreshDebugPlayTime();
         };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
+        _playerProgressMultiplierOption.AddItem("统计 x1", 1);
+        _playerProgressMultiplierOption.AddItem("统计 x10", 10);
+        _playerProgressMultiplierOption.AddItem("统计 x100", 100);
+        _playerProgressMultiplierOption.AddItem("统计 x1000", 1000);
+        _playerProgressMultiplierOption.Select(0);
+        _playerProgressMultiplierOption.ItemSelected += _ =>
+            _gameData.SetPlayerProgressDebugMultiplier(_playerProgressMultiplierOption.GetSelectedId());
+        resetPlayerProgressBtn.Pressed += ConfirmResetPlayerProgress;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
@@ -390,6 +409,7 @@ public partial class SystemPanelController : CanvasLayer
         var total = TimeSpan.FromSeconds(_gameData.TotalPlaySeconds);
         _playTimeLabel.Text = $"Play Time: {total:hh\\:mm\\:ss} ({_gameData.TotalPlaySeconds:0.0}s)";
         _luckyDealBuffLabel.Text = $"Lucky Deal Buff: {_gameData.LuckyDealRemainingHands} hands remaining";
+        _playerProgressDebugLabel.Text = _gameData.GetPlayerProgressDebugStatus();
         RefreshBlindBoxDebugStatus();
     }
 
@@ -588,6 +608,7 @@ public partial class SystemPanelController : CanvasLayer
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
 #if DEBUG
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPos)
+            || PopupContainsPoint(_playerProgressMultiplierOption.GetPopup(), windowPos)
 #endif
             ;
     }
@@ -756,6 +777,32 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeBuilt = false;
         if (_wardrobeContent.Visible)
             BuildWardrobe();
+    }
+
+#if DEBUG
+    private void ConfirmResetPlayerProgress()
+    {
+        _resetPlayerProgressPending = true;
+        _resetSaveConfirm.ShowConfirm(
+            "重置本地成就与统计？",
+            "仅清空 player_progress_0.json。不会影响筹码、背包、装备或游戏存档。",
+            "重置",
+            "取消");
+    }
+#endif
+
+    private void OnResetConfirmed()
+    {
+#if DEBUG
+        if (_resetPlayerProgressPending)
+        {
+            _resetPlayerProgressPending = false;
+            _gameData.ResetPlayerProgress();
+            RefreshDebugPlayTime();
+            return;
+        }
+#endif
+        OnResetSaveConfirmed();
     }
 
 #if DEBUG

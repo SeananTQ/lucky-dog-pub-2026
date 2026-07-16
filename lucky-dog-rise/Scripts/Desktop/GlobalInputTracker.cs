@@ -118,6 +118,7 @@ public partial class GlobalInputTracker : Node
         if (count > 0 && GameData != null)
         {
             GameData.ModifyChips(count);
+            GameData.RecordTypingInput(count);
             EmitSignal(SignalName.TypingInputOccurred, count);
         }
     }

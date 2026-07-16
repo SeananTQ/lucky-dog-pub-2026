@@ -252,6 +252,11 @@ public partial class ModeManager : Control
 
     public override void _Process(double _)
     {
+        if (CurrentMode == Mode.BossKey)
+            _gameData?.RecordDesktopModeSeconds(_, visible: !_hiddenByFullscreenApp);
+        else if (CurrentMode == Mode.Play || CurrentMode == Mode.Immersive)
+            _gameData?.RecordPokerModeSeconds(_);
+
         UpdateFullscreenVisibility(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
@@ -824,7 +829,7 @@ public partial class ModeManager : Control
             return;
 
         var item = items[_debugRandom.Next(items.Count)];
-        _gameData.AddItem(item.Id, count: 1, markNew: true);
+        _gameData.AddItem(item.Id, count: 1, markNew: true, source: PlayerProgressSource.Debug);
     }
 
     private void OnDebugGrantChips()
@@ -1136,6 +1141,8 @@ public partial class ModeManager : Control
         _desktopActivityCooldownSeconds = state.CooldownSeconds;
         _desktopTongueFeedbackEnabled = state.EnableTongueFeedback;
         _bossDogVisual.ApplyReaction(state.DogReactionTrigger);
+        if (state.DogReactionTrigger == EDogReactionTrigger.Starstruck)
+            _gameData.RecordPlayerProgressEvent("DesktopStarstruckEntered");
     }
 
     private double GetDesktopInputEventsPerMinute(double now)
