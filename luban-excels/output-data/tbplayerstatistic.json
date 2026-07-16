@@ -47,7 +47,7 @@
     "StatisticType": 1,
     "PlatformApiName": "STAT_TYPING_INPUT_COUNT",
     "SyncToPlatform": true,
-    "Notes": "真实全局打字输入次数；不受未来筹码产出倍率影响，目前是打字和筹码1比1，但有频率上限锁"
+    "Notes": "真实全局打字输入次数；不受未来筹码产出倍率影响，目前是打字和筹码1比1，但有频率上限锁（打字包括鼠标点击）"
   },
   {
     "StatisticId": 1006,
@@ -57,7 +57,7 @@
     "StatisticType": 1,
     "PlatformApiName": "STAT_TYPING_CHIPS_EARNED",
     "SyncToPlatform": true,
-    "Notes": "仅累计 GlobalInputTracker 的真实打字奖励筹码"
+    "Notes": "仅累计 GlobalInputTracker 的真实打字奖励筹码（包括鼠标点击）"
   },
   {
     "StatisticId": 1007,
@@ -458,5 +458,15 @@
     "PlatformApiName": "STAT_EXTERNAL_BODY_DECORATION_ACQUIRED_COUNT",
     "SyncToPlatform": true,
     "Notes": "从非初始来源获得体表装饰的数量，例如体毛、纹身、美甲；重复道具按实际数量累计"
+  },
+  {
+    "StatisticId": 1050,
+    "StatisticKey": "PeakHalfHourInputChipsEarned",
+    "DisplayName": "半小时周期打字筹码峰值",
+    "Unit": 2,
+    "StatisticType": 2,
+    "PlatformApiName": "STAT_PEAK_HALF_HOUR_INPUT_CHIPS_EARNED",
+    "SyncToPlatform": true,
+    "Notes": "每自然半小时内，通过打字获得的最高筹码数（本游戏包括鼠标）"
   }
 ]

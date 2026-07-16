@@ -1,6 +1,7 @@
 [
   {
     "BlindBoxTimeScale": 0.1,
-    "BlindBoxCostScale": 1
+    "BlindBoxCostScale": 2,
+    "PlayerStatisticScale": 10
   }
 ]

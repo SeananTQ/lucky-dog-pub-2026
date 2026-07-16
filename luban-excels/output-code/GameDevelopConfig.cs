@@ -19,6 +19,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     {
         { if(!_buf["BlindBoxTimeScale"].IsNumber) { throw new SerializationException(); }  BlindBoxTimeScale = _buf["BlindBoxTimeScale"]; }
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
+        { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -34,6 +35,10 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// 盲盒消耗倍率
     /// </summary>
     public readonly float BlindBoxCostScale;
+    /// <summary>
+    /// 统计倍率
+    /// </summary>
+    public readonly float PlayerStatisticScale;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -47,6 +52,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         return "{ "
         + "BlindBoxTimeScale:" + BlindBoxTimeScale + ","
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
+        + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "}";
     }
 }
