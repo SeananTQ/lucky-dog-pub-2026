@@ -41,21 +41,21 @@
   },
   {
     "StatisticId": 1005,
-    "StatisticKey": "TypingInputCount",
-    "DisplayName": "累计打字输入次数",
+    "StatisticKey": "GlobalInputCount",
+    "DisplayName": "累计全局输入次数（键鼠）",
     "Unit": 1,
     "StatisticType": 1,
-    "PlatformApiName": "STAT_TYPING_INPUT_COUNT",
+    "PlatformApiName": "STAT_GLOBAL_INPUT_COUNT",
     "SyncToPlatform": true,
-    "Notes": "真实全局打字输入次数；不受未来筹码产出倍率影响，目前是打字和筹码1比1，但有频率上限锁（打字包括鼠标点击）"
+    "Notes": "真实全局输入次数；不受未来筹码产出倍率影响，目前是打字和筹码1比1，但有频率上限锁（打字包括鼠标点击）"
   },
   {
     "StatisticId": 1006,
-    "StatisticKey": "TypingChipsEarned",
-    "DisplayName": "累计打字获得筹码",
+    "StatisticKey": "GlobalInputChipsEarned",
+    "DisplayName": "累计全局输入获得筹码",
     "Unit": 2,
     "StatisticType": 1,
-    "PlatformApiName": "STAT_TYPING_CHIPS_EARNED",
+    "PlatformApiName": "STAT_GLOBAL_INPUT_CHIPS_EARNED",
     "SyncToPlatform": true,
     "Notes": "仅累计 GlobalInputTracker 的真实打字奖励筹码（包括鼠标点击）"
   },
