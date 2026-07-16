@@ -60,16 +60,17 @@ public partial class ModeManager : Control
     public GameData GameDataObj => _gameData;
 
 #if DEBUG
-    private static readonly EItemType[] DebugDogItemTypes =
-    [
-        EItemType.Dog,
-        EItemType.Headwear,
-        EItemType.Eyewear,
-    ];
-
-    private static readonly EItemType[] DebugSceneItemTypes = Enum.GetValues<EItemType>()
-        .Where(type => !DebugDogItemTypes.Contains(type))
+    private static readonly EItemType[] DebugEquipmentTypes = Enum.GetValues<EItemType>();
+    private static readonly EItemType[] DebugGrantItemTypes = DebugEquipmentTypes
+        .Where(type => type != EItemType.Dog)
         .ToArray();
+    private const int DebugEmptyEquipmentWeight = 3;
+
+    private enum DebugEquipmentSource
+    {
+        AllCatalog,
+        Owned,
+    }
 #endif
 
     // 面板避让九宫优先级：伪装模式。按数组顺序尝试，数字对应键盘九宫格：
@@ -88,7 +89,8 @@ public partial class ModeManager : Control
 
 #if DEBUG
     private readonly Random _debugRandom = new();
-    private readonly Dictionary<EItemType, ShuffleBag<int>> _debugItemBags = new();
+    private readonly Dictionary<(DebugEquipmentSource source, EItemType type), ShuffleBag<int>> _debugEquipmentBags = new();
+    private int _debugGrantItemTypeIndex;
 #endif
     private readonly Queue<(double time, int count)> _desktopInputEvents = new();
     private const double DesktopActivitySampleSeconds = 10.0;
@@ -804,12 +806,12 @@ public partial class ModeManager : Control
 #if DEBUG
     private void OnRandomizeScene()
     {
-        ApplyRandomEquipment(DebugSceneItemTypes);
+        ApplyRandomEquipment(DebugEquipmentSource.AllCatalog);
     }
 
     private void OnRandomizeDog()
     {
-        ApplyRandomEquipment(DebugDogItemTypes);
+        ApplyRandomEquipment(DebugEquipmentSource.Owned);
     }
 
     private void OnDogReactionRequested(int trigger)
@@ -822,14 +824,30 @@ public partial class ModeManager : Control
 
     private void OnRandomAcquireItem()
     {
-        var items = LubanData.Tables.TbItem.DataList
-            .Where(item => !item.IsUnique || !_gameData.Inventory.Owns(item.Id))
+        var allCandidates = LubanData.Tables.TbItem.DataList
+            .Where(item => item.ItemType != EItemType.Dog && !item.IsHiddenInBag)
             .ToList();
-        if (items.Count == 0)
+        if (allCandidates.Count == 0)
             return;
 
-        var item = items[_debugRandom.Next(items.Count)];
-        _gameData.AddItem(item.Id, count: 1, markNew: true, source: PlayerProgressSource.Debug);
+        // 未集齐时只发未拥有物品；集齐后允许重复发放，以便录制时继续补数量。
+        bool hasUnownedItem = allCandidates.Any(item => !_gameData.Inventory.Owns(item.Id));
+        for (int attempt = 0; attempt < DebugGrantItemTypes.Length; attempt++)
+        {
+            var type = DebugGrantItemTypes[_debugGrantItemTypeIndex];
+            _debugGrantItemTypeIndex = (_debugGrantItemTypeIndex + 1) % DebugGrantItemTypes.Length;
+
+            var candidates = allCandidates
+                .Where(item => item.ItemType == type)
+                .Where(item => !hasUnownedItem || !_gameData.Inventory.Owns(item.Id))
+                .ToList();
+            if (candidates.Count == 0)
+                continue;
+
+            var item = candidates[_debugRandom.Next(candidates.Count)];
+            _gameData.AddItem(item.Id, count: 1, markNew: false, source: PlayerProgressSource.Debug);
+            return;
+        }
     }
 
     private void OnDebugGrantChips()
@@ -1171,25 +1189,41 @@ public partial class ModeManager : Control
     }
 
 #if DEBUG
-    private void ApplyRandomEquipment(IEnumerable<EItemType> types)
+    private void ApplyRandomEquipment(DebugEquipmentSource source)
     {
-        foreach (var type in types)
+        var selections = new Dictionary<EItemType, int?>();
+        foreach (var type in DebugEquipmentTypes)
         {
-            var items = _gameData.Inventory.GetOwnedOfType(type)
-                .OrderBy(item => item.Id)
+            var candidates = (source == DebugEquipmentSource.AllCatalog
+                    ? LubanData.Tables.TbItem.DataList.Where(item => item.ItemType == type)
+                    : _gameData.Inventory.GetOwnedOfType(type))
+                // Special2 暂作为录制避让标记：不参与 Debug 快速随机穿戴。
+                .Where(item => item.ItemRarity != ERarity.Special2)
+                .Select(item => item.Id)
+                .OrderBy(id => id)
                 .ToList();
-            if (items.Count == 0) continue;
+            if (_gameData.Inventory.CanUnequip(type))
+            {
+                for (int i = 0; i < DebugEmptyEquipmentWeight; i++)
+                    candidates.Add(0); // 0 不对应物品，代表该可空装备位留空。
+            }
+            if (candidates.Count == 0)
+                continue;
 
-            if (!_debugItemBags.TryGetValue(type, out var bag))
+            var key = (source, type);
+            if (!_debugEquipmentBags.TryGetValue(key, out var bag))
             {
                 bag = new ShuffleBag<int>();
-                _debugItemBags[type] = bag;
+                _debugEquipmentBags[key] = bag;
             }
 
-            var equippedId = _gameData.Inventory.GetEquipped(type)?.Id ?? -1;
-            var pickedId = bag.Pick(items.Select(item => item.Id).ToList(), _debugRandom, equippedId);
-            _gameData.EquipItem(pickedId);
+            var equippedId = _gameData.Inventory.GetEquipped(type)?.Id ?? 0;
+            var pickedId = bag.Pick(candidates, _debugRandom, equippedId);
+            selections[type] = pickedId == 0 ? null : pickedId;
         }
+
+        // 全图鉴模式只做临时视觉预览，绝不把未拥有物品写进背包或存档。
+        _gameData.Inventory.SetDebugPreviewEquipment(selections);
     }
 #endif
 
@@ -1548,6 +1582,26 @@ public partial class ModeManager : Control
 
     public override void _Input(InputEvent @event)
     {
+#if DEBUG
+        if (@event is InputEventKey { Pressed: true, Echo: false } key
+            && !_settingsPanel.IsOpen)
+        {
+            if (key.Keycode == Key.F2)
+            {
+                ApplyRandomEquipment(DebugEquipmentSource.AllCatalog);
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            if (key.Keycode == Key.F3)
+            {
+                ApplyRandomEquipment(DebugEquipmentSource.Owned);
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
+#endif
+
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
             && CurrentMode == Mode.Play
             && (_potentialDrag || _isDragging))

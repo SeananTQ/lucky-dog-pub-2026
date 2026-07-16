@@ -13,6 +13,11 @@ public class PlayerInventory
     private readonly Dictionary<int, int> _ownedItemCounts = new();
     private readonly Dictionary<EItemType, int> _equipped = new();
     private readonly HashSet<int> _newItemIds = new();
+#if DEBUG
+    // 录制辅助用的临时视觉覆盖，不进入存档，也不改变实际拥有状态。
+    private readonly Dictionary<EItemType, int> _debugPreviewEquipped = new();
+    private readonly HashSet<EItemType> _debugPreviewActiveTypes = new();
+#endif
 
     public event Action? EquipmentChanged;
     public event Action? InventoryChanged;
@@ -38,6 +43,10 @@ public class PlayerInventory
 
     public Item? GetEquipped(EItemType type)
     {
+#if DEBUG
+        if (_debugPreviewActiveTypes.Contains(type))
+            return _debugPreviewEquipped.TryGetValue(type, out var previewId) ? FindItem(previewId) : null;
+#endif
         if (_equipped.TryGetValue(type, out var id))
             return FindItem(id);
         return null;
@@ -47,6 +56,9 @@ public class PlayerInventory
     {
         var item = FindItem(itemId);
         if (item == null || !Owns(itemId)) return;
+#if DEBUG
+        ClearDebugPreviewForType(item.ItemType);
+#endif
 
         if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
             return;
@@ -61,6 +73,9 @@ public class PlayerInventory
     {
         var item = FindItem(itemId);
         if (item == null || !Owns(itemId)) return;
+#if DEBUG
+        ClearDebugPreviewForType(item.ItemType);
+#endif
 
         if (_equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId)
         {
@@ -124,10 +139,40 @@ public class PlayerInventory
     }
 
 #if DEBUG
+    /// <summary>只用于 Debug 录制展示；null 表示该类型临时留空。</summary>
+    public void SetDebugPreviewEquipment(IReadOnlyDictionary<EItemType, int?> selections)
+    {
+        _debugPreviewEquipped.Clear();
+        _debugPreviewActiveTypes.Clear();
+
+        foreach (var (type, itemId) in selections)
+        {
+            _debugPreviewActiveTypes.Add(type);
+            if (!itemId.HasValue)
+                continue;
+
+            var item = FindItem(itemId.Value);
+            if (item != null && item.ItemType == type)
+                _debugPreviewEquipped[type] = item.Id;
+        }
+
+        EquipmentChanged?.Invoke();
+    }
+
+    private void ClearDebugPreviewForType(EItemType type)
+    {
+        bool removed = _debugPreviewActiveTypes.Remove(type);
+        _debugPreviewEquipped.Remove(type);
+        if (removed)
+            EquipmentChanged?.Invoke();
+    }
+
     public void ResetToDebugAllItems(bool emitChanged = true)
     {
         _ownedItemCounts.Clear();
         _newItemIds.Clear();
+        _debugPreviewEquipped.Clear();
+        _debugPreviewActiveTypes.Clear();
         foreach (var item in LubanData.Tables.TbItem.DataList)
             _ownedItemCounts[item.Id] = 1; // 临时：拥有全部道具用于测试
 
@@ -149,6 +194,10 @@ public class PlayerInventory
         _ownedItemCounts.Clear();
         _equipped.Clear();
         _newItemIds.Clear();
+#if DEBUG
+        _debugPreviewEquipped.Clear();
+        _debugPreviewActiveTypes.Clear();
+#endif
 
         var validIds = LubanData.Tables.TbItem.DataList.Select(item => item.Id).ToHashSet();
         foreach (var (id, count) in ownedItemCounts)

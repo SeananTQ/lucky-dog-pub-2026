@@ -33,6 +33,8 @@ public partial class GlobalInputTracker : Node
     private const int VK_ESCAPE = 0x1B;
     private const int VK_LWIN = 0x5B;
     private const int VK_RWIN = 0x5C;
+    private const int VK_F2 = 0x71;
+    private const int VK_F3 = 0x72;
     private const int WM_LBUTTONDOWN = 0x0201;
     private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
@@ -73,7 +75,7 @@ public partial class GlobalInputTracker : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        if (@event is InputEventKey key && key.Pressed && !key.Echo && !IsDebugPresentationHotkey(key.Keycode))
             Interlocked.Increment(ref _pendingPresses);
         // 鼠标：WH_MOUSE_LL 有/无焦点都能收到，不走 _Input 避免重复
     }
@@ -135,7 +137,8 @@ public partial class GlobalInputTracker : Node
                     EmitSignal(SignalName.GlobalWinKeyPressed);
                 else if (vkCode == VK_ESCAPE)
                     EmitSignal(SignalName.GlobalEscapeKeyPressed);
-                Interlocked.Increment(ref _pendingPresses);
+                if (!IsDebugPresentationHotkey(vkCode))
+                    Interlocked.Increment(ref _pendingPresses);
             }
         }
         else if (nCode >= 0 && (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP))
@@ -162,5 +165,23 @@ public partial class GlobalInputTracker : Node
         }
 
         return CallNextHookEx(_msHook, nCode, wParam, lParam);
+    }
+
+    private static bool IsDebugPresentationHotkey(Key key)
+    {
+#if DEBUG
+        return key is Key.F2 or Key.F3;
+#else
+        return false;
+#endif
+    }
+
+    private static bool IsDebugPresentationHotkey(int virtualKeyCode)
+    {
+#if DEBUG
+        return virtualKeyCode is VK_F2 or VK_F3;
+#else
+        return false;
+#endif
     }
 }

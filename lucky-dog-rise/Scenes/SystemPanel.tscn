@@ -687,17 +687,17 @@ placeholder_text = "Fixed seed (empty = random)"
 [node name="RandomizeSceneBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=98234571]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Randomize Scene"
+text = "全物品随机穿戴（F2）"
 
 [node name="RandomizeDogBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=98234572]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Randomize Dog"
+text = "已拥有物品随机穿戴（F3）"
 
 [node name="RandomAcquireItemBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=478263499]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "随机获得道具"
+text = "轮换获得道具（不含狗）"
 
 [node name="HideDebugTabBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=637548531]
 layout_mode = 2
