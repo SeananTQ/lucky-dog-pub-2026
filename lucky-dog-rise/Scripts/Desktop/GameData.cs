@@ -181,7 +181,7 @@ public partial class GameData : Node
             return null;
 
         PendingBlindBoxReward = result.PendingReward;
-        _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule, TotalPlaySeconds);
+        _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule);
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -198,8 +198,10 @@ public partial class GameData : Node
             return;
 
         var itemId = PendingBlindBoxReward.ItemId;
+        var scheduleId = PendingBlindBoxReward.ScheduleId;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
+        _blindBoxService.CompleteClaimedSchedule(_blindBoxRuntimeState, scheduleId, TotalPlaySeconds);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
         EmitSignal(SignalName.BlindBoxStateChanged);

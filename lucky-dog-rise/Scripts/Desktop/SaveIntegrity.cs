@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -29,7 +29,7 @@ internal static class SaveIntegrity
 
     public static bool Verify(SaveProfile profile)
     {
-        if (profile.IntegrityVersion is not (1 or CurrentVersion)
+        if (profile.IntegrityVersion is not (1 or 2 or CurrentVersion)
             || string.IsNullOrWhiteSpace(profile.IntegrityTag)
             || !BuildInfo.TryGetSaveHmacKey(out var key))
             return false;
@@ -66,7 +66,7 @@ internal static class SaveIntegrity
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             NewItemIds = (profile.NewItemIds ?? []).OrderBy(id => id).ToList(),
             BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
-            BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
+            BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState, integrityVersion),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
             // v1 存档的签名没有这个字段；保持 null 并由 JsonIgnore 省略，兼容旧 HMAC。
             LuckyDealBuffState = integrityVersion >= 2
@@ -96,13 +96,17 @@ internal static class SaveIntegrity
             .ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
-    private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state)
+    private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state, int integrityVersion)
     {
         state ??= new BlindBoxRuntimeState();
         return new BlindBoxRuntimeState
         {
             SequenceIndex = state.SequenceIndex,
             LastClaimSeconds = state.LastClaimSeconds,
+            // v1/v2 存档没有本地展示门槛；默认值会由 JsonIgnore 省略，保持旧签名兼容。
+            NextLoopPresentationSeconds = integrityVersion >= 3
+                ? state.NextLoopPresentationSeconds
+                : 0.0,
             LoopTrackStates = (state.LoopTrackStates ?? new Dictionary<int, BlindBoxScheduleState>())
                 .OrderBy(pair => pair.Key)
                 .ToDictionary(

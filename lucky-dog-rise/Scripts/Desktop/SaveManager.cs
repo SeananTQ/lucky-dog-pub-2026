@@ -31,7 +31,7 @@ public sealed class SaveProfile
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -178,6 +178,7 @@ public static class SaveManager
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
         profile.BlindBoxRuntimeState.LastClaimSeconds = Math.Max(0, profile.BlindBoxRuntimeState.LastClaimSeconds);
+        profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = Math.Max(0, profile.BlindBoxRuntimeState.NextLoopPresentationSeconds);
         profile.BlindBoxRuntimeState.LoopTrackStates = profile.BlindBoxRuntimeState.LoopTrackStates
             .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
             .OrderBy(pair => pair.Key)
