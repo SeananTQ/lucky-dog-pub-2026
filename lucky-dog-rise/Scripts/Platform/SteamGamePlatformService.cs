@@ -5,24 +5,30 @@ using Steamworks;
 
 namespace LuckyDogRise;
 
-public sealed class SteamGamePlatformService : IGamePlatformService
+public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations
 {
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<UserStatsReceived_t> _userStatsReceivedCallback;
+    private readonly Callback<UserStatsStored_t> _userStatsStoredCallback;
+    private readonly Callback<UserAchievementStored_t> _userAchievementStoredCallback;
 
     public SteamGamePlatformService(SteamworksRuntime runtime)
     {
         _runtime = runtime;
         _userStatsReceivedCallback = Callback<UserStatsReceived_t>.Create(OnUserStatsReceived);
+        _userStatsStoredCallback = Callback<UserStatsStored_t>.Create(OnUserStatsStored);
+        _userAchievementStoredCallback = Callback<UserAchievementStored_t>.Create(OnUserAchievementStored);
     }
 
     public event Action UserStatsReady = delegate { };
+    public event Action<string> StoreStatusChanged = delegate { };
 
     public string ProviderName => "Steam";
     public string StatusMessage => _runtime.StatusMessage;
     public bool IsAvailable => _runtime.IsInitialized;
     public uint AppId => _runtime.AppId;
     public string PersonaName => _runtime.PersonaName;
+    public bool IsReadyForWrites { get; private set; }
 
     public void RunCallbacks() => _runtime.RunCallbacks();
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
@@ -48,6 +54,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService
                 .Distinct(StringComparer.Ordinal)
                 .Select(apiName => ReadAchievementState(apiName, configuredNames))
                 .ToArray();
+            if (states.Any(state => state.IsConfigured && state.ReadSucceeded))
+                IsReadyForWrites = true;
             return new(true, $"Steam 返回 {achievementCount} 项成就定义。", states);
         }
         catch (Exception exception)
@@ -56,8 +64,43 @@ public sealed class SteamGamePlatformService : IGamePlatformService
         }
     }
 
+    public bool TrySetAchievementForTesting(string apiName, bool unlocked, out string message)
+    {
+        if (!IsAvailable || !IsReadyForWrites)
+        {
+            message = "Steam 用户统计尚未就绪，拒绝写入。";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(apiName) || !SteamUserStats.GetAchievement(apiName, out _))
+        {
+            message = $"Steam 后台不存在成就：{apiName}";
+            return false;
+        }
+
+        var changed = unlocked
+            ? SteamUserStats.SetAchievement(apiName)
+            : SteamUserStats.ClearAchievement(apiName);
+        if (!changed)
+        {
+            message = $"Steam 拒绝{(unlocked ? "解锁" : "清除")}成就：{apiName}";
+            return false;
+        }
+
+        if (!SteamUserStats.StoreStats())
+        {
+            message = $"已修改内存状态，但 StoreStats 请求失败：{apiName}";
+            return false;
+        }
+
+        message = $"已提交{(unlocked ? "解锁" : "清除")}请求：{apiName}，等待 Steam 回调。";
+        return true;
+    }
+
     public void Dispose()
     {
+        _userAchievementStoredCallback.Dispose();
+        _userStatsStoredCallback.Dispose();
         _userStatsReceivedCallback.Dispose();
         _runtime.Dispose();
     }
@@ -83,6 +126,31 @@ public sealed class SteamGamePlatformService : IGamePlatformService
         }
 
         Godot.GD.Print($"[Steamworks] User stats ready for AppID {AppId}.");
+        IsReadyForWrites = true;
         UserStatsReady();
+    }
+
+    private void OnUserStatsStored(UserStatsStored_t callback)
+    {
+        if (callback.m_nGameID != AppId)
+            return;
+
+        var message = callback.m_eResult == EResult.k_EResultOK
+            ? "Steam 已持久化成就/统计状态。"
+            : $"Steam StoreStats 失败：{callback.m_eResult}";
+        Godot.GD.Print($"[Steamworks] {message}");
+        StoreStatusChanged(message);
+    }
+
+    private void OnUserAchievementStored(UserAchievementStored_t callback)
+    {
+        if (callback.m_nGameID != AppId)
+            return;
+
+        var message = callback.m_nMaxProgress == 0
+            ? "Steam 已处理成就状态变更。"
+            : $"Steam 已处理成就进度：{callback.m_nCurProgress}/{callback.m_nMaxProgress}";
+        Godot.GD.Print($"[Steamworks] {message}");
+        StoreStatusChanged(message);
     }
 }

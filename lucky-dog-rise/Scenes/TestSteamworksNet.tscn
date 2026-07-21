@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamworksSmokeController.cs" id="1_steam"]
 
-[node name="TestSteamworksNet" type="Control" node_paths=PackedStringArray("_statusLabel", "_configurationLabel", "_detailsLabel", "_achievementStatesLabel", "_retryButton", "_overlayButton", "_quitButton")]
+[node name="TestSteamworksNet" type="Control" node_paths=PackedStringArray("_statusLabel", "_configurationLabel", "_detailsLabel", "_achievementStatesLabel", "_achievementOption", "_enableWritesCheck", "_unlockAchievementButton", "_clearAchievementButton", "_operationStatusLabel", "_retryButton", "_overlayButton", "_quitButton")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,6 +14,11 @@ _statusLabel = NodePath("Center/Panel/Margin/Content/Status")
 _configurationLabel = NodePath("Center/Panel/Margin/Content/Description")
 _detailsLabel = NodePath("Center/Panel/Margin/Content/Details")
 _achievementStatesLabel = NodePath("Center/Panel/Margin/Content/AchievementStates")
+_achievementOption = NodePath("Center/Panel/Margin/Content/WriteTest/AchievementOption")
+_enableWritesCheck = NodePath("Center/Panel/Margin/Content/WriteTest/EnableWrites")
+_unlockAchievementButton = NodePath("Center/Panel/Margin/Content/WriteTest/WriteButtons/Unlock")
+_clearAchievementButton = NodePath("Center/Panel/Margin/Content/WriteTest/WriteButtons/Clear")
+_operationStatusLabel = NodePath("Center/Panel/Margin/Content/WriteTest/OperationStatus")
 _retryButton = NodePath("Center/Panel/Margin/Content/Buttons/Retry")
 _overlayButton = NodePath("Center/Panel/Margin/Content/Buttons/Overlay")
 _quitButton = NodePath("Center/Panel/Margin/Content/Quit")
@@ -36,7 +41,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(660, 520)
+custom_minimum_size = Vector2(700, 740)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
@@ -79,6 +84,53 @@ size_flags_vertical = 3
 text = "成就只读检查：等待初始化"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="WriteTest" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content/WriteTest"]
+layout_mode = 2
+text = "真实账号写入测试（仅此独立场景）"
+horizontal_alignment = 1
+
+[node name="AchievementOption" type="OptionButton" parent="Center/Panel/Margin/Content/WriteTest"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+disabled = true
+
+[node name="EnableWrites" type="CheckButton" parent="Center/Panel/Margin/Content/WriteTest"]
+layout_mode = 2
+text = "我确认：启用当前 Steam 账号的真实成就写入"
+
+[node name="Warning" type="Label" parent="Center/Panel/Margin/Content/WriteTest"]
+layout_mode = 2
+text = "清除按钮只重置 Steam；完整重测还需在 Debug 页重置本地 PlayerProgress。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="WriteButtons" type="HBoxContainer" parent="Center/Panel/Margin/Content/WriteTest"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Unlock" type="Button" parent="Center/Panel/Margin/Content/WriteTest/WriteButtons"]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+disabled = true
+text = "解锁所选成就"
+
+[node name="Clear" type="Button" parent="Center/Panel/Margin/Content/WriteTest/WriteButtons"]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+disabled = true
+text = "清除所选成就"
+
+[node name="OperationStatus" type="Label" parent="Center/Panel/Margin/Content/WriteTest"]
+layout_mode = 2
+text = "真实写入尚未启用。"
+horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
