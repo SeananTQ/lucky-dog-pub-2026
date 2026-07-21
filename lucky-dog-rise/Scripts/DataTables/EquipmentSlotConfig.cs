@@ -19,6 +19,7 @@ public sealed partial class EquipmentSlotConfig : Luban.BeanBase
     {
         { if(!_buf["ItemType"].IsNumber) { throw new SerializationException(); }  ItemType = (EItemType)_buf["ItemType"].AsInt; }
         { if(!_buf["CanUnequip"].IsString) { throw new SerializationException(); }  CanUnequip = _buf["CanUnequip"]; }
+        { if(!_buf["DefaultItemId"].IsNumber) { throw new SerializationException(); }  DefaultItemId = _buf["DefaultItemId"]; }
     }
 
     public static EquipmentSlotConfig DeserializeEquipmentSlotConfig(JSONNode _buf)
@@ -34,6 +35,10 @@ public sealed partial class EquipmentSlotConfig : Luban.BeanBase
     /// 可脱光吗
     /// </summary>
     public readonly string CanUnequip;
+    /// <summary>
+    /// 默认穿戴物品id
+    /// </summary>
+    public readonly int DefaultItemId;
    
     public const int __ID__ = 757388014;
     public override int GetTypeId() => __ID__;
@@ -47,6 +52,7 @@ public sealed partial class EquipmentSlotConfig : Luban.BeanBase
         return "{ "
         + "ItemType:" + ItemType + ","
         + "CanUnequip:" + CanUnequip + ","
+        + "DefaultItemId:" + DefaultItemId + ","
         + "}";
     }
 }

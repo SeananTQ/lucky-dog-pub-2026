@@ -1,50 +1,62 @@
 [
   {
     "ItemType": 1,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 1001
   },
   {
     "ItemType": 2,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   },
   {
     "ItemType": 3,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   },
   {
     "ItemType": 4,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 4003
   },
   {
     "ItemType": 8,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   },
   {
     "ItemType": 5,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   },
   {
     "ItemType": 6,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 6001
   },
   {
     "ItemType": 7,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 7004
   },
   {
     "ItemType": 9,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   },
   {
     "ItemType": 10,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 10001
   },
   {
     "ItemType": 11,
-    "CanUnequip": "False"
+    "CanUnequip": "False",
+    "DefaultItemId": 11002
   },
   {
     "ItemType": 12,
-    "CanUnequip": "True"
+    "CanUnequip": "True",
+    "DefaultItemId": 0
   }
 ]
