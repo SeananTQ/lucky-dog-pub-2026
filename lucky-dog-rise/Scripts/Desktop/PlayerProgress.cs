@@ -123,8 +123,8 @@ public sealed class PlayerProgress
         if (source == PlayerProgressSource.Debug || count <= 0)
             return;
 
-        RecordCounter("TypingInputCount", count, source);
-        RecordCounter("TypingChipsEarned", count, source);
+        RecordCounter("GlobalInputCount", count, source);
+        RecordCounter("GlobalInputChipsEarned", count, source);
 
         var now = DateTime.Now;
         var bucketStart = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute < 30 ? 0 : 30, 0);

@@ -57,7 +57,9 @@ public partial class ModeManager : Control
     private Texture2D _blindBoxIcon = null!;
 
     private GameData _gameData = null!;
+    private IGamePlatformService _platformService = null!;
     public GameData GameDataObj => _gameData;
+    public IGamePlatformService PlatformService => _platformService;
 
 #if DEBUG
     private static readonly EItemType[] DebugEquipmentTypes = Enum.GetValues<EItemType>();
@@ -111,6 +113,14 @@ public partial class ModeManager : Control
     private const double SettingsPanelAutoHideOpenGraceSeconds = 0.2;
     private const float BossCounterTongueClearance = 2f;
     private const float BossCounterMinimumHeight = 22f;
+
+    public override void _EnterTree()
+    {
+        _platformService = GamePlatformServiceFactory.Create();
+        GD.Print(_platformService.IsAvailable
+            ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
+            : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
+    }
 
     public override void _Ready()
     {
@@ -254,6 +264,8 @@ public partial class ModeManager : Control
 
     public override void _Process(double _)
     {
+        _platformService?.RunCallbacks();
+
         if (CurrentMode == Mode.BossKey)
             _gameData?.RecordDesktopModeSeconds(_, visible: !_hiddenByFullscreenApp);
         else if (CurrentMode == Mode.Play || CurrentMode == Mode.Immersive)
@@ -430,6 +442,11 @@ public partial class ModeManager : Control
         RefreshSettingsPanelModeActions();
 
         RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
+    }
+
+    public override void _ExitTree()
+    {
+        _platformService?.Dispose();
     }
 
     private async void RevealBossKeyAfterTransparentHandoff(Rect2I screen, int switchRevision, bool windowCloaked)

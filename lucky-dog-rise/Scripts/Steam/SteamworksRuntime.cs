@@ -9,8 +9,8 @@ using Steamworks;
 namespace LuckyDogRise;
 
 /// <summary>
-/// Owns the Steamworks.NET lifecycle. This is intentionally not connected to the
-/// main game yet; the independent smoke scene exercises it first.
+/// Owns the low-level Steamworks.NET lifecycle. Game systems access it through
+/// IGamePlatformService; the smoke scene may use it directly for diagnostics.
 /// </summary>
 public sealed class SteamworksRuntime : IDisposable
 {
