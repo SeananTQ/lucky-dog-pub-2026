@@ -117,6 +117,7 @@ class App(ctk.CTk):
         }
         self.group_labels: dict[str, ctk.StringVar] = {}
         self.running = False
+        self.restoring_state = False
 
         self._build_ui()
         self._restore_state()
@@ -277,6 +278,7 @@ class App(ctk.CTk):
         return var
 
     def _restore_state(self):
+        self.restoring_state = True
         defaults = {
             "generic": {
                 "psd": "",
@@ -324,10 +326,13 @@ class App(ctk.CTk):
                 key = f"{section}.{name}"
                 if key not in self.vars:
                     continue
-                self.vars[key].set(saved.get(name, default))
+                value = saved.get(name, default)
+                self.vars[key].set(default if value in ("", None) else value)
 
         for mode, label in self.group_labels.items():
             label.set(self._group_label_text(mode))
+        self.restoring_state = False
+        self._save_current_state()
 
     def _collect_state(self) -> dict:
         return {
@@ -368,7 +373,7 @@ class App(ctk.CTk):
         }
 
     def _save_current_state(self):
-        if not hasattr(self, "vars"):
+        if not hasattr(self, "vars") or getattr(self, "restoring_state", False):
             return
         try:
             self.app_state = self._collect_state()
@@ -449,7 +454,15 @@ class App(ctk.CTk):
         buttons.pack(fill="x", padx=12, pady=(8, 12))
 
         def apply():
-            self.excluded_groups[mode] = [path for path, var in check_vars.items() if not var.get()]
+            checked_paths = {path for path, var in check_vars.items() if var.get()}
+            excluded_paths = []
+            for path, var in check_vars.items():
+                if var.get():
+                    continue
+                has_checked_child = any(child.startswith(path + "/") for child in checked_paths)
+                if not has_checked_child:
+                    excluded_paths.append(path)
+            self.excluded_groups[mode] = excluded_paths
             self.group_labels[mode].set(self._group_label_text(mode))
             self._save_current_state()
             dlg.destroy()

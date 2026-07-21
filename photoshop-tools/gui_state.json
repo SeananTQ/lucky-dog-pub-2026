@@ -7,30 +7,56 @@
     "excluded_groups": []
   },
   "lucky": {
-    "psd": "",
-    "out": "",
+    "psd": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\LuckyDogPub-Test02.psd",
+    "out": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\output",
     "crop": true,
     "composite": false,
-    "excluded_groups": []
+    "excluded_groups": [
+      "Background",
+      "Table",
+      "Table/_模板",
+      "Shiba",
+      "Shiba/Black",
+      "Shiba/Sesame",
+      "Shiba/Cream",
+      "Shiba/Red",
+      "Eyewear",
+      "Headwear",
+      "CardFace",
+      "CardFace/Classic",
+      "CardFace/_Flop2",
+      "CardFace/_Flop3",
+      "CardFace/_Trun",
+      "CardFace/_River",
+      "CardBack",
+      "Player/BodyDecoration",
+      "Player/_Hand1",
+      "Player/_Hand2",
+      "Player/_Thumb",
+      "Player/Accessory",
+      "Player/Clothes",
+      "ChipStack",
+      "Treat"
+    ]
   },
   "item_icons": {
-    "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/LuckyDogPub-Test02.psd",
-    "item_json": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/tbitem.json",
-    "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
+    "psd": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\LuckyDogPub-Test02.psd",
+    "item_json": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\tbitem.json",
+    "out": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\output\\UI\\ItemIcon",
     "canvas": "256",
     "content": "240",
     "margin": "16",
     "short_groups": "Background,Table"
   },
   "dog_icons": {
-    "psd": "",
-    "item_json": "",
-    "dog_json": "",
-    "out": "",
+    "psd": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\LuckyDogPub-Test02.psd",
+    "item_json": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\tbitem.json",
+    "dog_json": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\tbdogskin.json",
+    "out": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\output\\UI\\ItemIcon",
     "canvas": "256",
     "content": "240",
     "margin": "16",
     "short_groups": "Background,Table"
   },
-  "updated_at": "2026-07-03T09:18:00"
+  "updated_at": "2026-07-21T17:58:21"
 }
