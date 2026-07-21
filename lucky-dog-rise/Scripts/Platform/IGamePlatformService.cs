@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace LuckyDogRise;
 
@@ -8,6 +9,8 @@ namespace LuckyDogRise;
 /// </summary>
 public interface IGamePlatformService : IDisposable
 {
+    event Action UserStatsReady;
+
     string ProviderName { get; }
     string StatusMessage { get; }
     bool IsAvailable { get; }
@@ -16,4 +19,25 @@ public interface IGamePlatformService : IDisposable
 
     void RunCallbacks();
     bool OpenFriendsOverlay();
+    PlatformAchievementReadResult ReadAchievementStates(IEnumerable<string> achievementApiNames);
+}
+
+public readonly record struct PlatformAchievementState(
+    string ApiName,
+    bool IsConfigured,
+    bool ReadSucceeded,
+    bool IsUnlocked);
+
+public sealed class PlatformAchievementReadResult
+{
+    public PlatformAchievementReadResult(bool succeeded, string message, IReadOnlyList<PlatformAchievementState> states)
+    {
+        Succeeded = succeeded;
+        Message = message;
+        States = states;
+    }
+
+    public bool Succeeded { get; }
+    public string Message { get; }
+    public IReadOnlyList<PlatformAchievementState> States { get; }
 }

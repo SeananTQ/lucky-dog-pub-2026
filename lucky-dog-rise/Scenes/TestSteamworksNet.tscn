@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamworksSmokeController.cs" id="1_steam"]
 
-[node name="TestSteamworksNet" type="Control" node_paths=PackedStringArray("_statusLabel", "_configurationLabel", "_detailsLabel", "_retryButton", "_overlayButton", "_quitButton")]
+[node name="TestSteamworksNet" type="Control" node_paths=PackedStringArray("_statusLabel", "_configurationLabel", "_detailsLabel", "_achievementStatesLabel", "_retryButton", "_overlayButton", "_quitButton")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,6 +13,7 @@ script = ExtResource("1_steam")
 _statusLabel = NodePath("Center/Panel/Margin/Content/Status")
 _configurationLabel = NodePath("Center/Panel/Margin/Content/Description")
 _detailsLabel = NodePath("Center/Panel/Margin/Content/Details")
+_achievementStatesLabel = NodePath("Center/Panel/Margin/Content/AchievementStates")
 _retryButton = NodePath("Center/Panel/Margin/Content/Buttons/Retry")
 _overlayButton = NodePath("Center/Panel/Margin/Content/Buttons/Overlay")
 _quitButton = NodePath("Center/Panel/Margin/Content/Quit")
@@ -35,7 +36,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(560, 360)
+custom_minimum_size = Vector2(660, 520)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
@@ -68,10 +69,17 @@ autowrap_mode = 2
 
 [node name="Details" type="Label" parent="Center/Panel/Margin/Content"]
 layout_mode = 2
-size_flags_vertical = 3
 text = "AppID: -\n玩家：-\nSteamID: -\n回调：未启动"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="AchievementStates" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "成就只读检查：等待初始化"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
 
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
 layout_mode = 2
