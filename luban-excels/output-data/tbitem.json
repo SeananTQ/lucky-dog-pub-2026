@@ -987,7 +987,7 @@
   },
   {
     "Id": 4001,
-    "Name": "Male A",
+    "Name": "Type 1",
     "ItemType": 4,
     "HiddenRegionFlag": 1,
     "SafeResourceId": 0,
@@ -1003,9 +1003,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Arm\\MaleA.png"
+      "v1\\Player\\Arm\\Type1.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Hand_MaleA.png",
+    "IconPath": "v1\\ItemIcon\\Arm_Type1.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1021,7 +1021,7 @@
   },
   {
     "Id": 4002,
-    "Name": "Male B",
+    "Name": "Type 2",
     "ItemType": 4,
     "HiddenRegionFlag": 1,
     "SafeResourceId": 0,
@@ -1037,9 +1037,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Arm\\MaleB.png"
+      "v1\\Player\\Arm\\Type2.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Hand_MaleB.png",
+    "IconPath": "v1\\ItemIcon\\Arm_Type2.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1055,7 +1055,7 @@
   },
   {
     "Id": 4003,
-    "Name": "Male C",
+    "Name": "Type 3",
     "ItemType": 4,
     "HiddenRegionFlag": 1,
     "SafeResourceId": 0,
@@ -1071,9 +1071,9 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Arm\\MaleC.png"
+      "v1\\Player\\Arm\\Type3.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Hand_MaleC.png",
+    "IconPath": "v1\\ItemIcon\\Arm_Type3.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -1089,7 +1089,7 @@
   },
   {
     "Id": 4004,
-    "Name": "Male D",
+    "Name": "Type 4",
     "ItemType": 4,
     "HiddenRegionFlag": 1,
     "SafeResourceId": 0,
@@ -1105,9 +1105,77 @@
     "RefreshmentBoxWeight": 0,
     "EventBoxWeight": 0,
     "AssetPathList": [
-      "v1\\Player\\Arm\\MaleD.png"
+      "v1\\Player\\Arm\\Type4.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Hand_MaleD.png",
+    "IconPath": "v1\\ItemIcon\\Arm_Type4.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 4005,
+    "Name": "Type 5",
+    "ItemType": 4,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "ItemRarity": 6,
+    "SortOrder": 0,
+    "BlindBoxWeight": 0,
+    "IsHiddenInBag": true,
+    "AcquisitionType": 1,
+    "IsUnique": true,
+    "BlindBoxId": 0,
+    "StandardBoxWeight": 0,
+    "NewbieBoxWeight": 0,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Player\\Arm\\Type5.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Arm_Type5.png",
+    "SkinId": 0,
+    "SteamItemDefId": 0,
+    "SteamItemDefType": 1,
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
+    "Id": 4006,
+    "Name": "Type 6",
+    "ItemType": 4,
+    "HiddenRegionFlag": 1,
+    "SafeResourceId": 0,
+    "ItemRarity": 6,
+    "SortOrder": 0,
+    "BlindBoxWeight": 0,
+    "IsHiddenInBag": true,
+    "AcquisitionType": 1,
+    "IsUnique": true,
+    "BlindBoxId": 0,
+    "StandardBoxWeight": 0,
+    "NewbieBoxWeight": 0,
+    "RefreshmentBoxWeight": 0,
+    "EventBoxWeight": 0,
+    "AssetPathList": [
+      "v1\\Player\\Arm\\Type6.png"
+    ],
+    "IconPath": "v1\\ItemIcon\\Arm_Type6.png",
     "SkinId": 0,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
