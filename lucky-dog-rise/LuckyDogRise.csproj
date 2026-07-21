@@ -3,13 +3,23 @@
     <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <SteamworksNetRoot>$(MSBuildProjectDirectory)\..\.local-build\steamworks\Steamworks.NET-Standalone_2025.163.0\Windows-x64</SteamworksNetRoot>
+    <SteamworksNetAssembly>$(SteamworksNetRoot)\Steamworks.NET.dll</SteamworksNetAssembly>
     <LUCKYDOG_BUILD_COMMIT Condition=" '$(LUCKYDOG_BUILD_COMMIT)' == '' ">dev</LUCKYDOG_BUILD_COMMIT>
     <LUCKYDOG_SAVE_HMAC_KEY Condition=" '$(LUCKYDOG_SAVE_HMAC_KEY)' == '' "></LUCKYDOG_SAVE_HMAC_KEY>
     <LUCKYDOG_PLAYTEST_EXPIRES_UTC Condition=" '$(LUCKYDOG_PLAYTEST_EXPIRES_UTC)' == '' "></LUCKYDOG_PLAYTEST_EXPIRES_UTC>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Steamworks.NET">
+      <HintPath>$(SteamworksNetAssembly)</HintPath>
+      <Private>true</Private>
+    </Reference>
     <AssemblyMetadata Include="BuildCommit" Value="$(LUCKYDOG_BUILD_COMMIT)" />
     <AssemblyMetadata Include="SaveHmacKey" Value="$(LUCKYDOG_SAVE_HMAC_KEY)" />
     <AssemblyMetadata Include="PlaytestExpiresUtc" Value="$(LUCKYDOG_PLAYTEST_EXPIRES_UTC)" />
   </ItemGroup>
+  <Target Name="ValidateSteamworksNetDependency" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(SteamworksNetAssembly)')"
+           Text="Steamworks.NET 2025.163.0 was not found. Extract it to .local-build\steamworks\Steamworks.NET-Standalone_2025.163.0\Windows-x64." />
+  </Target>
 </Project>

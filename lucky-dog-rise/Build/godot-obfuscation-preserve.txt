@@ -26,3 +26,4 @@ TutorialManager
 UIThemePreviewController
 WindowManager
 GodotPlugins.Game.Main
+SteamworksSmokeController

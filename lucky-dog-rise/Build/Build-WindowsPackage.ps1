@@ -11,6 +11,9 @@ $localBuild = Join-Path $workspace '.local-build'
 $secretPath = Join-Path $localBuild 'secrets.psd1'
 $configPath = Join-Path $PSScriptRoot 'LocalConfig.psd1'
 $templatePath = Join-Path $localBuild 'templates\windows_release_x86_64.exe'
+$steamworksNetRoot = Join-Path $localBuild 'steamworks\Steamworks.NET-Standalone_2025.163.0\Windows-x64'
+$steamworksManaged = Join-Path $steamworksNetRoot 'Steamworks.NET.dll'
+$steamworksNative = Join-Path $steamworksNetRoot 'steam_api64.dll'
 
 function Read-LocalDataFile([string]$Path) {
     return & ([scriptblock]::Create([System.IO.File]::ReadAllText($Path)))
@@ -18,6 +21,8 @@ function Read-LocalDataFile([string]$Path) {
 
 if (!(Test-Path -LiteralPath $secretPath)) { throw 'Run Initialize-BuildSecrets.ps1 first.' }
 if (!(Test-Path -LiteralPath $templatePath)) { throw 'Run Build-CustomTemplate.ps1 first.' }
+if (!(Test-Path -LiteralPath $steamworksManaged)) { throw "Steamworks.NET.dll is missing: $steamworksManaged" }
+if (!(Test-Path -LiteralPath $steamworksNative)) { throw "steam_api64.dll is missing: $steamworksNative" }
 if (!$GodotEditor -and (Test-Path -LiteralPath $configPath)) { $GodotEditor = (Read-LocalDataFile $configPath).GodotEditor }
 if (!$GodotEditor -or !(Test-Path -LiteralPath $GodotEditor)) { throw 'Godot 4.6.3 Mono editor path is missing.' }
 
@@ -70,6 +75,9 @@ for ($attempt = 0; $attempt -lt 50 -and !(Test-Path -LiteralPath $assemblyPath);
 if (!(Test-Path -LiteralPath $assemblyPath)) { throw "Exported game assembly was not found: $assemblyPath" }
 $assembly = Get-Item -LiteralPath $assemblyPath
 Write-Host "[Build] Game assembly found: $assemblyPath"
+Copy-Item -LiteralPath $steamworksManaged -Destination $assembly.DirectoryName -Force
+Copy-Item -LiteralPath $steamworksNative -Destination $staging -Force
+Write-Host '[Build] Steamworks.NET runtime installed (steam_appid.txt intentionally omitted).'
 $obfuscationRoot = Join-Path $localBuild "obfuscation\$channelSlug"
 $obfuscated = Join-Path $obfuscationRoot 'output'
 $obfuscarConfig = Join-Path $obfuscationRoot 'obfuscar.xml'

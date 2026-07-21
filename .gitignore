@@ -47,6 +47,7 @@ wick-mcp-server/*
 /.local-build/
 /lucky-dog-rise/Build/LocalConfig.psd1
 /lucky-dog-rise/export_presets.cfg
+/lucky-dog-rise/steam_appid.txt
 
 # Codex
 config.toml
