@@ -22,6 +22,8 @@ public static class L10nKey
     public const string Settings_Language_SimplifiedChinese = nameof(Settings_Language_SimplifiedChinese);
     public const string Settings_Language_TraditionalChinese = nameof(Settings_Language_TraditionalChinese);
     public const string Settings_Language_Japanese = nameof(Settings_Language_Japanese);
+    public const string Settings_ArmAppearance = nameof(Settings_ArmAppearance);
+    public const string Settings_ArmAppearance_Tone = nameof(Settings_ArmAppearance_Tone);
     public const string Settings_ShowOverFullscreenApps = nameof(Settings_ShowOverFullscreenApps);
     public const string Settings_EnhancedAlwaysOnTop = nameof(Settings_EnhancedAlwaysOnTop);
     public const string Settings_ProactiveInteractionHints = nameof(Settings_ProactiveInteractionHints);

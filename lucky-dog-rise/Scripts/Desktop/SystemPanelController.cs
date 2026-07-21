@@ -23,6 +23,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
+    [Export] private OptionButton _armAppearanceOption = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -78,6 +79,7 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
     private ConfirmOverlayController _resetSaveConfirm = null!;
+    private bool _refreshingArmAppearanceOption;
 
 #if DEBUG
     // Debug 页
@@ -108,10 +110,22 @@ public partial class SystemPanelController : CanvasLayer
         get => _gameData;
         set
         {
+            if (_gameData != null)
+            {
+                _gameData.EquipmentChanged -= RefreshWardrobeGrid;
+                _gameData.InventoryChanged -= RefreshWardrobeGrid;
+                _gameData.EquipmentChanged -= RefreshArmAppearanceSelection;
+                _gameData.InventoryChanged -= BuildArmAppearanceOptions;
+            }
+
             _gameData = value;
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
+            _gameData.EquipmentChanged += RefreshArmAppearanceSelection;
+            _gameData.InventoryChanged += BuildArmAppearanceOptions;
             EnsureCurrentTabReady();
+            if (IsNodeReady())
+                BuildArmAppearanceOptions();
         }
     }
 
@@ -140,6 +154,7 @@ public partial class SystemPanelController : CanvasLayer
         [1005] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Theme.svg"),
         [1006] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Refreshment.svg"),
     };
+    private const string ArmColorChipPathPrefix = "res://Assets/UI/Icon/Arm_ColorChip_";
 
     public override void _Ready()
     {
@@ -189,6 +204,7 @@ public partial class SystemPanelController : CanvasLayer
         _preventAccidentalDragToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow/PreventAccidentalDragToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
+        _armAppearanceOption.GetPopup().AddThemeConstantOverride("icon_max_width", 32);
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
@@ -287,6 +303,7 @@ public partial class SystemPanelController : CanvasLayer
         _preventAccidentalDragToggle.Toggled += enabled => SettingsManager.SavePreventAccidentalDrag(enabled);
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
+        _armAppearanceOption.ItemSelected += OnArmAppearanceSelected;
 #if DEBUG
         _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
 #endif
@@ -606,6 +623,7 @@ public partial class SystemPanelController : CanvasLayer
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
             || PopupContainsPoint(_languageOption.GetPopup(), windowPos)
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
+            || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPos)
 #if DEBUG
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPos)
             || PopupContainsPoint(_playerProgressMultiplierOption.GetPopup(), windowPos)
@@ -684,6 +702,81 @@ public partial class SystemPanelController : CanvasLayer
         _displayOption.Select((int)SettingsManager.LoadDisplayMode());
     }
 
+    private void BuildArmAppearanceOptions()
+    {
+        if (_armAppearanceOption == null || _gameData == null)
+            return;
+
+        _refreshingArmAppearanceOption = true;
+        _armAppearanceOption.Clear();
+
+        var armItems = LubanData.Tables.TbItem.DataList
+            .Where(item => item.ItemType == EItemType.Arm
+                && item.AcquisitionType == EAcquisitionType.Initial
+                && _gameData.Inventory.Owns(item.Id))
+            .OrderBy(item => item.Id)
+            .ToList();
+
+        _armAppearanceOption.Disabled = armItems.Count == 0;
+
+        for (int i = 0; i < armItems.Count; i++)
+        {
+            var item = armItems[i];
+            var label = L10n.Format(L10nKey.Settings_ArmAppearance_Tone, i + 1);
+            var icon = LoadArmAppearanceIcon(item);
+            if (icon != null)
+                _armAppearanceOption.AddIconItem(icon, label, item.Id);
+            else
+            {
+                _armAppearanceOption.AddItem(label, item.Id);
+            }
+        }
+
+        RefreshArmAppearanceSelection();
+        _refreshingArmAppearanceOption = false;
+    }
+
+    private static Texture2D LoadArmAppearanceIcon(Item item)
+    {
+        if (item.AssetPathList.Count > 0)
+        {
+            var normalizedAssetPath = item.AssetPathList[0].Replace('\\', '/');
+            var fileName = normalizedAssetPath.Split('/').Last();
+            var extensionIndex = fileName.LastIndexOf('.');
+            var assetName = extensionIndex > 0 ? fileName[..extensionIndex] : fileName;
+            var colorChipPath = $"{ArmColorChipPathPrefix}{assetName}.svg";
+            if (ResourceLoader.Exists(colorChipPath))
+                return GD.Load<Texture2D>(colorChipPath);
+
+            GD.PushWarning(
+                $"[Settings] Arm color-chip icon could not be loaded: item {item.Id}, {colorChipPath}; " +
+                "falling back to the generic item icon.");
+        }
+
+        var fallbackPath = PlayerInventory.ToResPath(item.IconPath);
+        if (ResourceLoader.Exists(fallbackPath))
+            return GD.Load<Texture2D>(fallbackPath);
+
+        GD.PushWarning($"[Settings] Arm item icon could not be loaded: item {item.Id}, {fallbackPath}");
+        return null;
+    }
+
+    private void RefreshArmAppearanceSelection()
+    {
+        if (_armAppearanceOption == null || _gameData == null)
+            return;
+
+        var equippedId = _gameData.Inventory.GetEquipped(EItemType.Arm)?.Id ?? 0;
+        for (int i = 0; i < _armAppearanceOption.ItemCount; i++)
+        {
+            if (_armAppearanceOption.GetItemId(i) != equippedId)
+                continue;
+
+            _armAppearanceOption.Select(i);
+            return;
+        }
+    }
+
     private void RefreshLocalizedOptionText()
     {
         if (_languageOption == null)
@@ -700,6 +793,12 @@ public partial class SystemPanelController : CanvasLayer
             _displayOption.SetItemText(0, L10n.Tr(L10nKey.Settings_CounterDisplay_Clock));
             _displayOption.SetItemText(1, L10n.Tr(L10nKey.Settings_CounterDisplay_Chips));
             _displayOption.SetItemText(2, L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden));
+        }
+
+        if (_armAppearanceOption != null)
+        {
+            for (int i = 0; i < _armAppearanceOption.ItemCount; i++)
+                _armAppearanceOption.SetItemText(i, L10n.Format(L10nKey.Settings_ArmAppearance_Tone, i + 1));
         }
 
         RefreshModeButtonText();
@@ -759,6 +858,18 @@ public partial class SystemPanelController : CanvasLayer
     private void OnDisplayModeChanged(long index)
     {
         SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
+    }
+
+    private void OnArmAppearanceSelected(long index)
+    {
+        if (_refreshingArmAppearanceOption || _gameData == null)
+            return;
+
+        var itemIndex = (int)index;
+        if (itemIndex < 0 || itemIndex >= _armAppearanceOption.ItemCount)
+            return;
+
+        _gameData.EquipItem(_armAppearanceOption.GetItemId(itemIndex));
     }
 
 #if DEBUG

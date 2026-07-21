@@ -19,6 +19,8 @@ Settings_Language_English,English,English,English,English,200105,Settings,语言
 Settings_Language_SimplifiedChinese,简体中文,简体中文,简体中文,简体中文,200106,Settings,语言选项
 Settings_Language_TraditionalChinese,繁體中文,繁體中文,繁體中文,繁體中文,200107,Settings,语言选项
 Settings_Language_Japanese,日本語,日本語,日本語,日本語,200108,Settings,语言选项
+Settings_ArmAppearance,Arm Appearance,手臂外观,手臂外觀,腕の外観,200116,Settings,玩家手臂外观设置
+Settings_ArmAppearance_Tone,Tone {0},肤色 {0},膚色 {0},スキントーン {0},200117,Settings,手臂肤色下拉菜单选项
 Settings_ShowOverFullscreenApps,Show Over Fullscreen Apps,全屏应用上方显示,顯示於全螢幕應用程式上方,全画面アプリの上に表示,200109,Settings,全屏应用显示设置
 Settings_EnhancedAlwaysOnTop,Enhanced Always On Top,增强置顶,增強置頂,強化最前面表示,200110,Settings,窗口置顶增强设置
 Settings_ProactiveInteractionHints,Proactive Interaction Hints,主动操作提示,主動操作提示,操作ヒントを自動表示,200111,Settings,扑克模式无操作五秒后的主动提示

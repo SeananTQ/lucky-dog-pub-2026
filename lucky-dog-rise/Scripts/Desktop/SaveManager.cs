@@ -31,7 +31,7 @@ public sealed class SaveProfile
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -134,6 +134,8 @@ public static class SaveManager
         if (profile.Version <= 0)
             profile.Version = 1;
 
+        var loadedVersion = profile.Version;
+
         profile.Chips = Math.Max(0, profile.Chips);
         profile.OwnedItemIds ??= new List<int>();
         profile.OwnedItemCounts ??= new Dictionary<int, int>();
@@ -156,6 +158,20 @@ public static class SaveManager
                 .Where(validIds.Contains)
                 .Distinct()
                 .ToDictionary(id => id, _ => 1);
+
+        // v4: baseline appearance choices added after existing profiles were created.
+        // Initial items are entitlements rather than rewards, so migrate them silently
+        // without New markers or player-progress acquisition events.
+        if (loadedVersion < 4)
+        {
+            foreach (var item in LubanData.Tables.TbItem.DataList.Where(item =>
+                         item.AcquisitionType == DataTables.EAcquisitionType.Initial))
+            {
+                profile.OwnedItemCounts.TryAdd(item.Id, 1);
+            }
+
+            profile.Version = 4;
+        }
 
         profile.OwnedItemCounts = profile.OwnedItemCounts
             .Where(pair => validIds.Contains(pair.Key) && pair.Value > 0)

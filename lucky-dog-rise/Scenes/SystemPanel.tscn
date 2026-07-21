@@ -29,9 +29,10 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_armAppearanceOption")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
+_armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow/ArmAppearanceOption")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(420, 600)
@@ -272,6 +273,24 @@ custom_minimum_size = Vector2(172, 28)
 layout_mode = 2
 
 [node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow" unique_id=1422739035]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="ArmAppearanceRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="ArmAppearanceLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_ArmAppearance"
+label_settings = ExtResource("9_option_label")
+
+[node name="ArmAppearanceOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow"]
+custom_minimum_size = Vector2(172, 28)
+layout_mode = 2
+theme_override_constants/icon_max_width = 28
+
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow"]
 custom_minimum_size = Vector2(4, 0)
 layout_mode = 2
 

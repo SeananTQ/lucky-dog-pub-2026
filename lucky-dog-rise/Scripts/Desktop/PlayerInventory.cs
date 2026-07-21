@@ -298,10 +298,44 @@ public class PlayerInventory
             if (string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var first = GetOwnedOfType(type).FirstOrDefault();
-            if (first != null)
+            Item? selected = null;
+            if (slot.DefaultItemId > 0)
             {
-                _equipped[type] = first.Id;
+                var configuredDefault = FindItem(slot.DefaultItemId);
+                if (configuredDefault == null)
+                {
+                    GD.PushWarning(
+                        $"[Inventory] Configured default item does not exist: {type} -> {slot.DefaultItemId}; " +
+                        "falling back to the first owned item of this type.");
+                }
+                else if (configuredDefault.ItemType != type)
+                {
+                    GD.PushWarning(
+                        $"[Inventory] Configured default item has the wrong type: {type} -> " +
+                        $"{slot.DefaultItemId} ({configuredDefault.ItemType}); falling back to the first owned item of this type.");
+                }
+                else if (!Owns(configuredDefault.Id))
+                {
+                    GD.PushWarning(
+                        $"[Inventory] Configured default item is not owned: {type} -> {slot.DefaultItemId}; " +
+                        "falling back to the first owned item of this type.");
+                }
+                else
+                {
+                    selected = configuredDefault;
+                }
+            }
+            else
+            {
+                GD.PushWarning(
+                    $"[Inventory] Required equipment slot has no configured default item: {type}; " +
+                    "falling back to the first owned item of this type.");
+            }
+
+            selected ??= GetOwnedOfType(type).FirstOrDefault();
+            if (selected != null)
+            {
+                _equipped[type] = selected.Id;
                 changed = true;
             }
             else

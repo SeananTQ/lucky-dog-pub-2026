@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bj5o2nr0rpdb4"
-path="res://.godot/imported/Arm_ColorChip_6.svg-fc36163f51adf98c7bf98cab4218bce0.ctex"
+uid="uid://qxdo5cannw0s"
+path="res://.godot/imported/Arm_ColorChip_Type4.svg-231454df60cbbbaba50cef21b5eb8098.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/Icon/Arm_ColorChip_6.svg"
-dest_files=["res://.godot/imported/Arm_ColorChip_6.svg-fc36163f51adf98c7bf98cab4218bce0.ctex"]
+source_file="res://Assets/UI/Icon/Arm_ColorChip_Type4.svg"
+dest_files=["res://.godot/imported/Arm_ColorChip_Type4.svg-231454df60cbbbaba50cef21b5eb8098.ctex"]
 
 [params]
 
