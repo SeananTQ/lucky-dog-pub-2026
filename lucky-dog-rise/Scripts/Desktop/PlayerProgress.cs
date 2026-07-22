@@ -20,10 +20,11 @@ public enum PlayerProgressSource
 
 public sealed class PlayerProgressProfile
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
     public Dictionary<string, long> Statistics { get; set; } = new();
     public HashSet<string> OccurredEventKeys { get; set; } = new();
     public HashSet<string> UnlockedAchievementApiNames { get; set; } = new();
+    public HashSet<string> PlatformSuppressedAchievementApiNames { get; set; } = new();
     public bool ExternalInventoryBackfilled { get; set; }
     public string UpdatedAt { get; set; } = "";
 }
@@ -100,8 +101,44 @@ public sealed class PlayerProgress
     public string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);
     public IReadOnlyDictionary<string, long> Statistics => _profile.Statistics;
     public IReadOnlyCollection<string> UnlockedAchievementApiNames => _profile.UnlockedAchievementApiNames;
+    public int PlatformSuppressedAchievementCount => _profile.PlatformSuppressedAchievementApiNames.Count;
     public bool IsDirty => _dirty;
     public bool RequiresImmediateSave => _dirty && _immediateSaveRequested;
+    public bool IsPlatformSyncAllowed
+    {
+        get
+        {
+#if DEBUG
+            return _debugMultiplier == 1;
+#else
+            return true;
+#endif
+        }
+    }
+
+    public IEnumerable<string> GetPlatformSyncEligibleAchievementApiNames() =>
+        _profile.UnlockedAchievementApiNames.Where(apiName =>
+            !_profile.PlatformSuppressedAchievementApiNames.Contains(apiName));
+
+    /// <summary>平台侧已解锁项是账号事实；合并到本地并解除旧的 Debug 上传抑制。</summary>
+    public int ImportPlatformAchievements(IEnumerable<string> achievementApiNames)
+    {
+        var changedCount = 0;
+        foreach (var apiName in achievementApiNames
+                     .Where(apiName => !string.IsNullOrWhiteSpace(apiName))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            var added = _profile.UnlockedAchievementApiNames.Add(apiName);
+            var unsuppressed = _profile.PlatformSuppressedAchievementApiNames.Remove(apiName);
+            if (!added && !unsuppressed)
+                continue;
+
+            changedCount++;
+            _dirty = true;
+            RequestImmediateSave();
+        }
+        return changedCount;
+    }
 
     public void RecordAppLaunch() => RecordCounter("AppLaunchCount", 1, PlayerProgressSource.Gameplay);
 
@@ -332,7 +369,7 @@ public sealed class PlayerProgress
                      achievement.RuleType == EAchievementRuleType.StatisticAtLeast
                      && GetStatistic(achievement.TargetKey) >= achievement.TargetValue))
         {
-            if (_profile.UnlockedAchievementApiNames.Add(achievement.ApiName))
+            if (UnlockAchievement(achievement.ApiName))
                 _dirty = true;
         }
     }
@@ -341,7 +378,7 @@ public sealed class PlayerProgress
     {
         foreach (var achievement in LubanData.Tables.TbAchievement.DataList.Where(predicate))
         {
-            if (!_profile.UnlockedAchievementApiNames.Add(achievement.ApiName))
+            if (!UnlockAchievement(achievement.ApiName))
                 continue;
 
             _dirty = true;
@@ -350,6 +387,21 @@ public sealed class PlayerProgress
             GD.Print($"[Achievement] Satisfied: ID={achievement.AchievementId} | {achievement.Notes} | ApiName={achievement.ApiName} (rule={achievement.RuleType}, target={achievement.TargetKey})");
 #endif
         }
+    }
+
+    private bool UnlockAchievement(string apiName)
+    {
+        if (!_profile.UnlockedAchievementApiNames.Add(apiName))
+            return false;
+
+#if DEBUG
+        if (_debugMultiplier != 1)
+        {
+            _profile.PlatformSuppressedAchievementApiNames.Add(apiName);
+            GD.Print($"[Achievement] Platform upload suppressed because DEBUG multiplier is x{_debugMultiplier}: {apiName}");
+        }
+#endif
+        return true;
     }
 
     private PlayerProgressProfile LoadOrCreate()
@@ -389,6 +441,7 @@ public sealed class PlayerProgress
             profile.Statistics ??= new Dictionary<string, long>();
             profile.OccurredEventKeys ??= new HashSet<string>();
             profile.UnlockedAchievementApiNames ??= new HashSet<string>();
+            profile.PlatformSuppressedAchievementApiNames ??= new HashSet<string>();
             return true;
         }
         catch

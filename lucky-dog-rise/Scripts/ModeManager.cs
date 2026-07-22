@@ -58,6 +58,7 @@ public partial class ModeManager : Control
 
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
+    private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
     public GameData GameDataObj => _gameData;
     public IGamePlatformService PlatformService => _platformService;
 
@@ -137,6 +138,7 @@ public partial class ModeManager : Control
         _gameData = new GameData();
         _gameData.Name = "GameData";
         AddChild(_gameData);
+        _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
@@ -265,6 +267,7 @@ public partial class ModeManager : Control
     public override void _Process(double _)
     {
         _platformService?.RunCallbacks();
+        _achievementSynchronizer?.Tick(_);
 
         if (CurrentMode == Mode.BossKey)
             _gameData?.RecordDesktopModeSeconds(_, visible: !_hiddenByFullscreenApp);

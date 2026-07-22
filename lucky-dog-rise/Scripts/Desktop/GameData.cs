@@ -283,7 +283,12 @@ public partial class GameData : Node
 #if DEBUG
     public void ResetPlayerProgress() => PlayerProgress.Reset();
     public void SetPlayerProgressDebugMultiplier(int multiplier) => PlayerProgress.SetDebugMultiplier(multiplier);
-    public string GetPlayerProgressDebugStatus() => $"Progress file: {PlayerProgress.AbsoluteSavePath}\nUnlocked: {PlayerProgress.UnlockedAchievementApiNames.Count}\nStatistics: {PlayerProgress.Statistics.Count}";
+    public string GetPlayerProgressDebugStatus() =>
+        $"Progress file: {PlayerProgress.AbsoluteSavePath}\n" +
+        $"Unlocked: {PlayerProgress.UnlockedAchievementApiNames.Count}\n" +
+        $"Platform sync: {(PlayerProgress.IsPlatformSyncAllowed ? "Enabled" : "Paused by DEBUG multiplier")}\n" +
+        $"Platform-suppressed: {PlayerProgress.PlatformSuppressedAchievementCount}\n" +
+        $"Statistics: {PlayerProgress.Statistics.Count}";
 #endif
 
     /// <summary>供未来消耗品和当前 Debug 共用的幸运 Buff 发放接口。</summary>

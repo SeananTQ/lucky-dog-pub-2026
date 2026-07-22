@@ -5,12 +5,13 @@ using Steamworks;
 
 namespace LuckyDogRise;
 
-public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations
+public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations, IPlatformAchievementSyncOperations
 {
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<UserStatsReceived_t> _userStatsReceivedCallback;
     private readonly Callback<UserStatsStored_t> _userStatsStoredCallback;
     private readonly Callback<UserAchievementStored_t> _userAchievementStoredCallback;
+    private bool _hasPendingAchievementStore;
 
     public SteamGamePlatformService(SteamworksRuntime runtime)
     {
@@ -97,6 +98,35 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         return true;
     }
 
+    public PlatformAchievementUnlockResult UnlockAchievements(IEnumerable<string> achievementApiNames)
+    {
+        if (!IsAvailable || !IsReadyForWrites)
+            return new(false, "Steam 用户统计尚未就绪，拒绝写入。", Array.Empty<string>());
+
+        var submittedApiNames = new List<string>();
+        foreach (var apiName in achievementApiNames
+                     .Where(apiName => !string.IsNullOrWhiteSpace(apiName))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            if (!SteamUserStats.GetAchievement(apiName, out var isUnlocked))
+                continue;
+            if (isUnlocked)
+                continue;
+            if (!SteamUserStats.SetAchievement(apiName))
+                return new(false, $"Steam 拒绝解锁成就：{apiName}", submittedApiNames);
+            submittedApiNames.Add(apiName);
+            _hasPendingAchievementStore = true;
+        }
+
+        if (!_hasPendingAchievementStore)
+            return new(true, "没有需要提交的 Steam 成就。", submittedApiNames);
+        if (!SteamUserStats.StoreStats())
+            return new(false, "成就已写入 Steam 内存状态，但 StoreStats 请求失败。", submittedApiNames);
+
+        _hasPendingAchievementStore = false;
+        return new(true, $"已向 Steam 提交 {submittedApiNames.Count} 项成就。", submittedApiNames);
+    }
+
     public void Dispose()
     {
         _userAchievementStoredCallback.Dispose();
@@ -138,6 +168,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         var message = callback.m_eResult == EResult.k_EResultOK
             ? "Steam 已持久化成就/统计状态。"
             : $"Steam StoreStats 失败：{callback.m_eResult}";
+        if (callback.m_eResult != EResult.k_EResultOK)
+            _hasPendingAchievementStore = true;
         Godot.GD.Print($"[Steamworks] {message}");
         StoreStatusChanged(message);
     }
