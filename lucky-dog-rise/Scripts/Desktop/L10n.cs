@@ -19,8 +19,19 @@ public static class L10n
     public const string SpanishLatinAmericaLocale = "es_419";
     public const string PortugueseBrazilLocale = "pt_BR";
     public const string PortuguesePortugalLocale = "pt_PT";
+    public const string FrenchLocale = "fr";
+    public const string GermanLocale = "de";
+    public const string DanishLocale = "da";
+    public const string IndonesianLocale = "id";
+    public const string NorwegianLocale = "nb";
+    public const string SwedishLocale = "sv";
+    public const string DutchLocale = "nl";
+    public const string VietnameseLocale = "vi";
+    public const string MalayLocale = "ms";
+    public const string KoreanLocale = "ko";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
+    private const string ExtendedCsvPath = "res://Data/Localization/LocalizationText_Extended.csv";
     private const string ImportedTranslationPathFormat = "res://Data/Localization/LocalizationText.{0}.translation";
     private const string EmptyTextMarker = "@empty";
     private static bool _loaded;
@@ -85,6 +96,16 @@ public static class L10n
             SpanishLatinAmericaLocale => "Español (Latinoamérica)",
             PortugueseBrazilLocale => "Português (Brasil)",
             PortuguesePortugalLocale => "Português (Portugal)",
+            FrenchLocale => "Français",
+            GermanLocale => "Deutsch",
+            DanishLocale => "Dansk",
+            IndonesianLocale => "Bahasa Indonesia",
+            NorwegianLocale => "Norsk bokmål",
+            SwedishLocale => "Svenska",
+            DutchLocale => "Nederlands",
+            VietnameseLocale => "Tiếng Việt",
+            MalayLocale => "Bahasa Melayu",
+            KoreanLocale => "한국어",
             _ => locale,
         };
     }
@@ -149,6 +170,37 @@ public static class L10n
             || locale.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
             return PortugueseBrazilLocale;
 
+        if (locale.StartsWith("fr", StringComparison.OrdinalIgnoreCase))
+            return FrenchLocale;
+
+        if (locale.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            return GermanLocale;
+
+        if (locale.StartsWith("da", StringComparison.OrdinalIgnoreCase))
+            return DanishLocale;
+
+        if (locale.StartsWith("id", StringComparison.OrdinalIgnoreCase))
+            return IndonesianLocale;
+
+        if (locale.StartsWith("nb", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("no", StringComparison.OrdinalIgnoreCase))
+            return NorwegianLocale;
+
+        if (locale.StartsWith("sv", StringComparison.OrdinalIgnoreCase))
+            return SwedishLocale;
+
+        if (locale.StartsWith("nl", StringComparison.OrdinalIgnoreCase))
+            return DutchLocale;
+
+        if (locale.StartsWith("vi", StringComparison.OrdinalIgnoreCase))
+            return VietnameseLocale;
+
+        if (locale.StartsWith("ms", StringComparison.OrdinalIgnoreCase))
+            return MalayLocale;
+
+        if (locale.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
+            return KoreanLocale;
+
         if (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             return EnglishLocale;
 
@@ -174,18 +226,20 @@ public static class L10n
         if (_loaded)
             return;
 
-        LoadCsvTranslations(CsvPath);
+        LoadCsvTranslations(CsvPath, clearExistingTranslations: true);
+        LoadCsvTranslations(ExtendedCsvPath, clearExistingTranslations: false);
         _loaded = true;
     }
 
-    private static void LoadCsvTranslations(string path)
+    private static void LoadCsvTranslations(string path, bool clearExistingTranslations)
     {
         if (!FileAccess.FileExists(path))
         {
 #if DEBUG
             GD.PushWarning($"[L10n] Missing localization CSV: {path}. Falling back to imported Translation resources.");
 #endif
-            LoadImportedTranslations();
+            if (clearExistingTranslations)
+                LoadImportedTranslations();
             return;
         }
 
@@ -252,6 +306,16 @@ public static class L10n
             SpanishLatinAmericaLocale,
             PortugueseBrazilLocale,
             PortuguesePortugalLocale,
+            FrenchLocale,
+            GermanLocale,
+            DanishLocale,
+            IndonesianLocale,
+            NorwegianLocale,
+            SwedishLocale,
+            DutchLocale,
+            VietnameseLocale,
+            MalayLocale,
+            KoreanLocale,
         ];
 
         foreach (var locale in locales)
