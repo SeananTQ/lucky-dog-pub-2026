@@ -26,6 +26,9 @@ public static class SettingsManager
     private const string KeyStreamerSafeMode = "streamer_safe_mode";
     private const string KeySaveDataMode = "save_data_mode";
     private const string KeyDisplayMode = "mode";
+    private const string KeyPokerFrameRate = "poker_frame_rate";
+    private const string LegacyKeyFrameRateLimit = "frame_rate_limit";
+    private const string KeyVsyncEnabled = "vsync_enabled";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
@@ -279,6 +282,54 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    public static int LoadPokerFrameRate()
+    {
+        var config = Load();
+        var value = config.HasSectionKey(SectionDisplay, KeyPokerFrameRate)
+            ? (int)config.GetValue(SectionDisplay, KeyPokerFrameRate, 60)
+            : (int)config.GetValue(SectionDisplay, LegacyKeyFrameRateLimit, 60);
+        return value is 60 or 30 or 20 or 15 ? value : 60;
+    }
+
+    public static void SavePokerFrameRate(int frameRate)
+    {
+        var value = frameRate is 60 or 30 or 20 or 15 ? frameRate : 60;
+        var config = Load();
+        config.SetValue(SectionDisplay, KeyPokerFrameRate, value);
+        config.Save(Path);
+        PokerFrameRateChanged?.Invoke(value);
+    }
+
+    public static event System.Action<int> PokerFrameRateChanged;
+
+    public static bool LoadVsyncEnabled()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDisplay, KeyVsyncEnabled, true);
+    }
+
+    public static void SaveVsyncEnabled(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDisplay, KeyVsyncEnabled, enabled);
+        config.Save(Path);
+        ApplyVsync(enabled);
+    }
+
+    public static void ApplyDisplayPerformanceSettings()
+    {
+        // 窗口、输入和系统 UI 始终保持 60 FPS；低帧率选项只控制扑克 SubViewport 的重绘频率。
+        Engine.MaxFps = 60;
+        ApplyVsync(LoadVsyncEnabled());
+    }
+
+    private static void ApplyVsync(bool enabled)
+    {
+        DisplayServer.WindowSetVsyncMode(enabled
+            ? DisplayServer.VSyncMode.Enabled
+            : DisplayServer.VSyncMode.Disabled);
+    }
+
     public static bool LoadCenterCounterOnTaskbar()
     {
         var config = Load();
@@ -398,6 +449,8 @@ public static class SettingsManager
         foreach (var (key, value) in tutorialProgress)
             config.SetValue(SectionTutorialProgress, key, value);
         config.Save(Path);
+        ApplyDisplayPerformanceSettings();
+        PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
     }
 

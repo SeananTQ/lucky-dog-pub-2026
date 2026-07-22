@@ -25,6 +25,8 @@ public partial class SystemPanelController : CanvasLayer
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private OptionButton _armAppearanceOption = null!;
+    [Export] private OptionButton _pokerFrameRateOption = null!;
+    [Export] private CheckButton _vsyncToggle = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -160,6 +162,7 @@ public partial class SystemPanelController : CanvasLayer
         L10n.VietnameseLocale,
         L10n.MalayLocale,
     ];
+    private static readonly int[] PokerFrameRateOptions = [60, 30, 20, 15];
     private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
     {
         [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
@@ -229,6 +232,8 @@ public partial class SystemPanelController : CanvasLayer
         BuildLanguageOptions();
 
         BuildDisplayOptions();
+        BuildPokerFrameRateOptions();
+        _vsyncToggle.ButtonPressed = SettingsManager.LoadVsyncEnabled();
 
 #if DEBUG
         _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
@@ -319,6 +324,8 @@ public partial class SystemPanelController : CanvasLayer
         _preventAccidentalDragToggle.Toggled += enabled => SettingsManager.SavePreventAccidentalDrag(enabled);
         _languageOption.ItemSelected += OnLanguageSelected;
         _displayOption.ItemSelected += OnDisplayModeChanged;
+        _pokerFrameRateOption.ItemSelected += OnPokerFrameRateSelected;
+        _vsyncToggle.Toggled += SettingsManager.SaveVsyncEnabled;
         _armAppearanceOption.ItemSelected += OnArmAppearanceSelected;
 #if DEBUG
         _saveDataModeOption.ItemSelected += OnSaveDataModeChanged;
@@ -734,6 +741,22 @@ public partial class SystemPanelController : CanvasLayer
         _displayOption.Select((int)SettingsManager.LoadDisplayMode());
     }
 
+    private void BuildPokerFrameRateOptions()
+    {
+        _pokerFrameRateOption.Clear();
+        var savedFrameRate = SettingsManager.LoadPokerFrameRate();
+        var selectedIndex = 0;
+        for (int i = 0; i < PokerFrameRateOptions.Length; i++)
+        {
+            var frameRate = PokerFrameRateOptions[i];
+            _pokerFrameRateOption.AddItem($"{frameRate} FPS", frameRate);
+            if (frameRate == savedFrameRate)
+                selectedIndex = i;
+        }
+
+        _pokerFrameRateOption.Select(selectedIndex);
+    }
+
     private void BuildArmAppearanceOptions()
     {
         if (_armAppearanceOption == null || _gameData == null)
@@ -895,6 +918,15 @@ public partial class SystemPanelController : CanvasLayer
         SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
     }
 
+    private void OnPokerFrameRateSelected(long index)
+    {
+        var itemIndex = (int)index;
+        if (itemIndex < 0 || itemIndex >= _pokerFrameRateOption.ItemCount)
+            return;
+
+        SettingsManager.SavePokerFrameRate(_pokerFrameRateOption.GetItemId(itemIndex));
+    }
+
     private void OnArmAppearanceSelected(long index)
     {
         if (_refreshingArmAppearanceOption || _gameData == null)
@@ -988,6 +1020,8 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadStreamerSafeMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow/CounterCenterToggle")
             .SetPressedNoSignal(SettingsManager.LoadCenterCounterOnTaskbar());
+        BuildPokerFrameRateOptions();
+        _vsyncToggle.SetPressedNoSignal(SettingsManager.LoadVsyncEnabled());
 
         BuildLanguageOptions();
         BuildDisplayOptions();

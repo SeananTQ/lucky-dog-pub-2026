@@ -62,6 +62,9 @@ public partial class ModeManager : Control
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
     private bool _shutdownRequested;
     private bool _platformDisposed;
+    private int _pokerFrameRate = 60;
+    private double _pokerRenderAccumulator;
+    private bool _pokerViewportWasActive;
     public GameData GameDataObj => _gameData;
     public IGamePlatformService PlatformService => _platformService;
 
@@ -129,12 +132,17 @@ public partial class ModeManager : Control
 
     public override void _Ready()
     {
+        SettingsManager.ApplyDisplayPerformanceSettings();
+
         if (!BuildInfo.ValidateCurrentBuild())
         {
             OS.Alert(BuildInfo.ValidationError, "Lucky Dog Rise Playtest");
             GetTree().Quit(2);
             return;
         }
+
+        _pokerFrameRate = SettingsManager.LoadPokerFrameRate();
+        SettingsManager.PokerFrameRateChanged += OnPokerFrameRateChanged;
 
         L10n.ApplySavedOrSystemLocale();
         var initialMeetingState = SettingsManager.LoadInitialMeetingStateForStartup();
@@ -280,6 +288,7 @@ public partial class ModeManager : Control
             _gameData?.RecordPokerModeSeconds(_);
 
         UpdateFullscreenVisibility(_);
+        UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
 
@@ -357,6 +366,7 @@ public partial class ModeManager : Control
 
     private Node2D _playRoot = null!;
     private SubViewportContainer _playViewport = null!;
+    private SubViewport _playSubViewport = null!;
     private InfoPanelController _infoPanel = null!;
     // 游玩模式布局状态：false=信息面板在左(默认), true=信息面板在右
     private bool _infoPanelOnRight;
@@ -375,6 +385,7 @@ public partial class ModeManager : Control
             _playRoot.Name = "PlayRoot";
             AddChild(_playRoot);
             _playViewport = _playRoot.GetNode<SubViewportContainer>("SubViewportContainer");
+            _playSubViewport = _playRoot.GetNode<SubViewport>("SubViewportContainer/SubViewport");
 
             // 信息面板由 ModeManager 直接管理（需要动态定位+避让）
             _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
@@ -406,6 +417,7 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+        ResetPokerViewportRendering();
         AudioManager.Instance.SetBgmPaused(false);
         _gameManager.SetInteractionHintPokerModeActive(true);
         RefreshSettingsPanelModeActions();
@@ -453,6 +465,7 @@ public partial class ModeManager : Control
         SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
+        ResetPokerViewportRendering();
         RefreshSettingsPanelModeActions();
 
         RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
@@ -460,7 +473,64 @@ public partial class ModeManager : Control
 
     public override void _ExitTree()
     {
+        SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         DisposePlatformService();
+    }
+
+    private void OnPokerFrameRateChanged(int frameRate)
+    {
+        _pokerFrameRate = frameRate;
+        ResetPokerViewportRendering();
+    }
+
+    private void ResetPokerViewportRendering()
+    {
+        _pokerRenderAccumulator = 0;
+        _pokerViewportWasActive = false;
+        if (_playSubViewport != null)
+            _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
+    }
+
+    private void UpdatePokerViewportRendering(double delta)
+    {
+        if (_playSubViewport == null)
+            return;
+
+        var active = CurrentMode == Mode.Play
+            && !_hiddenByFullscreenApp
+            && _playRoot.Visible;
+        if (!active)
+        {
+            if (_pokerViewportWasActive)
+                _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
+            _pokerViewportWasActive = false;
+            _pokerRenderAccumulator = 0;
+            return;
+        }
+
+        if (_pokerFrameRate >= 60)
+        {
+            _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+            _pokerViewportWasActive = true;
+            _pokerRenderAccumulator = 0;
+            return;
+        }
+
+        var interval = 1.0 / _pokerFrameRate;
+        if (!_pokerViewportWasActive)
+        {
+            _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
+            _pokerViewportWasActive = true;
+            _pokerRenderAccumulator = 0;
+            return;
+        }
+
+        _pokerRenderAccumulator += delta;
+        if (_pokerRenderAccumulator < interval)
+            return;
+
+        _pokerRenderAccumulator %= interval;
+        _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
     }
 
     private void RequestGracefulQuit()

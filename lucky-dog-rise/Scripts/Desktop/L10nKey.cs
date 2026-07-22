@@ -47,6 +47,8 @@ public static class L10nKey
     public const string Settings_CounterDisplay_Clock = nameof(Settings_CounterDisplay_Clock);
     public const string Settings_CounterDisplay_Chips = nameof(Settings_CounterDisplay_Chips);
     public const string Settings_CounterDisplay_Hidden = nameof(Settings_CounterDisplay_Hidden);
+    public const string Settings_PokerFrameRate = nameof(Settings_PokerFrameRate);
+    public const string Settings_VerticalSync = nameof(Settings_VerticalSync);
     public const string Settings_CenterCounterOnTaskbar = nameof(Settings_CenterCounterOnTaskbar);
     public const string Settings_SaveData = nameof(Settings_SaveData);
     public const string Settings_ResetSaveData = nameof(Settings_ResetSaveData);
