@@ -1,6 +1,7 @@
 using Godot;
 using DataTables;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace LuckyDogRise;
@@ -46,6 +47,7 @@ public partial class GameData : Node
     private double _blindBoxTickTimer;
     private double _profileAutosaveTimer;
     private double _playerProgressSaveTimer;
+    private bool _shutdownFlushCompleted;
     private const double SaveDebounceSeconds = 0.75;
     private const double ProfileAutosaveSeconds = 60.0;
     private const double PlayerProgressAutosaveSeconds = 60.0;
@@ -114,8 +116,22 @@ public partial class GameData : Node
 
     public override void _ExitTree()
     {
-        FlushSave();
+        FlushForShutdown();
+    }
+
+    public void FlushForShutdown()
+    {
+        if (_shutdownFlushCompleted)
+            return;
+
+        var stopwatch = Stopwatch.StartNew();
+        SaveImmediatelyIfUsingLocalSave();
+        GD.Print($"[Shutdown] Profile save completed in {stopwatch.ElapsedMilliseconds} ms.");
+
+        stopwatch.Restart();
         PlayerProgress?.FlushSession();
+        GD.Print($"[Shutdown] Player progress save completed in {stopwatch.ElapsedMilliseconds} ms.");
+        _shutdownFlushCompleted = true;
     }
 
     public void EquipItem(int itemId)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using DataTables;
 using Godot;
@@ -59,6 +60,8 @@ public partial class ModeManager : Control
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
+    private bool _shutdownRequested;
+    private bool _platformDisposed;
     public GameData GameDataObj => _gameData;
     public IGamePlatformService PlatformService => _platformService;
 
@@ -117,6 +120,7 @@ public partial class ModeManager : Control
 
     public override void _EnterTree()
     {
+        GetTree().AutoAcceptQuit = false;
         _platformService = GamePlatformServiceFactory.Create();
         GD.Print(_platformService.IsAvailable
             ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
@@ -174,6 +178,7 @@ public partial class ModeManager : Control
         _settingsPanel.GameData = _gameData;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
+        _settingsPanel.QuitRequested += RequestGracefulQuit;
         _settingsPanel.DesktopBgmPlaybackChanged += OnDesktopBgmPlaybackChanged;
 #if DEBUG
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
@@ -330,6 +335,12 @@ public partial class ModeManager : Control
 
     public override void _Notification(int what)
     {
+        if (what == NotificationWMCloseRequest)
+        {
+            RequestGracefulQuit();
+            return;
+        }
+
         if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen
             && SettingsManager.LoadAutoHidePanel())
         {
@@ -449,7 +460,53 @@ public partial class ModeManager : Control
 
     public override void _ExitTree()
     {
+        DisposePlatformService();
+    }
+
+    private void RequestGracefulQuit()
+    {
+        if (_shutdownRequested)
+            return;
+
+        _shutdownRequested = true;
+        var totalStopwatch = Stopwatch.StartNew();
+
+        var cloakStopwatch = Stopwatch.StartNew();
+        bool windowCloaked = SetNativeWindowCloaked(true);
+        if (!windowCloaked)
+            GetWindow().Visible = false;
+        GD.Print($"[Shutdown] Window hidden in {cloakStopwatch.ElapsedMilliseconds} ms (DWM cloak: {windowCloaked}).");
+
+        try
+        {
+            _gameData?.FlushForShutdown();
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[Shutdown] Failed to flush local data: {exception}");
+        }
+
+        var platformStopwatch = Stopwatch.StartNew();
+        try
+        {
+            DisposePlatformService();
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[Shutdown] Failed to dispose platform service: {exception}");
+        }
+        GD.Print($"[Shutdown] Platform cleanup completed in {platformStopwatch.ElapsedMilliseconds} ms.");
+        GD.Print($"[Shutdown] Explicit shutdown preparation completed in {totalStopwatch.ElapsedMilliseconds} ms; quitting scene tree.");
+        GetTree().Quit();
+    }
+
+    private void DisposePlatformService()
+    {
+        if (_platformDisposed)
+            return;
+
         _platformService?.Dispose();
+        _platformDisposed = true;
     }
 
     private async void RevealBossKeyAfterTransparentHandoff(Rect2I screen, int switchRevision, bool windowCloaked)

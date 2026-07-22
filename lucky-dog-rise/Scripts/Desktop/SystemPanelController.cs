@@ -18,6 +18,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
+    [Signal] public delegate void QuitRequestedEventHandler();
     [Signal] public delegate void DesktopBgmPlaybackChangedEventHandler(bool enabled);
     [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
@@ -288,7 +289,7 @@ public partial class SystemPanelController : CanvasLayer
         };
 
         closeBtn.Pressed += Close;
-        quitBtn.Pressed += () => GetTree().Quit();
+        quitBtn.Pressed += () => EmitSignal(SignalName.QuitRequested);
         restartBtn.Pressed += RestartGame;
         resetSaveBtn.Pressed += () =>
         {
