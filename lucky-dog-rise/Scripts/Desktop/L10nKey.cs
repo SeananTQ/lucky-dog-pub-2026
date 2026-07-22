@@ -61,8 +61,8 @@ public static class L10nKey
     public const string InfoPanel_GoodLuck = nameof(InfoPanel_GoodLuck);
     public const string InfoPanel_Nothing = nameof(InfoPanel_Nothing);
     public const string InfoPanel_YouWin = nameof(InfoPanel_YouWin);
-    public const string Paytable_JacksOrBetter = nameof(Paytable_JacksOrBetter);
-    public const string Paytable_JacksOrBetter_Safe = nameof(Paytable_JacksOrBetter_Safe);
+    public const string Paytable_OnePair = nameof(Paytable_OnePair);
+    public const string Paytable_OnePair_Safe = nameof(Paytable_OnePair_Safe);
     public const string Paytable_TwoPair = nameof(Paytable_TwoPair);
     public const string Paytable_TwoPair_Safe = nameof(Paytable_TwoPair_Safe);
     public const string Paytable_ThreeOfAKind = nameof(Paytable_ThreeOfAKind);

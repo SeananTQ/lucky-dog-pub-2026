@@ -68,7 +68,7 @@ public sealed class PlayerProgress
     private readonly Dictionary<EHandRank, string> _handRankStatisticKeys = new()
     {
         [EHandRank.Nothing] = "PokerHandRankNothingCount",
-        [EHandRank.JacksOrBetter] = "PokerHandRankJacksOrBetterCount",
+        [EHandRank.OnePair] = "PokerHandRankOnePairCount",
         [EHandRank.TwoPair] = "PokerHandRankTwoPairCount",
         [EHandRank.ThreeOfAKind] = "PokerHandRankThreeOfAKindCount",
         [EHandRank.Straight] = "PokerHandRankStraightCount",

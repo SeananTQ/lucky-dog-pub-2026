@@ -146,7 +146,7 @@ public partial class ChipRewardController : Node2D
 
     private static ChipPileSpec[] GetLayout(EHandRank rank) => rank switch
     {
-        EHandRank.JacksOrBetter => [new("Green", 2)],
+        EHandRank.OnePair => [new("Green", 2)],
         EHandRank.TwoPair => [new("Blue", 3), new("Green", 1)],
         EHandRank.ThreeOfAKind => [new("Red", 4), new("Green", 2)],
         EHandRank.Straight => [new("Red", 4), new("Black", 3), new("Green", 1)],

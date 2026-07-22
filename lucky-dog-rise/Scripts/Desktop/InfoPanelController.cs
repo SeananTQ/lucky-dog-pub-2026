@@ -57,7 +57,7 @@ public partial class InfoPanelController : CanvasLayer
         EHandRank.Straight,
         EHandRank.ThreeOfAKind,
         EHandRank.TwoPair,
-        EHandRank.JacksOrBetter,
+        EHandRank.OnePair,
     };
 
     public override void _Ready()

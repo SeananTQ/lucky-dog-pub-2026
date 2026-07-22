@@ -58,8 +58,8 @@ InfoPanel_Menu,Menu,菜单,選單,メニュー,Menú,Menú,Menu,Menu,400004,Info
 InfoPanel_GoodLuck,Good Luck!,祝你好运！,祝你好運！,幸運を！,¡Buena suerte!,¡Buena suerte!,Boa sorte!,Boa sorte!,400005,InfoPanel,新牌局默认提示
 InfoPanel_Nothing,Nothing,无牌型,無牌型,なし,Sin jugada,Sin jugada,Sem jogo,Sem jogo,400006,InfoPanel,无中奖牌型
 InfoPanel_YouWin,You win {0},赢得 {0},贏得 {0},{0} 獲得,Ganas {0},Ganas {0},Você ganhou {0},Ganhaste {0},400007,InfoPanel,获胜提示
-Paytable_JacksOrBetter,Jacks or Better,对 J 以上的对子,J 以上的一對,J以上のワンペア,Pareja de jotas o mejor,Pareja de jotas o mejor,Par de valetes ou melhor,Par de valetes ou melhor,500001,Paytable,原始牌型名称
-Paytable_JacksOrBetter_Safe,Top Dogs,好犬优选,好犬優選,トップドッグ,Perros estrella,Perros estrella,Cães de destaque,Cães de destaque,500002,Paytable,安全模式牌型名称
+Paytable_OnePair,One Pair,一对,一對,ワンペア,Pareja,Pareja,Par,Par,500001,Paytable,原始牌型名称
+Paytable_OnePair_Safe,Top Dogs,好犬优选,好犬優選,トップドッグ,Perros estrella,Perros estrella,Cães de destaque,Cães de destaque,500002,Paytable,安全模式牌型名称
 Paytable_TwoPair,Two Pair,两对,兩對,ツーペア,Doble pareja,Doble pareja,Dois pares,Dois pares,500003,Paytable,原始牌型名称
 Paytable_TwoPair_Safe,Twin Pairs,双犬配对,雙犬配對,ツインペア,Dúo canino,Dúo canino,Duo canino,Duo canino,500004,Paytable,安全模式牌型名称
 Paytable_ThreeOfAKind,Three of a Kind,三条,三條,スリーカード,Trío,Trío,Trinca,Trio,500005,Paytable,原始牌型名称

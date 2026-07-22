@@ -440,10 +440,8 @@ public partial class GameManager : Node2D
         if (groups.Count(group => group.Count >= 2) >= 2)
             return true;
 
-        return groups.Any(group => group.Count >= 2 && IsJacksOrBetter(group.Rank));
+        return groups.Any(group => group.Count >= 2);
     }
-
-    private static bool IsJacksOrBetter(int rank) => rank == 0 || rank >= 10;
 
     private static EDogReactionTrigger GetSawReaction(EHandRank rank)
     {

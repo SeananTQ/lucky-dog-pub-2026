@@ -190,7 +190,7 @@ public class DeckManager
             EHandRank.Straight => GenerateStraight(),
             EHandRank.ThreeOfAKind => GenerateThreeOfAKind(),
             EHandRank.TwoPair => GenerateTwoPair(),
-            EHandRank.JacksOrBetter => GenerateJacksOrBetter(),
+            EHandRank.OnePair => GenerateOnePair(),
             _ => GenerateNothing(),
         };
     }
@@ -279,11 +279,9 @@ public class DeckManager
         };
     }
 
-    private int[] GenerateJacksOrBetter()
+    private int[] GenerateOnePair()
     {
-        // Pair of J, Q, K, or A
-        int[] highRanks = { 0, 10, 11, 12 }; // A, J, Q, K
-        int rank = highRanks[_rng.Next(4)];
+        int rank = _rng.Next(13);
         var suits = Enumerable.Range(0, 4).OrderBy(_ => _rng.Next()).Take(2).ToArray();
         var otherRanks = Enumerable.Range(0, 13).Where(r => r != rank).OrderBy(_ => _rng.Next()).Take(3).ToArray();
         return new[]

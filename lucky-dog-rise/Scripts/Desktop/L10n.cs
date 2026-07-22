@@ -93,7 +93,7 @@ public static class L10n
     {
         return rank switch
         {
-            DataTables.EHandRank.JacksOrBetter => L10nKey.Paytable_JacksOrBetter,
+            DataTables.EHandRank.OnePair => L10nKey.Paytable_OnePair,
             DataTables.EHandRank.TwoPair => L10nKey.Paytable_TwoPair,
             DataTables.EHandRank.ThreeOfAKind => L10nKey.Paytable_ThreeOfAKind,
             DataTables.EHandRank.Straight => L10nKey.Paytable_Straight,

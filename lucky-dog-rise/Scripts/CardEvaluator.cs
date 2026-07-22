@@ -36,7 +36,7 @@ public static class CardEvaluator
         if (isStraight) return EHandRank.Straight;
         if (maxCount == 3) return EHandRank.ThreeOfAKind;
         if (maxCount == 2 && groups.Count(g => g.Count() == 2) == 2) return EHandRank.TwoPair;
-        if (maxCount == 2 && IsJacksOrBetter(groups[0].Key)) return EHandRank.JacksOrBetter;
+        if (maxCount == 2) return EHandRank.OnePair;
 
         return EHandRank.Nothing;
     }
@@ -75,12 +75,6 @@ public static class CardEvaluator
         }
 
         return true;
-    }
-
-    private static bool IsJacksOrBetter(int rank)
-    {
-        // Jack=10, Queen=11, King=12, Ace=0
-        return rank == 0 || rank >= 10;
     }
 
     public static int[] GetOptimalHold(int[] cards)

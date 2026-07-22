@@ -42,7 +42,7 @@ public class DogHintSystem
         return rank switch
         {
             EHandRank.Nothing => DogSignal.Bored,
-            EHandRank.JacksOrBetter => DogSignal.Happy,
+            EHandRank.OnePair => DogSignal.Happy,
             EHandRank.TwoPair => DogSignal.Happy,
             EHandRank.ThreeOfAKind => DogSignal.Happy,
             EHandRank.Straight => DogSignal.LuckyEye,
