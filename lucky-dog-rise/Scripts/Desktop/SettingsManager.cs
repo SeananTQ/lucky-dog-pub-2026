@@ -192,7 +192,7 @@ public static class SettingsManager
     public static bool LoadEnhancedTopmostMode()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionSystem, KeyEnhancedTopmostMode, false);
+        return (bool)config.GetValue(SectionSystem, KeyEnhancedTopmostMode, true);
     }
 
     public static void SaveEnhancedTopmostMode(bool enabled)
@@ -262,12 +262,12 @@ public static class SettingsManager
     }
 
     // === 显示模式 ===
-    public static DisplayMode CurrentDisplayMode { get; private set; } = DisplayMode.Clock;
+    public static DisplayMode CurrentDisplayMode { get; private set; } = DisplayMode.Chips;
 
     public static DisplayMode LoadDisplayMode()
     {
         var config = Load();
-        CurrentDisplayMode = (DisplayMode)(int)config.GetValue(SectionDisplay, KeyDisplayMode, (int)DisplayMode.Clock);
+        CurrentDisplayMode = (DisplayMode)(int)config.GetValue(SectionDisplay, KeyDisplayMode, (int)DisplayMode.Chips);
         return CurrentDisplayMode;
     }
 
@@ -318,7 +318,7 @@ public static class SettingsManager
     public static bool LoadPreventAccidentalDrag()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionSystem, KeyPreventAccidentalDrag, false);
+        return (bool)config.GetValue(SectionSystem, KeyPreventAccidentalDrag, true);
     }
 
     public static void SavePreventAccidentalDrag(bool enabled)
@@ -388,7 +388,7 @@ public static class SettingsManager
 
     public static void ResetToDefaults()
     {
-        CurrentDisplayMode = DisplayMode.Clock;
+        CurrentDisplayMode = DisplayMode.Chips;
         var previousConfig = Load();
         var tutorialProgress = new System.Collections.Generic.Dictionary<string, Variant>();
         foreach (var key in previousConfig.GetSectionKeys(SectionTutorialProgress))

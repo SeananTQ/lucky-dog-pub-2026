@@ -298,6 +298,7 @@ public partial class SystemPanelController : CanvasLayer
         _sfxVolumeSlider.ValueChanged += OnSfxVolumeChanged;
         _bgmVolumeSlider.ValueChanged += OnBgmVolumeChanged;
         _desktopBgmToggle.Toggled += OnDesktopBgmToggled;
+        _rightClickQuickModeSwitchToggle.ButtonPressed = SettingsManager.LoadRightClickQuickModeSwitch();
         _rightClickQuickModeSwitchToggle.Toggled += enabled => SettingsManager.SaveRightClickQuickModeSwitch(enabled);
         _preventAccidentalDragToggle.ButtonPressed = SettingsManager.LoadPreventAccidentalDrag();
         _preventAccidentalDragToggle.Toggled += enabled => SettingsManager.SavePreventAccidentalDrag(enabled);
