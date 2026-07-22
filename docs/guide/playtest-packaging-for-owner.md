@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-11
+last_edit: 2026-07-22
 status: revised
 ---
 
@@ -8,7 +8,7 @@ status: revised
 
 ## 这份指南解决什么
 
-这份指南用于主人在当前电脑上生成可以发给外部测试者的 Windows Playtest ZIP。
+这份指南用于主人在当前电脑上生成可以发给外部测试者的 Windows Playtest ZIP。通过 SteamPipe 上传时，继续参阅 [Steam Playtest 上传指南（主人版）](steam-playtest-upload-for-owner.md)。
 
 主人不需要在 Godot 导出窗口中手动填写加密密钥，也不需要每次打包都重新编译 Godot。脚本会自动完成导出、加密、混淆、检查和压缩。
 
@@ -182,5 +182,5 @@ Release 不是当前日常测试命令。准备正式候选版本前，需要开
 - 尚未验证主存档和 backup 同时被篡改的处理。
 - 尚未生成并验收正式 Release 包。
 - 尚未配置 Windows 代码签名。
-- 尚未接入 Steam Playtest 分支或 depot 上传。
+- SteamPipe 上传脚本已经接入；尚未填写真实 Depot ID，也尚未完成第一次真实上传和分支验收。
 - `Puppy's Nap Time.mp3` 是否作为正式 BGM 仍需确认授权和最终播放策略。

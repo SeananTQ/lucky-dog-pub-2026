@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-11
+last_edit: 2026-07-22
 status: revised
 ---
 
@@ -252,7 +252,7 @@ Windows Authenticode 签名暂未实施；检查报告明确标记 `unsigned`，
 - 尚未验证主存档与 backup 同时被篡改时，是否按预期保留 `profile_0.invalid_signature.json` 并创建新档。
 - 尚未生成并人工验收真正的 Release 渠道包；当前工作区有未提交改动，Release 构建会按设计拒绝执行。
 - 尚未购买或配置 Windows Authenticode 代码签名证书。
-- 尚未接入 Steam Playtest 分支或 depot 上传流程。
+- SteamPipe 的 Generate、Preview、Upload 三段式脚本已经接入；尚未填写真实 Depot ID，也尚未完成第一次真实上传和分支验收。
 - 尚未决定 `Puppy's Nap Time.mp3` 是否作为正式 BGM，包括授权、循环点、音量和平滑停止策略。
 - 当前防护仍不抵抗专业逆向、内存修改和从客户端提取密钥，这属于明确的非目标。
 - Playtest 到期检查依赖本机 UTC 时间，可被修改系统时间或逆向程序绕过；其目标是阻止普通测试包在截止日后继续传播，不是强 DRM。
@@ -267,7 +267,7 @@ Windows Authenticode 签名暂未实施；检查报告明确标记 `unsigned`，
 4. 确认 BGM 授权和最终播放策略；如替换文件，保持动态音频导出规则和启动资源检查同步更新。
 5. 整理并提交当前实现，使 worktree 干净。
 6. 更新游戏版本号，生成 Release 包并重复 Playtest 的完整人工验收。
-7. 根据 Steam 发布安排接入 Playtest 分支或 depot 上传。
+7. 按 [Steam Playtest 上传指南（主人版）](../guide/steam-playtest-upload-for-owner.md) 填写 Depot ID，先完成 Preview，再上传未设为 Live 的 Build，最后指派到密码保护分支。
 8. 临近公开发布时再决定是否购买代码签名证书；该事项不阻塞当前 Playtest。
 
 上述人工验收是 Playtest 发包门槛；本次自动验证不等同于视觉和完整玩法验收。
