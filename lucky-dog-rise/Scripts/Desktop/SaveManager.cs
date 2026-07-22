@@ -31,7 +31,7 @@ public sealed class SaveProfile
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -206,6 +206,19 @@ public static class SaveManager
                     ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
                 });
 
+        if (loadedVersion < 5)
+        {
+            profile.BlindBoxRuntimeState.ScheduleSeconds = InferLegacyBlindBoxScheduleSeconds(profile);
+            profile.Version = 5;
+            GD.Print($"[Save] Migrated blind-box schedule clock to {profile.BlindBoxRuntimeState.ScheduleSeconds:0.0}s.");
+        }
+        else
+        {
+            profile.BlindBoxRuntimeState.ScheduleSeconds = Math.Max(
+                0.0,
+                profile.BlindBoxRuntimeState.ScheduleSeconds);
+        }
+
         if (profile.PendingBlindBoxReward != null)
         {
             var pending = profile.PendingBlindBoxReward;
@@ -220,6 +233,35 @@ public static class SaveManager
         inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         profile.EquippedItemIdsByType = inventory.GetEquippedIdsByTypeName();
         return profile;
+    }
+
+    private static double InferLegacyBlindBoxScheduleSeconds(SaveProfile profile)
+    {
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        var durationMultiplier = config == null || config.BlindBoxWaitDurationMultiplier <= 0
+            ? 1.0
+            : config.BlindBoxWaitDurationMultiplier;
+        var scheduleSeconds = profile.TotalPlaySeconds / durationMultiplier;
+        scheduleSeconds = Math.Max(scheduleSeconds, profile.BlindBoxRuntimeState.LastClaimSeconds);
+
+        foreach (var (scheduleId, state) in profile.BlindBoxRuntimeState.LoopTrackStates)
+        {
+            if (state.ProcessedGrantCount <= 0)
+                continue;
+
+            var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
+            if (schedule == null)
+                continue;
+
+            var lastProcessedDue = schedule.IntervalSeconds <= 0
+                ? schedule.StartSeconds
+                : schedule.StartSeconds + (state.ProcessedGrantCount - 1) * schedule.IntervalSeconds;
+            if (schedule.EndSeconds >= 0)
+                lastProcessedDue = Math.Min(lastProcessedDue, schedule.EndSeconds);
+            scheduleSeconds = Math.Max(scheduleSeconds, lastProcessedDue);
+        }
+
+        return Math.Max(0.0, scheduleSeconds);
     }
 
     private static void EnsureSaveDir()

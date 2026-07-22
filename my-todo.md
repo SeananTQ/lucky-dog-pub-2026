@@ -1,7 +1,7 @@
 
 Game Over的逻辑还在，需要处理掉,只是隐藏了
 
-
+想办法开发一个补偿功能，毕竟首次做游戏难免会出很多错误。
 
 
 Windows 代码签名证书：证明 LuckyDogRise.exe 来自 Seanan Studio，降低 SmartScreen 和杀毒软件警告。尚未完成。

@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -29,7 +29,7 @@ internal static class SaveIntegrity
 
     public static bool Verify(SaveProfile profile)
     {
-        if (profile.IntegrityVersion is not (1 or 2 or CurrentVersion)
+        if (profile.IntegrityVersion < 1 || profile.IntegrityVersion > CurrentVersion
             || string.IsNullOrWhiteSpace(profile.IntegrityTag)
             || !BuildInfo.TryGetSaveHmacKey(out var key))
             return false;
@@ -102,6 +102,10 @@ internal static class SaveIntegrity
         return new BlindBoxRuntimeState
         {
             SequenceIndex = state.SequenceIndex,
+            // v1-v3 存档没有连续调度时钟，验签时保持省略。
+            ScheduleSeconds = integrityVersion >= 4
+                ? state.ScheduleSeconds
+                : 0.0,
             LastClaimSeconds = state.LastClaimSeconds,
             // v1/v2 存档没有本地展示门槛；默认值会由 JsonIgnore 省略，保持旧签名兼容。
             NextLoopPresentationSeconds = integrityVersion >= 3

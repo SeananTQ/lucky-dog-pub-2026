@@ -176,7 +176,7 @@ lucky-dog-rise/
 
 **盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
 
-盲盒资格生成和本地展示节奏是两层逻辑。`BlindBoxSchedule.StartSeconds` 是调度生效下限；循环行的 `IntervalSeconds` 是单条轨道的资格间隔，不是全局领取 CD，非循环行的 `IntervalSeconds` 则是相对上一次实际领取的最短本地间隔。12 个新手盲盒未领完时，本地只显示新手顺序，但正式循环轨道仍在后台生成并按表中上限保留资格。第 12 个新手奖励实际进入背包后，使用 `GameDevelopConfig.BlindBoxPostNewbieDelaySeconds` 控制首个正式盲盒；领取正式盲盒后仍有积压时，使用 `BlindBoxBacklogClaimDelaySeconds` 控制下一次展示。所有基础秒数统一受 `BlindBoxTimeScale` 缩放，多资格积压时按 `BlindBoxSchedule.Priority` 选择。
+盲盒资格生成和本地展示节奏是两层逻辑。`BlindBoxSchedule.StartSeconds` 是调度生效下限；循环行的 `IntervalSeconds` 是单条轨道的资格间隔，不是全局领取 CD，非循环行的 `IntervalSeconds` 则是相对上一次实际领取的最短本地间隔。12 个新手盲盒未领完时，本地只显示新手顺序，但正式循环轨道仍在后台生成并按表中上限保留资格。第 12 个新手奖励实际进入背包后，使用 `GameDevelopConfig.BlindBoxPostNewbieDelaySeconds` 控制首个正式盲盒；领取正式盲盒后仍有积压时，使用 `BlindBoxBacklogClaimDelaySeconds` 控制下一次展示。所有基础秒数统一受 `BlindBoxWaitDurationMultiplier` 缩放，多资格积压时按 `BlindBoxSchedule.Priority` 选择。玩家真实游玩时间与盲盒调度时钟分离；倍率只改变调度时钟之后的流速，不能用 `TotalPlaySeconds / 当前倍率` 反推整个历史时间轴。
 
 ## 背包与存档
 

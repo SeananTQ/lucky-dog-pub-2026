@@ -75,6 +75,7 @@ public partial class GameData : Node
     public override void _Process(double delta)
     {
         TotalPlaySeconds += delta;
+        _blindBoxService.AdvanceScheduleClock(_blindBoxRuntimeState, delta);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordDuration("GameRuntimeSeconds", delta, PlayerProgressSource.Gameplay);
         _blindBoxTickTimer -= delta;
@@ -159,7 +160,6 @@ public partial class GameData : Node
     public BlindBox GetNextAvailableBlindBox()
     {
         return _blindBoxService.GetNextAvailableBox(
-            TotalPlaySeconds,
             _blindBoxRuntimeState,
             PendingBlindBoxReward);
     }
@@ -182,7 +182,6 @@ public partial class GameData : Node
     public BlindBoxHintState GetBlindBoxHintState()
     {
         return _blindBoxService.GetHintState(
-            TotalPlaySeconds,
             _blindBoxRuntimeState,
             PendingBlindBoxReward);
     }
@@ -217,7 +216,7 @@ public partial class GameData : Node
         var scheduleId = PendingBlindBoxReward.ScheduleId;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
-        _blindBoxService.CompleteClaimedSchedule(_blindBoxRuntimeState, scheduleId, TotalPlaySeconds);
+        _blindBoxService.CompleteClaimedSchedule(_blindBoxRuntimeState, scheduleId);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
         EmitSignal(SignalName.BlindBoxStateChanged);

@@ -39,6 +39,13 @@ public sealed class BlindBoxScheduleState
 public sealed class BlindBoxRuntimeState
 {
     public int SequenceIndex { get; set; }
+    /// <summary>
+    /// 盲盒专用的连续调度时钟。它按真实帧时间持续累积，但流速由等待时间倍率控制；
+    /// 与真实的 TotalPlaySeconds 分离，避免倍率变化导致时间轴跳变。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double ScheduleSeconds { get; set; }
+    /// <summary>最近一次奖励入账时的盲盒调度时钟值。</summary>
     public double LastClaimSeconds { get; set; }
     /// <summary>正式阶段下一个盲盒允许在本地展示的调度表时间。</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -73,15 +80,22 @@ public sealed class BlindBoxService
         ValidateDefinitions();
     }
 
+    public void AdvanceScheduleClock(BlindBoxRuntimeState runtimeState, double realDeltaSeconds)
+    {
+        if (realDeltaSeconds <= 0.0)
+            return;
+
+        runtimeState.ScheduleSeconds += realDeltaSeconds * GetScheduleClockRate();
+    }
+
     public BlindBox? GetNextAvailableBox(
-        double totalPlaySeconds,
         BlindBoxRuntimeState runtimeState,
         PendingBlindBoxReward? pendingReward)
     {
         if (pendingReward != null)
             return LubanData.Tables.TbBlindBox.GetOrDefault(pendingReward.BlindBoxId);
 
-        return GetAvailableSchedules(totalPlaySeconds, runtimeState)
+        return GetAvailableSchedules(runtimeState)
             .Select(entry => entry.Box)
             .FirstOrDefault();
     }
@@ -98,15 +112,16 @@ public sealed class BlindBoxService
         BlindBoxRuntimeState runtimeState,
         PendingBlindBoxReward? pendingReward)
     {
-        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+        RefreshLoopTracks(runtimeState);
 
-        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
-        var timeScale = GetTimeScale();
+        var scheduleSeconds = runtimeState.ScheduleSeconds;
+        var durationMultiplier = GetWaitDurationMultiplier();
         var builder = new StringBuilder();
         builder.AppendLine($"游玩: {FormatSeconds(totalPlaySeconds)}");
-        builder.AppendLine($"调度表时间: {FormatSeconds(scaledSeconds)}");
+        builder.AppendLine($"调度表时间: {FormatSeconds(scheduleSeconds)}");
+        builder.AppendLine($"等待倍率: x{durationMultiplier:0.###}，时钟速度: x{GetScheduleClockRate():0.###}");
         builder.AppendLine($"上次领取: {FormatSeconds(runtimeState.LastClaimSeconds)}");
-        builder.AppendLine($"正式展示门槛: {FormatSeconds(Math.Max(0, runtimeState.NextLoopPresentationSeconds - scaledSeconds) * timeScale)} 后");
+        builder.AppendLine($"正式展示门槛: {FormatSeconds(ToRealSeconds(Math.Max(0, runtimeState.NextLoopPresentationSeconds - scheduleSeconds)))} 后");
 
         if (pendingReward != null)
         {
@@ -119,7 +134,7 @@ public sealed class BlindBoxService
             return builder.ToString().TrimEnd();
         }
 
-        var available = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
+        var available = GetAvailableSchedules(runtimeState).FirstOrDefault();
         if (available.Schedule != null && available.Box != null)
         {
             var cost = GetDisplayCost(available.Box);
@@ -138,10 +153,10 @@ public sealed class BlindBoxService
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequence.BlindBoxId);
             var waitScaledSeconds = runtimeState.SequenceIndex == 0
-                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scaledSeconds)
-                : Math.Max(0, sequence.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
+                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scheduleSeconds)
+                : Math.Max(0, sequence.IntervalSeconds - (scheduleSeconds - runtimeState.LastClaimSeconds));
             builder.AppendLine($"新手: #{runtimeState.SequenceIndex}, 调度={sequence.Id}, {box?.Name ?? "缺失"}");
-            builder.AppendLine($"新手等待: {FormatSeconds(waitScaledSeconds * timeScale)}");
+            builder.AppendLine($"新手等待: {FormatSeconds(ToRealSeconds(waitScaledSeconds))}");
         }
         else
         {
@@ -159,7 +174,7 @@ public sealed class BlindBoxService
             var nextDue = schedule.IntervalSeconds <= 0
                 ? schedule.StartSeconds
                 : schedule.StartSeconds + (state?.ProcessedGrantCount ?? 0) * schedule.IntervalSeconds;
-            var nextDueRealSeconds = Math.Max(0, nextDue - scaledSeconds) * timeScale;
+            var nextDueRealSeconds = ToRealSeconds(Math.Max(0, nextDue - scheduleSeconds));
             builder.AppendLine($"- {schedule.Id} {box?.Name ?? "缺失"} 待={state?.PendingCount ?? 0}, 已={state?.ProcessedGrantCount ?? 0}, 下次资格={nextDueRealSeconds:0.0}s");
         }
 
@@ -167,7 +182,6 @@ public sealed class BlindBoxService
     }
 
     public BlindBoxHintState GetHintState(
-        double totalPlaySeconds,
         BlindBoxRuntimeState runtimeState,
         PendingBlindBoxReward? pendingReward)
     {
@@ -180,8 +194,8 @@ public sealed class BlindBoxService
             };
         }
 
-        RefreshLoopTracks(totalPlaySeconds, runtimeState);
-        var available = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
+        RefreshLoopTracks(runtimeState);
+        var available = GetAvailableSchedules(runtimeState).FirstOrDefault();
         if (available.Schedule != null && available.Box != null)
         {
             var cost = GetDisplayCost(available.Box);
@@ -196,7 +210,7 @@ public sealed class BlindBoxService
         return new BlindBoxHintState
         {
             Status = BlindBoxHintStatus.Waiting,
-            RemainingSeconds = GetNextReadyRemainingSeconds(totalPlaySeconds, runtimeState),
+            RemainingSeconds = GetNextReadyRemainingSeconds(runtimeState),
         };
     }
 
@@ -204,9 +218,9 @@ public sealed class BlindBoxService
         double totalPlaySeconds,
         BlindBoxRuntimeState runtimeState)
     {
-        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+        RefreshLoopTracks(runtimeState);
 
-        var candidate = GetAvailableSchedules(totalPlaySeconds, runtimeState).FirstOrDefault();
+        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
         if (candidate.Schedule == null || candidate.Box == null)
             return null;
 
@@ -255,14 +269,13 @@ public sealed class BlindBoxService
     }
 
     private IEnumerable<(BlindBoxSchedule Schedule, BlindBox Box)> GetAvailableSchedules(
-        double totalPlaySeconds,
         BlindBoxRuntimeState runtimeState)
     {
-        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
-        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+        var scheduleSeconds = runtimeState.ScheduleSeconds;
+        RefreshLoopTracks(runtimeState);
 
         var sequenceSchedule = GetCurrentSequenceSchedule(runtimeState);
-        if (sequenceSchedule != null && IsSequenceAvailable(sequenceSchedule, scaledSeconds, runtimeState))
+        if (sequenceSchedule != null && IsSequenceAvailable(sequenceSchedule, scheduleSeconds, runtimeState))
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequenceSchedule.BlindBoxId);
             if (box != null && box.IsEnabled)
@@ -272,7 +285,7 @@ public sealed class BlindBoxService
         if (sequenceSchedule != null)
             return [];
 
-        if (scaledSeconds < runtimeState.NextLoopPresentationSeconds)
+        if (scheduleSeconds < runtimeState.NextLoopPresentationSeconds)
             return [];
 
         return LubanData.Tables.TbBlindBoxSchedule.DataList
@@ -303,7 +316,7 @@ public sealed class BlindBoxService
     }
 
     /// <summary>奖励真正进入玩家背包后，再从此刻开始计算新手间隔或积压短 CD。</summary>
-    public void CompleteClaimedSchedule(BlindBoxRuntimeState runtimeState, int scheduleId, double totalPlaySeconds)
+    public void CompleteClaimedSchedule(BlindBoxRuntimeState runtimeState, int scheduleId)
     {
         var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
         if (schedule == null)
@@ -312,18 +325,18 @@ public sealed class BlindBoxService
             return;
         }
 
-        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
-        runtimeState.LastClaimSeconds = scaledSeconds;
+        var scheduleSeconds = runtimeState.ScheduleSeconds;
+        runtimeState.LastClaimSeconds = scheduleSeconds;
         if (!schedule.IsLoopTrack)
         {
             if (GetCurrentSequenceSchedule(runtimeState) == null)
-                runtimeState.NextLoopPresentationSeconds = scaledSeconds + GetPostNewbieDelaySeconds();
+                runtimeState.NextLoopPresentationSeconds = scheduleSeconds + GetPostNewbieDelaySeconds();
             return;
         }
 
-        RefreshLoopTracks(totalPlaySeconds, runtimeState);
+        RefreshLoopTracks(runtimeState);
         var hasBacklog = runtimeState.LoopTrackStates.Values.Any(state => state.PendingCount > 0);
-        runtimeState.NextLoopPresentationSeconds = scaledSeconds + (hasBacklog ? GetBacklogClaimDelaySeconds() : 0.0);
+        runtimeState.NextLoopPresentationSeconds = scheduleSeconds + (hasBacklog ? GetBacklogClaimDelaySeconds() : 0.0);
     }
 
     private static BlindBoxSchedule? GetCurrentSequenceSchedule(BlindBoxRuntimeState runtimeState)
@@ -347,31 +360,30 @@ public sealed class BlindBoxService
 
     private static bool IsSequenceAvailable(
         BlindBoxSchedule schedule,
-        double scaledSeconds,
+        double scheduleSeconds,
         BlindBoxRuntimeState runtimeState)
     {
-        if (scaledSeconds < schedule.StartSeconds)
+        if (scheduleSeconds < schedule.StartSeconds)
             return false;
 
         var waitSeconds = Mathf.Max(0, schedule.IntervalSeconds);
         if (runtimeState.SequenceIndex == 0)
-            return scaledSeconds >= waitSeconds;
+            return scheduleSeconds >= waitSeconds;
 
-        return scaledSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
+        return scheduleSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
     }
 
-    private static double GetNextReadyRemainingSeconds(double totalPlaySeconds, BlindBoxRuntimeState runtimeState)
+    private static double GetNextReadyRemainingSeconds(BlindBoxRuntimeState runtimeState)
     {
-        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
-        var timeScale = GetTimeScale();
+        var scheduleSeconds = runtimeState.ScheduleSeconds;
 
         var sequence = GetCurrentSequenceSchedule(runtimeState);
         if (sequence != null)
         {
             var waitScaledSeconds = runtimeState.SequenceIndex == 0
-                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scaledSeconds)
-                : Math.Max(0, sequence.IntervalSeconds - (scaledSeconds - runtimeState.LastClaimSeconds));
-            return waitScaledSeconds * timeScale;
+                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scheduleSeconds)
+                : Math.Max(0, sequence.IntervalSeconds - (scheduleSeconds - runtimeState.LastClaimSeconds));
+            return ToRealSeconds(waitScaledSeconds);
         }
 
         var waits = new List<double>();
@@ -389,18 +401,18 @@ public sealed class BlindBoxService
             var nextDue = schedule.IntervalSeconds <= 0
                 ? schedule.StartSeconds
                 : schedule.StartSeconds + processed * schedule.IntervalSeconds;
-            waits.Add(Math.Max(0, nextDue - scaledSeconds));
+            waits.Add(Math.Max(0, nextDue - scheduleSeconds));
         }
 
         var qualificationWait = waits.Count == 0 ? 0.0 : waits.Min();
-        var presentationWait = Math.Max(0, runtimeState.NextLoopPresentationSeconds - scaledSeconds);
-        return Math.Max(qualificationWait, presentationWait) * timeScale;
+        var presentationWait = Math.Max(0, runtimeState.NextLoopPresentationSeconds - scheduleSeconds);
+        return ToRealSeconds(Math.Max(qualificationWait, presentationWait));
     }
 
 
-    private static void RefreshLoopTracks(double totalPlaySeconds, BlindBoxRuntimeState runtimeState)
+    private static void RefreshLoopTracks(BlindBoxRuntimeState runtimeState)
     {
-        var scaledSeconds = GetScaledSeconds(totalPlaySeconds);
+        var scheduleSeconds = runtimeState.ScheduleSeconds;
         foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
                      .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack))
         {
@@ -410,7 +422,7 @@ public sealed class BlindBoxService
                 runtimeState.LoopTrackStates[schedule.Id] = state;
             }
 
-            var due = GetDueGrantCount(schedule, scaledSeconds);
+            var due = GetDueGrantCount(schedule, scheduleSeconds);
             if (due <= state.ProcessedGrantCount)
                 continue;
 
@@ -431,14 +443,14 @@ public sealed class BlindBoxService
         return schedule.MaxPendingCount < 0 ? int.MaxValue : Mathf.Max(0, schedule.MaxPendingCount);
     }
 
-    private static int GetDueGrantCount(BlindBoxSchedule schedule, double scaledSeconds)
+    private static int GetDueGrantCount(BlindBoxSchedule schedule, double scheduleSeconds)
     {
-        if (scaledSeconds < schedule.StartSeconds)
+        if (scheduleSeconds < schedule.StartSeconds)
             return 0;
 
         var effectiveEnd = schedule.EndSeconds < 0
-            ? scaledSeconds
-            : Math.Min(scaledSeconds, schedule.EndSeconds);
+            ? scheduleSeconds
+            : Math.Min(scheduleSeconds, schedule.EndSeconds);
         if (effectiveEnd < schedule.StartSeconds)
             return 0;
 
@@ -450,16 +462,21 @@ public sealed class BlindBoxService
         return Math.Max(0, due);
     }
 
-    private static double GetScaledSeconds(double totalPlaySeconds)
+    private static double GetScheduleClockRate()
     {
-        return totalPlaySeconds / GetTimeScale();
+        return 1.0 / GetWaitDurationMultiplier();
     }
 
-    private static float GetTimeScale()
+    private static float GetWaitDurationMultiplier()
     {
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        return config == null || config.BlindBoxTimeScale <= 0 ? 1f : config.BlindBoxTimeScale;
+        return config == null || config.BlindBoxWaitDurationMultiplier <= 0
+            ? 1f
+            : config.BlindBoxWaitDurationMultiplier;
     }
+
+    private static double ToRealSeconds(double scheduleSeconds) =>
+        scheduleSeconds * GetWaitDurationMultiplier();
 
     private static double GetBacklogClaimDelaySeconds()
     {
@@ -483,8 +500,8 @@ public sealed class BlindBoxService
         }
         else
         {
-            if (config.BlindBoxTimeScale <= 0)
-                GD.PushError("[BlindBox] BlindBoxTimeScale must be positive.");
+            if (config.BlindBoxWaitDurationMultiplier <= 0)
+                GD.PushError("[BlindBox] BlindBoxWaitDurationMultiplier must be positive.");
             if (config.BlindBoxBacklogClaimDelaySeconds < 0)
                 GD.PushError("[BlindBox] BlindBoxBacklogClaimDelaySeconds cannot be negative.");
             if (config.BlindBoxPostNewbieDelaySeconds < 0)
@@ -535,6 +552,11 @@ public sealed class BlindBoxService
     /// <summary>使用当前表数据回归检查：正式资格可后台积压，但本地受新手后延迟和积压短 CD 控制。</summary>
     private void ValidatePresentationScheduling()
     {
+        var clockState = new BlindBoxRuntimeState();
+        AdvanceScheduleClock(clockState, GetWaitDurationMultiplier() * 10.0);
+        if (Math.Abs(clockState.ScheduleSeconds - 10.0) > 0.001)
+            GD.PushError("[BlindBox] Regression check failed: schedule clock rate does not match the wait-duration multiplier.");
+
         var sequenceSchedules = GetSequenceSchedules();
         var loopSchedules = LubanData.Tables.TbBlindBoxSchedule.DataList
             .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack)
@@ -542,11 +564,14 @@ public sealed class BlindBoxService
         if (sequenceSchedules.Count == 0 || loopSchedules.Count < 2)
             return;
 
-        var scaledNow = loopSchedules.Max(schedule => schedule.StartSeconds)
+        var scheduleNow = loopSchedules.Max(schedule => schedule.StartSeconds)
             + loopSchedules.Max(schedule => Math.Max(1, schedule.IntervalSeconds)) * 2.0;
-        var realNow = scaledNow * GetTimeScale();
-        var state = new BlindBoxRuntimeState { SequenceIndex = sequenceSchedules.Count - 1 };
-        RefreshLoopTracks(realNow, state);
+        var state = new BlindBoxRuntimeState
+        {
+            SequenceIndex = sequenceSchedules.Count - 1,
+            ScheduleSeconds = scheduleNow,
+        };
+        RefreshLoopTracks(state);
         if (state.LoopTrackStates.Values.Count(track => track.PendingCount > 0) < 2)
         {
             GD.PushError("[BlindBox] Regression check failed: loop qualifications did not accumulate during newbie progression.");
@@ -555,13 +580,14 @@ public sealed class BlindBoxService
 
         var finalNewbieSchedule = sequenceSchedules[^1];
         ConsumeOpenedSchedule(state, finalNewbieSchedule);
-        CompleteClaimedSchedule(state, finalNewbieSchedule.Id, realNow);
-        var expectedPostNewbieGate = scaledNow + GetPostNewbieDelaySeconds();
+        CompleteClaimedSchedule(state, finalNewbieSchedule.Id);
+        var expectedPostNewbieGate = scheduleNow + GetPostNewbieDelaySeconds();
         if (Math.Abs(state.NextLoopPresentationSeconds - expectedPostNewbieGate) > 0.001
-            || GetAvailableSchedules(realNow, state).Any())
+            || GetAvailableSchedules(state).Any())
             GD.PushError("[BlindBox] Regression check failed: post-newbie presentation gate is incorrect.");
 
-        var firstLoop = GetAvailableSchedules(expectedPostNewbieGate * GetTimeScale(), state).FirstOrDefault();
+        state.ScheduleSeconds = expectedPostNewbieGate;
+        var firstLoop = GetAvailableSchedules(state).FirstOrDefault();
         if (firstLoop.Schedule == null || firstLoop.Schedule.Priority != loopSchedules.Max(schedule => schedule.Priority))
         {
             GD.PushError("[BlindBox] Regression check failed: accumulated loop priority is incorrect.");
@@ -569,10 +595,10 @@ public sealed class BlindBoxService
         }
 
         ConsumeOpenedSchedule(state, firstLoop.Schedule);
-        CompleteClaimedSchedule(state, firstLoop.Schedule.Id, expectedPostNewbieGate * GetTimeScale());
+        CompleteClaimedSchedule(state, firstLoop.Schedule.Id);
         var expectedBacklogGate = expectedPostNewbieGate + GetBacklogClaimDelaySeconds();
         if (Math.Abs(state.NextLoopPresentationSeconds - expectedBacklogGate) > 0.001
-            || GetAvailableSchedules(expectedPostNewbieGate * GetTimeScale(), state).Any())
+            || GetAvailableSchedules(state).Any())
             GD.PushError("[BlindBox] Regression check failed: backlog presentation gate is incorrect.");
     }
 #endif
