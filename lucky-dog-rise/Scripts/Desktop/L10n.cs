@@ -77,14 +77,14 @@ public static class L10n
         return locale switch
         {
             SystemLocale => Tr(L10nKey.Settings_Language_System),
-            EnglishLocale => Tr(L10nKey.Settings_Language_English),
-            SimplifiedChineseLocale => Tr(L10nKey.Settings_Language_SimplifiedChinese),
-            TraditionalChineseLocale => Tr(L10nKey.Settings_Language_TraditionalChinese),
-            JapaneseLocale => Tr(L10nKey.Settings_Language_Japanese),
-            SpanishSpainLocale => Tr(L10nKey.Settings_Language_SpanishSpain),
-            SpanishLatinAmericaLocale => Tr(L10nKey.Settings_Language_SpanishLatinAmerica),
-            PortugueseBrazilLocale => Tr(L10nKey.Settings_Language_PortugueseBrazil),
-            PortuguesePortugalLocale => Tr(L10nKey.Settings_Language_PortuguesePortugal),
+            EnglishLocale => "English",
+            SimplifiedChineseLocale => "简体中文",
+            TraditionalChineseLocale => "繁體中文",
+            JapaneseLocale => "日本語",
+            SpanishSpainLocale => "Español (España)",
+            SpanishLatinAmericaLocale => "Español (Latinoamérica)",
+            PortugueseBrazilLocale => "Português (Brasil)",
+            PortuguesePortugalLocale => "Português (Portugal)",
             _ => locale,
         };
     }
