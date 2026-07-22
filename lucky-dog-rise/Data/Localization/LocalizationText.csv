@@ -1,78 +1,82 @@
-keys,en,zh_CN,zh_TW,ja,_id,_group,_note
-Common_Quit,Quit,退出,離開,終了,100001,Common,顶部操作按钮
-Common_Restart,Restart,重启,重新啟動,再起動,100002,Common,顶部操作按钮
-Common_Play,Play,游玩,遊玩,プレイ,100003,Common,切换到扑克模式按钮
-Common_Desktop,Desktop,桌宠,桌寵,ぎたい,100004,Common,切换到桌宠模式按钮
-Common_Cancel,Cancel,取消,取消,キャンセル,100005,Common,通用取消按钮
-Common_Confirm,Confirm,确认,確認,確認,100006,Common,通用确认按钮
-Settings_Tab_Wardrobe,Wardrobe,装扮,裝扮,着せ替え,200001,Settings,系统面板顶部页签提示
-Settings_Tab_LinkTree,LinkTree,友情链接,LinkTree,LinkTree,200002,Settings,系统面板顶部页签提示
-Settings_Tab_Settings,Settings,设置,設定,設定,200003,Settings,系统面板顶部页签提示
-Settings_Tab_Debug,Debug,调试,Debug,デバッグ,200004,Settings,系统面板顶部页签提示
-Settings_General,General,通用,一般,一般,200101,Settings,设置页分组标题
-Settings_SoundEffects,SE,音效,音效,SE,200102,Settings,音效音量设置
-Settings_Music,BGM,音乐,音樂,BGM,200112,Settings,BGM 音量设置
-Settings_PlayBgmInDesktop,Play BGM in Desktop Mode,桌宠模式播放 BGM,桌寵模式播放 BGM,デスクトップモードでBGMを再生,200113,Settings,桌宠模式音乐开关
-Settings_Language,Language,语言,語言,言語,200103,Settings,语言设置项
-Settings_Language_System,System,跟随系统,跟隨系統,システムに合わせる,200104,Settings,语言选项
-Settings_Language_English,English,English,English,English,200105,Settings,语言选项
-Settings_Language_SimplifiedChinese,简体中文,简体中文,简体中文,简体中文,200106,Settings,语言选项
-Settings_Language_TraditionalChinese,繁體中文,繁體中文,繁體中文,繁體中文,200107,Settings,语言选项
-Settings_Language_Japanese,日本語,日本語,日本語,日本語,200108,Settings,语言选项
-Settings_ArmAppearance,Arm Appearance,手臂外观,手臂外觀,腕の外観,200116,Settings,玩家手臂外观设置
-Settings_ArmAppearance_Tone,Arm {0},手臂{0},手臂{0},腕{0},200117,Settings,手臂外观下拉菜单选项
-Settings_ShowOverFullscreenApps,Show Over Fullscreen Apps,在全屏应用上方显示,顯示於全螢幕應用程式上方,全画面アプリの上に表示,200109,Settings,全屏应用显示设置
-Settings_EnhancedAlwaysOnTop,Enhanced Always On Top,增强置顶,增強置頂,強化最前面表示,200110,Settings,窗口置顶增强设置
-Settings_ProactiveInteractionHints,Proactive Interaction Hints,主动操作提示,主動操作提示,操作ヒントを自動表示,200111,Settings,扑克模式无操作五秒后的主动提示
-Settings_RightClickQuickModeSwitch,Enable Right-click Quick Mode Switch,启用右键快速切换模式,啟用右鍵快速切換模式,右クリックでクイックモード切替を有効化,200114,Settings,扑克主场景右键切换桌宠模式
-Settings_PreventAccidentalDrag,Prevent Accidental Drag,防止误拖拽,防止誤拖拽,誤操作ドラッグを防止,200115,Settings,仅扑克模式的拖拽保护开关
-Settings_DesktopPet,Desktop Pet,桌宠,桌面寵物,デスクトップコンパニオン,200201,Settings,设置页分组标题
-Settings_AutoHidePanelOnFocusLoss,Auto-hide Panel on Focus Loss,失焦时自动隐藏面板,失去焦點時自動隱藏面板,フォーカス喪失時にパネルを自動で隠す,200202,Settings,桌宠面板行为设置
-Settings_TongueInstantMode,Tongue Instant Mode,舌头即时模式,舌頭即時模式,舌の即時モード,200203,Settings,桌宠舌头反馈设置
-Settings_AlwaysShowBlindBoxBubble,Always Show Blind Box Bubble,始终显示盲盒气泡,永遠顯示盲盒氣泡,ブラインドボックスの吹き出しを常に表示,200204,Settings,盲盒气泡显示设置
-Settings_Convenience,Convenience,便利功能,便利功能,便利機能,200301,Settings,设置页分组标题
-Settings_AutoEquipNewOutfits,Auto-equip New Outfits,自动装备新装扮,自動裝備新裝扮,新しい衣装を自動装備,200302,Settings,获得装扮后的自动装备设置
-Settings_SnapToWindowsTaskbar,Snap to Windows Taskbar,吸附到 Windows 任务栏,吸附到 Windows 工作列,Windows タスクバーに吸着,200303,Settings,桌宠吸附设置
-Settings_PrivacyAndSafety,Privacy & Safety,隐私与安全,隱私與安全,プライバシーと安全,200401,Settings,设置页分组标题
-Settings_StreamerSafeMode,Streamer Safe Mode,直播安全模式,直播安全模式,配信セーフモード,200402,Settings,安全文案开关
-Settings_Display,Display,显示,顯示,表示,200501,Settings,设置页分组标题
-Settings_CounterDisplay,Counter Display,计数器显示,計數器顯示,カウンター表示,200502,Settings,桌宠计数器显示模式
-Settings_CounterDisplay_Clock,Clock,时钟,時鐘,時計,200503,Settings,计数器显示模式选项
-Settings_CounterDisplay_Chips,Chips,点数,籌碼,チップ,200504,Settings,计数器显示模式选项
-Settings_CounterDisplay_Hidden,Hidden,隐藏,隱藏,非表示,200505,Settings,计数器显示模式选项
-Settings_CenterCounterOnTaskbar,Center Counter on Taskbar,计数器按任务栏高度居中,計數器依工作列置中,カウンターをタスクバー中央に配置,200506,Settings,计数器布局设置
-Settings_SaveData,Save Data,存档,存檔,セーブデータ,200601,Settings,设置页分组标题
-Settings_ResetSaveData,Reset Save Data,重置存档,重置存檔,セーブデータをリセット,200602,Settings,危险操作按钮
-Settings_ResetSaveMessage,"Reset local save data? This will clear chips, owned items, equipment, and create a fresh default save.","确定要重置本地存档吗？这会清空筹码、已拥有物品和已装备物品。Steam 成就及其他与 Steam 帐号关联的数据不会受到影响。除非需要从头开始体验或排查问题，否则不建议重置存档。",確定要重置本機存檔嗎？這會清空籌碼、已擁有物品和已裝備物品，並建立一份新的預設存檔。,"ローカルのセーブデータをリセットしますか？チップ、所持アイテム、装備中アイテムが消去され、新しい初期セーブが作成されます。",200603,Settings,重置存档确认说明
-Settings_ResetSaveConfirm,Reset,重置,重置,リセット,200604,Settings,重置存档确认按钮
-Wardrobe_EmptyCategory,No items in this category yet. Time to fetch some!,还没有这个分类的物品，想办法去搞点吧汪~,這個分類還沒有物品，想辦法去弄一點吧汪~,"このカテゴリにはまだアイテムがありません。何か見つけに行きましょう！",300101,Wardrobe,装扮页空分类提示
-LinkTree_ComingSoon,Coming soon,即将开放,即將開放,近日公開,300001,LinkTree,LinkTree 页占位文本
-InfoPanel_Chips,Chips,筹码,籌碼,チップ,400001,InfoPanel,扑克信息面板筹码标题
-InfoPanel_Chips_Safe,Lucky Points,幸运点数,幸運點數,ラッキーポイント,400002,InfoPanel,安全模式筹码标题
-InfoPanel_Open,Open,开盒,開啟,開く,400003,InfoPanel,盲盒按钮
-InfoPanel_Menu,Menu,菜单,選單,メニュー,400004,InfoPanel,系统面板按钮
-InfoPanel_GoodLuck,Good Luck!,祝你好运！,祝你好運！,幸運を！,400005,InfoPanel,新牌局默认提示
-InfoPanel_Nothing,Nothing,无牌型,無牌型,なし,400006,InfoPanel,无中奖牌型
-InfoPanel_YouWin,You win {0},赢得 {0},贏得 {0},{0} 獲得,400007,InfoPanel,获胜提示
-Paytable_JacksOrBetter,Jacks or Better,对 J 以上的对子,J 或更好的對子,ワンペア以上,500001,Paytable,原始牌型名称
-Paytable_JacksOrBetter_Safe,Top Dogs,好犬优选,好犬優選,トップドッグ,500002,Paytable,安全模式牌型名称
-Paytable_TwoPair,Two Pair,两对,兩對,ツーペア,500003,Paytable,原始牌型名称
-Paytable_TwoPair_Safe,Twin Pairs,双犬配对,雙犬配對,ツインペア,500004,Paytable,安全模式牌型名称
-Paytable_ThreeOfAKind,Three of a Kind,三条,三條,スリーカード,500005,Paytable,原始牌型名称
-Paytable_ThreeOfAKind_Safe,Triple Pals,三犬同行,三犬同行,トリプルパル,500006,Paytable,安全模式牌型名称
-Paytable_Straight,Straight,顺子,順子,ストレート,500007,Paytable,原始牌型名称
-Paytable_Straight_Safe,Chain Walk,顺位犬链,順位犬鏈,チェーンウォーク,500008,Paytable,安全模式牌型名称
-Paytable_Flush,Flush,同花,同花,フラッシュ,500009,Paytable,原始牌型名称
-Paytable_Flush_Safe,Matching Den,同色犬舍,同色犬舍,マッチングデン,500010,Paytable,安全模式牌型名称
-Paytable_FullHouse,Full House,葫芦,葫蘆,フルハウス,500011,Paytable,原始牌型名称
-Paytable_FullHouse_Safe,Puppy Party,狗狗满堂,狗狗滿堂,パピーパーティー,500012,Paytable,安全模式牌型名称
-Paytable_FourOfAKind,Four of a Kind,四条,四條,フォーカード,500013,Paytable,原始牌型名称
-Paytable_FourOfAKind_Safe,Dog Squad,四犬成团,四犬成團,ドッグスクワッド,500014,Paytable,安全模式牌型名称
-Paytable_StraightFlush,Straight Flush,同花顺,同花順,ストレートフラッシュ,500015,Paytable,原始牌型名称
-Paytable_StraightFlush_Safe,Purebred Strike,纯种犬连击,純種犬連擊,ピュアブレッドストライク,500016,Paytable,安全模式牌型名称
-Paytable_RoyalFlush,Royal Flush,皇家同花顺,皇家同花順,ロイヤルフラッシュ,500017,Paytable,原始牌型名称
-Paytable_RoyalFlush_Safe,Royal Feast,皇家盛宴,皇家盛宴,ロイヤルフィースト,500018,Paytable,安全模式牌型名称
-BlindBox_TapToPowerUp,Tap to power up...,点击尝试升级…,點擊蓄力……,タップしてパワーアップ...,600001,BlindBox,盲盒升级阶段提示
-BlindBox_OpenItUp,Open it up!,打开它！,打開它！,開けよう！,600002,BlindBox,盲盒待打开阶段提示
-BlindBox_TapToClaim,Tap to claim,点击领取,點擊領取,タップして受け取る,600003,BlindBox,奖励领取提示
-BlindBox_AutoClaimingInSeconds,Auto-claiming in {0}s,{0} 秒后自动领取,{0} 秒後自動領取,{0}秒後に自動受け取り,600004,BlindBox,自动领取倒计时提示
+keys,en,zh_CN,zh_TW,ja,es_ES,es_419,pt_BR,pt_PT,_id,_group,_note
+Common_Quit,Quit,退出,離開,終了,Salir,Salir,Sair,Sair,100001,Common,顶部操作按钮
+Common_Restart,Restart,重启,重新啟動,再起動,Reiniciar,Reiniciar,Reiniciar,Reiniciar,100002,Common,顶部操作按钮
+Common_Play,Play,游玩,遊玩,プレイ,Jugar,Jugar,Jogar,Jogar,100003,Common,切换到扑克模式按钮
+Common_Desktop,Desktop,桌宠,桌寵,ぎたい,Mascota de escritorio,Mascota de escritorio,Mascote de área de trabalho,Mascote de ambiente de trabalho,100004,Common,切换到桌宠模式按钮
+Common_Cancel,Cancel,取消,取消,キャンセル,Cancelar,Cancelar,Cancelar,Cancelar,100005,Common,通用取消按钮
+Common_Confirm,Confirm,确认,確認,確認,Confirmar,Confirmar,Confirmar,Confirmar,100006,Common,通用确认按钮
+Settings_Tab_Wardrobe,Wardrobe,装扮,裝扮,着せ替え,Personalización,Personalización,Personalização,Personalização,200001,Settings,系统面板顶部页签提示
+Settings_Tab_LinkTree,Links,友情链接,友情連結,リンク,Enlaces,Enlaces,Links,Links,200002,Settings,系统面板顶部页签提示
+Settings_Tab_Settings,Settings,设置,設定,設定,Ajustes,Ajustes,Configurações,Definições,200003,Settings,系统面板顶部页签提示
+Settings_Tab_Debug,Debug,调试,偵錯,デバッグ,Depuración,Depuración,Depuração,Depuração,200004,Settings,系统面板顶部页签提示
+Settings_General,General,通用,一般,一般,General,General,Geral,Geral,200101,Settings,设置页分组标题
+Settings_SoundEffects,SE,音效,音效,SE,Efectos de sonido,Efectos de sonido,Efeitos sonoros,Efeitos sonoros,200102,Settings,音效音量设置
+Settings_Music,BGM,音乐,音樂,BGM,Música,Música,Música,Música,200112,Settings,BGM 音量设置
+Settings_PlayBgmInDesktop,Play BGM in Desktop Mode,桌宠模式播放 BGM,桌寵模式播放 BGM,デスクトップモードでBGMを再生,Reproducir BGM en modo mascota de escritorio,Reproducir BGM en modo mascota de escritorio,Tocar BGM no modo mascote de área de trabalho,Tocar BGM no modo mascote de ambiente de trabalho,200113,Settings,桌宠模式音乐开关
+Settings_Language,Language,语言,語言,言語,Idioma,Idioma,Idioma,Idioma,200103,Settings,语言设置项
+Settings_Language_System,System,跟随系统,跟隨系統,システムに合わせる,Sistema,Sistema,Sistema,Sistema,200104,Settings,语言选项
+Settings_Language_English,English,English,English,English,English,English,English,English,200105,Settings,语言选项
+Settings_Language_SimplifiedChinese,简体中文,简体中文,简体中文,简体中文,Chino simplificado,Chino simplificado,Chinês simplificado,Chinês simplificado,200106,Settings,语言选项
+Settings_Language_TraditionalChinese,繁體中文,繁體中文,繁體中文,繁體中文,Chino tradicional,Chino tradicional,Chinês tradicional,Chinês tradicional,200107,Settings,语言选项
+Settings_Language_Japanese,日本語,日本語,日本語,日本語,Japonés,Japonés,Japonês,Japonês,200108,Settings,语言选项
+Settings_Language_SpanishSpain,Spanish (Spain),西班牙语（西班牙）,西班牙語（西班牙）,スペイン語（スペイン）,Español (España),Español (España),Espanhol (Espanha),Espanhol (Espanha),200118,Settings,语言选项
+Settings_Language_SpanishLatinAmerica,Spanish (Latin America),西班牙语（拉丁美洲）,西班牙語（拉丁美洲）,スペイン語（ラテンアメリカ）,Español (Latinoamérica),Español (Latinoamérica),Espanhol (América Latina),Espanhol (América Latina),200119,Settings,语言选项
+Settings_Language_PortugueseBrazil,Portuguese (Brazil),葡萄牙语（巴西）,葡萄牙語（巴西）,ポルトガル語（ブラジル）,Portugués (Brasil),Portugués (Brasil),Português (Brasil),Português (Brasil),200120,Settings,语言选项
+Settings_Language_PortuguesePortugal,Portuguese (Portugal),葡萄牙语（葡萄牙）,葡萄牙語（葡萄牙）,ポルトガル語（ポルトガル）,Portugués (Portugal),Portugués (Portugal),Português (Portugal),Português (Portugal),200121,Settings,语言选项
+Settings_ArmAppearance,Arm Appearance,手臂外观,手臂外觀,腕の外観,Apariencia del brazo,Apariencia del brazo,Aparência do braço,Aspeto do braço,200116,Settings,玩家手臂外观设置
+Settings_ArmAppearance_Tone,Arm {0},手臂{0},手臂{0},腕{0},Brazo {0},Brazo {0},Braço {0},Braço {0},200117,Settings,手臂外观下拉菜单选项
+Settings_ShowOverFullscreenApps,Show Over Fullscreen Apps,在全屏应用上方显示,顯示於全螢幕應用程式上方,全画面アプリの上に表示,Mostrar sobre aplicaciones a pantalla completa,Mostrar sobre aplicaciones a pantalla completa,Mostrar sobre aplicativos em tela cheia,Mostrar sobre aplicações em ecrã inteiro,200109,Settings,全屏应用显示设置
+Settings_EnhancedAlwaysOnTop,Enhanced Always On Top,增强置顶,增強置頂,強化最前面表示,Mantener siempre al frente mejorado,Mantener siempre al frente mejorado,Sempre no topo aprimorado,Sempre no topo melhorado,200110,Settings,窗口置顶增强设置
+Settings_ProactiveInteractionHints,Proactive Interaction Hints,主动操作提示,主動操作提示,操作ヒントを自動表示,Sugerencias de interacción proactivas,Sugerencias de interacción proactivas,Dicas proativas de interação,Sugestões proativas de interação,200111,Settings,扑克模式无操作五秒后的主动提示
+Settings_RightClickQuickModeSwitch,Enable Right-click Quick Mode Switch,启用右键快速切换模式,啟用右鍵快速切換模式,右クリックでクイックモード切替を有効化,Activar cambio rápido de modo con clic derecho,Activar cambio rápido de modo con clic derecho,Ativar troca rápida de modo com botão direito,Ativar mudança rápida de modo com botão direito,200114,Settings,扑克主场景右键切换桌宠模式
+Settings_PreventAccidentalDrag,Prevent Accidental Drag,防止误拖拽,防止誤拖拽,誤操作ドラッグを防止,Evitar arrastres accidentales,Evitar arrastres accidentales,Evitar arrastos acidentais,Evitar arrastamentos acidentais,200115,Settings,仅扑克模式的拖拽保护开关
+Settings_DesktopPet,Desktop Pet,桌宠,桌面寵物,デスクトップコンパニオン,Mascota de escritorio,Mascota de escritorio,Mascote de área de trabalho,Mascote de ambiente de trabalho,200201,Settings,设置页分组标题
+Settings_AutoHidePanelOnFocusLoss,Auto-hide Panel on Focus Loss,失焦时自动隐藏面板,失去焦點時自動隱藏面板,フォーカス喪失時にパネルを自動で隠す,Ocultar automáticamente el panel al perder el foco,Ocultar automáticamente el panel al perder el foco,Ocultar painel automaticamente ao perder o foco,Ocultar automaticamente o painel ao perder o foco,200202,Settings,桌宠面板行为设置
+Settings_TongueInstantMode,Tongue Instant Mode,舌头即时模式,舌頭即時模式,舌の即時モード,Modo de lengua instantáneo,Modo de lengua instantáneo,Modo de língua instantâneo,Modo de língua instantâneo,200203,Settings,桌宠舌头反馈设置
+Settings_AlwaysShowBlindBoxBubble,Always Show Blind Box Bubble,始终显示盲盒气泡,永遠顯示盲盒氣泡,ブラインドボックスの吹き出しを常に表示,Mostrar siempre la burbuja de caja sorpresa,Mostrar siempre la burbuja de caja sorpresa,Sempre mostrar bolha da caixa surpresa,Mostrar sempre a bolha da caixa surpresa,200204,Settings,盲盒气泡显示设置
+Settings_Convenience,Convenience,便利功能,便利功能,便利機能,Funciones prácticas,Funciones prácticas,Recursos práticos,Funcionalidades práticas,200301,Settings,设置页分组标题
+Settings_AutoEquipNewOutfits,Auto-equip New Outfits,自动装备新装扮,自動裝備新裝扮,新しい衣装を自動装備,Equipar automáticamente nuevos atuendos,Equipar automáticamente nuevos atuendos,Equipar novos trajes automaticamente,Equipar automaticamente novos visuais,200302,Settings,获得装扮后的自动装备设置
+Settings_SnapToWindowsTaskbar,Snap to Windows Taskbar,吸附到 Windows 任务栏,吸附到 Windows 工作列,Windows タスクバーに吸着,Ajustar a la barra de tareas de Windows,Ajustar a la barra de tareas de Windows,Ajustar à barra de tarefas do Windows,Ajustar à barra de tarefas do Windows,200303,Settings,桌宠吸附设置
+Settings_PrivacyAndSafety,Privacy & Safety,隐私与安全,隱私與安全,プライバシーと安全,Privacidad y seguridad,Privacidad y seguridad,Privacidade e segurança,Privacidade e segurança,200401,Settings,设置页分组标题
+Settings_StreamerSafeMode,Streamer Safe Mode,直播安全模式,直播安全模式,配信セーフモード,Modo seguro para transmisiones,Modo seguro para transmisiones,Modo seguro para transmissões,Modo seguro para transmissões,200402,Settings,安全文案开关
+Settings_Display,Display,显示,顯示,表示,Pantalla,Pantalla,Exibição,Apresentação,200501,Settings,设置页分组标题
+Settings_CounterDisplay,Counter Display,计数器显示,計數器顯示,カウンター表示,Visualización del contador,Visualización del contador,Exibição do contador,Apresentação do contador,200502,Settings,桌宠计数器显示模式
+Settings_CounterDisplay_Clock,Clock,时钟,時鐘,時計,Reloj,Reloj,Relógio,Relógio,200503,Settings,计数器显示模式选项
+Settings_CounterDisplay_Chips,Points,点数,點數,ポイント,Puntos,Puntos,Pontos,Pontos,200504,Settings,计数器显示模式选项
+Settings_CounterDisplay_Hidden,Hidden,隐藏,隱藏,非表示,Oculto,Oculto,Oculto,Oculto,200505,Settings,计数器显示模式选项
+Settings_CenterCounterOnTaskbar,Center Counter within Taskbar Height,计数器按任务栏高度居中,計數器依工作列高度置中,タスクバーの高さに合わせてカウンターを中央揃え,Centra el contador según la altura de la barra de tareas,Centra el contador según la altura de la barra de tareas,Centralizar contador pela altura da barra de tarefas,Centrar o contador pela altura da barra de tarefas,200506,Settings,计数器布局设置
+Settings_SaveData,Save Data,存档,存檔,セーブデータ,Datos guardados,Datos guardados,Dados salvos,Dados gravados,200601,Settings,设置页分组标题
+Settings_ResetSaveData,Reset Save Data,重置存档,重置存檔,セーブデータをリセット,Restablecer datos guardados,Restablecer datos guardados,Redefinir dados salvos,Repor dados gravados,200602,Settings,危险操作按钮
+Settings_ResetSaveMessage,"Reset local save data? This will clear chips, owned items, and equipped items. Steam achievements and other data associated with your Steam account will not be affected. Unless you need to start over or troubleshoot an issue, we recommend not resetting your save data.","确定要重置本地存档吗？这会清空筹码、已拥有物品和已装备物品。Steam 成就及其他与 Steam 帐号关联的数据不会受到影响。除非需要从头开始体验或排查问题，否则不建议重置存档。","確定要重置本機存檔嗎？這會清空籌碼、已擁有物品和已裝備物品。Steam 成就及其他與 Steam 帳號關聯的資料不會受到影響。除非需要從頭開始體驗或排查問題，否則不建議重置存檔。","ローカルのセーブデータをリセットしますか？チップ、所持アイテム、装備中のアイテムが消去されます。Steam実績およびSteamアカウントに紐づくその他のデータには影響しません。最初からやり直す、または問題の調査が必要な場合を除き、セーブデータのリセットはおすすめしません。","¿Restablecer los datos guardados locales? Se eliminarán las fichas, los objetos que posees y los objetos equipados. Los logros de Steam y otros datos asociados a tu cuenta de Steam no se verán afectados. No recomendamos restablecer los datos guardados salvo que quieras empezar de nuevo o solucionar un problema.","¿Restablecer los datos guardados locales? Se eliminarán las fichas, los objetos que posees y los objetos equipados. Los logros de Steam y otros datos asociados a tu cuenta de Steam no se verán afectados. No recomendamos restablecer los datos guardados salvo que quieras empezar de nuevo o solucionar un problema.","Redefinir os dados salvos locais? Isso removerá fichas, itens que você possui e itens equipados. Conquistas do Steam e outros dados associados à sua conta Steam não serão afetados. Não recomendamos redefinir os dados salvos a menos que você precise recomeçar ou resolver um problema.","Repor os dados gravados locais? Isto irá remover fichas, itens que possui e itens equipados. As conquistas do Steam e outros dados associados à sua conta Steam não serão afetados. Não recomendamos repor os dados gravados exceto se precisar de recomeçar ou resolver um problema.",200603,Settings,重置存档确认说明
+Settings_ResetSaveConfirm,Reset,重置,重置,リセット,Restablecer,Restablecer,Redefinir,Repor,200604,Settings,重置存档确认按钮
+Wardrobe_EmptyCategory,No items in this category yet. Time to fetch some!,还没有这个分类的物品，想办法去搞点吧汪~,這個分類還沒有物品，想辦法去弄一點吧汪~,"このカテゴリにはまだアイテムがありません。何か見つけに行きましょう！",Aún no hay artículos en esta categoría. ¡Es hora de conseguir algunos!,Aún no hay artículos en esta categoría. ¡Es hora de conseguir algunos!,Ainda não há itens nesta categoria. Hora de buscar alguns!,Ainda não há itens nesta categoria. Está na hora de arranjar alguns!,300101,Wardrobe,装扮页空分类提示
+LinkTree_ComingSoon,Coming soon,即将开放,即將開放,近日公開,Próximamente,Próximamente,Em breve,Em breve,300001,LinkTree,LinkTree 页占位文本
+InfoPanel_Chips,Chips,筹码,籌碼,チップ,Fichas,Fichas,Fichas,Fichas,400001,InfoPanel,扑克信息面板筹码标题
+InfoPanel_Chips_Safe,Lucky Points,幸运点数,幸運點數,ラッキーポイント,Puntos de suerte,Puntos de suerte,Pontos de sorte,Pontos de sorte,400002,InfoPanel,安全模式筹码标题
+InfoPanel_Open,Open Box,开盒,開盒,開封,Abrir caja,Abrir caja,Abrir caixa,Abrir caixa,400003,InfoPanel,盲盒按钮
+InfoPanel_Menu,Menu,菜单,選單,メニュー,Menú,Menú,Menu,Menu,400004,InfoPanel,系统面板按钮
+InfoPanel_GoodLuck,Good Luck!,祝你好运！,祝你好運！,幸運を！,¡Buena suerte!,¡Buena suerte!,Boa sorte!,Boa sorte!,400005,InfoPanel,新牌局默认提示
+InfoPanel_Nothing,Nothing,无牌型,無牌型,なし,Sin jugada,Sin jugada,Sem jogo,Sem jogo,400006,InfoPanel,无中奖牌型
+InfoPanel_YouWin,You win {0},赢得 {0},贏得 {0},{0} 獲得,Ganas {0},Ganas {0},Você ganhou {0},Ganhaste {0},400007,InfoPanel,获胜提示
+Paytable_JacksOrBetter,Jacks or Better,对 J 以上的对子,J 以上的一對,J以上のワンペア,Pareja de jotas o mejor,Pareja de jotas o mejor,Par de valetes ou melhor,Par de valetes ou melhor,500001,Paytable,原始牌型名称
+Paytable_JacksOrBetter_Safe,Top Dogs,好犬优选,好犬優選,トップドッグ,Perros estrella,Perros estrella,Cães de destaque,Cães de destaque,500002,Paytable,安全模式牌型名称
+Paytable_TwoPair,Two Pair,两对,兩對,ツーペア,Doble pareja,Doble pareja,Dois pares,Dois pares,500003,Paytable,原始牌型名称
+Paytable_TwoPair_Safe,Twin Pairs,双犬配对,雙犬配對,ツインペア,Dúo canino,Dúo canino,Duo canino,Duo canino,500004,Paytable,安全模式牌型名称
+Paytable_ThreeOfAKind,Three of a Kind,三条,三條,スリーカード,Trío,Trío,Trinca,Trio,500005,Paytable,原始牌型名称
+Paytable_ThreeOfAKind_Safe,Triple Pals,三犬同行,三犬同行,トリプルパル,Trío canino,Trío canino,Trio canino,Trio canino,500006,Paytable,安全模式牌型名称
+Paytable_Straight,Straight,顺子,順子,ストレート,Escalera,Escalera,Sequência,Sequência,500007,Paytable,原始牌型名称
+Paytable_Straight_Safe,Chain Walk,顺位犬链,順位犬鏈,チェーンウォーク,Paseo en cadena,Paseo en cadena,Corrente canina,Corrente canina,500008,Paytable,安全模式牌型名称
+Paytable_Flush,Flush,同花,同花,フラッシュ,Color,Color,Flush,Flush,500009,Paytable,原始牌型名称
+Paytable_Flush_Safe,Matching Den,同色犬舍,同色犬舍,マッチングデン,Guarida a juego,Guarida a juego,Canil combinando,Canil a combinar,500010,Paytable,安全模式牌型名称
+Paytable_FullHouse,Full House,葫芦,葫蘆,フルハウス,Full,Full,Full house,Full house,500011,Paytable,原始牌型名称
+Paytable_FullHouse_Safe,Puppy Party,狗狗满堂,狗狗滿堂,パピーパーティー,Fiesta de cachorros,Fiesta de cachorros,Festa dos filhotes,Festa dos cachorros,500012,Paytable,安全模式牌型名称
+Paytable_FourOfAKind,Four of a Kind,四条,四條,フォーカード,Póker,Póker,Quadra,Quadra,500013,Paytable,原始牌型名称
+Paytable_FourOfAKind_Safe,Dog Squad,四犬成团,四犬成團,ドッグスクワッド,Manada perruna,Manada perruna,Esquadrão canino,Esquadrão canino,500014,Paytable,安全模式牌型名称
+Paytable_StraightFlush,Straight Flush,同花顺,同花順,ストレートフラッシュ,Escalera de color,Escalera de color,Straight flush,Straight flush,500015,Paytable,原始牌型名称
+Paytable_StraightFlush_Safe,Purebred Strike,纯种犬连击,純種犬連擊,ピュアブレッドストライク,Racha de pura raza,Racha de pura raza,Ataque de raça pura,Ataque de raça pura,500016,Paytable,安全模式牌型名称
+Paytable_RoyalFlush,Royal Flush,皇家同花顺,皇家同花順,ロイヤルフラッシュ,Escalera real,Escalera real,Royal flush,Royal flush,500017,Paytable,原始牌型名称
+Paytable_RoyalFlush_Safe,Royal Feast,皇家盛宴,皇家盛宴,ロイヤルフィースト,Banquete real,Banquete real,Banquete real,Banquete real,500018,Paytable,安全模式牌型名称
+BlindBox_TapToPowerUp,Tap to Try Upgrading…,点击尝试升级…,點擊嘗試升級…,タップしてアップグレードに挑戦…,Pulsa para intentar mejorar…,Toca para intentar mejorar…,Toque para tentar melhorar…,Toca para tentar melhorar…,600001,BlindBox,盲盒升级阶段提示
+BlindBox_OpenItUp,Open it up!,打开它！,打開它！,開けよう！,¡Ábrela!,¡Ábrela!,Abra-a!,Abre-a!,600002,BlindBox,盲盒待打开阶段提示
+BlindBox_TapToClaim,Tap to claim,点击领取,點擊領取,タップして受け取る,Pulsa para reclamar,Toca para reclamar,Toque para resgatar,Toca para receber,600003,BlindBox,奖励领取提示
+BlindBox_AutoClaimingInSeconds,Auto-claiming in {0}s,{0} 秒后自动领取,{0} 秒後自動領取,{0}秒後に自動受け取り,Reclamación automática en {0} s,Reclamación automática en {0} s,Resgate automático em {0}s,Receção automática em {0}s,600004,BlindBox,自动领取倒计时提示

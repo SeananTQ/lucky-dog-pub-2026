@@ -15,6 +15,10 @@ public static class L10n
     public const string SimplifiedChineseLocale = "zh_CN";
     public const string TraditionalChineseLocale = "zh_TW";
     public const string JapaneseLocale = "ja";
+    public const string SpanishSpainLocale = "es_ES";
+    public const string SpanishLatinAmericaLocale = "es_419";
+    public const string PortugueseBrazilLocale = "pt_BR";
+    public const string PortuguesePortugalLocale = "pt_PT";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
     private const string ImportedTranslationPathFormat = "res://Data/Localization/LocalizationText.{0}.translation";
@@ -77,6 +81,10 @@ public static class L10n
             SimplifiedChineseLocale => Tr(L10nKey.Settings_Language_SimplifiedChinese),
             TraditionalChineseLocale => Tr(L10nKey.Settings_Language_TraditionalChinese),
             JapaneseLocale => Tr(L10nKey.Settings_Language_Japanese),
+            SpanishSpainLocale => Tr(L10nKey.Settings_Language_SpanishSpain),
+            SpanishLatinAmericaLocale => Tr(L10nKey.Settings_Language_SpanishLatinAmerica),
+            PortugueseBrazilLocale => Tr(L10nKey.Settings_Language_PortugueseBrazil),
+            PortuguesePortugalLocale => Tr(L10nKey.Settings_Language_PortuguesePortugal),
             _ => locale,
         };
     }
@@ -118,6 +126,28 @@ public static class L10n
 
         if (locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return JapaneseLocale;
+
+        if (locale.StartsWith("es_419", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("es-419", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("es_MX", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("es-MX", StringComparison.OrdinalIgnoreCase))
+            return SpanishLatinAmericaLocale;
+
+        if (locale.StartsWith("es_ES", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("es-ES", StringComparison.OrdinalIgnoreCase))
+            return SpanishSpainLocale;
+
+        if (locale.StartsWith("es", StringComparison.OrdinalIgnoreCase))
+            return SpanishLatinAmericaLocale;
+
+        if (locale.StartsWith("pt_PT", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("pt-PT", StringComparison.OrdinalIgnoreCase))
+            return PortuguesePortugalLocale;
+
+        if (locale.StartsWith("pt_BR", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("pt-BR", StringComparison.OrdinalIgnoreCase)
+            || locale.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
+            return PortugueseBrazilLocale;
 
         if (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             return EnglishLocale;
@@ -218,11 +248,18 @@ public static class L10n
             SimplifiedChineseLocale,
             TraditionalChineseLocale,
             JapaneseLocale,
+            SpanishSpainLocale,
+            SpanishLatinAmericaLocale,
+            PortugueseBrazilLocale,
+            PortuguesePortugalLocale,
         ];
 
         foreach (var locale in locales)
         {
-            var path = string.Format(CultureInfo.InvariantCulture, ImportedTranslationPathFormat, locale);
+            var path = string.Format(
+                CultureInfo.InvariantCulture,
+                ImportedTranslationPathFormat,
+                GetImportedTranslationLocale(locale));
             if (!ResourceLoader.Exists(path))
             {
                 GD.PushWarning($"[L10n] Missing imported translation resource: {path}");
@@ -238,6 +275,13 @@ public static class L10n
 
             TranslationServer.AddTranslation(translation);
         }
+    }
+
+    // Godot 的 CSV 翻译导入器会将 es_419 规范化为通用的 es 资源名；
+    // TranslationServer 仍会将它作为 es_419 的父语言回退使用。
+    private static string GetImportedTranslationLocale(string locale)
+    {
+        return locale == SpanishLatinAmericaLocale ? "es" : locale;
     }
 
     private static bool IsEmptyTextMarker(string text)
