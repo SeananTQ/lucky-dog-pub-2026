@@ -98,9 +98,9 @@ namespace DataTables
         /// </summary>
         SawNothing = 3001,
         /// <summary>
-        /// 看到高对
+        /// 看到一对
         /// </summary>
-        SawJacksOrBetter = 3002,
+        SawOnePair = 3002,
         /// <summary>
         /// 看到两对
         /// </summary>

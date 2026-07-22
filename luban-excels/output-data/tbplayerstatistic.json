@@ -121,13 +121,13 @@
   },
   {
     "StatisticId": 1013,
-    "StatisticKey": "PokerHandRankJacksOrBetterCount",
-    "DisplayName": "高对次数",
+    "StatisticKey": "PokerHandRankOnePairCount",
+    "DisplayName": "一对次数",
     "Unit": 1,
     "StatisticType": 1,
-    "PlatformApiName": "STAT_POKER_JACKS_OR_BETTER_COUNT",
+    "PlatformApiName": "STAT_POKER_ONE_PAIR_COUNT",
     "SyncToPlatform": true,
-    "Notes": "最终结算为高对的次数"
+    "Notes": "最终结算为一对的次数"
   },
   {
     "StatisticId": 1014,

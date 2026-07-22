@@ -21,9 +21,9 @@ namespace DataTables
         /// </summary>
         Nothing = 1,
         /// <summary>
-        /// 高对
+        /// 一对
         /// </summary>
-        JacksOrBetter = 2,
+        OnePair = 2,
         /// <summary>
         /// 两对
         /// </summary>
