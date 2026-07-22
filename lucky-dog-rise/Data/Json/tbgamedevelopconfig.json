@@ -1,6 +1,6 @@
 [
   {
-    "BlindBoxTimeScale": 1,
+    "BlindBoxWaitDurationMultiplier": 1,
     "BlindBoxCostScale": 1,
     "PlayerStatisticScale": 10,
     "BlindBoxBacklogClaimDelaySeconds": 30,

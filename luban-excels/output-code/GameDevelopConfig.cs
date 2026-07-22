@@ -17,7 +17,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
 {
     public GameDevelopConfig(JSONNode _buf) 
     {
-        { if(!_buf["BlindBoxTimeScale"].IsNumber) { throw new SerializationException(); }  BlindBoxTimeScale = _buf["BlindBoxTimeScale"]; }
+        { if(!_buf["BlindBoxWaitDurationMultiplier"].IsNumber) { throw new SerializationException(); }  BlindBoxWaitDurationMultiplier = _buf["BlindBoxWaitDurationMultiplier"]; }
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
         { if(!_buf["BlindBoxBacklogClaimDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxBacklogClaimDelaySeconds = _buf["BlindBoxBacklogClaimDelaySeconds"]; }
@@ -32,7 +32,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// <summary>
     /// 等待盲盒时间倍率
     /// </summary>
-    public readonly float BlindBoxTimeScale;
+    public readonly float BlindBoxWaitDurationMultiplier;
     /// <summary>
     /// 盲盒消耗倍率
     /// </summary>
@@ -60,7 +60,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     public override string ToString()
     {
         return "{ "
-        + "BlindBoxTimeScale:" + BlindBoxTimeScale + ","
+        + "BlindBoxWaitDurationMultiplier:" + BlindBoxWaitDurationMultiplier + ","
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "BlindBoxBacklogClaimDelaySeconds:" + BlindBoxBacklogClaimDelaySeconds + ","

@@ -29,7 +29,7 @@ public partial class TbGameDevelopConfig
             GameDevelopConfig _v;
             { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::DataTables.GameDevelopConfig.DeserializeGameDevelopConfig(_ele);  }
             _dataList.Add(_v);
-            _dataMap.Add(_v.BlindBoxTimeScale, _v);
+            _dataMap.Add(_v.BlindBoxWaitDurationMultiplier, _v);
         }
     }
 
