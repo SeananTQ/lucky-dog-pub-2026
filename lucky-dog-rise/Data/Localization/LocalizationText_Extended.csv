@@ -1,6 +1,6 @@
 keys,fr,de,da,id,nb,sv,nl,vi,ms,ko
 Common_Quit,Quitter,Beenden,Afslut,Keluar,Avslutt,Avsluta,Afsluiten,Thoát,Keluar,종료
-Common_Restart,Redémarrer,Neu starten,Genstart,Mulai ulang,Start på nytt,Starta om,Opnieuw starten,Khởi động lại,Mula semula,다시 시작
+Common_Restart,Redémarrer,Neu starten,Genstart,Mulai ulang,Start på nytt,Starta om,Herstart,Khởi động lại,Mula semula,다시 시작
 Common_Play,Jouer,Spielen,Spil,Main,Begynn,Spela,Spelen,Chơi,Main,플레이
 Common_Desktop,Compagnon de bureau,Desktop-Begleiter,Skrivebordskæledyr,Peliharaan Desktop,Skrivebordskjæledyr,Skrivbordskompis,Bureaubladmaatje,Thú cưng màn hình nền,Haiwan Peliharaan Desktop,데스크톱 펫
 Common_Cancel,Annuler,Abbrechen,Annuller,Batal,Avbryt,Avbryt,Annuleren,Hủy,Batal,취소
@@ -74,7 +74,7 @@ Paytable_FourOfAKind,Carré,Vierling,Fire ens,Empat Sejenis,Firerling,Fyrtal,Vie
 Paytable_FourOfAKind_Safe,Escouade canine,Hunderudel,Hundehold,Pasukan Anjing,Hundetropp,Hundpatrull,Hondenploeg,Đội chó,Pasukan Anjing,강아지 부대
 Paytable_StraightFlush,Quinte flush,Straight Flush,Straight Flush,Straight Flush,Straight Flush,Straight Flush,Straight Flush,Thùng phá sảnh,Straight Flush,스트레이트 플러시
 Paytable_StraightFlush_Safe,Frappe de race pure,Reinrassiger Treffer,Racehundestrike,Serangan Ras Murni,Rasehundslag,Rashundsträff,Rashondtreffer,Đòn thuần chủng,Serangan Baka Tulen,순종 스트라이크
-Paytable_RoyalFlush,Quinte royale,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Thùng phá sảnh hoàng gia,Royal Flush,로열 플러시
+Paytable_RoyalFlush,Quinte royale,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Royal Flush,Sảnh rồng,Royal Flush,로열 플러시
 Paytable_RoyalFlush_Safe,Festin royal,Königsmahl,Kongelig fest,Pesta Kerajaan,Kongelig fest,Kunglig fest,Koninklijk feest,Đại tiệc hoàng gia,Jamu Diraja,왕실 만찬
 BlindBox_TapToPowerUp,Appuyez pour tenter une amélioration…,Tippen für Upgrade-Versuch…,Tryk for at prøve at opgradere…,Ketuk untuk mencoba peningkatan…,Trykk for å prøve oppgradering…,Tryck för att försöka uppgradera…,Tik om een upgrade te proberen…,Chạm để thử nâng cấp…,Ketik untuk cuba menaik taraf…,탭하여 업그레이드 시도…
 BlindBox_OpenItUp,Ouvrez-la !,Öffne sie!,Åbn den!,Buka!,Åpne den!,Öppna den!,Open hem!,Mở ra nào!,Bukalah!,열어 보세요!
