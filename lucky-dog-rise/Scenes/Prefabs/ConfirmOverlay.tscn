@@ -2,6 +2,18 @@
 
 [ext_resource type="Script" uid="uid://lg5n6xwuobx8" path="res://Scripts/Desktop/ConfirmOverlayController.cs" id="1_ctrl"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
+[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="5_inter_regular"]
+[ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="6_misans_regular"]
+
+[sub_resource type="FontVariation" id="font_title"]
+fallbacks = Array[Font]([ExtResource("4_misans_bold")])
+base_font = ExtResource("3_inter_bold")
+
+[sub_resource type="FontVariation" id="font_message"]
+fallbacks = Array[Font]([ExtResource("6_misans_regular")])
+base_font = ExtResource("5_inter_regular")
 
 [sub_resource type="StyleBoxFlat" id="overlay_bg"]
 content_margin_left = 18.0
@@ -60,6 +72,7 @@ size_flags_vertical = 3
 
 [node name="Title" type="Label" parent="OverlayPanel/Margin/Content" unique_id=1274910269]
 layout_mode = 2
+theme_override_fonts/font = SubResource("font_title")
 theme_override_font_sizes/font_size = 22
 text = "确认操作"
 horizontal_alignment = 1
@@ -74,7 +87,9 @@ custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_fonts/font = SubResource("font_message")
 theme_override_font_sizes/font_size = 16
+theme_override_constants/line_spacing = 2
 text = "确认要继续吗？"
 horizontal_alignment = 1
 vertical_alignment = 1
