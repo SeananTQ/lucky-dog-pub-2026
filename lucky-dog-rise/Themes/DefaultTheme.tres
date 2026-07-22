@@ -226,13 +226,14 @@ expand_margin_top = 2.0
 expand_margin_right = 2.0
 expand_margin_bottom = 2.0
 
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_avwua"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-color = Color(0.6039216, 0.70980394, 0.7411765, 1)
-thickness = 3
+[sub_resource type="StyleBoxFlat" id="StyleBoxLine_avwua"]
+content_margin_top = 1.5
+content_margin_bottom = 1.5
+bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="DPITexture" id="DPITexture_6dukq"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"8\"><path fill=\"#fff\" fill-opacity=\".25\" d=\"M1 0h2v16H1z\"/></svg>
