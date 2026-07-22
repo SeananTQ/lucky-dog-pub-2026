@@ -31,7 +31,6 @@ public static class L10n
     public const string KoreanLocale = "ko";
 
     private const string CsvPath = "res://Data/Localization/LocalizationText.csv";
-    private const string ExtendedCsvPath = "res://Data/Localization/LocalizationText_Extended.csv";
     private const string ImportedTranslationPathFormat = "res://Data/Localization/LocalizationText.{0}.translation";
     private const string EmptyTextMarker = "@empty";
     private static bool _loaded;
@@ -226,20 +225,18 @@ public static class L10n
         if (_loaded)
             return;
 
-        LoadCsvTranslations(CsvPath, clearExistingTranslations: true);
-        LoadCsvTranslations(ExtendedCsvPath, clearExistingTranslations: false);
+        LoadCsvTranslations(CsvPath);
         _loaded = true;
     }
 
-    private static void LoadCsvTranslations(string path, bool clearExistingTranslations)
+    private static void LoadCsvTranslations(string path)
     {
         if (!FileAccess.FileExists(path))
         {
 #if DEBUG
             GD.PushWarning($"[L10n] Missing localization CSV: {path}. Falling back to imported Translation resources.");
 #endif
-            if (clearExistingTranslations)
-                LoadImportedTranslations();
+            LoadImportedTranslations();
             return;
         }
 

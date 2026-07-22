@@ -53,6 +53,12 @@ public static class L10nKey
     public const string Settings_ResetSaveMessage = nameof(Settings_ResetSaveMessage);
     public const string Settings_ResetSaveConfirm = nameof(Settings_ResetSaveConfirm);
     public const string Wardrobe_EmptyCategory = nameof(Wardrobe_EmptyCategory);
+    public const string Wardrobe_Tab_Dog = nameof(Wardrobe_Tab_Dog);
+    public const string Wardrobe_Tab_Hat = nameof(Wardrobe_Tab_Hat);
+    public const string Wardrobe_Tab_Eyewear = nameof(Wardrobe_Tab_Eyewear);
+    public const string Wardrobe_Tab_Player = nameof(Wardrobe_Tab_Player);
+    public const string Wardrobe_Tab_Theme = nameof(Wardrobe_Tab_Theme);
+    public const string Wardrobe_Tab_Refreshment = nameof(Wardrobe_Tab_Refreshment);
     public const string LinkTree_ComingSoon = nameof(LinkTree_ComingSoon);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
     public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);

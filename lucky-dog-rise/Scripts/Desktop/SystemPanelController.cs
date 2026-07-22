@@ -501,7 +501,7 @@ public partial class SystemPanelController : CanvasLayer
             var btn = new Button();
             btn.CustomMinimumSize = new Vector2(0, 28);
             btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            btn.TooltipText = tab.TabName;
+            btn.TooltipText = GetWardrobeTabTooltip(tab);
             if (TabIconsByGroupId.TryGetValue(tab.Id, out var icon))
                 btn.Icon = icon;
             btn.IconAlignment = HorizontalAlignment.Center;
@@ -554,6 +554,22 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var item in items)
             _wardrobeGrid.AddChild(CreateItemCell(item));
+    }
+
+    private static string GetWardrobeTabTooltip(TabGroup tab)
+    {
+        var key = tab.Id switch
+        {
+            1001 => L10nKey.Wardrobe_Tab_Dog,
+            1002 => L10nKey.Wardrobe_Tab_Hat,
+            1003 => L10nKey.Wardrobe_Tab_Eyewear,
+            1004 => L10nKey.Wardrobe_Tab_Player,
+            1005 => L10nKey.Wardrobe_Tab_Theme,
+            1006 => L10nKey.Wardrobe_Tab_Refreshment,
+            _ => null,
+        };
+
+        return key == null ? tab.TabName : L10n.Tr(key);
     }
 
     private void RefreshWardrobeGrid()
@@ -817,6 +833,9 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         RefreshModeButtonText();
+
+        foreach (var (button, tab) in _filterTabs)
+            button.TooltipText = GetWardrobeTabTooltip(tab);
     }
 
     private void RefreshModeButtonText()
