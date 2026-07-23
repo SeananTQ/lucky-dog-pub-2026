@@ -7,6 +7,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $staging = Resolve-Path $StagingDirectory
+$versionParts = @($Version.Split('.'))
+while ($versionParts.Count -lt 4) { $versionParts += '0' }
+$windowsVersion = ($versionParts[0..3] -join '.')
 $files = Get-ChildItem -LiteralPath $staging -Recurse -File
 $forbidden = $files | Where-Object {
     $_.Extension -in '.pdb', '.cs', '.psd', '.xlsx', '.py', '.md', '.gdkey' -or
@@ -29,7 +32,8 @@ if ($developmentAppId) { throw 'steam_appid.txt must not be included in a Steam 
 $versionInfo = $gameExecutable.VersionInfo
 if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
     ($versionInfo.ProductName -ne 'Lucky Dog Rise') -or
-    ($versionInfo.ProductVersion -ne $Version)) {
+    ($versionInfo.FileVersion -ne $windowsVersion) -or
+    ($versionInfo.ProductVersion -ne $windowsVersion)) {
     throw 'Windows executable metadata is missing or incorrect.'
 }
 $bytes = [System.IO.File]::ReadAllBytes($gameAssembly.FullName)
