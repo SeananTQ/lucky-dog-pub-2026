@@ -326,21 +326,6 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
-layout_mode = 2
-
-[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_ProactiveInteractionHints"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
-layout_mode = 2
-size_flags_vertical = 4
-
 [node name="GeneralSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1721861634]
 layout_mode = 2
 
@@ -348,6 +333,38 @@ layout_mode = 2
 layout_mode = 2
 text = "Settings_DesktopPet"
 label_settings = ExtResource("8_group_title")
+
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_CounterDisplay"
+label_settings = ExtResource("9_option_label")
+
+[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
+custom_minimum_size = Vector2(112, 28)
+layout_mode = 2
+
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=462672903]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="CounterCenterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1962368471]
+layout_mode = 2
+
+[node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_CenterCounterOnTaskbar"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
+layout_mode = 2
+size_flags_vertical = 4
 
 [node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
 layout_mode = 2
@@ -465,10 +482,25 @@ size_flags_vertical = 4
 [node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
 layout_mode = 2
 
-[node name="PrivacyLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2010729476]
+[node name="GameplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
-text = "Settings_PrivacyAndSafety"
+text = "Settings_Gameplay"
 label_settings = ExtResource("8_group_title")
+
+[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
+layout_mode = 2
+
+[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_ProactiveInteractionHints"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
+layout_mode = 2
+size_flags_vertical = 4
 
 [node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
 layout_mode = 2
@@ -485,30 +517,13 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="PrivacySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=859794950]
+[node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
 
 [node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
 layout_mode = 2
 text = "Settings_Display"
 label_settings = ExtResource("8_group_title")
-
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
-layout_mode = 2
-
-[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_CounterDisplay"
-label_settings = ExtResource("9_option_label")
-
-[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 2
-
-[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=462672903]
-custom_minimum_size = Vector2(4, 0)
-layout_mode = 2
 
 [node name="PokerFrameRateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
@@ -539,21 +554,6 @@ label_settings = ExtResource("9_option_label")
 autowrap_mode = 3
 
 [node name="VsyncToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow"]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="CounterCenterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1962368471]
-layout_mode = 2
-
-[node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_CenterCounterOnTaskbar"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
 layout_mode = 2
 size_flags_vertical = 4
 

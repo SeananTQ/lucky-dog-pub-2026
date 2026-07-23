@@ -34,6 +34,7 @@ public static class L10nKey
     public const string Settings_RightClickQuickModeSwitch = nameof(Settings_RightClickQuickModeSwitch);
     public const string Settings_PreventAccidentalDrag = nameof(Settings_PreventAccidentalDrag);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);
+    public const string Settings_Gameplay = nameof(Settings_Gameplay);
     public const string Settings_AutoHidePanelOnFocusLoss = nameof(Settings_AutoHidePanelOnFocusLoss);
     public const string Settings_TongueInstantMode = nameof(Settings_TongueInstantMode);
     public const string Settings_AlwaysShowBlindBoxBubble = nameof(Settings_AlwaysShowBlindBoxBubble);
