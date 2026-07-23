@@ -8,7 +8,7 @@ namespace LuckyDogRise;
 
 public partial class GameData : Node
 {
-    public const int StartingChips = 1000;
+    public const int StartingChips = 2800;
 #if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
 #endif
