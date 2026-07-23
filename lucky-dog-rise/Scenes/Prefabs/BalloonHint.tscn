@@ -20,11 +20,6 @@ corner_radius_bottom_left = 5
 fallbacks = Array[Font]([ExtResource("4_misans_bold")])
 base_font = ExtResource("3_inter_bold")
 
-[sub_resource type="LabelSettings" id="balloon_text_settings"]
-font = SubResource("balloon_text_font")
-font_size = 20
-font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
-
 [node name="BalloonHint" type="PanelContainer" unique_id=182074822 node_paths=PackedStringArray("_iconRect", "_textLabel", "_tail")]
 custom_minimum_size = Vector2(120, 54)
 offset_right = 120.0
@@ -49,15 +44,19 @@ texture = ExtResource("2_box")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="Text" type="Label" parent="Root" unique_id=423815409]
+[node name="Text" type="RichTextLabel" parent="Root" unique_id=423815409]
 custom_minimum_size = Vector2(58, 0)
 layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-text = "1000"
-label_settings = SubResource("balloon_text_settings")
+theme_override_fonts/normal_font = SubResource("balloon_text_font")
+bbcode_enabled = true
+text = "[font_size=20]1000[/font_size]"
+fit_content = true
+autowrap_mode = 0
 horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="Tail" type="Polygon2D" parent="." unique_id=1037149699]
 position = Vector2(16, 52)

@@ -418,7 +418,7 @@ theme_override_styles/panel = ExtResource("3_rkfi6")
 layout_mode = 2
 theme_override_colors/font_shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 bbcode_enabled = true
-text = "[font_size=26][color=FF9800]90[/color][/font_size][font_size=12]/100[/font_size]
+text = "[font_size=26][color=FF9800]90[/color][/font_size][font_size=12]/1000[/font_size]
 "
 fit_content = true
 autowrap_mode = 0

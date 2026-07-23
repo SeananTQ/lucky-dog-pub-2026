@@ -21,6 +21,7 @@ public partial class GameManager : Node2D
     private static readonly PackedScene BlindBoxRevealOverlayScene = GD.Load<PackedScene>("res://Scenes/BlindBoxRevealOverlay.tscn");
 
     [Signal] public delegate void BlindBoxRewardClaimRequestedEventHandler();
+    [Signal] public delegate void InsufficientBetAttemptedEventHandler();
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
@@ -157,7 +158,11 @@ public partial class GameManager : Node2D
     {
         if (State != GameState.WaitingForBet) return;
         if (!CanStartNewHand())
+        {
+            // 只在玩家主动点击下注筹码时通知 UI；自动结算或全局输入不应触发闪红。
+            EmitSignal(SignalName.InsufficientBetAttempted);
             return;
+        }
 
         // 只有通过余额校验后才允许筹码离场。
         _chipStack.PlayLeave();

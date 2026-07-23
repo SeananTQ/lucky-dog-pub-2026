@@ -16,33 +16,23 @@ public partial class BalloonHintController : PanelContainer
     [Signal] public delegate void PressedEventHandler();
 
     [Export] private TextureRect _iconRect = null!;
-    [Export] private Label _textLabel = null!;
+    [Export] private RichTextLabel _textLabel = null!;
     [Export] private Polygon2D _tail = null!;
     [Export] public TailSide TailPlacement { get; set; } = TailSide.Left;
     [Export] public float TailInset { get; set; } = 16f;
 
     private Tween? _flashTween;
     private Tween? _visibilityTween;
-    private Color _normalTextColor = Colors.White;
-    private LabelSettings? _textLabelSettings;
-    private readonly Color _warningTextColor = new(1f, 0.18f, 0.18f);
+    private string _currentTextBbcode = string.Empty;
+    private readonly Color _normalTextColor = new(0.40784314f, 0.22745098f, 0.19607843f);
+    private readonly Color _warningTextColor = new(0.90588236f, 0.54901963f, 0.627451f); // #E78CA0
     private bool _isDisplayVisible = true;
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
-        _textLabel.Text = "";
-        _textLabelSettings = _textLabel.LabelSettings?.Duplicate() as LabelSettings;
-        if (_textLabelSettings != null)
-        {
-            _textLabel.LabelSettings = _textLabelSettings;
-            _normalTextColor = _textLabelSettings.FontColor;
-        }
-        else
-        {
-            _normalTextColor = _textLabel.GetThemeColor("font_color");
-        }
+        SetTextContent(string.Empty);
         UpdateTail();
         PivotOffset = Size * 0.5f;
     }
@@ -66,17 +56,19 @@ public partial class BalloonHintController : PanelContainer
     {
         _iconRect.Visible = false;
         _textLabel.Visible = true;
-        _textLabel.Text = $"{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}";
-        ResetTextColor();
+        SetTextContent($"[font_size=20]{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}[/font_size]");
     }
 
-    public void ShowCost(Texture2D? icon, int cost)
+    public void ShowCost(Texture2D? icon, int cost, int currentChips = -1)
     {
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = true;
-        _textLabel.Text = cost.ToString("N0");
-        ResetTextColor();
+        var isInsufficient = currentChips >= 0 && currentChips < cost;
+        var text = isInsufficient
+            ? $"[font_size=20]{currentChips}[/font_size][font_size=10]/{cost}[/font_size]"
+            : $"[font_size=20]{cost}[/font_size]";
+        SetTextContent(text);
     }
 
     public void ShowIconOnly(Texture2D? icon)
@@ -84,7 +76,7 @@ public partial class BalloonHintController : PanelContainer
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = false;
-        ResetTextColor();
+        SetTextContent(string.Empty);
     }
 
     public void FlashTextRed()
@@ -143,13 +135,13 @@ public partial class BalloonHintController : PanelContainer
 
     private void SetTextColor(Color color)
     {
-        if (_textLabelSettings != null)
-        {
-            _textLabelSettings.FontColor = color;
-            return;
-        }
+        _textLabel.Text = $"[color=#{color.ToHtml()}]{_currentTextBbcode}[/color]";
+    }
 
-        _textLabel.AddThemeColorOverride("font_color", color);
+    private void SetTextContent(string bbcode)
+    {
+        _currentTextBbcode = bbcode;
+        ResetTextColor();
     }
 
     private void UpdateTail()

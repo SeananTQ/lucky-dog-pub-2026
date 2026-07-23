@@ -399,6 +399,7 @@ public partial class ModeManager : Control
             _gameManager.GameData = _gameData;
             _gameManager.SettingsPanel = _settingsPanel;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
+            _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
@@ -837,7 +838,7 @@ public partial class ModeManager : Control
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _bossBlindBoxHint.ShowCost(_blindBoxIcon, state.Cost);
+                _bossBlindBoxHint.ShowCost(_blindBoxIcon, state.Cost, _gameData.Chips);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

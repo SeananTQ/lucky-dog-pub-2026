@@ -36,9 +36,12 @@ public partial class InfoPanelController : CanvasLayer
     private bool _hasHighlight;
     private Color _defaultNameColor;
     private Color _defaultValueColor;
+    private Color _normalChipsTextColor;
+    private LabelSettings _chipsLabelSettings;
 
     private int _displayedChips;
     private Tween _chipsTween;
+    private Tween _insufficientBetFlashTween;
     private Tween _blinkTween;
     private Texture2D _blindBoxIcon = null!;
     private EHandRank _currentRank = EHandRank.Nothing;
@@ -63,6 +66,17 @@ public partial class InfoPanelController : CanvasLayer
     public override void _Ready()
     {
         LockPanelSize();
+        // 复制专用设置，避免运行时闪烁污染场景资源；阴影参数会原样保留。
+        _chipsLabelSettings = _chipsLabel.LabelSettings?.Duplicate() as LabelSettings;
+        if (_chipsLabelSettings != null)
+        {
+            _chipsLabel.LabelSettings = _chipsLabelSettings;
+            _normalChipsTextColor = _chipsLabelSettings.FontColor;
+        }
+        else
+        {
+            _normalChipsTextColor = _chipsLabel.GetThemeColor("font_color");
+        }
 
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
         _blindBoxBtn.Pressed += () => EmitSignal(SignalName.BlindBoxRequested);
@@ -108,7 +122,7 @@ public partial class InfoPanelController : CanvasLayer
     {
         _gameData = data;
         _displayedChips = data.Chips;
-        _chipsLabel.Text = _displayedChips.ToString("N0");
+        SetChipsText(_displayedChips);
         data.ChipsChanged += OnChipsChanged;
         data.HandResolved += OnHandResolved;
         data.NewHandStarted += OnNewHandStarted;
@@ -123,19 +137,21 @@ public partial class InfoPanelController : CanvasLayer
         if (Mathf.Abs(delta) <= 1)
         {
             _displayedChips = newChips;
-            _chipsLabel.Text = newChips.ToString("N0");
+            SetChipsText(newChips);
+            RefreshBlindBoxButton();
             return;
         }
 
         _chipsTween?.Kill();
         _chipsTween = CreateTween();
         _chipsTween.TweenMethod(
-            Callable.From<int>(v => _chipsLabel.Text = v.ToString("N0")),
+            Callable.From<int>(SetChipsText),
             _displayedChips,
             newChips,
             ChipsAnimDuration
         );
         _displayedChips = newChips;
+        RefreshBlindBoxButton();
     }
 
     private void OnNewHandStarted()
@@ -195,7 +211,57 @@ public partial class InfoPanelController : CanvasLayer
 
     public void SetChips(int chips)
     {
+        SetChipsText(chips);
+    }
+
+    /// <summary>
+    /// 下注金额不足时以“当前余额/下注额”呈现；余额达标后恢复为普通余额。
+    /// </summary>
+    private void SetChipsText(int chips)
+    {
+        if (_gameData != null && chips < _gameData.BetAmount)
+        {
+            _chipsLabel.Text = $"{chips:N0}/{_gameData.BetAmount:N0}";
+            return;
+        }
+
         _chipsLabel.Text = chips.ToString("N0");
+    }
+
+    /// <summary>
+    /// 玩家在余额不足时点击下注筹码的操作反馈。
+    /// 闪烁节奏和盲盒金额不足提示保持一致。
+    /// </summary>
+    public void FlashInsufficientBet()
+    {
+        _insufficientBetFlashTween?.Kill();
+        ResetChipsTextColor();
+        var warningColor = new Color(0.90588236f, 0.54901963f, 0.627451f); // #E78CA0
+        _insufficientBetFlashTween = CreateTween();
+        for (var i = 0; i < 2; i++)
+        {
+            _insufficientBetFlashTween.TweenCallback(Callable.From(() => SetChipsTextColor(warningColor)));
+            _insufficientBetFlashTween.TweenInterval(0.12);
+            _insufficientBetFlashTween.TweenCallback(Callable.From(ResetChipsTextColor));
+            _insufficientBetFlashTween.TweenInterval(0.12);
+        }
+    }
+
+    private void SetChipsTextColor(Color color)
+    {
+        // 仅改变字体色；LabelSettings 副本中的阴影大小、颜色和偏移保持不变。
+        if (_chipsLabelSettings != null)
+        {
+            _chipsLabelSettings.FontColor = color;
+            return;
+        }
+
+        _chipsLabel.AddThemeColorOverride("font_color", color);
+    }
+
+    private void ResetChipsTextColor()
+    {
+        SetChipsTextColor(_normalChipsTextColor);
     }
 
     public void SetRank(string rankName)
@@ -263,7 +329,7 @@ public partial class InfoPanelController : CanvasLayer
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _blindBoxHint.ShowCost(_blindBoxIcon, state.Cost);
+                _blindBoxHint.ShowCost(_blindBoxIcon, state.Cost, _gameData.Chips);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

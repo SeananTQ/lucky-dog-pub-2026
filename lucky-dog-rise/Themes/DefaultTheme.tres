@@ -24,7 +24,7 @@
 [ext_resource type="StyleBox" uid="uid://cbkeba3fskmse" path="res://Themes/Buttons/Secretary_Normal.tres" id="15_bcron"]
 [ext_resource type="StyleBox" uid="uid://bvffm2q3ajeu2" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_5gcxy"]
 [ext_resource type="StyleBox" uid="uid://cby4qnkqk5fsb" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ScrollbarStrip.svg" id="17_scrollbar"]
+[ext_resource type="Texture2D" uid="uid://bdkj5muigwl3y" path="res://Assets/UI/ScrollbarStrip.svg" id="17_scrollbar"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
@@ -599,39 +599,39 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 corner_detail = 4
 
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber"]
+texture = ExtResource("17_scrollbar")
+texture_margin_left = 2.0
+texture_margin_top = 2.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
+modulate_color = Color(0.27450982, 0.3529412, 0.37254903, 0.72)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber_hover"]
+texture = ExtResource("17_scrollbar")
+texture_margin_left = 2.0
+texture_margin_top = 2.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
+modulate_color = Color(0.3529412, 0.4392157, 0.45490196, 0.82)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber_pressed"]
+texture = ExtResource("17_scrollbar")
+texture_margin_left = 2.0
+texture_margin_top = 2.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
+modulate_color = Color(0.43137255, 0.5176471, 0.53333336, 0.9)
+
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_track"]
 content_margin_left = 4.0
 content_margin_right = 4.0
 texture = ExtResource("17_scrollbar")
+texture_margin_left = 2.0
+texture_margin_top = 2.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
 modulate_color = Color(0.047058824, 0.08235294, 0.09019608, 0.62)
-texture_margin_left = 2.0
-texture_margin_top = 2.0
-texture_margin_right = 2.0
-texture_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber"]
-texture = ExtResource("17_scrollbar")
-modulate_color = Color(0.27450982, 0.3529412, 0.37254903, 0.72)
-texture_margin_left = 2.0
-texture_margin_top = 2.0
-texture_margin_right = 2.0
-texture_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber_hover"]
-texture = ExtResource("17_scrollbar")
-modulate_color = Color(0.3529412, 0.4392157, 0.45490196, 0.82)
-texture_margin_left = 2.0
-texture_margin_top = 2.0
-texture_margin_right = 2.0
-texture_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_scrollbar_grabber_pressed"]
-texture = ExtResource("17_scrollbar")
-modulate_color = Color(0.43137255, 0.5176471, 0.53333336, 0.9)
-texture_margin_left = 2.0
-texture_margin_top = 2.0
-texture_margin_right = 2.0
-texture_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_sts5i"]
 content_margin_left = 0.0
@@ -895,9 +895,9 @@ TextEdit/styles/read_only = SubResource("StyleBoxFlat_l3s1b")
 TooltipLabel/font_sizes/font_size = 18
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_sts5i")
 VBoxContainer/constants/separation = 8
-VSeparator/constants/separation = 4
-VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")
 VScrollBar/styles/grabber = SubResource("StyleBoxTexture_scrollbar_grabber")
 VScrollBar/styles/grabber_highlight = SubResource("StyleBoxTexture_scrollbar_grabber_hover")
 VScrollBar/styles/grabber_pressed = SubResource("StyleBoxTexture_scrollbar_grabber_pressed")
 VScrollBar/styles/scroll = SubResource("StyleBoxTexture_scrollbar_track")
+VSeparator/constants/separation = 4
+VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")
