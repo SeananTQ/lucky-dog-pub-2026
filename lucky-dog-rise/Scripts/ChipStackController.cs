@@ -5,7 +5,7 @@ namespace LuckyDogRise;
 public partial class ChipStackController : Node2D, IInteractionHintTarget
 {
     [Signal]
-    public delegate void BetPlacedEventHandler();
+    public delegate void BetRequestedEventHandler();
 
     private Button _clickButton = null!;
     private Node2D _visualRoot = null!;
@@ -61,8 +61,9 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
 
     private void OnBetPressed()
     {
-        PlayLeave();
-        EmitSignal(SignalName.BetPlaced);
+        // 是否可下注由 GameManager 决定。未获批准前不可提前播放离场动画，
+        // 否则余额不足时筹码会离开桌面并禁用自身，导致无法再次下注。
+        EmitSignal(SignalName.BetRequested);
     }
 
     public void PlayAppear()

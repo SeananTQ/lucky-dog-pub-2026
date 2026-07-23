@@ -98,7 +98,7 @@ public partial class GameManager : Node2D
         _dogVisual.DogClicked += OnDogClicked;
         _handArea.HandKnocked += OnDrawPressed;
         _handArea.FirstKnockLanded += OnFirstKnockLanded;
-        _chipStack.BetPlaced += OnBetPlaced;
+        _chipStack.BetRequested += OnBetRequested;
         _cardTable.CardClicked += OnCardClicked;
         _cardTable.LastReplacementStarted += OnLastReplacementStarted;
         RefreshInteractionHintTargets();
@@ -153,11 +153,41 @@ public partial class GameManager : Node2D
 
     // === 信号处理 ===
 
-    private void OnBetPlaced()
+    private void OnBetRequested()
     {
         if (State != GameState.WaitingForBet) return;
+        if (!CanStartNewHand())
+            return;
+
+        // 只有通过余额校验后才允许筹码离场。
+        _chipStack.PlayLeave();
+        StartNewHand();
+    }
+
+    /// <summary>
+    /// 下注入口的第一道校验。失败时保持下注筹码在桌面上，等待玩家通过全局输入补足余额。
+    /// </summary>
+    private bool CanStartNewHand()
+    {
+        if (State != GameState.WaitingForBet)
+            return false;
+
+        if (_gameData.CanAffordBet)
+            return true;
+
+        HandleInsufficientChips();
+        return false;
+    }
+
+    /// <summary>
+    /// 真正开始新局前再次校验，避免未来新增入口或异步流程绕过余额保护。
+    /// </summary>
+    private bool StartNewHand()
+    {
+        if (!CanStartNewHand())
+            return false;
+
         _interactionHints.NotifyInteractionHandled();
-        if (!_gameData.CanAffordBet) { HandleInsufficientChips(); return; }
 #if DEBUG
         if (SettingsPanel != null && SettingsPanel.TryGetFixedSeed(out int fixedSeed))
         {
@@ -172,6 +202,7 @@ public partial class GameManager : Node2D
         _currentHandProgressSource = PlayerProgressSource.Gameplay;
 #endif
         DealNewHand();
+        return true;
     }
 
     private void OnDrawPressed()
@@ -250,7 +281,7 @@ public partial class GameManager : Node2D
         _pendingPayout = 0;
         RefreshUI();
         SetState(GameState.WaitingForBet);
-        OnBetPlaced();
+        StartNewHand();
     }
 
     // === 游戏逻辑 ===
@@ -263,6 +294,12 @@ public partial class GameManager : Node2D
 
     private void DealNewHand()
     {
+        if (!_gameData.CanAffordBet)
+        {
+            HandleInsufficientChips();
+            return;
+        }
+
         _gameData.ModifyChips(-_gameData.BetAmount);
         _gameData.RecordPokerHandStarted(_gameData.BetAmount, _currentHandProgressSource);
         _gameData.EmitNewHandStarted();
