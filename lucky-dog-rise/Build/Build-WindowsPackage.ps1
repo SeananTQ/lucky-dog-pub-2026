@@ -14,6 +14,10 @@ $templatePath = Join-Path $localBuild 'templates\windows_release_x86_64.exe'
 $steamworksNetRoot = Join-Path $localBuild 'steamworks\Steamworks.NET-Standalone_2025.163.0\Windows-x64'
 $steamworksManaged = Join-Path $steamworksNetRoot 'Steamworks.NET.dll'
 $steamworksNative = Join-Path $steamworksNetRoot 'steam_api64.dll'
+$exportPresetPath = Join-Path $projectRoot 'export_presets.cfg'
+$presetBackupRoot = Join-Path $localBuild 'preset-backup'
+$presetBackupPath = Join-Path $presetBackupRoot 'export_presets.cfg'
+$presetAbsentMarker = Join-Path $presetBackupRoot 'export_presets.was-absent'
 
 function Read-LocalDataFile([string]$Path) {
     return & ([scriptblock]::Create([System.IO.File]::ReadAllText($Path)))
@@ -25,6 +29,9 @@ if (!(Test-Path -LiteralPath $steamworksManaged)) { throw "Steamworks.NET.dll is
 if (!(Test-Path -LiteralPath $steamworksNative)) { throw "steam_api64.dll is missing: $steamworksNative" }
 if (!$GodotEditor -and (Test-Path -LiteralPath $configPath)) { $GodotEditor = (Read-LocalDataFile $configPath).GodotEditor }
 if (!$GodotEditor -or !(Test-Path -LiteralPath $GodotEditor)) { throw 'Godot 4.6.3 Mono editor path is missing.' }
+if ((Test-Path -LiteralPath $presetBackupPath) -or (Test-Path -LiteralPath $presetAbsentMarker)) {
+    throw "A stale export preset backup exists at '$presetBackupRoot'. Restore or remove it before starting another package build."
+}
 
 & dotnet tool restore
 if ($LASTEXITCODE -ne 0) { throw 'Failed to restore repository-local .NET tools.' }
@@ -40,39 +47,82 @@ if ($dirty) { $commit = "$commit-dirty" }
 $channelSlug = $Channel.ToLowerInvariant()
 $staging = Join-Path $localBuild "staging\$channelSlug"
 $outputExe = Join-Path $staging 'LuckyDogRise.exe'
+$assemblyPath = Join-Path $staging 'data_LuckyDogRise_windows_x86_64\LuckyDogRise.dll'
 $packageDir = Join-Path $workspace 'GameBuild'
 $packagePath = Join-Path $packageDir "LuckyDogRise-$version-$channelSlug-win-x64.zip"
 if (Test-Path -LiteralPath $staging) { Remove-Item -Recurse -Force -LiteralPath $staging }
 New-Item -ItemType Directory -Force -Path $staging, $packageDir | Out-Null
 
-& (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe -Version $version
-Write-Host '[Build] Export preset generated.'
 $secrets = Read-LocalDataFile $secretPath
 $oldPckKey = $env:GODOT_SCRIPT_ENCRYPTION_KEY
 $oldSaveKey = $env:LUCKYDOG_SAVE_HMAC_KEY
 $oldCommit = $env:LUCKYDOG_BUILD_COMMIT
 $oldPlaytestExpiry = $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC
-$env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
-$env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
-$env:LUCKYDOG_BUILD_COMMIT = $commit
-$env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-08-11T16:00:00Z' } else { '' }
-try {
-    & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
-    Write-Host "[Build] Godot export exit code: $LASTEXITCODE"
-    if ($LASTEXITCODE -ne 0) { throw 'Godot release export failed.' }
+$hadExportPreset = Test-Path -LiteralPath $exportPresetPath
+New-Item -ItemType Directory -Force -Path $presetBackupRoot | Out-Null
+if ($hadExportPreset) {
+    Copy-Item -LiteralPath $exportPresetPath -Destination $presetBackupPath
 }
-finally {
-    $env:GODOT_SCRIPT_ENCRYPTION_KEY = $oldPckKey
-    $env:LUCKYDOG_SAVE_HMAC_KEY = $oldSaveKey
-    $env:LUCKYDOG_BUILD_COMMIT = $oldCommit
-    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = $oldPlaytestExpiry
+else {
+    [System.IO.File]::WriteAllText($presetAbsentMarker, 'The project had no export_presets.cfg before packaging.')
 }
 
-$assemblyPath = Join-Path $staging 'data_LuckyDogRise_windows_x86_64\LuckyDogRise.dll'
-for ($attempt = 0; $attempt -lt 50 -and !(Test-Path -LiteralPath $assemblyPath); $attempt++) {
-    Start-Sleep -Milliseconds 200
+try {
+    & (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe -Version $version
+    Write-Host '[Build] Temporary export preset generated.'
+    $env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
+    $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
+    $env:LUCKYDOG_BUILD_COMMIT = $commit
+    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-08-11T16:00:00Z' } else { '' }
+    try {
+        & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
+        Write-Host "[Build] Godot export exit code: $LASTEXITCODE"
+        if ($LASTEXITCODE -ne 0) { throw 'Godot release export failed.' }
+
+        # When the editor already owns the project, the command-line process can
+        # return before the editor-side export finishes. Keep the temporary
+        # preset in place until both essential output files exist and stop changing.
+        for ($attempt = 0; $attempt -lt 150 -and
+                (!(Test-Path -LiteralPath $outputExe) -or !(Test-Path -LiteralPath $assemblyPath)); $attempt++) {
+            Start-Sleep -Milliseconds 200
+        }
+        if (!(Test-Path -LiteralPath $outputExe)) { throw "Exported executable was not found: $outputExe" }
+        if (!(Test-Path -LiteralPath $assemblyPath)) { throw "Exported game assembly was not found: $assemblyPath" }
+
+        $lastExportSignature = ''
+        $stableExportChecks = 0
+        for ($attempt = 0; $attempt -lt 50 -and $stableExportChecks -lt 5; $attempt++) {
+            $exe = Get-Item -LiteralPath $outputExe
+            $dll = Get-Item -LiteralPath $assemblyPath
+            $signature = "$($exe.Length):$($exe.LastWriteTimeUtc.Ticks)|$($dll.Length):$($dll.LastWriteTimeUtc.Ticks)"
+            if ($signature -eq $lastExportSignature) { $stableExportChecks++ } else { $stableExportChecks = 0 }
+            $lastExportSignature = $signature
+            Start-Sleep -Milliseconds 200
+        }
+        if ($stableExportChecks -lt 5) { throw 'Exported files did not become stable before the timeout.' }
+    }
+    finally {
+        $env:GODOT_SCRIPT_ENCRYPTION_KEY = $oldPckKey
+        $env:LUCKYDOG_SAVE_HMAC_KEY = $oldSaveKey
+        $env:LUCKYDOG_BUILD_COMMIT = $oldCommit
+        $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = $oldPlaytestExpiry
+    }
 }
-if (!(Test-Path -LiteralPath $assemblyPath)) { throw "Exported game assembly was not found: $assemblyPath" }
+finally {
+    if ($hadExportPreset) {
+        Copy-Item -LiteralPath $presetBackupPath -Destination $exportPresetPath -Force
+        Remove-Item -LiteralPath $presetBackupPath -Force
+    }
+    else {
+        if (Test-Path -LiteralPath $exportPresetPath) { Remove-Item -LiteralPath $exportPresetPath -Force }
+        Remove-Item -LiteralPath $presetAbsentMarker -Force
+    }
+    if (!(Get-ChildItem -LiteralPath $presetBackupRoot -Force)) {
+        Remove-Item -LiteralPath $presetBackupRoot -Force
+    }
+    Write-Host '[Build] Original export preset restored.'
+}
+
 $assembly = Get-Item -LiteralPath $assemblyPath
 Write-Host "[Build] Game assembly found: $assemblyPath"
 Copy-Item -LiteralPath $steamworksManaged -Destination $assembly.DirectoryName -Force
