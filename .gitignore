@@ -71,6 +71,7 @@ inbox/BlinboxRef_Test01_rebuild.svg
 # Steamworks 中大型美术资源由 _stable-git/ 文件夹来管理
 lucky-steamworks/assets/**/*.psd
 lucky-steamworks/assets/**/*.psb
+lucky-steamworks/assets/**/*.fig
 lucky-steamworks/assets/**/*.png
 lucky-steamworks/assets/**/*.jpg
 lucky-steamworks/assets/**/*.jpeg
@@ -80,6 +81,9 @@ lucky-steamworks/assets/**/*.ai
 # _stable-git 为定期手动复制到该文件夹内的稳定版本的美术资源
 !lucky-steamworks/assets/_stable-git/
 !lucky-steamworks/assets/_stable-git/**
+
+# 本地备份压缩包不进 Git
+*_bak.zip
 
 # key 文件不需要上传到版本控制系统
 lucky-steamworks/playtest-key/
