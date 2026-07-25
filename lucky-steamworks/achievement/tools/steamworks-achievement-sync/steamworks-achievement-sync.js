@@ -18,7 +18,7 @@
     "use strict";
 
     const TOOL_ID = "lucky-dog-steamworks-achievement-sync";
-    const TOOL_VERSION = "0.6.0";
+    const TOOL_VERSION = "0.6.1";
     const DEFAULT_ICON_ROOT = String.raw`G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\achievement\icon`;
     const ALLOWED_APPS = new Map([
         [4972240, "Lucky Dog Rise Playtest"],
@@ -554,7 +554,8 @@
     function buildIconReport() {
         const rows = buildIconReportRows();
         const counts = countIconReportTasks(rows);
-        const root = panel.iconRoot.value.trim().replace(/[\\/]+$/, "");
+        const root = normalizeIconRoot(panel.iconRoot.value);
+        panel.iconRoot.value = root;
         const mode = panel.forceIconReport.checked
             ? "FORCE_REPLACE_CONFIGURED_ICONS"
             : "UPLOAD_MISSING_ICONS_ONLY";
@@ -631,6 +632,20 @@
     function joinWindowsPath(root, relativePath) {
         const relative = normalizePath(relativePath).replaceAll("/", "\\");
         return root ? `${root}\\${relative}` : relative;
+    }
+
+    function normalizeIconRoot(value) {
+        let normalized = String(value || "").trim();
+        normalized = normalized.replace(/^["']+|["']+$/g, "").trim();
+        normalized = normalized.replaceAll("/", "\\");
+
+        if (normalized.startsWith("\\\\")) {
+            normalized = `\\\\${normalized.slice(2).replace(/\\+/g, "\\")}`;
+        } else {
+            normalized = normalized.replace(/\\+/g, "\\");
+        }
+
+        return normalized.replace(/\\+$/, "");
     }
 
     function renderIconReport() {
