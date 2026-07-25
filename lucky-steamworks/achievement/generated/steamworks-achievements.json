@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "achievements": [
+    {
+      "achievementId": 1000,
+      "apiName": "ACH_FIRST_DOG",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_DOG.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_DOG.png",
+      "displayName": "A New Friend",
+      "description": "Obtain a dog from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "A New Friend",
+          "description": "Obtain a dog from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "初识新友",
+          "description": "首次从默认来源以外的途径获得一只狗。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_DOG_NAME",
+        "description": "ACH_FIRST_DOG_DESC"
+      },
+      "titleBriefZhHans": "首次获得一只默认以外的小狗；强调结识一位新朋友，但颜色并不一定是哪种。"
+    },
+    {
+      "achievementId": 1001,
+      "apiName": "ACH_FIRST_HEADWEAR",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_HEADWEAR.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_HEADWEAR.png",
+      "displayName": "Hats Off!",
+      "description": "Obtain headwear from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Hats Off!",
+          "description": "Obtain headwear from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "一帽惊人",
+          "description": "首次从默认来源以外的途径获得头部装饰。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_HEADWEAR_NAME",
+        "description": "ACH_FIRST_HEADWEAR_DESC"
+      },
+      "titleBriefZhHans": "首次获得头部装饰；强调第一次收集到帽子或头饰的惊喜，正常情况下会自动戴在小狗的之前光秃秃的头上。"
+    },
+    {
+      "achievementId": 1002,
+      "apiName": "ACH_FIRST_EYEWEAR",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_EYEWEAR.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_EYEWEAR.png",
+      "displayName": "A New Look",
+      "description": "Obtain eyewear from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "A New Look",
+          "description": "Obtain eyewear from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "另眼相看",
+          "description": "首次从默认来源以外的途径获得眼部装饰。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_EYEWEAR_NAME",
+        "description": "ACH_FIRST_EYEWEAR_DESC"
+      },
+      "titleBriefZhHans": "首次获得眼部装饰；强调换上眼镜后的全新造型，正常情况下会自动戴在小狗的脸上。"
+    },
+    {
+      "achievementId": 1003,
+      "apiName": "ACH_FIRST_ARM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_ARM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_ARM.png",
+      "displayName": "Not Your Average Arm",
+      "description": "Obtain a player arm from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Not Your Average Arm",
+          "description": "Obtain a player arm from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "非同凡手",
+          "description": "首次从默认来源以外的途径获得玩家手臂。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_ARM_NAME",
+        "description": "ACH_FIRST_ARM_DESC"
+      },
+      "titleBriefZhHans": "首次获得非人类的玩家手臂外观，如机械臂或麒麟臂；强调玩家从普通人形迈向科技或神怪化的自我改造，拥有一只不凡的手。"
+    },
+    {
+      "achievementId": 1004,
+      "apiName": "ACH_FIRST_CLOTHES",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_CLOTHES.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_CLOTHES.png",
+      "displayName": "Dressed to Impress",
+      "description": "Obtain clothing from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Dressed to Impress",
+          "description": "Obtain clothing from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "盛装登场",
+          "description": "首次从默认来源以外的途径获得衣服。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_CLOTHES_NAME",
+        "description": "ACH_FIRST_CLOTHES_DESC"
+      },
+      "titleBriefZhHans": "首次获得衣服；强调玩家也有了新衣服，正常情况下玩家的手臂会自动穿上衣服"
+    },
+    {
+      "achievementId": 1005,
+      "apiName": "ACH_FIRST_TABLE",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_TABLE.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_TABLE.png",
+      "displayName": "Set the Table",
+      "description": "Obtain a tablecloth from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Set the Table",
+          "description": "Obtain a tablecloth from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "桌上生花",
+          "description": "首次从默认来源以外的途径获得桌布。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_TABLE_NAME",
+        "description": "ACH_FIRST_TABLE_DESC"
+      },
+      "titleBriefZhHans": "首次获得桌布；强调更换桌子后的手感"
+    },
+    {
+      "achievementId": 1006,
+      "apiName": "ACH_FIRST_BACKGROUND",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_BACKGROUND.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_BACKGROUND.png",
+      "displayName": "Change of Scenery",
+      "description": "Obtain a background from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Change of Scenery",
+          "description": "Obtain a background from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "别有天地",
+          "description": "首次从默认来源以外的途径获得背景。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_BACKGROUND_NAME",
+        "description": "ACH_FIRST_BACKGROUND_DESC"
+      },
+      "titleBriefZhHans": "首次获得背景；强调更换场景、换个新环境。"
+    },
+    {
+      "achievementId": 1007,
+      "apiName": "ACH_FIRST_ACCESSORY",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_ACCESSORY.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_ACCESSORY.png",
+      "displayName": "Handy Accessory",
+      "description": "Obtain an accessory from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Handy Accessory",
+          "description": "Obtain an accessory from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "腕间风采",
+          "description": "首次从默认来源以外的途径获得手部装饰。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_ACCESSORY_NAME",
+        "description": "ACH_FIRST_ACCESSORY_DESC"
+      },
+      "titleBriefZhHans": "首次获得手部装饰；强调玩家手腕部装饰的饰品，但因为范围比较大且不知道玩家的性别，因此有可能会给男玩家自动装一个女款手镯也说不定。"
+    },
+    {
+      "achievementId": 1008,
+      "apiName": "ACH_FIRST_REFRESHMENT",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_REFRESHMENT.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_REFRESHMENT.png",
+      "displayName": "Cheers!",
+      "description": "Obtain a refreshment from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Cheers!",
+          "description": "Obtain a refreshment from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "举杯同庆",
+          "description": "首次从默认来源以外的途径获得饮品或消耗品。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_REFRESHMENT_NAME",
+        "description": "ACH_FIRST_REFRESHMENT_DESC"
+      },
+      "titleBriefZhHans": "首次获得饮品或消耗品；用轻松的干杯语气庆祝。"
+    },
+    {
+      "achievementId": 1009,
+      "apiName": "ACH_FIRST_CARD_BACK",
+      "hidden": true,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_CARD_BACK.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_CARD_BACK.png",
+      "displayName": "Hidden Hand",
+      "description": "Obtain a card back from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Hidden Hand",
+          "description": "Obtain a card back from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "暗藏玄机",
+          "description": "首次从默认来源以外的途径获得卡背。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_CARD_BACK_NAME",
+        "description": "ACH_FIRST_CARD_BACK_DESC"
+      },
+      "titleBriefZhHans": "首次获得卡背；强调卡牌背面也有可收集的隐藏外观。"
+    },
+    {
+      "achievementId": 1010,
+      "apiName": "ACH_FIRST_CARD_FACE",
+      "hidden": true,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_CARD_FACE.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_CARD_FACE.png",
+      "displayName": "Face Value",
+      "description": "Obtain card faces from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Face Value",
+          "description": "Obtain card faces from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "牌面十足",
+          "description": "首次从默认来源以外的途径获得卡面。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_CARD_FACE_NAME",
+        "description": "ACH_FIRST_CARD_FACE_DESC"
+      },
+      "titleBriefZhHans": "首次获得卡面；卡面不会从盲盒中开出，通常是其他途径获得。"
+    },
+    {
+      "achievementId": 1101,
+      "apiName": "ACH_FIRST_THREE_OF_A_KIND",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_THREE_OF_A_KIND.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_THREE_OF_A_KIND.png",
+      "displayName": "Three of a Kind!",
+      "description": "Make a three of a kind for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Three of a Kind!",
+          "description": "Make a three of a kind for the first time."
+        },
+        "schinese": {
+          "name": "三条！",
+          "description": "首次组成三条。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_THREE_OF_A_KIND_NAME",
+        "description": "ACH_FIRST_THREE_OF_A_KIND_DESC"
+      },
+      "titleBriefZhHans": "首次组成三条；使用标准扑克牌型名称，带首次达成的喜悦。"
+    },
+    {
+      "achievementId": 1102,
+      "apiName": "ACH_FIRST_STRAIGHT",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_STRAIGHT.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_STRAIGHT.png",
+      "displayName": "Straight!",
+      "description": "Make a straight for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Straight!",
+          "description": "Make a straight for the first time."
+        },
+        "schinese": {
+          "name": "顺子！",
+          "description": "首次组成顺子。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_STRAIGHT_NAME",
+        "description": "ACH_FIRST_STRAIGHT_DESC"
+      },
+      "titleBriefZhHans": "首次组成顺子；使用标准扑克牌型名称，简短有力。"
+    },
+    {
+      "achievementId": 1103,
+      "apiName": "ACH_FIRST_FLUSH",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_FLUSH.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_FLUSH.png",
+      "displayName": "Flush!",
+      "description": "Make a flush for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Flush!",
+          "description": "Make a flush for the first time."
+        },
+        "schinese": {
+          "name": "同花！",
+          "description": "首次组成同花。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_FLUSH_NAME",
+        "description": "ACH_FIRST_FLUSH_DESC"
+      },
+      "titleBriefZhHans": "首次组成同花；使用标准扑克牌型名称，简短有力。"
+    },
+    {
+      "achievementId": 1104,
+      "apiName": "ACH_FIRST_FULL_HOUSE",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_FULL_HOUSE.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_FULL_HOUSE.png",
+      "displayName": "Full House!",
+      "description": "Make a full house for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Full House!",
+          "description": "Make a full house for the first time."
+        },
+        "schinese": {
+          "name": "葫芦！",
+          "description": "首次组成葫芦。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_FULL_HOUSE_NAME",
+        "description": "ACH_FIRST_FULL_HOUSE_DESC"
+      },
+      "titleBriefZhHans": "首次组成葫芦；使用标准扑克牌型名称，简短有力。"
+    },
+    {
+      "achievementId": 1105,
+      "apiName": "ACH_FIRST_FOUR_OF_A_KIND",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_FOUR_OF_A_KIND.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_FOUR_OF_A_KIND.png",
+      "displayName": "Four of a Kind!",
+      "description": "Make a four of a kind for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Four of a Kind!",
+          "description": "Make a four of a kind for the first time."
+        },
+        "schinese": {
+          "name": "四条！",
+          "description": "首次组成四条。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_FOUR_OF_A_KIND_NAME",
+        "description": "ACH_FIRST_FOUR_OF_A_KIND_DESC"
+      },
+      "titleBriefZhHans": "首次组成四条；使用标准扑克牌型名称，简短有力。"
+    },
+    {
+      "achievementId": 1106,
+      "apiName": "ACH_FIRST_STRAIGHT_FLUSH",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_STRAIGHT_FLUSH.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_STRAIGHT_FLUSH.png",
+      "displayName": "Straight Flush!",
+      "description": "Make a straight flush for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Straight Flush!",
+          "description": "Make a straight flush for the first time."
+        },
+        "schinese": {
+          "name": "同花顺！",
+          "description": "首次组成同花顺。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_STRAIGHT_FLUSH_NAME",
+        "description": "ACH_FIRST_STRAIGHT_FLUSH_DESC"
+      },
+      "titleBriefZhHans": "首次组成同花顺；使用标准扑克牌型名称，简短有力。"
+    },
+    {
+      "achievementId": 1107,
+      "apiName": "ACH_FIRST_ROYAL_FLUSH",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_ROYAL_FLUSH.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_ROYAL_FLUSH.png",
+      "displayName": "Royal Flush!",
+      "description": "Make a royal flush for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Royal Flush!",
+          "description": "Make a royal flush for the first time."
+        },
+        "schinese": {
+          "name": "皇家同花顺！",
+          "description": "首次组成皇家同花顺。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_ROYAL_FLUSH_NAME",
+        "description": "ACH_FIRST_ROYAL_FLUSH_DESC"
+      },
+      "titleBriefZhHans": "首次组成皇家同花顺；最高级的扑克牌型，强调难得和荣耀感。"
+    },
+    {
+      "achievementId": 1201,
+      "apiName": "ACH_DOG_FIRST_HINT",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_DOG_FIRST_HINT.png",
+      "unachievedIcon": "unachieved/ACH_DOG_FIRST_HINT.png",
+      "displayName": "Ask the Dog",
+      "description": "Ask the dog for a poker hint for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Ask the Dog",
+          "description": "Ask the dog for a poker hint for the first time."
+        },
+        "schinese": {
+          "name": "问问小狗",
+          "description": "首次向小狗询问扑克提示。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_DOG_FIRST_HINT_NAME",
+        "description": "ACH_DOG_FIRST_HINT_DESC"
+      },
+      "titleBriefZhHans": "首次向小狗询问扑克提示；像向熟悉扑克的狗狗请教。"
+    },
+    {
+      "achievementId": 1202,
+      "apiName": "ACH_DOG_FIRST_REFUSAL",
+      "hidden": true,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_DOG_FIRST_REFUSAL.png",
+      "unachievedIcon": "unachieved/ACH_DOG_FIRST_REFUSAL.png",
+      "displayName": "Talk to the Paw",
+      "description": "Have the dog refuse to give you a poker hint for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Talk to the Paw",
+          "description": "Have the dog refuse to give you a poker hint for the first time."
+        },
+        "schinese": {
+          "name": "汪力不支",
+          "description": "首次被小狗拒绝提供扑克提示。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_DOG_FIRST_REFUSAL_NAME",
+        "description": "ACH_DOG_FIRST_REFUSAL_DESC"
+      },
+      "titleBriefZhHans": "小狗首次拒绝提供扑克提示；强调小狗可能有些累了或者灵力耗尽。（就像中国神话中，济公他每天只能用3次法术）"
+    },
+    {
+      "achievementId": 1203,
+      "apiName": "ACH_DOG_FIRST_STARSTRUCK",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_DOG_FIRST_STARSTRUCK.png",
+      "unachievedIcon": "unachieved/ACH_DOG_FIRST_STARSTRUCK.png",
+      "displayName": "Starstruck",
+      "description": "Make the dog enter its starstruck state by typing for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Starstruck",
+          "description": "Make the dog enter its starstruck state by typing for the first time."
+        },
+        "schinese": {
+          "name": "肃然起敬",
+          "description": "首次通过打字让小狗进入崇拜状态。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_DOG_FIRST_STARSTRUCK_NAME",
+        "description": "ACH_DOG_FIRST_STARSTRUCK_DESC"
+      },
+      "titleBriefZhHans": "首次通过打字让小狗进入崇拜状态；强调主人努力工作的样子令人崇拜"
+    },
+    {
+      "achievementId": 1301,
+      "apiName": "ACH_FIRST_COMMON_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_COMMON_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_COMMON_ITEM.png",
+      "displayName": "Unearthed Gift",
+      "description": "Obtain a common item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Unearthed Gift",
+          "description": "Obtain a common item for the first time."
+        },
+        "schinese": {
+          "name": "泥土馈赠",
+          "description": "首次获得普通物品。小狗从泥土里刨出一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_COMMON_ITEM_NAME",
+        "description": "ACH_FIRST_COMMON_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得普通物品；棕色盲盒象征泥土，小狗从土里刨出一份好东西，郑重地献给主人。"
+    },
+    {
+      "achievementId": 1302,
+      "apiName": "ACH_FIRST_UNCOMMON_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_UNCOMMON_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_UNCOMMON_ITEM.png",
+      "displayName": "Gift from the Grove",
+      "description": "Obtain an uncommon item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Gift from the Grove",
+          "description": "Obtain an uncommon item for the first time."
+        },
+        "schinese": {
+          "name": "林间馈赠",
+          "description": "首次获得优秀物品。小狗从林间带回一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_UNCOMMON_ITEM_NAME",
+        "description": "ACH_FIRST_UNCOMMON_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得优秀物品；绿色盲盒象征树林，小狗从树上或林间带回一份更好的礼物给主人。"
+    },
+    {
+      "achievementId": 1303,
+      "apiName": "ACH_FIRST_RARE_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_RARE_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_RARE_ITEM.png",
+      "displayName": "Rare Find",
+      "description": "Obtain a rare item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Rare Find",
+          "description": "Obtain a rare item for the first time."
+        },
+        "schinese": {
+          "name": "天降好礼",
+          "description": "首次获得稀有物品。小狗从云间捎来一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_RARE_ITEM_NAME",
+        "description": "ACH_FIRST_RARE_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得稀有物品；蓝色盲盒象征天空，像小狗从高处或云间带回一份更难得的礼物。"
+    },
+    {
+      "achievementId": 1304,
+      "apiName": "ACH_FIRST_EPIC_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_EPIC_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_EPIC_ITEM.png",
+      "displayName": "Epic Find",
+      "description": "Obtain an epic item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Epic Find",
+          "description": "Obtain an epic item for the first time."
+        },
+        "schinese": {
+          "name": "星河赠礼",
+          "description": "首次获得史诗物品。小狗从星空中寻得一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_EPIC_ITEM_NAME",
+        "description": "ACH_FIRST_EPIC_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得史诗物品；紫色盲盒象征星空，像小狗在繁星间寻得并送回的珍贵礼物。"
+    },
+    {
+      "achievementId": 1305,
+      "apiName": "ACH_FIRST_LEGENDARY_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_LEGENDARY_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_LEGENDARY_ITEM.png",
+      "displayName": "Legendary Find",
+      "description": "Obtain a legendary item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Legendary Find",
+          "description": "Obtain a legendary item for the first time."
+        },
+        "schinese": {
+          "name": "天赐珍宝",
+          "description": "首次获得传说物品。小狗从天堂带回一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_LEGENDARY_ITEM_NAME",
+        "description": "ACH_FIRST_LEGENDARY_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得传说物品；金色盲盒象征天堂，像一份从天上降下、由小狗郑重献给主人罕见礼物。"
+    },
+    {
+      "achievementId": 1306,
+      "apiName": "ACH_FIRST_MYTHIC_ITEM",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_MYTHIC_ITEM.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_MYTHIC_ITEM.png",
+      "displayName": "Mythic Find",
+      "description": "Obtain a mythic item for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Mythic Find",
+          "description": "Obtain a mythic item for the first time."
+        },
+        "schinese": {
+          "name": "神域赐福",
+          "description": "首次获得神话物品。小狗自神域带回一份礼物。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_MYTHIC_ITEM_NAME",
+        "description": "ACH_FIRST_MYTHIC_ITEM_DESC"
+      },
+      "titleBriefZhHans": "首次获得神话物品；红色盲盒象征神域，像小狗跨入神域后带回、近乎神赐的至高礼物。"
+    },
+    {
+      "achievementId": 1011,
+      "apiName": "ACH_FIRST_BODY_DECORATION",
+      "hidden": false,
+      "permission": 0,
+      "progressStat": -1,
+      "minValue": 0,
+      "maxValue": 0,
+      "achievedIcon": "achieved/ACH_FIRST_BODY_DECORATION.png",
+      "unachievedIcon": "unachieved/ACH_FIRST_BODY_DECORATION.png",
+      "displayName": "Body Beautiful",
+      "description": "Obtain body decoration from a non-default source for the first time.",
+      "localizations": {
+        "english": {
+          "name": "Body Beautiful",
+          "description": "Obtain body decoration from a non-default source for the first time."
+        },
+        "schinese": {
+          "name": "锦上添花",
+          "description": "首次从默认来源以外的途径获得体表装饰。"
+        }
+      },
+      "steamTokens": {
+        "name": "ACH_FIRST_BODY_DECORATION_NAME",
+        "description": "ACH_FIRST_BODY_DECORATION_DESC"
+      },
+      "titleBriefZhHans": "首次获得玩家体表装饰，如体毛、纹身或美甲；强调身体外观的自定义。"
+    }
+  ]
+}
