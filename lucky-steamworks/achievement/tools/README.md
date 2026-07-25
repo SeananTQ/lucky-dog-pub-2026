@@ -44,16 +44,16 @@ ACH_FIRST_DOG_NAME
 ACH_FIRST_DOG_DESC
 ```
 
-Steamworks 为新建成就自动分配的 `NEW_ACHIEVEMENT_*` Token，需要在后台规范化为这套稳定 Token 后再上传生成的 VDF。
+Steamworks 为新建成就自动分配的 `NEW_ACHIEVEMENT_*` Token。同步脚本会在“[本地化字符串]”视图中把它们改为这套稳定 Token；英文和简中等实际文案只由 VDF 上传。
 
 ## Steamworks 操作顺序
 
 1. 导出 Luban JSON。
 2. 运行生成器，修复所有校验错误。
-3. 在成就后台载入 `generated/steamworks-achievements.json`：先执行常规同步以创建并保存条目。
-4. 将后台 Token 规范化为 `<ApiName>_NAME` / `<ApiName>_DESC`。
-5. 重新分析并生成“图片操作报表”。图标根目录可在面板中修改；粘贴时允许带单/双引号或使用正反斜杠，脚本会自动规范化。脚本只判断 Steamworks 当前是否缺图，不上传图片；将报表交给浏览器操作模型，按 API 名称逐条上传并保存。
-6. 在 Steamworks 本地化页分别上传英文和简中 VDF。
+3. 在成就后台的语言下拉框选择 **[本地化字符串]**，再载入 `generated/steamworks-achievements.json` 并执行常规同步。它会创建/保存条目，并填写 `<ApiName>_NAME`、`<ApiName>_DESC`。
+4. 切换到 English / Simplified Chinese；此时尚未上传 VDF 的成就文案为空是正常现象。
+5. 在 Steamworks 本地化页分别上传英文和简中 VDF。
+6. 重新分析并生成“图片操作报表”。图标根目录可在面板中修改；粘贴时允许带单/双引号或使用正反斜杠，脚本会自动规范化。脚本只判断 Steamworks 当前是否缺图，不上传图片；将报表交给浏览器操作模型，按 API 名称逐条上传并保存。
 7. 人工复核后才在 Steamworks 发布变更。
 
 图片报表的实际执行顺序：每条成就进入 `Edit`，上传 `achieved` 和 `unachieved` 两张图，等待页面预览图出现后点击该行 `保存` 一次。浏览器文件选择器使用 Windows 路径时，推荐把报表路径转换为正斜杠；Steamworks 上传提示超时也不代表一定失败，必要时先刷新页面确认图片是否已经保存，再从未完成项继续。

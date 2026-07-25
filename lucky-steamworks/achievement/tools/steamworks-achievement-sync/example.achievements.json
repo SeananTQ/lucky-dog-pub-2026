@@ -2,8 +2,10 @@
   "achievements": [
     {
       "apiName": "ACH_FIRST_DOG",
-      "displayName": "A New Friend",
-      "description": "Obtain a dog from a non-default source for the first time.",
+      "steamTokens": {
+        "name": "ACH_FIRST_DOG_NAME",
+        "description": "ACH_FIRST_DOG_DESC"
+      },
       "permission": 0,
       "hidden": false,
       "progressStat": -1,
@@ -12,11 +14,9 @@
     },
     {
       "apiName": "ACH_FIRST_THREE_OF_A_KIND",
-      "localizations": {
-        "english": {
-          "name": "Three of a Kind!",
-          "description": "Make a three of a kind for the first time."
-        }
+      "steamTokens": {
+        "name": "ACH_FIRST_THREE_OF_A_KIND_NAME",
+        "description": "ACH_FIRST_THREE_OF_A_KIND_DESC"
       },
       "permission": 0,
       "hidden": false,

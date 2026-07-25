@@ -219,7 +219,7 @@
                     </div>
                     <div class="checks">
                         <label><input class="update-structure" type="checkbox" checked> 检查并更新已有成就的结构字段</label>
-                        <label><input class="update-english-text" type="checkbox"> 更新已有成就的英语名称与描述</label>
+                        <label><input class="update-token-text" type="checkbox" checked> 检查并更新已有成就的本地化 Token</label>
                         <label><input class="force-icon-report" type="checkbox"> 报表将已有图标也列为重新上传（强制覆盖）</label>
                     </div>
                     <div class="warning"></div>
@@ -252,7 +252,7 @@
             configStatus: root.querySelector(".config-status"),
             iconRoot: root.querySelector(".icon-root"),
             updateStructure: root.querySelector(".update-structure"),
-            updateEnglishText: root.querySelector(".update-english-text"),
+            updateTokenText: root.querySelector(".update-token-text"),
             forceIconReport: root.querySelector(".force-icon-report"),
             warning: root.querySelector(".warning"),
             analyze: root.querySelector(".analyze"),
@@ -276,7 +276,7 @@
         elements.sync.addEventListener("click", synchronize);
         elements.copyReport.addEventListener("click", copyIconReport);
         elements.updateStructure.addEventListener("change", invalidatePlan);
-        elements.updateEnglishText.addEventListener("change", invalidatePlan);
+        elements.updateTokenText.addEventListener("change", invalidatePlan);
         elements.forceIconReport.addEventListener("change", invalidatePlan);
         elements.iconRoot.addEventListener("input", invalidatePlan);
 
@@ -332,9 +332,14 @@
         }
         seen.add(apiName);
 
-        const english = row.localizations?.english || {};
-        const displayName = optionalTrimmedString(row.displayName ?? row.name ?? english.name);
-        const description = optionalTrimmedString(row.description ?? row.desc ?? english.description);
+        const nameToken = requiredToken(
+            row.steamTokens?.name ?? row.nameToken ?? `${apiName}_NAME`,
+            `${apiName}.steamTokens.name`,
+        );
+        const descriptionToken = requiredToken(
+            row.steamTokens?.description ?? row.descriptionToken ?? `${apiName}_DESC`,
+            `${apiName}.steamTokens.description`,
+        );
 
         const permission = row.permission == null ? 0 : Number(row.permission);
         if (![0, 1, 2].includes(permission)) {
@@ -347,8 +352,8 @@
 
         return {
             apiName,
-            displayName,
-            description,
+            nameToken,
+            descriptionToken,
             permission: String(permission),
             hidden: Boolean(row.hidden ?? row.isHidden ?? false),
             progressStat,
@@ -364,6 +369,14 @@
             throw new Error(`${fieldName} 为必填字段。`);
         }
         return value.trim();
+    }
+
+    function requiredToken(value, fieldName) {
+        const token = requiredString(value, fieldName);
+        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(token)) {
+            throw new Error(`${fieldName} 只能包含字母、数字和下划线，且必须以字母开头。`);
+        }
+        return token;
     }
 
     function optionalString(value) {
@@ -425,6 +438,7 @@
                 "Steamworks 当前有尚未保存的编辑行。请先保存或取消该行，再执行分析。",
             );
         }
+        assertLocalizationTokenView(table);
     }
 
     function readExistingRows() {
@@ -471,12 +485,12 @@
             };
         }
 
-        const visibleTextDiffers = panel.updateEnglishText.checked && (
-            (achievement.displayName && current.visibleDisplayName !== achievement.displayName) ||
-            (achievement.description && current.visibleDescription !== achievement.description)
+        const visibleTextDiffers = panel.updateTokenText.checked && (
+            current.visibleDisplayName !== achievement.nameToken ||
+            current.visibleDescription !== achievement.descriptionToken
         );
 
-        if (!panel.updateStructure.checked && !panel.updateEnglishText.checked) {
+        if (!panel.updateStructure.checked && !panel.updateTokenText.checked) {
             return {
                 type: "same",
                 achievement,
@@ -490,7 +504,7 @@
             achievement,
             current,
             message: visibleTextDiffers
-                ? "已存在；英语文案不同"
+                ? "已存在；本地化 Token 不同"
                 : "已存在；将精确检查所选字段",
         };
     }
@@ -784,7 +798,7 @@
         const editRow = await waitFor(() => document.querySelector("#achievementTable tr.selected"));
         applyFields(editRow, achievement, {
             includeStructure: true,
-            includeEnglishText: true,
+            includeTokens: true,
             isCreate: true,
         });
         if (achievement.achievedIcon || achievement.unachievedIcon) {
@@ -815,7 +829,7 @@
 
         const fieldChanges = applyFields(editRow, achievement, {
             includeStructure: panel.updateStructure.checked,
-            includeEnglishText: panel.updateEnglishText.checked,
+            includeTokens: panel.updateTokenText.checked,
             isCreate: false,
         });
         if (fieldChanges.length === 0) {
@@ -832,7 +846,7 @@
     function applyFields(editRow, achievement, options) {
         const {
             includeStructure,
-            includeEnglishText,
+            includeTokens,
             isCreate,
         } = options;
         const prefix = getAchievementControlPrefix(editRow);
@@ -855,27 +869,52 @@
             }
         }
 
-        if (isCreate || includeEnglishText) {
-            const desiredDisplayName = achievement.displayName || (isCreate ? achievement.apiName : "");
-            const desiredDescription = achievement.description || (isCreate ? "Pending localization." : "");
-            if (desiredDisplayName) {
-                setControlValue(
-                    document.querySelector(`#${cssEscape(`${prefix}_displayname`)} input[name="english"]`),
-                    desiredDisplayName,
-                    "英语显示名称",
-                    changes,
-                );
-            }
-            if (desiredDescription) {
-                setControlValue(
-                    document.querySelector(`#${cssEscape(`${prefix}_description`)} input[name="english"]`),
-                    desiredDescription,
-                    "英语描述",
-                    changes,
-                );
-            }
+        if (isCreate || includeTokens) {
+            setControlValue(
+                findLocalizationFieldControl(editRow, prefix, "displayname", "显示名称 Token"),
+                achievement.nameToken,
+                "显示名称 Token",
+                changes,
+            );
+            setControlValue(
+                findLocalizationFieldControl(editRow, prefix, "description", "描述 Token"),
+                achievement.descriptionToken,
+                "描述 Token",
+                changes,
+            );
         }
         return changes;
+    }
+
+    function assertLocalizationTokenView(table) {
+        const selects = [...document.querySelectorAll("select")];
+        const isTokenOption = option => /本地化字符串|locali[sz]ation strings?/i.test(option?.textContent || "");
+        if (selects.some(select => isTokenOption(select.selectedOptions?.[0]))) {
+            return;
+        }
+
+        const visibleTokens = [...table.querySelectorAll("tr[id^='a']")]
+            .map(row => row.cells?.[1]?.innerText || "")
+            .filter(Boolean)
+            .flatMap(text => text.split(/\r?\n/).map(value => value.trim()))
+            .filter(Boolean);
+        if (visibleTokens.some(value => /^[A-Za-z][A-Za-z0-9_]*_(?:NAME|DESC)$/.test(value))) {
+            return;
+        }
+        throw new Error("请先把 Steamworks 页面语言切换为“[本地化字符串]”，再分析或同步。该脚本只填写 Token，不直接填写英文文案。");
+    }
+
+    function findLocalizationFieldControl(editRow, prefix, fieldName, label) {
+        const field = document.getElementById(`${prefix}_${fieldName}`);
+        const controls = [...(field?.querySelectorAll('input:not([type="hidden"]):not([disabled]), textarea:not([disabled])') || [])]
+            .filter(control => control.offsetParent !== null);
+        if (controls.length === 1) {
+            return controls[0];
+        }
+        if (controls.length === 0) {
+            throw new Error(`${label}：当前编辑行没有可填写的本地化字符串控件。请确认页面仍处于“[本地化字符串]”视图。`);
+        }
+        throw new Error(`${label}：找到 ${controls.length} 个可填写控件，无法安全判断目标。请报告此页 DOM 结构后再继续。`);
     }
 
     function getAchievementControlPrefix(editRow) {
@@ -968,7 +1007,7 @@
         panel.configInput.disabled = running;
         panel.iconRoot.disabled = running;
         panel.updateStructure.disabled = running;
-        panel.updateEnglishText.disabled = running;
+        panel.updateTokenText.disabled = running;
         panel.forceIconReport.disabled = running;
         panel.copyReport.disabled = running || !state.iconReport;
     }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "achievements": [
     {
       "achievementId": 1000,
@@ -11,8 +11,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_DOG.png",
       "unachievedIcon": "unachieved/ACH_FIRST_DOG.png",
-      "displayName": "A New Friend",
-      "description": "Obtain a dog from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "A New Friend",
@@ -39,8 +37,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_HEADWEAR.png",
       "unachievedIcon": "unachieved/ACH_FIRST_HEADWEAR.png",
-      "displayName": "Hats Off!",
-      "description": "Obtain headwear from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Hats Off!",
@@ -67,8 +63,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_EYEWEAR.png",
       "unachievedIcon": "unachieved/ACH_FIRST_EYEWEAR.png",
-      "displayName": "A New Look",
-      "description": "Obtain eyewear from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "A New Look",
@@ -95,8 +89,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_ARM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_ARM.png",
-      "displayName": "Not Your Average Arm",
-      "description": "Obtain a player arm from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Not Your Average Arm",
@@ -123,8 +115,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_CLOTHES.png",
       "unachievedIcon": "unachieved/ACH_FIRST_CLOTHES.png",
-      "displayName": "Dressed to Impress",
-      "description": "Obtain clothing from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Dressed to Impress",
@@ -151,8 +141,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_TABLE.png",
       "unachievedIcon": "unachieved/ACH_FIRST_TABLE.png",
-      "displayName": "Set the Table",
-      "description": "Obtain a tablecloth from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Set the Table",
@@ -179,8 +167,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_BACKGROUND.png",
       "unachievedIcon": "unachieved/ACH_FIRST_BACKGROUND.png",
-      "displayName": "Change of Scenery",
-      "description": "Obtain a background from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Change of Scenery",
@@ -207,8 +193,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_ACCESSORY.png",
       "unachievedIcon": "unachieved/ACH_FIRST_ACCESSORY.png",
-      "displayName": "Handy Accessory",
-      "description": "Obtain an accessory from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Handy Accessory",
@@ -235,8 +219,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_REFRESHMENT.png",
       "unachievedIcon": "unachieved/ACH_FIRST_REFRESHMENT.png",
-      "displayName": "Cheers!",
-      "description": "Obtain a refreshment from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Cheers!",
@@ -263,8 +245,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_CARD_BACK.png",
       "unachievedIcon": "unachieved/ACH_FIRST_CARD_BACK.png",
-      "displayName": "Hidden Hand",
-      "description": "Obtain a card back from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Hidden Hand",
@@ -291,8 +271,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_CARD_FACE.png",
       "unachievedIcon": "unachieved/ACH_FIRST_CARD_FACE.png",
-      "displayName": "Face Value",
-      "description": "Obtain card faces from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Face Value",
@@ -319,8 +297,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_THREE_OF_A_KIND.png",
       "unachievedIcon": "unachieved/ACH_FIRST_THREE_OF_A_KIND.png",
-      "displayName": "Three of a Kind!",
-      "description": "Make a three of a kind for the first time.",
       "localizations": {
         "english": {
           "name": "Three of a Kind!",
@@ -347,8 +323,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_STRAIGHT.png",
       "unachievedIcon": "unachieved/ACH_FIRST_STRAIGHT.png",
-      "displayName": "Straight!",
-      "description": "Make a straight for the first time.",
       "localizations": {
         "english": {
           "name": "Straight!",
@@ -375,8 +349,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_FLUSH.png",
       "unachievedIcon": "unachieved/ACH_FIRST_FLUSH.png",
-      "displayName": "Flush!",
-      "description": "Make a flush for the first time.",
       "localizations": {
         "english": {
           "name": "Flush!",
@@ -403,8 +375,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_FULL_HOUSE.png",
       "unachievedIcon": "unachieved/ACH_FIRST_FULL_HOUSE.png",
-      "displayName": "Full House!",
-      "description": "Make a full house for the first time.",
       "localizations": {
         "english": {
           "name": "Full House!",
@@ -431,8 +401,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_FOUR_OF_A_KIND.png",
       "unachievedIcon": "unachieved/ACH_FIRST_FOUR_OF_A_KIND.png",
-      "displayName": "Four of a Kind!",
-      "description": "Make a four of a kind for the first time.",
       "localizations": {
         "english": {
           "name": "Four of a Kind!",
@@ -459,8 +427,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_STRAIGHT_FLUSH.png",
       "unachievedIcon": "unachieved/ACH_FIRST_STRAIGHT_FLUSH.png",
-      "displayName": "Straight Flush!",
-      "description": "Make a straight flush for the first time.",
       "localizations": {
         "english": {
           "name": "Straight Flush!",
@@ -487,8 +453,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_ROYAL_FLUSH.png",
       "unachievedIcon": "unachieved/ACH_FIRST_ROYAL_FLUSH.png",
-      "displayName": "Royal Flush!",
-      "description": "Make a royal flush for the first time.",
       "localizations": {
         "english": {
           "name": "Royal Flush!",
@@ -515,8 +479,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_DOG_FIRST_HINT.png",
       "unachievedIcon": "unachieved/ACH_DOG_FIRST_HINT.png",
-      "displayName": "Ask the Dog",
-      "description": "Ask the dog for a poker hint for the first time.",
       "localizations": {
         "english": {
           "name": "Ask the Dog",
@@ -543,8 +505,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_DOG_FIRST_REFUSAL.png",
       "unachievedIcon": "unachieved/ACH_DOG_FIRST_REFUSAL.png",
-      "displayName": "Talk to the Paw",
-      "description": "Have the dog refuse to give you a poker hint for the first time.",
       "localizations": {
         "english": {
           "name": "Talk to the Paw",
@@ -571,8 +531,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_DOG_FIRST_STARSTRUCK.png",
       "unachievedIcon": "unachieved/ACH_DOG_FIRST_STARSTRUCK.png",
-      "displayName": "Starstruck",
-      "description": "Make the dog enter its starstruck state by typing for the first time.",
       "localizations": {
         "english": {
           "name": "Starstruck",
@@ -599,8 +557,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_COMMON_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_COMMON_ITEM.png",
-      "displayName": "Unearthed Gift",
-      "description": "Obtain a common item for the first time.",
       "localizations": {
         "english": {
           "name": "Unearthed Gift",
@@ -627,8 +583,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_UNCOMMON_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_UNCOMMON_ITEM.png",
-      "displayName": "Gift from the Grove",
-      "description": "Obtain an uncommon item for the first time.",
       "localizations": {
         "english": {
           "name": "Gift from the Grove",
@@ -655,8 +609,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_RARE_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_RARE_ITEM.png",
-      "displayName": "Rare Find",
-      "description": "Obtain a rare item for the first time.",
       "localizations": {
         "english": {
           "name": "Rare Find",
@@ -683,8 +635,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_EPIC_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_EPIC_ITEM.png",
-      "displayName": "Epic Find",
-      "description": "Obtain an epic item for the first time.",
       "localizations": {
         "english": {
           "name": "Epic Find",
@@ -711,8 +661,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_LEGENDARY_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_LEGENDARY_ITEM.png",
-      "displayName": "Legendary Find",
-      "description": "Obtain a legendary item for the first time.",
       "localizations": {
         "english": {
           "name": "Legendary Find",
@@ -739,8 +687,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_MYTHIC_ITEM.png",
       "unachievedIcon": "unachieved/ACH_FIRST_MYTHIC_ITEM.png",
-      "displayName": "Mythic Find",
-      "description": "Obtain a mythic item for the first time.",
       "localizations": {
         "english": {
           "name": "Mythic Find",
@@ -767,8 +713,6 @@
       "maxValue": 0,
       "achievedIcon": "achieved/ACH_FIRST_BODY_DECORATION.png",
       "unachievedIcon": "unachieved/ACH_FIRST_BODY_DECORATION.png",
-      "displayName": "Body Beautiful",
-      "description": "Obtain body decoration from a non-default source for the first time.",
       "localizations": {
         "english": {
           "name": "Body Beautiful",

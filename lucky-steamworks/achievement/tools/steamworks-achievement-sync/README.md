@@ -15,7 +15,7 @@
 
 ## 使用方法
 
-1. 登录 Steamworks，打开对应 AppID 的“成就配置”页面。
+1. 登录 Steamworks，打开对应 AppID 的“成就配置”页面，并将语言下拉框切换至 **[本地化字符串]**。
 2. 确保页面中没有处于编辑状态、尚未保存的成就行。
 3. 打开浏览器开发者工具的 Console。
 4. 将 `steamworks-achievement-sync.js` 的完整内容粘贴并运行。
@@ -45,10 +45,9 @@ Steamworks 或浏览器可能阻止首次在 Console 粘贴代码。请只粘贴
 | 字段 | 必填 | 说明 |
 |---|---:|---|
 | `apiName` | 是 | Steam API 稳定名称，只允许字母、数字和下划线 |
-| `displayName` / `name` | 否 | 默认英语显示名称；仅在启用英语文案同步时更新已有成就 |
-| `description` / `desc` | 否 | 默认英语描述；仅在启用英语文案同步时更新已有成就 |
-| `localizations.english.name` | 可替代 | 可替代 `displayName` |
-| `localizations.english.description` | 可替代 | 可替代 `description` |
+| `steamTokens.name` | 否 | 显示名称 Token；省略时自动使用 `<apiName>_NAME` |
+| `steamTokens.description` | 否 | 描述 Token；省略时自动使用 `<apiName>_DESC` |
+| `nameToken` / `descriptionToken` | 可替代 | 可替代 `steamTokens` 内的两个字段 |
 | `permission` | 否 | `0` 客户端、`1` 游戏服务器、`2` 官方游戏服务器；默认 `0` |
 | `hidden` / `isHidden` | 否 | 是否隐藏；默认 `false` |
 | `progressStat` | 否 | 进度统计的 option value；无进度时为 `-1` |
@@ -57,16 +56,7 @@ Steamworks 或浏览器可能阻止首次在 Console 粘贴代码。请只粘贴
 | `achievedIcon` | 否 | 已达成图标在所选目录内的相对路径或文件名 |
 | `unachievedIcon` | 否 | 未达成图标在所选目录内的相对路径或文件名 |
 
-若使用 `localizations`，脚本只读取 `english` 作为可选的英语文本来源。其他语言应使用 Steamworks 官方“成就本地化”页面导出/上传的本地化文件维护。
-
-新建成就时，Steamworks 要求英语名称和描述非空。如果 JSON 未提供这两个字段，脚本自动使用以下稳定占位内容：
-
-```text
-显示名称：<API Name>
-描述：Pending localization.
-```
-
-之后上传包含英语在内的官方本地化文件即可覆盖占位文本。
+同步脚本只在 Steamworks 的 **[本地化字符串]** 视图中填写 Token，绝不填写任何玩家可见的语言文案。`localizations` 可以保留在 JSON 中供其他工具使用，但同步脚本不会读取它。英文、简中及其他语言一律通过 Steamworks 官方本地化页面上传对应 VDF。
 
 ## 图标目录示例
 
@@ -84,11 +74,11 @@ achievement-icons/
 
 ## 同步行为
 
-- JSON 中存在、Steamworks 不存在：常规同步会新建并自动保存；缺少英语文案时使用占位文本。
+- JSON 中存在、Steamworks 不存在：常规同步会新建并自动保存，名称与描述均填写稳定 Token。
 - 两边都存在：常规同步仅比较已勾选职责范围内的字段；有差异才自动保存。
 - Steamworks 存在、JSON 不存在：不处理、不删除。
 - “检查并更新已有成就的结构字段”默认开启，管理 API 名称、进度、权限和隐藏状态。
-- “更新已有成就的英语名称与描述”默认关闭，避免覆盖官方本地化文件上传的正式文案。
+- “检查并更新已有成就的本地化 Token”默认开启，用于把 Steam 自动分配的 `NEW_ACHIEVEMENT_*` 统一规范为项目 Token。
 - “报表将已有图标也列为重新上传（强制覆盖）”默认关闭，因为页面没有稳定的图像内容哈希可供差异比较。
 - 图片报表要求目标成就已存在；Steamworks 会拒绝未保存新成就的图片上传，因此必须先完成常规同步并刷新页面。
 - 报表默认只列出 Steamworks 当前缺少图片的成就；已有图片无法与本地源文件可靠比对，可用强制覆盖选项显式列出。
@@ -99,6 +89,7 @@ achievement-icons/
 ## 安全限制
 
 - 目标 AppID 不在白名单时脚本拒绝运行。
+- 页面没有处于 **[本地化字符串]** 视图时，脚本拒绝分析或同步，避免误写 English 等玩家可见文案。
 - 页面存在未保存编辑行时拒绝分析或同步。
 - 执行前显示目标 AppID 和操作数量，并要求二次确认。
 - 不读取、保存或导出 Steam Cookie、会话令牌及 Steam Guard 信息。

@@ -180,8 +180,6 @@ function buildArtifacts(records, options) {
             maxValue: 0,
             achievedIcon,
             unachievedIcon,
-            displayName: nameEn,
-            description: descriptionEn,
             localizations: {
                 english: { name: nameEn, description: descriptionEn },
                 schinese: { name: nameZhHans, description: descriptionZhHans },
@@ -225,7 +223,7 @@ function main() {
     const syncPath = path.join(options.generatedRoot, "steamworks-achievements.json");
     const englishPath = path.join(options.vdfRoot, "steamworks-achievements.english.vdf");
     const schinesePath = path.join(options.vdfRoot, "steamworks-achievements.schinese.vdf");
-    writeJson(syncPath, { schemaVersion: 1, achievements });
+    writeJson(syncPath, { schemaVersion: 2, achievements });
     fs.writeFileSync(englishPath, buildVdf("english", achievements.map(entry => ({
         nameToken: entry.steamTokens.name,
         descriptionToken: entry.steamTokens.description,
