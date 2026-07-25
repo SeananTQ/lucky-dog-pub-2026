@@ -6,7 +6,12 @@
     "TargetKey": "Dog",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得一只狗；默认红柴不计入"
+    "Notes": "首次从非初始来源获得一只狗；默认红柴不计入",
+    "SteamNameEn": "A New Friend",
+    "SteamDescriptionEn": "Obtain a dog from a non-default source for the first time.",
+    "SteamNameZhHans": "初识新友",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得一只狗。",
+    "SteamTitleBriefZhHans": "首次获得一只默认以外的小狗；强调结识一位新朋友，但颜色并不一定是哪种。"
   },
   {
     "AchievementId": 1001,
@@ -15,7 +20,12 @@
     "TargetKey": "Headwear",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得头部装饰"
+    "Notes": "首次从非初始来源获得头部装饰",
+    "SteamNameEn": "Hats Off!",
+    "SteamDescriptionEn": "Obtain headwear from a non-default source for the first time.",
+    "SteamNameZhHans": "一帽惊人",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得头部装饰。",
+    "SteamTitleBriefZhHans": "首次获得头部装饰；强调第一次收集到帽子或头饰的惊喜，正常情况下会自动戴在小狗的之前光秃秃的头上。"
   },
   {
     "AchievementId": 1002,
@@ -24,7 +34,12 @@
     "TargetKey": "Eyewear",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得眼部装饰"
+    "Notes": "首次从非初始来源获得眼部装饰",
+    "SteamNameEn": "A New Look",
+    "SteamDescriptionEn": "Obtain eyewear from a non-default source for the first time.",
+    "SteamNameZhHans": "另眼相看",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得眼部装饰。",
+    "SteamTitleBriefZhHans": "首次获得眼部装饰；强调换上眼镜后的全新造型，正常情况下会自动戴在小狗的脸上。"
   },
   {
     "AchievementId": 1003,
@@ -33,7 +48,12 @@
     "TargetKey": "Arm",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得玩家手臂"
+    "Notes": "首次从非初始来源获得玩家手臂，一般是机械手臂、麒麟臂等非人手臂",
+    "SteamNameEn": "Not Your Average Arm",
+    "SteamDescriptionEn": "Obtain a player arm from a non-default source for the first time.",
+    "SteamNameZhHans": "非同凡手",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得玩家手臂。",
+    "SteamTitleBriefZhHans": "首次获得非人类的玩家手臂外观，如机械臂或麒麟臂；强调玩家从普通人形迈向科技或神怪化的自我改造，拥有一只不凡的手。"
   },
   {
     "AchievementId": 1004,
@@ -42,7 +62,12 @@
     "TargetKey": "Clothes",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得衣服"
+    "Notes": "首次从非初始来源获得衣服",
+    "SteamNameEn": "Dressed to Impress",
+    "SteamDescriptionEn": "Obtain clothing from a non-default source for the first time.",
+    "SteamNameZhHans": "盛装登场",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得衣服。",
+    "SteamTitleBriefZhHans": "首次获得衣服；强调玩家也有了新衣服，正常情况下玩家的手臂会自动穿上衣服"
   },
   {
     "AchievementId": 1005,
@@ -51,7 +76,12 @@
     "TargetKey": "Table",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得桌布"
+    "Notes": "首次从非初始来源获得桌布",
+    "SteamNameEn": "Set the Table",
+    "SteamDescriptionEn": "Obtain a tablecloth from a non-default source for the first time.",
+    "SteamNameZhHans": "桌上生花",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得桌布。",
+    "SteamTitleBriefZhHans": "首次获得桌布；强调更换桌子后的手感"
   },
   {
     "AchievementId": 1006,
@@ -60,7 +90,12 @@
     "TargetKey": "Background",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得背景"
+    "Notes": "首次从非初始来源获得背景",
+    "SteamNameEn": "Change of Scenery",
+    "SteamDescriptionEn": "Obtain a background from a non-default source for the first time.",
+    "SteamNameZhHans": "别有天地",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得背景。",
+    "SteamTitleBriefZhHans": "首次获得背景；强调更换场景、换个新环境。"
   },
   {
     "AchievementId": 1007,
@@ -69,7 +104,12 @@
     "TargetKey": "Accessory",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得手部装饰"
+    "Notes": "首次从非初始来源获得手部装饰",
+    "SteamNameEn": "Handy Accessory",
+    "SteamDescriptionEn": "Obtain an accessory from a non-default source for the first time.",
+    "SteamNameZhHans": "腕间风采",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得手部装饰。",
+    "SteamTitleBriefZhHans": "首次获得手部装饰；强调玩家手腕部装饰的饰品，但因为范围比较大且不知道玩家的性别，因此有可能会给男玩家自动装一个女款手镯也说不定。"
   },
   {
     "AchievementId": 1008,
@@ -78,7 +118,12 @@
     "TargetKey": "Refreshment",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次从非初始来源获得饮品/消耗品"
+    "Notes": "首次从非初始来源获得饮品/消耗品",
+    "SteamNameEn": "Cheers!",
+    "SteamDescriptionEn": "Obtain a refreshment from a non-default source for the first time.",
+    "SteamNameZhHans": "举杯同庆",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得饮品或消耗品。",
+    "SteamTitleBriefZhHans": "首次获得饮品或消耗品；用轻松的干杯语气庆祝。"
   },
   {
     "AchievementId": 1009,
@@ -87,7 +132,12 @@
     "TargetKey": "CardBack",
     "TargetValue": 1,
     "IsHidden": true,
-    "Notes": "首次从非初始来源获得卡背"
+    "Notes": "首次从非初始来源获得卡背",
+    "SteamNameEn": "Hidden Hand",
+    "SteamDescriptionEn": "Obtain a card back from a non-default source for the first time.",
+    "SteamNameZhHans": "暗藏玄机",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得卡背。",
+    "SteamTitleBriefZhHans": "首次获得卡背；强调卡牌背面也有可收集的隐藏外观。"
   },
   {
     "AchievementId": 1010,
@@ -96,7 +146,12 @@
     "TargetKey": "CardFace",
     "TargetValue": 1,
     "IsHidden": true,
-    "Notes": "首次从非初始来源获得卡面"
+    "Notes": "首次从非初始来源获得卡面",
+    "SteamNameEn": "Face Value",
+    "SteamDescriptionEn": "Obtain card faces from a non-default source for the first time.",
+    "SteamNameZhHans": "牌面十足",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得卡面。",
+    "SteamTitleBriefZhHans": "首次获得卡面；卡面不会从盲盒中开出，通常是其他途径获得。"
   },
   {
     "AchievementId": 1101,
@@ -105,7 +160,12 @@
     "TargetKey": "PokerHandRankThreeOfAKindCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成三条"
+    "Notes": "首次达成三条",
+    "SteamNameEn": "Three of a Kind!",
+    "SteamDescriptionEn": "Make a three of a kind for the first time.",
+    "SteamNameZhHans": "三条！",
+    "SteamDescriptionZhHans": "首次组成三条。",
+    "SteamTitleBriefZhHans": "首次组成三条；使用标准扑克牌型名称，带首次达成的喜悦。"
   },
   {
     "AchievementId": 1102,
@@ -114,7 +174,12 @@
     "TargetKey": "PokerHandRankStraightCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成顺子"
+    "Notes": "首次达成顺子",
+    "SteamNameEn": "Straight!",
+    "SteamDescriptionEn": "Make a straight for the first time.",
+    "SteamNameZhHans": "顺子！",
+    "SteamDescriptionZhHans": "首次组成顺子。",
+    "SteamTitleBriefZhHans": "首次组成顺子；使用标准扑克牌型名称，简短有力。"
   },
   {
     "AchievementId": 1103,
@@ -123,7 +188,12 @@
     "TargetKey": "PokerHandRankFlushCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成同花"
+    "Notes": "首次达成同花",
+    "SteamNameEn": "Flush!",
+    "SteamDescriptionEn": "Make a flush for the first time.",
+    "SteamNameZhHans": "同花！",
+    "SteamDescriptionZhHans": "首次组成同花。",
+    "SteamTitleBriefZhHans": "首次组成同花；使用标准扑克牌型名称，简短有力。"
   },
   {
     "AchievementId": 1104,
@@ -132,7 +202,12 @@
     "TargetKey": "PokerHandRankFullHouseCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成葫芦"
+    "Notes": "首次达成葫芦",
+    "SteamNameEn": "Full House!",
+    "SteamDescriptionEn": "Make a full house for the first time.",
+    "SteamNameZhHans": "葫芦！",
+    "SteamDescriptionZhHans": "首次组成葫芦。",
+    "SteamTitleBriefZhHans": "首次组成葫芦；使用标准扑克牌型名称，简短有力。"
   },
   {
     "AchievementId": 1105,
@@ -141,7 +216,12 @@
     "TargetKey": "PokerHandRankFourOfAKindCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成四条"
+    "Notes": "首次达成四条",
+    "SteamNameEn": "Four of a Kind!",
+    "SteamDescriptionEn": "Make a four of a kind for the first time.",
+    "SteamNameZhHans": "四条！",
+    "SteamDescriptionZhHans": "首次组成四条。",
+    "SteamTitleBriefZhHans": "首次组成四条；使用标准扑克牌型名称，简短有力。"
   },
   {
     "AchievementId": 1106,
@@ -150,7 +230,12 @@
     "TargetKey": "PokerHandRankStraightFlushCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成同花顺"
+    "Notes": "首次达成同花顺",
+    "SteamNameEn": "Straight Flush!",
+    "SteamDescriptionEn": "Make a straight flush for the first time.",
+    "SteamNameZhHans": "同花顺！",
+    "SteamDescriptionZhHans": "首次组成同花顺。",
+    "SteamTitleBriefZhHans": "首次组成同花顺；使用标准扑克牌型名称，简短有力。"
   },
   {
     "AchievementId": 1107,
@@ -159,7 +244,12 @@
     "TargetKey": "PokerHandRankRoyalFlushCount",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次达成皇家同花顺"
+    "Notes": "首次达成皇家同花顺",
+    "SteamNameEn": "Royal Flush!",
+    "SteamDescriptionEn": "Make a royal flush for the first time.",
+    "SteamNameZhHans": "皇家同花顺！",
+    "SteamDescriptionZhHans": "首次组成皇家同花顺。",
+    "SteamTitleBriefZhHans": "首次组成皇家同花顺；最高级的扑克牌型，强调难得和荣耀感。"
   },
   {
     "AchievementId": 1201,
@@ -168,7 +258,12 @@
     "TargetKey": "DogHintAsked",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次询问狗狗牌运"
+    "Notes": "首次询问狗狗牌运",
+    "SteamNameEn": "Ask the Dog",
+    "SteamDescriptionEn": "Ask the dog for a poker hint for the first time.",
+    "SteamNameZhHans": "问问小狗",
+    "SteamDescriptionZhHans": "首次向小狗询问扑克提示。",
+    "SteamTitleBriefZhHans": "首次向小狗询问扑克提示；像向熟悉扑克的狗狗请教。"
   },
   {
     "AchievementId": 1202,
@@ -177,7 +272,12 @@
     "TargetKey": "DogHintRefused",
     "TargetValue": 1,
     "IsHidden": true,
-    "Notes": "首次被狗狗拒绝回答"
+    "Notes": "首次被狗狗拒绝回答",
+    "SteamNameEn": "Talk to the Paw",
+    "SteamDescriptionEn": "Have the dog refuse to give you a poker hint for the first time.",
+    "SteamNameZhHans": "汪力不支",
+    "SteamDescriptionZhHans": "首次被小狗拒绝提供扑克提示。",
+    "SteamTitleBriefZhHans": "小狗首次拒绝提供扑克提示；强调小狗可能有些累了或者灵力耗尽。（就像中国神话中，济公他每天只能用3次法术）"
   },
   {
     "AchievementId": 1203,
@@ -186,43 +286,96 @@
     "TargetKey": "DesktopStarstruckEntered",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次打字使狗狗进入崇拜状态；仅状态切换时计一次"
+    "Notes": "首次打字使狗狗进入崇拜状态；仅状态切换时计一次",
+    "SteamNameEn": "Starstruck",
+    "SteamDescriptionEn": "Make the dog enter its starstruck state by typing for the first time.",
+    "SteamNameZhHans": "肃然起敬",
+    "SteamDescriptionZhHans": "首次通过打字让小狗进入崇拜状态。",
+    "SteamTitleBriefZhHans": "首次通过打字让小狗进入崇拜状态；强调主人努力工作的样子令人崇拜"
   },
   {
     "AchievementId": 1301,
+    "ApiName": "ACH_FIRST_COMMON_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Common",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得普通物品",
+    "SteamNameEn": "Unearthed Gift",
+    "SteamDescriptionEn": "Obtain a common item for the first time.",
+    "SteamNameZhHans": "泥土馈赠",
+    "SteamDescriptionZhHans": "首次获得普通物品。小狗从泥土里刨出一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得普通物品；棕色盲盒象征泥土，小狗从土里刨出一份好东西，郑重地献给主人。"
+  },
+  {
+    "AchievementId": 1302,
+    "ApiName": "ACH_FIRST_UNCOMMON_ITEM",
+    "RuleType": 2,
+    "TargetKey": "Uncommon",
+    "TargetValue": 1,
+    "IsHidden": false,
+    "Notes": "首次获得优秀物品",
+    "SteamNameEn": "Gift from the Grove",
+    "SteamDescriptionEn": "Obtain an uncommon item for the first time.",
+    "SteamNameZhHans": "林间馈赠",
+    "SteamDescriptionZhHans": "首次获得优秀物品。小狗从林间带回一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得优秀物品；绿色盲盒象征树林，小狗从树上或林间带回一份更好的礼物给主人。"
+  },
+  {
+    "AchievementId": 1303,
     "ApiName": "ACH_FIRST_RARE_ITEM",
     "RuleType": 2,
     "TargetKey": "Rare",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次获得稀有物品"
+    "Notes": "首次获得稀有物品",
+    "SteamNameEn": "Rare Find",
+    "SteamDescriptionEn": "Obtain a rare item for the first time.",
+    "SteamNameZhHans": "天降好礼",
+    "SteamDescriptionZhHans": "首次获得稀有物品。小狗从云间捎来一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得稀有物品；蓝色盲盒象征天空，像小狗从高处或云间带回一份更难得的礼物。"
   },
   {
-    "AchievementId": 1302,
+    "AchievementId": 1304,
     "ApiName": "ACH_FIRST_EPIC_ITEM",
     "RuleType": 2,
     "TargetKey": "Epic",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次获得史诗物品"
+    "Notes": "首次获得史诗物品",
+    "SteamNameEn": "Epic Find",
+    "SteamDescriptionEn": "Obtain an epic item for the first time.",
+    "SteamNameZhHans": "星河赠礼",
+    "SteamDescriptionZhHans": "首次获得史诗物品。小狗从星空中寻得一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得史诗物品；紫色盲盒象征星空，像小狗在繁星间寻得并送回的珍贵礼物。"
   },
   {
-    "AchievementId": 1303,
+    "AchievementId": 1305,
     "ApiName": "ACH_FIRST_LEGENDARY_ITEM",
     "RuleType": 2,
     "TargetKey": "Legendary",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次获得传说物品"
+    "Notes": "首次获得传说物品",
+    "SteamNameEn": "Legendary Find",
+    "SteamDescriptionEn": "Obtain a legendary item for the first time.",
+    "SteamNameZhHans": "天赐珍宝",
+    "SteamDescriptionZhHans": "首次获得传说物品。小狗从天堂带回一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得传说物品；金色盲盒象征天堂，像一份从天上降下、由小狗郑重献给主人罕见礼物。"
   },
   {
-    "AchievementId": 1304,
+    "AchievementId": 1306,
     "ApiName": "ACH_FIRST_MYTHIC_ITEM",
     "RuleType": 2,
     "TargetKey": "Mythic",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次获得神话物品"
+    "Notes": "首次获得神话物品",
+    "SteamNameEn": "Mythic Find",
+    "SteamDescriptionEn": "Obtain a mythic item for the first time.",
+    "SteamNameZhHans": "神域赐福",
+    "SteamDescriptionZhHans": "首次获得神话物品。小狗自神域带回一份礼物。",
+    "SteamTitleBriefZhHans": "首次获得神话物品；红色盲盒象征神域，像小狗跨入神域后带回、近乎神赐的至高礼物。"
   },
   {
     "AchievementId": 1011,
@@ -231,6 +384,11 @@
     "TargetKey": "BodyDecoration",
     "TargetValue": 1,
     "IsHidden": false,
-    "Notes": "首次获得玩家体表装饰（体毛、纹身、美甲等）"
+    "Notes": "首次获得玩家体表装饰（体毛、纹身、美甲等）",
+    "SteamNameEn": "Body Beautiful",
+    "SteamDescriptionEn": "Obtain body decoration from a non-default source for the first time.",
+    "SteamNameZhHans": "锦上添花",
+    "SteamDescriptionZhHans": "首次从默认来源以外的途径获得体表装饰。",
+    "SteamTitleBriefZhHans": "首次获得玩家体表装饰，如体毛、纹身或美甲；强调身体外观的自定义。"
   }
 ]

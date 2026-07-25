@@ -24,6 +24,11 @@ public sealed partial class Achievement : Luban.BeanBase
         { if(!_buf["TargetValue"].IsNumber) { throw new SerializationException(); }  TargetValue = _buf["TargetValue"]; }
         { if(!_buf["IsHidden"].IsBoolean) { throw new SerializationException(); }  IsHidden = _buf["IsHidden"]; }
         { if(!_buf["Notes"].IsString) { throw new SerializationException(); }  Notes = _buf["Notes"]; }
+        { if(!_buf["SteamNameEn"].IsString) { throw new SerializationException(); }  SteamNameEn = _buf["SteamNameEn"]; }
+        { if(!_buf["SteamDescriptionEn"].IsString) { throw new SerializationException(); }  SteamDescriptionEn = _buf["SteamDescriptionEn"]; }
+        { if(!_buf["SteamNameZhHans"].IsString) { throw new SerializationException(); }  SteamNameZhHans = _buf["SteamNameZhHans"]; }
+        { if(!_buf["SteamDescriptionZhHans"].IsString) { throw new SerializationException(); }  SteamDescriptionZhHans = _buf["SteamDescriptionZhHans"]; }
+        { if(!_buf["SteamTitleBriefZhHans"].IsString) { throw new SerializationException(); }  SteamTitleBriefZhHans = _buf["SteamTitleBriefZhHans"]; }
     }
 
     public static Achievement DeserializeAchievement(JSONNode _buf)
@@ -59,6 +64,26 @@ public sealed partial class Achievement : Luban.BeanBase
     /// 填写策划说明或设计约束
     /// </summary>
     public readonly string Notes;
+    /// <summary>
+    /// Steam 默认英文名称；为空时生成器报错
+    /// </summary>
+    public readonly string SteamNameEn;
+    /// <summary>
+    /// Steam 默认英文描述；为空时生成器报错
+    /// </summary>
+    public readonly string SteamDescriptionEn;
+    /// <summary>
+    /// Steam 简体中文名称；为空时生成器报错
+    /// </summary>
+    public readonly string SteamNameZhHans;
+    /// <summary>
+    /// Steam 简体中文描述；为空时生成器报错
+    /// </summary>
+    public readonly string SteamDescriptionZhHans;
+    /// <summary>
+    /// 供其他语言本地化理解标题含义、语气和梗；不在 Steam 直接显示。
+    /// </summary>
+    public readonly string SteamTitleBriefZhHans;
    
     public const int __ID__ = -879479025;
     public override int GetTypeId() => __ID__;
@@ -77,6 +102,11 @@ public sealed partial class Achievement : Luban.BeanBase
         + "TargetValue:" + TargetValue + ","
         + "IsHidden:" + IsHidden + ","
         + "Notes:" + Notes + ","
+        + "SteamNameEn:" + SteamNameEn + ","
+        + "SteamDescriptionEn:" + SteamDescriptionEn + ","
+        + "SteamNameZhHans:" + SteamNameZhHans + ","
+        + "SteamDescriptionZhHans:" + SteamDescriptionZhHans + ","
+        + "SteamTitleBriefZhHans:" + SteamTitleBriefZhHans + ","
         + "}";
     }
 }
