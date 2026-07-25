@@ -26,7 +26,16 @@ Thumbs.db
 *.bak
 
 # 美术素材不需要上传到版本控制系统
-/assets/
+/assets/*
+
+# 但是 _stable-git 文件夹下的美术素材需要上传到版本控制系统
+!/assets/_stable-git/
+
+
+
+
+
+
 
 # 给AI的信箱里的图片就不需要上传到版本控制系统
 /inbox/*.png

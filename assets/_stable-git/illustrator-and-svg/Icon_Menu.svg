@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Icon_Menu" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 60">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" width="58" height="15"/>
+  <rect class="cls-1" x="0" y="22.5" width="58" height="15"/>
+  <rect class="cls-1" x="0" y="45" width="58" height="15"/>
+</svg>
