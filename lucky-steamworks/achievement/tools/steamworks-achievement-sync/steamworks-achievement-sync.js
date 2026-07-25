@@ -10,7 +10,7 @@
  * - Synchronization requires an explicit confirmation.
  * - Never deletes achievements and never publishes Steamworks changes.
  * - Normal synchronization creates/updates achievement records and saves them automatically.
- * - Icon staging uploads images into multiple existing edit rows, but never saves those rows.
+ * - Icon analysis is read-only and produces a deterministic handoff report.
  * - Refuses to run while an unsaved Steamworks edit row is open.
  */
 
@@ -18,14 +18,14 @@
     "use strict";
 
     const TOOL_ID = "lucky-dog-steamworks-achievement-sync";
-    const TOOL_VERSION = "0.5.1";
+    const TOOL_VERSION = "0.6.0";
+    const DEFAULT_ICON_ROOT = String.raw`G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\achievement\icon`;
     const ALLOWED_APPS = new Map([
         [4972240, "Lucky Dog Rise Playtest"],
         [2583700, "Lucky Dog Rise"],
     ]);
 
     const DEFAULT_TIMEOUT_MS = 20_000;
-    const UPLOAD_TIMEOUT_MS = 90_000;
     const POLL_INTERVAL_MS = 100;
 
     if (document.getElementById(TOOL_ID)) {
@@ -47,8 +47,8 @@
     const state = {
         configFileName: "",
         achievements: [],
-        imageFiles: new Map(),
         plan: [],
+        iconReport: "",
         running: false,
     };
 
@@ -112,6 +112,15 @@
                 .field { margin-bottom: 11px; }
                 label.title { display: block; margin-bottom: 4px; font-weight: 650; }
                 input[type=file] { width: 100%; color: #dbe8f3; }
+                input[type=text] {
+                    width: 100%;
+                    border: 1px solid #46657f;
+                    border-radius: 4px;
+                    padding: 6px 7px;
+                    background: #0d141a;
+                    color: #dbe8f3;
+                    font: 12px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+                }
                 .hint { color: #9eb0c0; font-size: 12px; }
                 .checks { display: grid; gap: 6px; margin: 10px 0; }
                 .checks label { display: flex; align-items: flex-start; gap: 7px; }
@@ -173,6 +182,21 @@
                     color: #bcd1e2;
                     font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
                 }
+                .report-wrap { display: none; margin-top: 10px; }
+                .report-wrap.visible { display: block; }
+                .report-title { margin-bottom: 5px; font-weight: 650; }
+                textarea.icon-report {
+                    display: block;
+                    width: 100%;
+                    min-height: 210px;
+                    resize: vertical;
+                    border: 1px solid #46657f;
+                    border-radius: 4px;
+                    padding: 8px;
+                    background: #0d141a;
+                    color: #dbe8f3;
+                    font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+                }
             </style>
             <section class="panel">
                 <header>
@@ -189,19 +213,20 @@
                         <div class="hint config-status">尚未载入配置。</div>
                     </div>
                     <div class="field">
-                        <label class="title">2. 图标文件夹</label>
-                        <input class="icon-folder" type="file" accept="image/*" multiple webkitdirectory>
-                        <div class="hint icon-status">只有需要上传图标时才必选。</div>
+                        <label class="title">2. 图标根目录（仅写入报表）</label>
+                        <input class="icon-root" type="text" value="${escapeHtml(DEFAULT_ICON_ROOT)}">
+                        <div class="hint">脚本不会读取或上传图片；此路径只用于生成完整文件路径。</div>
                     </div>
                     <div class="checks">
                         <label><input class="update-structure" type="checkbox" checked> 检查并更新已有成就的结构字段</label>
                         <label><input class="update-english-text" type="checkbox"> 更新已有成就的英语名称与描述</label>
-                        <label><input class="replace-icons" type="checkbox"> 批量暂存已有成就的图标（上传后不自动保存）</label>
+                        <label><input class="force-icon-report" type="checkbox"> 报表将已有图标也列为重新上传（强制覆盖）</label>
                     </div>
                     <div class="warning"></div>
                     <div class="actions">
                         <button class="action analyze" type="button">分析差异</button>
-                        <button class="action primary sync" type="button" disabled>执行同步</button>
+                        <button class="action primary sync" type="button" disabled>执行成就同步</button>
+                        <button class="action copy-report" type="button" disabled>复制图片操作报表</button>
                     </div>
                     <section class="summary">
                         <div class="summary-grid"></div>
@@ -209,6 +234,10 @@
                             <summary>操作计划</summary>
                             <ol class="plan-list"></ol>
                         </details>
+                    </section>
+                    <section class="report-wrap">
+                        <div class="report-title">图片操作报表（交给 Codex / Luna）</div>
+                        <textarea class="icon-report" readonly></textarea>
                     </section>
                     <pre class="log"></pre>
                 </main>
@@ -221,17 +250,19 @@
             close: root.querySelector(".close"),
             configInput: root.querySelector(".config-file"),
             configStatus: root.querySelector(".config-status"),
-            iconInput: root.querySelector(".icon-folder"),
-            iconStatus: root.querySelector(".icon-status"),
+            iconRoot: root.querySelector(".icon-root"),
             updateStructure: root.querySelector(".update-structure"),
             updateEnglishText: root.querySelector(".update-english-text"),
-            replaceIcons: root.querySelector(".replace-icons"),
+            forceIconReport: root.querySelector(".force-icon-report"),
             warning: root.querySelector(".warning"),
             analyze: root.querySelector(".analyze"),
             sync: root.querySelector(".sync"),
+            copyReport: root.querySelector(".copy-report"),
             summary: root.querySelector(".summary"),
             summaryGrid: root.querySelector(".summary-grid"),
             planList: root.querySelector(".plan-list"),
+            reportWrap: root.querySelector(".report-wrap"),
+            iconReport: root.querySelector(".icon-report"),
             log: root.querySelector(".log"),
         };
 
@@ -241,12 +272,13 @@
             }
         });
         elements.configInput.addEventListener("change", onConfigSelected);
-        elements.iconInput.addEventListener("change", onIconFolderSelected);
         elements.analyze.addEventListener("click", analyze);
         elements.sync.addEventListener("click", synchronize);
+        elements.copyReport.addEventListener("click", copyIconReport);
         elements.updateStructure.addEventListener("change", invalidatePlan);
         elements.updateEnglishText.addEventListener("change", invalidatePlan);
-        elements.replaceIcons.addEventListener("change", invalidatePlan);
+        elements.forceIconReport.addEventListener("change", invalidatePlan);
+        elements.iconRoot.addEventListener("input", invalidatePlan);
 
         return elements;
     }
@@ -273,18 +305,6 @@
             state.achievements = [];
             panel.configStatus.textContent = `配置无效：${error.message}`;
             log(`配置错误：${error.message}`, "错误");
-        }
-    }
-
-    function onIconFolderSelected(event) {
-        invalidatePlan();
-        const files = [...(event.target.files || [])];
-        state.imageFiles = buildImageFileMap(files);
-        panel.iconStatus.textContent = files.length
-            ? `已索引 ${files.length} 个图像文件。`
-            : "只有需要上传图标时才必选。";
-        if (files.length) {
-            log(`已索引 ${files.length} 个图像文件。`);
         }
     }
 
@@ -354,38 +374,18 @@
         return typeof value === "string" && value.trim() ? value.trim() : "";
     }
 
-    function buildImageFileMap(files) {
-        const map = new Map();
-        for (const file of files) {
-            if (!file.type.startsWith("image/")) {
-                continue;
-            }
-            const relativePath = normalizePath(file.webkitRelativePath || file.name);
-            const pathWithoutRoot = relativePath.includes("/")
-                ? relativePath.slice(relativePath.indexOf("/") + 1)
-                : relativePath;
-            addImageAlias(map, relativePath, file);
-            addImageAlias(map, pathWithoutRoot, file);
-            addImageAlias(map, file.name, file);
-        }
-        return map;
-    }
-
-    function addImageAlias(map, key, file) {
-        const normalized = normalizePath(key).toLowerCase();
-        if (!map.has(normalized)) {
-            map.set(normalized, file);
-        }
-    }
-
     function normalizePath(value) {
         return value.replaceAll("\\", "/").replace(/^\.\//, "").replace(/^\/+/, "");
     }
 
     function invalidatePlan() {
         state.plan = [];
+        state.iconReport = "";
         panel.summary.classList.remove("visible");
+        panel.reportWrap.classList.remove("visible");
+        panel.iconReport.value = "";
         panel.sync.disabled = true;
+        panel.copyReport.disabled = true;
         clearWarning();
     }
 
@@ -399,9 +399,12 @@
             assertReadyForAnalysis();
             const existing = readExistingRows();
             state.plan = state.achievements.map(achievement => buildPlanItem(achievement, existing));
+            state.iconReport = buildIconReport();
             renderPlan();
+            renderIconReport();
             panel.sync.disabled = false;
-            log(`差异分析完成：配置中共有 ${state.plan.length} 个成就。`);
+            const iconCounts = countIconReportTasks();
+            log(`差异分析完成：配置中共有 ${state.plan.length} 个成就，报表要求上传 ${iconCounts.files} 张图标。`);
         } catch (error) {
             showWarning(error.message);
             log(`差异分析已停止：${error.message}`, "错误");
@@ -446,9 +449,16 @@
                 rowId: row.id,
                 visibleDisplayName: lines[0] || "",
                 visibleDescription: lines.slice(1).join("\n"),
+                achievedIconUrl: readSteamIconUrl(row.cells?.[4]),
+                unachievedIconUrl: readSteamIconUrl(row.cells?.[5]),
             });
         }
         return map;
+    }
+
+    function readSteamIconUrl(cell) {
+        const image = cell?.querySelector("img");
+        return image?.currentSrc || image?.src || "";
     }
 
     function buildPlanItem(achievement, existing) {
@@ -466,7 +476,7 @@
             (achievement.description && current.visibleDescription !== achievement.description)
         );
 
-        if (!panel.updateStructure.checked && !panel.updateEnglishText.checked && !panel.replaceIcons.checked) {
+        if (!panel.updateStructure.checked && !panel.updateEnglishText.checked) {
             return {
                 type: "same",
                 achievement,
@@ -483,6 +493,167 @@
                 ? "已存在；英语文案不同"
                 : "已存在；将精确检查所选字段",
         };
+    }
+
+    function buildIconReportRows() {
+        const forceReplace = panel.forceIconReport.checked;
+        return state.plan.map(item => {
+            const current = item.current || null;
+            return {
+                apiName: item.achievement.apiName,
+                exists: Boolean(current),
+                achieved: buildIconReportSlot(
+                    item.achievement.achievedIcon,
+                    current?.achievedIconUrl || "",
+                    forceReplace,
+                    Boolean(current),
+                ),
+                unachieved: buildIconReportSlot(
+                    item.achievement.unachievedIcon,
+                    current?.unachievedIconUrl || "",
+                    forceReplace,
+                    Boolean(current),
+                ),
+            };
+        });
+    }
+
+    function buildIconReportSlot(configuredPath, currentUrl, forceReplace, achievementExists) {
+        if (!configuredPath) {
+            return { action: "NOT_CONFIGURED", path: "", currentUrl };
+        }
+        if (!achievementExists) {
+            return { action: "BLOCKED", path: configuredPath, currentUrl: "" };
+        }
+        if (forceReplace || !currentUrl) {
+            return {
+                action: "UPLOAD",
+                path: configuredPath,
+                currentUrl,
+                reason: currentUrl ? "强制覆盖模式" : "Steamworks 当前缺失",
+            };
+        }
+        return { action: "KEEP", path: configuredPath, currentUrl };
+    }
+
+    function countIconReportTasks(rows = buildIconReportRows()) {
+        const counts = { achievements: 0, files: 0, keep: 0, blocked: 0 };
+        for (const row of rows) {
+            const slots = [row.achieved, row.unachieved];
+            const uploadCount = slots.filter(slot => slot.action === "UPLOAD").length;
+            if (uploadCount > 0) {
+                counts.achievements += 1;
+                counts.files += uploadCount;
+            }
+            counts.keep += slots.filter(slot => slot.action === "KEEP").length;
+            counts.blocked += slots.filter(slot => slot.action === "BLOCKED").length;
+        }
+        return counts;
+    }
+
+    function buildIconReport() {
+        const rows = buildIconReportRows();
+        const counts = countIconReportTasks(rows);
+        const root = panel.iconRoot.value.trim().replace(/[\\/]+$/, "");
+        const mode = panel.forceIconReport.checked
+            ? "FORCE_REPLACE_CONFIGURED_ICONS"
+            : "UPLOAD_MISSING_ICONS_ONLY";
+        const lines = [
+            "# Steamworks Achievement Icon Handoff Report",
+            "REPORT_VERSION: 1",
+            `APP: ${appName}`,
+            `APP_ID: ${appId}`,
+            `SOURCE_JSON: ${state.configFileName || "unknown"}`,
+            `MODE: ${mode}`,
+            `ICON_ROOT: ${root || "[NOT_SET]"}`,
+            `TASK_ACHIEVEMENTS: ${counts.achievements}`,
+            `TASK_FILES: ${counts.files}`,
+            `KEEP_EXISTING_FILES: ${counts.keep}`,
+            `BLOCKED_FILES: ${counts.blocked}`,
+            "",
+            "## LUNA 操作约束",
+            "1. 只处理下面 [UPLOAD TASKS] 中列出的 API 名称，不自行增加、删除或猜测条目。",
+            "2. 必须按 API 名称定位成就行；不要依赖页面顺序。",
+            "3. 不得修改 API 名称、进度、隐藏状态、英文名称或描述。",
+            "4. 每条成就进入 Edit 后，只上传标为 [UPLOAD] 的文件；标为 [KEEP] 的图标不得替换。",
+            "5. 等待页面明确显示图片上传成功后，再对该成就点击一次 Save。",
+            "6. 遇到缺少成就行、缺少上传控件、文件不存在或 Steamworks 报错时立即停止并回报。",
+            "7. 不得删除成就，不得进入发布页，不得发布 Steamworks 更改。",
+            "",
+            "## 判定说明",
+            panel.forceIconReport.checked
+                ? "已启用强制覆盖：JSON 中配置的现有图标全部列为 [UPLOAD]。"
+                : "默认模式只把 Steamworks 当前没有 img 元素的图标列为 [UPLOAD]。已有图片无法与本地源文件可靠比对，因此列为 [KEEP]。",
+            "",
+            "## UPLOAD TASKS",
+        ];
+
+        const taskRows = rows.filter(row =>
+            row.achieved.action === "UPLOAD" || row.unachieved.action === "UPLOAD",
+        );
+        if (!taskRows.length) {
+            lines.push("NONE");
+        }
+        taskRows.forEach((row, index) => {
+            lines.push(`${index + 1}. API_NAME: ${row.apiName}`);
+            lines.push(formatIconReportSlot("ACHIEVED", row.achieved, root));
+            lines.push(formatIconReportSlot("UNACHIEVED", row.unachieved, root));
+            lines.push("   FINAL_ACTION: 两张图标处理完毕并确认无误后，点击该行 Save 一次。", "");
+        });
+
+        const blockedRows = rows.filter(row =>
+            row.achieved.action === "BLOCKED" || row.unachieved.action === "BLOCKED",
+        );
+        if (blockedRows.length) {
+            lines.push("## BLOCKED — 先创建并保存成就，Luna 不得处理");
+            blockedRows.forEach(row => lines.push(`- ${row.apiName}`));
+            lines.push("");
+        }
+
+        lines.push("## END OF REPORT");
+        return lines.join("\n");
+    }
+
+    function formatIconReportSlot(label, slot, root) {
+        const fullPath = slot.path ? joinWindowsPath(root, slot.path) : "[NOT_CONFIGURED]";
+        if (slot.action === "UPLOAD") {
+            return `   ${label}: [UPLOAD] ${fullPath} | REASON: ${slot.reason}`;
+        }
+        if (slot.action === "KEEP") {
+            return `   ${label}: [KEEP] Steamworks 已有图片，不得替换。`;
+        }
+        if (slot.action === "BLOCKED") {
+            return `   ${label}: [BLOCKED] 成就尚未创建；预期文件 ${fullPath}`;
+        }
+        return `   ${label}: [NOT_CONFIGURED] JSON 未配置图标路径。`;
+    }
+
+    function joinWindowsPath(root, relativePath) {
+        const relative = normalizePath(relativePath).replaceAll("/", "\\");
+        return root ? `${root}\\${relative}` : relative;
+    }
+
+    function renderIconReport() {
+        panel.iconReport.value = state.iconReport;
+        panel.reportWrap.classList.add("visible");
+        panel.copyReport.disabled = !state.iconReport;
+    }
+
+    async function copyIconReport() {
+        if (!state.iconReport) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(state.iconReport);
+        } catch {
+            panel.iconReport.focus();
+            panel.iconReport.select();
+            if (!document.execCommand("copy")) {
+                showWarning("自动复制失败，请在报表文本框中按 Ctrl+A、Ctrl+C 手动复制。");
+                return;
+            }
+        }
+        log("图片操作报表已复制到剪贴板。", "完成");
     }
 
     function renderPlan() {
@@ -519,7 +690,6 @@
         clearWarning();
         try {
             assertReadyForAnalysis();
-            validateRequiredImages();
         } catch (error) {
             showWarning(error.message);
             log(`同步被阻止：${error.message}`, "错误");
@@ -527,29 +697,14 @@
         }
 
         const counts = countPlanTypes();
-        const isIconStaging = panel.replaceIcons.checked;
-        if (isIconStaging && counts.create > 0) {
-            const message =
-                `图标暂存前仍有 ${counts.create} 个成就尚未创建。请先取消勾选“批量暂存已有成就的图标”，` +
-                `执行一次常规同步；确认新成就已保存后，再重新分析并暂存图标。`;
-            showWarning(message);
-            log(`同步被阻止：${message}`, "错误");
-            return;
-        }
-
-        const iconTargets = state.plan.filter(item =>
-            item.type === "inspect" && (item.achievement.achievedIcon || item.achievement.unachievedIcon),
-        );
         const confirmed = window.confirm(
             `确定同步 Steamworks 成就吗？\n\n` +
             `目标：${appName}（${appId}）\n` +
             `新建：${counts.create}\n` +
             `检查/更新：${counts.inspect}\n` +
             `跳过：${counts.same}\n\n` +
-            (isIconStaging
-                ? `本次将打开 ${iconTargets.length} 条已有成就的编辑行，上传图标，但绝不点击“保存”。\n` +
-                  `上传后请逐条检查并手动点击 Steamworks 的“保存”。`
-                : `本次会批量填写结构字段/英文占位文本，并自动点击 Steamworks 的“保存”。`) +
+            `本次会批量填写结构字段/英文占位文本，并自动点击 Steamworks 的“保存”。` +
+            `\n图片不会由本脚本上传；请使用分析后生成的图片操作报表。` +
             `\n\n不会删除成就，也不会发布 Steamworks 更改。`,
         );
         if (!confirmed) {
@@ -561,47 +716,31 @@
         let completed = 0;
         let changed = 0;
         try {
-            if (isIconStaging) {
-                changed = await stageIconBatch(iconTargets);
-                completed = iconTargets.length;
-                const message =
-                    `已向 ${changed} 条成就暂存图标；这些成就仍处于 Steamworks 编辑状态。` +
-                    `请逐条核对图标，然后手动点击各行的“保存”。`;
-                showWarning(message);
-                log(message, "完成");
-                window.alert(
-                    `图标已上传，但尚未保存。\n\n` +
-                    `已打开并暂存：${changed} 条成就。\n` +
-                    `请检查每条编辑行的已达成/未达成图标，并手动点击 Steamworks 的“保存”。\n\n` +
-                    `在你保存或取消这些编辑行之前，不要再次执行同步。`,
-                );
-            } else {
-                for (const item of state.plan) {
-                    if (item.type === "same") {
-                        completed += 1;
-                        log(`[${completed}/${state.plan.length}] 跳过 ${item.achievement.apiName}。`);
-                        continue;
-                    }
-
-                    log(`[${completed + 1}/${state.plan.length}] ${item.type === "create" ? "新建" : "检查"} ${item.achievement.apiName}……`);
-                    const didChange = item.type === "create"
-                        ? await createAchievement(item.achievement)
-                        : await inspectAndUpdateAchievement(item.achievement);
-                    if (didChange) {
-                        changed += 1;
-                    }
+            for (const item of state.plan) {
+                if (item.type === "same") {
                     completed += 1;
+                    log(`[${completed}/${state.plan.length}] 跳过 ${item.achievement.apiName}。`);
+                    continue;
                 }
 
-                log(`同步完成：处理 ${completed} 个，改动 ${changed} 个。`, "完成");
-                window.alert(
-                    `成就同步完成。\n\n` +
-                    `目标：${appName}（${appId}）\n` +
-                    `已处理：${completed}\n` +
-                    `有改动：${changed}\n\n` +
-                    `已自动保存成就条目。Steamworks 更改尚未发布，请人工复核页面。`,
-                );
+                log(`[${completed + 1}/${state.plan.length}] ${item.type === "create" ? "新建" : "检查"} ${item.achievement.apiName}……`);
+                const didChange = item.type === "create"
+                    ? await createAchievement(item.achievement)
+                    : await inspectAndUpdateAchievement(item.achievement);
+                if (didChange) {
+                    changed += 1;
+                }
+                completed += 1;
             }
+
+            log(`同步完成：处理 ${completed} 个，改动 ${changed} 个。`, "完成");
+            window.alert(
+                `成就同步完成。\n\n` +
+                `目标：${appName}（${appId}）\n` +
+                `已处理：${completed}\n` +
+                `有改动：${changed}\n\n` +
+                `已自动保存成就条目。图片未上传。Steamworks 更改尚未发布，请人工复核页面。`,
+            );
             state.plan = [];
             panel.sync.disabled = true;
             panel.summary.classList.remove("visible");
@@ -616,31 +755,6 @@
             );
         } finally {
             setRunning(false);
-        }
-    }
-
-    function validateRequiredImages() {
-        const paths = [];
-        for (const item of state.plan) {
-            const needsReplacementImages = item.type === "inspect" && panel.replaceIcons.checked;
-            if (!needsReplacementImages) {
-                continue;
-            }
-            if (item.achievement.achievedIcon) {
-                paths.push(item.achievement.achievedIcon);
-            }
-            if (item.achievement.unachievedIcon) {
-                paths.push(item.achievement.unachievedIcon);
-            }
-        }
-
-        const missing = paths.filter(path => !findImageFile(path));
-        if (missing.length) {
-            throw new Error(
-                `所选图标文件夹缺少 ${missing.length} 个已配置图像：` +
-                missing.slice(0, 5).join(", ") +
-                (missing.length > 5 ? `，以及另外 ${missing.length - 5} 个` : ""),
-            );
         }
     }
 
@@ -659,7 +773,7 @@
             isCreate: true,
         });
         if (achievement.achievedIcon || achievement.unachievedIcon) {
-            log(`${achievement.apiName}：先自动保存成就条目；图标将在下一次“暂存图标”同步时上传。`, "提示");
+            log(`${achievement.apiName}：先自动保存成就条目；图标请按分析报表另行上传。`, "提示");
         }
         await saveEditRow(editRow, achievement.apiName);
         return true;
@@ -698,57 +812,6 @@
 
         await saveEditRow(editRow, achievement.apiName, fieldChanges.join("、"));
         return true;
-    }
-
-    async function stageIconBatch(items) {
-        if (!items.length) {
-            log("没有配置图标路径的已有成就；无需暂存图标。", "提示");
-            return 0;
-        }
-
-        assertNoOpenEditRow();
-        const openedRows = [];
-        // Steamworks 页面仍有部分旧脚本环境；不用 Array#entries 和 for...of 解构，
-        // 避免被其兼容层改写后出现 “.for is not iterable”。
-        for (let index = 0; index < items.length; index += 1) {
-            const item = items[index];
-            const currentRow = document.getElementById(item.current.rowId);
-            const editButton = currentRow && findEditButton(currentRow);
-            if (!editButton) {
-                throw new Error(`${item.achievement.apiName}：找不到编辑按钮；尚未上传任何图标。`);
-            }
-
-            log(`[准备 ${index + 1}/${items.length}] 打开 ${item.achievement.apiName} 的编辑行……`);
-            editButton.click();
-            const editRow = await waitFor(() => {
-                const row = document.getElementById(item.current.rowId);
-                return row?.classList.contains("selected") ? row : null;
-            });
-            openedRows.push({ item, editRow });
-
-            const allStillOpen = openedRows.every(entry =>
-                document.getElementById(entry.editRow.id)?.classList.contains("selected"),
-            );
-            if (!allStillOpen) {
-                throw new Error(
-                    "Steamworks 没有同时保留所有编辑行，已停止，尚未上传图标。" +
-                    "请先手动保存或取消当前编辑行，然后再试。",
-                );
-            }
-        }
-
-        let staged = 0;
-        for (let index = 0; index < openedRows.length; index += 1) {
-            const entry = openedRows[index];
-            log(`[上传 ${index + 1}/${openedRows.length}] ${entry.item.achievement.apiName} 的图标……`);
-            const uploaded = await uploadConfiguredIcons(entry.editRow, entry.item.achievement);
-            if (uploaded === 0) {
-                throw new Error(`${entry.item.achievement.apiName}：没有可上传的图标。`);
-            }
-            staged += 1;
-            log(`${entry.item.achievement.apiName}：已暂存 ${uploaded} 个图标，未自动保存。`);
-        }
-        return staged;
     }
 
     function applyFields(editRow, achievement, options) {
@@ -831,107 +894,6 @@
         control.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    async function uploadConfiguredIcons(editRow, achievement) {
-        let uploaded = 0;
-        const uploads = [
-            ["achievement", achievement.achievedIcon, "achieved"],
-            ["achievement_gray", achievement.unachievedIcon, "unachieved"],
-        ];
-
-        for (let uploadIndex = 0; uploadIndex < uploads.length; uploadIndex += 1) {
-            const upload = uploads[uploadIndex];
-            const requestType = upload[0];
-            const path = upload[1];
-            const label = upload[2];
-            if (!path) {
-                continue;
-            }
-            const file = findImageFile(path);
-            if (!file) {
-                throw new Error(`${achievement.apiName}：在所选文件夹中找不到图像 ${path}`);
-            }
-            const form = findUploadForm(editRow, requestType);
-            if (!form) {
-                throw new Error(`${achievement.apiName}：找不到${label === "achieved" ? "已达成" : "未达成"}图标上传表单。`);
-            }
-            await uploadImage(form, file, `${achievement.apiName} ${label}`);
-            uploaded += 1;
-        }
-        return uploaded;
-    }
-
-    function findImageFile(path) {
-        const normalized = normalizePath(path).toLowerCase();
-        return state.imageFiles.get(normalized) || state.imageFiles.get(normalized.split("/").pop());
-    }
-
-    function findUploadForm(editRow, requestType) {
-        return [...editRow.querySelectorAll('form[action*="/images/uploadachievement"]')]
-            .find(form => form.querySelector('input[name="requestType"]')?.value === requestType);
-    }
-
-    async function uploadImage(form, file, label) {
-        const fileInput = form.querySelector('input[type="file"][name="image"]');
-        const uploadButton = form.querySelector('input[type="submit"]');
-        if (!fileInput || !uploadButton) {
-            throw new Error(`${label}：找不到上传控件。`);
-        }
-
-        const transfer = new DataTransfer();
-        transfer.items.add(file);
-        fileInput.files = transfer.files;
-        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-        const previewCell = form.closest("td");
-        const previewBefore = readImagePreviewSignature(previewCell);
-        const iframe = findUploadIframe(form);
-        let iframeLoaded = false;
-        const onIframeLoad = () => {
-            iframeLoaded = true;
-        };
-        iframe?.addEventListener("load", onIframeLoad, { once: true });
-
-        uploadButton.click();
-        try {
-            await waitFor(() => {
-                const previewAfter = readImagePreviewSignature(previewCell);
-                const previewChanged = Boolean(previewAfter) && previewAfter !== previewBefore;
-                return previewChanged || iframeLoaded || !document.contains(form);
-            }, UPLOAD_TIMEOUT_MS);
-            // Promise continuation runs after all listeners for the same load event,
-            // allowing Steamworks' upload callback to update the preview first.
-            await wait(250);
-        } finally {
-            iframe?.removeEventListener("load", onIframeLoad);
-        }
-        log(`${label} 图标已上传：${file.name}。`);
-    }
-
-    function readImagePreviewSignature(cell) {
-        if (!cell) {
-            return "";
-        }
-        return [...cell.querySelectorAll("img")]
-            .map(image => image.currentSrc || image.src || "")
-            .filter(Boolean)
-            .join("|");
-    }
-
-    function findUploadIframe(form) {
-        const direct = form.querySelector("iframe");
-        if (direct) {
-            return direct;
-        }
-        let sibling = form.nextElementSibling;
-        while (sibling && sibling.tagName !== "FORM") {
-            if (sibling.tagName === "IFRAME") {
-                return sibling;
-            }
-            sibling = sibling.nextElementSibling;
-        }
-        return null;
-    }
-
     async function saveEditRow(editRow, expectedApiName, changeSummary = "") {
         const actionButtons = getRowActionButtons(editRow);
         const saveButton = actionButtons.find(button => button.value !== "Cancel") || actionButtons[0];
@@ -989,10 +951,11 @@
         panel.analyze.disabled = running;
         panel.sync.disabled = running || state.plan.length === 0;
         panel.configInput.disabled = running;
-        panel.iconInput.disabled = running;
+        panel.iconRoot.disabled = running;
         panel.updateStructure.disabled = running;
         panel.updateEnglishText.disabled = running;
-        panel.replaceIcons.disabled = running;
+        panel.forceIconReport.disabled = running;
+        panel.copyReport.disabled = running || !state.iconReport;
     }
 
     function showWarning(message) {

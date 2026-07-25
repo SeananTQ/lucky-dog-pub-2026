@@ -52,6 +52,6 @@ Steamworks 为新建成就自动分配的 `NEW_ACHIEVEMENT_*` Token，需要在�
 2. 运行生成器，修复所有校验错误。
 3. 在成就后台载入 `generated/steamworks-achievements.json`：先执行常规同步以创建并保存条目。
 4. 将后台 Token 规范化为 `<ApiName>_NAME` / `<ApiName>_DESC`。
-5. 重新分析，选择 `icon/` 目录，执行图标暂存；人工检查后逐条保存。
+5. 重新分析并生成“图片操作报表”。脚本只判断 Steamworks 当前是否缺图，不上传图片；将报表交给浏览器操作模型，按 API 名称逐条上传并保存。
 6. 在 Steamworks 本地化页分别上传英文和简中 VDF。
 7. 人工复核后才在 Steamworks 发布变更。
