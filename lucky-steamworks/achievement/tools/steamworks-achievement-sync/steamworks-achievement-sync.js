@@ -573,14 +573,20 @@
         const mode = panel.forceIconReport.checked
             ? "FORCE_REPLACE_CONFIGURED_ICONS"
             : "UPLOAD_MISSING_ICONS_ONLY";
+        const reportRoot = formatReportPath(root);
         const lines = [
             "# Steamworks Achievement Icon Handoff Report",
-            "REPORT_VERSION: 1",
+            "REPORT_VERSION: 2",
             `APP: ${appName}`,
             `APP_ID: ${appId}`,
             `SOURCE_JSON: ${state.configFileName || "unknown"}`,
             `MODE: ${mode}`,
-            `ICON_ROOT: ${root || "[NOT_SET]"}`,
+            `ICON_ROOT: ${reportRoot || "[NOT_SET]"}`,
+            "PATH_FORMAT: FORWARD_SLASH",
+            "SUCCESS_SIGNAL: STEAM_CDN_PREVIEW_URL",
+            "DOM_REFRESH_AFTER_UPLOAD: REQUIRED",
+            "RESUME_POLICY: COMPLETE_MISSING_SLOT_ONLY",
+            "FINAL_VERIFICATION: TWO_IMAGES_PER_API",
             `TASK_ACHIEVEMENTS: ${counts.achievements}`,
             `TASK_FILES: ${counts.files}`,
             `KEEP_EXISTING_FILES: ${counts.keep}`,
@@ -588,17 +594,26 @@
             "",
             "## LUNA 操作约束",
             "1. 只处理下面 [UPLOAD TASKS] 中列出的 API 名称，不自行增加、删除或猜测条目。",
-            "2. 必须按 API 名称定位成就行；不要依赖页面顺序。",
-            "3. 不得修改 API 名称、进度、隐藏状态、英文名称或描述。",
+            "2. 必须按 API 名称定位成就行；不要依赖页面顺序、行号或之前缓存的 DOM 控件。",
+            "3. 不得修改 API 名称、进度、权限、隐藏状态、本地化 Token 或任何语言文案。",
             "4. 每条成就进入 Edit 后，只上传标为 [UPLOAD] 的文件；标为 [KEEP] 的图标不得替换。",
-            "5. 等待页面明确显示图片上传成功后，再对该成就点击一次 Save。",
-            "6. 遇到缺少成就行、缺少上传控件、文件不存在或 Steamworks 报错时立即停止并回报。",
-            "7. 不得删除成就，不得进入发布页，不得发布 Steamworks 更改。",
+            "5. 每上传一张图片后，Steamworks 可能重绘当前编辑行。下一步操作前必须重新按 API 名称定位编辑行和控件，不得复用上传前的文件框或按钮。",
+            "6. 单张图片的成功判据是对应预览图出现新的 Steam CDN 图片 URL；不能按成功提示出现次数计数。",
+            "7. 两个图标位置均确认后，才对该成就点击一次 Save；保存后还要确认编辑行关闭且普通行存在两张图片。",
+            "8. 遇到缺少成就行、缺少上传控件、文件不存在或 Steamworks 报错时立即停止并回报。",
+            "9. 不得删除成就，不得进入发布页，不得发布 Steamworks 更改。",
             "",
             "## 判定说明",
             panel.forceIconReport.checked
                 ? "已启用强制覆盖：JSON 中配置的现有图标全部列为 [UPLOAD]。"
                 : "默认模式只把 Steamworks 当前没有 img 元素的图标列为 [UPLOAD]。已有图片无法与本地源文件可靠比对，因此列为 [KEEP]。",
+            "",
+            "## 中断续跑规则",
+            "1. 超时或中断后立即停止批处理，不得从第一条盲目重跑。",
+            "2. 先检查当前编辑行：已经出现 Steam CDN 预览图的位置视为已完成，只补传仍缺失的 [UPLOAD] 位置。",
+            "3. 若当前编辑行已有两张有效预览图但尚未保存，只点击一次 Save，并确认编辑行关闭。",
+            "4. 已保存且普通行已有两张图片的 API 不得重新打开或重复保存。",
+            "5. 恢复完成后，按本报告 API 清单逐条复核，每条必须恰有两个有效图片位置。",
             "",
             "## UPLOAD TASKS",
         ];
@@ -611,9 +626,9 @@
         }
         taskRows.forEach((row, index) => {
             lines.push(`${index + 1}. API_NAME: ${row.apiName}`);
-            lines.push(formatIconReportSlot("ACHIEVED", row.achieved, root));
-            lines.push(formatIconReportSlot("UNACHIEVED", row.unachieved, root));
-            lines.push("   FINAL_ACTION: 两张图标处理完毕并确认无误后，点击该行 Save 一次。", "");
+            lines.push(formatIconReportSlot("ACHIEVED", row.achieved, reportRoot));
+            lines.push(formatIconReportSlot("UNACHIEVED", row.unachieved, reportRoot));
+            lines.push("   FINAL_ACTION: 两个位置均确认有效后，重新定位该编辑行，点击 Save 一次；再确认编辑行关闭且普通行显示两张图片。", "");
         });
 
         const blockedRows = rows.filter(row =>
@@ -630,9 +645,9 @@
     }
 
     function formatIconReportSlot(label, slot, root) {
-        const fullPath = slot.path ? joinWindowsPath(root, slot.path) : "[NOT_CONFIGURED]";
+        const fullPath = slot.path ? joinReportPath(root, slot.path) : "[NOT_CONFIGURED]";
         if (slot.action === "UPLOAD") {
-            return `   ${label}: [UPLOAD] ${fullPath} | REASON: ${slot.reason}`;
+            return `   ${label}: [UPLOAD] ${fullPath} | REASON: ${slot.reason} | VERIFY: 对应预览图出现新的 Steam CDN URL`;
         }
         if (slot.action === "KEEP") {
             return `   ${label}: [KEEP] Steamworks 已有图片，不得替换。`;
@@ -643,9 +658,14 @@
         return `   ${label}: [NOT_CONFIGURED] JSON 未配置图标路径。`;
     }
 
-    function joinWindowsPath(root, relativePath) {
-        const relative = normalizePath(relativePath).replaceAll("/", "\\");
-        return root ? `${root}\\${relative}` : relative;
+    function joinReportPath(root, relativePath) {
+        const normalizedRoot = formatReportPath(root).replace(/\/+$/, "");
+        const relative = normalizePath(relativePath);
+        return normalizedRoot ? `${normalizedRoot}/${relative}` : relative;
+    }
+
+    function formatReportPath(value) {
+        return String(value || "").replaceAll("\\", "/");
     }
 
     function normalizeIconRoot(value) {
@@ -732,7 +752,7 @@
             `新建：${counts.create}\n` +
             `检查/更新：${counts.inspect}\n` +
             `跳过：${counts.same}\n\n` +
-            `本次会批量填写结构字段/英文占位文本，并自动点击 Steamworks 的“保存”。` +
+            `本次会批量填写结构字段/本地化 Token，并自动点击 Steamworks 的“保存”。` +
             `\n图片不会由本脚本上传；请使用分析后生成的图片操作报表。` +
             `\n\n不会删除成就，也不会发布 Steamworks 更改。`,
         );
