@@ -95,7 +95,7 @@ public sealed class PlayerProgress
             .ToDictionary(stat => stat.StatisticKey, StringComparer.Ordinal);
         _profile = LoadOrCreate();
         ValidateDefinitions();
-        EvaluateAllStatisticAchievements();
+        EvaluateHistoricalAchievements();
     }
 
     public string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);
@@ -363,15 +363,68 @@ public sealed class PlayerProgress
             && string.Equals(achievement.TargetKey, changedStatisticKey, StringComparison.Ordinal)
             && GetStatistic(changedStatisticKey) >= achievement.TargetValue);
 
-    private void EvaluateAllStatisticAchievements()
+    /// <summary>
+    /// Re-evaluates every data-defined achievement against persisted player facts.
+    /// This runs on every startup so adding a new achievement row can unlock it
+    /// for players who already satisfied its condition in an earlier version.
+    /// </summary>
+    private void EvaluateHistoricalAchievements()
     {
-        foreach (var achievement in LubanData.Tables.TbAchievement.DataList.Where(achievement =>
-                     achievement.RuleType == EAchievementRuleType.StatisticAtLeast
-                     && GetStatistic(achievement.TargetKey) >= achievement.TargetValue))
+        var unlockedCount = 0;
+        foreach (var achievement in LubanData.Tables.TbAchievement.DataList)
         {
-            if (UnlockAchievement(achievement.ApiName))
-                _dirty = true;
+            if (!IsHistoricalAchievementSatisfied(achievement) || !UnlockAchievement(achievement.ApiName))
+                continue;
+
+            unlockedCount++;
         }
+
+        if (unlockedCount <= 0)
+            return;
+
+        _dirty = true;
+        RequestImmediateSave();
+        GD.Print($"[Achievement] Historical re-evaluation unlocked {unlockedCount} achievement(s).");
+    }
+
+    private bool IsHistoricalAchievementSatisfied(Achievement achievement)
+    {
+        return achievement.RuleType switch
+        {
+            EAchievementRuleType.StatisticAtLeast =>
+                GetStatistic(achievement.TargetKey) >= achievement.TargetValue,
+            EAchievementRuleType.FirstEvent =>
+                _profile.OccurredEventKeys.Contains(achievement.TargetKey),
+            EAchievementRuleType.FirstExternalItemType =>
+                TryGetExternalItemTypeAcquisitionCount(achievement.TargetKey, out var itemTypeCount)
+                && itemTypeCount >= Math.Max(1, achievement.TargetValue),
+            EAchievementRuleType.FirstExternalItemRarity =>
+                TryGetExternalItemRarityAcquisitionCount(achievement.TargetKey, out var rarityCount)
+                && rarityCount >= Math.Max(1, achievement.TargetValue),
+            _ => false,
+        };
+    }
+
+    private bool TryGetExternalItemTypeAcquisitionCount(string itemTypeName, out long count)
+    {
+        count = 0;
+        if (!Enum.TryParse<EItemType>(itemTypeName, ignoreCase: false, out var itemType)
+            || !_externalItemStatisticKeys.TryGetValue(itemType, out var statisticKey))
+            return false;
+
+        count = GetStatistic(statisticKey);
+        return true;
+    }
+
+    private bool TryGetExternalItemRarityAcquisitionCount(string rarityName, out long count)
+    {
+        count = 0;
+        if (!Enum.TryParse<ERarity>(rarityName, ignoreCase: false, out var rarity)
+            || !_externalRarityStatisticKeys.TryGetValue(rarity, out var statisticKey))
+            return false;
+
+        count = GetStatistic(statisticKey);
+        return true;
     }
 
     private void EvaluateAchievements(Func<Achievement, bool> predicate)
