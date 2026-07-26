@@ -147,7 +147,10 @@ public partial class GameData : Node
 
     public void AddItem(int itemId, int count = 1, bool markNew = true, PlayerProgressSource source = PlayerProgressSource.Gameplay)
     {
-        Inventory.AddItem(itemId, count, markNew, SettingsManager.LoadAutoEquipNewOutfits());
+        // Debug 发放只用于调整/录制，不应改变玩家当前的真实穿搭。
+        var autoEquipNewOutfit = source != PlayerProgressSource.Debug
+            && SettingsManager.LoadAutoEquipNewOutfits();
+        Inventory.AddItem(itemId, count, markNew, autoEquipNewOutfit);
         if (CanRecordPlayerProgress && source != PlayerProgressSource.Debug)
         {
             var item = LubanData.Tables.TbItem.GetOrDefault(itemId);

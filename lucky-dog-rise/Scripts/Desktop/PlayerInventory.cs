@@ -241,17 +241,27 @@ public class PlayerInventory
             emitChanged);
     }
 
-    public void AddItem(int itemId, int count = 1, bool markNew = true, bool autoEquipIfSlotEmpty = true)
+    /// <summary>
+    /// 将新获得的道具加入背包。
+    /// 自动装备只作用于首次拥有的非初始道具：可空槽位必须为空；不可空槽位则允许替换
+    /// EquipmentSlotConfig 中配置的基础物品。这样基础牌桌、背景等仍是实际道具，
+    /// 但不会阻止玩家的第一件同类收藏品带来外观变化。
+    /// </summary>
+    public void AddItem(int itemId, int count = 1, bool markNew = true, bool autoEquipNewOutfit = true)
     {
         var item = FindItem(itemId);
         if (item == null || count <= 0)
             return;
 
+        var wasOwned = Owns(itemId);
         _ownedItemCounts[itemId] = GetCount(itemId) + count;
         if (markNew)
             _newItemIds.Add(itemId);
 
-        var equipmentChanged = autoEquipIfSlotEmpty && EquipAcquiredItemIfSlotEmpty(item);
+        var equipmentChanged = autoEquipNewOutfit
+            && !wasOwned
+            && item.AcquisitionType != EAcquisitionType.Initial
+            && EquipNewlyAcquiredItem(item);
         if (equipmentChanged)
             EquipmentChanged?.Invoke();
         InventoryChanged?.Invoke();
@@ -347,9 +357,20 @@ public class PlayerInventory
         return changed;
     }
 
-    private bool EquipAcquiredItemIfSlotEmpty(Item item)
+    private bool EquipNewlyAcquiredItem(Item item)
     {
-        if (_equipped.ContainsKey(item.ItemType))
+        if (!_equipped.TryGetValue(item.ItemType, out var equippedItemId))
+        {
+            _equipped[item.ItemType] = item.Id;
+            return true;
+        }
+
+        var slot = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(item.ItemType);
+        if (slot == null
+            || string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase)
+            || slot.DefaultItemId <= 0
+            || equippedItemId != slot.DefaultItemId
+            || item.Id == slot.DefaultItemId)
             return false;
 
         _equipped[item.ItemType] = item.Id;
