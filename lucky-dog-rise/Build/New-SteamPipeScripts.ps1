@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$ContentRoot,
     [Parameter(Mandatory)] [string]$OutputDirectory,
     [Parameter(Mandatory)] [int]$AppId,
@@ -10,28 +11,34 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$expectedPlaytestAppId = 4972240
+$expectedIds = @{
+    Playtest = @{ AppId = 4972240; DepotId = 4972241 }
+    Release = @{ AppId = 2583700; DepotId = 2583701 }
+}
 
 function ConvertTo-VdfValue([string]$Value) {
     if ($Value.Contains('"')) { throw 'SteamPipe VDF values cannot contain double quotes.' }
     return $Value.Replace('\', '/')
 }
 
-if ($AppId -ne $expectedPlaytestAppId) {
-    throw "Refusing to generate SteamPipe scripts for AppID $AppId. Expected Playtest AppID $expectedPlaytestAppId."
+if ($AppId -ne $expectedIds[$Channel].AppId) {
+    throw "Refusing to generate $Channel SteamPipe scripts for AppID $AppId. Expected AppID $($expectedIds[$Channel].AppId)."
 }
-if ($DepotId -le 0) { throw 'DepotId must be copied from the Steamworks Playtest depot configuration.' }
+if ($DepotId -ne $expectedIds[$Channel].DepotId) {
+    throw "Refusing to generate $Channel SteamPipe scripts for DepotID $DepotId. Expected DepotID $($expectedIds[$Channel].DepotId)."
+}
 if ($DepotId -eq $AppId) { throw 'DepotId must not be the same as AppId.' }
 if ([string]::IsNullOrWhiteSpace($Description)) { throw 'A non-empty Steam build description is required.' }
 if ($Description.Length -gt 100) { throw 'Steam build description must be 100 characters or fewer.' }
 if ($Preview -and $SetLiveBranch) { throw 'A preview build cannot be assigned to a live branch.' }
+if ($SetLiveBranch -eq 'default') { throw 'SteamPipe cannot set the default branch live automatically. Assign it in Steamworks after validation.' }
 
 $resolvedContentRoot = Resolve-Path -LiteralPath $ContentRoot
 $files = Get-ChildItem -LiteralPath $resolvedContentRoot -Recurse -File
 if (!$files) { throw "SteamPipe content root is empty: $resolvedContentRoot" }
 foreach ($requiredName in 'LuckyDogRise.exe', 'steam_api64.dll', 'Steamworks.NET.dll', 'build-verification.txt') {
     if (!($files | Where-Object Name -eq $requiredName | Select-Object -First 1)) {
-        throw "Required Playtest build file is missing: $requiredName"
+        throw "Required $Channel build file is missing: $requiredName"
     }
 }
 if ($files | Where-Object Name -eq 'steam_appid.txt' | Select-Object -First 1) {
@@ -93,6 +100,7 @@ $setLiveLine    "ContentRoot" "$contentRootVdf"
 
 Write-Host "[SteamPipe] AppID: $AppId"
 Write-Host "[SteamPipe] DepotID: $DepotId"
+Write-Host "[SteamPipe] Channel: $Channel"
 Write-Host "[SteamPipe] Mode: $(if ($Preview) { 'preview (no upload)' } else { 'upload' })"
 Write-Host "[SteamPipe] SetLive: $(if ($SetLiveBranch) { $SetLiveBranch } else { 'none' })"
 Write-Host "[SteamPipe] App script: $appPath"

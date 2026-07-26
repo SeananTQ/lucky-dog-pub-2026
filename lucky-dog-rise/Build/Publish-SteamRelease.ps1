@@ -8,38 +8,47 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$expectedAppId = 2583700
+$expectedDepotId = 2583701
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $workspace = Resolve-Path (Join-Path $projectRoot '..')
 $localBuild = Join-Path $workspace '.local-build'
-$configPath = Join-Path $PSScriptRoot 'SteamPipeConfig.psd1'
-$exampleConfigPath = Join-Path $PSScriptRoot 'SteamPipeConfig.example.psd1'
+$configPath = Join-Path $PSScriptRoot 'SteamReleasePipeConfig.psd1'
+$exampleConfigPath = Join-Path $PSScriptRoot 'SteamReleasePipeConfig.example.psd1'
 $steamCmd = Join-Path $localBuild 'steamworks\sdk-1.63\tools\ContentBuilder\builder\steamcmd.exe'
-$staging = Join-Path $localBuild 'staging\playtest'
-$scriptOutput = Join-Path $localBuild 'steampipe\playtest'
+$staging = Join-Path $localBuild 'staging\release'
+$scriptOutput = Join-Path $localBuild 'steampipe\release'
 
 function Read-LocalDataFile([string]$Path) {
     return & ([scriptblock]::Create([System.IO.File]::ReadAllText($Path)))
 }
 
-if (!(Test-Path -LiteralPath $configPath)) {
-    throw "SteamPipe config is missing. Copy '$exampleConfigPath' to '$configPath', then fill DepotId and SteamAccount."
+$config = $null
+if (Test-Path -LiteralPath $configPath) {
+    $config = Read-LocalDataFile $configPath
+    if ($config.AppId -ne $expectedAppId) {
+        throw "SteamReleasePipeConfig.psd1 must use Release AppID $expectedAppId."
+    }
+    if ($config.DepotId -ne $expectedDepotId) {
+        throw "SteamReleasePipeConfig.psd1 must use Release DepotID $expectedDepotId."
+    }
 }
-$config = Read-LocalDataFile $configPath
-if ($config.AppId -ne 4972240) { throw 'SteamPipeConfig.psd1 must use Playtest AppID 4972240.' }
-if ($config.DepotId -ne 4972241) { throw 'SteamPipeConfig.psd1 must use Playtest DepotID 4972241.' }
+elseif ($Action -ne 'Generate') {
+    throw "Steam Release config is missing. Copy '$exampleConfigPath' to '$configPath', then fill SteamAccount."
+}
 if ($Action -ne 'Generate' -and [string]::IsNullOrWhiteSpace($config.SteamAccount)) {
-    throw 'SteamPipeConfig.psd1 SteamAccount is required for Preview or Upload.'
+    throw 'SteamReleasePipeConfig.psd1 SteamAccount is required for Preview or Upload.'
 }
 if ($Action -ne 'Upload' -and $SetLiveBranch) {
     throw '-SetLiveBranch is accepted only with -Action Upload.'
 }
 
 if (!$SkipPackageBuild) {
-    & (Join-Path $PSScriptRoot 'Build-WindowsPackage.ps1') -Channel Playtest -GodotEditor $GodotEditor
-    if ($LASTEXITCODE -ne 0) { throw 'Playtest package build failed.' }
+    & (Join-Path $PSScriptRoot 'Build-WindowsPackage.ps1') -Channel Release -GodotEditor $GodotEditor
+    if ($LASTEXITCODE -ne 0) { throw 'Release package build failed.' }
 }
 if (!(Test-Path -LiteralPath $staging)) {
-    throw "Playtest staging directory is missing: $staging. Build it first or omit -SkipPackageBuild."
+    throw "Release staging directory is missing: $staging. Build it first or omit -SkipPackageBuild."
 }
 
 $versionLine = Select-String -LiteralPath (Join-Path $projectRoot 'project.godot') -Pattern '^config/version="([^"]+)"$'
@@ -49,22 +58,22 @@ $commit = (& git -C $workspace rev-parse --short HEAD).Trim()
 $dirty = [bool](& git -C $workspace status --porcelain)
 if ($dirty) { $commit = "$commit-dirty" }
 if ([string]::IsNullOrWhiteSpace($Description)) {
-    $Description = "Lucky Dog Rise Playtest $version ($commit)"
+    $Description = "Lucky Dog Rise Release $version ($commit)"
 }
 
-& (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel Playtest -Version $version
+& (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel Release -Version $version
 $generated = & (Join-Path $PSScriptRoot 'New-SteamPipeScripts.ps1') `
-    -Channel Playtest `
+    -Channel Release `
     -ContentRoot $staging `
     -OutputDirectory $scriptOutput `
-    -AppId ([int]$config.AppId) `
-    -DepotId ([int]$config.DepotId) `
+    -AppId $expectedAppId `
+    -DepotId $expectedDepotId `
     -Description $Description `
     -Preview:($Action -eq 'Preview') `
     -SetLiveBranch $SetLiveBranch
 
 if ($Action -eq 'Generate') {
-    Write-Host '[SteamPipe] Configuration generated and validated. SteamCMD was not started.'
+    Write-Host '[SteamPipe] Release configuration generated and validated. SteamCMD was not started.'
     return
 }
 if (!(Test-Path -LiteralPath $steamCmd)) { throw "SteamCMD from SDK 1.63 is missing: $steamCmd" }
@@ -78,4 +87,4 @@ if ($Action -eq 'Upload' -and !$SetLiveBranch) {
 & $steamCmd +login $config.SteamAccount +run_app_build $generated.AppScript +quit
 if ($LASTEXITCODE -ne 0) { throw "SteamCMD failed with exit code $LASTEXITCODE." }
 
-Write-Host "[SteamPipe] $Action completed successfully."
+Write-Host "[SteamPipe] Release $Action completed successfully."

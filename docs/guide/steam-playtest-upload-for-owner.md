@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-22
+last_edit: 2026-07-26
 status: revised
 ---
 
@@ -20,7 +20,7 @@ status: revised
 
 ## 第一次使用前配置
 
-在 Steamworks 后台打开 Lucky Dog Rise Playtest（AppID `4972240`）的 SteamPipe Depot 页面，复制 Windows Depot ID。
+Lucky Dog Rise Playtest 使用 AppID `4972240` 和 Windows Depot ID `4972241`。
 
 将下面的示例文件复制一份：
 
@@ -39,14 +39,14 @@ lucky-dog-rise\Build\SteamPipeConfig.psd1
 ```powershell
 @{
     AppId = 4972240
-    DepotId = 这里填写后台的 Windows Depot ID
+    DepotId = 4972241
     SteamAccount = '这里填写有上传权限的 Steamworks 账号名'
 }
 ```
 
 `SteamPipeConfig.psd1` 已被 Git 忽略。文件只保存账号名，不保存密码和 Steam Guard 验证码。
 
-脚本会固定检查 Playtest AppID 必须是 `4972240`。不要将主游戏 AppID `2583700` 填进该文件。
+脚本会同时检查 Playtest AppID 必须是 `4972240`、Depot ID 必须是 `4972241`。不要将主游戏 AppID `2583700` 或 Depot ID `2583701` 填进该文件。
 
 ## 先做无上传检查
 
@@ -132,7 +132,7 @@ Preview 用于验证 Steamworks 权限和 SteamPipe 配置，不会上传游戏�
 
 ## 安全边界
 
-- 脚本固定拒绝非 `4972240` 的 AppID。
+- 脚本固定拒绝非 `4972240` 的 AppID 和非 `4972241` 的 Depot ID。
 - Depot ID 未填写时拒绝生成。
 - 构建中存在 `steam_appid.txt`、PDB、源码或本地配置时拒绝生成。
 - `Generate` 和 `Preview` 不会上传正式内容。

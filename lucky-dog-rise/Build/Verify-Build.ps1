@@ -44,6 +44,9 @@ foreach ($debugSymbol in 'RandomAcquireItemRequested', 'DebugGrantChipsRequested
 if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-11T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
 }
+if ($Channel -eq 'Release' -and $ascii.Contains('2026-08-11T16:00:00Z')) {
+    throw 'Playtest expiration metadata must not remain in the Release assembly.'
+}
 
 $report = @"
 # Build Verification
