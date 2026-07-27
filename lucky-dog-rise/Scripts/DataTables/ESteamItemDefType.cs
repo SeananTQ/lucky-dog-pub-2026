@@ -12,14 +12,30 @@
 namespace DataTables
 { 
     /// <summary>
-    /// Steam定义的物品类型
+    /// Steam物品定义类型
     /// </summary>
     public enum ESteamItemDefType
     {
         /// <summary>
-        /// 这个显式枚举值可能会变，到时候会改成Steam要求的枚举值，因此使用时不要根据int值来判断
+        /// 普通物品。可以实际存在于玩家 Steam 库存中的基础物品，例如装扮、盲盒、开箱券或永久领奖回执。
         /// </summary>
         Item = 1,
+        /// <summary>
+        /// 礼包。发放时会自动拆成预先配置的一组物品，适合一次发放多个固定奖励。
+        /// </summary>
+        Bundle = 2,
+        /// <summary>
+        /// 随机生成器。发放时会按配置的权重随机生成一种或多种结果物品；生成器本身不会留在玩家库存里。
+        /// </summary>
+        Generator = 3,
+        /// <summary>
+        /// 游玩投放生成器。由游戏在合适时机请求投放，Steam 根据玩家游玩时间、冷却和次数限制决定是否发放随机奖励，适合定时盲盒掉落。
+        /// </summary>
+        PlaytimeGenerator = 4,
+        /// <summary>
+        /// 标签生成器。发放物品时为该物品随机附加标签或词条，例如品质、颜色、稀有特性；当前项目暂时不需要。
+        /// </summary>
+        TagGenerator = 5,
     }
 
 } 

@@ -14,7 +14,7 @@
     "RewardItemId": 92005,
     "RewardChips": 0,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 0,
+    "SteamPromoItemDefId": 901001,
     "ClaimLimit": 1
   },
   {
@@ -32,7 +32,7 @@
     "RewardItemId": 0,
     "RewardChips": 2500,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 0,
+    "SteamPromoItemDefId": 901002,
     "ClaimLimit": 1
   },
   {
@@ -50,7 +50,7 @@
     "RewardItemId": 0,
     "RewardChips": 2500,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 0,
+    "SteamPromoItemDefId": 901003,
     "ClaimLimit": 1
   },
   {
@@ -68,7 +68,7 @@
     "RewardItemId": 91012,
     "RewardChips": 0,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 0,
+    "SteamPromoItemDefId": 901004,
     "ClaimLimit": 1
   }
 ]
