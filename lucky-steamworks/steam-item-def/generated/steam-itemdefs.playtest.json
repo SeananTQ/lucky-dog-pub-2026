@@ -1,0 +1,57 @@
+{
+  "appid": 4972240,
+  "items": [
+    {
+      "itemdefid": 401001,
+      "type": "item",
+      "name": "LinkTree Claim - Twitter Follow",
+      "description": "Permanent receipt for the Twitter follow reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401002,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Community",
+      "description": "Permanent receipt for the Steam Community reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401003,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Store",
+      "description": "Permanent receipt for the Steam Store reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401004,
+      "type": "item",
+      "name": "LinkTree Claim - Xiaohongshu Profile",
+      "description": "Permanent receipt for the Xiaohongshu profile reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    }
+  ]
+}

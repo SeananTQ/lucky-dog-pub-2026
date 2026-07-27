@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "steamItemDef": "lucky-dog-rise/Data/Json/tbsteamitemdef.json",
+    "linkTree": "lucky-dog-rise/Data/Json/tblinktree.json"
+  },
+  "sourceItemDefCount": 4,
+  "exportedItemDefCount": 4,
+  "checkedLinkTreeReferenceCount": 4,
+  "channels": [
+    {
+      "name": "playtest",
+      "appid": 4972240
+    },
+    {
+      "name": "release",
+      "appid": 2583700
+    }
+  ],
+  "errors": [],
+  "warnings": []
+}

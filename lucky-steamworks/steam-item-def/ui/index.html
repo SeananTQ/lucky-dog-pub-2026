@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Steam ItemDef</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="title-block">
+            <h1>Steam ItemDef</h1>
+            <span id="health-badge" class="status-badge status-loading">读取中</span>
+        </div>
+        <div class="toolbar">
+            <button id="reload-button" class="button button-secondary" type="button">重新读取</button>
+            <button id="open-output-button" class="button button-secondary" type="button">打开输出目录</button>
+            <button id="generate-button" class="button button-primary" type="button" disabled>生成文件</button>
+            <button id="shutdown-button" class="button button-danger" type="button">关闭工具</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="source-strip" aria-label="数据源">
+            <div class="source-item">
+                <span class="source-label">SteamItemDef</span>
+                <code id="item-def-source">-</code>
+            </div>
+            <div class="source-item">
+                <span class="source-label">LinkTree</span>
+                <code id="link-tree-source">-</code>
+            </div>
+            <div class="source-item source-time">
+                <span class="source-label">读取时间</span>
+                <span id="loaded-at">-</span>
+            </div>
+        </section>
+
+        <section class="summary-band" aria-label="校验摘要">
+            <div class="metric"><strong id="metric-definitions">0</strong><span>ItemDefs</span></div>
+            <div class="metric"><strong id="metric-references">0</strong><span>LinkTree 引用</span></div>
+            <div class="metric metric-error"><strong id="metric-errors">0</strong><span>错误</span></div>
+            <div class="metric metric-warning"><strong id="metric-warnings">0</strong><span>警告</span></div>
+            <div id="generation-message" class="generation-message" role="status"></div>
+        </section>
+
+        <section class="channel-bar">
+            <div id="channel-tabs" class="segmented" role="tablist" aria-label="Steam 渠道"></div>
+            <div class="channel-meta">
+                <span>AppID <code id="channel-appid">-</code></span>
+                <span id="output-state" class="output-state">尚未生成</span>
+            </div>
+        </section>
+
+        <section class="workspace">
+            <div class="table-pane">
+                <div class="pane-heading">
+                    <h2>定义预览</h2>
+                    <span id="visible-count">0 条</span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ItemDef ID</th>
+                                <th>Key</th>
+                                <th>Type</th>
+                                <th>Promo</th>
+                                <th>LinkTree</th>
+                                <th>策略</th>
+                            </tr>
+                        </thead>
+                        <tbody id="item-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <aside class="detail-pane">
+                <div class="pane-heading">
+                    <div>
+                        <h2 id="detail-title">选择一条定义</h2>
+                        <span id="detail-subtitle"></span>
+                    </div>
+                    <button id="copy-json-button" class="button button-compact" type="button" disabled>复制 JSON</button>
+                </div>
+                <div id="reward-summary" class="reward-summary"></div>
+                <pre id="json-preview" tabindex="0">{}</pre>
+            </aside>
+        </section>
+
+        <section class="validation-pane">
+            <div class="pane-heading">
+                <h2>校验结果</h2>
+                <span id="validation-summary">等待读取</span>
+            </div>
+            <div id="validation-list" class="validation-list"></div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="closed-overlay" class="closed-overlay" hidden>
+        <div>
+            <h2>Steam ItemDef 工具已关闭</h2>
+            <p>再次双击启动器即可重新打开。</p>
+        </div>
+    </div>
+    <script src="/app.js" defer></script>
+</body>
+</html>
