@@ -1,7 +1,23 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_Twitter.png" id="1_banner"]
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Icon_Gift.svg" id="2_gift"]
+[ext_resource type="Texture2D" uid="uid://ctk8d7nsxygrw" path="res://Assets/UI/ItemUI/Framel_Shadow.png" id="3_reward_shadow"]
+[ext_resource type="PackedScene" uid="uid://bbxjsmyo8skhj" path="res://Scenes/Prefabs/ItemCell.tscn" id="4_itemcell"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="5_amount_inter"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="6_amount_misans"]
+
+[sub_resource type="FontVariation" id="FontVariation_reward_amount"]
+fallbacks = Array[Font]([ExtResource("6_amount_misans")])
+base_font = ExtResource("5_amount_inter")
+
+[sub_resource type="LabelSettings" id="LabelSettings_reward_amount"]
+font = SubResource("FontVariation_reward_amount")
+font_size = 24
+font_color = Color(0, 0.78039217, 0.40392157, 1)
+shadow_color = Color(0, 0.4117647, 0.2, 1)
+shadow_offset = Vector2(0, 2)
+shadow_size = 5
 
 [node name="LinkTreeBanner" type="Button" unique_id=1414914959]
 custom_minimum_size = Vector2(0, 94)
@@ -38,3 +54,51 @@ grow_vertical = 0
 texture = ExtResource("2_gift")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="RewardVisualRoot" type="Control" parent="." unique_id=903425917]
+visible = false
+modulate = Color(1, 1, 1, 0)
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 26.0
+offset_top = -38.0
+offset_right = 188.0
+offset_bottom = 38.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(38, 38)
+scale = Vector2(0.76, 0.76)
+
+[node name="RewardCellShadow" type="TextureRect" parent="RewardVisualRoot" unique_id=364703148]
+mouse_filter = 2
+layout_mode = 0
+offset_top = 30.0
+offset_right = 76.0
+offset_bottom = 106.0
+pivot_offset_ratio = Vector2(0.5, 0.5)
+texture = ExtResource("3_reward_shadow")
+stretch_mode = 5
+
+[node name="RewardCell" parent="RewardVisualRoot" unique_id=789745409 instance=ExtResource("4_itemcell")]
+custom_minimum_size = Vector2(76, 76)
+mouse_filter = 2
+layout_mode = 0
+offset_right = 76.0
+offset_bottom = 76.0
+
+[node name="RewardAmountLabel" type="Label" parent="RewardVisualRoot" unique_id=1847756901]
+visible = false
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "+ 2500"
+label_settings = SubResource("LabelSettings_reward_amount")
+horizontal_alignment = 0
+vertical_alignment = 1

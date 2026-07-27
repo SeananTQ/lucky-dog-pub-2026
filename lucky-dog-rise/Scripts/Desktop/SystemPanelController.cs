@@ -168,6 +168,10 @@ public partial class SystemPanelController : CanvasLayer
     private static readonly Color LinkTreeGiftLockedColor = new(0.55f, 0.62f, 0.66f, 0.92f);
     private static readonly Color LinkTreeGiftReadyColor = new(1f, 0.86f, 0.24f, 1f);
     private static readonly Color LinkTreeGiftClaimedColor = new(1f, 1f, 1f, 0f);
+    private static readonly Vector2 LinkTreeRewardFeedbackStartScale = new(0.62f, 0.62f);
+    private static readonly Vector2 LinkTreeRewardFeedbackRestScale = Vector2.One;
+    private static readonly Vector2 LinkTreeRewardFeedbackEndScale = new(0.72f, 0.72f);
+    private const double LinkTreeRewardFeedbackHoldSeconds = 0.5;
     private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
     {
         [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
@@ -458,13 +462,21 @@ public partial class SystemPanelController : CanvasLayer
     {
         public Button Banner = null!;
         public TextureRect GiftBadge = null!;
+        public Control RewardVisualRoot = null!;
+        public TextureRect RewardCellShadow = null!;
+        public ItemCellController RewardCell = null!;
+        public Label RewardAmountLabel = null!;
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
         public int ClaimCount;
+        public Tween RewardFeedbackTween = null!;
     }
 
     private void BuildLinkTree()
     {
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.RewardFeedbackTween?.Kill();
+
         foreach (var child in _linkTreeContent.GetChildren())
         {
             if (child.Name != "LinkTreeTopGap")
@@ -495,6 +507,10 @@ public partial class SystemPanelController : CanvasLayer
         {
             Banner = banner,
             GiftBadge = banner.GetNode<TextureRect>("GiftBadge"),
+            RewardVisualRoot = banner.GetNode<Control>("RewardVisualRoot"),
+            RewardCellShadow = banner.GetNode<TextureRect>("RewardVisualRoot/RewardCellShadow"),
+            RewardCell = banner.GetNode<ItemCellController>("RewardVisualRoot/RewardCell"),
+            RewardAmountLabel = banner.GetNode<Label>("RewardVisualRoot/RewardAmountLabel"),
             Data = data,
             State = data.ClaimLimit <= 0 ? LinkTreeRewardState.Claimed : LinkTreeRewardState.Unopened,
         };
@@ -600,6 +616,8 @@ public partial class SystemPanelController : CanvasLayer
             ? LinkTreeRewardState.Unopened
             : LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
+        SetupLinkTreeRewardPreview(entry);
+        PlayLinkTreeRewardFeedback(entry);
         GD.Print($"[LinkTree] Claimed in-memory reward for {entry.Data.Key} ({entry.Data.Id}).");
     }
 
@@ -650,6 +668,71 @@ public partial class SystemPanelController : CanvasLayer
             LinkTreeRewardState.ReadyToClaim => LinkTreeGiftReadyColor,
             _ => LinkTreeGiftClaimedColor,
         };
+    }
+
+    private static void SetupLinkTreeRewardPreview(LinkTreeRewardEntry entry)
+    {
+        switch (entry.Data.RewardType)
+        {
+            case ELinkTreeRewardType.FixedItem:
+                var item = LubanData.Tables.TbItem.GetOrDefault(entry.Data.RewardItemId);
+                if (item != null)
+                {
+                    entry.RewardCell.Visible = true;
+                    entry.RewardCellShadow.Visible = true;
+                    entry.RewardAmountLabel.Visible = false;
+                    entry.RewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
+                }
+                break;
+
+            case ELinkTreeRewardType.FixedChips:
+                entry.RewardCell.Visible = false;
+                entry.RewardCellShadow.Visible = false;
+                entry.RewardAmountLabel.Text = FormatSignedLinkTreeRewardAmount(entry.Data.RewardChips);
+                entry.RewardAmountLabel.Visible = true;
+                break;
+
+            default:
+                entry.RewardCell.Visible = false;
+                entry.RewardCellShadow.Visible = false;
+                entry.RewardAmountLabel.Visible = false;
+                break;
+        }
+    }
+
+    private void PlayLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
+    {
+        entry.RewardFeedbackTween?.Kill();
+
+        entry.RewardVisualRoot.Visible = true;
+        entry.RewardVisualRoot.Scale = LinkTreeRewardFeedbackStartScale;
+        entry.RewardVisualRoot.Modulate = new Color(1f, 1f, 1f, 0f);
+
+        entry.RewardFeedbackTween = CreateTween();
+        entry.RewardFeedbackTween.TweenProperty(entry.RewardVisualRoot, "scale", LinkTreeRewardFeedbackRestScale, 0.18)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        entry.RewardFeedbackTween.Parallel().TweenProperty(entry.RewardVisualRoot, "modulate:a", 1f, 0.12)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+
+        entry.RewardFeedbackTween.TweenInterval(LinkTreeRewardFeedbackHoldSeconds);
+
+        entry.RewardFeedbackTween.TweenProperty(entry.RewardVisualRoot, "scale", LinkTreeRewardFeedbackEndScale, 0.14)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.In);
+        entry.RewardFeedbackTween.Parallel().TweenProperty(entry.RewardVisualRoot, "modulate:a", 0f, 0.14)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.In);
+
+        entry.RewardFeedbackTween.TweenCallback(Callable.From(() => entry.RewardVisualRoot.Visible = false));
+    }
+
+    private static string FormatSignedLinkTreeRewardAmount(int amount)
+    {
+        return amount >= 0
+            ? $"+ {amount}"
+            : $"- {Math.Abs(amount)}";
     }
 
     private static void ApplyLinkTreeTexture(TextureRect rect, string tablePath)
