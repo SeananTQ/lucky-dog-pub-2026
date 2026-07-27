@@ -184,6 +184,7 @@ public partial class ModeManager : Control
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
         _settingsPanel.GameData = _gameData;
+        _settingsPanel.PlatformService = _platformService;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.QuitRequested += RequestGracefulQuit;

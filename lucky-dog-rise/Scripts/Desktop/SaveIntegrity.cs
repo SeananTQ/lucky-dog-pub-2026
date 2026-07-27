@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -68,6 +68,9 @@ internal static class SaveIntegrity
             BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState, integrityVersion),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
+            PendingLinkTreeClaim = integrityVersion >= 5
+                ? CanonicalizePendingLinkTreeClaim(profile.PendingLinkTreeClaim)
+                : null,
             // v1 存档的签名没有这个字段；保持 null 并由 JsonIgnore 省略，兼容旧 HMAC。
             LuckyDealBuffState = integrityVersion >= 2
                 ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState)
@@ -138,6 +141,18 @@ internal static class SaveIntegrity
             RewardShown = pending.RewardShown,
             TotalPlaySeconds = pending.TotalPlaySeconds,
             DebugText = pending.DebugText ?? string.Empty,
+        };
+    }
+
+    private static PendingLinkTreeClaim? CanonicalizePendingLinkTreeClaim(PendingLinkTreeClaim? pending)
+    {
+        if (pending == null)
+            return null;
+
+        return new PendingLinkTreeClaim
+        {
+            LinkTreeId = pending.LinkTreeId,
+            SteamPromoItemDefId = pending.SteamPromoItemDefId,
         };
     }
 }

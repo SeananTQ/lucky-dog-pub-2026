@@ -56,6 +56,8 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _linkTreeContent = null!;
+    private Control _linkTreeStatusCenter = null!;
+    private Label _linkTreeStatusLabel = null!;
 #if DEBUG
     private VBoxContainer _debugContent = null!;
 #endif
@@ -109,6 +111,9 @@ public partial class SystemPanelController : CanvasLayer
     private TabGroup _selectedTab = null!;
     private Label _emptyWardrobeLabel = null!;
     private GameData _gameData = null!;
+    private IGamePlatformService _platformService = null!;
+    private IPlatformInventoryService _inventoryService;
+    private LinkTreePageState _linkTreePageState = LinkTreePageState.Loading;
     public GameData GameData
     {
         get => _gameData;
@@ -130,6 +135,30 @@ public partial class SystemPanelController : CanvasLayer
             EnsureCurrentTabReady();
             if (IsNodeReady())
                 BuildArmAppearanceOptions();
+        }
+    }
+
+    public IGamePlatformService PlatformService
+    {
+        get => _platformService;
+        set
+        {
+            if (_inventoryService != null)
+            {
+                _inventoryService.InventorySnapshotChanged -= OnPlatformInventorySnapshotChanged;
+                _inventoryService.PromoItemGrantCompleted -= OnPlatformPromoItemGrantCompleted;
+            }
+
+            _platformService = value;
+            _inventoryService = value as IPlatformInventoryService;
+            if (_inventoryService != null)
+            {
+                _inventoryService.InventorySnapshotChanged += OnPlatformInventorySnapshotChanged;
+                _inventoryService.PromoItemGrantCompleted += OnPlatformPromoItemGrantCompleted;
+            }
+
+            if (IsNodeReady())
+                InitializeLinkTreeInventory();
         }
     }
 
@@ -197,6 +226,8 @@ public partial class SystemPanelController : CanvasLayer
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
+        _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
+        _linkTreeStatusLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter/LinkTreeStatusLabel");
         _tabContents.Add(_wardrobeContent);
         _tabContents.Add(_linkTreeContent);
         _tabContents.Add(_settingsContent);
@@ -209,6 +240,8 @@ public partial class SystemPanelController : CanvasLayer
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _settingsTab.Pressed += () => SwitchTab(2);
         BuildLinkTree();
+        SetLinkTreePageState(LinkTreePageState.Loading);
+        InitializeLinkTreeInventory();
 #if DEBUG
         _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
@@ -458,6 +491,13 @@ public partial class SystemPanelController : CanvasLayer
         Claimed,
     }
 
+    private enum LinkTreePageState
+    {
+        Loading,
+        Ready,
+        Unavailable,
+    }
+
     private sealed class LinkTreeRewardEntry
     {
         public Button Banner = null!;
@@ -469,6 +509,7 @@ public partial class SystemPanelController : CanvasLayer
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
         public int ClaimCount;
+        public bool ClaimPending;
         public Tween RewardFeedbackTween = null!;
     }
 
@@ -479,7 +520,7 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var child in _linkTreeContent.GetChildren())
         {
-            if (child.Name != "LinkTreeTopGap")
+            if (child.Name != "LinkTreeTopGap" && child.Name != "LinkTreeStatusCenter")
                 child.QueueFree();
         }
 
@@ -515,6 +556,7 @@ public partial class SystemPanelController : CanvasLayer
             State = data.ClaimLimit <= 0 ? LinkTreeRewardState.Claimed : LinkTreeRewardState.Unopened,
         };
         _linkTreeRewardEntries.Add(entry);
+        banner.Visible = false;
         banner.Pressed += () => OnLinkTreeBannerPressed(entry);
         RefreshLinkTreeRewardEntry(entry);
     }
@@ -601,10 +643,30 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ClaimLinkTreeReward(LinkTreeRewardEntry entry)
     {
+        if (entry.ClaimPending)
+            return;
+
         if (entry.Data.ClaimLimit > 0 && entry.ClaimCount >= entry.Data.ClaimLimit)
         {
             entry.State = LinkTreeRewardState.Claimed;
             RefreshLinkTreeRewardEntry(entry);
+            return;
+        }
+
+        if (_inventoryService != null)
+        {
+            ClaimSteamLinkTreeReward(entry);
+            return;
+        }
+
+        if (BuildInfo.Channel != BuildChannel.Dev)
+        {
+            GD.PushWarning($"[LinkTree] Steam Inventory unavailable; refusing reward claim for {entry.Data.Key}.");
+            return;
+        }
+        if (_gameData?.PendingLinkTreeClaim != null)
+        {
+            GD.PushWarning("[LinkTree] A Steam-backed claim is pending; refusing in-memory fallback reward.");
             return;
         }
 
@@ -619,6 +681,177 @@ public partial class SystemPanelController : CanvasLayer
         SetupLinkTreeRewardPreview(entry);
         PlayLinkTreeRewardFeedback(entry);
         GD.Print($"[LinkTree] Claimed in-memory reward for {entry.Data.Key} ({entry.Data.Id}).");
+    }
+
+    private void InitializeLinkTreeInventory()
+    {
+        if (!IsNodeReady())
+            return;
+        if (_platformService == null)
+        {
+            SetLinkTreePageState(LinkTreePageState.Loading);
+            return;
+        }
+
+        if (_inventoryService == null)
+        {
+            SetLinkTreePageState(BuildInfo.Channel == BuildChannel.Dev
+                ? LinkTreePageState.Ready
+                : LinkTreePageState.Unavailable);
+            return;
+        }
+
+        SetLinkTreePageState(LinkTreePageState.Loading);
+        _inventoryService.StartInventorySynchronization();
+    }
+
+    private void SetLinkTreePageState(LinkTreePageState state)
+    {
+        if (!IsNodeReady())
+            return;
+
+        _linkTreePageState = state;
+        var showBanners = state == LinkTreePageState.Ready;
+        _linkTreeStatusCenter.Visible = !showBanners;
+        _linkTreeStatusLabel.Text = state switch
+        {
+            LinkTreePageState.Loading => L10n.Tr(L10nKey.LinkTree_SyncingRewards),
+            LinkTreePageState.Unavailable => L10n.Tr(L10nKey.LinkTree_RewardsUnavailable),
+            _ => string.Empty,
+        };
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.Banner.Visible = showBanners;
+    }
+
+    private void ClaimSteamLinkTreeReward(LinkTreeRewardEntry entry)
+    {
+        var itemDefId = entry.Data.SteamPromoItemDefId;
+        var itemDef = LubanData.Tables.TbSteamItemDef.GetOrDefault(itemDefId);
+        if (itemDefId <= 0 || itemDef == null || !itemDef.IsEnabled)
+        {
+            GD.PushWarning($"[LinkTree] Invalid Steam promo ItemDef for {entry.Data.Key}: {itemDefId}.");
+            return;
+        }
+        if (!_inventoryService!.IsInventoryReady)
+        {
+            GD.Print($"[LinkTree] Steam inventory is not ready; claim deferred for {entry.Data.Key}.");
+            return;
+        }
+        if (_gameData?.IsUsingLocalSave != true)
+        {
+            GD.PushWarning("[LinkTree] Steam-backed rewards require LocalSave mode so the claim transaction can be recovered.");
+            return;
+        }
+        if (_gameData == null || !_gameData.TryBeginLinkTreeClaim(entry.Data.Id, itemDefId))
+        {
+            GD.PushWarning($"[LinkTree] Another LinkTree claim transaction is pending; refusing {entry.Data.Key}.");
+            return;
+        }
+        if (!_inventoryService.TryGrantPromoItem(itemDefId, out var message))
+        {
+            _gameData.ClearPendingLinkTreeClaim();
+            GD.PushWarning($"[LinkTree] {message}");
+            return;
+        }
+
+        entry.ClaimPending = true;
+        GD.Print($"[LinkTree] {message}");
+    }
+
+    private void OnPlatformInventorySnapshotChanged(PlatformInventorySnapshot snapshot)
+    {
+        if (!snapshot.Succeeded)
+        {
+            SetLinkTreePageState(LinkTreePageState.Unavailable);
+            GD.PushWarning($"[LinkTree] {snapshot.Message}");
+            return;
+        }
+
+        var pending = _gameData?.PendingLinkTreeClaim;
+        if (pending != null && snapshot.OwnedItemDefIds.Contains(pending.SteamPromoItemDefId))
+        {
+            var pendingEntry = _linkTreeRewardEntries.FirstOrDefault(entry =>
+                entry.Data.Id == pending.LinkTreeId
+                && entry.Data.SteamPromoItemDefId == pending.SteamPromoItemDefId);
+            if (pendingEntry != null)
+                CompleteSteamLinkTreeClaim(pendingEntry, recovered: true);
+            else
+            {
+                GD.PushWarning($"[LinkTree] Pending claim does not match current LinkTree data: LinkTreeId={pending.LinkTreeId}.");
+                _gameData?.ClearPendingLinkTreeClaim();
+            }
+        }
+        else if (pending != null && _inventoryService?.IsPromoGrantPending != true)
+        {
+            GD.Print($"[LinkTree] Pending claim has no Steam receipt; clearing LinkTreeId={pending.LinkTreeId} for retry.");
+            _gameData?.ClearPendingLinkTreeClaim();
+        }
+
+        foreach (var entry in _linkTreeRewardEntries)
+        {
+            if (!snapshot.OwnedItemDefIds.Contains(entry.Data.SteamPromoItemDefId))
+                continue;
+
+            entry.ClaimPending = false;
+            entry.ClaimCount = Math.Max(entry.ClaimCount, entry.Data.ClaimLimit);
+            entry.State = LinkTreeRewardState.Claimed;
+            RefreshLinkTreeRewardEntry(entry);
+        }
+
+        SetLinkTreePageState(LinkTreePageState.Ready);
+        GD.Print($"[LinkTree] {snapshot.Message}");
+    }
+
+    private void OnPlatformPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
+    {
+        var entry = _linkTreeRewardEntries.FirstOrDefault(candidate =>
+            candidate.Data.SteamPromoItemDefId == result.ItemDefId);
+        if (entry == null)
+        {
+            GD.PushWarning($"[LinkTree] Steam returned unknown promo ItemDef={result.ItemDefId}.");
+            return;
+        }
+
+        entry.ClaimPending = false;
+        if (!result.Succeeded || !result.ReceiptOwned)
+        {
+            _gameData?.ClearPendingLinkTreeClaim();
+            GD.PushWarning($"[LinkTree] {result.Message}");
+            return;
+        }
+
+        CompleteSteamLinkTreeClaim(entry, recovered: false);
+        GD.Print($"[LinkTree] {result.Message}");
+    }
+
+    private void CompleteSteamLinkTreeClaim(LinkTreeRewardEntry entry, bool recovered)
+    {
+        if (_gameData?.PendingLinkTreeClaim is not { } pending
+            || pending.LinkTreeId != entry.Data.Id
+            || pending.SteamPromoItemDefId != entry.Data.SteamPromoItemDefId)
+        {
+            entry.State = LinkTreeRewardState.Claimed;
+            entry.ClaimCount = Math.Max(entry.ClaimCount, entry.Data.ClaimLimit);
+            RefreshLinkTreeRewardEntry(entry);
+            return;
+        }
+
+        if (!TryGrantLinkTreeReward(entry.Data))
+        {
+            GD.PushError($"[LinkTree] Steam receipt exists but local reward failed for {entry.Data.Key}.");
+            return;
+        }
+
+        entry.ClaimPending = false;
+        entry.ClaimCount++;
+        entry.State = entry.Data.ClaimLimit > 0 && entry.ClaimCount < entry.Data.ClaimLimit
+            ? LinkTreeRewardState.Unopened
+            : LinkTreeRewardState.Claimed;
+        RefreshLinkTreeRewardEntry(entry);
+        SetupLinkTreeRewardPreview(entry);
+        PlayLinkTreeRewardFeedback(entry);
+        _gameData.ClearPendingLinkTreeClaim();
+        GD.Print($"[LinkTree] {(recovered ? "Recovered" : "Completed")} Steam-backed reward for {entry.Data.Key} ({entry.Data.Id}).");
     }
 
     private bool TryGrantLinkTreeReward(LinkTree data)
@@ -1162,6 +1395,8 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (_languageOption == null)
             return;
+
+        SetLinkTreePageState(_linkTreePageState);
 
         var selected = _languageOption.GetSelectedId();
         for (int i = 0; i < LocaleOptions.Length; i++)

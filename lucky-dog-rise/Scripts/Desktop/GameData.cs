@@ -40,6 +40,7 @@ public partial class GameData : Node
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
     private LuckyDealBuffState _luckyDealBuffState = new();
+    public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private BlindBoxService _blindBoxService;
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -253,8 +254,35 @@ public partial class GameData : Node
         QueueSaveIfUsingLocalSave();
     }
 
+    public bool TryBeginLinkTreeClaim(int linkTreeId, int steamPromoItemDefId)
+    {
+        if (linkTreeId <= 0 || steamPromoItemDefId <= 0)
+            return false;
+        if (PendingLinkTreeClaim != null)
+            return PendingLinkTreeClaim.LinkTreeId == linkTreeId
+                && PendingLinkTreeClaim.SteamPromoItemDefId == steamPromoItemDefId;
+
+        PendingLinkTreeClaim = new PendingLinkTreeClaim
+        {
+            LinkTreeId = linkTreeId,
+            SteamPromoItemDefId = steamPromoItemDefId,
+        };
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
+    public void ClearPendingLinkTreeClaim()
+    {
+        if (PendingLinkTreeClaim == null)
+            return;
+
+        PendingLinkTreeClaim = null;
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
     public bool CanAffordBet => Chips >= BetAmount;
     public int LuckyDealRemainingHands => _luckyDealBuffState.RemainingHands;
+    public bool IsUsingLocalSave => _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
 
     public void RecordTypingInput(int count)
     {
@@ -339,6 +367,7 @@ public partial class GameData : Node
         Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
+        PendingLinkTreeClaim = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         Progression.Reset();
@@ -409,6 +438,7 @@ public partial class GameData : Node
         Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
+        PendingLinkTreeClaim = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         Inventory.ResetToDebugAllItems(emitChanged: false);
@@ -471,6 +501,7 @@ public partial class GameData : Node
             NewItemIds = Inventory.GetNewItemIds().ToList(),
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
+            PendingLinkTreeClaim = PendingLinkTreeClaim,
             LuckyDealBuffState = _luckyDealBuffState,
         });
         _saveDirty = false;
@@ -481,6 +512,7 @@ public partial class GameData : Node
     {
         _blindBoxRuntimeState = profile.BlindBoxRuntimeState ?? new BlindBoxRuntimeState();
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
+        PendingLinkTreeClaim = profile.PendingLinkTreeClaim;
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

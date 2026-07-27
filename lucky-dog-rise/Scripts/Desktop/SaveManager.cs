@@ -24,14 +24,22 @@ public sealed class SaveProfile
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PendingLinkTreeClaim? PendingLinkTreeClaim { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public LuckyDealBuffState? LuckyDealBuffState { get; set; } = new();
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
 }
 
+public sealed class PendingLinkTreeClaim
+{
+    public int LinkTreeId { get; set; }
+    public int SteamPromoItemDefId { get; set; }
+}
+
 public static class SaveManager
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -143,6 +151,11 @@ public static class SaveManager
         profile.NewItemIds ??= new List<int>();
         profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
         profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
+        if (profile.PendingLinkTreeClaim is { } pendingLinkTreeClaim
+            && (pendingLinkTreeClaim.LinkTreeId <= 0 || pendingLinkTreeClaim.SteamPromoItemDefId <= 0))
+        {
+            profile.PendingLinkTreeClaim = null;
+        }
         profile.LuckyDealBuffState ??= new LuckyDealBuffState();
         profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
         profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);

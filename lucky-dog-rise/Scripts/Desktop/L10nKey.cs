@@ -62,7 +62,8 @@ public static class L10nKey
     public const string Wardrobe_Tab_Player = nameof(Wardrobe_Tab_Player);
     public const string Wardrobe_Tab_Theme = nameof(Wardrobe_Tab_Theme);
     public const string Wardrobe_Tab_Refreshment = nameof(Wardrobe_Tab_Refreshment);
-    public const string LinkTree_ComingSoon = nameof(LinkTree_ComingSoon);
+    public const string LinkTree_SyncingRewards = nameof(LinkTree_SyncingRewards);
+    public const string LinkTree_RewardsUnavailable = nameof(LinkTree_RewardsUnavailable);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
     public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);
     public const string InfoPanel_Open = nameof(InfoPanel_Open);

@@ -5,13 +5,29 @@ using Steamworks;
 
 namespace LuckyDogRise;
 
-public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations, IPlatformAchievementSyncOperations
+public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
+    IPlatformAchievementSyncOperations, IPlatformInventoryService
 {
+    private enum InventoryRequestKind
+    {
+        FullInventory,
+        AddPromoItem,
+    }
+
+    private readonly record struct InventoryRequest(InventoryRequestKind Kind, int ItemDefId = 0);
+
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<UserStatsReceived_t> _userStatsReceivedCallback;
     private readonly Callback<UserStatsStored_t> _userStatsStoredCallback;
     private readonly Callback<UserAchievementStored_t> _userAchievementStoredCallback;
+    private readonly Callback<SteamInventoryDefinitionUpdate_t> _inventoryDefinitionUpdateCallback;
+    private readonly Callback<SteamInventoryFullUpdate_t> _inventoryFullUpdateCallback;
+    private readonly Callback<SteamInventoryResultReady_t> _inventoryResultReadyCallback;
+    private readonly Dictionary<int, InventoryRequest> _inventoryRequests = new();
+    private readonly HashSet<int> _ownedInventoryItemDefIds = new();
     private bool _hasPendingAchievementStore;
+    private bool _inventorySynchronizationStarted;
+    private int _promoItemAwaitingInventoryVerification;
 
     public SteamGamePlatformService(SteamworksRuntime runtime)
     {
@@ -19,10 +35,15 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         _userStatsReceivedCallback = Callback<UserStatsReceived_t>.Create(OnUserStatsReceived);
         _userStatsStoredCallback = Callback<UserStatsStored_t>.Create(OnUserStatsStored);
         _userAchievementStoredCallback = Callback<UserAchievementStored_t>.Create(OnUserAchievementStored);
+        _inventoryDefinitionUpdateCallback = Callback<SteamInventoryDefinitionUpdate_t>.Create(OnInventoryDefinitionUpdated);
+        _inventoryFullUpdateCallback = Callback<SteamInventoryFullUpdate_t>.Create(OnFullInventoryUpdated);
+        _inventoryResultReadyCallback = Callback<SteamInventoryResultReady_t>.Create(OnInventoryResultReady);
     }
 
     public event Action UserStatsReady = delegate { };
     public event Action<string> StoreStatusChanged = delegate { };
+    public event Action<PlatformInventorySnapshot> InventorySnapshotChanged = delegate { };
+    public event Action<PlatformPromoItemGrantResult> PromoItemGrantCompleted = delegate { };
 
     public string ProviderName => "Steam";
     public string StatusMessage => _runtime.StatusMessage;
@@ -30,9 +51,60 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public uint AppId => _runtime.AppId;
     public string PersonaName => _runtime.PersonaName;
     public bool IsReadyForWrites { get; private set; }
+    public bool IsInventoryReady { get; private set; }
+    public bool IsPromoGrantPending => _inventoryRequests.Values.Any(request =>
+        request.Kind == InventoryRequestKind.AddPromoItem) || _promoItemAwaitingInventoryVerification > 0;
 
     public void RunCallbacks() => _runtime.RunCallbacks();
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
+
+    public void StartInventorySynchronization()
+    {
+        if (!IsAvailable || _inventorySynchronizationStarted)
+            return;
+
+        _inventorySynchronizationStarted = true;
+        if (!SteamInventory.LoadItemDefinitions())
+            Godot.GD.PushWarning("[SteamInventory] Steam 拒绝刷新库存 ItemDef；继续读取玩家库存。");
+
+        // DefinitionUpdate is a cache/update notification, not a reliable startup gate.
+        // GetAllItems must run on every launch even when Steam has no definition update to publish.
+        RequestFullInventory();
+    }
+
+    public bool TryGrantPromoItem(int itemDefId, out string message)
+    {
+        if (!IsAvailable || !IsInventoryReady)
+        {
+            message = "Steam 库存尚未同步完成。";
+            return false;
+        }
+        if (itemDefId <= 0)
+        {
+            message = $"无效的 Steam ItemDef：{itemDefId}";
+            return false;
+        }
+        if (_ownedInventoryItemDefIds.Contains(itemDefId))
+        {
+            message = $"Steam 库存已拥有回执 ItemDef={itemDefId}。";
+            return false;
+        }
+        if (_inventoryRequests.Count > 0 || IsPromoGrantPending)
+        {
+            message = "已有 Steam 库存请求正在处理。";
+            return false;
+        }
+
+        if (!SteamInventory.AddPromoItem(out var handle, (SteamItemDef_t)itemDefId))
+        {
+            message = $"Steam 拒绝 AddPromoItem({itemDefId}) 请求。";
+            return false;
+        }
+
+        _inventoryRequests[HandleValue(handle)] = new InventoryRequest(InventoryRequestKind.AddPromoItem, itemDefId);
+        message = $"已提交 AddPromoItem({itemDefId})，等待 Steam 回执。";
+        return true;
+    }
 
     public PlatformAchievementReadResult ReadAchievementStates(IEnumerable<string> achievementApiNames)
     {
@@ -129,11 +201,189 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     public void Dispose()
     {
+        foreach (var handleValue in _inventoryRequests.Keys.ToArray())
+            SteamInventory.DestroyResult((SteamInventoryResult_t)handleValue);
+        _inventoryRequests.Clear();
+        _inventoryResultReadyCallback.Dispose();
+        _inventoryFullUpdateCallback.Dispose();
+        _inventoryDefinitionUpdateCallback.Dispose();
         _userAchievementStoredCallback.Dispose();
         _userStatsStoredCallback.Dispose();
         _userStatsReceivedCallback.Dispose();
         _runtime.Dispose();
     }
+
+    private void OnInventoryDefinitionUpdated(SteamInventoryDefinitionUpdate_t callback)
+    {
+        var count = 0u;
+        if (!SteamInventory.GetItemDefinitionIDs(null!, ref count))
+        {
+            PublishInventoryFailure("Steam ItemDef 数量读取失败。");
+            return;
+        }
+
+        var serverDefinitions = new SteamItemDef_t[count];
+        if (count > 0 && !SteamInventory.GetItemDefinitionIDs(serverDefinitions, ref count))
+        {
+            PublishInventoryFailure("Steam ItemDef 内容读取失败。");
+            return;
+        }
+
+        var serverIds = serverDefinitions.Select(itemDef => (int)itemDef).ToHashSet();
+        var missingIds = LubanData.Tables.TbSteamItemDef.DataList
+            .Where(itemDef => itemDef.IsEnabled && !serverIds.Contains(itemDef.Id))
+            .Select(itemDef => itemDef.Id)
+            .ToArray();
+        if (missingIds.Length > 0)
+        {
+            PublishInventoryFailure($"Steam 后台缺少 ItemDef：{string.Join(", ", missingIds)}");
+            return;
+        }
+
+        if (!IsInventoryReady)
+            RequestFullInventory();
+    }
+
+    private void OnFullInventoryUpdated(SteamInventoryFullUpdate_t callback)
+    {
+        var handleValue = HandleValue(callback.m_handle);
+        _inventoryRequests.TryAdd(handleValue, new InventoryRequest(InventoryRequestKind.FullInventory));
+    }
+
+    private void OnInventoryResultReady(SteamInventoryResultReady_t callback)
+    {
+        var handle = callback.m_handle;
+        var handleValue = HandleValue(handle);
+        var isTracked = _inventoryRequests.Remove(handleValue, out var request);
+
+        try
+        {
+            if (!isTracked)
+                return;
+            if (!SteamInventory.CheckResultSteamID(handle, new CSteamID(_runtime.SteamId)))
+            {
+                CompleteInventoryRequestFailure(request, "Steam 库存结果的 SteamID 校验失败。");
+                return;
+            }
+            if (callback.m_result != EResult.k_EResultOK)
+            {
+                CompleteInventoryRequestFailure(request, $"Steam 库存请求失败：{callback.m_result}");
+                return;
+            }
+
+            var items = ReadInventoryResultItems(handle);
+            if (items == null)
+            {
+                CompleteInventoryRequestFailure(request, "Steam GetResultItems 失败。");
+                return;
+            }
+
+            if (request.Kind == InventoryRequestKind.FullInventory)
+                ApplyFullInventory(items);
+            else
+                ApplyPromoGrantResult(request.ItemDefId, items);
+        }
+        finally
+        {
+            SteamInventory.DestroyResult(handle);
+        }
+    }
+
+    private void ApplyFullInventory(IReadOnlyCollection<SteamItemDetails_t> items)
+    {
+        _ownedInventoryItemDefIds.Clear();
+        foreach (var item in items.Where(item => item.m_unQuantity > 0))
+            _ownedInventoryItemDefIds.Add((int)item.m_iDefinition);
+
+        IsInventoryReady = true;
+        InventorySnapshotChanged(new PlatformInventorySnapshot(
+            true,
+            $"Steam 库存同步完成：{items.Count} 个实例/堆叠。",
+            new HashSet<int>(_ownedInventoryItemDefIds)));
+
+        if (_promoItemAwaitingInventoryVerification <= 0)
+            return;
+
+        var itemDefId = _promoItemAwaitingInventoryVerification;
+        _promoItemAwaitingInventoryVerification = 0;
+        var receiptOwned = _ownedInventoryItemDefIds.Contains(itemDefId);
+        PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+            itemDefId,
+            receiptOwned,
+            receiptOwned,
+            receiptOwned
+                ? $"Steam 库存已确认回执 ItemDef={itemDefId}。"
+                : $"Steam 未发放回执 ItemDef={itemDefId}。"));
+    }
+
+    private void ApplyPromoGrantResult(int itemDefId, IReadOnlyCollection<SteamItemDetails_t> items)
+    {
+        var receiptOwned = items.Any(item => (int)item.m_iDefinition == itemDefId && item.m_unQuantity > 0);
+        if (receiptOwned)
+        {
+            _ownedInventoryItemDefIds.Add(itemDefId);
+            PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+                itemDefId, true, true, $"Steam 已发放回执 ItemDef={itemDefId}。"));
+            RequestFullInventory();
+            return;
+        }
+
+        _promoItemAwaitingInventoryVerification = itemDefId;
+        if (!RequestFullInventory())
+        {
+            _promoItemAwaitingInventoryVerification = 0;
+            PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+                itemDefId, false, false, $"Steam 未返回回执 ItemDef={itemDefId}，且库存复查请求失败。"));
+        }
+    }
+
+    private bool RequestFullInventory()
+    {
+        if (_inventoryRequests.Values.Any(request => request.Kind == InventoryRequestKind.FullInventory))
+            return true;
+        if (!SteamInventory.GetAllItems(out var handle))
+        {
+            PublishInventoryFailure("Steam 拒绝 GetAllItems 请求。");
+            return false;
+        }
+
+        _inventoryRequests[HandleValue(handle)] = new InventoryRequest(InventoryRequestKind.FullInventory);
+        return true;
+    }
+
+    private void CompleteInventoryRequestFailure(InventoryRequest request, string message)
+    {
+        if (request.Kind == InventoryRequestKind.AddPromoItem)
+        {
+            _promoItemAwaitingInventoryVerification = 0;
+            PromoItemGrantCompleted(new PlatformPromoItemGrantResult(request.ItemDefId, false, false, message));
+            return;
+        }
+
+        PublishInventoryFailure(message);
+    }
+
+    private void PublishInventoryFailure(string message)
+    {
+        IsInventoryReady = false;
+        Godot.GD.PushWarning($"[SteamInventory] {message}");
+        InventorySnapshotChanged(new PlatformInventorySnapshot(
+            false, message, new HashSet<int>(_ownedInventoryItemDefIds)));
+    }
+
+    private static SteamItemDetails_t[] ReadInventoryResultItems(SteamInventoryResult_t handle)
+    {
+        var count = 0u;
+        if (!SteamInventory.GetResultItems(handle, null!, ref count))
+            return null;
+        if (count == 0)
+            return Array.Empty<SteamItemDetails_t>();
+
+        var items = new SteamItemDetails_t[count];
+        return SteamInventory.GetResultItems(handle, items, ref count) ? items : null;
+    }
+
+    private static int HandleValue(SteamInventoryResult_t handle) => (int)handle;
 
     private static PlatformAchievementState ReadAchievementState(string apiName, HashSet<string> configuredNames)
     {
