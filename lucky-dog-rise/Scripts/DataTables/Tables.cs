@@ -31,6 +31,7 @@ public partial class Tables
     public TbBlindBoxRarityRate TbBlindBoxRarityRate {get; }
     public TbBlindBoxRevealPath TbBlindBoxRevealPath {get; }
     public TbBlindBoxVisual TbBlindBoxVisual {get; }
+    public TbLinkTree TbLinkTree {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -51,6 +52,7 @@ public partial class Tables
         TbBlindBoxRarityRate = new TbBlindBoxRarityRate(loader("tbblindboxrarityrate"));
         TbBlindBoxRevealPath = new TbBlindBoxRevealPath(loader("tbblindboxrevealpath"));
         TbBlindBoxVisual = new TbBlindBoxVisual(loader("tbblindboxvisual"));
+        TbLinkTree = new TbLinkTree(loader("tblinktree"));
         ResolveRef();
     }
     
@@ -73,6 +75,7 @@ public partial class Tables
         TbBlindBoxRarityRate.ResolveRef(this);
         TbBlindBoxRevealPath.ResolveRef(this);
         TbBlindBoxVisual.ResolveRef(this);
+        TbLinkTree.ResolveRef(this);
     }
 }
 
