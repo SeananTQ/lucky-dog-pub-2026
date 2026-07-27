@@ -83,6 +83,8 @@ Steam 后台的英文说明。内部回执可使用简短技术说明。
 
 是否参与 Steam ItemDef 配置导出。已发布且不再使用的定义不应复用 ID；需要停止发放时应关闭促销资格或停用对应业务入口。
 
+对于已经上传到 Steamworks 的定义，`IsEnabled=FALSE` 不应使转换器将该行从完整 Steam schema 中省略，否则仍持有该库存实例的玩家可能无法取得定义信息。该字段仅用于阻止从未发布的草稿参与首次发布；已发布定义需要停止使用时，应保留定义并关闭对应的业务入口或促销资格。
+
 ### 促销与发放
 
 `PromoRule`
@@ -183,12 +185,11 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前表已配置 LinkTree 的四条永久领奖回执。项目生成目录目前已包含 `ESteamItemDefType`，但尚未发现 `SteamItemDef` 的生成数据类或 JSON；接入前需要确认 Luban 配置是否已将新 Sheet 纳入导出范围。
+当前表已配置 LinkTree 的四条永久领奖回执。Luban 已生成 `SteamItemDef.cs`、`TbSteamItemDef.cs` 和 `tbsteamitemdef.json`，且 `Tables.cs` 已注册 `TbSteamItemDef`；运行时可通过 `LubanData.Tables.TbSteamItemDef` 读取定义数据。四条 `LinkTree.SteamPromoItemDefId` 引用均已对应到现有回执定义。
 
 后续接入顺序：
 
-1. 验证 `SteamItemDef` 的 Luban C# 与 JSON 导出物。
-2. 实现 Steam schema JSON 转换脚本。
-3. 在 Playtest AppID 上传四条回执并测试 `AddPromoItem`。
-4. 为客户端增加库存同步、领取结果回调、回执查询和崩溃补偿事务。
-5. 再扩展后台补偿回执、盲盒和实际装扮库存。
+1. 实现 Steam schema JSON 转换脚本。
+2. 在 Playtest AppID 上传四条回执并测试 `AddPromoItem`。
+3. 为客户端增加库存同步、领取结果回调、回执查询和崩溃补偿事务。
+4. 再扩展后台补偿回执、盲盒和实际装扮库存。
