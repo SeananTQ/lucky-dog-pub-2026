@@ -28,8 +28,6 @@ flowchart LR
     SteamInventory -->|确认首次领取| LocalInventory[游戏本地背包或筹码]
 ```
 
-例如，苹果的 `Item.Id` 是 `1012` 时，奖励苹果的 LinkTree 行填写 `RewardItemId=1012`。该行另外引用一个 Steam 回执，例如 `SteamPromoItemDefId=901001`。`901001` 不是苹果，也不应出现在本地背包或装备列表中。
-
 ## 当前 LinkTree 回执
 
 当前已预留四条永久领奖回执：
