@@ -27,3 +27,4 @@ UIThemePreviewController
 WindowManager
 GodotPlugins.Game.Main
 SteamworksSmokeController
+SteamInventoryTestController
