@@ -27,10 +27,7 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
-    [Export] private Button _linkTreeTwitterBanner = null!;
-    [Export] private Button _linkTreeSteamCommunityBanner = null!;
-    [Export] private Button _linkTreeXiaohongshuBanner = null!;
-    [Export] private Button _linkTreeSteamStoreBanner = null!;
+    [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -58,7 +55,7 @@ public partial class SystemPanelController : CanvasLayer
     // 页签内容容器
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
-    private Control _linkTreeContent = null!;
+    private VBoxContainer _linkTreeContent = null!;
 #if DEBUG
     private VBoxContainer _debugContent = null!;
 #endif
@@ -168,10 +165,6 @@ public partial class SystemPanelController : CanvasLayer
         L10n.MalayLocale,
     ];
     private static readonly int[] PokerFrameRateOptions = [60, 30, 20, 15];
-    private const string TwitterFollowUrl = "https://x.com/intent/follow?screen_name=LuckyDogRise";
-    private const string XiaohongshuProfileUrl = "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a";
-    private const string SteamStoreUrl = "https://store.steampowered.com/app/2583700?utm_source=linktree&utm_medium=in_game_client&utm_campaign=linktree_reward";
-    private const string SteamCommunityUrl = "https://steamcommunity.com/app/2583700";
     private static readonly Color LinkTreeGiftLockedColor = new(0.55f, 0.62f, 0.66f, 0.92f);
     private static readonly Color LinkTreeGiftReadyColor = new(1f, 0.86f, 0.24f, 1f);
     private static readonly Color LinkTreeGiftClaimedColor = new(1f, 1f, 1f, 0f);
@@ -199,7 +192,7 @@ public partial class SystemPanelController : CanvasLayer
 
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
-        _linkTreeContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
+        _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
         _tabContents.Add(_wardrobeContent);
         _tabContents.Add(_linkTreeContent);
         _tabContents.Add(_settingsContent);
@@ -211,10 +204,7 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeTab.Pressed += () => SwitchTab(0);
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _settingsTab.Pressed += () => SwitchTab(2);
-        RegisterLinkTreeBanner(_linkTreeTwitterBanner, "Twitter", TwitterFollowUrl);
-        RegisterLinkTreeBanner(_linkTreeSteamCommunityBanner, "Steam Community", SteamCommunityUrl);
-        RegisterLinkTreeBanner(_linkTreeXiaohongshuBanner, "Xiaohongshu", XiaohongshuProfileUrl);
-        RegisterLinkTreeBanner(_linkTreeSteamStoreBanner, "Steam Store", SteamStoreUrl);
+        BuildLinkTree();
 #if DEBUG
         _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
@@ -459,6 +449,7 @@ public partial class SystemPanelController : CanvasLayer
     private enum LinkTreeRewardState
     {
         Unopened,
+        OpenedAwaitingReturn,
         ReadyToClaim,
         Claimed,
     }
@@ -467,19 +458,45 @@ public partial class SystemPanelController : CanvasLayer
     {
         public Button Banner = null!;
         public TextureRect GiftBadge = null!;
-        public string BannerId = string.Empty;
-        public string Url = string.Empty;
+        public LinkTree Data = null!;
         public LinkTreeRewardState State;
+        public int ClaimCount;
     }
 
-    private void RegisterLinkTreeBanner(Button banner, string bannerId, string url)
+    private void BuildLinkTree()
     {
+        foreach (var child in _linkTreeContent.GetChildren())
+        {
+            if (child.Name != "LinkTreeTopGap")
+                child.QueueFree();
+        }
+
+        _linkTreeRewardEntries.Clear();
+
+        var entries = LubanData.Tables.TbLinkTree.DataList
+            .Where(entry => entry.IsEnabled)
+            .OrderBy(entry => entry.SortOrder)
+            .ThenBy(entry => entry.Id);
+
+        foreach (var data in entries)
+            AddLinkTreeBanner(data);
+    }
+
+    private void AddLinkTreeBanner(LinkTree data)
+    {
+        var banner = _linkTreeBannerScene.Instantiate<Button>();
+        banner.Name = string.IsNullOrWhiteSpace(data.Key) ? $"LinkTree_{data.Id}" : data.Key;
+        banner.TooltipText = ResolveLinkTreeTooltip(data);
+        ApplyLinkTreeTexture(banner.GetNode<TextureRect>("BannerImage"), data.BannerTexturePath);
+        ApplyLinkTreeTexture(banner.GetNode<TextureRect>("GiftBadge"), data.BadgeTexturePath);
+        _linkTreeContent.AddChild(banner);
+
         var entry = new LinkTreeRewardEntry
         {
             Banner = banner,
             GiftBadge = banner.GetNode<TextureRect>("GiftBadge"),
-            BannerId = bannerId,
-            Url = url,
+            Data = data,
+            State = data.ClaimLimit <= 0 ? LinkTreeRewardState.Claimed : LinkTreeRewardState.Unopened,
         };
         _linkTreeRewardEntries.Add(entry);
         banner.Pressed += () => OnLinkTreeBannerPressed(entry);
@@ -488,21 +505,65 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnLinkTreeBannerPressed(LinkTreeRewardEntry entry)
     {
+        if (entry.State == LinkTreeRewardState.Claimed)
+        {
+            OpenLinkTreeUrl(entry.Data.Key, entry.Data.PostClaimUrl);
+            return;
+        }
+
         if (entry.State == LinkTreeRewardState.ReadyToClaim)
         {
             ClaimLinkTreeReward(entry);
             return;
         }
 
-        var result = OpenLinkTreeUrl(entry.BannerId, entry.Url);
-        if (result == Error.Ok)
+        var result = OpenLinkTreeUrl(entry.Data.Key, entry.Data.PreClaimUrl);
+        if (IsLinkTreeOpenCheckPassed(entry.Data.OpenCheckType, result))
         {
             if (entry.State == LinkTreeRewardState.Unopened)
             {
-                entry.State = LinkTreeRewardState.ReadyToClaim;
+                entry.State = LinkTreeRewardState.OpenedAwaitingReturn;
                 RefreshLinkTreeRewardEntry(entry);
             }
         }
+    }
+
+    public void OnGlobalMousePressed(Vector2I screenPosition, bool clickedOutsideInteractiveContent)
+    {
+        if (!clickedOutsideInteractiveContent || !HasLinkTreeRewardsAwaitingExternalClick())
+            return;
+
+        MarkOpenedLinkTreeRewardsReadyToClaim();
+    }
+
+    private bool HasLinkTreeRewardsAwaitingExternalClick()
+    {
+        return _linkTreeRewardEntries
+            .Any(entry => entry.State == LinkTreeRewardState.OpenedAwaitingReturn);
+    }
+
+    private void MarkOpenedLinkTreeRewardsReadyToClaim()
+    {
+        foreach (var entry in _linkTreeRewardEntries)
+        {
+            if (entry.State != LinkTreeRewardState.OpenedAwaitingReturn)
+                continue;
+
+            entry.State = LinkTreeRewardState.ReadyToClaim;
+            RefreshLinkTreeRewardEntry(entry);
+        }
+    }
+
+    private static bool IsLinkTreeOpenCheckPassed(ELinkTreeOpenCheckType checkType, Error shellOpenResult)
+    {
+        return checkType switch
+        {
+            ELinkTreeOpenCheckType.None => true,
+            ELinkTreeOpenCheckType.ShellOpenOk => shellOpenResult == Error.Ok,
+            ELinkTreeOpenCheckType.SteamClientOk => shellOpenResult == Error.Ok,
+            ELinkTreeOpenCheckType.BrowserProcessOk => shellOpenResult == Error.Ok,
+            _ => false,
+        };
     }
 
     private static Error OpenLinkTreeUrl(string bannerId, string url)
@@ -524,9 +585,59 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ClaimLinkTreeReward(LinkTreeRewardEntry entry)
     {
-        entry.State = LinkTreeRewardState.Claimed;
+        if (entry.Data.ClaimLimit > 0 && entry.ClaimCount >= entry.Data.ClaimLimit)
+        {
+            entry.State = LinkTreeRewardState.Claimed;
+            RefreshLinkTreeRewardEntry(entry);
+            return;
+        }
+
+        if (!TryGrantLinkTreeReward(entry.Data))
+            return;
+
+        entry.ClaimCount++;
+        entry.State = entry.Data.ClaimLimit > 0 && entry.ClaimCount < entry.Data.ClaimLimit
+            ? LinkTreeRewardState.Unopened
+            : LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
-        GD.Print($"[LinkTree] Claimed in-memory reward for {entry.BannerId}.");
+        GD.Print($"[LinkTree] Claimed in-memory reward for {entry.Data.Key} ({entry.Data.Id}).");
+    }
+
+    private bool TryGrantLinkTreeReward(LinkTree data)
+    {
+        switch (data.RewardType)
+        {
+            case ELinkTreeRewardType.None:
+                return true;
+
+            case ELinkTreeRewardType.FixedItem:
+                if (data.RewardItemId <= 0 || LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId) == null)
+                {
+                    GD.PushWarning($"[LinkTree] Reward item is missing for {data.Key} ({data.Id}): {data.RewardItemId}.");
+                    return false;
+                }
+                if (_gameData == null)
+                    return false;
+
+                _gameData.AddItem(data.RewardItemId, count: 1, markNew: true, source: PlayerProgressSource.Gameplay);
+                return true;
+
+            case ELinkTreeRewardType.FixedChips:
+                if (_gameData == null)
+                    return false;
+
+                if (data.RewardChips != 0)
+                    _gameData.ModifyChips(data.RewardChips);
+                return true;
+
+            case ELinkTreeRewardType.SequentialPack:
+                GD.PushWarning($"[LinkTree] SequentialPack reward is not implemented yet: {data.Key} ({data.Id}).");
+                return false;
+
+            default:
+                GD.PushWarning($"[LinkTree] Unknown reward type for {data.Key} ({data.Id}): {data.RewardType}.");
+                return false;
+        }
     }
 
     private static void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
@@ -535,9 +646,41 @@ public partial class SystemPanelController : CanvasLayer
         entry.GiftBadge.Modulate = entry.State switch
         {
             LinkTreeRewardState.Unopened => LinkTreeGiftLockedColor,
+            LinkTreeRewardState.OpenedAwaitingReturn => LinkTreeGiftLockedColor,
             LinkTreeRewardState.ReadyToClaim => LinkTreeGiftReadyColor,
             _ => LinkTreeGiftClaimedColor,
         };
+    }
+
+    private static void ApplyLinkTreeTexture(TextureRect rect, string tablePath)
+    {
+        var path = ToLinkTreeResPath(tablePath);
+        rect.Texture = !string.IsNullOrWhiteSpace(path) && ResourceLoader.Exists(path)
+            ? GD.Load<Texture2D>(path)
+            : null;
+    }
+
+    private static string ToLinkTreeResPath(string tablePath)
+    {
+        if (string.IsNullOrWhiteSpace(tablePath))
+            return string.Empty;
+
+        var normalized = tablePath.Replace('\\', '/');
+        if (normalized.StartsWith("res://", StringComparison.OrdinalIgnoreCase))
+            return normalized;
+
+        return normalized.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)
+            ? $"res://{normalized}"
+            : $"res://Assets/{normalized}";
+    }
+
+    private static string ResolveLinkTreeTooltip(LinkTree data)
+    {
+        if (string.IsNullOrWhiteSpace(data.TooltipKey))
+            return data.Key;
+
+        var translated = L10n.Tr(data.TooltipKey);
+        return translated == data.TooltipKey ? data.TooltipKey : translated;
     }
 
 #if DEBUG

@@ -311,32 +311,7 @@ public partial class ModeManager : Control
         else if (mode == SettingsManager.DisplayMode.Chips)
             _mainText.Text = _gameData.Chips.ToString();
 
-        var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
-        bool over = _settingsPanel.ContainsPoint(localPos);
-
-        if (CurrentMode == Mode.BossKey)
-        {
-            over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
-            over |= GetBossStatusPanelRect().HasPoint(localPos);
-            if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
-                over |= GetBossBlindBoxHintRect().HasPoint(localPos);
-            if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
-                over |= GetBossBlindBoxOverlayRect().HasPoint(localPos);
-        }
-        else if (CurrentMode == Mode.Play)
-        {
-            if (_playViewport != null)
-            {
-                var gameRect = new Rect2(_playViewport.Position,
-                    _playViewport.Size * _playViewport.Scale);
-                over |= gameRect.HasPoint(localPos);
-            }
-            if (_infoPanel != null && _infoPanel.Visible)
-            {
-                int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
-                over |= new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos);
-            }
-        }
+        bool over = IsScreenPointOverInteractiveContent(DisplayServer.MouseGetPosition());
 
         if (_isClickThrough && over) SetClickThrough(false);
         else if (!_isClickThrough && !over && !_isDragging) SetClickThrough(true);
@@ -1035,6 +1010,7 @@ public partial class ModeManager : Control
 
     private void OnGlobalMousePressed(Vector2I screenPosition)
     {
+        _settingsPanel?.OnGlobalMousePressed(screenPosition, !IsScreenPointOverInteractiveContent(screenPosition));
         AutoHideSettingsPanelIfClickedOutside(screenPosition);
 
         if (!SettingsManager.LoadEnhancedTopmostMode())
@@ -1081,6 +1057,38 @@ public partial class ModeManager : Control
             return;
 
         _settingsPanel.CloseImmediate();
+    }
+
+    private bool IsScreenPointOverInteractiveContent(Vector2I screenPosition)
+    {
+        var localPos = screenPosition - DisplayServer.WindowGetPosition();
+        bool over = _settingsPanel != null && _settingsPanel.ContainsPoint(localPos);
+
+        if (CurrentMode == Mode.BossKey)
+        {
+            over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            over |= GetBossStatusPanelRect().HasPoint(localPos);
+            if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
+                over |= GetBossBlindBoxHintRect().HasPoint(localPos);
+            if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
+                over |= GetBossBlindBoxOverlayRect().HasPoint(localPos);
+        }
+        else if (CurrentMode == Mode.Play)
+        {
+            if (_playViewport != null)
+            {
+                var gameRect = new Rect2(_playViewport.Position,
+                    _playViewport.Size * _playViewport.Scale);
+                over |= gameRect.HasPoint(localPos);
+            }
+            if (_infoPanel != null && _infoPanel.Visible)
+            {
+                int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
+                over |= new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos);
+            }
+        }
+
+        return over;
     }
 
     private void OnGlobalWinKeyPressed()
