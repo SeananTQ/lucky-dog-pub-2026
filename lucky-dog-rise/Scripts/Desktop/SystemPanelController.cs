@@ -27,6 +27,10 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
+    [Export] private Button _linkTreeTwitterBanner = null!;
+    [Export] private Button _linkTreeSteamCommunityBanner = null!;
+    [Export] private Button _linkTreeXiaohongshuBanner = null!;
+    [Export] private Button _linkTreeSteamStoreBanner = null!;
 
     public bool IsOpen => _panel.Visible;
 
@@ -134,6 +138,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private readonly List<Button> _tabs = new();
     private readonly List<Control> _tabContents = new();
+    private readonly List<LinkTreeRewardEntry> _linkTreeRewardEntries = new();
     private readonly Dictionary<Button, TabGroup> _filterTabs = new();
     private readonly List<Button> _typeFilterButtons = new();
     private static readonly StringName PanelTopTabStyle = "PanelTopTab";
@@ -163,6 +168,13 @@ public partial class SystemPanelController : CanvasLayer
         L10n.MalayLocale,
     ];
     private static readonly int[] PokerFrameRateOptions = [60, 30, 20, 15];
+    private const string TwitterFollowUrl = "https://x.com/intent/follow?screen_name=LuckyDogRise";
+    private const string XiaohongshuProfileUrl = "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a";
+    private const string SteamStoreUrl = "https://store.steampowered.com/app/2583700?utm_source=linktree&utm_medium=in_game_client&utm_campaign=linktree_reward";
+    private const string SteamCommunityUrl = "https://steamcommunity.com/app/2583700";
+    private static readonly Color LinkTreeGiftLockedColor = new(0.55f, 0.62f, 0.66f, 0.92f);
+    private static readonly Color LinkTreeGiftReadyColor = new(1f, 0.86f, 0.24f, 1f);
+    private static readonly Color LinkTreeGiftClaimedColor = new(1f, 1f, 1f, 0f);
     private static readonly IReadOnlyDictionary<int, Texture2D> TabIconsByGroupId = new Dictionary<int, Texture2D>
     {
         [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
@@ -199,6 +211,10 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeTab.Pressed += () => SwitchTab(0);
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _settingsTab.Pressed += () => SwitchTab(2);
+        RegisterLinkTreeBanner(_linkTreeTwitterBanner, "Twitter", TwitterFollowUrl);
+        RegisterLinkTreeBanner(_linkTreeSteamCommunityBanner, "Steam Community", SteamCommunityUrl);
+        RegisterLinkTreeBanner(_linkTreeXiaohongshuBanner, "Xiaohongshu", XiaohongshuProfileUrl);
+        RegisterLinkTreeBanner(_linkTreeSteamStoreBanner, "Steam Store", SteamStoreUrl);
 #if DEBUG
         _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
@@ -438,6 +454,90 @@ public partial class SystemPanelController : CanvasLayer
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
 #endif
+    }
+
+    private enum LinkTreeRewardState
+    {
+        Unopened,
+        ReadyToClaim,
+        Claimed,
+    }
+
+    private sealed class LinkTreeRewardEntry
+    {
+        public Button Banner = null!;
+        public TextureRect GiftBadge = null!;
+        public string BannerId = string.Empty;
+        public string Url = string.Empty;
+        public LinkTreeRewardState State;
+    }
+
+    private void RegisterLinkTreeBanner(Button banner, string bannerId, string url)
+    {
+        var entry = new LinkTreeRewardEntry
+        {
+            Banner = banner,
+            GiftBadge = banner.GetNode<TextureRect>("GiftBadge"),
+            BannerId = bannerId,
+            Url = url,
+        };
+        _linkTreeRewardEntries.Add(entry);
+        banner.Pressed += () => OnLinkTreeBannerPressed(entry);
+        RefreshLinkTreeRewardEntry(entry);
+    }
+
+    private void OnLinkTreeBannerPressed(LinkTreeRewardEntry entry)
+    {
+        if (entry.State == LinkTreeRewardState.ReadyToClaim)
+        {
+            ClaimLinkTreeReward(entry);
+            return;
+        }
+
+        var result = OpenLinkTreeUrl(entry.BannerId, entry.Url);
+        if (result == Error.Ok)
+        {
+            if (entry.State == LinkTreeRewardState.Unopened)
+            {
+                entry.State = LinkTreeRewardState.ReadyToClaim;
+                RefreshLinkTreeRewardEntry(entry);
+            }
+        }
+    }
+
+    private static Error OpenLinkTreeUrl(string bannerId, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            GD.Print($"[LinkTree] {bannerId} clicked, but no URL has been configured yet.");
+            return Error.Unconfigured;
+        }
+
+        var result = OS.ShellOpen(url);
+        if (result == Error.Ok)
+            GD.Print($"[LinkTree] Opened {bannerId}: {url}");
+        else
+            GD.PushWarning($"[LinkTree] Failed to open {bannerId}: {url} ({result}).");
+
+        return result;
+    }
+
+    private void ClaimLinkTreeReward(LinkTreeRewardEntry entry)
+    {
+        entry.State = LinkTreeRewardState.Claimed;
+        RefreshLinkTreeRewardEntry(entry);
+        GD.Print($"[LinkTree] Claimed in-memory reward for {entry.BannerId}.");
+    }
+
+    private static void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
+    {
+        entry.GiftBadge.Visible = entry.State != LinkTreeRewardState.Claimed;
+        entry.GiftBadge.Modulate = entry.State switch
+        {
+            LinkTreeRewardState.Unopened => LinkTreeGiftLockedColor,
+            LinkTreeRewardState.ReadyToClaim => LinkTreeGiftReadyColor,
+            _ => LinkTreeGiftClaimedColor,
+        };
     }
 
 #if DEBUG

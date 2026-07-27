@@ -12,6 +12,10 @@
 [ext_resource type="Texture2D" uid="uid://b5l2jgbq7uee8" path="res://Assets/UI/Icon/Icon_Exit.svg" id="10_exit"]
 [ext_resource type="Texture2D" uid="uid://cdele6a3l6hta" path="res://Assets/UI/Icon/Icon_DesktopPet.svg" id="11_desktop_pet"]
 [ext_resource type="Texture2D" uid="uid://um8si1oamvjt" path="res://Assets/UI/Icon/Icon_Play.svg" id="12_play"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/LinkTreeBanner.tscn" id="13_linktree_banner"]
+[ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_SteamCommunity.png" id="14_linktree_steam_community"]
+[ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_Xiaohongshu.png" id="15_linktree_xiaohongshu"]
+[ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_SteamStore.png" id="16_linktree_steam_store"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
@@ -29,12 +33,16 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_linkTreeTwitterBanner", "_linkTreeSteamCommunityBanner", "_linkTreeXiaohongshuBanner", "_linkTreeSteamStoreBanner")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
 _armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow/ArmAppearanceOption")
 _pokerFrameRateOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerFrameRateRow/PokerFrameRateOption")
 _vsyncToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow/VsyncToggle")
+_linkTreeTwitterBanner = NodePath("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/TwitterBanner")
+_linkTreeSteamCommunityBanner = NodePath("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/SteamCommunityBanner")
+_linkTreeXiaohongshuBanner = NodePath("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/XiaohongshuBanner")
+_linkTreeSteamStoreBanner = NodePath("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/SteamStoreBanner")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
 custom_minimum_size = Vector2(420, 600)
@@ -168,6 +176,7 @@ layout_mode = 2
 [node name="Scroll" type="ScrollContainer" parent="Panel/RootVBox" unique_id=1384469647]
 layout_mode = 2
 size_flags_vertical = 3
+vertical_scroll_mode = 1
 
 [node name="ContentVBox" type="VBoxContainer" parent="Panel/RootVBox/Scroll" unique_id=1956769742]
 layout_mode = 2
@@ -618,16 +627,34 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="LinkTreeContent" type="CenterContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=516038212]
+[node name="LinkTreeContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=516038212]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 12
 
-[node name="ComingSoonLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
+[node name="LinkTreeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
-text = "LinkTree_ComingSoon"
-label_settings = ExtResource("8_group_title")
+[node name="TwitterBanner" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1649054634 instance=ExtResource("13_linktree_banner")]
+layout_mode = 2
+tooltip_text = "Twitter"
+
+[node name="SteamCommunityBanner" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1649054635 instance=ExtResource("13_linktree_banner")]
+layout_mode = 2
+tooltip_text = "Steam Community"
+BannerImage/texture = ExtResource("14_linktree_steam_community")
+
+[node name="XiaohongshuBanner" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1649054636 instance=ExtResource("13_linktree_banner")]
+layout_mode = 2
+tooltip_text = "Xiaohongshu"
+BannerImage/texture = ExtResource("15_linktree_xiaohongshu")
+
+[node name="SteamStoreBanner" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1649054637 instance=ExtResource("13_linktree_banner")]
+layout_mode = 2
+tooltip_text = "Steam Store"
+BannerImage/texture = ExtResource("16_linktree_steam_store")
 
 [node name="DebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283481]
 layout_mode = 2

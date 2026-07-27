@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_Twitter.png" id="1_banner"]
+[ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Icon_Gift.svg" id="2_gift"]
+
+[node name="LinkTreeBanner" type="Button" unique_id=1414914959]
+custom_minimum_size = Vector2(0, 94)
+layout_mode = 2
+size_flags_horizontal = 3
+flat = true
+
+[node name="BannerImage" type="TextureRect" parent="." unique_id=854876240]
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_banner")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GiftBadge" type="TextureRect" parent="." unique_id=205383931]
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -42.0
+offset_top = -42.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 0
+grow_vertical = 0
+texture = ExtResource("2_gift")
+expand_mode = 1
+stretch_mode = 5
