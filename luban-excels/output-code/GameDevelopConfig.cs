@@ -22,6 +22,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
         { if(!_buf["BlindBoxBacklogClaimDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxBacklogClaimDelaySeconds = _buf["BlindBoxBacklogClaimDelaySeconds"]; }
         { if(!_buf["BlindBoxPostNewbieDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxPostNewbieDelaySeconds = _buf["BlindBoxPostNewbieDelaySeconds"]; }
+        { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -49,6 +50,10 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// 新手与正式盲盒的间隔时间
     /// </summary>
     public readonly float BlindBoxPostNewbieDelaySeconds;
+    /// <summary>
+    /// LinkTree最佳显示条目数量
+    /// </summary>
+    public readonly int LinkTreeVisibleBannerCount;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -65,6 +70,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "BlindBoxBacklogClaimDelaySeconds:" + BlindBoxBacklogClaimDelaySeconds + ","
         + "BlindBoxPostNewbieDelaySeconds:" + BlindBoxPostNewbieDelaySeconds + ","
+        + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
         + "}";
     }
 }

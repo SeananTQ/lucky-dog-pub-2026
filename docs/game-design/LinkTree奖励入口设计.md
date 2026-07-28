@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-27
+last_edit: 2026-07-28
 status: draft
 ---
 
@@ -22,6 +22,10 @@ LinkTree 页用于在系统功能面板中展示外部链接入口，并承接�
 4. 小红书主页。
 
 游戏前期 LinkTree 入口数量较少，默认全部开放展示，不使用本地开始时间或结束时间字段控制可见性。
+
+LinkTree 页面按照 `GameDevelopConfig.LinkTreeVisibleBannerCount` 控制最佳展示数量。玩家每次进入页面时重新选择展示条目，置顶条目优先，其次是尚未领取的普通条目；已领取的普通条目只用于补足空位。玩家在当前页面完成领奖后，展示列表不立即变化，下次进入页面时才可能由其他条目顶替。
+
+当有效条目总数少于最佳展示数量时，所有条目都会显示。当置顶条目数量超过最佳展示数量时，所有置顶条目仍然显示，同时输出配置警告。
 
 ## 交互流程
 
@@ -114,52 +118,53 @@ stateDiagram-v2
    - 显示顺序。
    - 数字越小越靠前。
 
-4. `IsEnabled`
+4. `IsPinned`
+   - 是否为长期保留的置顶入口。
+   - 置顶条目不会因奖励已经领取而被其他条目替换，并优先占用展示名额。
+   - 该字段不绕过 `IsEnabled` 等基础有效性条件。
+
+5. `IsEnabled`
    - 是否显示入口。
 
-5. `TooltipKey`
+6. `TooltipKey`
    - 提示文本 Key。
    - 当前也可直接填简短显示名。
 
-6. `BannerTexturePath`
+7. `BannerTexturePath`
    - Banner 图片路径。
 
-7. `BadgeTexturePath`
+8. `BadgeTexturePath`
    - 礼物角标图片路径。
    - 当前使用 `UI/LinkTree/Icon_Gift.svg`。
 
-8. `PreClaimUrl`
+9. `PreClaimUrl`
    - 领奖前点击 Banner 打开的 URL。
    - 可用于关注页、活动页、带 pre-claim UTM 的商店页。
 
-9. `PostClaimUrl`
+10. `PostClaimUrl`
    - 领奖后再次点击 Banner 打开的 URL。
    - 可用于普通主页、社区页、带 post-claim UTM 的商店页。
 
-10. `OpenCheckType`
+11. `OpenCheckType`
     - 外部链接打开校验方式。
     - 当前使用 `ShellOpenOk`。
 
-11. `RewardType`
+12. `RewardType`
     - 奖励类型。
 
-12. `RewardItemId`
+13. `RewardItemId`
     - `RewardType=FixedItem` 时使用。
 
-13. `RewardChips`
+14. `RewardChips`
     - `RewardType=FixedChips` 时使用。
 
-14. `SequentialPackId`
+15. `SequentialPackId`
     - `RewardType=SequentialPack` 时使用。
     - 当前预留。
 
-15. `SteamPromoItemDefId`
-    - 未来 Steam 库存发奖或领取标记用的 itemdef ID。
-    - 当前可填 `0`。
-
-16. `ClaimLimit`
-    - 每个玩家最多领取次数。
-    - 常规入口填 `1`。
+16. `SteamPromoItemDefId`
+    - Steam Inventory 中用于标记该入口已经领取的一次性永久回执 ItemDef ID。
+    - LinkTree 奖励固定为一次性领取，不再额外配置领取次数。
 
 ## 枚举
 
@@ -193,4 +198,3 @@ stateDiagram-v2
 3. 顺序礼包奖励。
 4. 本地可见开始时间和结束时间。
 5. 自建服务器校验。
-

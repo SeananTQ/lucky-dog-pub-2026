@@ -116,6 +116,7 @@ public partial class SystemPanelController : CanvasLayer
     private IPlatformInventoryService _inventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
     private LinkTreePageState _linkTreePageState = LinkTreePageState.Loading;
+    private bool _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
     public GameData GameData
     {
         get => _gameData;
@@ -478,7 +479,11 @@ public partial class SystemPanelController : CanvasLayer
         if (index == 0 && _gameData != null)
             BuildWardrobe();
         if (index == 1)
+        {
+            RefreshLinkTreeVisibleEntries();
+            _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
             _recoverablePlatformService?.RequestReconnect();
+        }
         #if DEBUG
         if (index == 3)
             RefreshDebugPlayTime();
@@ -523,7 +528,7 @@ public partial class SystemPanelController : CanvasLayer
         public Label RewardAmountLabel = null!;
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
-        public int ClaimCount;
+        public bool SelectedForDisplay;
         public bool ClaimPending;
         public Tween RewardFeedbackTween = null!;
     }
@@ -548,6 +553,8 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var data in entries)
             AddLinkTreeBanner(data);
+
+        RefreshLinkTreeVisibleEntries();
     }
 
     private void AddLinkTreeBanner(LinkTree data)
@@ -568,7 +575,7 @@ public partial class SystemPanelController : CanvasLayer
             RewardCell = banner.GetNode<ItemCellController>("RewardVisualRoot/RewardCell"),
             RewardAmountLabel = banner.GetNode<Label>("RewardVisualRoot/RewardAmountLabel"),
             Data = data,
-            State = data.ClaimLimit <= 0 ? LinkTreeRewardState.Claimed : LinkTreeRewardState.Unopened,
+            State = LinkTreeRewardState.Unopened,
         };
         _linkTreeRewardEntries.Add(entry);
         banner.Visible = false;
@@ -661,10 +668,8 @@ public partial class SystemPanelController : CanvasLayer
         if (entry.ClaimPending)
             return;
 
-        if (entry.Data.ClaimLimit > 0 && entry.ClaimCount >= entry.Data.ClaimLimit)
+        if (entry.State == LinkTreeRewardState.Claimed)
         {
-            entry.State = LinkTreeRewardState.Claimed;
-            RefreshLinkTreeRewardEntry(entry);
             return;
         }
 
@@ -688,10 +693,7 @@ public partial class SystemPanelController : CanvasLayer
         if (!TryGrantLinkTreeReward(entry.Data))
             return;
 
-        entry.ClaimCount++;
-        entry.State = entry.Data.ClaimLimit > 0 && entry.ClaimCount < entry.Data.ClaimLimit
-            ? LinkTreeRewardState.Unopened
-            : LinkTreeRewardState.Claimed;
+        entry.State = LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
         SetupLinkTreeRewardPreview(entry);
         PlayLinkTreeRewardFeedback(entry);
@@ -745,7 +747,58 @@ public partial class SystemPanelController : CanvasLayer
             _ => string.Empty,
         };
         foreach (var entry in _linkTreeRewardEntries)
-            entry.Banner.Visible = showBanners;
+            entry.Banner.Visible = showBanners && entry.SelectedForDisplay;
+    }
+
+    private void RefreshLinkTreeVisibleEntries()
+    {
+        if (_linkTreeRewardEntries.Count == 0)
+            return;
+
+        var configuredCount = LubanData.Tables.TbGameDevelopConfig.DataList
+            .FirstOrDefault()?.LinkTreeVisibleBannerCount ?? 0;
+        var visibleCount = configuredCount > 0 ? configuredCount : _linkTreeRewardEntries.Count;
+        if (configuredCount <= 0)
+            GD.PushWarning("[LinkTree] LinkTreeVisibleBannerCount must be positive; showing all enabled banners.");
+
+        var selected = new HashSet<LinkTreeRewardEntry>();
+        foreach (var entry in _linkTreeRewardEntries.Where(entry => entry.Data.IsPinned))
+            selected.Add(entry);
+
+        if (selected.Count > visibleCount)
+        {
+            GD.PushWarning(
+                $"[LinkTree] {selected.Count} pinned banners exceed LinkTreeVisibleBannerCount={visibleCount}; " +
+                "showing all pinned banners.");
+        }
+
+        AddLinkTreeEntriesUntilFull(
+            selected,
+            _linkTreeRewardEntries.Where(entry => !entry.Data.IsPinned && entry.State != LinkTreeRewardState.Claimed),
+            visibleCount);
+        AddLinkTreeEntriesUntilFull(
+            selected,
+            _linkTreeRewardEntries.Where(entry => !entry.Data.IsPinned && entry.State == LinkTreeRewardState.Claimed),
+            visibleCount);
+
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.SelectedForDisplay = selected.Contains(entry);
+
+        RefreshLinkTreePagePresentation();
+    }
+
+    private static void AddLinkTreeEntriesUntilFull(
+        HashSet<LinkTreeRewardEntry> selected,
+        IEnumerable<LinkTreeRewardEntry> candidates,
+        int visibleCount)
+    {
+        foreach (var entry in candidates)
+        {
+            if (selected.Count >= visibleCount)
+                return;
+
+            selected.Add(entry);
+        }
     }
 
     private void ClaimSteamLinkTreeReward(LinkTreeRewardEntry entry)
@@ -818,11 +871,15 @@ public partial class SystemPanelController : CanvasLayer
                 continue;
 
             entry.ClaimPending = false;
-            entry.ClaimCount = Math.Max(entry.ClaimCount, entry.Data.ClaimLimit);
             entry.State = LinkTreeRewardState.Claimed;
             RefreshLinkTreeRewardEntry(entry);
         }
 
+        if (_refreshLinkTreeSelectionOnNextInventorySnapshot)
+        {
+            RefreshLinkTreeVisibleEntries();
+            _refreshLinkTreeSelectionOnNextInventorySnapshot = false;
+        }
         SetLinkTreePageState(LinkTreePageState.Ready);
         GD.Print($"[LinkTree] {snapshot.Message}");
     }
@@ -871,7 +928,6 @@ public partial class SystemPanelController : CanvasLayer
             || pending.SteamPromoItemDefId != entry.Data.SteamPromoItemDefId)
         {
             entry.State = LinkTreeRewardState.Claimed;
-            entry.ClaimCount = Math.Max(entry.ClaimCount, entry.Data.ClaimLimit);
             RefreshLinkTreeRewardEntry(entry);
             return;
         }
@@ -883,10 +939,7 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         entry.ClaimPending = false;
-        entry.ClaimCount++;
-        entry.State = entry.Data.ClaimLimit > 0 && entry.ClaimCount < entry.Data.ClaimLimit
-            ? LinkTreeRewardState.Unopened
-            : LinkTreeRewardState.Claimed;
+        entry.State = LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
         SetupLinkTreeRewardPreview(entry);
         PlayLinkTreeRewardFeedback(entry);

@@ -2,7 +2,8 @@
   {
     "Id": 1001,
     "Key": "TwitterFollow",
-    "SortOrder": 10,
+    "SortOrder": 30,
+    "IsPinned": false,
     "IsEnabled": true,
     "TooltipKey": "Twitter",
     "BannerTexturePath": "UI/LinkTree/Banner_Twitter.png",
@@ -14,13 +15,13 @@
     "RewardItemId": 92005,
     "RewardChips": 0,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 401001,
-    "ClaimLimit": 1
+    "SteamPromoItemDefId": 401001
   },
   {
     "Id": 1002,
     "Key": "SteamCommunity",
-    "SortOrder": 20,
+    "SortOrder": 10,
+    "IsPinned": true,
     "IsEnabled": true,
     "TooltipKey": "Steam Community",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamCommunity.png",
@@ -32,13 +33,13 @@
     "RewardItemId": 0,
     "RewardChips": 2500,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 401002,
-    "ClaimLimit": 1
+    "SteamPromoItemDefId": 401002
   },
   {
     "Id": 1003,
     "Key": "SteamStore",
-    "SortOrder": 30,
+    "SortOrder": 20,
+    "IsPinned": false,
     "IsEnabled": true,
     "TooltipKey": "Steam Store",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamStore.png",
@@ -50,13 +51,13 @@
     "RewardItemId": 0,
     "RewardChips": 2500,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 401003,
-    "ClaimLimit": 1
+    "SteamPromoItemDefId": 401003
   },
   {
     "Id": 1004,
     "Key": "XiaohongshuProfile",
     "SortOrder": 40,
+    "IsPinned": false,
     "IsEnabled": true,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
@@ -68,7 +69,6 @@
     "RewardItemId": 91012,
     "RewardChips": 0,
     "SequentialPackId": 0,
-    "SteamPromoItemDefId": 401004,
-    "ClaimLimit": 1
+    "SteamPromoItemDefId": 401004
   }
 ]

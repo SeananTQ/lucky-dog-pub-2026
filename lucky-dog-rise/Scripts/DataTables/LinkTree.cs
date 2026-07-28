@@ -20,6 +20,7 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Key"].IsString) { throw new SerializationException(); }  Key = _buf["Key"]; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
+        { if(!_buf["IsPinned"].IsBoolean) { throw new SerializationException(); }  IsPinned = _buf["IsPinned"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["TooltipKey"].IsString) { throw new SerializationException(); }  TooltipKey = _buf["TooltipKey"]; }
         { if(!_buf["BannerTexturePath"].IsString) { throw new SerializationException(); }  BannerTexturePath = _buf["BannerTexturePath"]; }
@@ -32,7 +33,6 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["RewardChips"].IsNumber) { throw new SerializationException(); }  RewardChips = _buf["RewardChips"]; }
         { if(!_buf["SequentialPackId"].IsNumber) { throw new SerializationException(); }  SequentialPackId = _buf["SequentialPackId"]; }
         { if(!_buf["SteamPromoItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPromoItemDefId = _buf["SteamPromoItemDefId"]; }
-        { if(!_buf["ClaimLimit"].IsNumber) { throw new SerializationException(); }  ClaimLimit = _buf["ClaimLimit"]; }
     }
 
     public static LinkTree DeserializeLinkTree(JSONNode _buf)
@@ -52,6 +52,10 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// 显示顺序，数字越小越靠前
     /// </summary>
     public readonly int SortOrder;
+    /// <summary>
+    /// 该值为TRUE 的条目始终参与 LinkTree 展示，不因奖励已领取而被替换，并优先占用展示位置
+    /// </summary>
+    public readonly bool IsPinned;
     /// <summary>
     /// 是否显示这个入口
     /// </summary>
@@ -100,10 +104,6 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// 未来 Steam 库存发奖/领取标记的 itemdef id；当前填 0
     /// </summary>
     public readonly int SteamPromoItemDefId;
-    /// <summary>
-    /// 每个玩家最多领取次数；常规填 1
-    /// </summary>
-    public readonly int ClaimLimit;
    
     public const int __ID__ = 1258843864;
     public override int GetTypeId() => __ID__;
@@ -118,6 +118,7 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "Id:" + Id + ","
         + "Key:" + Key + ","
         + "SortOrder:" + SortOrder + ","
+        + "IsPinned:" + IsPinned + ","
         + "IsEnabled:" + IsEnabled + ","
         + "TooltipKey:" + TooltipKey + ","
         + "BannerTexturePath:" + BannerTexturePath + ","
@@ -130,7 +131,6 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "RewardChips:" + RewardChips + ","
         + "SequentialPackId:" + SequentialPackId + ","
         + "SteamPromoItemDefId:" + SteamPromoItemDefId + ","
-        + "ClaimLimit:" + ClaimLimit + ","
         + "}";
     }
 }
