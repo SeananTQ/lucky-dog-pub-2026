@@ -648,6 +648,7 @@ public partial class SystemPanelController : CanvasLayer
         public TextureRect RewardCellShadow = null!;
         public ItemCellController RewardCell = null!;
         public Label RewardAmountLabel = null!;
+        public Label DebugIdLabel = null!;
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
         public bool SelectedForDisplay;
@@ -696,9 +697,11 @@ public partial class SystemPanelController : CanvasLayer
             RewardCellShadow = banner.GetNode<TextureRect>("RewardVisualRoot/RewardCellShadow"),
             RewardCell = banner.GetNode<ItemCellController>("RewardVisualRoot/RewardCell"),
             RewardAmountLabel = banner.GetNode<Label>("RewardVisualRoot/RewardAmountLabel"),
+            DebugIdLabel = banner.GetNode<Label>("DebugIdLabel"),
             Data = data,
             State = LinkTreeRewardState.Unopened,
         };
+        entry.DebugIdLabel.Text = data.Id.ToString();
         _linkTreeRewardEntries.Add(entry);
         banner.Visible = false;
         banner.Pressed += () => OnLinkTreeBannerPressed(entry);
@@ -831,6 +834,7 @@ public partial class SystemPanelController : CanvasLayer
             entry.ClaimPending = false;
             entry.State = LinkTreeRewardState.Unopened;
             entry.RewardVisualRoot.Visible = false;
+            entry.DebugIdLabel.Visible = enabled;
             RefreshLinkTreeRewardEntry(entry);
         }
 

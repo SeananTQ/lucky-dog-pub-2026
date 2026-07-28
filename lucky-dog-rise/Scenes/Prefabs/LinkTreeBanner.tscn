@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_Twitter.png" id="1_banner"]
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Icon_Gift.svg" id="2_gift"]
@@ -18,6 +18,13 @@ font_color = Color(0, 0.78039217, 0.40392157, 1)
 shadow_color = Color(0, 0.4117647, 0.2, 1)
 shadow_offset = Vector2(0, 2)
 shadow_size = 5
+
+[sub_resource type="LabelSettings" id="LabelSettings_debug_id"]
+font = SubResource("FontVariation_reward_amount")
+font_size = 28
+font_color = Color(1, 1, 1, 1)
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
 
 [node name="LinkTreeBanner" type="Button" unique_id=1414914959]
 custom_minimum_size = Vector2(0, 94)
@@ -101,4 +108,18 @@ grow_vertical = 2
 text = "+ 2500"
 label_settings = SubResource("LabelSettings_reward_amount")
 horizontal_alignment = 0
+vertical_alignment = 1
+
+[node name="DebugIdLabel" type="Label" parent="."]
+visible = false
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "1001"
+label_settings = SubResource("LabelSettings_debug_id")
+horizontal_alignment = 1
 vertical_alignment = 1
