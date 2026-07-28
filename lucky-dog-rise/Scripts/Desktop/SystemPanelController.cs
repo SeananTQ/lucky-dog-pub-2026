@@ -103,6 +103,7 @@ public partial class SystemPanelController : CanvasLayer
     private double _debugTimeRefreshTimer;
     private bool _resetPlayerProgressPending;
     private bool _simulateLinkTreeSyncPending;
+    private bool _simulateLinkTreeUi;
 #endif
 
     // Wardrobe 页
@@ -398,6 +399,7 @@ public partial class SystemPanelController : CanvasLayer
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var linkTreeSyncSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
+        var linkTreeUiSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow/LinkTreeUiSimulationToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
@@ -418,6 +420,17 @@ public partial class SystemPanelController : CanvasLayer
         {
             _simulateLinkTreeSyncPending = enabled;
             RefreshLinkTreePagePresentation();
+        };
+        linkTreeUiSimulationToggle.Toggled += enabled =>
+        {
+            if (enabled && HasPendingRealLinkTreeClaim())
+            {
+                linkTreeUiSimulationToggle.SetPressedNoSignal(false);
+                GD.PushWarning("[LinkTree] Cannot enter UI simulation while a real Steam claim is pending.");
+                return;
+            }
+
+            SetLinkTreeUiSimulation(enabled);
         };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _playerProgressMultiplierOption.AddItem("统计 x1", 1);
@@ -482,6 +495,10 @@ public partial class SystemPanelController : CanvasLayer
         {
             RefreshLinkTreeVisibleEntries();
             _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
+#if DEBUG
+            if (_simulateLinkTreeUi)
+                return;
+#endif
             _recoverablePlatformService?.RequestReconnect();
         }
         #if DEBUG
@@ -673,37 +690,81 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
+#if DEBUG
+        if (_simulateLinkTreeUi)
+        {
+            CompleteSimulatedLinkTreeClaim(entry);
+            return;
+        }
+#endif
+
         if (_inventoryService != null)
         {
             ClaimSteamLinkTreeReward(entry);
             return;
         }
 
-        if (BuildInfo.Channel != BuildChannel.Dev)
-        {
-            GD.PushWarning($"[LinkTree] Steam Inventory unavailable; refusing reward claim for {entry.Data.Key}.");
+        GD.PushWarning($"[LinkTree] Steam Inventory unavailable; refusing reward claim for {entry.Data.Key}.");
+    }
+
+#if DEBUG
+    private bool HasPendingRealLinkTreeClaim()
+    {
+        return _gameData?.PendingLinkTreeClaim != null
+            || _inventoryService?.IsPromoGrantPending == true;
+    }
+
+    private void SetLinkTreeUiSimulation(bool enabled)
+    {
+        if (_simulateLinkTreeUi == enabled)
             return;
-        }
-        if (_gameData?.PendingLinkTreeClaim != null)
+
+        _simulateLinkTreeUi = enabled;
+        foreach (var entry in _linkTreeRewardEntries)
         {
-            GD.PushWarning("[LinkTree] A Steam-backed claim is pending; refusing in-memory fallback reward.");
+            entry.RewardFeedbackTween?.Kill();
+            entry.ClaimPending = false;
+            entry.State = LinkTreeRewardState.Unopened;
+            entry.RewardVisualRoot.Visible = false;
+            RefreshLinkTreeRewardEntry(entry);
+        }
+
+        _refreshLinkTreeSelectionOnNextInventorySnapshot = !enabled;
+        RefreshLinkTreeVisibleEntries();
+        if (enabled)
+        {
+            SetLinkTreePageState(LinkTreePageState.Ready);
+            GD.Print("[LinkTree] UI simulation enabled; Steam Inventory and local rewards are bypassed.");
             return;
         }
 
-        if (!TryGrantLinkTreeReward(entry.Data))
-            return;
+        SetLinkTreePageState(LinkTreePageState.Loading);
+        InitializeLinkTreeInventory();
+        _recoverablePlatformService?.RequestReconnect();
+        GD.Print("[LinkTree] UI simulation disabled; restoring the real Steam inventory state.");
+    }
 
+    private void CompleteSimulatedLinkTreeClaim(LinkTreeRewardEntry entry)
+    {
         entry.State = LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
         SetupLinkTreeRewardPreview(entry);
         PlayLinkTreeRewardFeedback(entry);
-        GD.Print($"[LinkTree] Claimed in-memory reward for {entry.Data.Key} ({entry.Data.Id}).");
+        GD.Print($"[LinkTree] Simulated UI claim for {entry.Data.Key} ({entry.Data.Id}); no reward or Steam receipt was granted.");
     }
+#endif
 
     private void InitializeLinkTreeInventory()
     {
         if (!IsNodeReady())
             return;
+#if DEBUG
+        if (_simulateLinkTreeUi)
+        {
+            SetLinkTreePageState(LinkTreePageState.Ready);
+            return;
+        }
+#endif
         if (_platformService == null)
         {
             SetLinkTreePageState(LinkTreePageState.Loading);
@@ -712,9 +773,7 @@ public partial class SystemPanelController : CanvasLayer
 
         if (_inventoryService == null)
         {
-            SetLinkTreePageState(BuildInfo.Channel == BuildChannel.Dev
-                ? LinkTreePageState.Ready
-                : LinkTreePageState.Unavailable);
+            SetLinkTreePageState(LinkTreePageState.Unavailable);
             return;
         }
 
@@ -735,6 +794,8 @@ public partial class SystemPanelController : CanvasLayer
     {
         var state = _linkTreePageState;
 #if DEBUG
+        if (_simulateLinkTreeUi)
+            state = LinkTreePageState.Ready;
         if (_simulateLinkTreeSyncPending)
             state = LinkTreePageState.Loading;
 #endif
@@ -838,6 +899,10 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnPlatformInventorySnapshotChanged(PlatformInventorySnapshot snapshot)
     {
+#if DEBUG
+        if (_simulateLinkTreeUi)
+            return;
+#endif
         if (!snapshot.Succeeded)
         {
             SetLinkTreePageState(LinkTreePageState.Unavailable);
@@ -886,6 +951,10 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnPlatformConnectionStateChanged(PlatformConnectionState state)
     {
+#if DEBUG
+        if (_simulateLinkTreeUi)
+            return;
+#endif
         switch (state)
         {
             case PlatformConnectionState.Connecting:

@@ -682,6 +682,18 @@ text = "模拟 LinkTree 同步中"
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="LinkTreeUiSimulationRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+
+[node name="LinkTreeUiSimulationLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "模拟 LinkTree 领奖流程"
+
+[node name="LinkTreeUiSimulationToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="PlayTimeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1286543218]
 layout_mode = 2
 text = "Play Time: 00:00:00 (0.0s)"
