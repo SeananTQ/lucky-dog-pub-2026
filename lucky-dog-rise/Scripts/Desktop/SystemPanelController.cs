@@ -210,8 +210,8 @@ public partial class SystemPanelController : CanvasLayer
         L10n.MalayLocale,
     ];
     private static readonly int[] PokerFrameRateOptions = [60, 30, 20, 15];
-    private static readonly Color LinkTreeGiftLockedColor = new(0.55f, 0.62f, 0.66f, 0.92f);
-    private static readonly Color LinkTreeGiftReadyColor = new(1f, 0.86f, 0.24f, 1f);
+    private static readonly Color LinkTreeGiftLockedColor = new(0.6039216f, 0.70980394f, 0.7411765f, 1f);
+    private static readonly Color LinkTreeGiftReadyColor = new(0f, 0.78039217f, 0.40392157f, 1f);
     private static readonly Color LinkTreeGiftClaimedColor = new(1f, 1f, 1f, 0f);
     private static readonly Vector2 LinkTreeRewardFeedbackStartScale = new(0.62f, 0.62f);
     private static readonly Vector2 LinkTreeRewardFeedbackRestScale = Vector2.One;
