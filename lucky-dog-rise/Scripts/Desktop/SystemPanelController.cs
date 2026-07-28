@@ -42,7 +42,14 @@ public partial class SystemPanelController : CanvasLayer
     }
 
     private PanelContainer _panel = null!;
+    private ScrollContainer _panelScroll = null!;
     private Tween _tween = null!;
+    private const float PanelScrollDragThreshold = 8f;
+    private bool _panelScrollDragPotential;
+    private bool _panelScrollDragging;
+    private Vector2 _panelScrollDragStartPosition;
+    private int _panelScrollDragStartValue;
+    private BaseButton _panelScrollPressedButton;
 
     // 页签按钮
     private Button _settingsTab = null!;
@@ -224,6 +231,7 @@ public partial class SystemPanelController : CanvasLayer
     public override void _Ready()
     {
         _panel = GetNode<PanelContainer>("Panel");
+        _panelScroll = GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
 
         _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
         _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
@@ -465,6 +473,9 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Process(double delta)
     {
+        if (_panelScrollDragPotential && !Input.IsMouseButtonPressed(MouseButton.Left))
+            ResetPanelScrollDrag();
+
 #if DEBUG
         if (_gameData == null || !_debugContent.Visible)
             return;
@@ -476,6 +487,100 @@ public partial class SystemPanelController : CanvasLayer
         _debugTimeRefreshTimer = 1.0;
         RefreshDebugPlayTime();
 #endif
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (!_panel.Visible)
+        {
+            ResetPanelScrollDrag();
+            return;
+        }
+
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton)
+        {
+            if (mouseButton.Pressed)
+                BeginPanelScrollDrag(mouseButton.Position);
+            else
+                EndPanelScrollDrag();
+            return;
+        }
+
+        if (@event is not InputEventMouseMotion mouseMotion || !_panelScrollDragPotential)
+            return;
+
+        var delta = mouseMotion.Position - _panelScrollDragStartPosition;
+        if (!_panelScrollDragging)
+        {
+            if (Mathf.Abs(delta.Y) < PanelScrollDragThreshold
+                || Mathf.Abs(delta.Y) <= Mathf.Abs(delta.X))
+            {
+                return;
+            }
+
+            _panelScrollDragging = true;
+            if (_panelScrollPressedButton != null)
+                _panelScrollPressedButton.Disabled = true;
+        }
+
+        _panelScroll.ScrollVertical = _panelScrollDragStartValue - Mathf.RoundToInt(delta.Y);
+        GetViewport().SetInputAsHandled();
+    }
+
+    private void BeginPanelScrollDrag(Vector2 mousePosition)
+    {
+        if (!_panelScroll.GetGlobalRect().HasPoint(mousePosition))
+            return;
+
+        var verticalScrollBar = _panelScroll.GetVScrollBar();
+        if (verticalScrollBar.MaxValue <= verticalScrollBar.Page)
+            return;
+
+        var hoveredControl = GetViewport().GuiGetHoveredControl();
+        if (FindControlAncestor<Godot.Range>(hoveredControl, _panelScroll) != null
+            || FindControlAncestor<LineEdit>(hoveredControl, _panelScroll) != null)
+        {
+            return;
+        }
+
+        _panelScrollDragPotential = true;
+        _panelScrollDragging = false;
+        _panelScrollDragStartPosition = mousePosition;
+        _panelScrollDragStartValue = _panelScroll.ScrollVertical;
+        _panelScrollPressedButton = FindControlAncestor<BaseButton>(hoveredControl, _panelScroll);
+        if (_panelScrollPressedButton?.Disabled == true)
+            _panelScrollPressedButton = null;
+    }
+
+    private void EndPanelScrollDrag()
+    {
+        if (!_panelScrollDragPotential)
+            return;
+
+        if (_panelScrollDragging)
+            GetViewport().SetInputAsHandled();
+        ResetPanelScrollDrag();
+    }
+
+    private void ResetPanelScrollDrag()
+    {
+        if (_panelScrollPressedButton != null)
+            _panelScrollPressedButton.Disabled = false;
+
+        _panelScrollPressedButton = null;
+        _panelScrollDragPotential = false;
+        _panelScrollDragging = false;
+    }
+
+    private static T FindControlAncestor<T>(Control control, Control boundary) where T : Control
+    {
+        for (var current = control; current != null && current != boundary; current = current.GetParent() as Control)
+        {
+            if (current is T match)
+                return match;
+        }
+
+        return null;
     }
 
     private void SwitchTab(int index)
