@@ -101,6 +101,8 @@ stateDiagram-v2
    - 本地客户端只负责展示状态和发起领取请求。
    - 玩家修改本地时间或本地数据不应绕过 Steam 的最终领取判断。
 
+LinkTree 永久回执不得被消费。`AddPromoItem` 请求成功不等于回执实例已经生成，客户端只有在 Steam 返回结果或完整库存中确认目标 ItemDef 后才发放本地奖励。`ConsumeItem` 删除实例后不会重置一次性 Promo 资格，因此不能用于重复测试首次领奖流程；完整规则与测试方式见 [SteamItemDef 表说明](SteamItemDef表说明.md#回执生命周期与测试限制)。
+
 Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 Dev 渠道或 Steam 登录状态隐式切换为内存领奖。调试行为只由显式 UI 模拟开关控制。
 
 ## 数据表

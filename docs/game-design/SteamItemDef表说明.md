@@ -24,8 +24,9 @@ status: draft
 flowchart LR
     LinkTree[LinkTree 行] -->|RewardItemId| Item[Item: 实际奖励道具]
     LinkTree -->|SteamPromoItemDefId| Receipt[SteamItemDef: 永久领奖回执]
-    Receipt -->|AddPromoItem 成功| SteamInventory[Steam Inventory: 玩家回执实例]
-    SteamInventory -->|确认首次领取| LocalInventory[游戏本地背包或筹码]
+    Receipt -->|调用 AddPromoItem| SteamInventory[Steam Inventory]
+    SteamInventory -->|结果包含回执实例| LocalInventory[确认首次领取并发放本地奖励]
+    SteamInventory -->|结果不包含回执实例| RefuseReward[拒绝发放本地奖励]
 ```
 
 ## 当前 LinkTree 回执
@@ -54,6 +55,18 @@ flowchart LR
 6. `AutoStack=FALSE`。
 
 客户端在玩家完成 LinkTree 的打开流程后调用 `AddPromoItem`。Steam 只会为符合规则且尚未领取的玩家创建一次回执实例；该实例不销毁，用于后续判断该奖励是否已经领取。
+
+## 回执生命周期与测试限制
+
+`AddPromoItem` 发放的是一次性 Promo。接口接受请求或返回 `k_EResultOK`，不代表一定生成了库存实例；玩家不符合资格或该 Promo 已经发放过时，结果仍可能成功，但其中不包含任何新增物品。客户端只有在返回结果或后续完整库存中实际确认目标 ItemDef 后，才能发放对应的本地奖励。
+
+`ConsumeItem` 只会永久删除指定库存实例，不会重置 Steam 服务器对该账号保存的一次性 Promo 发放记录。回执被消耗后，再次调用同一 ItemDef 的 `AddPromoItem` 可能仍返回成功，但不会重新生成回执。因此，LinkTree 永久回执在正式业务中不得被消耗，也不能将 `ConsumeItem` 作为重置领奖资格的调试手段。
+
+`GenerateItems` 可以为发行商组内的开发者账号生成测试实例，但它不会重置一次性 Promo 的发放记录。该接口只适合恢复测试账号中被误删的实例或验证库存读取，不适合验证完整的首次 `AddPromoItem` 领奖流程。
+
+完整重测首次领奖流程时，应使用该 Steam 账号从未领取过的新 ItemDef，或使用另一个测试账号。独立 Steam Inventory 测试场景中的消耗和生成功能均会真实修改当前开发者账号的库存。
+
+相关 Steam 官方说明：[ISteamInventory::AddPromoItem、ConsumeItem 与 GenerateItems](https://partner.steamgames.com/doc/api/isteaminventory)。
 
 ## 字段说明
 
