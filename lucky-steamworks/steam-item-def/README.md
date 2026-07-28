@@ -70,7 +70,6 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - 多条 LinkTree 共用同一个永久回执。
 - 永久回执不是 `Type=Item`、`PromoRule=manual` 或 `GrantedManually=true`。
 - 永久回执允许交易、出售或没有设置为游戏内隐藏。
-- 永久回执的 `ClaimLimit` 不是 `1`。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 
 验证失败时只更新 `validation-report.json`，不会覆盖 schema 文件。禁止在校验失败后上传目录中可能残留的旧 schema。

@@ -252,7 +252,6 @@ function validateLinkTree(records, itemDefs) {
             : `LinkTree ${record.Id ?? "<未知>"}`;
         const itemDefId = record.SteamPromoItemDefId;
         const isEnabled = record.IsEnabled === true;
-        const hasClaim = Number.isInteger(record.ClaimLimit) && record.ClaimLimit > 0;
 
         if (!Number.isInteger(itemDefId) || itemDefId < 0) {
             errors.push(`${key}：SteamPromoItemDefId 必须是大于等于 0 的整数。`);
@@ -260,8 +259,8 @@ function validateLinkTree(records, itemDefs) {
         }
 
         if (itemDefId === 0) {
-            if (isEnabled && hasClaim) {
-                warnings.push(`${key}：启用的限领入口没有配置 SteamPromoItemDefId。`);
+            if (isEnabled) {
+                warnings.push(`${key}：启用的入口没有配置 SteamPromoItemDefId。`);
             }
             continue;
         }
@@ -281,9 +280,6 @@ function validateLinkTree(records, itemDefs) {
             claimedByItemDef.set(itemDefId, key);
         }
 
-        if (record.ClaimLimit !== 1) {
-            errors.push(`${key}：manual promo 永久回执当前只支持 ClaimLimit=1。`);
-        }
         if (definition.Type !== 1) {
             errors.push(`${key}：永久回执 ${itemDefId} 必须是 Type=Item。`);
         }

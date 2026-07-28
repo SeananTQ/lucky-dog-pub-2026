@@ -31,7 +31,6 @@ function linkTree(overrides = {}) {
         Key: "TwitterFollow",
         IsEnabled: true,
         SteamPromoItemDefId: 401001,
-        ClaimLimit: 1,
         ...overrides,
     };
 }

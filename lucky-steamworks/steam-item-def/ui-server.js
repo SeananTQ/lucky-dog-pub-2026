@@ -59,7 +59,6 @@ function loadPreview() {
             rewardType: entry.RewardType,
             rewardItemId: entry.RewardItemId,
             rewardChips: entry.RewardChips,
-            claimLimit: entry.ClaimLimit,
             isEnabled: entry.IsEnabled,
         });
         linkTreesByItemDef.set(entry.SteamPromoItemDefId, references);
