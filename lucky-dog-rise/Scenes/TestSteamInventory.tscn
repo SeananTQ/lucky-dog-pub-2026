@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamInventoryTestController.cs" id="1_inventory"]
 
-[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_enableGrantCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_retryButton", "_quitButton", "_operationLog")]
+[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_enableGrantCheck", "_enableMaintenanceCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_consumeItemButton", "_generateItemButton", "_retryButton", "_quitButton", "_operationLog")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,9 +16,12 @@ _definitionStatusLabel = NodePath("Center/Panel/Margin/Content/DefinitionStatus"
 _inventoryStatusLabel = NodePath("Center/Panel/Margin/Content/InventoryStatus")
 _promoItemOption = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemOption")
 _enableGrantCheck = NodePath("Center/Panel/Margin/Content/GrantTest/EnableGrant")
+_enableMaintenanceCheck = NodePath("Center/Panel/Margin/Content/MaintenanceTest/EnableMaintenance")
 _loadDefinitionsButton = NodePath("Center/Panel/Margin/Content/ReadButtons/LoadDefinitions")
 _refreshInventoryButton = NodePath("Center/Panel/Margin/Content/ReadButtons/RefreshInventory")
 _addPromoItemButton = NodePath("Center/Panel/Margin/Content/GrantTest/AddPromoItem")
+_consumeItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/ConsumeItem")
+_generateItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/GenerateItem")
 _retryButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Retry")
 _quitButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Quit")
 _operationLog = NodePath("Center/Panel/Margin/Content/OperationLog")
@@ -121,13 +124,44 @@ disabled = true
 [node name="EnableGrant" type="CheckButton" parent="Center/Panel/Margin/Content/GrantTest"]
 layout_mode = 2
 disabled = true
-text = "我确认：AddPromoItem 会永久写入当前 Steam 账号，无法在游戏内重置"
+text = "我确认：AddPromoItem 是一次性发放；请求成功也可能不产生新实例"
 
 [node name="AddPromoItem" type="Button" parent="Center/Panel/Margin/Content/GrantTest"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 disabled = true
 text = "3. 发放所选 Promo ItemDef"
+
+[node name="MaintenanceTest" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content/MaintenanceTest"]
+layout_mode = 2
+text = "开发者库存维护测试"
+horizontal_alignment = 1
+
+[node name="EnableMaintenance" type="CheckButton" parent="Center/Panel/Margin/Content/MaintenanceTest"]
+layout_mode = 2
+disabled = true
+text = "我确认：ConsumeItem 只删实例，不重置一次性 Promo 资格；GenerateItems 会真实写入开发者账号"
+
+[node name="MutationButtons" type="HBoxContainer" parent="Center/Panel/Margin/Content/MaintenanceTest"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ConsumeItem" type="Button" parent="Center/Panel/Margin/Content/MaintenanceTest/MutationButtons"]
+custom_minimum_size = Vector2(350, 44)
+layout_mode = 2
+disabled = true
+text = "4. 消耗所选 ItemDef 的 1 个实例"
+
+[node name="GenerateItem" type="Button" parent="Center/Panel/Margin/Content/MaintenanceTest/MutationButtons"]
+custom_minimum_size = Vector2(350, 44)
+layout_mode = 2
+disabled = true
+text = "5. 生成所选 ItemDef 的 1 个实例"
 
 [node name="OperationLogTitle" type="Label" parent="Center/Panel/Margin/Content"]
 layout_mode = 2

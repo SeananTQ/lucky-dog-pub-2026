@@ -9,10 +9,15 @@ namespace LuckyDogRise;
 
 public partial class SteamInventoryTestController : Control
 {
+    private const ulong DefinitionLoadTimeoutMsec = 10000;
+    private const ulong DefinitionPollIntervalMsec = 250;
+
     private enum InventoryRequestKind
     {
         FullInventory,
         AddPromoItem,
+        ConsumeItem,
+        GenerateItem,
     }
 
     [Export] private Label _statusLabel = null!;
@@ -21,27 +26,44 @@ public partial class SteamInventoryTestController : Control
     [Export] private Label _inventoryStatusLabel = null!;
     [Export] private OptionButton _promoItemOption = null!;
     [Export] private CheckButton _enableGrantCheck = null!;
+    [Export] private CheckButton _enableMaintenanceCheck = null!;
     [Export] private Button _loadDefinitionsButton = null!;
     [Export] private Button _refreshInventoryButton = null!;
     [Export] private Button _addPromoItemButton = null!;
+    [Export] private Button _consumeItemButton = null!;
+    [Export] private Button _generateItemButton = null!;
     [Export] private Button _retryButton = null!;
     [Export] private Button _quitButton = null!;
     [Export] private TextEdit _operationLog = null!;
 
     private readonly Dictionary<int, InventoryRequestKind> _pendingRequests = new();
     private readonly Queue<string> _logLines = new();
+    private SteamItemDetails_t[] _lastInventoryItems = Array.Empty<SteamItemDetails_t>();
     private SteamworksRuntime _runtime = null!;
     private Callback<SteamInventoryDefinitionUpdate_t> _definitionUpdateCallback = null!;
     private Callback<SteamInventoryFullUpdate_t> _fullUpdateCallback = null!;
     private Callback<SteamInventoryResultReady_t> _resultReadyCallback = null!;
     private bool _definitionsLoaded;
+    private bool _inventoryLoaded;
+    private bool _definitionLoadPending;
+    private ulong _definitionLoadDeadlineMsec;
+    private ulong _nextDefinitionPollMsec;
 
     public override void _Ready()
     {
         _loadDefinitionsButton.Pressed += LoadDefinitions;
         _refreshInventoryButton.Pressed += RefreshInventory;
         _addPromoItemButton.Pressed += AddSelectedPromoItem;
+        _consumeItemButton.Pressed += ConsumeSelectedItem;
+        _generateItemButton.Pressed += GenerateSelectedItem;
         _enableGrantCheck.Toggled += _ => UpdateControls();
+        _enableMaintenanceCheck.Toggled += _ => UpdateControls();
+        _promoItemOption.ItemSelected += _ =>
+        {
+            _enableGrantCheck.ButtonPressed = false;
+            _enableMaintenanceCheck.ButtonPressed = false;
+            UpdateControls();
+        };
         _retryButton.Pressed += InitializeSteamworks;
         _quitButton.Pressed += () => GetTree().Quit();
 
@@ -52,6 +74,7 @@ public partial class SteamInventoryTestController : Control
     public override void _Process(double delta)
     {
         _runtime?.RunCallbacks();
+        PollDefinitionLoad();
     }
 
     public override void _ExitTree()
@@ -63,7 +86,11 @@ public partial class SteamInventoryTestController : Control
     {
         ShutdownSteamworks();
         _definitionsLoaded = false;
+        _definitionLoadPending = false;
+        _inventoryLoaded = false;
+        _lastInventoryItems = Array.Empty<SteamItemDetails_t>();
         _enableGrantCheck.ButtonPressed = false;
+        _enableMaintenanceCheck.ButtonPressed = false;
         _definitionStatusLabel.Text = "Steam ItemDef：尚未加载";
         _inventoryStatusLabel.Text = "玩家库存：尚未读取";
         ClearLog();
@@ -132,7 +159,17 @@ public partial class SteamInventoryTestController : Control
         var accepted = SteamInventory.LoadItemDefinitions();
         AppendLog($"LoadItemDefinitions：{(accepted ? "请求已接受" : "请求被拒绝")}");
         if (!accepted)
+        {
             _definitionStatusLabel.Text = "Steam ItemDef：请求被拒绝";
+        }
+        else
+        {
+            var now = Time.GetTicksMsec();
+            _definitionLoadPending = true;
+            _definitionLoadDeadlineMsec = now + DefinitionLoadTimeoutMsec;
+            _nextDefinitionPollMsec = now;
+            PollDefinitionLoad();
+        }
         UpdateControls();
     }
 
@@ -140,6 +177,8 @@ public partial class SteamInventoryTestController : Control
     {
         if (_runtime?.IsInitialized != true)
             return;
+
+        _enableMaintenanceCheck.ButtonPressed = false;
 
         if (HasPendingRequest(InventoryRequestKind.FullInventory))
         {
@@ -156,6 +195,7 @@ public partial class SteamInventoryTestController : Control
         }
 
         TrackRequest(handle, InventoryRequestKind.FullInventory);
+        _inventoryLoaded = false;
         _inventoryStatusLabel.Text = "玩家库存：正在读取……";
         UpdateControls();
     }
@@ -179,31 +219,109 @@ public partial class SteamInventoryTestController : Control
 
         TrackRequest(handle, InventoryRequestKind.AddPromoItem);
         _enableGrantCheck.ButtonPressed = false;
+        _enableMaintenanceCheck.ButtonPressed = false;
+        UpdateControls();
+    }
+
+    private void ConsumeSelectedItem()
+    {
+        if (_runtime?.IsInitialized != true || !_enableMaintenanceCheck.ButtonPressed)
+            return;
+
+        var itemDefId = GetSelectedItemDefId();
+        var item = _lastInventoryItems.FirstOrDefault(candidate =>
+            (int)candidate.m_iDefinition == itemDefId && candidate.m_unQuantity > 0);
+        if ((ulong)item.m_itemId == 0)
+        {
+            AppendLog($"ConsumeItem({itemDefId})：最近一次库存中没有可消耗实例");
+            UpdateControls();
+            return;
+        }
+
+        var accepted = SteamInventory.ConsumeItem(out var handle, item.m_itemId, 1);
+        AppendLog(
+            $"ConsumeItem({itemDefId})：Instance={(ulong)item.m_itemId}, Qty=1, " +
+            (accepted ? $"请求已接受，Handle={HandleValue(handle)}" : "请求被拒绝"));
+        if (!accepted)
+            return;
+
+        TrackRequest(handle, InventoryRequestKind.ConsumeItem);
+        _enableGrantCheck.ButtonPressed = false;
+        _enableMaintenanceCheck.ButtonPressed = false;
+        UpdateControls();
+    }
+
+    private void GenerateSelectedItem()
+    {
+        if (_runtime?.IsInitialized != true || !_enableMaintenanceCheck.ButtonPressed)
+            return;
+
+        var itemDefId = GetSelectedItemDefId();
+        if (_lastInventoryItems.Any(item => (int)item.m_iDefinition == itemDefId && item.m_unQuantity > 0))
+        {
+            AppendLog($"GenerateItems({itemDefId})：库存中已存在该 ItemDef，拒绝生成重复凭证");
+            UpdateControls();
+            return;
+        }
+
+        SteamItemDef_t[] itemDefs = [(SteamItemDef_t)itemDefId];
+        uint[] quantities = [1];
+        var accepted = SteamInventory.GenerateItems(out var handle, itemDefs, quantities, 1);
+        AppendLog($"GenerateItems({itemDefId})：{(accepted ? $"请求已接受，Handle={HandleValue(handle)}" : "请求被拒绝")}");
+        if (!accepted)
+            return;
+
+        TrackRequest(handle, InventoryRequestKind.GenerateItem);
+        _enableGrantCheck.ButtonPressed = false;
+        _enableMaintenanceCheck.ButtonPressed = false;
         UpdateControls();
     }
 
     private void OnDefinitionUpdated(SteamInventoryDefinitionUpdate_t callback)
     {
+        AppendLog("SteamInventoryDefinitionUpdate_t：收到定义更新回调");
+        if (TryApplyLoadedDefinitions("回调"))
+            return;
+
+        _definitionsLoaded = false;
+        _definitionStatusLabel.Text = "Steam ItemDef：收到回调，但定义尚不可读取";
+        UpdateControls();
+    }
+
+    private void PollDefinitionLoad()
+    {
+        if (!_definitionLoadPending || _runtime?.IsInitialized != true)
+            return;
+
+        var now = Time.GetTicksMsec();
+        if (now < _nextDefinitionPollMsec)
+            return;
+
+        _nextDefinitionPollMsec = now + DefinitionPollIntervalMsec;
+        if (TryApplyLoadedDefinitions("主动读取"))
+            return;
+
+        if (now < _definitionLoadDeadlineMsec)
+            return;
+
+        _definitionLoadPending = false;
+        _definitionsLoaded = false;
+        _definitionStatusLabel.Text = "Steam ItemDef：加载超时，请重试";
+        AppendLog("LoadItemDefinitions：10 秒内未能读取定义，已停止等待");
+        UpdateControls();
+    }
+
+    private bool TryApplyLoadedDefinitions(string source)
+    {
         var count = 0u;
         if (!SteamInventory.GetItemDefinitionIDs(null!, ref count))
-        {
-            _definitionsLoaded = false;
-            _definitionStatusLabel.Text = "Steam ItemDef：回调已到达，但读取数量失败";
-            AppendLog("SteamInventoryDefinitionUpdate_t：GetItemDefinitionIDs 数量读取失败");
-            UpdateControls();
-            return;
-        }
+            return false;
 
         var serverItemDefs = new SteamItemDef_t[count];
         if (count > 0 && !SteamInventory.GetItemDefinitionIDs(serverItemDefs, ref count))
-        {
-            _definitionsLoaded = false;
-            _definitionStatusLabel.Text = "Steam ItemDef：回调已到达，但读取定义失败";
-            AppendLog("SteamInventoryDefinitionUpdate_t：GetItemDefinitionIDs 内容读取失败");
-            UpdateControls();
-            return;
-        }
+            return false;
 
+        _definitionLoadPending = false;
         var serverIds = serverItemDefs.Select(itemDef => (int)itemDef).ToHashSet();
         var localDefinitions = LubanData.Tables.TbSteamItemDef.DataList.Where(itemDef => itemDef.IsEnabled).ToArray();
         var missingIds = localDefinitions.Where(itemDef => !serverIds.Contains(itemDef.Id)).Select(itemDef => itemDef.Id).ToArray();
@@ -211,8 +329,9 @@ public partial class SteamInventoryTestController : Control
         _definitionStatusLabel.Text = missingIds.Length == 0
             ? $"Steam ItemDef：服务器 {count} 条，本地启用 {localDefinitions.Length} 条，全部匹配"
             : $"Steam ItemDef：服务器 {count} 条；缺少本地定义 {string.Join(", ", missingIds)}";
-        AppendLog($"SteamInventoryDefinitionUpdate_t：服务器返回 {count} 条定义");
+        AppendLog($"ItemDef {source}成功：服务器返回 {count} 条定义");
         UpdateControls();
+        return true;
     }
 
     private void OnFullInventoryUpdated(SteamInventoryFullUpdate_t callback)
@@ -260,8 +379,10 @@ public partial class SteamInventoryTestController : Control
 
             if (requestKind == InventoryRequestKind.FullInventory)
                 ShowInventory(items);
-            else
+            else if (requestKind == InventoryRequestKind.AddPromoItem)
                 ShowPromoGrantResult(items);
+            else
+                ShowInventoryMutationResult(requestKind, items);
         }
         finally
         {
@@ -285,6 +406,8 @@ public partial class SteamInventoryTestController : Control
 
     private void ShowInventory(IReadOnlyCollection<SteamItemDetails_t> items)
     {
+        _inventoryLoaded = true;
+        _lastInventoryItems = items.ToArray();
         var builder = new StringBuilder();
         builder.AppendLine($"玩家库存：{items.Count} 个实例/堆叠");
         foreach (var item in items.OrderBy(item => (int)item.m_iDefinition).Take(20))
@@ -316,21 +439,63 @@ public partial class SteamInventoryTestController : Control
         RefreshInventory();
     }
 
+    private void ShowInventoryMutationResult(
+        InventoryRequestKind requestKind,
+        IReadOnlyCollection<SteamItemDetails_t> items)
+    {
+        AppendLog($"{requestKind} 成功：Steam 返回 {items.Count} 条变更");
+        if (requestKind == InventoryRequestKind.ConsumeItem)
+        {
+            AppendLog(
+                "注意：ConsumeItem 只删除库存实例，不会重置 Steam 的一次性 Promo 发放记录；" +
+                "同一 ItemDef 再次调用 AddPromoItem 可能返回成功但不产生物品。");
+        }
+        foreach (var item in items)
+        {
+            AppendLog(
+                $"{requestKind}：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, " +
+                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}");
+        }
+        RefreshInventory();
+    }
+
     private void UpdateControls()
     {
         var available = _runtime?.IsInitialized == true;
         var hasPromoOptions = _promoItemOption.ItemCount > 0;
         var grantPending = HasPendingRequest(InventoryRequestKind.AddPromoItem);
+        var anyRequestPending = _pendingRequests.Count > 0;
+        var selectedItemDefId = GetSelectedItemDefId();
+        var selectedItemOwned = selectedItemDefId > 0 && _lastInventoryItems.Any(item =>
+            (int)item.m_iDefinition == selectedItemDefId && item.m_unQuantity > 0);
 
         _loadDefinitionsButton.Disabled = !available;
         _refreshInventoryButton.Disabled = !available || HasPendingRequest(InventoryRequestKind.FullInventory);
         _promoItemOption.Disabled = !available || !hasPromoOptions || grantPending;
         _enableGrantCheck.Disabled = !available || !_definitionsLoaded || !hasPromoOptions || grantPending;
+        _enableMaintenanceCheck.Disabled = !available
+            || !_definitionsLoaded
+            || !_inventoryLoaded
+            || !hasPromoOptions
+            || anyRequestPending;
         _addPromoItemButton.Disabled = !available
             || !_definitionsLoaded
             || !hasPromoOptions
             || !_enableGrantCheck.ButtonPressed
             || grantPending;
+        _consumeItemButton.Disabled = !_enableMaintenanceCheck.ButtonPressed
+            || anyRequestPending
+            || !selectedItemOwned;
+        _generateItemButton.Disabled = !_enableMaintenanceCheck.ButtonPressed
+            || anyRequestPending
+            || selectedItemOwned;
+    }
+
+    private int GetSelectedItemDefId()
+    {
+        return _promoItemOption.ItemCount > 0 && _promoItemOption.Selected >= 0
+            ? (int)_promoItemOption.GetItemMetadata(_promoItemOption.Selected)
+            : 0;
     }
 
     private void TrackRequest(SteamInventoryResult_t handle, InventoryRequestKind requestKind)
