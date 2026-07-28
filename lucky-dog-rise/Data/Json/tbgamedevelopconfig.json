@@ -5,6 +5,6 @@
     "PlayerStatisticScale": 10,
     "BlindBoxBacklogClaimDelaySeconds": 30,
     "BlindBoxPostNewbieDelaySeconds": 60,
-    "LinkTreeVisibleBannerCount": 6
+    "LinkTreeVisibleBannerCount": 5
   }
 ]
