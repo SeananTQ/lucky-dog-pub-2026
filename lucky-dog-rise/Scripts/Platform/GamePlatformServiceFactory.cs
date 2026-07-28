@@ -16,12 +16,6 @@ public static class GamePlatformServiceFactory
             return new OfflineGamePlatformService("Steam 已通过命令行参数禁用。游戏继续以离线平台模式运行。");
         }
 
-        var runtime = new SteamworksRuntime();
-        if (runtime.TryInitialize())
-            return new SteamGamePlatformService(runtime);
-
-        var failureReason = runtime.StatusMessage;
-        runtime.Dispose();
-        return new OfflineGamePlatformService(failureReason);
+        return new RecoveringSteamPlatformService();
     }
 }

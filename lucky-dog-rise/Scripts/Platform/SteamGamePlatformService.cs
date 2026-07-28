@@ -64,12 +64,55 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return;
 
         _inventorySynchronizationStarted = true;
+        RestartInventorySynchronization();
+    }
+
+    public void RestartInventorySynchronization()
+    {
+        if (!IsAvailable)
+            return;
+
+        CancelPendingInventorySynchronization();
+        IsInventoryReady = false;
         if (!SteamInventory.LoadItemDefinitions())
             Godot.GD.PushWarning("[SteamInventory] Steam 拒绝刷新库存 ItemDef；继续读取玩家库存。");
 
         // DefinitionUpdate is a cache/update notification, not a reliable startup gate.
         // GetAllItems must run on every launch even when Steam has no definition update to publish.
         RequestFullInventory();
+    }
+
+    public void CancelPendingInventorySynchronization()
+    {
+        var fullInventoryHandles = _inventoryRequests
+            .Where(pair => pair.Value.Kind == InventoryRequestKind.FullInventory)
+            .Select(pair => pair.Key)
+            .ToArray();
+        foreach (var handleValue in fullInventoryHandles)
+        {
+            SteamInventory.DestroyResult((SteamInventoryResult_t)handleValue);
+            _inventoryRequests.Remove(handleValue);
+        }
+    }
+
+    public bool RecoverTimedOutPromoGrant()
+    {
+        var promoRequest = _inventoryRequests.FirstOrDefault(pair =>
+            pair.Value.Kind == InventoryRequestKind.AddPromoItem);
+        if (promoRequest.Value.Kind != InventoryRequestKind.AddPromoItem || promoRequest.Value.ItemDefId <= 0)
+            return false;
+
+        SteamInventory.DestroyResult((SteamInventoryResult_t)promoRequest.Key);
+        _inventoryRequests.Remove(promoRequest.Key);
+        _promoItemAwaitingInventoryVerification = promoRequest.Value.ItemDefId;
+        if (RequestFullInventory())
+            return true;
+
+        var itemDefId = _promoItemAwaitingInventoryVerification;
+        _promoItemAwaitingInventoryVerification = 0;
+        PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+            itemDefId, false, false, $"Steam 领奖请求超时，无法复查 ItemDef={itemDefId}。"));
+        return false;
     }
 
     public bool TryGrantPromoItem(int itemDefId, out string message)

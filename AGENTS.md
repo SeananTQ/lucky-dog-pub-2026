@@ -18,7 +18,9 @@
 - 存档：已支持本地 JSON 存档、版本号、缺字段兜底、损坏备份、重置存档确认。
 - 调试：Debug 页支持随机狗、随机场景、随机获得道具、播放狗反应、切换背包数据来源、盲盒状态调试与时间/成本倍率。
 - 盲盒：已支持资格生成与本地展示节奏分离、12 个新手盲盒顺序领取、双循环轨道积压与优先级、开盒升品表演、桌宠/扑克两种开盒外壳、中断恢复与自动领奖。
-- 待开发：LinkTree 免费领取、重复补偿/分解、正式 Steam 库存 API 接入等。
+- LinkTree：已支持数据驱动入口、四阶段领取状态、外部操作等待、Steam Inventory 永久领取回执和奖励反馈动画。
+- Steam 平台：已接入 Steamworks.NET，并支持运行期重连、库存同步超时、退避重试和待处理事务恢复。
+- 待开发：Steam 库存盲盒、重复补偿/分解等。
 
 ## 技术栈
 
@@ -257,6 +259,20 @@ lucky-dog-rise/
 - 开启后，仅在任务栏点击、Win 菜单收起后的短窗口期等特定场景高频 `SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE)`。
 - Win 键处理规则：按下 Win 后等待；随后鼠标点击、再次 Win、Esc 会触发抢回置顶，并在短时间内监听下一次鼠标点击补抢。
 - 平时不持续抢置顶，避免无意义打扰其它软件。
+
+## Steam 平台与库存
+
+- 平台入口目前由 `GamePlatformServiceFactory` 创建，普通启动使用 `RecoveringSteamPlatformService`。后续 Steam 库存功能优先复用这套入口、连接恢复和回调泵，不在各业务模块内重复创建或持有 `SteamworksRuntime`。`SteamGamePlatformService` 负责单次已连接 Steam 会话内的 API、回调和 `SteamInventoryResult_t` Handle 生命周期。
+- `IRecoverablePlatformService.ConnectionState` 是当前跨系统共享状态：`Offline / Connecting / InventorySyncing / Ready / Unavailable`。LinkTree、未来 Steam 库存盲盒和其他平台功能优先订阅该状态，避免各自形成含义不同的“是否在线”判断。
+- 当前以 `Ready` 表示本次 Steam 库存已同步并可执行库存写操作。缓存库存适合用于展示；涉及消耗、兑换或发放时，应以服务器同步结果为准。
+- Steam 初始化失败、客户端掉线或回调泵失效时，恢复层会在运行期间重建 `SteamworksRuntime`。库存请求和 Promo 发放请求使用 10 秒超时；失败后按 `5 → 15 → 30 → 60` 秒退避重试，60 秒封顶。
+- 窗口重新获得焦点、玩家进入 LinkTree，以及未来玩家尝试 Steam 库存盲盒时，可以通过 `RequestReconnect()` 触发高优先级恢复。已有同步请求进行中时应复用当前请求，避免取消后重复提交。
+- Steam 库存请求目前按同一类型保留一个在途 Handle。处理 `SteamInventoryResult_t` 时需要校验 SteamID、读取结果并最终 `DestroyResult`；超时取消时也要回收对应 Handle。
+- Steam 写操作采用“本地待处理事务 + Steam 结果复查”。回调丢失或断线后，先通过 `GetAllItems()` 确认服务器结果，再决定是否继续操作，避免直接重试造成重复发放或重复扣除。
+- LinkTree 使用永久、不销毁的 Promo ItemDef 作为一次性领取回执。启动同步时以 Steam 库存恢复 `Claimed`；只有本地待处理事务与 Steam 回执同时存在时才补发本地奖励，单纯删除本地存档不得再次领取。
+- 实现 Steam 库存盲盒时，应优先扩展现有平台服务、同步状态、重连机制和待处理事务方案。如果现有抽象不能满足盲盒需求，可以调整或扩展，但要同时回归验证 LinkTree 的库存同步、领奖恢复和防重复领取功能。
+- Steam 库存盲盒预计只在平台状态为 `Ready` 时开放；其他状态保留本地消耗品盲盒。Steam 操作中断时可保留待处理事务，重连并确认服务器结果后再完成本地表现。
+- `--disable-steam` 是显式离线开发模式，不参与自动恢复。Dev 渠道可保留表现层模拟；Playtest/Release 在 Steam 库存不可用时采用失败关闭，避免回退为可重复领取的内存实现。
 
 ## 胖窗口设计
 

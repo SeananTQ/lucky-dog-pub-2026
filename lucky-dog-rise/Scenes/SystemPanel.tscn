@@ -670,6 +670,18 @@ theme_override_font_sizes/font_size = 16
 [node name="SaveDataModeSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1993035049]
 layout_mode = 2
 
+[node name="LinkTreeSyncSimulationRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+
+[node name="LinkTreeSyncSimulationLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "模拟 LinkTree 同步中"
+
+[node name="LinkTreeSyncSimulationToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="PlayTimeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1286543218]
 layout_mode = 2
 text = "Play Time: 00:00:00 (0.0s)"

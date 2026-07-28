@@ -127,7 +127,9 @@ public partial class ModeManager : Control
         _platformService = GamePlatformServiceFactory.Create();
         GD.Print(_platformService.IsAvailable
             ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
-            : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
+            : _platformService is IRecoverablePlatformService
+                ? $"[Platform] Steam recovery active. {_platformService.StatusMessage}"
+                : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
     }
 
     public override void _Ready()
@@ -325,6 +327,9 @@ public partial class ModeManager : Control
             RequestGracefulQuit();
             return;
         }
+
+        if (what == NotificationApplicationFocusIn)
+            (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
         if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen
             && SettingsManager.LoadAutoHidePanel())

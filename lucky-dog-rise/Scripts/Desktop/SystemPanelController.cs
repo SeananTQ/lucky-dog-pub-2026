@@ -102,6 +102,7 @@ public partial class SystemPanelController : CanvasLayer
     private int _currentSeed;
     private double _debugTimeRefreshTimer;
     private bool _resetPlayerProgressPending;
+    private bool _simulateLinkTreeSyncPending;
 #endif
 
     // Wardrobe 页
@@ -113,6 +114,7 @@ public partial class SystemPanelController : CanvasLayer
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
     private IPlatformInventoryService _inventoryService;
+    private IRecoverablePlatformService _recoverablePlatformService;
     private LinkTreePageState _linkTreePageState = LinkTreePageState.Loading;
     public GameData GameData
     {
@@ -148,14 +150,19 @@ public partial class SystemPanelController : CanvasLayer
                 _inventoryService.InventorySnapshotChanged -= OnPlatformInventorySnapshotChanged;
                 _inventoryService.PromoItemGrantCompleted -= OnPlatformPromoItemGrantCompleted;
             }
+            if (_recoverablePlatformService != null)
+                _recoverablePlatformService.ConnectionStateChanged -= OnPlatformConnectionStateChanged;
 
             _platformService = value;
             _inventoryService = value as IPlatformInventoryService;
+            _recoverablePlatformService = value as IRecoverablePlatformService;
             if (_inventoryService != null)
             {
                 _inventoryService.InventorySnapshotChanged += OnPlatformInventorySnapshotChanged;
                 _inventoryService.PromoItemGrantCompleted += OnPlatformPromoItemGrantCompleted;
             }
+            if (_recoverablePlatformService != null)
+                _recoverablePlatformService.ConnectionStateChanged += OnPlatformConnectionStateChanged;
 
             if (IsNodeReady())
                 InitializeLinkTreeInventory();
@@ -389,6 +396,7 @@ public partial class SystemPanelController : CanvasLayer
         _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
+        var linkTreeSyncSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
@@ -404,6 +412,11 @@ public partial class SystemPanelController : CanvasLayer
         {
             EmitSignal(SignalName.DebugGrantLuckyDealsRequested);
             RefreshDebugPlayTime();
+        };
+        linkTreeSyncSimulationToggle.Toggled += enabled =>
+        {
+            _simulateLinkTreeSyncPending = enabled;
+            RefreshLinkTreePagePresentation();
         };
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _playerProgressMultiplierOption.AddItem("统计 x1", 1);
@@ -464,6 +477,8 @@ public partial class SystemPanelController : CanvasLayer
         _settingsActionSep.Visible = index == 2;
         if (index == 0 && _gameData != null)
             BuildWardrobe();
+        if (index == 1)
+            _recoverablePlatformService?.RequestReconnect();
         #if DEBUG
         if (index == 3)
             RefreshDebugPlayTime();
@@ -711,6 +726,16 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         _linkTreePageState = state;
+        RefreshLinkTreePagePresentation();
+    }
+
+    private void RefreshLinkTreePagePresentation()
+    {
+        var state = _linkTreePageState;
+#if DEBUG
+        if (_simulateLinkTreeSyncPending)
+            state = LinkTreePageState.Loading;
+#endif
         var showBanners = state == LinkTreePageState.Ready;
         _linkTreeStatusCenter.Visible = !showBanners;
         _linkTreeStatusLabel.Text = state switch
@@ -800,6 +825,21 @@ public partial class SystemPanelController : CanvasLayer
 
         SetLinkTreePageState(LinkTreePageState.Ready);
         GD.Print($"[LinkTree] {snapshot.Message}");
+    }
+
+    private void OnPlatformConnectionStateChanged(PlatformConnectionState state)
+    {
+        switch (state)
+        {
+            case PlatformConnectionState.Connecting:
+            case PlatformConnectionState.InventorySyncing:
+                SetLinkTreePageState(LinkTreePageState.Loading);
+                break;
+            case PlatformConnectionState.Offline:
+            case PlatformConnectionState.Unavailable:
+                SetLinkTreePageState(LinkTreePageState.Unavailable);
+                break;
+        }
     }
 
     private void OnPlatformPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
