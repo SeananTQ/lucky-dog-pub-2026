@@ -329,9 +329,10 @@ public partial class InfoPanelController : CanvasLayer
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _blindBoxHint.ShowCostFromAssetPath(
+                _blindBoxHint.ShowValueFromAssetPath(
                     state.Box?.HintIconPath,
                     _blindBoxIcon,
+                    state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
                     _gameData.Chips);
                 break;

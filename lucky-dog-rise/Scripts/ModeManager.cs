@@ -818,9 +818,10 @@ public partial class ModeManager : Control
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _bossBlindBoxHint.ShowCostFromAssetPath(
+                _bossBlindBoxHint.ShowValueFromAssetPath(
                     state.Box?.HintIconPath,
                     _blindBoxIcon,
+                    state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
                     _gameData.Chips);
                 break;

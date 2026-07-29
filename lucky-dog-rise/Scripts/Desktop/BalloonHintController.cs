@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using DataTables;
 using Godot;
 
 namespace LuckyDogRise;
@@ -71,9 +72,29 @@ public partial class BalloonHintController : PanelContainer
         SetTextContent(text);
     }
 
-    public void ShowCostFromAssetPath(string? iconPath, Texture2D? fallbackIcon, int cost, int currentChips = -1)
+    public void ShowValueFromAssetPath(
+        string? iconPath,
+        Texture2D? fallbackIcon,
+        EBlindBoxValueMode valueMode,
+        int cost,
+        int currentChips = -1)
     {
-        ShowCost(LoadAssetTexture(iconPath) ?? fallbackIcon, cost, currentChips);
+        var icon = LoadAssetTexture(iconPath) ?? fallbackIcon;
+        if (valueMode == EBlindBoxValueMode.Chips)
+        {
+            ShowCost(icon, cost, currentChips);
+            return;
+        }
+
+        _iconRect.Texture = icon;
+        _iconRect.Visible = icon != null;
+        _textLabel.Visible = true;
+        SetTextContent(valueMode switch
+        {
+            EBlindBoxValueMode.Count => "[font_size=20]×1[/font_size]",
+            EBlindBoxValueMode.Free => $"[font_size=14]{L10n.Tr(L10nKey.BlindBox_Free)}[/font_size]",
+            _ => $"[font_size=20]{cost}[/font_size]",
+        });
     }
 
     public void ShowIconOnly(Texture2D? icon)

@@ -1,7 +1,7 @@
 [
   {
     "Id": 1001,
-    "BlindBoxId": 1001,
+    "BlindBoxId": 4001,
     "IsLoopTrack": false,
     "StartSeconds": 30,
     "IntervalSeconds": 30,

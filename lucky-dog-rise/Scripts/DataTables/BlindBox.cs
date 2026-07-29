@@ -22,6 +22,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["BoxType"].IsNumber) { throw new SerializationException(); }  BoxType = (EBlindBoxType)_buf["BoxType"].AsInt; }
         { if(!_buf["DisplayMode"].IsNumber) { throw new SerializationException(); }  DisplayMode = (EBlindBoxDisplayMode)_buf["DisplayMode"].AsInt; }
         { if(!_buf["CostChips"].IsNumber) { throw new SerializationException(); }  CostChips = _buf["CostChips"]; }
+        { if(!_buf["HintValueMode"].IsNumber) { throw new SerializationException(); }  HintValueMode = (EBlindBoxValueMode)_buf["HintValueMode"].AsInt; }
         { if(!_buf["MaxRevealClickCount"].IsNumber) { throw new SerializationException(); }  MaxRevealClickCount = _buf["MaxRevealClickCount"]; }
         { if(!_buf["AutoCollectSeconds"].IsNumber) { throw new SerializationException(); }  AutoCollectSeconds = _buf["AutoCollectSeconds"]; }
         { if(!_buf["HintIconPath"].IsString) { throw new SerializationException(); }  HintIconPath = _buf["HintIconPath"]; }
@@ -57,6 +58,7 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// 基础固定价格，实际需乘以Config表里的倍率来使用
     /// </summary>
     public readonly int CostChips;
+    public readonly EBlindBoxValueMode HintValueMode;
     /// <summary>
     /// 装扮盲盒默认 3
     /// </summary>
@@ -105,6 +107,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "BoxType:" + BoxType + ","
         + "DisplayMode:" + DisplayMode + ","
         + "CostChips:" + CostChips + ","
+        + "HintValueMode:" + HintValueMode + ","
         + "MaxRevealClickCount:" + MaxRevealClickCount + ","
         + "AutoCollectSeconds:" + AutoCollectSeconds + ","
         + "HintIconPath:" + HintIconPath + ","
