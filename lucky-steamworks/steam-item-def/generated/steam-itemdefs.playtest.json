@@ -94,7 +94,7 @@
     {
       "itemdefid": 403001,
       "type": "generator",
-      "name": "Decoration Blind Box Test V1 Generator",
+      "name": "Decoration Blind Box V1 Generator",
       "description": "Generates one decoration reward.",
       "granted_manually": false,
       "tradable": false,
