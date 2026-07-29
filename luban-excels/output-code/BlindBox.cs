@@ -26,7 +26,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["MaxRevealClickCount"].IsNumber) { throw new SerializationException(); }  MaxRevealClickCount = _buf["MaxRevealClickCount"]; }
         { if(!_buf["AutoCollectSeconds"].IsNumber) { throw new SerializationException(); }  AutoCollectSeconds = _buf["AutoCollectSeconds"]; }
         { if(!_buf["HintIconPath"].IsString) { throw new SerializationException(); }  HintIconPath = _buf["HintIconPath"]; }
-        { if(!_buf["IsRequiresPlatformInventory"].IsBoolean) { throw new SerializationException(); }  IsRequiresPlatformInventory = _buf["IsRequiresPlatformInventory"]; }
+        { if(!_buf["IsPlatformInventoryRequired"].IsBoolean) { throw new SerializationException(); }  IsPlatformInventoryRequired = _buf["IsPlatformInventoryRequired"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["SteamOpenCostItemDefId"].IsNumber) { throw new SerializationException(); }  SteamOpenCostItemDefId = _buf["SteamOpenCostItemDefId"]; }
         { if(!_buf["SteamExchangeTargetItemDefId"].IsNumber) { throw new SerializationException(); }  SteamExchangeTargetItemDefId = _buf["SteamExchangeTargetItemDefId"]; }
@@ -73,7 +73,7 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// <summary>
     /// 装扮 true，消耗品 false<br/>是必须使用当前平台的可信库存服务器
     /// </summary>
-    public readonly bool IsRequiresPlatformInventory;
+    public readonly bool IsPlatformInventoryRequired;
     /// <summary>
     /// 临时开关
     /// </summary>
@@ -106,7 +106,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "MaxRevealClickCount:" + MaxRevealClickCount + ","
         + "AutoCollectSeconds:" + AutoCollectSeconds + ","
         + "HintIconPath:" + HintIconPath + ","
-        + "IsRequiresPlatformInventory:" + IsRequiresPlatformInventory + ","
+        + "IsPlatformInventoryRequired:" + IsPlatformInventoryRequired + ","
         + "IsEnabled:" + IsEnabled + ","
         + "SteamOpenCostItemDefId:" + SteamOpenCostItemDefId + ","
         + "SteamExchangeTargetItemDefId:" + SteamExchangeTargetItemDefId + ","

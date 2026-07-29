@@ -9,7 +9,7 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsRequiresPlatformInventory": true,
+    "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
     "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
@@ -24,7 +24,7 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsRequiresPlatformInventory": true,
+    "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
     "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
@@ -39,7 +39,7 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsRequiresPlatformInventory": false,
+    "IsPlatformInventoryRequired": false,
     "IsEnabled": true,
     "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
@@ -54,7 +54,7 @@
     "MaxRevealClickCount": 0,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsRequiresPlatformInventory": true,
+    "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
     "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
@@ -69,7 +69,7 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common_Ticket.png",
-    "IsRequiresPlatformInventory": true,
+    "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
     "SteamOpenCostItemDefId": 402001,
     "SteamExchangeTargetItemDefId": 403001
