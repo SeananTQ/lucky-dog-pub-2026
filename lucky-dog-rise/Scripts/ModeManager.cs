@@ -69,8 +69,7 @@ public partial class ModeManager : Control
     public IGamePlatformService PlatformService => _platformService;
 
 #if DEBUG
-    private static readonly EItemType[] DebugEquipmentTypes = Enum.GetValues<EItemType>();
-    private static readonly EItemType[] DebugGrantItemTypes = DebugEquipmentTypes
+    private static readonly EItemType[] DebugGrantItemTypes = Enum.GetValues<EItemType>()
         .Where(type => type != EItemType.Dog)
         .ToArray();
     private const int DebugEmptyEquipmentWeight = 3;
@@ -1354,7 +1353,7 @@ public partial class ModeManager : Control
     private void ApplyRandomEquipment(DebugEquipmentSource source)
     {
         var selections = new Dictionary<EItemType, int?>();
-        foreach (var type in DebugEquipmentTypes)
+        foreach (var type in PlayerInventory.GetEquipmentTypes())
         {
             var candidates = (source == DebugEquipmentSource.AllCatalog
                     ? LubanData.Tables.TbItem.DataList.Where(item => item.ItemType == type)

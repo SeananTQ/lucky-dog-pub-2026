@@ -186,6 +186,7 @@ lucky-dog-rise/
 - `ItemCell.tscn` 显示品质框、图标、`MarkNew`、装备中标记和数量角标。数量为 1 时不显示数量。
 - `NewItemIds` 会写入存档。点击带 New 标记的已装备道具时，只清除 New，不立刻卸下装备。
 - 装备位规则来自 `EquipmentSlotConfig`。`CanUnequip=False` 的槽位需要默认装备玩家已拥有道具；`CanUnequip=True` 的槽位允许空闲。
+- `EquipmentSlotConfig` 中存在对应 `ItemType` 才表示该类型是装扮/可装备物品；`EItemType` 也可以包含盲盒券等普通库存类型。普通库存类型不得自动装备、写入装备存档或参与随机穿戴，也不要求在 PSD 导出的坐标 JSON 中存在记录。
 - 新建/重置本地存档时，默认只拥有 `Item.AcquisitionType == Initial` 的道具。`调试全道具` 模式仍然拥有全部道具，不写入真实存档。
 - 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
 - `IsUnique=True` 的道具已拥有后不应重复获得；`IsUnique=False` 可重复获得并堆叠数量。

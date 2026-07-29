@@ -38,11 +38,17 @@ public class PlayerInventory
     public bool IsEquipped(int itemId)
     {
         var item = FindItem(itemId);
-        return item != null && _equipped.TryGetValue(item.ItemType, out var equippedId) && equippedId == itemId;
+        return item != null
+            && IsEquipmentType(item.ItemType)
+            && _equipped.TryGetValue(item.ItemType, out var equippedId)
+            && equippedId == itemId;
     }
 
     public Item? GetEquipped(EItemType type)
     {
+        if (!IsEquipmentType(type))
+            return null;
+
 #if DEBUG
         if (_debugPreviewActiveTypes.Contains(type))
             return _debugPreviewEquipped.TryGetValue(type, out var previewId) ? FindItem(previewId) : null;
@@ -55,7 +61,7 @@ public class PlayerInventory
     public void Equip(int itemId)
     {
         var item = FindItem(itemId);
-        if (item == null || !Owns(itemId)) return;
+        if (item == null || !Owns(itemId) || !IsEquipmentType(item.ItemType)) return;
 #if DEBUG
         ClearDebugPreviewForType(item.ItemType);
 #endif
@@ -72,7 +78,7 @@ public class PlayerInventory
     public void ToggleEquip(int itemId)
     {
         var item = FindItem(itemId);
-        if (item == null || !Owns(itemId)) return;
+        if (item == null || !Owns(itemId) || !IsEquipmentType(item.ItemType)) return;
 #if DEBUG
         ClearDebugPreviewForType(item.ItemType);
 #endif
@@ -134,6 +140,7 @@ public class PlayerInventory
     public Dictionary<string, int> GetEquippedIdsByTypeName()
     {
         return _equipped
+            .Where(pair => IsEquipmentType(pair.Key))
             .OrderBy(pair => pair.Key.ToString())
             .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);
     }
@@ -147,6 +154,9 @@ public class PlayerInventory
 
         foreach (var (type, itemId) in selections)
         {
+            if (!IsEquipmentType(type))
+                continue;
+
             _debugPreviewActiveTypes.Add(type);
             if (!itemId.HasValue)
                 continue;
@@ -209,6 +219,9 @@ public class PlayerInventory
         foreach (var (typeName, itemId) in equippedIdsByTypeName)
         {
             if (!Enum.TryParse<EItemType>(typeName, out var type))
+                continue;
+
+            if (!IsEquipmentType(type))
                 continue;
 
             var item = FindItem(itemId);
@@ -279,8 +292,27 @@ public class PlayerInventory
 
     public bool CanUnequip(EItemType type)
     {
-        var config = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type);
+        var config = GetEquipmentSlot(type);
         return config != null && string.Equals(config.CanUnequip, "True", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// ItemType 是否属于装扮槽，只由 EquipmentSlotConfig 决定。
+    /// 普通库存物品无需装备槽，也无需在 PSD 坐标 JSON 中存在记录。
+    /// </summary>
+    public static bool IsEquipmentType(EItemType type) => GetEquipmentSlot(type) != null;
+
+    public static IReadOnlyList<EItemType> GetEquipmentTypes()
+    {
+        return LubanData.Tables.TbEquipmentSlotConfig.DataList
+            .Select(slot => slot.ItemType)
+            .Distinct()
+            .ToArray();
+    }
+
+    private static EquipmentSlotConfig? GetEquipmentSlot(EItemType type)
+    {
+        return LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type);
     }
 
     private static Item? FindItem(int id)
@@ -291,16 +323,9 @@ public class PlayerInventory
     private bool ApplyDefaultEquipment()
     {
         var changed = false;
-        // 枚举值与装备位表应保持同步。未配置的类型先跳过默认装备补齐，
-        // 但明确记录 Warning，避免新装扮位漏配表时被静默掩盖。
-        foreach (EItemType type in Enum.GetValues(typeof(EItemType)))
+        foreach (var slot in LubanData.Tables.TbEquipmentSlotConfig.DataList)
         {
-            var slot = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(type);
-            if (slot == null)
-            {
-                GD.PushWarning($"[Inventory] Item type has no equipment slot config; skipping default equipment: {type}");
-                continue;
-            }
+            var type = slot.ItemType;
 
             if (_equipped.ContainsKey(type))
                 continue;
@@ -359,15 +384,17 @@ public class PlayerInventory
 
     private bool EquipNewlyAcquiredItem(Item item)
     {
+        var slot = GetEquipmentSlot(item.ItemType);
+        if (slot == null)
+            return false;
+
         if (!_equipped.TryGetValue(item.ItemType, out var equippedItemId))
         {
             _equipped[item.ItemType] = item.Id;
             return true;
         }
 
-        var slot = LubanData.Tables.TbEquipmentSlotConfig.GetOrDefault(item.ItemType);
-        if (slot == null
-            || string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase)
             || slot.DefaultItemId <= 0
             || equippedItemId != slot.DefaultItemId
             || item.Id == slot.DefaultItemId)
