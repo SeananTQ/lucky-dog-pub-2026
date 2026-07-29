@@ -317,7 +317,10 @@ public partial class InfoPanelController : CanvasLayer
             return;
 
         var state = _gameData.GetBlindBoxHintState();
-        _blindBoxBtn.Disabled = state.Status == BlindBoxHintStatus.Waiting;
+        _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
+            or BlindBoxHintStatus.PlatformSyncing
+            or BlindBoxHintStatus.PlatformUnavailable
+            or BlindBoxHintStatus.Opening;
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
@@ -335,6 +338,12 @@ public partial class InfoPanelController : CanvasLayer
                     state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
                     _gameData.Chips);
+                break;
+            case BlindBoxHintStatus.PlatformSyncing:
+            case BlindBoxHintStatus.PlatformUnavailable:
+            case BlindBoxHintStatus.Opening:
+                _blindBoxHint.ShowIconOnly(
+                    BalloonHintController.LoadHintTexture(state.Box?.HintIconPath) ?? _blindBoxIcon);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

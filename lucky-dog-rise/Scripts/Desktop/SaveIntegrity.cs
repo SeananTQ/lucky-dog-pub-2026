@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -68,6 +68,9 @@ internal static class SaveIntegrity
             BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState, integrityVersion),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
+            PendingPlatformBlindBoxOpen = integrityVersion >= 6
+                ? CanonicalizePendingPlatformOpen(profile.PendingPlatformBlindBoxOpen)
+                : null,
             PendingLinkTreeClaim = integrityVersion >= 5
                 ? CanonicalizePendingLinkTreeClaim(profile.PendingLinkTreeClaim)
                 : null,
@@ -139,6 +142,7 @@ internal static class SaveIntegrity
             RevealPathId = pending.RevealPathId,
             RevealStep = pending.RevealStep,
             RewardShown = pending.RewardShown,
+            IsPlatformInventoryReward = pending.IsPlatformInventoryReward,
             TotalPlaySeconds = pending.TotalPlaySeconds,
             DebugText = pending.DebugText ?? string.Empty,
         };
@@ -153,6 +157,28 @@ internal static class SaveIntegrity
         {
             LinkTreeId = pending.LinkTreeId,
             SteamPromoItemDefId = pending.SteamPromoItemDefId,
+        };
+    }
+
+    private static PendingPlatformBlindBoxOpen? CanonicalizePendingPlatformOpen(
+        PendingPlatformBlindBoxOpen? pending)
+    {
+        if (pending == null)
+            return null;
+
+        return new PendingPlatformBlindBoxOpen
+        {
+            BlindBoxId = pending.BlindBoxId,
+            ScheduleId = pending.ScheduleId,
+            InputItemDefId = pending.InputItemDefId,
+            InputInstanceId = pending.InputInstanceId,
+            ExchangeTargetItemDefId = pending.ExchangeTargetItemDefId,
+            ReservedChipCost = pending.ReservedChipCost,
+            InventoryQuantitiesBeforeExchange = (pending.InventoryQuantitiesBeforeExchange
+                                                  ?? new Dictionary<ulong, uint>())
+                .OrderBy(pair => pair.Key)
+                .ToDictionary(pair => pair.Key, pair => pair.Value),
+            TotalPlaySeconds = pending.TotalPlaySeconds,
         };
     }
 }

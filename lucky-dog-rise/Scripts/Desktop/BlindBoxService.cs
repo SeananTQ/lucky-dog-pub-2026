@@ -18,8 +18,22 @@ public sealed class PendingBlindBoxReward
     public int RevealPathId { get; set; }
     public int RevealStep { get; set; }
     public bool RewardShown { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsPlatformInventoryReward { get; set; }
     public double TotalPlaySeconds { get; set; }
     public string DebugText { get; set; } = "";
+}
+
+public sealed class PendingPlatformBlindBoxOpen
+{
+    public int BlindBoxId { get; set; }
+    public int ScheduleId { get; set; }
+    public int InputItemDefId { get; set; }
+    public ulong InputInstanceId { get; set; }
+    public int ExchangeTargetItemDefId { get; set; }
+    public int ReservedChipCost { get; set; }
+    public Dictionary<ulong, uint> InventoryQuantitiesBeforeExchange { get; set; } = new();
+    public double TotalPlaySeconds { get; set; }
 }
 
 public sealed class BlindBoxOpenResult
@@ -59,6 +73,9 @@ public enum BlindBoxHintStatus
     Ready,
     NotEnoughChips,
     PendingReward,
+    PlatformSyncing,
+    PlatformUnavailable,
+    Opening,
 }
 
 public sealed class BlindBoxHintState
@@ -238,6 +255,29 @@ public sealed class BlindBoxService
             return null;
         }
 
+        _gameData.ModifyChips(-cost);
+        return CreateOpenResult(totalPlaySeconds, candidate.Schedule, candidate.Box, item, cost);
+    }
+
+    public bool TryGetNextAvailable(
+        BlindBoxRuntimeState runtimeState,
+        out BlindBoxSchedule? schedule,
+        out BlindBox? box)
+    {
+        RefreshLoopTracks(runtimeState);
+        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
+        schedule = candidate.Schedule;
+        box = candidate.Box;
+        return schedule != null && box != null;
+    }
+
+    public BlindBoxOpenResult? CreateOpenResult(
+        double totalPlaySeconds,
+        BlindBoxSchedule schedule,
+        BlindBox box,
+        Item item,
+        int cost)
+    {
         var revealPath = RollRevealPath(item.ItemRarity);
         if (revealPath == null)
         {
@@ -245,28 +285,32 @@ public sealed class BlindBoxService
             return null;
         }
 
-        _gameData.ModifyChips(-cost);
-
         var pending = new PendingBlindBoxReward
         {
-            BlindBoxId = candidate.Box.Id,
-            ScheduleId = candidate.Schedule.Id,
+            BlindBoxId = box.Id,
+            ScheduleId = schedule.Id,
             ItemId = item.Id,
             RevealPathId = revealPath.Id,
             RevealStep = 0,
-            RewardShown = candidate.Box.DisplayMode == EBlindBoxDisplayMode.DirectReward,
+            RewardShown = box.DisplayMode == EBlindBoxDisplayMode.DirectReward,
             TotalPlaySeconds = totalPlaySeconds,
-            DebugText = BuildDebugText(candidate.Box, candidate.Schedule, item, revealPath, totalPlaySeconds, cost),
+            DebugText = BuildDebugText(box, schedule, item, revealPath, totalPlaySeconds, cost),
         };
 
         return new BlindBoxOpenResult
         {
-            Box = candidate.Box,
-            Schedule = candidate.Schedule,
+            Box = box,
+            Schedule = schedule,
             Item = item,
             PendingReward = pending,
         };
     }
+
+    public bool IsRewardCandidate(BlindBox box, Item item) =>
+        LubanData.Tables.TbBlindBoxRarityRate.DataList
+            .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
+            .SelectMany(rate => GetRewardCandidates(box, rate.Rarity))
+            .Any(candidate => candidate.Item.Id == item.Id);
 
     private IEnumerable<(BlindBoxSchedule Schedule, BlindBox Box)> GetAvailableSchedules(
         BlindBoxRuntimeState runtimeState)

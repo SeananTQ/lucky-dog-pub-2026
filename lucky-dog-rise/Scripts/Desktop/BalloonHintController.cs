@@ -179,6 +179,8 @@ public partial class BalloonHintController : PanelContainer
         return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
     }
 
+    public static Texture2D? LoadHintTexture(string? lubanPath) => LoadAssetTexture(lubanPath);
+
     private void UpdateTail()
     {
         if (_tail == null)

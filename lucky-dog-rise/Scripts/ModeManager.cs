@@ -151,6 +151,8 @@ public partial class ModeManager : Control
         _gameData = new GameData();
         _gameData.Name = "GameData";
         AddChild(_gameData);
+        _gameData.BindPlatformInventoryService(_platformService);
+        _gameData.BlindBoxRewardReady += OnPlatformBlindBoxRewardReady;
         _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
@@ -825,6 +827,12 @@ public partial class ModeManager : Control
                     state.Cost,
                     _gameData.Chips);
                 break;
+            case BlindBoxHintStatus.PlatformSyncing:
+            case BlindBoxHintStatus.PlatformUnavailable:
+            case BlindBoxHintStatus.Opening:
+                _bossBlindBoxHint.ShowIconOnly(
+                    BalloonHintController.LoadHintTexture(state.Box?.HintIconPath) ?? _blindBoxIcon);
+                break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
                 break;
@@ -1067,6 +1075,18 @@ public partial class ModeManager : Control
             return;
 
         _settingsPanel.CloseImmediate();
+    }
+
+    private void OnPlatformBlindBoxRewardReady()
+    {
+        var pending = _gameData.PendingBlindBoxReward;
+        if (pending == null)
+            return;
+
+        if (CurrentMode == Mode.BossKey)
+            ShowBossBlindBoxReward(pending);
+        else if (CurrentMode == Mode.Play)
+            _gameManager?.ShowPendingBlindBoxReward(pending);
     }
 
     private bool IsScreenPointOverInteractiveContent(Vector2I screenPosition)

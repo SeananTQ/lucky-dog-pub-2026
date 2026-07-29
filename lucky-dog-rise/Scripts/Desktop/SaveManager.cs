@@ -24,6 +24,8 @@ public sealed class SaveProfile
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PendingPlatformBlindBoxOpen? PendingPlatformBlindBoxOpen { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PendingLinkTreeClaim? PendingLinkTreeClaim { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public LuckyDealBuffState? LuckyDealBuffState { get; set; } = new();
@@ -39,7 +41,7 @@ public sealed class PendingLinkTreeClaim
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -151,6 +153,23 @@ public static class SaveManager
         profile.NewItemIds ??= new List<int>();
         profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
         profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
+        if (profile.PendingPlatformBlindBoxOpen is { } pendingPlatformOpen)
+        {
+            pendingPlatformOpen.InventoryQuantitiesBeforeExchange ??= new Dictionary<ulong, uint>();
+            pendingPlatformOpen.ReservedChipCost = Math.Max(0, pendingPlatformOpen.ReservedChipCost);
+            var validPlatformOpen = pendingPlatformOpen.BlindBoxId > 0
+                && pendingPlatformOpen.ScheduleId > 0
+                && pendingPlatformOpen.InputItemDefId > 0
+                && pendingPlatformOpen.InputInstanceId > 0
+                && pendingPlatformOpen.ExchangeTargetItemDefId > 0
+                && LubanData.Tables.TbBlindBox.GetOrDefault(pendingPlatformOpen.BlindBoxId) != null
+                && LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(pendingPlatformOpen.ScheduleId) != null;
+            if (!validPlatformOpen)
+            {
+                profile.Chips = checked(profile.Chips + pendingPlatformOpen.ReservedChipCost);
+                profile.PendingPlatformBlindBoxOpen = null;
+            }
+        }
         if (profile.PendingLinkTreeClaim is { } pendingLinkTreeClaim
             && (pendingLinkTreeClaim.LinkTreeId <= 0 || pendingLinkTreeClaim.SteamPromoItemDefId <= 0))
         {

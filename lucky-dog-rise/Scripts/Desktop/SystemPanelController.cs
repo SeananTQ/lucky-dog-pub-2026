@@ -1083,7 +1083,7 @@ public partial class SystemPanelController : CanvasLayer
             candidate.Data.SteamPromoItemDefId == result.ItemDefId);
         if (entry == null)
         {
-            GD.PushWarning($"[LinkTree] Steam returned unknown promo ItemDef={result.ItemDefId}.");
+            // Other inventory-backed features share AddPromoItem with LinkTree.
             return;
         }
 

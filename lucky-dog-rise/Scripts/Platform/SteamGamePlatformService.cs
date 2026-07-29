@@ -12,9 +12,14 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     {
         FullInventory,
         AddPromoItem,
+        ExchangeItem,
     }
 
-    private readonly record struct InventoryRequest(InventoryRequestKind Kind, int ItemDefId = 0);
+    private readonly record struct InventoryRequest(
+        InventoryRequestKind Kind,
+        int ItemDefId = 0,
+        ulong InputInstanceId = 0,
+        int OutputItemDefId = 0);
 
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<UserStatsReceived_t> _userStatsReceivedCallback;
@@ -25,6 +30,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private readonly Callback<SteamInventoryResultReady_t> _inventoryResultReadyCallback;
     private readonly Dictionary<int, InventoryRequest> _inventoryRequests = new();
     private readonly HashSet<int> _ownedInventoryItemDefIds = new();
+    private PlatformInventoryItem[] _inventoryItems = [];
     private bool _hasPendingAchievementStore;
     private bool _inventorySynchronizationStarted;
     private int _promoItemAwaitingInventoryVerification;
@@ -44,6 +50,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public event Action<string> StoreStatusChanged = delegate { };
     public event Action<PlatformInventorySnapshot> InventorySnapshotChanged = delegate { };
     public event Action<PlatformPromoItemGrantResult> PromoItemGrantCompleted = delegate { };
+    public event Action<PlatformInventoryExchangeResult> InventoryExchangeCompleted = delegate { };
 
     public string ProviderName => "Steam";
     public string StatusMessage => _runtime.StatusMessage;
@@ -54,6 +61,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public bool IsInventoryReady { get; private set; }
     public bool IsPromoGrantPending => _inventoryRequests.Values.Any(request =>
         request.Kind == InventoryRequestKind.AddPromoItem) || _promoItemAwaitingInventoryVerification > 0;
+    public bool IsExchangePending => _inventoryRequests.Values.Any(request =>
+        request.Kind == InventoryRequestKind.ExchangeItem);
+    public IReadOnlyList<PlatformInventoryItem> InventoryItems => _inventoryItems;
 
     public void RunCallbacks() => _runtime.RunCallbacks();
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
@@ -147,6 +157,73 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         _inventoryRequests[HandleValue(handle)] = new InventoryRequest(InventoryRequestKind.AddPromoItem, itemDefId);
         message = $"已提交 AddPromoItem({itemDefId})，等待 Steam 回执。";
         return true;
+    }
+
+    public bool TryExchangeItem(
+        ulong inputInstanceId,
+        int inputItemDefId,
+        int outputItemDefId,
+        out string message)
+    {
+        if (!IsAvailable || !IsInventoryReady)
+        {
+            message = "Steam 库存尚未同步完成。";
+            return false;
+        }
+        if (inputInstanceId == 0 || inputItemDefId <= 0 || outputItemDefId <= 0)
+        {
+            message = "Steam 库存兑换参数无效。";
+            return false;
+        }
+        if (!_inventoryItems.Any(item => item.InstanceId == inputInstanceId
+                                         && item.ItemDefId == inputItemDefId
+                                         && item.Quantity > 0))
+        {
+            message = $"Steam 库存中不存在可消耗实例 {inputInstanceId} (ItemDef={inputItemDefId})。";
+            return false;
+        }
+        if (_inventoryRequests.Count > 0 || IsPromoGrantPending)
+        {
+            message = "已有 Steam 库存请求正在处理。";
+            return false;
+        }
+
+        SteamItemDef_t[] outputItemDefs = [(SteamItemDef_t)outputItemDefId];
+        uint[] outputQuantities = [1];
+        SteamItemInstanceID_t[] inputItemIds = [(SteamItemInstanceID_t)inputInstanceId];
+        uint[] inputQuantities = [1];
+        if (!SteamInventory.ExchangeItems(
+                out var handle,
+                outputItemDefs,
+                outputQuantities,
+                1,
+                inputItemIds,
+                inputQuantities,
+                1))
+        {
+            message = $"Steam 拒绝 ExchangeItems({inputItemDefId} -> {outputItemDefId}) 请求。";
+            return false;
+        }
+
+        _inventoryRequests[HandleValue(handle)] = new InventoryRequest(
+            InventoryRequestKind.ExchangeItem,
+            inputItemDefId,
+            inputInstanceId,
+            outputItemDefId);
+        message = $"已提交 ExchangeItems({inputItemDefId} -> {outputItemDefId})，等待 Steam 回执。";
+        return true;
+    }
+
+    public bool RecoverTimedOutExchange()
+    {
+        var exchangeRequest = _inventoryRequests.FirstOrDefault(pair =>
+            pair.Value.Kind == InventoryRequestKind.ExchangeItem);
+        if (exchangeRequest.Value.Kind != InventoryRequestKind.ExchangeItem)
+            return false;
+
+        SteamInventory.DestroyResult((SteamInventoryResult_t)exchangeRequest.Key);
+        _inventoryRequests.Remove(exchangeRequest.Key);
+        return RequestFullInventory();
     }
 
     public PlatformAchievementReadResult ReadAchievementStates(IEnumerable<string> achievementApiNames)
@@ -276,6 +353,11 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         var missingIds = LubanData.Tables.TbSteamItemDef.DataList
             .Where(itemDef => itemDef.IsEnabled && !serverIds.Contains(itemDef.Id))
             .Select(itemDef => itemDef.Id)
+            .Concat(LubanData.Tables.TbItem.DataList
+                .Where(item => item.SteamItemDefId > 0 && !serverIds.Contains(item.SteamItemDefId))
+                .Select(item => item.SteamItemDefId))
+            .Distinct()
+            .OrderBy(id => id)
             .ToArray();
         if (missingIds.Length > 0)
         {
@@ -323,8 +405,10 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
             if (request.Kind == InventoryRequestKind.FullInventory)
                 ApplyFullInventory(items);
-            else
+            else if (request.Kind == InventoryRequestKind.AddPromoItem)
                 ApplyPromoGrantResult(request.ItemDefId, items);
+            else
+                ApplyExchangeResult(request, items);
         }
         finally
         {
@@ -334,15 +418,20 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     private void ApplyFullInventory(IReadOnlyCollection<SteamItemDetails_t> items)
     {
+        _inventoryItems = items
+            .Where(item => item.m_unQuantity > 0)
+            .Select(ToPlatformInventoryItem)
+            .ToArray();
         _ownedInventoryItemDefIds.Clear();
-        foreach (var item in items.Where(item => item.m_unQuantity > 0))
-            _ownedInventoryItemDefIds.Add((int)item.m_iDefinition);
+        foreach (var item in _inventoryItems)
+            _ownedInventoryItemDefIds.Add(item.ItemDefId);
 
         IsInventoryReady = true;
         InventorySnapshotChanged(new PlatformInventorySnapshot(
             true,
             $"Steam 库存同步完成：{items.Count} 个实例/堆叠。",
-            new HashSet<int>(_ownedInventoryItemDefIds)));
+            new HashSet<int>(_ownedInventoryItemDefIds),
+            _inventoryItems.ToArray()));
 
         if (_promoItemAwaitingInventoryVerification <= 0)
             return;
@@ -357,6 +446,19 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             receiptOwned
                 ? $"Steam 库存已确认回执 ItemDef={itemDefId}。"
                 : $"Steam 未发放回执 ItemDef={itemDefId}。"));
+    }
+
+    private void ApplyExchangeResult(InventoryRequest request, IReadOnlyCollection<SteamItemDetails_t> items)
+    {
+        var changedItems = items.Select(ToPlatformInventoryItem).ToArray();
+        InventoryExchangeCompleted(new PlatformInventoryExchangeResult(
+            request.InputInstanceId,
+            request.ItemDefId,
+            request.OutputItemDefId,
+            true,
+            $"Steam 已完成 ExchangeItems({request.ItemDefId} -> {request.OutputItemDefId})。",
+            changedItems));
+        RequestFullInventory();
     }
 
     private void ApplyPromoGrantResult(int itemDefId, IReadOnlyCollection<SteamItemDetails_t> items)
@@ -403,6 +505,18 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return;
         }
 
+        if (request.Kind == InventoryRequestKind.ExchangeItem)
+        {
+            InventoryExchangeCompleted(new PlatformInventoryExchangeResult(
+                request.InputInstanceId,
+                request.ItemDefId,
+                request.OutputItemDefId,
+                false,
+                message,
+                []));
+            return;
+        }
+
         PublishInventoryFailure(message);
     }
 
@@ -411,7 +525,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         IsInventoryReady = false;
         Godot.GD.PushWarning($"[SteamInventory] {message}");
         InventorySnapshotChanged(new PlatformInventorySnapshot(
-            false, message, new HashSet<int>(_ownedInventoryItemDefIds)));
+            false, message, new HashSet<int>(_ownedInventoryItemDefIds), _inventoryItems.ToArray()));
     }
 
     private static SteamItemDetails_t[] ReadInventoryResultItems(SteamInventoryResult_t handle)
@@ -427,6 +541,11 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     }
 
     private static int HandleValue(SteamInventoryResult_t handle) => (int)handle;
+
+    private static PlatformInventoryItem ToPlatformInventoryItem(SteamItemDetails_t item) => new(
+        (ulong)item.m_itemId,
+        (int)item.m_iDefinition,
+        item.m_unQuantity);
 
     private static PlatformAchievementState ReadAchievementState(string apiName, HashSet<string> configuredNames)
     {
