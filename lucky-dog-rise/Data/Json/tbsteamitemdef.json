@@ -81,9 +81,9 @@
   },
   {
     "Id": 403001,
-    "Key": "DecorationBlindBoxTestV1Generator",
+    "Key": "DecorationBlindBoxV1Generator",
     "Type": 3,
-    "Name": "Decoration Blind Box Test V1 Generator",
+    "Name": "Decoration Blind Box V1 Generator",
     "Description": "Generates one decoration reward.",
     "PromoRule": "",
     "GrantedManually": false,

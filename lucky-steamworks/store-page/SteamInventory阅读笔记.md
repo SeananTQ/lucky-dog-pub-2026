@@ -182,7 +182,7 @@ Item 表建议补充 Steam 对齐字段：
 
 BlindBox 表建议补充 Steam 对齐字段：
 
-1. `RequiresPlatformInventory`：平台无关的业务规则，表示该盲盒是否需要当前平台的可信库存服务。
+1. `IsPlatformInventoryRequired`：平台无关的业务规则，表示该盲盒是否需要当前平台的可信库存服务。
 2. `SteamOpenCostItemDefId`：调用 Steam `ExchangeItems` 开盒时作为交换材料消耗的 ItemDef ID。
 3. `SteamExchangeTargetItemDefId`：调用 Steam `ExchangeItems` 时请求生成的目标 ItemDef ID，通常指向 Generator。
 

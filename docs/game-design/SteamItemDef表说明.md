@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-28
+last_edit: 2026-07-29
 status: draft
 ---
 
@@ -8,15 +8,17 @@ status: draft
 
 ## 功能定位
 
-`SteamItemDef` 表是 Lucky Dog Rise 的 Steam Inventory 定义源。它描述 Steam 服务器能够识别的物品类型，以及这些物品的促销、交易、背包显示和内容生成规则。
+`SteamItemDef` 表是 Lucky Dog Rise 的 Steam Inventory 平台规则源。它主要描述没有对应本地 `Item` 行的回执、盲盒券、Bundle 和 Generator。
 
 本表不是玩家实际库存，也不直接描述游戏本地背包。Steam 为每一位玩家实际生成的物品称为库存实例；本表中的每一行只是生成该类实例时使用的定义。
 
-当前首批用途是 LinkTree 奖励的永久领奖回执。后续可扩展至补偿回执、盲盒、开箱券、礼包和随机生成器。
+实际装扮、饮品和卡背等游戏物品仍由 `Item` 表统一管理。转换器合并 `SteamItemDef` 与 `Item` 的 Steam 映射后，生成最终可上传的 Steam schema。
 
 ## 与本地 Item 表的关系
 
-`Item` 表描述游戏里的实际内容道具，例如装扮、饮品和卡背。`SteamItemDef` 表描述 Steam Inventory 的物品规则，两张表不能互相替代。
+`Item` 表描述游戏里的实际内容道具，并通过 `SteamItemDefId` 等字段生成对应的 Steam `item` 定义。实际道具不应在 `SteamItemDef` 表里再复制一行。
+
+`SteamItemDef` 表管理 LinkTree 回执、盲盒券和 Generator 等平台规则定义。`BlindBox` 表通过 `SteamOpenCostItemDefId` 和 `SteamExchangeTargetItemDefId` 表达开箱关系，由转换器派生 Steam `exchange` 与 `container_contents_generator`。
 
 当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。`LinkTree.SteamPromoItemDefId` 则填写本表中对应的永久领奖回执 ID。
 
@@ -188,9 +190,9 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 Luban 导出和 Steamworks 发布是两步独立流程。前者只生成项目可读取的数据与代码，后者才会改变 Steam 服务器的 ItemDef 配置。
 
-1. 主人在 Excel 的 `SteamItemDef` Sheet 维护定义，并在总枚举表维护 `ESteamItemDefType`。
+1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox` 和 `LinkTree` Sheet 维护业务数据。
 2. Luban 导出本地数据和 C# 类型。
-3. 转换脚本读取导出的 `SteamItemDef` 数据，生成 Steam schema JSON。
+3. 转换脚本合并导出的 `SteamItemDef`、`Item`、`BlindBox` 和 `LinkTree` 数据，校验引用并生成 Steam schema JSON。
 4. 主人在 Steamworks 后台分别为 Playtest AppID `4972240` 和正式 AppID `2583700` 上传并发布 ItemDef。
 5. 客户端调用 `LoadItemDefinitions` 与对应的 Inventory API，同步 Steam 服务器已发布的定义和玩家库存。
 
@@ -198,11 +200,6 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前表已配置 LinkTree 的四条永久领奖回执。Luban 已生成 `SteamItemDef.cs`、`TbSteamItemDef.cs` 和 `tbsteamitemdef.json`，且 `Tables.cs` 已注册 `TbSteamItemDef`；运行时可通过 `LubanData.Tables.TbSteamItemDef` 读取定义数据。四条 `LinkTree.SteamPromoItemDefId` 引用均已对应到现有回执定义。
+当前 `SteamItemDef` 表已配置 LinkTree 的四条永久回执、`402001` 装扮盲盒券与 `403001` 测试 Generator。`Item 1002/1003` 分别映射到 `101002/101003`，`BlindBox 4001` 配置了 `402001 → 403001` 的 Steam 交换关系。
 
-后续接入顺序：
-
-1. 实现 Steam schema JSON 转换脚本。
-2. 在 Playtest AppID 上传四条回执并测试 `AddPromoItem`。
-3. 为客户端增加库存同步、领取结果回调、回执查询和崩溃补偿事务。
-4. 再扩展后台补偿回执、盲盒和实际装扮库存。
+转换器当前生成 8 条 Playtest/Release ItemDef，并自动为 `403001` 生成 `exchange=402001x1`。下一阶段是在 Playtest 发布新 schema，再使用独立测试场景验证 `ExchangeItems`。
