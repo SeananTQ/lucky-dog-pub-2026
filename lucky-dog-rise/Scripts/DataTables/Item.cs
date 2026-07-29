@@ -38,6 +38,7 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["SkinId"].IsNumber) { throw new SerializationException(); }  SkinId = _buf["SkinId"]; }
         { if(!_buf["SteamItemDefId"].IsNumber) { throw new SerializationException(); }  SteamItemDefId = _buf["SteamItemDefId"]; }
         { if(!_buf["SteamItemDefType"].IsNumber) { throw new SerializationException(); }  SteamItemDefType = (ESteamItemDefType)_buf["SteamItemDefType"].AsInt; }
+        { if(!_buf["SteamDescription"].IsString) { throw new SerializationException(); }  SteamDescription = _buf["SteamDescription"]; }
         { if(!_buf["SteamGameOnly"].IsBoolean) { throw new SerializationException(); }  SteamGameOnly = _buf["SteamGameOnly"]; }
         { if(!_buf["SteamTradable"].IsBoolean) { throw new SerializationException(); }  SteamTradable = _buf["SteamTradable"]; }
         { if(!_buf["SteamMarketable"].IsBoolean) { throw new SerializationException(); }  SteamMarketable = _buf["SteamMarketable"]; }
@@ -112,6 +113,10 @@ public sealed partial class Item : Luban.BeanBase
     /// </summary>
     public readonly ESteamItemDefType SteamItemDefType;
     /// <summary>
+    /// Steam 后台英文说明；game_only 回执不向玩家展示
+    /// </summary>
+    public readonly string SteamDescription;
+    /// <summary>
     /// 在Steam页面背包中隐藏<br/>默认 true
     /// </summary>
     public readonly bool SteamGameOnly;
@@ -179,6 +184,7 @@ public sealed partial class Item : Luban.BeanBase
         + "SkinId:" + SkinId + ","
         + "SteamItemDefId:" + SteamItemDefId + ","
         + "SteamItemDefType:" + SteamItemDefType + ","
+        + "SteamDescription:" + SteamDescription + ","
         + "SteamGameOnly:" + SteamGameOnly + ","
         + "SteamTradable:" + SteamTradable + ","
         + "SteamMarketable:" + SteamMarketable + ","

@@ -26,10 +26,9 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["MaxRevealClickCount"].IsNumber) { throw new SerializationException(); }  MaxRevealClickCount = _buf["MaxRevealClickCount"]; }
         { if(!_buf["AutoCollectSeconds"].IsNumber) { throw new SerializationException(); }  AutoCollectSeconds = _buf["AutoCollectSeconds"]; }
         { if(!_buf["HintIconPath"].IsString) { throw new SerializationException(); }  HintIconPath = _buf["HintIconPath"]; }
-        { if(!_buf["IsSteamRequired"].IsBoolean) { throw new SerializationException(); }  IsSteamRequired = _buf["IsSteamRequired"]; }
+        { if(!_buf["IsRequiresPlatformInventory"].IsBoolean) { throw new SerializationException(); }  IsRequiresPlatformInventory = _buf["IsRequiresPlatformInventory"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
-        { if(!_buf["SteamContainerItemDefId"].IsNumber) { throw new SerializationException(); }  SteamContainerItemDefId = _buf["SteamContainerItemDefId"]; }
-        { if(!_buf["SteamGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamGeneratorItemDefId = _buf["SteamGeneratorItemDefId"]; }
+        { if(!_buf["SteamOpenCostItemDefId"].IsNumber) { throw new SerializationException(); }  SteamOpenCostItemDefId = _buf["SteamOpenCostItemDefId"]; }
         { if(!_buf["SteamExchangeTargetItemDefId"].IsNumber) { throw new SerializationException(); }  SteamExchangeTargetItemDefId = _buf["SteamExchangeTargetItemDefId"]; }
     }
 
@@ -72,23 +71,19 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// </summary>
     public readonly string HintIconPath;
     /// <summary>
-    /// 装扮 true，消耗品 false
+    /// 装扮 true，消耗品 false<br/>是必须使用当前平台的可信库存服务器
     /// </summary>
-    public readonly bool IsSteamRequired;
+    public readonly bool IsRequiresPlatformInventory;
     /// <summary>
     /// 临时开关
     /// </summary>
     public readonly bool IsEnabled;
     /// <summary>
-    /// 现阶段可 0
+    /// 调用 Steam ExchangeItems 开启该盲盒时，作为交换材料消耗的 Steam ItemDef ID；填 0 表示不使用 Steam 库存物品作为开箱成本。
     /// </summary>
-    public readonly int SteamContainerItemDefId;
+    public readonly int SteamOpenCostItemDefId;
     /// <summary>
-    /// 现阶段可 0
-    /// </summary>
-    public readonly int SteamGeneratorItemDefId;
-    /// <summary>
-    /// 现阶段可 0
+    /// 调用 Steam ExchangeItems 开启该盲盒时，请求生成的目标 Steam ItemDef ID。通常指向 Generator；Steam 完成交换后会展开 Generator 并返回最终奖励物品。
     /// </summary>
     public readonly int SteamExchangeTargetItemDefId;
    
@@ -111,10 +106,9 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "MaxRevealClickCount:" + MaxRevealClickCount + ","
         + "AutoCollectSeconds:" + AutoCollectSeconds + ","
         + "HintIconPath:" + HintIconPath + ","
-        + "IsSteamRequired:" + IsSteamRequired + ","
+        + "IsRequiresPlatformInventory:" + IsRequiresPlatformInventory + ","
         + "IsEnabled:" + IsEnabled + ","
-        + "SteamContainerItemDefId:" + SteamContainerItemDefId + ","
-        + "SteamGeneratorItemDefId:" + SteamGeneratorItemDefId + ","
+        + "SteamOpenCostItemDefId:" + SteamOpenCostItemDefId + ","
         + "SteamExchangeTargetItemDefId:" + SteamExchangeTargetItemDefId + ","
         + "}";
     }

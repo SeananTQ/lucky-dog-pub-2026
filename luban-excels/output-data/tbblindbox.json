@@ -9,10 +9,9 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsSteamRequired": true,
+    "IsRequiresPlatformInventory": true,
     "IsEnabled": true,
-    "SteamContainerItemDefId": 0,
-    "SteamGeneratorItemDefId": 0,
+    "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
   },
   {
@@ -25,10 +24,9 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsSteamRequired": true,
+    "IsRequiresPlatformInventory": true,
     "IsEnabled": true,
-    "SteamContainerItemDefId": 0,
-    "SteamGeneratorItemDefId": 0,
+    "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
   },
   {
@@ -41,10 +39,9 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsSteamRequired": false,
+    "IsRequiresPlatformInventory": false,
     "IsEnabled": true,
-    "SteamContainerItemDefId": 0,
-    "SteamGeneratorItemDefId": 0,
+    "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
   },
   {
@@ -57,10 +54,9 @@
     "MaxRevealClickCount": 0,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
-    "IsSteamRequired": true,
+    "IsRequiresPlatformInventory": true,
     "IsEnabled": true,
-    "SteamContainerItemDefId": 0,
-    "SteamGeneratorItemDefId": 0,
+    "SteamOpenCostItemDefId": 0,
     "SteamExchangeTargetItemDefId": 0
   },
   {
@@ -73,10 +69,9 @@
     "MaxRevealClickCount": 3,
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common_Ticket.png",
-    "IsSteamRequired": true,
+    "IsRequiresPlatformInventory": true,
     "IsEnabled": true,
-    "SteamContainerItemDefId": 0,
-    "SteamGeneratorItemDefId": 0,
-    "SteamExchangeTargetItemDefId": 0
+    "SteamOpenCostItemDefId": 402001,
+    "SteamExchangeTargetItemDefId": 403001
   }
 ]
