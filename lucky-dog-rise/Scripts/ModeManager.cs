@@ -818,7 +818,11 @@ public partial class ModeManager : Control
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _bossBlindBoxHint.ShowCost(_blindBoxIcon, state.Cost, _gameData.Chips);
+                _bossBlindBoxHint.ShowCostFromAssetPath(
+                    state.Box?.HintIconPath,
+                    _blindBoxIcon,
+                    state.Cost,
+                    _gameData.Chips);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

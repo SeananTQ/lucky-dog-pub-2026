@@ -24,6 +24,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["CostChips"].IsNumber) { throw new SerializationException(); }  CostChips = _buf["CostChips"]; }
         { if(!_buf["MaxRevealClickCount"].IsNumber) { throw new SerializationException(); }  MaxRevealClickCount = _buf["MaxRevealClickCount"]; }
         { if(!_buf["AutoCollectSeconds"].IsNumber) { throw new SerializationException(); }  AutoCollectSeconds = _buf["AutoCollectSeconds"]; }
+        { if(!_buf["HintIconPath"].IsString) { throw new SerializationException(); }  HintIconPath = _buf["HintIconPath"]; }
         { if(!_buf["IsSteamRequired"].IsBoolean) { throw new SerializationException(); }  IsSteamRequired = _buf["IsSteamRequired"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["SteamContainerItemDefId"].IsNumber) { throw new SerializationException(); }  SteamContainerItemDefId = _buf["SteamContainerItemDefId"]; }
@@ -65,6 +66,10 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// </summary>
     public readonly float AutoCollectSeconds;
     /// <summary>
+    /// 图标路径
+    /// </summary>
+    public readonly string HintIconPath;
+    /// <summary>
     /// 装扮 true，消耗品 false
     /// </summary>
     public readonly bool IsSteamRequired;
@@ -102,6 +107,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "CostChips:" + CostChips + ","
         + "MaxRevealClickCount:" + MaxRevealClickCount + ","
         + "AutoCollectSeconds:" + AutoCollectSeconds + ","
+        + "HintIconPath:" + HintIconPath + ","
         + "IsSteamRequired:" + IsSteamRequired + ","
         + "IsEnabled:" + IsEnabled + ","
         + "SteamContainerItemDefId:" + SteamContainerItemDefId + ","

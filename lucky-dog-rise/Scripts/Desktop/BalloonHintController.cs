@@ -71,6 +71,11 @@ public partial class BalloonHintController : PanelContainer
         SetTextContent(text);
     }
 
+    public void ShowCostFromAssetPath(string? iconPath, Texture2D? fallbackIcon, int cost, int currentChips = -1)
+    {
+        ShowCost(LoadAssetTexture(iconPath) ?? fallbackIcon, cost, currentChips);
+    }
+
     public void ShowIconOnly(Texture2D? icon)
     {
         _iconRect.Texture = icon;
@@ -142,6 +147,15 @@ public partial class BalloonHintController : PanelContainer
     {
         _currentTextBbcode = bbcode;
         ResetTextColor();
+    }
+
+    private static Texture2D? LoadAssetTexture(string? lubanPath)
+    {
+        if (string.IsNullOrWhiteSpace(lubanPath))
+            return null;
+
+        var path = "res://Assets/" + lubanPath.Replace('\\', '/');
+        return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
     }
 
     private void UpdateTail()

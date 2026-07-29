@@ -329,7 +329,11 @@ public partial class InfoPanelController : CanvasLayer
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-                _blindBoxHint.ShowCost(_blindBoxIcon, state.Cost, _gameData.Chips);
+                _blindBoxHint.ShowCostFromAssetPath(
+                    state.Box?.HintIconPath,
+                    _blindBoxIcon,
+                    state.Cost,
+                    _gameData.Chips);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
