@@ -13,10 +13,12 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     const preview = loadPreview();
 
     assert.equal(preview.ok, true);
-    assert.equal(preview.stats.exportedItemDefs, 4);
+    assert.equal(preview.stats.exportedItemDefs, preview.stats.sourceItemDefs);
     assert.equal(preview.stats.linkTreeReferences, 4);
     assert.equal(preview.channels.length, 2);
     assert.equal(preview.rows[0].linkTrees.length, 1);
+    assert.ok(preview.rows.some(row => row.id === 402001));
+    assert.ok(preview.rows.some(row => row.id === 403001));
 });
 
 test("serves preview data and rejects untrusted POST requests", async () => {

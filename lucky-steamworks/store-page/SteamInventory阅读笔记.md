@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-06-22
+last_edit: 2026-07-29
 status: draft
 ---
 
@@ -182,12 +182,11 @@ Item 表建议补充 Steam 对齐字段：
 
 BlindBox 表建议补充 Steam 对齐字段：
 
-1. `SteamContainerItemDefId`
-2. `SteamGeneratorItemDefId`
-3. `SteamExchangeTargetItemDefId`
-4. `SteamOpenCostItemDefId`
+1. `RequiresPlatformInventory`：平台无关的业务规则，表示该盲盒是否需要当前平台的可信库存服务。
+2. `SteamOpenCostItemDefId`：调用 Steam `ExchangeItems` 开盒时作为交换材料消耗的 ItemDef ID。
+3. `SteamExchangeTargetItemDefId`：调用 Steam `ExchangeItems` 时请求生成的目标 ItemDef ID，通常指向 Generator。
 
-具体字段名称后续应按 Luban 表命名风格再定。
+奖池内容继续由 `BlindBoxRarityRate` 与 `Item` 权重表达，Steam Generator 配方由转换器生成。当交换目标本身就是 Generator 时，不再额外维护重复的 `SteamGeneratorItemDefId`。
 
 ## 当前未确认问题
 
