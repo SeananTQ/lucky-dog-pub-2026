@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamInventoryTestController.cs" id="1_inventory"]
 
-[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_enableGrantCheck", "_enableMaintenanceCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_consumeItemButton", "_generateItemButton", "_retryButton", "_quitButton", "_operationLog")]
+[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_enableGrantCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,11 +17,14 @@ _inventoryStatusLabel = NodePath("Center/Panel/Margin/Content/InventoryStatus")
 _promoItemOption = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemOption")
 _enableGrantCheck = NodePath("Center/Panel/Margin/Content/GrantTest/EnableGrant")
 _enableMaintenanceCheck = NodePath("Center/Panel/Margin/Content/MaintenanceTest/EnableMaintenance")
+_enableExchangeCheck = NodePath("Center/Panel/Margin/Content/ExchangeTest/EnableExchange")
 _loadDefinitionsButton = NodePath("Center/Panel/Margin/Content/ReadButtons/LoadDefinitions")
 _refreshInventoryButton = NodePath("Center/Panel/Margin/Content/ReadButtons/RefreshInventory")
 _addPromoItemButton = NodePath("Center/Panel/Margin/Content/GrantTest/AddPromoItem")
 _consumeItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/ConsumeItem")
 _generateItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/GenerateItem")
+_exchangeBlindBoxButton = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeBlindBox")
+_exchangeStatusLabel = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeStatus")
 _retryButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Retry")
 _quitButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Quit")
 _operationLog = NodePath("Center/Panel/Margin/Content/OperationLog")
@@ -44,7 +47,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(820, 820)
+custom_minimum_size = Vector2(820, 1040)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
@@ -162,6 +165,32 @@ custom_minimum_size = Vector2(350, 44)
 layout_mode = 2
 disabled = true
 text = "5. 生成所选 ItemDef 的 1 个实例"
+
+[node name="ExchangeTest" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content/ExchangeTest"]
+layout_mode = 2
+text = "真实盲盒兑换测试"
+horizontal_alignment = 1
+
+[node name="ExchangeStatus" type="Label" parent="Center/Panel/Margin/Content/ExchangeTest"]
+layout_mode = 2
+text = "盲盒兑换：等待读取玩家库存"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnableExchange" type="CheckButton" parent="Center/Panel/Margin/Content/ExchangeTest"]
+layout_mode = 2
+disabled = true
+text = "我确认：ExchangeItems 会真实消耗 1 张券，并将最终奖励写入当前 Steam 账号"
+
+[node name="ExchangeBlindBox" type="Button" parent="Center/Panel/Margin/Content/ExchangeTest"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+disabled = true
+text = "6. 用 1 张盲盒券兑换随机装扮"
 
 [node name="OperationLogTitle" type="Label" parent="Center/Panel/Margin/Content"]
 layout_mode = 2
