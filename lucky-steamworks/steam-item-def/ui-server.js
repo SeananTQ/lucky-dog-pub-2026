@@ -14,6 +14,8 @@ const UI_ROOT = path.join(TOOL_ROOT, "ui");
 const OUTPUT_ROOT = path.join(TOOL_ROOT, "generated");
 const ITEM_DEF_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbsteamitemdef.json");
 const LINK_TREE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tblinktree.json");
+const ITEM_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbitem.json");
+const BLIND_BOX_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindbox.json");
 const DEFAULT_PORT = 43117;
 const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -47,8 +49,11 @@ function fileInfo(filePath) {
 function loadPreview() {
     const itemDefRecords = readJsonArray(ITEM_DEF_INPUT);
     const linkTreeRecords = readJsonArray(LINK_TREE_INPUT);
-    const result = converter.buildArtifacts(itemDefRecords, linkTreeRecords);
+    const itemRecords = readJsonArray(ITEM_INPUT);
+    const blindBoxRecords = readJsonArray(BLIND_BOX_INPUT);
+    const result = converter.buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords, blindBoxRecords);
     const linkTreesByItemDef = new Map();
+    const blindBoxesByItemDef = new Map();
 
     for (const entry of linkTreeRecords) {
         if (!Number.isInteger(entry.SteamPromoItemDefId) || entry.SteamPromoItemDefId <= 0) continue;
@@ -64,29 +69,49 @@ function loadPreview() {
         linkTreesByItemDef.set(entry.SteamPromoItemDefId, references);
     }
 
-    const rows = itemDefRecords.map(record => ({
-        id: record.Id,
-        key: record.Key,
-        type: result.items.find(item => item.itemdefid === record.Id)?.type || `unknown:${record.Type}`,
-        name: record.Name,
-        description: record.Description,
-        promoRule: record.PromoRule,
-        grantedManually: record.GrantedManually,
-        tradable: record.Tradable,
-        marketable: record.Marketable,
-        gameOnly: record.GameOnly,
-        storeHidden: record.StoreHidden,
-        autoStack: record.AutoStack,
-        bundle: record.Bundle,
-        isEnabled: record.IsEnabled,
-        linkTrees: linkTreesByItemDef.get(record.Id) || [],
-    }));
+    for (const reference of result.blindBoxReferences) {
+        for (const [itemDefId, role] of [
+            [reference.inputItemDefId, "开箱消耗"],
+            [reference.targetItemDefId, "交换目标"],
+        ]) {
+            const references = blindBoxesByItemDef.get(itemDefId) || [];
+            references.push({ ...reference, role });
+            blindBoxesByItemDef.set(itemDefId, references);
+        }
+    }
+
+    const rows = result.definitions.map(definition => {
+        const item = definition.schemaItem;
+        return {
+            id: definition.id,
+            key: definition.key,
+            source: definition.source,
+            sourceId: definition.sourceId,
+            type: item.type,
+            name: item.name,
+            description: item.description || "",
+            promoRule: item.promo || "",
+            grantedManually: item.granted_manually === true,
+            tradable: item.tradable === true,
+            marketable: item.marketable === true,
+            gameOnly: item.game_only === true,
+            storeHidden: item.store_hidden === true,
+            autoStack: item.auto_stack === true,
+            bundle: item.bundle || "",
+            exchange: item.exchange || "",
+            isEnabled: true,
+            linkTrees: linkTreesByItemDef.get(definition.id) || [],
+            blindBoxes: blindBoxesByItemDef.get(definition.id) || [],
+        };
+    });
 
     const sources = {
         steamItemDef: fileInfo(ITEM_DEF_INPUT),
         linkTree: fileInfo(LINK_TREE_INPUT),
+        item: fileInfo(ITEM_INPUT),
+        blindBox: fileInfo(BLIND_BOX_INPUT),
     };
-    const latestSourceMs = Math.max(sources.steamItemDef.modifiedMs || 0, sources.linkTree.modifiedMs || 0);
+    const latestSourceMs = Math.max(...Object.values(sources).map(source => source.modifiedMs || 0));
     const channels = Object.entries(converter.CHANNELS).map(([name, configuration]) => {
         const outputPath = path.join(OUTPUT_ROOT, configuration.fileName);
         const output = fileInfo(outputPath);
@@ -109,8 +134,11 @@ function loadPreview() {
         ok: result.errors.length === 0,
         stats: {
             sourceItemDefs: itemDefRecords.length,
+            sourceGameItems: itemRecords.length,
+            sourceBlindBoxes: blindBoxRecords.length,
             exportedItemDefs: result.items.length,
             linkTreeReferences: result.checkedReferenceCount,
+            blindBoxReferences: result.checkedBlindBoxReferenceCount,
             errors: result.errors.length,
             warnings: result.warnings.length,
         },

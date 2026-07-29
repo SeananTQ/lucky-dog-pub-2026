@@ -30,6 +30,14 @@
                 <span class="source-label">LinkTree</span>
                 <code id="link-tree-source">-</code>
             </div>
+            <div class="source-item">
+                <span class="source-label">Item</span>
+                <code id="item-source">-</code>
+            </div>
+            <div class="source-item">
+                <span class="source-label">BlindBox</span>
+                <code id="blind-box-source">-</code>
+            </div>
             <div class="source-item source-time">
                 <span class="source-label">读取时间</span>
                 <span id="loaded-at">-</span>
@@ -38,7 +46,7 @@
 
         <section class="summary-band" aria-label="校验摘要">
             <div class="metric"><strong id="metric-definitions">0</strong><span>ItemDefs</span></div>
-            <div class="metric"><strong id="metric-references">0</strong><span>LinkTree 引用</span></div>
+            <div class="metric"><strong id="metric-references">0</strong><span>业务引用</span></div>
             <div class="metric metric-error"><strong id="metric-errors">0</strong><span>错误</span></div>
             <div class="metric metric-warning"><strong id="metric-warnings">0</strong><span>警告</span></div>
             <div id="generation-message" class="generation-message" role="status"></div>
@@ -64,9 +72,10 @@
                             <tr>
                                 <th>ItemDef ID</th>
                                 <th>Key</th>
+                                <th>来源</th>
                                 <th>Type</th>
                                 <th>Promo</th>
-                                <th>LinkTree</th>
+                                <th>业务引用</th>
                                 <th>策略</th>
                             </tr>
                         </thead>

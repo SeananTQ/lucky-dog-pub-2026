@@ -20,6 +20,20 @@ const DEFAULT_LINK_TREE_INPUT = path.join(
     "Json",
     "tblinktree.json",
 );
+const DEFAULT_ITEM_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbitem.json",
+);
+const DEFAULT_BLIND_BOX_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbblindbox.json",
+);
 const DEFAULT_OUTPUT_ROOT = path.join(TOOL_ROOT, "generated");
 
 const CHANNELS = Object.freeze({
@@ -39,6 +53,8 @@ function parseArguments(argv) {
     const options = {
         itemDefInput: DEFAULT_ITEM_DEF_INPUT,
         linkTreeInput: DEFAULT_LINK_TREE_INPUT,
+        itemInput: DEFAULT_ITEM_INPUT,
+        blindBoxInput: DEFAULT_BLIND_BOX_INPUT,
         outputRoot: DEFAULT_OUTPUT_ROOT,
         channels: Object.keys(CHANNELS),
     };
@@ -65,6 +81,12 @@ function parseArguments(argv) {
                 break;
             case "--link-tree-input":
                 options.linkTreeInput = path.resolve(value);
+                break;
+            case "--item-input":
+                options.itemInput = path.resolve(value);
+                break;
+            case "--blind-box-input":
+                options.blindBoxInput = path.resolve(value);
                 break;
             case "--output-root":
                 options.outputRoot = path.resolve(value);
@@ -95,6 +117,8 @@ function printUsage() {
 选项：
   --item-def-input <file>  Luban 导出的 tbsteamitemdef.json
   --link-tree-input <file> Luban 导出的 tblinktree.json
+  --item-input <file>      Luban 导出的 tbitem.json
+  --blind-box-input <file> Luban 导出的 tbblindbox.json
   --output-root <dir>      输出目录
   --channel <value>        both（默认）、playtest 或 release
   -h, --help               显示本帮助
@@ -154,6 +178,7 @@ function validateAndBuildItemDefs(records) {
     const allById = new Map();
     const enabledById = new Map();
     const items = [];
+    const definitions = [];
 
     for (const record of records) {
         const id = record.Id;
@@ -234,10 +259,91 @@ function validateAndBuildItemDefs(records) {
         item.auto_stack = autoStack;
         if (bundle) item.bundle = bundle;
         items.push(item);
+        definitions.push({
+            id,
+            key,
+            source: "SteamItemDef",
+            sourceId: id,
+            schemaItem: item,
+        });
     }
 
     items.sort((left, right) => left.itemdefid - right.itemdefid);
-    return { items, allById, enabledById, errors, warnings };
+    return { items, definitions, allById, enabledById, errors, warnings };
+}
+
+function validateAndBuildGameItems(records) {
+    const errors = [];
+    const warnings = [];
+    const allById = new Map();
+    const enabledById = new Map();
+    const items = [];
+    const definitions = [];
+
+    for (const record of records) {
+        const localItemId = record.Id;
+        const itemDefId = record.SteamItemDefId;
+        const label = `Item ${localItemId ?? "<未知>"} ${typeof record.Name === "string" ? record.Name : ""}`.trim();
+
+        if (!Number.isInteger(itemDefId) || itemDefId < 0 || itemDefId >= 1000000) {
+            errors.push(`${label}：SteamItemDefId 必须是 0 到 999999 之间的整数。`);
+            continue;
+        }
+        if (itemDefId === 0) continue;
+        if (!Number.isInteger(localItemId) || localItemId <= 0) {
+            errors.push(`${label}：Item.Id 必须是正整数。`);
+        }
+        if (record.SteamItemDefType !== 1) {
+            errors.push(`${label}：实际游戏物品的 SteamItemDefType 必须是 Item。`);
+        }
+        if (allById.has(itemDefId)) {
+            errors.push(`${label}：SteamItemDefId ${itemDefId} 已被 Item ${allById.get(itemDefId).Id} 使用。`);
+            continue;
+        }
+
+        const name = requiredString(record, "Name", label, errors);
+        const description = optionalString(record, "SteamDescription", label, errors);
+        const gameOnly = requiredBoolean(record, "SteamGameOnly", label, errors);
+        const tradable = requiredBoolean(record, "SteamTradable", label, errors);
+        const marketable = requiredBoolean(record, "SteamMarketable", label, errors);
+        const autoStack = requiredBoolean(record, "SteamAutoStack", label, errors);
+        const hidden = requiredBoolean(record, "SteamHidden", label, errors);
+        const displayType = optionalString(record, "SteamDisplayType", label, errors);
+        const tags = optionalString(record, "SteamTags", label, errors);
+        const iconUrl = optionalString(record, "SteamIconUrl", label, errors);
+        const iconUrlLarge = optionalString(record, "SteamIconUrlLarge", label, errors);
+
+        const item = {
+            itemdefid: itemDefId,
+            type: "item",
+            name,
+            granted_manually: false,
+            tradable,
+            marketable,
+            game_only: gameOnly,
+            auto_stack: autoStack,
+            hidden,
+        };
+        if (description) item.description = description;
+        if (displayType) item.display_type = displayType;
+        if (tags) item.tags = tags;
+        if (iconUrl) item.icon_url = iconUrl;
+        if (iconUrlLarge) item.icon_url_large = iconUrlLarge;
+
+        allById.set(itemDefId, record);
+        enabledById.set(itemDefId, record);
+        items.push(item);
+        definitions.push({
+            id: itemDefId,
+            key: `Item_${localItemId}`,
+            source: "Item",
+            sourceId: localItemId,
+            schemaItem: item,
+        });
+    }
+
+    items.sort((left, right) => left.itemdefid - right.itemdefid);
+    return { items, definitions, allById, enabledById, errors, warnings };
 }
 
 function validateLinkTree(records, itemDefs) {
@@ -303,14 +409,168 @@ function validateLinkTree(records, itemDefs) {
     return { checkedReferenceCount, errors, warnings };
 }
 
-function buildArtifacts(itemDefRecords, linkTreeRecords) {
+function mergeDefinitions(itemDefs, gameItems) {
+    const errors = [];
+    const items = [...itemDefs.items];
+    const definitions = [...itemDefs.definitions];
+    const enabledById = new Map(definitions.map(definition => [definition.id, definition]));
+
+    for (const definition of gameItems.definitions) {
+        const existing = itemDefs.allById.get(definition.id);
+        if (existing) {
+            errors.push(
+                `Item ${definition.sourceId}：SteamItemDefId ${definition.id} 与 SteamItemDef ${existing.Key || existing.Id} 重复。`,
+            );
+            continue;
+        }
+        enabledById.set(definition.id, definition);
+        definitions.push(definition);
+        items.push(definition.schemaItem);
+    }
+
+    items.sort((left, right) => left.itemdefid - right.itemdefid);
+    definitions.sort((left, right) => left.id - right.id);
+    return { items, definitions, enabledById, errors };
+}
+
+function validateBundleReferences(definitions, enabledById) {
+    const errors = [];
+
+    for (const definition of definitions) {
+        const item = definition.schemaItem;
+        if (!["bundle", "generator", "playtimegenerator"].includes(item.type) || !item.bundle) continue;
+
+        for (const rawRecipe of item.bundle.split(";")) {
+            const recipe = rawRecipe.trim();
+            const match = /^(\d+)(?:x(\d+))?$/.exec(recipe);
+            if (!match) {
+                errors.push(`${definition.key}：Bundle 配方 ${recipe || "<空>"} 格式无效。`);
+                continue;
+            }
+
+            const referencedId = Number.parseInt(match[1], 10);
+            const quantity = match[2] ? Number.parseInt(match[2], 10) : 1;
+            if (quantity <= 0) {
+                errors.push(`${definition.key}：Bundle 配方 ${recipe} 的数量或权重必须大于 0。`);
+            }
+            if (!enabledById.has(referencedId)) {
+                errors.push(`${definition.key}：Bundle 引用的 Steam ItemDef ${referencedId} 未导出。`);
+            }
+        }
+    }
+
+    return errors;
+}
+
+function applyBlindBoxMappings(records, merged) {
+    const errors = [];
+    const warnings = [];
+    const references = [];
+    const targetRecipes = new Map();
+    const containerTargets = new Map();
+    let checkedReferenceCount = 0;
+
+    for (const record of records) {
+        const label = `BlindBox ${record.Id ?? "<未知>"} ${typeof record.Name === "string" ? record.Name : ""}`.trim();
+        const isEnabled = requiredBoolean(record, "IsEnabled", label, errors);
+        const requiresPlatform = requiredBoolean(record, "IsPlatformInventoryRequired", label, errors);
+        const inputId = record.SteamOpenCostItemDefId;
+        const targetId = record.SteamExchangeTargetItemDefId;
+
+        if (!Number.isInteger(inputId) || inputId < 0 || inputId >= 1000000) {
+            errors.push(`${label}：SteamOpenCostItemDefId 必须是 0 到 999999 之间的整数。`);
+            continue;
+        }
+        if (!Number.isInteger(targetId) || targetId < 0 || targetId >= 1000000) {
+            errors.push(`${label}：SteamExchangeTargetItemDefId 必须是 0 到 999999 之间的整数。`);
+            continue;
+        }
+        if (!isEnabled) continue;
+
+        if (inputId === 0 && targetId === 0) {
+            if (requiresPlatform) {
+                warnings.push(`${label}：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。`);
+            }
+            continue;
+        }
+        if (inputId === 0 || targetId === 0) {
+            errors.push(`${label}：SteamOpenCostItemDefId 与 SteamExchangeTargetItemDefId 必须同时填写或同时为 0。`);
+            continue;
+        }
+
+        checkedReferenceCount += 1;
+        const input = merged.enabledById.get(inputId);
+        const target = merged.enabledById.get(targetId);
+        if (!input) {
+            errors.push(`${label}：开箱消耗的 Steam ItemDef ${inputId} 不存在或未导出。`);
+        } else if (input.schemaItem.type !== "item") {
+            errors.push(`${label}：开箱消耗的 Steam ItemDef ${inputId} 必须是 Type=Item。`);
+        }
+        if (!target) {
+            errors.push(`${label}：Steam 交换目标 ${targetId} 不存在或未导出。`);
+        } else if (!["generator", "bundle"].includes(target.schemaItem.type)) {
+            errors.push(`${label}：Steam 交换目标 ${targetId} 必须是 Generator 或 Bundle。`);
+        }
+        if (!input || !target) continue;
+
+        const recipes = targetRecipes.get(targetId) || new Set();
+        recipes.add(`${inputId}x1`);
+        targetRecipes.set(targetId, recipes);
+
+        if (target.schemaItem.type === "generator") {
+            const previousTarget = containerTargets.get(inputId);
+            if (previousTarget && previousTarget !== targetId) {
+                errors.push(`${label}：Steam 容器 ${inputId} 已关联 Generator ${previousTarget}，不能再关联 ${targetId}。`);
+            } else {
+                containerTargets.set(inputId, targetId);
+            }
+        }
+
+        references.push({
+            blindBoxId: record.Id,
+            name: record.Name,
+            inputItemDefId: inputId,
+            targetItemDefId: targetId,
+        });
+    }
+
+    for (const [targetId, recipes] of targetRecipes) {
+        merged.enabledById.get(targetId).schemaItem.exchange = [...recipes].join(";");
+    }
+    for (const [inputId, targetId] of containerTargets) {
+        merged.enabledById.get(inputId).schemaItem.container_contents_generator = targetId;
+    }
+
+    return { checkedReferenceCount, references, errors, warnings };
+}
+
+function buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords = [], blindBoxRecords = []) {
     const itemDefs = validateAndBuildItemDefs(itemDefRecords);
+    const gameItems = validateAndBuildGameItems(itemRecords);
+    const merged = mergeDefinitions(itemDefs, gameItems);
+    const blindBoxes = applyBlindBoxMappings(blindBoxRecords, merged);
+    const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
     const linkTree = validateLinkTree(linkTreeRecords, itemDefs);
     return {
-        items: itemDefs.items,
+        items: merged.items,
+        definitions: merged.definitions,
+        blindBoxReferences: blindBoxes.references,
         checkedReferenceCount: linkTree.checkedReferenceCount,
-        errors: [...itemDefs.errors, ...linkTree.errors],
-        warnings: [...itemDefs.warnings, ...linkTree.warnings],
+        checkedBlindBoxReferenceCount: blindBoxes.checkedReferenceCount,
+        errors: [
+            ...itemDefs.errors,
+            ...gameItems.errors,
+            ...merged.errors,
+            ...blindBoxes.errors,
+            ...bundleErrors,
+            ...linkTree.errors,
+        ],
+        warnings: [
+            ...itemDefs.warnings,
+            ...gameItems.warnings,
+            ...blindBoxes.warnings,
+            ...linkTree.warnings,
+        ],
     };
 }
 
@@ -328,7 +588,9 @@ function main(argv = process.argv.slice(2)) {
 
     const itemDefRecords = readJsonArray(options.itemDefInput, "SteamItemDef JSON");
     const linkTreeRecords = readJsonArray(options.linkTreeInput, "LinkTree JSON");
-    const result = buildArtifacts(itemDefRecords, linkTreeRecords);
+    const itemRecords = readJsonArray(options.itemInput, "Item JSON");
+    const blindBoxRecords = readJsonArray(options.blindBoxInput, "BlindBox JSON");
+    const result = buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords, blindBoxRecords);
 
     fs.mkdirSync(options.outputRoot, { recursive: true });
     const reportPath = path.join(options.outputRoot, "validation-report.json");
@@ -336,10 +598,15 @@ function main(argv = process.argv.slice(2)) {
         sources: {
             steamItemDef: projectRelative(options.itemDefInput),
             linkTree: projectRelative(options.linkTreeInput),
+            item: projectRelative(options.itemInput),
+            blindBox: projectRelative(options.blindBoxInput),
         },
         sourceItemDefCount: itemDefRecords.length,
+        sourceGameItemCount: itemRecords.length,
+        sourceBlindBoxCount: blindBoxRecords.length,
         exportedItemDefCount: result.items.length,
         checkedLinkTreeReferenceCount: result.checkedReferenceCount,
+        checkedBlindBoxReferenceCount: result.checkedBlindBoxReferenceCount,
         channels: options.channels.map(channel => ({
             name: channel,
             appid: CHANNELS[channel].appId,
@@ -355,7 +622,11 @@ function main(argv = process.argv.slice(2)) {
         return 1;
     }
 
-    console.log(`校验通过：${result.items.length} 条 Steam ItemDef，${result.checkedReferenceCount} 条 LinkTree 引用。`);
+    console.log(
+        `校验通过：${result.items.length} 条 Steam ItemDef，`
+        + `${result.checkedReferenceCount} 条 LinkTree 引用，`
+        + `${result.checkedBlindBoxReferenceCount} 条 BlindBox 映射。`,
+    );
     for (const channel of options.channels) {
         const configuration = CHANNELS[channel];
         const outputPath = path.join(options.outputRoot, configuration.fileName);

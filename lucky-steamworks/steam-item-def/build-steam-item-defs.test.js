@@ -35,6 +35,38 @@ function linkTree(overrides = {}) {
     };
 }
 
+function gameItem(overrides = {}) {
+    return {
+        Id: 1002,
+        Name: "Black and Tan Shiba Inu",
+        SteamItemDefId: 101002,
+        SteamItemDefType: 1,
+        SteamDescription: "",
+        SteamGameOnly: true,
+        SteamTradable: false,
+        SteamMarketable: false,
+        SteamAutoStack: false,
+        SteamHidden: false,
+        SteamDisplayType: "",
+        SteamTags: "",
+        SteamIconUrl: "",
+        SteamIconUrlLarge: "",
+        ...overrides,
+    };
+}
+
+function blindBox(overrides = {}) {
+    return {
+        Id: 4001,
+        Name: "盲盒券",
+        IsPlatformInventoryRequired: true,
+        IsEnabled: true,
+        SteamOpenCostItemDefId: 402001,
+        SteamExchangeTargetItemDefId: 403001,
+        ...overrides,
+    };
+}
+
 test("builds a Steam schema item from a valid permanent receipt", () => {
     const result = buildArtifacts([receipt()], [linkTree()]);
 
@@ -87,4 +119,59 @@ test("requires bundle content for bundle and generator definitions", () => {
     );
 
     assert.ok(result.errors.some(error => error.includes("必须填写 Bundle")));
+});
+
+test("merges game items and derives a blind box exchange", () => {
+    const voucher = receipt({
+        Id: 402001,
+        Key: "DecorationBlindBoxVoucher",
+        Name: "Decoration Blind Box Voucher",
+        AutoStack: true,
+    });
+    const generator = receipt({
+        Id: 403001,
+        Key: "DecorationBlindBoxTestV1Generator",
+        Type: 3,
+        Name: "Decoration Blind Box Test V1 Generator",
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "101002x1;101003x1",
+    });
+    const result = buildArtifacts(
+        [voucher, generator],
+        [],
+        [gameItem(), gameItem({ Id: 1003, Name: "Cream Shiba Inu", SteamItemDefId: 101003 })],
+        [blindBox()],
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.items.length, 4);
+    assert.equal(result.checkedBlindBoxReferenceCount, 1);
+    assert.equal(result.items.find(item => item.itemdefid === 402001).container_contents_generator, 403001);
+    assert.equal(result.items.find(item => item.itemdefid === 403001).exchange, "402001x1");
+    assert.equal(result.items.find(item => item.itemdefid === 101002).name, "Black and Tan Shiba Inu");
+});
+
+test("rejects duplicate ItemDef ids across SteamItemDef and Item", () => {
+    const result = buildArtifacts([receipt()], [], [gameItem({ SteamItemDefId: 401001 })], []);
+
+    assert.ok(result.errors.some(error => error.includes("与 SteamItemDef") && error.includes("重复")));
+});
+
+test("rejects an incomplete blind box Steam mapping", () => {
+    const result = buildArtifacts([], [], [], [blindBox({ SteamExchangeTargetItemDefId: 0 })]);
+
+    assert.ok(result.errors.some(error => error.includes("必须同时填写")));
+});
+
+test("warns when a platform blind box has no Steam mapping yet", () => {
+    const result = buildArtifacts(
+        [],
+        [],
+        [],
+        [blindBox({ SteamOpenCostItemDefId: 0, SteamExchangeTargetItemDefId: 0 })],
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.ok(result.warnings.some(warning => warning.includes("本次跳过")));
 });

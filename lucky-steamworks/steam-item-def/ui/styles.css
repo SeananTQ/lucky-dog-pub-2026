@@ -93,8 +93,8 @@ main { padding-bottom: 24px; }
     min-height: 52px;
     padding: 8px 24px;
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr) auto;
-    gap: 20px;
+    grid-template-columns: repeat(4, minmax(160px, 1fr)) auto;
+    gap: 12px;
     align-items: center;
     background: #fafbfa;
     border-bottom: 1px solid var(--border);
@@ -195,11 +195,12 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th, td { padding: 10px 12px; border-bottom: 1px solid #e7e9e6; text-align: left; vertical-align: middle; }
 th { position: sticky; top: 0; z-index: 1; background: #f2f4f1; color: #5b655c; font-size: 11px; text-transform: uppercase; }
 th:nth-child(1) { width: 88px; }
-th:nth-child(2) { width: 184px; }
-th:nth-child(3) { width: 68px; }
-th:nth-child(4) { width: 72px; }
-th:nth-child(5) { width: 142px; }
-th:nth-child(6) { width: 158px; }
+th:nth-child(2) { width: 160px; }
+th:nth-child(3) { width: 92px; }
+th:nth-child(4) { width: 76px; }
+th:nth-child(5) { width: 72px; }
+th:nth-child(6) { width: 180px; }
+th:nth-child(7) { width: 158px; }
 tbody tr { cursor: pointer; }
 tbody tr:hover { background: #f6faf7; }
 tbody tr.selected { background: var(--green-soft); box-shadow: inset 3px 0 var(--green-bright); }
@@ -330,7 +331,7 @@ pre {
 
     .table-pane { height: 360px; }
     .detail-pane { height: 410px; border-top: 1px solid var(--border); border-left: 0; }
-    table { min-width: 712px; }
+    table { min-width: 826px; }
 
     .validation-pane {
         margin-right: 16px;

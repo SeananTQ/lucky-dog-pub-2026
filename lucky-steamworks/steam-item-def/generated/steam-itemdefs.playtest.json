@@ -2,6 +2,30 @@
   "appid": 4972240,
   "items": [
     {
+      "itemdefid": 101002,
+      "type": "item",
+      "name": "Black and Tan Shiba Inu",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "description": "Black and Tan Shiba Inu"
+    },
+    {
+      "itemdefid": 101003,
+      "type": "item",
+      "name": "Cream Shiba Inu",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "description": "Cream Shiba Inu"
+    },
+    {
       "itemdefid": 401001,
       "type": "item",
       "name": "LinkTree Claim - Twitter Follow",
@@ -52,6 +76,34 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false
+    },
+    {
+      "itemdefid": 402001,
+      "type": "item",
+      "name": "Decoration Blind Box Voucher",
+      "description": "Opens one decoration blind box.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": true,
+      "container_contents_generator": 403001
+    },
+    {
+      "itemdefid": 403001,
+      "type": "generator",
+      "name": "Decoration Blind Box Test V1 Generator",
+      "description": "Generates one decoration reward.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "101002x1;101003x1",
+      "exchange": "402001x1"
     }
   ]
 }

@@ -15,6 +15,8 @@ const elements = {
     shutdownButton: document.querySelector("#shutdown-button"),
     itemDefSource: document.querySelector("#item-def-source"),
     linkTreeSource: document.querySelector("#link-tree-source"),
+    itemSource: document.querySelector("#item-source"),
+    blindBoxSource: document.querySelector("#blind-box-source"),
     loadedAt: document.querySelector("#loaded-at"),
     metricDefinitions: document.querySelector("#metric-definitions"),
     metricReferences: document.querySelector("#metric-references"),
@@ -121,9 +123,13 @@ function renderSummary() {
     elements.itemDefSource.title = preview.sources.steamItemDef.path;
     elements.linkTreeSource.textContent = preview.sources.linkTree.path;
     elements.linkTreeSource.title = preview.sources.linkTree.path;
+    elements.itemSource.textContent = preview.sources.item.path;
+    elements.itemSource.title = preview.sources.item.path;
+    elements.blindBoxSource.textContent = preview.sources.blindBox.path;
+    elements.blindBoxSource.title = preview.sources.blindBox.path;
     elements.loadedAt.textContent = formatTime(preview.loadedAt);
     elements.metricDefinitions.textContent = preview.stats.exportedItemDefs;
-    elements.metricReferences.textContent = preview.stats.linkTreeReferences;
+    elements.metricReferences.textContent = preview.stats.linkTreeReferences + preview.stats.blindBoxReferences;
     elements.metricErrors.textContent = preview.stats.errors;
     elements.metricWarnings.textContent = preview.stats.warnings;
     elements.generateButton.disabled = !preview.ok;
@@ -194,11 +200,17 @@ function renderTable() {
 
         const typeCell = document.createElement("td");
         typeCell.textContent = row.type;
+        const sourceCell = document.createElement("td");
+        sourceCell.textContent = row.source;
         const promoCell = document.createElement("td");
         promoCell.textContent = row.promoRule || "-";
 
         const linkCell = document.createElement("td");
-        linkCell.textContent = row.linkTrees.map(entry => entry.key).join(", ") || "-";
+        const references = [
+            ...row.linkTrees.map(entry => `LinkTree ${entry.key}`),
+            ...row.blindBoxes.map(entry => `BlindBox ${entry.blindBoxId} ${entry.role}`),
+        ];
+        linkCell.textContent = references.join(", ") || "-";
         linkCell.title = linkCell.textContent;
 
         const policyCell = document.createElement("td");
@@ -209,7 +221,7 @@ function renderTable() {
         policies.append(policyTag("不可出售", !row.marketable));
         policyCell.append(policies);
 
-        tableRow.append(idCell, keyCell, typeCell, promoCell, linkCell, policyCell);
+        tableRow.append(idCell, keyCell, sourceCell, typeCell, promoCell, linkCell, policyCell);
         elements.tableBody.append(tableRow);
     }
 }
@@ -241,14 +253,15 @@ function renderDetail() {
     }
 
     elements.detailTitle.textContent = row.name;
-    elements.detailSubtitle.textContent = `${row.key} · ${state.channel}`;
+    elements.detailSubtitle.textContent = `${row.source} · ${row.key} · ${state.channel}`;
     elements.copyJsonButton.disabled = false;
     const rewards = row.linkTrees.map(entry => {
         if (entry.rewardChips) return `${entry.key}: +${entry.rewardChips} Chips`;
         if (entry.rewardItemId) return `${entry.key}: Item ${entry.rewardItemId}`;
         return `${entry.key}: 无本地奖励`;
     });
-    elements.rewardSummary.textContent = rewards.join(" · ") || "未被 LinkTree 引用";
+    const blindBoxes = row.blindBoxes.map(entry => `BlindBox ${entry.blindBoxId}: ${entry.role}`);
+    elements.rewardSummary.textContent = [...rewards, ...blindBoxes].join(" · ") || "未被业务表引用";
     elements.jsonPreview.textContent = JSON.stringify(item, null, 2);
 }
 

@@ -1,6 +1,6 @@
 # Steam ItemDef 转换器
 
-`build-steam-item-defs.js` 将 Luban 生成的 `tbsteamitemdef.json` 转换为 Steam Inventory schema，并校验 LinkTree 永久领奖回执的引用和安全配置。
+`build-steam-item-defs.js` 合并 Luban 生成的 `SteamItemDef` 平台规则和 `Item` 实际物品，转换为 Steam Inventory schema，并校验 LinkTree 回执与 BlindBox 交换关系。
 
 ## 图形界面
 
@@ -12,7 +12,7 @@ Start-SteamItemDefTool.cmd
 
 启动器会在后台开启仅监听 `127.0.0.1` 的本地服务，并使用默认浏览器打开 `http://127.0.0.1:43117/`。界面提供：
 
-- SteamItemDef 与 LinkTree 引用总览。
+- SteamItemDef、Item、LinkTree 与 BlindBox 引用总览。
 - Playtest / Release AppID 切换。
 - 每条 ItemDef 最终上传 JSON 预览。
 - 本地奖励映射、错误和警告展示。
@@ -21,7 +21,7 @@ Start-SteamItemDefTool.cmd
 
 页面每 30 秒向本地服务发送一次心跳。关闭所有工具页面后，服务会在连续空闲 10 分钟后自动退出；也可以点击右上角“关闭工具”立即退出。10 分钟内重新双击启动器会复用现有服务。
 
-网页不接受任意文件路径；服务只读取项目内固定的两份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
+网页不接受任意文件路径；服务只读取项目内固定的四份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
 
 ## 运行
 
@@ -36,6 +36,8 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js
 ```text
 lucky-dog-rise/Data/Json/tbsteamitemdef.json
 lucky-dog-rise/Data/Json/tblinktree.json
+lucky-dog-rise/Data/Json/tbitem.json
+lucky-dog-rise/Data/Json/tbblindbox.json
 ```
 
 默认生成：
@@ -66,11 +68,16 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 转换器会阻止以下配置生成可上传 schema：
 
 - ItemDef ID 重复、超出 `1..999999` 或 Key 重复。
+- `SteamItemDef` 与 `Item` 的 ItemDef ID 冲突，或多个 `Item` 共用同一 ID。
+- Generator/Bundle 配方引用了未导出的 ItemDef。
 - LinkTree 引用了不存在或已禁用的 ItemDef。
 - 多条 LinkTree 共用同一个永久回执。
 - 永久回执不是 `Type=Item`、`PromoRule=manual` 或 `GrantedManually=true`。
 - 永久回执允许交易、出售或没有设置为游戏内隐藏。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
+- BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。
+
+BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲盒配置了 `IsPlatformInventoryRequired=true`，转换器会给出警告。
 
 验证失败时只更新 `validation-report.json`，不会覆盖 schema 文件。禁止在校验失败后上传目录中可能残留的旧 schema。
 
