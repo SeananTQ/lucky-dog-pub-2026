@@ -24,11 +24,8 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
         { if(!_buf["ItemRarity"].IsNumber) { throw new SerializationException(); }  ItemRarity = (ERarity)_buf["ItemRarity"].AsInt; }
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
-        { if(!_buf["BlindBoxWeight"].IsNumber) { throw new SerializationException(); }  BlindBoxWeight = _buf["BlindBoxWeight"]; }
         { if(!_buf["IsHiddenInBag"].IsBoolean) { throw new SerializationException(); }  IsHiddenInBag = _buf["IsHiddenInBag"]; }
         { if(!_buf["AcquisitionType"].IsNumber) { throw new SerializationException(); }  AcquisitionType = (EAcquisitionType)_buf["AcquisitionType"].AsInt; }
-        { if(!_buf["IsUnique"].IsBoolean) { throw new SerializationException(); }  IsUnique = _buf["IsUnique"]; }
-        { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
         { if(!_buf["StandardBoxWeight"].IsNumber) { throw new SerializationException(); }  StandardBoxWeight = _buf["StandardBoxWeight"]; }
         { if(!_buf["NewbieBoxWeight"].IsNumber) { throw new SerializationException(); }  NewbieBoxWeight = _buf["NewbieBoxWeight"]; }
         { if(!_buf["RefreshmentBoxWeight"].IsNumber) { throw new SerializationException(); }  RefreshmentBoxWeight = _buf["RefreshmentBoxWeight"]; }
@@ -71,20 +68,8 @@ public sealed partial class Item : Luban.BeanBase
     /// 排序权重，数字越小约靠前
     /// </summary>
     public readonly int SortOrder;
-    /// <summary>
-    /// 盲盒权重
-    /// </summary>
-    public readonly int BlindBoxWeight;
     public readonly bool IsHiddenInBag;
     public readonly EAcquisitionType AcquisitionType;
-    /// <summary>
-    /// 现在唯一的物品不可分解回收
-    /// </summary>
-    public readonly bool IsUnique;
-    /// <summary>
-    /// 所属盲盒的id，相同id的物品在同一个组里进行随机
-    /// </summary>
-    public readonly int BlindBoxId;
     /// <summary>
     /// 该物品在标准盲盒里的权重
     /// </summary>
@@ -141,7 +126,7 @@ public sealed partial class Item : Luban.BeanBase
     /// </summary>
     public readonly string SteamDisplayType;
     /// <summary>
-    /// 可空
+    /// 稀有度标签由转换器填写；<br/>自定义标签填写英文小写字母例如color:red;
     /// </summary>
     public readonly string SteamTags;
     /// <summary>
@@ -170,11 +155,8 @@ public sealed partial class Item : Luban.BeanBase
         + "SafeResourceId:" + SafeResourceId + ","
         + "ItemRarity:" + ItemRarity + ","
         + "SortOrder:" + SortOrder + ","
-        + "BlindBoxWeight:" + BlindBoxWeight + ","
         + "IsHiddenInBag:" + IsHiddenInBag + ","
         + "AcquisitionType:" + AcquisitionType + ","
-        + "IsUnique:" + IsUnique + ","
-        + "BlindBoxId:" + BlindBoxId + ","
         + "StandardBoxWeight:" + StandardBoxWeight + ","
         + "NewbieBoxWeight:" + NewbieBoxWeight + ","
         + "RefreshmentBoxWeight:" + RefreshmentBoxWeight + ","
