@@ -1,3 +1,9 @@
+---
+last_editor: Codex
+last_edit: 2026-07-30
+status: draft
+---
+
 # Item 表字段说明
 
 ## 字段列表
@@ -10,22 +16,36 @@
 | ItemType | EItemType | 物品类型 |
 | ItemRarity | ERarity | 品质 |
 | SortOrder | int | 排序权重，数字越小约靠前 |
-| BlindBoxWeight | int | 盲盒权重，决定抽中概率 |
-| IsUnique | bool | 是否唯一，非唯一的物品可重复获得 |
+| IsHiddenInBag | bool | 是否在背包中隐藏 |
+| AcquisitionType | EAcquisitionType | 物品的主要获取来源；Initial 表示永久基础物品 |
+| StandardBoxWeight | int | 标准装扮盲盒中的品质内权重 |
+| NewbieBoxWeight | int | 新手装扮盲盒中的品质内权重 |
+| RefreshmentBoxWeight | int | 消耗品盲盒中的品质内权重 |
+| EventBoxWeight | int | 活动盲盒中的品质内权重 |
 | HiddenRegionFlag | EHiddenRegionFlag | 在哪些国家无法抽到（bit flag） |
 | SafeResourceId | int | 安全替换资源 ID，直播/安全模式下替换和谐资源 |
-| BlindBoxId | int | 所属盲盒 ID，相同 ID 的物品在同一组随机 |
 | AssetPathList | list\<string\> | 资源路径列表，狗皮肤和卡面填文件夹路径，其余填文件路径 |
+| IconPath | string | 背包内显示的图标路径 |
+| SteamItemDefId | int | 对应的 Steam ItemDef ID；未接入 Steam 时填 0 |
+| SteamTags | string | 额外 Steam Item Tags；品质标签由转换器根据 ItemRarity 自动生成 |
 
 ## 重要详解
 
-### BlindBoxId
+### AcquisitionType
 
-`BlindBoxId`:为该物品所属的盲盒id,如果该物品的盲盒id为0,则玩家默认拥有这些物品。
+`AcquisitionType` 表达物品的主要获取来源。新建或重置本地存档时，玩家默认拥有 `Initial` 物品。初始物品是必选装备槽的永久基础资产，不进入盲盒奖池，未来也不得被回收或熔炼。
 
-### BlindBoxWeight
+相同道具允许重复获得并累计数量。Steam Generator 不会根据玩家已有库存动态排除候选物品。
 
-`BlindBoxWeight`:该物品的权重，在随机时，将`BlindBoxId`相同的道具加到一起获得总权重，然后按照权重随机看命中哪个物品。
+### 盲盒权重
+
+每种盲盒使用独立的品质内权重字段：标准装扮盲盒使用 `StandardBoxWeight`，新手装扮盲盒使用 `NewbieBoxWeight`，消耗品盲盒使用 `RefreshmentBoxWeight`，活动盲盒使用 `EventBoxWeight`。权重大于 0 的物品才会进入对应奖池。
+
+品质概率由 `BlindBoxRarityRate` 配置。系统先按品质概率确定品质，再在该品质的候选物品中按上述字段随机。
+
+### SteamTags
+
+转换器根据 `ItemRarity` 自动生成小写的 Steam 品质标签，例如 `rarity:epic`。`SteamTags` 只填写无法从现有字段派生的额外标签；多个标签使用分号分隔。
 
 ### HiddenRegionFlag
 
@@ -37,7 +57,7 @@
 
 ### AssetPathList
 
-`AssetPathList`：首先这是一个列表型字段，可以填写多个资源路径。目的是为了方便后续扩展，（例如某些物品可能是需要跨层，由两张图片组成，一张在小狗前，一张在小狗后。） @AI [如果你认为List会影响效率，需要优化我可以改]
+`AssetPathList` 是列表型字段，可以填写多个资源路径，以支持一个物品由多个跨层资源组成。
 
 `v1\Shiba\Red\`：该路径为文件夹，则意味着和开发人员约定了到另外一个表里找具体的内容。例如该道具具体要在`DogSkin`表里找对应的数据，`SkinId`指定了改物品在`DogSkin`里所对应的数据行。
 

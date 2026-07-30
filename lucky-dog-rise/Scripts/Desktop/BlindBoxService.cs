@@ -717,7 +717,7 @@ public sealed class BlindBoxService
             EBlindBoxType.NewbieDecoration => item.NewbieBoxWeight,
             EBlindBoxType.Refreshment => item.RefreshmentBoxWeight,
             EBlindBoxType.Event => item.EventBoxWeight,
-            _ => item.BlindBoxWeight,
+            _ => 0,
         };
     }
 
