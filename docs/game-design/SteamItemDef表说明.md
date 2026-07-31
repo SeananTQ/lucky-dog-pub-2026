@@ -208,6 +208,8 @@ drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 
 独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
 
+Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端 `GetItemDefinitionIDs` 返回的定义列表中。客户端定义完整性检查只校验可枚举的普通物品、盲盒券、Bundle 和 Generator，不得因为 PlaytimeGenerator 未被枚举而把整套 Steam 库存判为不可用。PlaytimeGenerator 是否可用以实际 `TriggerItemDrop` 请求及其 Steam 回执为准；独立测试场景也采用同一规则。
+
 ## ESteamItemDefType
 
 `ESteamItemDefType` 是项目的 Luban 枚举，不是 Steam 指定的数字枚举。Steam schema 使用的类型字符串由导出转换逻辑负责映射。

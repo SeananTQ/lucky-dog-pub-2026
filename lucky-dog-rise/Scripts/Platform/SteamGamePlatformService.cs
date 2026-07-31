@@ -417,7 +417,11 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
         var serverIds = serverDefinitions.Select(itemDef => (int)itemDef).ToHashSet();
         var missingIds = LubanData.Tables.TbSteamItemDef.DataList
-            .Where(itemDef => itemDef.IsEnabled && !serverIds.Contains(itemDef.Id))
+            // Steam does not enumerate published playtime generators here. Their validity is
+            // checked by the TriggerItemDrop result when a schedule requests a drop.
+            .Where(itemDef => itemDef.IsEnabled &&
+                              itemDef.Type != DataTables.ESteamItemDefType.PlaytimeGenerator &&
+                              !serverIds.Contains(itemDef.Id))
             .Select(itemDef => itemDef.Id)
             .Concat(LubanData.Tables.TbItem.DataList
                 .Where(item => item.SteamItemDefId > 0 && !serverIds.Contains(item.SteamItemDefId))

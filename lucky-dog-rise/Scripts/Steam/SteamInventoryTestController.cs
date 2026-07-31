@@ -452,8 +452,11 @@ public partial class SteamInventoryTestController : Control
 
         _definitionLoadPending = false;
         var serverIds = serverItemDefs.Select(itemDef => (int)itemDef).ToHashSet();
+        // Steamworks Admin publishes playtime generators, but the client definition list does
+        // not enumerate them. TriggerItemDrop is the authoritative runtime check for that type.
         var localItemDefIds = LubanData.Tables.TbSteamItemDef.DataList
-            .Where(itemDef => itemDef.IsEnabled)
+            .Where(itemDef => itemDef.IsEnabled &&
+                              itemDef.Type != DataTables.ESteamItemDefType.PlaytimeGenerator)
             .Select(itemDef => itemDef.Id)
             .Concat(LubanData.Tables.TbItem.DataList
                 .Where(item => item.SteamItemDefId > 0)
@@ -461,10 +464,13 @@ public partial class SteamInventoryTestController : Control
             .Distinct()
             .OrderBy(id => id)
             .ToArray();
+        var playtimeGeneratorCount = LubanData.Tables.TbSteamItemDef.DataList.Count(itemDef =>
+            itemDef.IsEnabled && itemDef.Type == DataTables.ESteamItemDefType.PlaytimeGenerator);
         var missingIds = localItemDefIds.Where(id => !serverIds.Contains(id)).ToArray();
         _definitionsLoaded = missingIds.Length == 0;
         _definitionStatusLabel.Text = missingIds.Length == 0
-            ? $"Steam ItemDef：服务器 {count} 条，本地启用 {localItemDefIds.Length} 条，全部匹配"
+            ? $"Steam ItemDef：服务器 {count} 条；可枚举定义 {localItemDefIds.Length} 条全部匹配；" +
+              $"PlaytimeGenerator {playtimeGeneratorCount} 条请用触发请求验证"
             : $"Steam ItemDef：服务器 {count} 条；服务器未返回本地配置中的定义 {string.Join(", ", missingIds)}";
         AppendLog($"ItemDef {source}成功：服务器返回 {count} 条定义");
         UpdateControls();
