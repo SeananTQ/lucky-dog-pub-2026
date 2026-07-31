@@ -391,7 +391,7 @@ test("keeps a retired playtime generator and disables future drops", () => {
 test("rejects an invalid recurring drop window", () => {
     const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
     const generator = receipt({
-        Id: 404014,
+        Id: 405001,
         Key: "RecurringDrop",
         Type: 4,
         PromoRule: "",
@@ -404,10 +404,11 @@ test("rejects an invalid recurring drop window", () => {
         [gameItem()],
         [blindBox()],
         [schedule({
+            Id: 2001,
             IsLoopTrack: true,
             EndSeconds: -1,
             MaxGrantCount: -1,
-            SteamPlaytimeGeneratorItemDefId: 404014,
+            SteamPlaytimeGeneratorItemDefId: 405001,
             SteamDropWindowSeconds: 360,
             SteamDropMaxPerWindow: 0,
         })],

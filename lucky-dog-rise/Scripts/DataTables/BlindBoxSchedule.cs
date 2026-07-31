@@ -24,11 +24,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
         { if(!_buf["EndSeconds"].IsNumber) { throw new SerializationException(); }  EndSeconds = _buf["EndSeconds"]; }
         { if(!_buf["MaxGrantCount"].IsNumber) { throw new SerializationException(); }  MaxGrantCount = _buf["MaxGrantCount"]; }
-        { if(!_buf["Priority"].IsNumber) { throw new SerializationException(); }  Priority = _buf["Priority"]; }
-        { if(!_buf["CanAccumulate"].IsBoolean) { throw new SerializationException(); }  CanAccumulate = _buf["CanAccumulate"]; }
-        { if(!_buf["MaxPendingCount"].IsNumber) { throw new SerializationException(); }  MaxPendingCount = _buf["MaxPendingCount"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["SteamPlaytimeGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeGeneratorItemDefId = _buf["SteamPlaytimeGeneratorItemDefId"]; }
+        { if(!_buf["SteamDropWindowSeconds"].IsNumber) { throw new SerializationException(); }  SteamDropWindowSeconds = _buf["SteamDropWindowSeconds"]; }
+        { if(!_buf["SteamDropMaxPerWindow"].IsNumber) { throw new SerializationException(); }  SteamDropMaxPerWindow = _buf["SteamDropMaxPerWindow"]; }
     }
 
     public static BlindBoxSchedule DeserializeBlindBoxSchedule(JSONNode _buf)
@@ -41,17 +40,20 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 对应 BlindBox.Id
     /// </summary>
     public readonly int BlindBoxId;
+    /// <summary>
+    /// TRUE 表示正常阶段循环装扮券生产行
+    /// </summary>
     public readonly bool IsLoopTrack;
     /// <summary>
-    /// 按玩家总游玩秒数计算的生效时间<br/>该数值主要用于Steam库存中判定玩家是否可以领取该奖励的时间下限
+    /// 按玩家调度时钟计算的最早生效时间
     /// </summary>
     public readonly int StartSeconds;
     /// <summary>
-    /// 间隔时间<br/>玩家领取一个盲盒之后，等待下一个盲盒到达需要多长间隔时间
+    /// 非循环行为相对上次领取间隔；循环行为 Steam 装扮券掉落间隔
     /// </summary>
     public readonly int IntervalSeconds;
     /// <summary>
-    /// 结束时间；无限循环填 -1<br/>策划注意导SteamJSON是需要确认改字段的用途
+    /// 结束时间；无限循环填 -1
     /// </summary>
     public readonly int EndSeconds;
     /// <summary>
@@ -59,25 +61,21 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int MaxGrantCount;
     /// <summary>
-    /// 开启优先级，数值越大越优先
-    /// </summary>
-    public readonly int Priority;
-    /// <summary>
-    /// 是否允许累积多个待领取资格
-    /// </summary>
-    public readonly bool CanAccumulate;
-    /// <summary>
-    /// 最多保留几个待领取资格
-    /// </summary>
-    public readonly int MaxPendingCount;
-    /// <summary>
     /// 是否启用
     /// </summary>
     public readonly bool IsEnabled;
     /// <summary>
-    /// 该调度到达资格时间时，通过 TriggerItemDrop 请求的 Steam playtimegenerator ItemDef ID。不接入 Steam 掉落时填 0。同一个 ItemDef ID 不建议被多条调度共用。
+    /// 通过 TriggerItemDrop 请求的 Steam PlaytimeGenerator ItemDef ID；本地消耗品填 0
     /// </summary>
     public readonly int SteamPlaytimeGeneratorItemDefId;
+    /// <summary>
+    /// Steam 掉落窗口基础秒数；乘等待倍率后转为分钟；0 表示不启用
+    /// </summary>
+    public readonly int SteamDropWindowSeconds;
+    /// <summary>
+    /// Steam 掉落窗口内最多发放次数；未启用窗口时填 0
+    /// </summary>
+    public readonly int SteamDropMaxPerWindow;
    
     public const int __ID__ = -621265139;
     public override int GetTypeId() => __ID__;
@@ -96,11 +94,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         + "IntervalSeconds:" + IntervalSeconds + ","
         + "EndSeconds:" + EndSeconds + ","
         + "MaxGrantCount:" + MaxGrantCount + ","
-        + "Priority:" + Priority + ","
-        + "CanAccumulate:" + CanAccumulate + ","
-        + "MaxPendingCount:" + MaxPendingCount + ","
         + "IsEnabled:" + IsEnabled + ","
         + "SteamPlaytimeGeneratorItemDefId:" + SteamPlaytimeGeneratorItemDefId + ","
+        + "SteamDropWindowSeconds:" + SteamDropWindowSeconds + ","
+        + "SteamDropMaxPerWindow:" + SteamDropMaxPerWindow + ","
         + "}";
     }
 }

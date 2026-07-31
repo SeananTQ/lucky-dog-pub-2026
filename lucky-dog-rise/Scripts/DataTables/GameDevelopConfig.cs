@@ -20,8 +20,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxWaitDurationMultiplier"].IsNumber) { throw new SerializationException(); }  BlindBoxWaitDurationMultiplier = _buf["BlindBoxWaitDurationMultiplier"]; }
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
-        { if(!_buf["BlindBoxBacklogClaimDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxBacklogClaimDelaySeconds = _buf["BlindBoxBacklogClaimDelaySeconds"]; }
-        { if(!_buf["BlindBoxPostNewbieDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxPostNewbieDelaySeconds = _buf["BlindBoxPostNewbieDelaySeconds"]; }
+        { if(!_buf["BlindBoxLoopIntervalSeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxLoopIntervalSeconds = _buf["BlindBoxLoopIntervalSeconds"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
         { if(!_buf["SteamPlaytimeDropLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeDropLeadSeconds = _buf["SteamPlaytimeDropLeadSeconds"]; }
     }
@@ -44,13 +43,9 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// </summary>
     public readonly float PlayerStatisticScale;
     /// <summary>
-    /// 积压盲盒展示时短间隔时间
+    /// 正常阶段盲盒展示间隔
     /// </summary>
-    public readonly float BlindBoxBacklogClaimDelaySeconds;
-    /// <summary>
-    /// 新手与正式盲盒的间隔时间
-    /// </summary>
-    public readonly float BlindBoxPostNewbieDelaySeconds;
+    public readonly float BlindBoxLoopIntervalSeconds;
     /// <summary>
     /// LinkTree最佳显示条目数量
     /// </summary>
@@ -73,8 +68,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxWaitDurationMultiplier:" + BlindBoxWaitDurationMultiplier + ","
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
-        + "BlindBoxBacklogClaimDelaySeconds:" + BlindBoxBacklogClaimDelaySeconds + ","
-        + "BlindBoxPostNewbieDelaySeconds:" + BlindBoxPostNewbieDelaySeconds + ","
+        + "BlindBoxLoopIntervalSeconds:" + BlindBoxLoopIntervalSeconds + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
         + "SteamPlaytimeDropLeadSeconds:" + SteamPlaytimeDropLeadSeconds + ","
         + "}";

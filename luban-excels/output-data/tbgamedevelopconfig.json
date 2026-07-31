@@ -3,8 +3,7 @@
     "BlindBoxWaitDurationMultiplier": 4,
     "BlindBoxCostScale": 1,
     "PlayerStatisticScale": 10,
-    "BlindBoxBacklogClaimDelaySeconds": 30,
-    "BlindBoxPostNewbieDelaySeconds": 60,
+    "BlindBoxLoopIntervalSeconds": 90,
     "LinkTreeVisibleBannerCount": 5,
     "SteamPlaytimeDropLeadSeconds": 60
   }

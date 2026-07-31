@@ -13,7 +13,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 401002,
@@ -29,7 +31,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 401003,
@@ -45,7 +49,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 401004,
@@ -61,7 +67,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 402001,
@@ -77,7 +85,9 @@
     "StoreHidden": true,
     "AutoStack": true,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 403001,
@@ -93,7 +103,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "101002x1;101003x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 402002,
@@ -109,7 +121,9 @@
     "StoreHidden": true,
     "AutoStack": true,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 402003,
@@ -125,7 +139,9 @@
     "StoreHidden": true,
     "AutoStack": true,
     "Bundle": "",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 403002,
@@ -141,7 +157,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "@AUTO",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 403003,
@@ -157,7 +175,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "@AUTO",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404001,
@@ -173,7 +193,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402001x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404002,
@@ -189,7 +211,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402003x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404004,
@@ -205,7 +229,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402002x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404005,
@@ -221,7 +247,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402003x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404007,
@@ -237,7 +265,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402002x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404008,
@@ -253,7 +283,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402003x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404010,
@@ -269,7 +301,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402002x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404011,
@@ -285,7 +319,9 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402003x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   },
   {
     "Id": 404013,
@@ -301,6 +337,26 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "402002x1",
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamUseDropLimit": true,
+    "SteamDropLimit": 0
+  },
+  {
+    "Id": 405001,
+    "Key": "RecurringDecorationBlindBoxDropV2",
+    "Type": 4,
+    "Name": "Recurring Decoration Blind Box Drop V2",
+    "Description": "Grants recurring standard blind box vouchers under the Steam playtime drop window.",
+    "PromoRule": "",
+    "GrantedManually": false,
+    "Tradable": false,
+    "Marketable": false,
+    "GameOnly": true,
+    "StoreHidden": true,
+    "AutoStack": false,
+    "Bundle": "402002x1",
+    "IsEnabled": true,
+    "SteamUseDropLimit": false,
+    "SteamDropLimit": 0
   }
 ]

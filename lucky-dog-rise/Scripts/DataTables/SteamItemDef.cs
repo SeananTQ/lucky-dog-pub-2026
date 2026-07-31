@@ -31,6 +31,8 @@ public sealed partial class SteamItemDef : Luban.BeanBase
         { if(!_buf["AutoStack"].IsBoolean) { throw new SerializationException(); }  AutoStack = _buf["AutoStack"]; }
         { if(!_buf["Bundle"].IsString) { throw new SerializationException(); }  Bundle = _buf["Bundle"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
+        { if(!_buf["SteamUseDropLimit"].IsBoolean) { throw new SerializationException(); }  SteamUseDropLimit = _buf["SteamUseDropLimit"]; }
+        { if(!_buf["SteamDropLimit"].IsNumber) { throw new SerializationException(); }  SteamDropLimit = _buf["SteamDropLimit"]; }
     }
 
     public static SteamItemDef DeserializeSteamItemDef(JSONNode _buf)
@@ -94,6 +96,14 @@ public sealed partial class SteamItemDef : Luban.BeanBase
     /// 是否参与导出到 Steam ItemDef 配置
     /// </summary>
     public readonly bool IsEnabled;
+    /// <summary>
+    /// 仅用于未被启用 Schedule 引用的 PlaytimeGenerator；TRUE 时显式输出 Steam use_drop_limit
+    /// </summary>
+    public readonly bool SteamUseDropLimit;
+    /// <summary>
+    /// Steam 永久投放上限；退役 PlaytimeGenerator 填 0
+    /// </summary>
+    public readonly int SteamDropLimit;
    
     public const int __ID__ = -1587784542;
     public override int GetTypeId() => __ID__;
@@ -119,6 +129,8 @@ public sealed partial class SteamItemDef : Luban.BeanBase
         + "AutoStack:" + AutoStack + ","
         + "Bundle:" + Bundle + ","
         + "IsEnabled:" + IsEnabled + ","
+        + "SteamUseDropLimit:" + SteamUseDropLimit + ","
+        + "SteamDropLimit:" + SteamDropLimit + ","
         + "}";
     }
 }

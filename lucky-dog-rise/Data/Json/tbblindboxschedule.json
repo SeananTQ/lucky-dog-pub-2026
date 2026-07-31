@@ -7,11 +7,10 @@
     "IntervalSeconds": 30,
     "EndSeconds": 30,
     "MaxGrantCount": 1,
-    "Priority": 50,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404001
+    "SteamPlaytimeGeneratorItemDefId": 404001,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1002,
@@ -21,11 +20,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 90,
     "MaxGrantCount": 1,
-    "Priority": 100,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404002
+    "SteamPlaytimeGeneratorItemDefId": 404002,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1003,
@@ -35,11 +33,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 150,
     "MaxGrantCount": 1,
-    "Priority": 10,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 0
+    "SteamPlaytimeGeneratorItemDefId": 0,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1004,
@@ -49,11 +46,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 210,
     "MaxGrantCount": 1,
-    "Priority": 50,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404004
+    "SteamPlaytimeGeneratorItemDefId": 404004,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1005,
@@ -63,11 +59,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 270,
     "MaxGrantCount": 1,
-    "Priority": 100,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404005
+    "SteamPlaytimeGeneratorItemDefId": 404005,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1006,
@@ -77,11 +72,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 330,
     "MaxGrantCount": 1,
-    "Priority": 10,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 0
+    "SteamPlaytimeGeneratorItemDefId": 0,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1007,
@@ -91,11 +85,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 390,
     "MaxGrantCount": 1,
-    "Priority": 50,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404007
+    "SteamPlaytimeGeneratorItemDefId": 404007,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1008,
@@ -105,11 +98,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 450,
     "MaxGrantCount": 1,
-    "Priority": 100,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404008
+    "SteamPlaytimeGeneratorItemDefId": 404008,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1009,
@@ -119,11 +111,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 510,
     "MaxGrantCount": 1,
-    "Priority": 10,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 0
+    "SteamPlaytimeGeneratorItemDefId": 0,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1010,
@@ -133,11 +124,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 570,
     "MaxGrantCount": 1,
-    "Priority": 50,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404010
+    "SteamPlaytimeGeneratorItemDefId": 404010,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1011,
@@ -147,11 +137,10 @@
     "IntervalSeconds": 60,
     "EndSeconds": 630,
     "MaxGrantCount": 1,
-    "Priority": 100,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404011
+    "SteamPlaytimeGeneratorItemDefId": 404011,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
     "Id": 1012,
@@ -161,38 +150,22 @@
     "IntervalSeconds": 60,
     "EndSeconds": 690,
     "MaxGrantCount": 1,
-    "Priority": 10,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 0
+    "SteamPlaytimeGeneratorItemDefId": 0,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0
   },
   {
-    "Id": 1013,
+    "Id": 2001,
     "BlindBoxId": 1001,
     "IsLoopTrack": true,
-    "StartSeconds": 750,
+    "StartSeconds": 780,
     "IntervalSeconds": 180,
     "EndSeconds": -1,
     "MaxGrantCount": -1,
-    "Priority": 50,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 404013
-  },
-  {
-    "Id": 1014,
-    "BlindBoxId": 2001,
-    "IsLoopTrack": true,
-    "StartSeconds": 840,
-    "IntervalSeconds": 180,
-    "EndSeconds": -1,
-    "MaxGrantCount": -1,
-    "Priority": 10,
-    "CanAccumulate": false,
-    "MaxPendingCount": 1,
-    "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 0
+    "SteamPlaytimeGeneratorItemDefId": 405001,
+    "SteamDropWindowSeconds": 360,
+    "SteamDropMaxPerWindow": 2
   }
 ]
