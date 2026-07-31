@@ -16,6 +16,9 @@ const ITEM_DEF_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json",
 const LINK_TREE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tblinktree.json");
 const ITEM_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbitem.json");
 const BLIND_BOX_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindbox.json");
+const BLIND_BOX_SCHEDULE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxschedule.json");
+const BLIND_BOX_RARITY_RATE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxrarityrate.json");
+const GAME_DEVELOP_CONFIG_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbgamedevelopconfig.json");
 const DEFAULT_PORT = 43117;
 const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -51,9 +54,21 @@ function loadPreview() {
     const linkTreeRecords = readJsonArray(LINK_TREE_INPUT);
     const itemRecords = readJsonArray(ITEM_INPUT);
     const blindBoxRecords = readJsonArray(BLIND_BOX_INPUT);
-    const result = converter.buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords, blindBoxRecords);
+    const blindBoxScheduleRecords = readJsonArray(BLIND_BOX_SCHEDULE_INPUT);
+    const blindBoxRarityRateRecords = readJsonArray(BLIND_BOX_RARITY_RATE_INPUT);
+    const gameDevelopConfigRecords = readJsonArray(GAME_DEVELOP_CONFIG_INPUT);
+    const result = converter.buildArtifacts(
+        itemDefRecords,
+        linkTreeRecords,
+        itemRecords,
+        blindBoxRecords,
+        blindBoxScheduleRecords,
+        blindBoxRarityRateRecords,
+        gameDevelopConfigRecords,
+    );
     const linkTreesByItemDef = new Map();
     const blindBoxesByItemDef = new Map();
+    const schedulesByItemDef = new Map();
 
     for (const entry of linkTreeRecords) {
         if (!Number.isInteger(entry.SteamPromoItemDefId) || entry.SteamPromoItemDefId <= 0) continue;
@@ -80,6 +95,12 @@ function loadPreview() {
         }
     }
 
+    for (const reference of result.playtimeReferences) {
+        const references = schedulesByItemDef.get(reference.playtimeGeneratorItemDefId) || [];
+        references.push(reference);
+        schedulesByItemDef.set(reference.playtimeGeneratorItemDefId, references);
+    }
+
     const rows = result.definitions.map(definition => {
         const item = definition.schemaItem;
         return {
@@ -99,9 +120,13 @@ function loadPreview() {
             autoStack: item.auto_stack === true,
             bundle: item.bundle || "",
             exchange: item.exchange || "",
+            dropInterval: item.drop_interval ?? null,
+            useDropLimit: item.use_drop_limit === true,
+            dropLimit: item.drop_limit ?? null,
             isEnabled: true,
             linkTrees: linkTreesByItemDef.get(definition.id) || [],
             blindBoxes: blindBoxesByItemDef.get(definition.id) || [],
+            playtimeSchedules: schedulesByItemDef.get(definition.id) || [],
         };
     });
 
@@ -110,6 +135,9 @@ function loadPreview() {
         linkTree: fileInfo(LINK_TREE_INPUT),
         item: fileInfo(ITEM_INPUT),
         blindBox: fileInfo(BLIND_BOX_INPUT),
+        blindBoxSchedule: fileInfo(BLIND_BOX_SCHEDULE_INPUT),
+        blindBoxRarityRate: fileInfo(BLIND_BOX_RARITY_RATE_INPUT),
+        gameDevelopConfig: fileInfo(GAME_DEVELOP_CONFIG_INPUT),
     };
     const latestSourceMs = Math.max(...Object.values(sources).map(source => source.modifiedMs || 0));
     const channels = Object.entries(converter.CHANNELS).map(([name, configuration]) => {
@@ -136,9 +164,12 @@ function loadPreview() {
             sourceItemDefs: itemDefRecords.length,
             sourceGameItems: itemRecords.length,
             sourceBlindBoxes: blindBoxRecords.length,
+            sourceBlindBoxSchedules: blindBoxScheduleRecords.length,
+            sourceBlindBoxRarityRates: blindBoxRarityRateRecords.length,
             exportedItemDefs: result.items.length,
             linkTreeReferences: result.checkedReferenceCount,
             blindBoxReferences: result.checkedBlindBoxReferenceCount,
+            playtimeReferences: result.checkedPlaytimeReferenceCount,
             errors: result.errors.length,
             warnings: result.warnings.length,
         },

@@ -129,7 +129,9 @@ function renderSummary() {
     elements.blindBoxSource.title = preview.sources.blindBox.path;
     elements.loadedAt.textContent = formatTime(preview.loadedAt);
     elements.metricDefinitions.textContent = preview.stats.exportedItemDefs;
-    elements.metricReferences.textContent = preview.stats.linkTreeReferences + preview.stats.blindBoxReferences;
+    elements.metricReferences.textContent = preview.stats.linkTreeReferences
+        + preview.stats.blindBoxReferences
+        + preview.stats.playtimeReferences;
     elements.metricErrors.textContent = preview.stats.errors;
     elements.metricWarnings.textContent = preview.stats.warnings;
     elements.generateButton.disabled = !preview.ok;
@@ -209,6 +211,7 @@ function renderTable() {
         const references = [
             ...row.linkTrees.map(entry => `LinkTree ${entry.key}`),
             ...row.blindBoxes.map(entry => `BlindBox ${entry.blindBoxId} ${entry.role}`),
+            ...row.playtimeSchedules.map(entry => `Schedule ${entry.scheduleId} 游玩掉落`),
         ];
         linkCell.textContent = references.join(", ") || "-";
         linkCell.title = linkCell.textContent;

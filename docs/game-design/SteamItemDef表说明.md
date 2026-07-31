@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-29
+last_edit: 2026-07-31
 status: draft
 ---
 
@@ -18,7 +18,7 @@ status: draft
 
 `Item` 表描述游戏里的实际内容道具，并通过 `SteamItemDefId` 等字段生成对应的 Steam `item` 定义。实际道具不应在 `SteamItemDef` 表里再复制一行。
 
-`SteamItemDef` 表管理 LinkTree 回执、盲盒券和 Generator 等平台规则定义。`BlindBox` 表通过 `SteamOpenCostItemDefId` 和 `SteamExchangeTargetItemDefId` 表达开箱关系，由转换器派生 Steam `exchange` 与 `container_contents_generator`。
+`SteamItemDef` 表管理 LinkTree 回执、盲盒券、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBox` 表通过 `SteamOpenCostItemDefId` 和 `SteamExchangeTargetItemDefId` 表达开箱关系，由转换器派生 Steam `exchange` 与 `container_contents_generator`；`BlindBoxSchedule` 通过 `SteamPlaytimeGeneratorItemDefId` 表达按游玩时间生成盲盒券的关系。
 
 当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。`LinkTree.SteamPromoItemDefId` 则填写本表中对应的永久领奖回执 ID。
 
@@ -155,12 +155,52 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 2. `Generator`
    - 填随机权重，例如 `100101x80;100102x20`。
    - Steam 发放生成器时按权重产生结果；生成器本身不会保留在玩家库存中。
+   - 填 `@AUTO` 时，转换器会根据引用它的 `BlindBox`、`BlindBoxRarityRate` 和 `Item` 权重列生成完整奖池。
 
 3. `PlaytimeGenerator`
-   - 配方格式与 `Generator` 相同。
+   - 当前项目用于生成盲盒券，必须显式填写固定产物，例如 `402002x1`。
    - 客户端在合适时机调用 `TriggerItemDrop`，Steam 再根据游玩时间、冷却和投放上限决定是否发放。
 
-普通 `Item` 留空。
+普通 `Item` 和本来就没有内容配方的定义留空。不要使用“留空表示自动生成”的隐含约定。
+
+## Generator 自动奖池
+
+`@AUTO` 只允许用于 `Type=Generator`。转换器会通过 `BlindBox.SteamExchangeTargetItemDefId` 找到对应盲盒，再按与游戏本地盲盒相同的两阶段逻辑生成 Steam 的单层权重：
+
+```text
+物品最终概率 = 该品质概率 * 物品在该品质内的权重 / 该品质候选物品总权重
+```
+
+品质概率来自 `BlindBoxRarityRate`。品质内候选物品及权重列由盲盒类型决定，例如标准盲盒读取 `Item.StandardBoxWeight`，新手盲盒读取 `Item.NewbieBoxWeight`。转换器会把最终概率缩放为总量 `1000000` 的整数权重，并在生成前检查以下问题：
+
+1. 启用品质缺少正概率。
+2. 正概率品质没有可用候选物品。
+3. 候选物品没有填写 `SteamItemDefId`。
+4. 多个盲盒错误地共用同一个 `@AUTO` Generator。
+
+因此，Steam 不需要先随机品质再随机物品。品质仍是本地策划结构，转换器负责把它无损展平为 Steam Generator 可以读取的单层奖池。
+
+`Item.ItemRarity` 会自动生成 Steam 的小写 `rarity:` 标签。`Item.SteamTags` 只填写其它标签；手工填写 `rarity:` 会被转换器拒绝，避免品质字段与标签不一致。
+
+## PlaytimeGenerator 投放
+
+`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须显式产出该行盲盒的 `SteamOpenCostItemDefId`，例如：
+
+```text
+BlindBoxSchedule.BlindBoxId = 1002
+BlindBox 1002.SteamOpenCostItemDefId = 402002
+PlaytimeGenerator.Bundle = 402002x1
+```
+
+转换器依据本地投放时间、调试倍率和 Steam 提前量生成分钟级参数：
+
+```text
+实际投放秒数 = 本地基础秒数 * GameDevelopConfig.BlindBoxWaitDurationMultiplier
+Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytimeDropLeadSeconds)
+drop_interval = max(1, ceil(Steam 资格秒数 / 60))
+```
+
+一次性 Schedule 的本地基础秒数使用 `StartSeconds`；循环 Schedule 使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环则生成 `use_drop_limit=false`。Steam 资格会比本地展示时间略早形成，但客户端仍需在本地 Schedule 到点后才展示和开启盲盒。
 
 ## ESteamItemDefType
 
@@ -190,9 +230,9 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 Luban 导出和 Steamworks 发布是两步独立流程。前者只生成项目可读取的数据与代码，后者才会改变 Steam 服务器的 ItemDef 配置。
 
-1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox` 和 `LinkTree` Sheet 维护业务数据。
+1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox`、`BlindBoxSchedule`、`BlindBoxRarityRate`、`GameDevelopConfig` 和 `LinkTree` Sheet 维护业务数据。
 2. Luban 导出本地数据和 C# 类型。
-3. 转换脚本合并导出的 `SteamItemDef`、`Item`、`BlindBox` 和 `LinkTree` 数据，校验引用并生成 Steam schema JSON。
+3. 转换脚本合并七张表的导出数据，生成自动奖池、游玩投放参数和盲盒交换关系，校验引用后输出 Steam schema JSON。
 4. 主人在 Steamworks 后台分别为 Playtest AppID `4972240` 和正式 AppID `2583700` 上传并发布 ItemDef。
 5. 客户端调用 `LoadItemDefinitions` 与对应的 Inventory API，同步 Steam 服务器已发布的定义和玩家库存。
 
@@ -200,6 +240,6 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前 `SteamItemDef` 表已配置 LinkTree 的四条永久回执、`402001` 装扮盲盒券与 `403001` 测试 Generator。`Item 1002/1003` 分别映射到 `101002/101003`，`BlindBox 4001` 配置了 `402001 → 403001` 的 Steam 交换关系。
+当前转换器已支持：LinkTree 永久回执、盲盒券、盲盒交换关系、`@AUTO` Generator 奖池、Item 品质标签，以及由 `BlindBoxSchedule` 派生的 PlaytimeGenerator 投放参数。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
 
-转换器当前生成 8 条 Playtest/Release ItemDef，并自动为 `403001` 生成 `exchange=402001x1`。下一阶段是在 Playtest 发布新 schema，再使用独立测试场景验证 `ExchangeItems`。
+当前数据中仍保留部分 `4` 开头的测试 ItemDef。正式数据可继续使用新的 ID 段，但已经发布或产生过库存实例的测试定义仍需保留，不得删除或复用其 ID。

@@ -15,14 +15,22 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.equal(preview.ok, true);
     assert.equal(preview.stats.exportedItemDefs, preview.rows.length);
     assert.equal(preview.stats.linkTreeReferences, 4);
-    assert.equal(preview.stats.blindBoxReferences, 1);
+    assert.equal(preview.stats.blindBoxReferences, 3);
+    assert.equal(preview.stats.playtimeReferences, 9);
     assert.equal(preview.channels.length, 2);
     assert.equal(preview.rows.find(row => row.id === 401001).linkTrees.length, 1);
     assert.equal(preview.sources.item.exists, true);
     assert.equal(preview.sources.blindBox.exists, true);
+    assert.equal(preview.sources.blindBoxSchedule.exists, true);
+    assert.equal(preview.sources.blindBoxRarityRate.exists, true);
+    assert.equal(preview.sources.gameDevelopConfig.exists, true);
     assert.equal(preview.rows.find(row => row.id === 101002).source, "Item");
     assert.ok(preview.rows.some(row => row.id === 402001));
     assert.equal(preview.rows.find(row => row.id === 403001).exchange, "402001x1");
+    assert.ok(preview.rows.find(row => row.id === 403002).bundle.length > 0);
+    assert.equal(preview.rows.find(row => row.id === 404001).dropInterval, 1);
+    assert.equal(preview.rows.find(row => row.id === 404001).dropLimit, 1);
+    assert.equal(preview.rows.find(row => row.id === 404001).playtimeSchedules.length, 1);
 });
 
 test("serves preview data and rejects untrusted POST requests", async () => {

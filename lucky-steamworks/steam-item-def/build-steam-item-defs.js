@@ -34,7 +34,30 @@ const DEFAULT_BLIND_BOX_INPUT = path.join(
     "Json",
     "tbblindbox.json",
 );
+const DEFAULT_BLIND_BOX_SCHEDULE_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbblindboxschedule.json",
+);
+const DEFAULT_BLIND_BOX_RARITY_RATE_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbblindboxrarityrate.json",
+);
+const DEFAULT_GAME_DEVELOP_CONFIG_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbgamedevelopconfig.json",
+);
 const DEFAULT_OUTPUT_ROOT = path.join(TOOL_ROOT, "generated");
+const AUTO_BUNDLE_MARKER = "@AUTO";
+const AUTO_GENERATOR_WEIGHT_SCALE = 1000000;
 
 const CHANNELS = Object.freeze({
     playtest: { appId: 4972240, fileName: "steam-itemdefs.playtest.json" },
@@ -49,12 +72,33 @@ const ITEM_TYPE_NAMES = Object.freeze({
     5: "tag_generator",
 });
 
+const RARITY_TAGS = Object.freeze({
+    1: "mythic",
+    2: "legendary",
+    3: "epic",
+    4: "rare",
+    5: "uncommon",
+    6: "common",
+    21: "special_1",
+    22: "special_2",
+});
+
+const BLIND_BOX_ITEM_RULES = Object.freeze({
+    1: { acquisitionType: 2, weightField: "StandardBoxWeight" },
+    2: { acquisitionType: 2, weightField: "NewbieBoxWeight" },
+    3: { acquisitionType: 3, weightField: "RefreshmentBoxWeight" },
+    4: { acquisitionType: 4, weightField: "EventBoxWeight" },
+});
+
 function parseArguments(argv) {
     const options = {
         itemDefInput: DEFAULT_ITEM_DEF_INPUT,
         linkTreeInput: DEFAULT_LINK_TREE_INPUT,
         itemInput: DEFAULT_ITEM_INPUT,
         blindBoxInput: DEFAULT_BLIND_BOX_INPUT,
+        blindBoxScheduleInput: DEFAULT_BLIND_BOX_SCHEDULE_INPUT,
+        blindBoxRarityRateInput: DEFAULT_BLIND_BOX_RARITY_RATE_INPUT,
+        gameDevelopConfigInput: DEFAULT_GAME_DEVELOP_CONFIG_INPUT,
         outputRoot: DEFAULT_OUTPUT_ROOT,
         channels: Object.keys(CHANNELS),
     };
@@ -88,6 +132,15 @@ function parseArguments(argv) {
             case "--blind-box-input":
                 options.blindBoxInput = path.resolve(value);
                 break;
+            case "--blind-box-schedule-input":
+                options.blindBoxScheduleInput = path.resolve(value);
+                break;
+            case "--blind-box-rarity-rate-input":
+                options.blindBoxRarityRateInput = path.resolve(value);
+                break;
+            case "--game-develop-config-input":
+                options.gameDevelopConfigInput = path.resolve(value);
+                break;
             case "--output-root":
                 options.outputRoot = path.resolve(value);
                 break;
@@ -119,6 +172,9 @@ function printUsage() {
   --link-tree-input <file> Luban 导出的 tblinktree.json
   --item-input <file>      Luban 导出的 tbitem.json
   --blind-box-input <file> Luban 导出的 tbblindbox.json
+  --blind-box-schedule-input <file> Luban 导出的 tbblindboxschedule.json
+  --blind-box-rarity-rate-input <file> Luban 导出的 tbblindboxrarityrate.json
+  --game-develop-config-input <file> Luban 导出的 tbgamedevelopconfig.json
   --output-root <dir>      输出目录
   --channel <value>        both（默认）、playtest 或 release
   -h, --help               显示本帮助
@@ -168,6 +224,72 @@ function requiredBoolean(record, field, label, errors) {
         return false;
     }
     return value;
+}
+
+function greatestCommonDivisor(left, right) {
+    let a = Math.abs(left);
+    let b = Math.abs(right);
+    while (b !== 0) [a, b] = [b, a % b];
+    return a;
+}
+
+function reduceWeights(entries) {
+    const divisor = entries.reduce(
+        (current, entry) => current === 0 ? entry.weight : greatestCommonDivisor(current, entry.weight),
+        0,
+    );
+    if (divisor <= 1) return entries;
+    return entries.map(entry => ({ ...entry, weight: entry.weight / divisor }));
+}
+
+function allocateGeneratorWeights(entries) {
+    const weighted = entries.map(entry => {
+        const rawWeight = entry.probability * AUTO_GENERATOR_WEIGHT_SCALE;
+        return {
+            ...entry,
+            rawWeight,
+            weight: Math.max(1, Math.floor(rawWeight)),
+            remainder: rawWeight - Math.floor(rawWeight),
+        };
+    });
+    let difference = AUTO_GENERATOR_WEIGHT_SCALE - weighted.reduce((sum, entry) => sum + entry.weight, 0);
+
+    if (difference > 0) {
+        const order = [...weighted].sort((left, right) =>
+            right.remainder - left.remainder || left.itemDefId - right.itemDefId);
+        for (let index = 0; index < difference; index += 1) order[index % order.length].weight += 1;
+    } else if (difference < 0) {
+        const order = [...weighted].sort((left, right) =>
+            right.weight - left.weight || left.itemDefId - right.itemDefId);
+        let remaining = -difference;
+        for (const entry of order) {
+            const removable = Math.min(remaining, entry.weight - 1);
+            entry.weight -= removable;
+            remaining -= removable;
+            if (remaining === 0) break;
+        }
+        if (remaining !== 0) throw new Error("自动奖池权重无法压缩到 Steam 整数范围。");
+    }
+
+    return reduceWeights(weighted)
+        .sort((left, right) => left.itemDefId - right.itemDefId);
+}
+
+function buildSteamTags(record, label, errors) {
+    const rarityTag = RARITY_TAGS[record.ItemRarity];
+    if (!rarityTag) {
+        errors.push(`${label}：ItemRarity ${record.ItemRarity} 没有对应的 Steam rarity 标签。`);
+        return "";
+    }
+
+    const customTags = optionalString(record, "SteamTags", label, errors)
+        .split(";")
+        .map(tag => tag.trim())
+        .filter(Boolean);
+    if (customTags.some(tag => tag.toLowerCase().startsWith("rarity:"))) {
+        errors.push(`${label}：SteamTags 不应手填 rarity 标签；该标签由 ItemRarity 自动生成。`);
+    }
+    return [`rarity:${rarityTag}`, ...customTags].join(";");
 }
 
 function validateAndBuildItemDefs(records) {
@@ -227,6 +349,9 @@ function validateAndBuildItemDefs(records) {
         }
         if ([2, 3, 4].includes(record.Type) && !bundle) {
             errors.push(`${label}：${typeName || "复杂物品"} 必须填写 Bundle。`);
+        }
+        if (bundle === AUTO_BUNDLE_MARKER && record.Type !== 3) {
+            errors.push(`${label}：${AUTO_BUNDLE_MARKER} 目前只支持 Type=Generator。`);
         }
         if (record.Type === 1 && bundle) {
             errors.push(`${label}：普通 item 的 Bundle 必须留空。`);
@@ -309,7 +434,7 @@ function validateAndBuildGameItems(records) {
         const autoStack = requiredBoolean(record, "SteamAutoStack", label, errors);
         const hidden = requiredBoolean(record, "SteamHidden", label, errors);
         const displayType = optionalString(record, "SteamDisplayType", label, errors);
-        const tags = optionalString(record, "SteamTags", label, errors);
+        const tags = buildSteamTags(record, label, errors);
         const iconUrl = optionalString(record, "SteamIconUrl", label, errors);
         const iconUrlLarge = optionalString(record, "SteamIconUrlLarge", label, errors);
 
@@ -439,6 +564,10 @@ function validateBundleReferences(definitions, enabledById) {
     for (const definition of definitions) {
         const item = definition.schemaItem;
         if (!["bundle", "generator", "playtimegenerator"].includes(item.type) || !item.bundle) continue;
+        if (item.bundle === AUTO_BUNDLE_MARKER) {
+            errors.push(`${definition.key}：${AUTO_BUNDLE_MARKER} 没有找到可生成配方的 BlindBox 映射。`);
+            continue;
+        }
 
         for (const rawRecipe of item.bundle.split(";")) {
             const recipe = rawRecipe.trim();
@@ -462,12 +591,76 @@ function validateBundleReferences(definitions, enabledById) {
     return errors;
 }
 
-function applyBlindBoxMappings(records, merged) {
+function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, errors) {
+    const label = `BlindBox ${box.Id} ${box.Name || ""}`.trim();
+    const rule = BLIND_BOX_ITEM_RULES[box.BoxType];
+    if (!rule) {
+        errors.push(`${label}：BoxType ${box.BoxType} 没有对应的 Item 权重字段。`);
+        return "";
+    }
+
+    const rarityWeights = new Map();
+    for (const rate of rarityRateRecords.filter(rate => rate.IsEnabled === true && rate.BlindBoxId === box.Id)) {
+        if (!Number.isInteger(rate.Rarity)) {
+            errors.push(`${label}：BlindBoxRarityRate ${rate.Id ?? "<未知>"} 的 Rarity 必须是整数。`);
+            continue;
+        }
+        if (!Number.isInteger(rate.Weight) || rate.Weight < 0) {
+            errors.push(`${label}：BlindBoxRarityRate ${rate.Id ?? "<未知>"} 的 Weight 必须是非负整数。`);
+            continue;
+        }
+        if (rate.Weight > 0) {
+            rarityWeights.set(rate.Rarity, (rarityWeights.get(rate.Rarity) || 0) + rate.Weight);
+        }
+    }
+    if (rarityWeights.size === 0) {
+        errors.push(`${label}：没有启用且权重大于 0 的 BlindBoxRarityRate。`);
+        return "";
+    }
+
+    const errorCountBefore = errors.length;
+    const totalRarityWeight = [...rarityWeights.values()].reduce((sum, weight) => sum + weight, 0);
+    const probabilities = [];
+    for (const [rarity, rarityWeight] of [...rarityWeights].sort((left, right) => left[0] - right[0])) {
+        const weightedItems = itemRecords
+            .filter(item => item.ItemRarity === rarity)
+            .filter(item => Number.isInteger(item[rule.weightField]) && item[rule.weightField] > 0);
+        const preferredItems = weightedItems.filter(item => item.AcquisitionType === rule.acquisitionType);
+        const candidates = preferredItems.length > 0 ? preferredItems : weightedItems;
+        if (candidates.length === 0) {
+            errors.push(`${label}：品质 ${rarity} 的概率大于 0，但没有配置 ${rule.weightField} 候选物品。`);
+            continue;
+        }
+
+        const totalItemWeight = candidates.reduce((sum, item) => sum + item[rule.weightField], 0);
+        for (const item of candidates) {
+            if (!Number.isInteger(item.SteamItemDefId) || item.SteamItemDefId <= 0) {
+                errors.push(`${label}：候选 Item ${item.Id} ${item.Name || ""} 没有配置 SteamItemDefId。`);
+                continue;
+            }
+            if (!merged.enabledById.has(item.SteamItemDefId)) {
+                errors.push(`${label}：候选 Item ${item.Id} 引用的 Steam ItemDef ${item.SteamItemDefId} 未导出。`);
+                continue;
+            }
+            probabilities.push({
+                itemDefId: item.SteamItemDefId,
+                probability: (rarityWeight / totalRarityWeight) * (item[rule.weightField] / totalItemWeight),
+            });
+        }
+    }
+
+    if (errors.length > errorCountBefore || probabilities.length === 0) return "";
+    const weights = allocateGeneratorWeights(probabilities);
+    return weights.map(entry => `${entry.itemDefId}x${entry.weight}`).join(";");
+}
+
+function applyBlindBoxMappings(records, merged, itemRecords = [], rarityRateRecords = []) {
     const errors = [];
     const warnings = [];
     const references = [];
     const targetRecipes = new Map();
     const containerTargets = new Map();
+    const autoGeneratorBoxes = new Map();
     let checkedReferenceCount = 0;
 
     for (const record of records) {
@@ -513,6 +706,23 @@ function applyBlindBoxMappings(records, merged) {
         }
         if (!input || !target) continue;
 
+        if (target.schemaItem.bundle === AUTO_BUNDLE_MARKER) {
+            const previousBoxId = autoGeneratorBoxes.get(targetId);
+            if (previousBoxId && previousBoxId !== record.Id) {
+                errors.push(`${label}：自动 Generator ${targetId} 已由 BlindBox ${previousBoxId} 生成奖池，不能复用。`);
+            } else if (!previousBoxId) {
+                autoGeneratorBoxes.set(targetId, record.Id);
+                const generatedBundle = buildAutoGeneratorBundle(
+                    record,
+                    itemRecords,
+                    rarityRateRecords,
+                    merged,
+                    errors,
+                );
+                if (generatedBundle) target.schemaItem.bundle = generatedBundle;
+            }
+        }
+
         const recipes = targetRecipes.get(targetId) || new Set();
         recipes.add(`${inputId}x1`);
         targetRecipes.set(targetId, recipes);
@@ -544,24 +754,176 @@ function applyBlindBoxMappings(records, merged) {
     return { checkedReferenceCount, references, errors, warnings };
 }
 
-function buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords = [], blindBoxRecords = []) {
+function getScheduleDropLimit(schedule, label, errors) {
+    if (!Number.isInteger(schedule.MaxGrantCount) || schedule.MaxGrantCount < -1) {
+        errors.push(`${label}：MaxGrantCount 必须是 -1 或非负整数。`);
+        return null;
+    }
+    if (schedule.MaxGrantCount >= 0) return schedule.MaxGrantCount;
+    if (!Number.isInteger(schedule.EndSeconds)) {
+        errors.push(`${label}：EndSeconds 必须是整数。`);
+        return null;
+    }
+    if (schedule.EndSeconds < 0) return null;
+    if (schedule.EndSeconds < schedule.StartSeconds) {
+        errors.push(`${label}：EndSeconds 不能早于 StartSeconds。`);
+        return null;
+    }
+    if (schedule.IntervalSeconds <= 0) return 1;
+    return 1 + Math.floor((schedule.EndSeconds - schedule.StartSeconds) / schedule.IntervalSeconds);
+}
+
+function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, merged) {
+    const errors = [];
+    const warnings = [];
+    const references = [];
+    const usedGenerators = new Map();
+    const boxesById = new Map(blindBoxRecords.map(box => [box.Id, box]));
+    const enabledSteamSchedules = scheduleRecords.filter(schedule =>
+        schedule.IsEnabled === true && schedule.SteamPlaytimeGeneratorItemDefId > 0);
+    if (enabledSteamSchedules.length === 0) {
+        return { checkedReferenceCount: 0, references, errors, warnings };
+    }
+
+    if (configRecords.length !== 1) {
+        errors.push(`GameDevelopConfig：生成 Steam 游玩时间掉落时必须且只能有 1 行配置，实际为 ${configRecords.length} 行。`);
+        return { checkedReferenceCount: 0, references, errors, warnings };
+    }
+    const configuration = configRecords[0];
+    const durationMultiplier = configuration.BlindBoxWaitDurationMultiplier;
+    const leadSeconds = configuration.SteamPlaytimeDropLeadSeconds;
+    if (typeof durationMultiplier !== "number" || !Number.isFinite(durationMultiplier) || durationMultiplier <= 0) {
+        errors.push("GameDevelopConfig：BlindBoxWaitDurationMultiplier 必须是大于 0 的数字。");
+    }
+    if (!Number.isInteger(leadSeconds) || leadSeconds < 0) {
+        errors.push("GameDevelopConfig：SteamPlaytimeDropLeadSeconds 必须是非负整数。");
+    }
+    if (errors.length > 0) {
+        return { checkedReferenceCount: 0, references, errors, warnings };
+    }
+
+    for (const schedule of scheduleRecords.filter(schedule => schedule.IsEnabled === true)) {
+        const label = `BlindBoxSchedule ${schedule.Id ?? "<未知>"}`;
+        const generatorId = schedule.SteamPlaytimeGeneratorItemDefId;
+        if (!Number.isInteger(generatorId) || generatorId < 0 || generatorId >= 1000000) {
+            errors.push(`${label}：SteamPlaytimeGeneratorItemDefId 必须是 0 到 999999 之间的整数。`);
+            continue;
+        }
+
+        const box = boxesById.get(schedule.BlindBoxId);
+        if (!box || box.IsEnabled !== true) {
+            errors.push(`${label}：引用的 BlindBox ${schedule.BlindBoxId} 不存在或未启用。`);
+            continue;
+        }
+        if (generatorId === 0) {
+            if (box.IsPlatformInventoryRequired === true && box.SteamOpenCostItemDefId > 0) {
+                warnings.push(`${label}：平台库存盲盒 ${box.Id} 没有配置 SteamPlaytimeGeneratorItemDefId。`);
+            }
+            continue;
+        }
+
+        const previousScheduleId = usedGenerators.get(generatorId);
+        if (previousScheduleId) {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 已被 BlindBoxSchedule ${previousScheduleId} 使用。`);
+            continue;
+        }
+        usedGenerators.set(generatorId, schedule.Id);
+
+        const definition = merged.enabledById.get(generatorId);
+        if (!definition) {
+            errors.push(`${label}：Steam PlaytimeGenerator ${generatorId} 不存在或未导出。`);
+            continue;
+        }
+        if (definition.schemaItem.type !== "playtimegenerator") {
+            errors.push(`${label}：Steam ItemDef ${generatorId} 必须是 Type=PlaytimeGenerator。`);
+            continue;
+        }
+        if (!Number.isInteger(box.SteamOpenCostItemDefId) || box.SteamOpenCostItemDefId <= 0) {
+            errors.push(`${label}：BlindBox ${box.Id} 没有配置有效的 SteamOpenCostItemDefId。`);
+            continue;
+        }
+
+        const expectedBundle = `${box.SteamOpenCostItemDefId}x1`;
+        if (definition.schemaItem.bundle !== expectedBundle) {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 应当发放 ${expectedBundle}，实际为 ${definition.schemaItem.bundle || "<空>"}。`);
+        }
+        if (!Number.isInteger(schedule.StartSeconds) || schedule.StartSeconds < 0) {
+            errors.push(`${label}：StartSeconds 必须是非负整数。`);
+            continue;
+        }
+        if (!Number.isInteger(schedule.IntervalSeconds)) {
+            errors.push(`${label}：IntervalSeconds 必须是整数。`);
+            continue;
+        }
+
+        const baseSeconds = schedule.IsLoopTrack === true
+            ? Math.max(0, schedule.IntervalSeconds)
+            : schedule.StartSeconds;
+        const steamEligibilitySeconds = Math.max(0, baseSeconds * durationMultiplier - leadSeconds);
+        definition.schemaItem.drop_interval = Math.max(1, Math.ceil(steamEligibilitySeconds / 60));
+        const dropLimit = getScheduleDropLimit(schedule, label, errors);
+        definition.schemaItem.use_drop_limit = dropLimit !== null;
+        if (dropLimit !== null) definition.schemaItem.drop_limit = dropLimit;
+        else delete definition.schemaItem.drop_limit;
+
+        references.push({
+            scheduleId: schedule.Id,
+            blindBoxId: box.Id,
+            playtimeGeneratorItemDefId: generatorId,
+            outputItemDefId: box.SteamOpenCostItemDefId,
+            dropIntervalMinutes: definition.schemaItem.drop_interval,
+            dropLimit,
+        });
+    }
+
+    return {
+        checkedReferenceCount: references.length,
+        references,
+        errors,
+        warnings,
+    };
+}
+
+function buildArtifacts(
+    itemDefRecords,
+    linkTreeRecords,
+    itemRecords = [],
+    blindBoxRecords = [],
+    blindBoxScheduleRecords = [],
+    blindBoxRarityRateRecords = [],
+    gameDevelopConfigRecords = [],
+) {
     const itemDefs = validateAndBuildItemDefs(itemDefRecords);
     const gameItems = validateAndBuildGameItems(itemRecords);
     const merged = mergeDefinitions(itemDefs, gameItems);
-    const blindBoxes = applyBlindBoxMappings(blindBoxRecords, merged);
+    const blindBoxes = applyBlindBoxMappings(
+        blindBoxRecords,
+        merged,
+        itemRecords,
+        blindBoxRarityRateRecords,
+    );
+    const playtime = applyPlaytimeMappings(
+        blindBoxScheduleRecords,
+        gameDevelopConfigRecords,
+        blindBoxRecords,
+        merged,
+    );
     const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
     const linkTree = validateLinkTree(linkTreeRecords, itemDefs);
     return {
         items: merged.items,
         definitions: merged.definitions,
         blindBoxReferences: blindBoxes.references,
+        playtimeReferences: playtime.references,
         checkedReferenceCount: linkTree.checkedReferenceCount,
         checkedBlindBoxReferenceCount: blindBoxes.checkedReferenceCount,
+        checkedPlaytimeReferenceCount: playtime.checkedReferenceCount,
         errors: [
             ...itemDefs.errors,
             ...gameItems.errors,
             ...merged.errors,
             ...blindBoxes.errors,
+            ...playtime.errors,
             ...bundleErrors,
             ...linkTree.errors,
         ],
@@ -569,6 +931,7 @@ function buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords = [], blind
             ...itemDefs.warnings,
             ...gameItems.warnings,
             ...blindBoxes.warnings,
+            ...playtime.warnings,
             ...linkTree.warnings,
         ],
     };
@@ -590,7 +953,18 @@ function main(argv = process.argv.slice(2)) {
     const linkTreeRecords = readJsonArray(options.linkTreeInput, "LinkTree JSON");
     const itemRecords = readJsonArray(options.itemInput, "Item JSON");
     const blindBoxRecords = readJsonArray(options.blindBoxInput, "BlindBox JSON");
-    const result = buildArtifacts(itemDefRecords, linkTreeRecords, itemRecords, blindBoxRecords);
+    const blindBoxScheduleRecords = readJsonArray(options.blindBoxScheduleInput, "BlindBoxSchedule JSON");
+    const blindBoxRarityRateRecords = readJsonArray(options.blindBoxRarityRateInput, "BlindBoxRarityRate JSON");
+    const gameDevelopConfigRecords = readJsonArray(options.gameDevelopConfigInput, "GameDevelopConfig JSON");
+    const result = buildArtifacts(
+        itemDefRecords,
+        linkTreeRecords,
+        itemRecords,
+        blindBoxRecords,
+        blindBoxScheduleRecords,
+        blindBoxRarityRateRecords,
+        gameDevelopConfigRecords,
+    );
 
     fs.mkdirSync(options.outputRoot, { recursive: true });
     const reportPath = path.join(options.outputRoot, "validation-report.json");
@@ -600,13 +974,19 @@ function main(argv = process.argv.slice(2)) {
             linkTree: projectRelative(options.linkTreeInput),
             item: projectRelative(options.itemInput),
             blindBox: projectRelative(options.blindBoxInput),
+            blindBoxSchedule: projectRelative(options.blindBoxScheduleInput),
+            blindBoxRarityRate: projectRelative(options.blindBoxRarityRateInput),
+            gameDevelopConfig: projectRelative(options.gameDevelopConfigInput),
         },
         sourceItemDefCount: itemDefRecords.length,
         sourceGameItemCount: itemRecords.length,
         sourceBlindBoxCount: blindBoxRecords.length,
+        sourceBlindBoxScheduleCount: blindBoxScheduleRecords.length,
+        sourceBlindBoxRarityRateCount: blindBoxRarityRateRecords.length,
         exportedItemDefCount: result.items.length,
         checkedLinkTreeReferenceCount: result.checkedReferenceCount,
         checkedBlindBoxReferenceCount: result.checkedBlindBoxReferenceCount,
+        checkedPlaytimeReferenceCount: result.checkedPlaytimeReferenceCount,
         channels: options.channels.map(channel => ({
             name: channel,
             appid: CHANNELS[channel].appId,
@@ -625,7 +1005,8 @@ function main(argv = process.argv.slice(2)) {
     console.log(
         `校验通过：${result.items.length} 条 Steam ItemDef，`
         + `${result.checkedReferenceCount} 条 LinkTree 引用，`
-        + `${result.checkedBlindBoxReferenceCount} 条 BlindBox 映射。`,
+        + `${result.checkedBlindBoxReferenceCount} 条 BlindBox 映射，`
+        + `${result.checkedPlaytimeReferenceCount} 条 PlaytimeGenerator 调度。`,
     );
     for (const channel of options.channels) {
         const configuration = CHANNELS[channel];

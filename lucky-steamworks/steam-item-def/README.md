@@ -1,6 +1,6 @@
 # Steam ItemDef 转换器
 
-`build-steam-item-defs.js` 合并 Luban 生成的 `SteamItemDef` 平台规则和 `Item` 实际物品，转换为 Steam Inventory schema，并校验 LinkTree 回执与 BlindBox 交换关系。
+`build-steam-item-defs.js` 合并 Luban 生成的 Steam 平台规则、实际物品、盲盒概率和投放计划，转换为 Steam Inventory schema，并校验 LinkTree 回执、BlindBox 交换关系与 PlaytimeGenerator 投放关系。
 
 ## 图形界面
 
@@ -12,7 +12,7 @@ Start-SteamItemDefTool.cmd
 
 启动器会在后台开启仅监听 `127.0.0.1` 的本地服务，并使用默认浏览器打开 `http://127.0.0.1:43117/`。界面提供：
 
-- SteamItemDef、Item、LinkTree 与 BlindBox 引用总览。
+- SteamItemDef、Item、LinkTree、BlindBox 与游玩投放计划引用总览。
 - Playtest / Release AppID 切换。
 - 每条 ItemDef 最终上传 JSON 预览。
 - 本地奖励映射、错误和警告展示。
@@ -21,7 +21,7 @@ Start-SteamItemDefTool.cmd
 
 页面每 30 秒向本地服务发送一次心跳。关闭所有工具页面后，服务会在连续空闲 10 分钟后自动退出；也可以点击右上角“关闭工具”立即退出。10 分钟内重新双击启动器会复用现有服务。
 
-网页不接受任意文件路径；服务只读取项目内固定的四份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
+网页不接受任意文件路径；服务只读取项目内固定的七份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
 
 ## 运行
 
@@ -38,6 +38,9 @@ lucky-dog-rise/Data/Json/tbsteamitemdef.json
 lucky-dog-rise/Data/Json/tblinktree.json
 lucky-dog-rise/Data/Json/tbitem.json
 lucky-dog-rise/Data/Json/tbblindbox.json
+lucky-dog-rise/Data/Json/tbblindboxschedule.json
+lucky-dog-rise/Data/Json/tbblindboxrarityrate.json
+lucky-dog-rise/Data/Json/tbgamedevelopconfig.json
 ```
 
 默认生成：
@@ -70,14 +73,43 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - ItemDef ID 重复、超出 `1..999999` 或 Key 重复。
 - `SteamItemDef` 与 `Item` 的 ItemDef ID 冲突，或多个 `Item` 共用同一 ID。
 - Generator/Bundle 配方引用了未导出的 ItemDef。
+- `@AUTO` 被用于非 Generator 定义，或自动奖池候选物品没有 Steam ItemDef 映射。
 - LinkTree 引用了不存在或已禁用的 ItemDef。
 - 多条 LinkTree 共用同一个永久回执。
 - 永久回执不是 `Type=Item`、`PromoRule=manual` 或 `GrantedManually=true`。
 - 永久回执允许交易、出售或没有设置为游戏内隐藏。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 - BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。
+- 多个盲盒共用同一个 `@AUTO` Generator，或自动奖池缺少有效品质概率/候选物品。
+- BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或其 Bundle 与盲盒开箱成本不一致。
 
 BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲盒配置了 `IsPlatformInventoryRequired=true`，转换器会给出警告。
+
+## 自动生成规则
+
+### Generator 奖池
+
+当 `SteamItemDef.Type=Generator` 且 `Bundle=@AUTO` 时，转换器根据引用该 Generator 的 `BlindBox` 自动生成奖池。它先读取 `BlindBoxRarityRate` 的品质概率，再读取 `Item` 中该盲盒类型对应的权重列，将两阶段概率展平为 Steam 的单层权重：
+
+```text
+物品最终概率 = 品质概率 * 物品在该品质内的权重占比
+```
+
+生成权重统一缩放到 `1000000`，并进行整数舍入和约分。没有候选物品的品质不会被静默转移给其它品质，而是使转换失败，避免 Steam 实际概率与策划表不一致。
+
+`Item.ItemRarity` 会自动生成小写的 Steam `rarity:` 标签；`Item.SteamTags` 仅填写其它自定义标签，不要重复填写 `rarity:`。
+
+### PlaytimeGenerator 投放
+
+`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 把一条本地投放计划映射到一个 Steam PlaytimeGenerator。转换器会校验该生成器的显式 `Bundle` 等于盲盒的 `SteamOpenCostItemDefId x1`，并自动生成 Steam 的分钟级投放参数。
+
+```text
+实际投放秒数 = 本地基础秒数 * BlindBoxWaitDurationMultiplier
+Steam 资格秒数 = max(0, 实际投放秒数 - SteamPlaytimeDropLeadSeconds)
+drop_interval = max(1, ceil(Steam 资格秒数 / 60))
+```
+
+一次性计划使用 `StartSeconds`，循环计划使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成对应的发放上限；无上限循环计划生成 `use_drop_limit=false`。Steam 提前形成资格，本地 UI 仍按自己的秒级计划展示，减少倒计时结束时库存尚未同步到位的概率。
 
 验证失败时只更新 `validation-report.json`，不会覆盖 schema 文件。禁止在校验失败后上传目录中可能残留的旧 schema。
 
