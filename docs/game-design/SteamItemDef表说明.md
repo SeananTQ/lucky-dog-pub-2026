@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-31
+last_edit: 2026-08-01
 status: draft
 ---
 
@@ -100,6 +100,14 @@ Steam 后台的英文说明。内部回执可使用简短技术说明。
 
 对于已经上传到 Steamworks 的定义，`IsEnabled=FALSE` 不应使转换器将该行从完整 Steam schema 中省略，否则仍持有该库存实例的玩家可能无法取得定义信息。该字段仅用于阻止从未发布的草稿参与首次发布；已发布定义需要停止使用时，应保留定义并关闭对应的业务入口或促销资格。
 
+`SteamUseDropLimit`
+
+是否为没有被启用 Schedule 引用的 PlaytimeGenerator 显式输出 Steam `use_drop_limit`。活动中的投放上限仍由 `BlindBoxSchedule.MaxGrantCount` 自动生成，不在本字段重复维护。
+
+`SteamDropLimit`
+
+与 `SteamUseDropLimit` 配套的 Steam 永久投放上限。已发布但需要停止发放的 PlaytimeGenerator 保留原定义，并填写 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0`。非 PlaytimeGenerator、活动中的 Schedule Generator 以及不需要显式限制的定义统一填写 `FALSE/0`。
+
 ### 促销与发放
 
 `PromoRule`
@@ -192,7 +200,9 @@ BlindBox 1002.SteamOpenCostItemDefId = 402002
 PlaytimeGenerator.Bundle = 402002x1
 ```
 
-转换器依据本地投放时间、调试倍率和 Steam 提前量生成分钟级参数：
+转换器依据本地投放时间、等待倍率、Steam 提前量和掉落窗口生成分钟级参数。
+
+一次性新手 Schedule 使用：
 
 ```text
 实际投放秒数 = 本地基础秒数 * GameDevelopConfig.BlindBoxWaitDurationMultiplier
@@ -200,13 +210,25 @@ Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytime
 drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 ```
 
-一次性 Schedule 的本地基础秒数使用 `StartSeconds`；循环 Schedule 使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环则生成 `use_drop_limit=false`。Steam 资格会比本地展示时间略早形成，但客户端仍需在本地 Schedule 到点后才展示和开启盲盒。
+循环 Schedule 不使用提前量：
 
-客户端不会等待 Steam 自动发放。运行时由 `BlindBoxSchedule` 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒，通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到可开启后才与后台循环投放竞争全局请求间隔。每次回执后都读取一次完整库存；回执为空时，Schedule 保持待处理并在限频间隔后复查。空结果不能证明该 Generator 已达到 `drop_limit`，也不能被记录为一次成功处理。若完整库存已经包含当前待展示盲盒所需的券，则当前 Schedule 已经得到实际满足，应停止重复触发对应 PlaytimeGenerator。
+```text
+drop_interval = max(1, ceil(IntervalSeconds × BlindBoxWaitDurationMultiplier / 60))
+drop_window = max(1, ceil(SteamDropWindowSeconds × BlindBoxWaitDurationMultiplier / 60))
+drop_max_per_window = SteamDropMaxPerWindow
+```
+
+`SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
+
+客户端不会等待 Steam 自动发放。前 12 个一次性 Schedule 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到倒计时归零才请求。
+
+第 12 个新手奖励入账后，客户端立即请求一次长期循环 Generator，此后每个 `BlindBoxLoopIntervalSeconds` 心跳继续请求，不受当前气球影响。回执为空表示本次没有发放，不形成本地装扮债务；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。Steam 实际库存中的盲盒券数量是唯一可信的循环装扮积压。
 
 Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
 
-每条 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。旧存档中已经领取过的新手 Schedule、循环轨道已经丢弃的历史资格不会重新补触发。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存比较盲盒券数量，再决定是否重试；不会直接重放一个结果未知的写请求。
+一次性 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。循环 Generator 不保存本地发放次数，只保存下一心跳和是否存在待验证请求。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存，再决定是否重试。
+
+当前 Playtest 使用 `404014 / RecurringDecorationBlindBoxDropV2` 作为新版循环 Generator。已经发布并被旧版本调用过的 `404013` 保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放，不能删除或复用 ID。
 
 独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
 
