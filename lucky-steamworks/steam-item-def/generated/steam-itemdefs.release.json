@@ -1487,7 +1487,25 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402002x1",
-      "drop_interval": 11,
+      "use_drop_limit": true,
+      "drop_limit": 0
+    },
+    {
+      "itemdefid": 405001,
+      "type": "playtimegenerator",
+      "name": "Recurring Decoration Blind Box Drop V2",
+      "description": "Grants recurring standard blind box vouchers under the Steam playtime drop window.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "402002x1",
+      "drop_interval": 12,
+      "use_drop_window": true,
+      "drop_window": 24,
+      "drop_max_per_window": 2,
       "use_drop_limit": false
     }
   ]

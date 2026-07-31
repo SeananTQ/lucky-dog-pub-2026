@@ -24,6 +24,10 @@ public partial class SteamInventoryTestController : Control
         ExchangeBlindBox,
     }
 
+    private sealed record PlaytimeGeneratorTestOption(
+        DataTables.SteamItemDef Definition,
+        DataTables.BlindBoxSchedule Schedule);
+
     [Export] private Label _statusLabel = null!;
     [Export] private Label _identityLabel = null!;
     [Export] private Label _definitionStatusLabel = null!;
@@ -49,6 +53,7 @@ public partial class SteamInventoryTestController : Control
 
     private readonly Dictionary<int, InventoryRequestKind> _pendingRequests = new();
     private readonly Queue<string> _logLines = new();
+    private readonly List<PlaytimeGeneratorTestOption> _playtimeGeneratorOptions = new();
     private SteamItemDetails_t[] _lastInventoryItems = Array.Empty<SteamItemDetails_t>();
     private SteamworksRuntime _runtime = null!;
     private Callback<SteamInventoryDefinitionUpdate_t> _definitionUpdateCallback = null!;
@@ -179,15 +184,42 @@ public partial class SteamInventoryTestController : Control
     private void PopulatePlaytimeGeneratorOptions()
     {
         _playtimeGeneratorOption.Clear();
-        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
-                     .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
-                     .OrderBy(schedule => schedule.Id))
+        _playtimeGeneratorOptions.Clear();
+
+        var schedulesByGenerator = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+            .GroupBy(schedule => schedule.SteamPlaytimeGeneratorItemDefId)
+            .ToDictionary(group => group.Key, group => group.OrderBy(schedule => schedule.Id).First());
+        var definitions = LubanData.Tables.TbSteamItemDef.DataList
+            .Where(itemDef => itemDef.IsEnabled
+                              && itemDef.Type == DataTables.ESteamItemDefType.PlaytimeGenerator)
+            .Select(itemDef => new PlaytimeGeneratorTestOption(
+                itemDef,
+                schedulesByGenerator.GetValueOrDefault(itemDef.Id)))
+            .OrderBy(option => option.Schedule is { IsLoopTrack: true } ? 0
+                : option.Definition.SteamUseDropLimit && option.Definition.SteamDropLimit == 0 ? 1
+                : 2)
+            .ThenBy(option => option.Schedule?.Id ?? int.MaxValue)
+            .ThenBy(option => option.Definition.Id);
+
+        foreach (var option in definitions)
         {
-            var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+            var schedule = option.Schedule;
+            var box = schedule == null
+                ? null
+                : LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+            var kind = schedule is { IsLoopTrack: true }
+                ? "循环"
+                : option.Definition.SteamUseDropLimit && option.Definition.SteamDropLimit == 0
+                    ? "已退役"
+                    : "一次性";
+            var scheduleText = schedule == null ? "未被 Schedule 引用" : $"Schedule {schedule.Id}";
             var index = _playtimeGeneratorOption.ItemCount;
             _playtimeGeneratorOption.AddItem(
-                $"Schedule {schedule.Id} / {schedule.SteamPlaytimeGeneratorItemDefId} - {box?.Name ?? "缺失盲盒"}");
-            _playtimeGeneratorOption.SetItemMetadata(index, schedule.Id);
+                $"[{kind}] {option.Definition.Id} - {option.Definition.Name}；" +
+                $"{scheduleText}{(box == null ? string.Empty : $" / {box.Name}")}");
+            _playtimeGeneratorOptions.Add(option);
+            _playtimeGeneratorOption.SetItemMetadata(index, _playtimeGeneratorOptions.Count - 1);
         }
 
         if (_playtimeGeneratorOption.ItemCount > 0)
@@ -274,10 +306,10 @@ public partial class SteamInventoryTestController : Control
         if (_runtime?.IsInitialized != true || !_enablePlaytimeDropCheck.ButtonPressed)
             return;
 
-        var schedule = GetSelectedPlaytimeSchedule();
-        if (schedule == null)
+        var option = GetSelectedPlaytimeGenerator();
+        if (option == null)
         {
-            AppendLog("TriggerItemDrop：没有可用的 BlindBoxSchedule");
+            AppendLog("TriggerItemDrop：没有可用的 PlaytimeGenerator");
             return;
         }
         if (HasPendingRequest(InventoryRequestKind.TriggerPlaytimeDrop))
@@ -297,9 +329,12 @@ public partial class SteamInventoryTestController : Control
 
         var accepted = SteamInventory.TriggerItemDrop(
             out var handle,
-            (SteamItemDef_t)schedule.SteamPlaytimeGeneratorItemDefId);
+            (SteamItemDef_t)option.Definition.Id);
+        var scheduleText = option.Schedule == null
+            ? "未被启用 Schedule 引用"
+            : $"Schedule={option.Schedule.Id}";
         AppendLog(
-            $"TriggerItemDrop({schedule.SteamPlaytimeGeneratorItemDefId})：Schedule={schedule.Id}；" +
+            $"TriggerItemDrop({option.Definition.Id})：{scheduleText}；" +
             (accepted ? $"请求已接受，Handle={HandleValue(handle)}" : "请求被拒绝"));
         if (!accepted)
             return;
@@ -738,22 +773,33 @@ public partial class SteamInventoryTestController : Control
         UpdatePlaytimeDropStatus();
     }
 
-    private DataTables.BlindBoxSchedule GetSelectedPlaytimeSchedule()
+    private PlaytimeGeneratorTestOption GetSelectedPlaytimeGenerator()
     {
         if (_playtimeGeneratorOption.ItemCount == 0 || _playtimeGeneratorOption.Selected < 0)
             return null;
-        var scheduleId = (int)_playtimeGeneratorOption.GetItemMetadata(_playtimeGeneratorOption.Selected);
-        return LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
+        var optionIndex = (int)_playtimeGeneratorOption.GetItemMetadata(_playtimeGeneratorOption.Selected);
+        return optionIndex >= 0 && optionIndex < _playtimeGeneratorOptions.Count
+            ? _playtimeGeneratorOptions[optionIndex]
+            : null;
     }
 
     private void UpdatePlaytimeDropStatus()
     {
-        var schedule = GetSelectedPlaytimeSchedule();
-        var box = schedule == null ? null : LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
-        _playtimeDropStatusLabel.Text = schedule == null
-            ? "游玩投放：没有已配置的 PlaytimeGenerator"
-            : $"游玩投放：Generator {schedule.SteamPlaytimeGeneratorItemDefId} → " +
-              $"ItemDef {box?.SteamOpenCostItemDefId ?? 0}；Schedule {schedule.Id}";
+        var option = GetSelectedPlaytimeGenerator();
+        if (option == null)
+        {
+            _playtimeDropStatusLabel.Text = "游玩投放：没有已配置的 PlaytimeGenerator";
+            return;
+        }
+
+        var schedule = option.Schedule;
+        var retired = option.Definition.SteamUseDropLimit && option.Definition.SteamDropLimit == 0;
+        var scheduleText = schedule == null
+            ? "未被启用 Schedule 引用"
+            : $"Schedule {schedule.Id}{(schedule.IsLoopTrack ? "（循环）" : "（一次性）")}";
+        _playtimeDropStatusLabel.Text =
+            $"游玩投放：Generator {option.Definition.Id} → Bundle {option.Definition.Bundle}；" +
+            $"{scheduleText}{(retired ? "；drop_limit=0，预期不发放" : string.Empty)}";
     }
 
     private int GetSelectedItemDefId()

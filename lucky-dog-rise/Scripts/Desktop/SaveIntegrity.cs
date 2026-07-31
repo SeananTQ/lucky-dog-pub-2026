@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -117,6 +117,17 @@ internal static class SaveIntegrity
             NextLoopPresentationSeconds = integrityVersion >= 3
                 ? state.NextLoopPresentationSeconds
                 : 0.0,
+            NextLoopTriggerSeconds = integrityVersion >= 8
+                ? state.NextLoopTriggerSeconds
+                : 0.0,
+            LockedLoopScheduleId = integrityVersion >= 8
+                ? state.LockedLoopScheduleId
+                : 0,
+            LockedLoopBlindBoxId = integrityVersion >= 8
+                ? state.LockedLoopBlindBoxId
+                : 0,
+            LoopStageStarted = integrityVersion >= 8 && state.LoopStageStarted,
+            LoopDropVerificationPending = integrityVersion >= 8 && state.LoopDropVerificationPending,
             LoopTrackStates = (state.LoopTrackStates ?? new Dictionary<int, BlindBoxScheduleState>())
                 .OrderBy(pair => pair.Key)
                 .ToDictionary(

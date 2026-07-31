@@ -41,7 +41,7 @@ public sealed class PendingLinkTreeClaim
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -232,6 +232,9 @@ public static class SaveManager
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
         profile.BlindBoxRuntimeState.LastClaimSeconds = Math.Max(0, profile.BlindBoxRuntimeState.LastClaimSeconds);
         profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = Math.Max(0, profile.BlindBoxRuntimeState.NextLoopPresentationSeconds);
+        profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = Math.Max(
+            0,
+            profile.BlindBoxRuntimeState.NextLoopTriggerSeconds);
         profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds = Math.Max(
             0,
             profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds);
@@ -273,8 +276,53 @@ public static class SaveManager
                 profile.BlindBoxRuntimeState.ScheduleSeconds);
         }
 
-        if (loadedVersion < 8)
-            profile.Version = 8;
+        if (loadedVersion < 9)
+        {
+            profile.BlindBoxRuntimeState.LoopTrackStates.Clear();
+            profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts.Clear();
+            profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds = 0.0;
+            profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = 0.0;
+            profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = 0.0;
+            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
+            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+            profile.BlindBoxRuntimeState.LoopStageStarted = false;
+            profile.BlindBoxRuntimeState.LoopDropVerificationPending = false;
+            if (profile.PendingPlatformBlindBoxOpen != null)
+                profile.PendingPlatformBlindBoxOpen.IsDeferredBacklog = false;
+            profile.Version = 9;
+            GD.Print("[Save] Migrated blind-box loop state to fixed display points and Steam voucher backlog.");
+        }
+
+        var newPlayerScheduleCount = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(
+            schedule => schedule.IsEnabled && !schedule.IsLoopTrack);
+        if (profile.BlindBoxRuntimeState.SequenceIndex < newPlayerScheduleCount)
+        {
+            profile.BlindBoxRuntimeState.LoopStageStarted = false;
+            profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = 0.0;
+            profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = 0.0;
+            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
+            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+            profile.BlindBoxRuntimeState.LoopDropVerificationPending = false;
+        }
+        else if (!profile.BlindBoxRuntimeState.LoopStageStarted)
+        {
+            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
+            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+        }
+
+        var lockedLoopSchedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(
+            profile.BlindBoxRuntimeState.LockedLoopScheduleId);
+        var lockedLoopBox = LubanData.Tables.TbBlindBox.GetOrDefault(
+            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId);
+        if (lockedLoopSchedule is not { IsEnabled: true, IsLoopTrack: true }
+            || lockedLoopBox is not { IsEnabled: true })
+        {
+            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
+            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+        }
+
+        if (loadedVersion < CurrentVersion)
+            profile.Version = CurrentVersion;
 
         if (profile.PendingBlindBoxReward != null)
         {
