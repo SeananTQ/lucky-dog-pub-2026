@@ -752,8 +752,24 @@ text = "▶ BlindBox Debug"
 
 [node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
 visible = false
-custom_minimum_size = Vector2(0, 300)
+custom_minimum_size = Vector2(0, 330)
 layout_mode = 2
+
+[node name="BlindBoxFallbackRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+layout_mode = 2
+
+[node name="BlindBoxFallbackLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "启用消耗品盲盒兜底"
+autowrap_mode = 3
+
+[node name="BlindBoxFallbackToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
 
 [node name="BlindBoxDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent" unique_id=299064770]
 custom_minimum_size = Vector2(0, 260)

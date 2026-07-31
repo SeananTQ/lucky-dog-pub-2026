@@ -41,7 +41,7 @@ public sealed class PendingLinkTreeClaim
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -181,6 +181,7 @@ public static class SaveManager
         profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
         profile.BlindBoxRuntimeState.SteamPlaytimeDropStates ??=
             new Dictionary<int, BlindBoxSteamPlaytimeDropState>();
+        profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts ??= new Dictionary<int, int>();
         profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 
         var validIds = LubanData.Tables.TbItem.DataList
@@ -231,6 +232,9 @@ public static class SaveManager
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
         profile.BlindBoxRuntimeState.LastClaimSeconds = Math.Max(0, profile.BlindBoxRuntimeState.LastClaimSeconds);
         profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = Math.Max(0, profile.BlindBoxRuntimeState.NextLoopPresentationSeconds);
+        profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds = Math.Max(
+            0,
+            profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds);
         profile.BlindBoxRuntimeState.LoopTrackStates = profile.BlindBoxRuntimeState.LoopTrackStates
             .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
             .OrderBy(pair => pair.Key)
@@ -250,6 +254,11 @@ public static class SaveManager
                 {
                     ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
                 });
+        profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts =
+            profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts
+                .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value > 0)
+                .OrderBy(pair => pair.Key)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
 
         if (loadedVersion < 5)
         {
@@ -263,6 +272,9 @@ public static class SaveManager
                 0.0,
                 profile.BlindBoxRuntimeState.ScheduleSeconds);
         }
+
+        if (loadedVersion < 8)
+            profile.Version = 8;
 
         if (profile.PendingBlindBoxReward != null)
         {

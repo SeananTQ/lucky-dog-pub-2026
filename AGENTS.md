@@ -276,7 +276,8 @@ lucky-dog-rise/
 - Steam 游玩投放由 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 驱动，通过共享平台服务调用 `TriggerItemDrop`，不使用 `AddPromoItem` 生成盲盒券。每条 Schedule 的处理进度保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`；超时或重连后先比较完整库存数量，再决定重试。
 - `TriggerItemDrop` 返回成功但结果为空，只表示本次没有发放，不能据此把对应 `BlindBoxSchedule` 标记为已处理。每次回执后都应读取一次完整库存；下一条新手 Schedule 在本地倒计时期间就要参与缺券恢复，避免后台循环投放占用全局请求间隔。当前待展示的 Steam 盲盒缺少成本物品时，应保持该 Schedule 待处理并按 Steam 分钟粒度限频重试。若完整库存已经包含当前盲盒券，则应完成该 Schedule 的投放进度并停止重复触发；旧状态若与“当前 Schedule 未开启且券不存在”矛盾，应恢复该条投放进度。
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。
-- Steam 映射物品以平台库存数量为准同步到本地背包。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
+- Steam 获得的非 Initial 装扮物品以平台库存数量为准同步到本地背包。`AcquisitionType=RefreshmentBlindBox` 的消耗品属于本地奖励，即使表中暂时存在 `SteamItemDefId` 也不参与 Steam 数量对账。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
+- 本地装扮资格到点但对应 Steam 券尚不可用时，以本地 Refreshment 盲盒完成前台兜底，并把原 Schedule 记入待补队列；Steam 恢复并取得券后，经过积压短间隔优先展示待补装扮盲盒。Dev 调试页可关闭兜底观察原始 Steam 等待状态，Playtest/Release 始终启用。
 - `Item.AcquisitionType=Initial` 的基础物品是永久本地权益，不参与 Steam 数量对账。存档加载时始终静默补齐 Initial 物品；即使这些行配置了 `SteamItemDefId`，Steam 缺少对应实例也不得删除基础物品、清空必选装备位或添加 New 标记。
 - `--disable-steam` 是显式离线开发模式，不参与自动恢复。Dev 渠道可保留表现层模拟；Playtest/Release 在 Steam 库存不可用时采用失败关闭，避免回退为可重复领取的内存实现。
 

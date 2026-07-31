@@ -102,6 +102,7 @@ public partial class SystemPanelController : CanvasLayer
     private Button _blindBoxDebugToggle = null!;
     private Control _blindBoxDebugContent = null!;
     private Label _blindBoxDebugLabel = null!;
+    private CheckButton _blindBoxFallbackToggle = null!;
     private Label _playerProgressDebugLabel = null!;
     private OptionButton _playerProgressMultiplierOption = null!;
     private LineEdit _seedInput = null!;
@@ -145,7 +146,12 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
             EnsureCurrentTabReady();
             if (IsNodeReady())
+            {
                 BuildArmAppearanceOptions();
+#if DEBUG
+                RefreshBlindBoxFallbackToggle();
+#endif
+            }
         }
     }
 
@@ -400,6 +406,7 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxDebugToggle = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugToggle");
         _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
         _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
+        _blindBoxFallbackToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow/BlindBoxFallbackToggle");
         _playerProgressDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressDebugLabel");
         _playerProgressMultiplierOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressMultiplierRow/PlayerProgressMultiplierOption");
         var seedCopyBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedRow/SeedCopyBtn");
@@ -450,6 +457,15 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.SetPlayerProgressDebugMultiplier(_playerProgressMultiplierOption.GetSelectedId());
         resetPlayerProgressBtn.Pressed += ConfirmResetPlayerProgress;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
+        RefreshBlindBoxFallbackToggle();
+        _blindBoxFallbackToggle.Toggled += enabled =>
+        {
+            if (_gameData == null)
+                return;
+
+            _gameData.SetBlindBoxFallbackEnabled(enabled);
+            RefreshBlindBoxDebugStatus();
+        };
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
         randomAcquireItemBtn.Pressed += () => EmitSignal(SignalName.RandomAcquireItemRequested);
@@ -1305,6 +1321,14 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         _blindBoxDebugLabel.Text = _gameData.GetBlindBoxDebugStatus();
+    }
+
+    private void RefreshBlindBoxFallbackToggle()
+    {
+        if (_blindBoxFallbackToggle == null || _gameData == null)
+            return;
+
+        _blindBoxFallbackToggle.SetPressedNoSignal(_gameData.IsBlindBoxFallbackEnabled);
     }
 #endif
 

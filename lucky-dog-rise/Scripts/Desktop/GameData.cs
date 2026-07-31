@@ -60,6 +60,7 @@ public partial class GameData : Node
     private readonly Dictionary<int, double> _playtimeDropRetryAtSeconds = new();
     private readonly Dictionary<int, int> _playtimeDropEmptyResultCounts = new();
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
+    private bool _blindBoxFallbackEnabled = true;
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
     private double _saveTimer;
@@ -225,41 +226,81 @@ public partial class GameData : Node
             _blindBoxRuntimeState,
             PendingBlindBoxReward);
         var hintState = GetBlindBoxHintState();
+        var deferredText = _blindBoxRuntimeState.DeferredPlatformScheduleCounts.Count == 0
+            ? "无"
+            : string.Join(
+                ", ",
+                _blindBoxRuntimeState.DeferredPlatformScheduleCounts
+                    .OrderBy(pair => pair.Key)
+                    .Select(pair => $"{pair.Key}x{pair.Value}"));
+        var statusText = $"{debugStatus}\n兜底: {(_blindBoxFallbackEnabled ? "开启" : "关闭")}" +
+                         $"\nSteam待补: {deferredText}\n入口最终状态: {hintState.Status}";
         if (hintState.Box == null || !UsesSteamInventoryExchange(hintState.Box))
-            return $"{debugStatus}\n入口最终状态: {hintState.Status}";
+            return statusText;
 
         var voucherItemDefId = hintState.Box.SteamOpenCostItemDefId;
         var voucherQuantity = GetPlatformInventoryQuantity(voucherItemDefId);
-        return $"{debugStatus}\n入口最终状态: {hintState.Status}" +
-               $"\nSteam券: ItemDef={voucherItemDefId}, Qty={voucherQuantity}";
+        return statusText + $"\nSteam券: ItemDef={voucherItemDefId}, Qty={voucherQuantity}";
+    }
+
+    public bool IsBlindBoxFallbackEnabled => _blindBoxFallbackEnabled;
+
+    public void SetBlindBoxFallbackEnabled(bool enabled)
+    {
+        if (_blindBoxFallbackEnabled == enabled)
+            return;
+
+        _blindBoxFallbackEnabled = enabled;
+        GD.Print($"[BlindBox] Local Refreshment fallback {(enabled ? "enabled" : "disabled")} for Dev testing.");
+        EmitSignal(SignalName.BlindBoxStateChanged);
     }
 #endif
 
     public BlindBoxHintState GetBlindBoxHintState()
     {
-        var state = _blindBoxService.GetHintState(
-            _blindBoxRuntimeState,
-            PendingBlindBoxReward);
-        if (state.Status != BlindBoxHintStatus.Ready || state.Box == null)
-            return PendingPlatformBlindBoxOpen == null
-                ? state
-                : new BlindBoxHintState
-                {
-                    Status = BlindBoxHintStatus.Opening,
-                    Box = LubanData.Tables.TbBlindBox.GetOrDefault(PendingPlatformBlindBoxOpen.BlindBoxId),
-                    Cost = PendingPlatformBlindBoxOpen.ReservedChipCost,
-                };
-
-        if (!UsesSteamInventoryExchange(state.Box))
-            return state;
         if (PendingPlatformBlindBoxOpen != null)
+        {
             return new BlindBoxHintState
             {
                 Status = BlindBoxHintStatus.Opening,
-                Box = state.Box,
-                Cost = state.Cost,
-                RemainingSeconds = state.RemainingSeconds,
+                Box = LubanData.Tables.TbBlindBox.GetOrDefault(PendingPlatformBlindBoxOpen.BlindBoxId),
+                Cost = PendingPlatformBlindBoxOpen.ReservedChipCost,
             };
+        }
+
+        var state = _blindBoxService.GetHintState(
+            _blindBoxRuntimeState,
+            PendingBlindBoxReward);
+        if (state.Status == BlindBoxHintStatus.PendingReward)
+            return state;
+
+        if (TryGetDeferredPlatformBlindBoxWithVoucher(out _, out var deferredBox))
+        {
+            if (_blindBoxService.IsDeferredPlatformPresentationReady(_blindBoxRuntimeState))
+                return _blindBoxService.CreateReadyHintState(deferredBox!);
+
+            return new BlindBoxHintState
+            {
+                Status = BlindBoxHintStatus.Waiting,
+                RemainingSeconds = _blindBoxService.GetDeferredPlatformPresentationRemainingSeconds(
+                    _blindBoxRuntimeState),
+            };
+        }
+
+        if (state.Status == BlindBoxHintStatus.Waiting)
+            return state;
+        if (state.Status is not (BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
+            || state.Box == null)
+        {
+            return state;
+        }
+
+        if (!UsesSteamInventoryExchange(state.Box))
+            return state;
+        if (CanOpenPlatformBlindBox(state.Box))
+            return state;
+        if (_blindBoxFallbackEnabled && _blindBoxService.GetFallbackRefreshmentBox() is { } fallbackBox)
+            return _blindBoxService.CreateReadyHintState(fallbackBox);
         if (_platformInventoryService?.IsInventoryReady != true)
         {
             var status = _recoverablePlatformService?.ConnectionState
@@ -275,17 +316,13 @@ public partial class GameData : Node
             };
         }
 
-        var ownsCostItem = _platformInventoryService.InventoryItems.Any(item =>
-            item.ItemDefId == state.Box.SteamOpenCostItemDefId && item.Quantity > 0);
-        return ownsCostItem
-            ? state
-            : new BlindBoxHintState
-            {
-                Status = BlindBoxHintStatus.PlatformSyncing,
-                Box = state.Box,
-                Cost = state.Cost,
-                RemainingSeconds = state.RemainingSeconds,
-            };
+        return new BlindBoxHintState
+        {
+            Status = BlindBoxHintStatus.PlatformSyncing,
+            Box = state.Box,
+            Cost = state.Cost,
+            RemainingSeconds = state.RemainingSeconds,
+        };
     }
 
     public PendingBlindBoxReward TryOpenBlindBox()
@@ -296,12 +333,34 @@ public partial class GameData : Node
         if (PendingPlatformBlindBoxOpen != null)
             return null;
 
+        if (TryGetDeferredPlatformBlindBoxWithVoucher(out var deferredSchedule, out var deferredBox))
+        {
+            if (!_blindBoxService.IsDeferredPlatformPresentationReady(_blindBoxRuntimeState))
+                return null;
+
+            BeginPlatformBlindBoxOpen(deferredSchedule!, deferredBox!, isDeferredBacklog: true);
+            return null;
+        }
+
         if (_blindBoxService.TryGetNextAvailable(_blindBoxRuntimeState, out var schedule, out var box)
             && schedule != null
             && box != null
             && UsesSteamInventoryExchange(box))
         {
-            BeginPlatformBlindBoxOpen(schedule, box);
+            if (CanOpenPlatformBlindBox(box))
+            {
+                if (BeginPlatformBlindBoxOpen(schedule, box, isDeferredBacklog: false))
+                    return null;
+
+                if (_blindBoxFallbackEnabled)
+                    return TryOpenFallbackBlindBox(schedule, box);
+                return null;
+            }
+
+            if (_blindBoxFallbackEnabled)
+                return TryOpenFallbackBlindBox(schedule, box);
+
+            _recoverablePlatformService?.RequestReconnect();
             return null;
         }
 
@@ -309,6 +368,39 @@ public partial class GameData : Node
         if (result == null)
             return null;
 
+        return FinalizeLocalBlindBoxOpen(result);
+    }
+
+    private PendingBlindBoxReward TryOpenFallbackBlindBox(
+        BlindBoxSchedule originalSchedule,
+        BlindBox originalBox)
+    {
+        var fallbackBox = _blindBoxService.GetFallbackRefreshmentBox();
+        if (fallbackBox == null)
+        {
+            GD.PushError("[BlindBox] Steam voucher is unavailable and no local Refreshment fallback is configured.");
+            return null;
+        }
+
+        var result = _blindBoxService.TryOpenFallback(
+            TotalPlaySeconds,
+            originalSchedule,
+            fallbackBox);
+        if (result == null)
+            return null;
+
+        var deferred = _blindBoxService.DeferCurrentPlatformSchedule(
+            _blindBoxRuntimeState,
+            originalSchedule);
+        GD.Print(
+            $"[BlindBox] Opened local fallback Box={fallbackBox.Id} for Schedule={originalSchedule.Id}; " +
+            $"Steam Box={originalBox.Id}, ItemDef={originalBox.SteamOpenCostItemDefId}, " +
+            $"deferred={(deferred ? "yes" : "capped")}.");
+        return FinalizeLocalBlindBoxOpen(result);
+    }
+
+    private PendingBlindBoxReward FinalizeLocalBlindBoxOpen(BlindBoxOpenResult result)
+    {
         PendingBlindBoxReward = result.PendingReward;
         _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule);
         if (CanRecordPlayerProgress)
@@ -321,24 +413,27 @@ public partial class GameData : Node
         return PendingBlindBoxReward;
     }
 
-    private void BeginPlatformBlindBoxOpen(BlindBoxSchedule schedule, BlindBox box)
+    private bool BeginPlatformBlindBoxOpen(
+        BlindBoxSchedule schedule,
+        BlindBox box,
+        bool isDeferredBacklog)
     {
         if (_platformInventoryService?.IsInventoryReady != true)
         {
             _recoverablePlatformService?.RequestReconnect();
-            return;
+            return false;
         }
 
         var cost = GetBlindBoxDisplayCost(box);
         if (Chips < cost)
-            return;
+            return false;
 
         var input = _platformInventoryService.InventoryItems.FirstOrDefault(item =>
             item.ItemDefId == box.SteamOpenCostItemDefId && item.Quantity > 0);
         if (input.InstanceId == 0)
         {
             GD.PushWarning($"[BlindBox] Steam inventory has no ItemDef={box.SteamOpenCostItemDefId} to open box {box.Id}.");
-            return;
+            return false;
         }
 
         PendingPlatformBlindBoxOpen = new PendingPlatformBlindBoxOpen
@@ -355,6 +450,7 @@ public partial class GameData : Node
                     group => group.Key,
                     group => group.Aggregate(0u, (quantity, item) => checked(quantity + item.Quantity))),
             TotalPlaySeconds = TotalPlaySeconds,
+            IsDeferredBacklog = isDeferredBacklog,
         };
         if (cost > 0)
             ModifyChips(-cost);
@@ -368,11 +464,38 @@ public partial class GameData : Node
         {
             CancelPendingPlatformBlindBoxOpen(refundReservedChips: true);
             GD.PushWarning($"[BlindBox] {message}");
-            return;
+            return false;
         }
 
         GD.Print($"[BlindBox] {message}");
         EmitSignal(SignalName.BlindBoxStateChanged);
+        return true;
+    }
+
+    private bool CanOpenPlatformBlindBox(BlindBox box) =>
+        _platformInventoryService?.IsInventoryReady == true
+        && GetPlatformInventoryQuantity(box.SteamOpenCostItemDefId) > 0;
+
+    private bool TryGetDeferredPlatformBlindBoxWithVoucher(
+        out BlindBoxSchedule schedule,
+        out BlindBox box)
+    {
+        schedule = null;
+        box = null;
+        if (_platformInventoryService?.IsInventoryReady != true)
+            return false;
+
+        foreach (var candidate in _blindBoxService.GetDeferredPlatformSchedules(_blindBoxRuntimeState))
+        {
+            if (GetPlatformInventoryQuantity(candidate.Box.SteamOpenCostItemDefId) <= 0)
+                continue;
+
+            schedule = candidate.Schedule;
+            box = candidate.Box;
+            return true;
+        }
+
+        return false;
     }
 
     private void MaintainSteamPlaytimeDrops()
@@ -544,6 +667,7 @@ public partial class GameData : Node
         {
             GD.PushWarning($"[BlindBox] {result.Message}");
             CancelPendingPlatformBlindBoxOpen(refundReservedChips: true);
+            TryStartFallbackAfterPlatformOpenFailure(transaction);
             return;
         }
 
@@ -599,8 +723,22 @@ public partial class GameData : Node
         {
             GD.Print("[BlindBox] Steam inventory confirms the exchange did not consume its input; reopening is available.");
             CancelPendingPlatformBlindBoxOpen(refundReservedChips: true);
+            TryStartFallbackAfterPlatformOpenFailure(transaction);
         }
         ReconcilePlatformInventory(snapshot.Items);
+    }
+
+    private void TryStartFallbackAfterPlatformOpenFailure(PendingPlatformBlindBoxOpen transaction)
+    {
+        if (!_blindBoxFallbackEnabled || transaction.IsDeferredBacklog)
+            return;
+
+        var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(transaction.ScheduleId);
+        var box = LubanData.Tables.TbBlindBox.GetOrDefault(transaction.BlindBoxId);
+        if (schedule == null || box == null || TryOpenFallbackBlindBox(schedule, box) == null)
+            return;
+
+        EmitSignal(SignalName.BlindBoxRewardReady);
     }
 
     private bool TryFinalizePlatformBlindBoxOpen(PlatformInventoryItem reward)
@@ -632,7 +770,20 @@ public partial class GameData : Node
         PendingBlindBoxReward = result.PendingReward;
         PendingBlindBoxReward.IsPlatformInventoryReward = true;
         PendingPlatformBlindBoxOpen = null;
-        _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, schedule);
+        if (transaction.IsDeferredBacklog)
+        {
+            if (!_blindBoxService.CompleteDeferredPlatformSchedule(
+                    _blindBoxRuntimeState,
+                    transaction.ScheduleId))
+            {
+                GD.PushWarning(
+                    $"[BlindBox] Deferred Steam reward completed without backlog state for Schedule={transaction.ScheduleId}.");
+            }
+        }
+        else
+        {
+            _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, schedule);
+        }
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -727,9 +878,10 @@ public partial class GameData : Node
 
         var mappedItems = LubanData.Tables.TbItem.DataList
             // Initial items are permanent local entitlements. Steam owns the quantity of
-            // earned items only; a missing Steam instance must not remove a base visual.
+            // earned decorations only; local Refreshment rewards must survive inventory sync.
             .Where(item => item.SteamItemDefId > 0
-                           && item.AcquisitionType != EAcquisitionType.Initial)
+                           && item.AcquisitionType != EAcquisitionType.Initial
+                           && item.AcquisitionType != EAcquisitionType.RefreshmentBlindBox)
             .ToArray();
         if (mappedItems.Length == 0)
             return;

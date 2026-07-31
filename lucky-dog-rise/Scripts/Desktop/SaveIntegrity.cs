@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -105,7 +105,7 @@ internal static class SaveIntegrity
     private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state, int integrityVersion)
     {
         state ??= new BlindBoxRuntimeState();
-        return new BlindBoxRuntimeState
+        var canonical = new BlindBoxRuntimeState
         {
             SequenceIndex = state.SequenceIndex,
             // v1-v3 存档没有连续调度时钟，验签时保持省略。
@@ -126,7 +126,25 @@ internal static class SaveIntegrity
                         PendingCount = pair.Value?.PendingCount ?? 0,
                         ProcessedGrantCount = pair.Value?.ProcessedGrantCount ?? 0,
                     }),
+            SteamPlaytimeDropStates = integrityVersion >= 7
+                ? (state.SteamPlaytimeDropStates ?? new Dictionary<int, BlindBoxSteamPlaytimeDropState>())
+                    .OrderBy(pair => pair.Key)
+                    .ToDictionary(
+                        pair => pair.Key,
+                        pair => new BlindBoxSteamPlaytimeDropState
+                        {
+                            ProcessedGrantCount = pair.Value?.ProcessedGrantCount ?? 0,
+                        })
+                : new Dictionary<int, BlindBoxSteamPlaytimeDropState>(),
+            DeferredPlatformScheduleCounts = integrityVersion >= 7
+                ? SortDictionary(state.DeferredPlatformScheduleCounts)
+                : null!,
+            NextDeferredPlatformPresentationSeconds = integrityVersion >= 7
+                ? state.NextDeferredPlatformPresentationSeconds
+                : 0.0,
         };
+
+        return canonical;
     }
 
     private static PendingBlindBoxReward? CanonicalizePendingReward(PendingBlindBoxReward? pending)
@@ -179,6 +197,7 @@ internal static class SaveIntegrity
                 .OrderBy(pair => pair.Key)
                 .ToDictionary(pair => pair.Key, pair => pair.Value),
             TotalPlaySeconds = pending.TotalPlaySeconds,
+            IsDeferredBacklog = pending.IsDeferredBacklog,
         };
     }
 }
