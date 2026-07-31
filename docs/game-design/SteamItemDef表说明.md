@@ -228,7 +228,7 @@ Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerIt
 
 一次性 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。循环 Generator 不保存本地发放次数，只保存下一心跳和是否存在待验证请求。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存，再决定是否重试。
 
-当前 Playtest 使用 `404014 / RecurringDecorationBlindBoxDropV2` 作为新版循环 Generator。已经发布并被旧版本调用过的 `404013` 保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放，不能删除或复用 ID。
+当前 Playtest 的新版循环 Generator 使用稳定机器名 `RecurringDecorationBlindBoxDropV2`，并由 `BlindBoxSchedule` 中唯一启用的循环行引用。已经发布并被旧版本调用过的旧版循环 Generator 仍保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放；已发布的 ItemDef ID 不能删除、复用或改作其他定义。
 
 独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
 
