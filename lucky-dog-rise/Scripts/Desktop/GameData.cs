@@ -9,6 +9,15 @@ namespace LuckyDogRise;
 
 public partial class GameData : Node
 {
+    private sealed class PendingPlatformPlaytimeDrop
+    {
+        public int ScheduleId { get; init; }
+        public int GrantCount { get; init; }
+        public int GeneratorItemDefId { get; init; }
+        public int OutputItemDefId { get; init; }
+        public uint OutputQuantityBefore { get; init; }
+    }
+
     public const int StartingChips = 2800;
 #if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
@@ -47,7 +56,9 @@ public partial class GameData : Node
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
-    private readonly HashSet<int> _promoGrantAttempts = new();
+    private PendingPlatformPlaytimeDrop _pendingPlatformPlaytimeDrop;
+    private readonly Dictionary<int, double> _playtimeDropRetryAtSeconds = new();
+    private readonly Dictionary<int, int> _playtimeDropEmptyResultCounts = new();
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
     private double _saveTimer;
@@ -89,7 +100,7 @@ public partial class GameData : Node
         if (_blindBoxTickTimer <= 0.0)
         {
             _blindBoxTickTimer = BlindBoxTickSeconds;
-            MaintainPlatformBlindBoxVoucher();
+            MaintainSteamPlaytimeDrops();
             EmitSignal(SignalName.BlindBoxStateChanged);
         }
 
@@ -138,7 +149,7 @@ public partial class GameData : Node
             return;
 
         _platformInventoryService.InventorySnapshotChanged += OnPlatformInventorySnapshotChanged;
-        _platformInventoryService.PromoItemGrantCompleted += OnPlatformPromoItemGrantCompleted;
+        _platformInventoryService.PlaytimeDropCompleted += OnPlatformPlaytimeDropCompleted;
         _platformInventoryService.InventoryExchangeCompleted += OnPlatformInventoryExchangeCompleted;
         _platformInventoryService.StartInventorySynchronization();
 
@@ -243,6 +254,14 @@ public partial class GameData : Node
 
         var ownsCostItem = _platformInventoryService.InventoryItems.Any(item =>
             item.ItemDefId == state.Box.SteamOpenCostItemDefId && item.Quantity > 0);
+        if (!ownsCostItem
+            && (_pendingPlatformPlaytimeDrop != null
+                || _platformInventoryService.IsPlaytimeDropPending
+                || _playtimeDropRetryAtSeconds.Values.Any(retryAt =>
+                    retryAt > Time.GetTicksMsec() / 1000.0)))
+        {
+            return new BlindBoxHintState { Status = BlindBoxHintStatus.PlatformSyncing, Box = state.Box };
+        }
         return ownsCostItem
             ? state
             : new BlindBoxHintState { Status = BlindBoxHintStatus.PlatformUnavailable, Box = state.Box };
@@ -335,36 +354,108 @@ public partial class GameData : Node
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
-    private void MaintainPlatformBlindBoxVoucher()
+    private void MaintainSteamPlaytimeDrops()
     {
         if (PendingBlindBoxReward != null
             || PendingPlatformBlindBoxOpen != null
             || _platformInventoryService?.IsInventoryReady != true
-            || !_blindBoxService.TryGetNextAvailable(_blindBoxRuntimeState, out _, out var box)
+            || _pendingPlatformPlaytimeDrop != null
+            || _platformInventoryService.IsPlaytimeDropPending
+            || !_blindBoxService.TryGetNextSteamPlaytimeDrop(
+                _blindBoxRuntimeState,
+                out var schedule,
+                out var box,
+                out var grantCount)
+            || schedule == null
             || box == null
             || !UsesSteamInventoryExchange(box)
-            || _platformInventoryService.InventoryItems.Any(item =>
-                item.ItemDefId == box.SteamOpenCostItemDefId && item.Quantity > 0)
-            || _promoGrantAttempts.Contains(box.SteamOpenCostItemDefId)
             || _platformInventoryService.IsPromoGrantPending
             || _platformInventoryService.IsExchangePending)
         {
             return;
         }
 
-        if (_platformInventoryService.TryGrantPromoItem(box.SteamOpenCostItemDefId, out var message))
-        {
-            _promoGrantAttempts.Add(box.SteamOpenCostItemDefId);
-            GD.Print($"[BlindBox] {message}");
-        }
-    }
-
-    private void OnPlatformPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
-    {
-        if (!_promoGrantAttempts.Contains(result.ItemDefId))
+        var now = Time.GetTicksMsec() / 1000.0;
+        if (_playtimeDropRetryAtSeconds.TryGetValue(schedule.Id, out var retryAt) && now < retryAt)
             return;
 
+        var outputQuantity = GetPlatformInventoryQuantity(box.SteamOpenCostItemDefId);
+        if (!_platformInventoryService.TryTriggerPlaytimeDrop(
+                schedule.SteamPlaytimeGeneratorItemDefId,
+                box.SteamOpenCostItemDefId,
+                out var message))
+        {
+            _playtimeDropRetryAtSeconds[schedule.Id] = now + 5.0;
+            _recoverablePlatformService?.RequestReconnect();
+            return;
+        }
+
+        _pendingPlatformPlaytimeDrop = new PendingPlatformPlaytimeDrop
+        {
+            ScheduleId = schedule.Id,
+            GrantCount = grantCount,
+            GeneratorItemDefId = schedule.SteamPlaytimeGeneratorItemDefId,
+            OutputItemDefId = box.SteamOpenCostItemDefId,
+            OutputQuantityBefore = outputQuantity,
+        };
+        GD.Print($"[BlindBox] Schedule={schedule.Id}, Grant={grantCount}: {message}");
+        EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    private void OnPlatformPlaytimeDropCompleted(PlatformPlaytimeDropResult result)
+    {
+        var pending = _pendingPlatformPlaytimeDrop;
+        if (pending == null
+            || pending.GeneratorItemDefId != result.GeneratorItemDefId
+            || pending.OutputItemDefId != result.OutputItemDefId)
+        {
+            return;
+        }
+
+        _pendingPlatformPlaytimeDrop = null;
         GD.Print($"[BlindBox] {result.Message}");
+        if (result.Succeeded && result.ItemGranted)
+        {
+            CompleteSteamPlaytimeDrop(pending.ScheduleId, pending.GrantCount);
+            if (GetPlatformInventoryQuantity(pending.OutputItemDefId) <= pending.OutputQuantityBefore)
+                _platformInventoryService?.StartInventorySynchronization();
+            return;
+        }
+
+        var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(pending.ScheduleId);
+        if (result.Succeeded
+            && schedule != null
+            && _blindBoxService.IsSteamPlaytimeDropDue(
+                _blindBoxRuntimeState,
+                schedule,
+                pending.GrantCount))
+        {
+            var emptyResultCount = _playtimeDropEmptyResultCounts.GetValueOrDefault(pending.ScheduleId) + 1;
+            _playtimeDropEmptyResultCounts[pending.ScheduleId] = emptyResultCount;
+            if (emptyResultCount >= 3)
+            {
+                GD.Print(
+                    $"[BlindBox] PlaytimeGenerator {pending.GeneratorItemDefId} returned no item " +
+                    "three times after the local due time; treating this grant as already handled by Steam.");
+                CompleteSteamPlaytimeDrop(pending.ScheduleId, pending.GrantCount);
+            }
+            else
+            {
+                _playtimeDropRetryAtSeconds[pending.ScheduleId] = Time.GetTicksMsec() / 1000.0 + 15.0;
+                EmitSignal(SignalName.BlindBoxStateChanged);
+            }
+            return;
+        }
+
+        var retryDelay = schedule == null
+            ? 5.0
+            : _blindBoxService.GetSteamPlaytimeDropRetryDelaySeconds(
+                _blindBoxRuntimeState,
+                schedule,
+                pending.GrantCount);
+        _playtimeDropRetryAtSeconds[pending.ScheduleId] = Time.GetTicksMsec() / 1000.0 + retryDelay;
+        if (!result.Succeeded)
+            _recoverablePlatformService?.RequestReconnect();
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
@@ -399,6 +490,8 @@ public partial class GameData : Node
     {
         if (!snapshot.Succeeded)
             return;
+
+        ReconcilePendingPlaytimeDrop(snapshot.Items);
 
         if (PendingPlatformBlindBoxOpen is not { } transaction)
         {
@@ -502,11 +595,44 @@ public partial class GameData : Node
         if (_platformInventoryService != null)
         {
             _platformInventoryService.InventorySnapshotChanged -= OnPlatformInventorySnapshotChanged;
-            _platformInventoryService.PromoItemGrantCompleted -= OnPlatformPromoItemGrantCompleted;
+            _platformInventoryService.PlaytimeDropCompleted -= OnPlatformPlaytimeDropCompleted;
             _platformInventoryService.InventoryExchangeCompleted -= OnPlatformInventoryExchangeCompleted;
         }
         _platformInventoryService = null;
         _recoverablePlatformService = null;
+        _pendingPlatformPlaytimeDrop = null;
+    }
+
+    private void ReconcilePendingPlaytimeDrop(IReadOnlyList<PlatformInventoryItem> platformItems)
+    {
+        var pending = _pendingPlatformPlaytimeDrop;
+        if (pending == null || _platformInventoryService?.IsPlaytimeDropPending == true)
+            return;
+
+        var quantityNow = checked((uint)platformItems
+            .Where(item => item.ItemDefId == pending.OutputItemDefId)
+            .Sum(item => (long)item.Quantity));
+        _pendingPlatformPlaytimeDrop = null;
+        if (quantityNow > pending.OutputQuantityBefore)
+        {
+            CompleteSteamPlaytimeDrop(pending.ScheduleId, pending.GrantCount);
+            return;
+        }
+
+        _playtimeDropRetryAtSeconds[pending.ScheduleId] = Time.GetTicksMsec() / 1000.0 + 5.0;
+    }
+
+    private uint GetPlatformInventoryQuantity(int itemDefId) => checked((uint)(_platformInventoryService?.InventoryItems
+        .Where(item => item.ItemDefId == itemDefId)
+        .Sum(item => (long)item.Quantity) ?? 0L));
+
+    private void CompleteSteamPlaytimeDrop(int scheduleId, int grantCount)
+    {
+        _blindBoxService.CompleteSteamPlaytimeDrop(_blindBoxRuntimeState, scheduleId, grantCount);
+        _playtimeDropRetryAtSeconds.Remove(scheduleId);
+        _playtimeDropEmptyResultCounts.Remove(scheduleId);
+        SaveImmediatelyIfUsingLocalSave();
+        EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
     private static bool UsesSteamInventoryExchange(BlindBox box) =>
@@ -739,6 +865,7 @@ public partial class GameData : Node
 #if DEBUG
     public void ResetToStart()
     {
+        ResetPlaytimeDropTransientState();
         Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
@@ -774,6 +901,7 @@ public partial class GameData : Node
     public void ResetLocalSave()
     {
         FlushSave();
+        ResetPlaytimeDropTransientState();
         var profile = SaveManager.ResetLocalSave();
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
         {
@@ -790,6 +918,7 @@ public partial class GameData : Node
 
     private void LoadDataForCurrentMode()
     {
+        ResetPlaytimeDropTransientState();
 #if !DEBUG
         var profile = SaveManager.LoadOrCreate();
         Chips = profile.Chips;
@@ -822,6 +951,13 @@ public partial class GameData : Node
         _saveDirty = false;
         _saveTimer = 0.0;
 #endif
+    }
+
+    private void ResetPlaytimeDropTransientState()
+    {
+        _pendingPlatformPlaytimeDrop = null;
+        _playtimeDropRetryAtSeconds.Clear();
+        _playtimeDropEmptyResultCounts.Clear();
     }
 
     private void OnInventoryEquipmentChanged()

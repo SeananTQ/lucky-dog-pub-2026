@@ -202,6 +202,12 @@ drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 
 一次性 Schedule 的本地基础秒数使用 `StartSeconds`；循环 Schedule 使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环则生成 `use_drop_limit=false`。Steam 资格会比本地展示时间略早形成，但客户端仍需在本地 Schedule 到点后才展示和开启盲盒。
 
+客户端不会等待 Steam 自动发放。运行时由 `BlindBoxSchedule` 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒，通过共享平台服务调用 `TriggerItemDrop`。Steam 回执包含目标盲盒券时，客户端刷新完整库存；回执为空时，客户端在本地正式到点后进行有限次数复查，用于兼容 Steam 计时偏差和已经消耗过测试资格的账号。
+
+每条 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。旧存档中已经领取过的新手 Schedule、循环轨道已经丢弃的历史资格不会重新补触发。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存比较盲盒券数量，再决定是否重试；不会直接重放一个结果未知的写请求。
+
+独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
+
 ## ESteamItemDefType
 
 `ESteamItemDefType` 是项目的 Luban 枚举，不是 Steam 指定的数字枚举。Steam schema 使用的类型字符串由导出转换逻辑负责映射。

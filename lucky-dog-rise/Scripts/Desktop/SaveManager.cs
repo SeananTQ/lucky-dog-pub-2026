@@ -179,6 +179,8 @@ public static class SaveManager
         profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
         profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);
         profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
+        profile.BlindBoxRuntimeState.SteamPlaytimeDropStates ??=
+            new Dictionary<int, BlindBoxSteamPlaytimeDropState>();
         profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 
         var validIds = LubanData.Tables.TbItem.DataList
@@ -235,6 +237,15 @@ public static class SaveManager
                 pair => new BlindBoxScheduleState
                 {
                     PendingCount = Math.Max(0, pair.Value.PendingCount),
+                    ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
+                });
+        profile.BlindBoxRuntimeState.SteamPlaytimeDropStates = profile.BlindBoxRuntimeState.SteamPlaytimeDropStates
+            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
+            .OrderBy(pair => pair.Key)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => new BlindBoxSteamPlaytimeDropState
+                {
                     ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
                 });
 

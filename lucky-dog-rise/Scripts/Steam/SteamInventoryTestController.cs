@@ -17,6 +17,7 @@ public partial class SteamInventoryTestController : Control
     {
         FullInventory,
         AddPromoItem,
+        TriggerPlaytimeDrop,
         ConsumeItem,
         GenerateItem,
         ExchangeBlindBox,
@@ -27,16 +28,20 @@ public partial class SteamInventoryTestController : Control
     [Export] private Label _definitionStatusLabel = null!;
     [Export] private Label _inventoryStatusLabel = null!;
     [Export] private OptionButton _promoItemOption = null!;
+    [Export] private OptionButton _playtimeGeneratorOption = null!;
     [Export] private CheckButton _enableGrantCheck = null!;
+    [Export] private CheckButton _enablePlaytimeDropCheck = null!;
     [Export] private CheckButton _enableMaintenanceCheck = null!;
     [Export] private CheckButton _enableExchangeCheck = null!;
     [Export] private Button _loadDefinitionsButton = null!;
     [Export] private Button _refreshInventoryButton = null!;
     [Export] private Button _addPromoItemButton = null!;
+    [Export] private Button _triggerPlaytimeDropButton = null!;
     [Export] private Button _consumeItemButton = null!;
     [Export] private Button _generateItemButton = null!;
     [Export] private Button _exchangeBlindBoxButton = null!;
     [Export] private Label _exchangeStatusLabel = null!;
+    [Export] private Label _playtimeDropStatusLabel = null!;
     [Export] private Button _retryButton = null!;
     [Export] private Button _quitButton = null!;
     [Export] private TextEdit _operationLog = null!;
@@ -59,10 +64,12 @@ public partial class SteamInventoryTestController : Control
         _loadDefinitionsButton.Pressed += LoadDefinitions;
         _refreshInventoryButton.Pressed += RefreshInventory;
         _addPromoItemButton.Pressed += AddSelectedPromoItem;
+        _triggerPlaytimeDropButton.Pressed += TriggerSelectedPlaytimeDrop;
         _consumeItemButton.Pressed += ConsumeSelectedItem;
         _generateItemButton.Pressed += GenerateSelectedItem;
         _exchangeBlindBoxButton.Pressed += ExchangeTestBlindBox;
         _enableGrantCheck.Toggled += _ => UpdateControls();
+        _enablePlaytimeDropCheck.Toggled += _ => UpdateControls();
         _enableMaintenanceCheck.Toggled += _ => UpdateControls();
         _enableExchangeCheck.Toggled += _ => UpdateControls();
         _promoItemOption.ItemSelected += _ =>
@@ -71,10 +78,17 @@ public partial class SteamInventoryTestController : Control
             _enableMaintenanceCheck.ButtonPressed = false;
             UpdateControls();
         };
+        _playtimeGeneratorOption.ItemSelected += _ =>
+        {
+            _enablePlaytimeDropCheck.ButtonPressed = false;
+            UpdatePlaytimeDropStatus();
+            UpdateControls();
+        };
         _retryButton.Pressed += InitializeSteamworks;
         _quitButton.Pressed += () => GetTree().Quit();
 
         PopulatePromoItemOptions();
+        PopulatePlaytimeGeneratorOptions();
         InitializeSteamworks();
     }
 
@@ -97,11 +111,13 @@ public partial class SteamInventoryTestController : Control
         _inventoryLoaded = false;
         _lastInventoryItems = Array.Empty<SteamItemDetails_t>();
         _enableGrantCheck.ButtonPressed = false;
+        _enablePlaytimeDropCheck.ButtonPressed = false;
         _enableMaintenanceCheck.ButtonPressed = false;
         _enableExchangeCheck.ButtonPressed = false;
         _definitionStatusLabel.Text = "Steam ItemDef：尚未加载";
         _inventoryStatusLabel.Text = "玩家库存：尚未读取";
         _exchangeStatusLabel.Text = "盲盒兑换：等待读取玩家库存";
+        UpdatePlaytimeDropStatus();
         ClearLog();
 
         _runtime = new SteamworksRuntime();
@@ -156,6 +172,25 @@ public partial class SteamInventoryTestController : Control
 
         if (_promoItemOption.ItemCount > 0)
             _promoItemOption.Selected = 0;
+    }
+
+    private void PopulatePlaytimeGeneratorOptions()
+    {
+        _playtimeGeneratorOption.Clear();
+        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
+                     .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+                     .OrderBy(schedule => schedule.Id))
+        {
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+            var index = _playtimeGeneratorOption.ItemCount;
+            _playtimeGeneratorOption.AddItem(
+                $"Schedule {schedule.Id} / {schedule.SteamPlaytimeGeneratorItemDefId} - {box?.Name ?? "缺失盲盒"}");
+            _playtimeGeneratorOption.SetItemMetadata(index, schedule.Id);
+        }
+
+        if (_playtimeGeneratorOption.ItemCount > 0)
+            _playtimeGeneratorOption.Selected = 0;
+        UpdatePlaytimeDropStatus();
     }
 
     private void LoadDefinitions()
@@ -229,6 +264,37 @@ public partial class SteamInventoryTestController : Control
         TrackRequest(handle, InventoryRequestKind.AddPromoItem);
         _enableGrantCheck.ButtonPressed = false;
         _enableMaintenanceCheck.ButtonPressed = false;
+        UpdateControls();
+    }
+
+    private void TriggerSelectedPlaytimeDrop()
+    {
+        if (_runtime?.IsInitialized != true || !_enablePlaytimeDropCheck.ButtonPressed)
+            return;
+
+        var schedule = GetSelectedPlaytimeSchedule();
+        if (schedule == null)
+        {
+            AppendLog("TriggerItemDrop：没有可用的 BlindBoxSchedule");
+            return;
+        }
+        if (HasPendingRequest(InventoryRequestKind.TriggerPlaytimeDrop))
+        {
+            AppendLog("TriggerItemDrop：已有游玩投放请求正在等待回调");
+            return;
+        }
+
+        var accepted = SteamInventory.TriggerItemDrop(
+            out var handle,
+            (SteamItemDef_t)schedule.SteamPlaytimeGeneratorItemDefId);
+        AppendLog(
+            $"TriggerItemDrop({schedule.SteamPlaytimeGeneratorItemDefId})：Schedule={schedule.Id}；" +
+            (accepted ? $"请求已接受，Handle={HandleValue(handle)}" : "请求被拒绝"));
+        if (!accepted)
+            return;
+
+        TrackRequest(handle, InventoryRequestKind.TriggerPlaytimeDrop);
+        _enablePlaytimeDropCheck.ButtonPressed = false;
         UpdateControls();
     }
 
@@ -399,7 +465,7 @@ public partial class SteamInventoryTestController : Control
         _definitionsLoaded = missingIds.Length == 0;
         _definitionStatusLabel.Text = missingIds.Length == 0
             ? $"Steam ItemDef：服务器 {count} 条，本地启用 {localItemDefIds.Length} 条，全部匹配"
-            : $"Steam ItemDef：服务器 {count} 条；缺少本地定义 {string.Join(", ", missingIds)}";
+            : $"Steam ItemDef：服务器 {count} 条；服务器未返回本地配置中的定义 {string.Join(", ", missingIds)}";
         AppendLog($"ItemDef {source}成功：服务器返回 {count} 条定义");
         UpdateControls();
         return true;
@@ -454,6 +520,8 @@ public partial class SteamInventoryTestController : Control
                 ShowInventory(items);
             else if (requestKind == InventoryRequestKind.AddPromoItem)
                 ShowPromoGrantResult(items);
+            else if (requestKind == InventoryRequestKind.TriggerPlaytimeDrop)
+                ShowPlaytimeDropResult(items);
             else if (requestKind == InventoryRequestKind.ExchangeBlindBox)
                 ShowBlindBoxExchangeResult(items);
             else
@@ -514,6 +582,25 @@ public partial class SteamInventoryTestController : Control
         RefreshInventory();
     }
 
+    private void ShowPlaytimeDropResult(IReadOnlyCollection<SteamItemDetails_t> items)
+    {
+        if (items.Count == 0)
+        {
+            AppendLog(
+                "TriggerItemDrop 完成，但结果中没有物品；通常表示游玩时间尚未满足、仍在冷却，或已达到 drop_limit");
+            RefreshInventory();
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            AppendLog(
+                $"TriggerItemDrop 发放：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, " +
+                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}");
+        }
+        RefreshInventory();
+    }
+
     private void ShowBlindBoxExchangeResult(IReadOnlyCollection<SteamItemDetails_t> items)
     {
         AppendLog($"ExchangeItems 成功：Steam 返回 {items.Count} 条库存变更");
@@ -567,7 +654,9 @@ public partial class SteamInventoryTestController : Control
     {
         var available = _runtime?.IsInitialized == true;
         var hasPromoOptions = _promoItemOption.ItemCount > 0;
+        var hasPlaytimeOptions = _playtimeGeneratorOption.ItemCount > 0;
         var grantPending = HasPendingRequest(InventoryRequestKind.AddPromoItem);
+        var playtimeDropPending = HasPendingRequest(InventoryRequestKind.TriggerPlaytimeDrop);
         var anyRequestPending = _pendingRequests.Count > 0;
         var selectedItemDefId = GetSelectedItemDefId();
         var selectedItemOwned = selectedItemDefId > 0 && _lastInventoryItems.Any(item =>
@@ -585,7 +674,12 @@ public partial class SteamInventoryTestController : Control
         _loadDefinitionsButton.Disabled = !available;
         _refreshInventoryButton.Disabled = !available || HasPendingRequest(InventoryRequestKind.FullInventory);
         _promoItemOption.Disabled = !available || !hasPromoOptions || grantPending;
+        _playtimeGeneratorOption.Disabled = !available || !hasPlaytimeOptions || playtimeDropPending;
         _enableGrantCheck.Disabled = !available || !_definitionsLoaded || !hasPromoOptions || grantPending;
+        _enablePlaytimeDropCheck.Disabled = !available
+            || !_definitionsLoaded
+            || !hasPlaytimeOptions
+            || playtimeDropPending;
         _enableMaintenanceCheck.Disabled = !available
             || !_definitionsLoaded
             || !_inventoryLoaded
@@ -596,6 +690,11 @@ public partial class SteamInventoryTestController : Control
             || !hasPromoOptions
             || !_enableGrantCheck.ButtonPressed
             || grantPending;
+        _triggerPlaytimeDropButton.Disabled = !available
+            || !_definitionsLoaded
+            || !hasPlaytimeOptions
+            || !_enablePlaytimeDropCheck.ButtonPressed
+            || anyRequestPending;
         _consumeItemButton.Disabled = !_enableMaintenanceCheck.ButtonPressed
             || anyRequestPending
             || !selectedItemOwned;
@@ -618,6 +717,25 @@ public partial class SteamInventoryTestController : Control
                 ? $"盲盒兑换：等待读取库存（{blindBox!.SteamOpenCostItemDefId} → {blindBox.SteamExchangeTargetItemDefId}）"
                 : $"盲盒兑换：持有 ItemDef {blindBox!.SteamOpenCostItemDefId} ×{voucherQuantity}；" +
                   $"交换目标 ItemDef {blindBox.SteamExchangeTargetItemDefId}";
+        UpdatePlaytimeDropStatus();
+    }
+
+    private DataTables.BlindBoxSchedule GetSelectedPlaytimeSchedule()
+    {
+        if (_playtimeGeneratorOption.ItemCount == 0 || _playtimeGeneratorOption.Selected < 0)
+            return null;
+        var scheduleId = (int)_playtimeGeneratorOption.GetItemMetadata(_playtimeGeneratorOption.Selected);
+        return LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
+    }
+
+    private void UpdatePlaytimeDropStatus()
+    {
+        var schedule = GetSelectedPlaytimeSchedule();
+        var box = schedule == null ? null : LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+        _playtimeDropStatusLabel.Text = schedule == null
+            ? "游玩投放：没有已配置的 PlaytimeGenerator"
+            : $"游玩投放：Generator {schedule.SteamPlaytimeGeneratorItemDefId} → " +
+              $"ItemDef {box?.SteamOpenCostItemDefId ?? 0}；Schedule {schedule.Id}";
     }
 
     private int GetSelectedItemDefId()

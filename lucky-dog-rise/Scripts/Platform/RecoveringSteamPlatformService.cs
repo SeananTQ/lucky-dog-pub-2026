@@ -15,6 +15,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private double _nextRetryAtSeconds;
     private double _inventoryDeadlineSeconds;
     private double _promoGrantDeadlineSeconds;
+    private double _playtimeDropDeadlineSeconds;
     private double _exchangeDeadlineSeconds;
     private int _retryIndex;
     private bool _inventorySynchronizationRequested;
@@ -29,6 +30,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public event Action<string> StoreStatusChanged = delegate { };
     public event Action<PlatformInventorySnapshot> InventorySnapshotChanged = delegate { };
     public event Action<PlatformPromoItemGrantResult> PromoItemGrantCompleted = delegate { };
+    public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted = delegate { };
     public event Action<PlatformInventoryExchangeResult> InventoryExchangeCompleted = delegate { };
     public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
 
@@ -41,6 +43,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
         && _session?.IsInventoryReady == true;
     public bool IsPromoGrantPending => _session?.IsPromoGrantPending == true;
+    public bool IsPlaytimeDropPending => _session?.IsPlaytimeDropPending == true;
     public bool IsExchangePending => _session?.IsExchangePending == true;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _session?.InventoryItems ?? [];
     public PlatformConnectionState ConnectionState { get; private set; } = PlatformConnectionState.Offline;
@@ -73,6 +76,16 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
             if (_session?.RecoverTimedOutPromoGrant() != true)
                 HandleInventoryFailure("Steam 领奖请求超时，且库存复查无法启动。", publishSnapshot: true);
+            return;
+        }
+
+        if (_playtimeDropDeadlineSeconds > 0.0 && now >= _playtimeDropDeadlineSeconds)
+        {
+            _playtimeDropDeadlineSeconds = 0.0;
+            SetConnectionState(PlatformConnectionState.InventorySyncing);
+            _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
+            if (_session?.RecoverTimedOutPlaytimeDrop() != true)
+                HandleInventoryFailure("Steam 游玩投放请求超时，且库存复查无法启动。", publishSnapshot: true);
             return;
         }
 
@@ -135,6 +148,20 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         var accepted = _session.TryGrantPromoItem(itemDefId, out message);
         if (accepted)
             _promoGrantDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
+        return accepted;
+    }
+
+    public bool TryTriggerPlaytimeDrop(int generatorItemDefId, int outputItemDefId, out string message)
+    {
+        if (!IsInventoryReady || _session == null)
+        {
+            message = "Steam 库存尚未连接。";
+            return false;
+        }
+
+        var accepted = _session.TryTriggerPlaytimeDrop(generatorItemDefId, outputItemDefId, out message);
+        if (accepted)
+            _playtimeDropDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
         return accepted;
     }
 
@@ -209,6 +236,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         _session.StoreStatusChanged += OnStoreStatusChanged;
         _session.InventorySnapshotChanged += OnInventorySnapshotChanged;
         _session.PromoItemGrantCompleted += OnPromoItemGrantCompleted;
+        _session.PlaytimeDropCompleted += OnPlaytimeDropCompleted;
         _session.InventoryExchangeCompleted += OnInventoryExchangeCompleted;
         _statusMessage = runtime.StatusMessage;
         GD.Print($"[PlatformRecovery] Steam connected. AppID={AppId}, Persona={PersonaName}");
@@ -249,6 +277,12 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     {
         _promoGrantDeadlineSeconds = 0.0;
         PromoItemGrantCompleted(result);
+    }
+
+    private void OnPlaytimeDropCompleted(PlatformPlaytimeDropResult result)
+    {
+        _playtimeDropDeadlineSeconds = 0.0;
+        PlaytimeDropCompleted(result);
     }
 
     private void OnInventoryExchangeCompleted(PlatformInventoryExchangeResult result)
@@ -297,11 +331,13 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         _session.StoreStatusChanged -= OnStoreStatusChanged;
         _session.InventorySnapshotChanged -= OnInventorySnapshotChanged;
         _session.PromoItemGrantCompleted -= OnPromoItemGrantCompleted;
+        _session.PlaytimeDropCompleted -= OnPlaytimeDropCompleted;
         _session.InventoryExchangeCompleted -= OnInventoryExchangeCompleted;
         _session.Dispose();
         _session = null;
         _inventoryDeadlineSeconds = 0.0;
         _promoGrantDeadlineSeconds = 0.0;
+        _playtimeDropDeadlineSeconds = 0.0;
         _exchangeDeadlineSeconds = 0.0;
     }
 

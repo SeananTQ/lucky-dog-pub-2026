@@ -273,6 +273,7 @@ lucky-dog-rise/
 - LinkTree 使用永久、不销毁的 Promo ItemDef 作为一次性领取回执。启动同步时以 Steam 库存恢复 `Claimed`；只有本地待处理事务与 Steam 回执同时存在时才补发本地奖励，单纯删除本地存档不得再次领取。
 - 实现 Steam 库存盲盒时，应优先扩展现有平台服务、同步状态、重连机制和待处理事务方案。如果现有抽象不能满足盲盒需求，可以调整或扩展，但要同时回归验证 LinkTree 的库存同步、领奖恢复和防重复领取功能。
 - Steam 库存盲盒只在平台状态为 `Ready` 且库存中存在对应开箱成本物品时开放；其他状态保留本地消耗品盲盒。兑换前保存成本实例 ID、库存数量基线和本地预留成本，Steam 操作中断后通过全量库存比较实例与数量变化恢复结果。
+- Steam 游玩投放由 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 驱动，通过共享平台服务调用 `TriggerItemDrop`，不使用 `AddPromoItem` 生成盲盒券。每条 Schedule 的处理进度保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`；超时或重连后先比较完整库存数量，再决定重试。
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。
 - Steam 映射物品以平台库存数量为准同步到本地背包。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
 - `--disable-steam` 是显式离线开发模式，不参与自动恢复。Dev 渠道可保留表现层模拟；Playtest/Release 在 Steam 库存不可用时采用失败关闭，避免回退为可重复领取的内存实现。

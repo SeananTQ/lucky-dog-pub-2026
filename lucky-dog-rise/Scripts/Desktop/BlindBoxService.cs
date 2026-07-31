@@ -50,6 +50,11 @@ public sealed class BlindBoxScheduleState
     public int ProcessedGrantCount { get; set; }
 }
 
+public sealed class BlindBoxSteamPlaytimeDropState
+{
+    public int ProcessedGrantCount { get; set; }
+}
+
 public sealed class BlindBoxRuntimeState
 {
     public int SequenceIndex { get; set; }
@@ -65,6 +70,7 @@ public sealed class BlindBoxRuntimeState
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double NextLoopPresentationSeconds { get; set; }
     public Dictionary<int, BlindBoxScheduleState> LoopTrackStates { get; set; } = new();
+    public Dictionary<int, BlindBoxSteamPlaytimeDropState> SteamPlaytimeDropStates { get; set; } = new();
 }
 
 public enum BlindBoxHintStatus
@@ -103,6 +109,74 @@ public sealed class BlindBoxService
             return;
 
         runtimeState.ScheduleSeconds += realDeltaSeconds * GetScheduleClockRate();
+    }
+
+    public bool TryGetNextSteamPlaytimeDrop(
+        BlindBoxRuntimeState runtimeState,
+        out BlindBoxSchedule? schedule,
+        out BlindBox? box,
+        out int grantCount)
+    {
+        RefreshLoopTracks(runtimeState);
+        NormalizeSteamPlaytimeDropProgress(runtimeState);
+        var leadScheduleSeconds = GetSteamPlaytimeDropLeadSeconds() * GetScheduleClockRate();
+        var eligibilitySeconds = runtimeState.ScheduleSeconds + leadScheduleSeconds;
+
+        var candidate = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(entry => entry.IsEnabled && entry.SteamPlaytimeGeneratorItemDefId > 0)
+            .Select(entry =>
+            {
+                var progress = GetSteamPlaytimeDropState(runtimeState, entry.Id);
+                var nextGrantCount = progress.ProcessedGrantCount + 1;
+                return new
+                {
+                    Schedule = entry,
+                    Box = LubanData.Tables.TbBlindBox.GetOrDefault(entry.BlindBoxId),
+                    NextGrantCount = nextGrantCount,
+                    DueSeconds = GetGrantDueScheduleSeconds(entry, nextGrantCount),
+                    EligibleGrantCount = GetDueGrantCount(entry, eligibilitySeconds),
+                };
+            })
+            .Where(entry => entry.Box != null
+                            && entry.Box.IsEnabled
+                            && entry.Box.SteamOpenCostItemDefId > 0
+                            && entry.EligibleGrantCount >= entry.NextGrantCount)
+            .OrderBy(entry => entry.DueSeconds)
+            .ThenBy(entry => entry.Schedule.Id)
+            .FirstOrDefault();
+
+        schedule = candidate?.Schedule;
+        box = candidate?.Box;
+        grantCount = candidate?.NextGrantCount ?? 0;
+        return schedule != null && box != null && grantCount > 0;
+    }
+
+    public bool IsSteamPlaytimeDropDue(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule,
+        int grantCount) => GetDueGrantCount(schedule, runtimeState.ScheduleSeconds) >= grantCount;
+
+    public double GetSteamPlaytimeDropRetryDelaySeconds(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule,
+        int grantCount)
+    {
+        var remainingScheduleSeconds = Math.Max(
+            0.0,
+            GetGrantDueScheduleSeconds(schedule, grantCount) - runtimeState.ScheduleSeconds);
+        return Math.Max(5.0, ToRealSeconds(remainingScheduleSeconds));
+    }
+
+    public void CompleteSteamPlaytimeDrop(
+        BlindBoxRuntimeState runtimeState,
+        int scheduleId,
+        int grantCount)
+    {
+        if (grantCount <= 0)
+            return;
+
+        var progress = GetSteamPlaytimeDropState(runtimeState, scheduleId);
+        progress.ProcessedGrantCount = Math.Max(progress.ProcessedGrantCount, grantCount);
     }
 
     public BlindBox? GetNextAvailableBox(
@@ -506,6 +580,45 @@ public sealed class BlindBoxService
         return Math.Max(0, due);
     }
 
+    private static double GetGrantDueScheduleSeconds(BlindBoxSchedule schedule, int grantCount)
+    {
+        if (grantCount <= 1 || schedule.IntervalSeconds <= 0)
+            return schedule.StartSeconds;
+        return schedule.StartSeconds + (grantCount - 1) * (double)schedule.IntervalSeconds;
+    }
+
+    private static BlindBoxSteamPlaytimeDropState GetSteamPlaytimeDropState(
+        BlindBoxRuntimeState runtimeState,
+        int scheduleId)
+    {
+        if (runtimeState.SteamPlaytimeDropStates.TryGetValue(scheduleId, out var state))
+            return state;
+
+        state = new BlindBoxSteamPlaytimeDropState();
+        runtimeState.SteamPlaytimeDropStates[scheduleId] = state;
+        return state;
+    }
+
+    private static void NormalizeSteamPlaytimeDropProgress(BlindBoxRuntimeState runtimeState)
+    {
+        var sequenceSchedules = GetSequenceSchedules();
+        for (var index = 0; index < Math.Min(runtimeState.SequenceIndex, sequenceSchedules.Count); index++)
+            GetSteamPlaytimeDropState(runtimeState, sequenceSchedules[index].Id).ProcessedGrantCount = 1;
+
+        foreach (var schedule in LubanData.Tables.TbBlindBoxSchedule.DataList
+                     .Where(entry => entry.IsEnabled && entry.IsLoopTrack))
+        {
+            if (!runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var loopState))
+                continue;
+
+            var discardedGrantCount = Math.Max(0, loopState.ProcessedGrantCount - loopState.PendingCount);
+            var steamState = GetSteamPlaytimeDropState(runtimeState, schedule.Id);
+            steamState.ProcessedGrantCount = Math.Max(
+                steamState.ProcessedGrantCount,
+                discardedGrantCount);
+        }
+    }
+
     private static double GetScheduleClockRate()
     {
         return 1.0 / GetWaitDurationMultiplier();
@@ -517,6 +630,12 @@ public sealed class BlindBoxService
         return config == null || config.BlindBoxWaitDurationMultiplier <= 0
             ? 1f
             : config.BlindBoxWaitDurationMultiplier;
+    }
+
+    private static double GetSteamPlaytimeDropLeadSeconds()
+    {
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        return config == null ? 0.0 : Math.Max(0.0, config.SteamPlaytimeDropLeadSeconds);
     }
 
     private static double ToRealSeconds(double scheduleSeconds) =>
@@ -550,6 +669,8 @@ public sealed class BlindBoxService
                 GD.PushError("[BlindBox] BlindBoxBacklogClaimDelaySeconds cannot be negative.");
             if (config.BlindBoxPostNewbieDelaySeconds < 0)
                 GD.PushError("[BlindBox] BlindBoxPostNewbieDelaySeconds cannot be negative.");
+            if (config.SteamPlaytimeDropLeadSeconds < 0)
+                GD.PushError("[BlindBox] SteamPlaytimeDropLeadSeconds cannot be negative.");
         }
 
         var enabledSchedules = LubanData.Tables.TbBlindBoxSchedule.DataList
@@ -589,6 +710,7 @@ public sealed class BlindBoxService
         }
 
         ValidatePresentationScheduling();
+        ValidateSteamPlaytimeScheduling();
 #endif
     }
 
@@ -644,6 +766,57 @@ public sealed class BlindBoxService
         if (Math.Abs(state.NextLoopPresentationSeconds - expectedBacklogGate) > 0.001
             || GetAvailableSchedules(state).Any())
             GD.PushError("[BlindBox] Regression check failed: backlog presentation gate is incorrect.");
+    }
+
+    private void ValidateSteamPlaytimeScheduling()
+    {
+        var firstSchedule = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+            .OrderBy(schedule => schedule.StartSeconds)
+            .ThenBy(schedule => schedule.Id)
+            .FirstOrDefault();
+        if (firstSchedule == null)
+            return;
+
+        var leadScheduleSeconds = GetSteamPlaytimeDropLeadSeconds() * GetScheduleClockRate();
+        var triggerSeconds = Math.Max(0.0, firstSchedule.StartSeconds - leadScheduleSeconds);
+        if (triggerSeconds > 0.01)
+        {
+            var beforeState = new BlindBoxRuntimeState { ScheduleSeconds = triggerSeconds - 0.01 };
+            if (TryGetNextSteamPlaytimeDrop(beforeState, out _, out _, out _))
+                GD.PushError("[BlindBox] Regression check failed: Steam playtime drop became eligible too early.");
+        }
+
+        var eligibleState = new BlindBoxRuntimeState { ScheduleSeconds = triggerSeconds };
+        if (!TryGetNextSteamPlaytimeDrop(
+                eligibleState,
+                out var selectedSchedule,
+                out _,
+                out var grantCount)
+            || selectedSchedule?.Id != firstSchedule.Id
+            || grantCount != 1)
+        {
+            GD.PushError("[BlindBox] Regression check failed: Steam playtime drop lead timing is incorrect.");
+            return;
+        }
+
+        CompleteSteamPlaytimeDrop(eligibleState, firstSchedule.Id, grantCount);
+        if (eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
+            GD.PushError("[BlindBox] Regression check failed: Steam playtime drop progress was not recorded.");
+
+        var sequenceSchedules = GetSequenceSchedules();
+        var sequenceIndex = sequenceSchedules.FindIndex(schedule => schedule.Id == firstSchedule.Id);
+        if (sequenceIndex >= 0)
+        {
+            var legacyState = new BlindBoxRuntimeState
+            {
+                SequenceIndex = sequenceIndex + 1,
+                ScheduleSeconds = firstSchedule.StartSeconds,
+            };
+            NormalizeSteamPlaytimeDropProgress(legacyState);
+            if (legacyState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
+                GD.PushError("[BlindBox] Regression check failed: completed legacy schedules would be triggered again.");
+        }
     }
 #endif
 
