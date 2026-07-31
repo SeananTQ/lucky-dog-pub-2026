@@ -6,6 +6,6 @@
     "BlindBoxBacklogClaimDelaySeconds": 30,
     "BlindBoxPostNewbieDelaySeconds": 60,
     "LinkTreeVisibleBannerCount": 5,
-    "SteamPlaytimeDropLeadSecondsSteam": 60
+    "SteamPlaytimeDropLeadSeconds": 60
   }
 ]

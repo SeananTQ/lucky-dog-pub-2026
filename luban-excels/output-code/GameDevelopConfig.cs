@@ -23,7 +23,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxBacklogClaimDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxBacklogClaimDelaySeconds = _buf["BlindBoxBacklogClaimDelaySeconds"]; }
         { if(!_buf["BlindBoxPostNewbieDelaySeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxPostNewbieDelaySeconds = _buf["BlindBoxPostNewbieDelaySeconds"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
-        { if(!_buf["SteamPlaytimeDropLeadSecondsSteam"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeDropLeadSecondsSteam = _buf["SteamPlaytimeDropLeadSecondsSteam"]; }
+        { if(!_buf["SteamPlaytimeDropLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeDropLeadSeconds = _buf["SteamPlaytimeDropLeadSeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -58,7 +58,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// <summary>
     /// Steam提前准备盲盒的秒数
     /// </summary>
-    public readonly int SteamPlaytimeDropLeadSecondsSteam;
+    public readonly int SteamPlaytimeDropLeadSeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -76,7 +76,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxBacklogClaimDelaySeconds:" + BlindBoxBacklogClaimDelaySeconds + ","
         + "BlindBoxPostNewbieDelaySeconds:" + BlindBoxPostNewbieDelaySeconds + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
-        + "SteamPlaytimeDropLeadSecondsSteam:" + SteamPlaytimeDropLeadSecondsSteam + ","
+        + "SteamPlaytimeDropLeadSeconds:" + SteamPlaytimeDropLeadSeconds + ","
         + "}";
     }
 }
