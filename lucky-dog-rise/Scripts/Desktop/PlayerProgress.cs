@@ -87,6 +87,10 @@ public sealed class PlayerProgress
 
 #if DEBUG
     private long _debugMultiplier = 1;
+    private PlayerProgressProfile? _debugSimulationProfileSnapshot;
+    private Dictionary<string, double>? _debugSimulationDurationRemaindersSnapshot;
+    private DateTime _debugSimulationInputBucketStart;
+    private long _debugSimulationInputBucketChips;
 #endif
 
     public PlayerProgress()
@@ -109,16 +113,22 @@ public sealed class PlayerProgress
         get
         {
 #if DEBUG
-            return _debugMultiplier == 1;
+            return _debugSimulationProfileSnapshot == null && _debugMultiplier == 1;
 #else
             return true;
 #endif
         }
     }
 
-    public IEnumerable<string> GetPlatformSyncEligibleAchievementApiNames() =>
-        _profile.UnlockedAchievementApiNames.Where(apiName =>
+    public IEnumerable<string> GetPlatformSyncEligibleAchievementApiNames()
+    {
+#if DEBUG
+        if (_debugSimulationProfileSnapshot != null)
+            return Array.Empty<string>();
+#endif
+        return _profile.UnlockedAchievementApiNames.Where(apiName =>
             !_profile.PlatformSuppressedAchievementApiNames.Contains(apiName));
+    }
 
     /// <summary>平台侧已解锁项是账号事实；合并到本地并解除旧的 Debug 上传抑制。</summary>
     public int ImportPlatformAchievements(IEnumerable<string> achievementApiNames)
@@ -266,6 +276,15 @@ public sealed class PlayerProgress
         if (!_dirty)
             return;
 
+#if DEBUG
+        if (_debugSimulationProfileSnapshot != null)
+        {
+            _dirty = false;
+            _immediateSaveRequested = false;
+            return;
+        }
+#endif
+
         try
         {
             _profile.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
@@ -301,6 +320,49 @@ public sealed class PlayerProgress
     }
 
 #if DEBUG
+    public bool IsDebugSimulationActive => _debugSimulationProfileSnapshot != null;
+
+    public bool BeginDebugSimulation()
+    {
+        if (BuildInfo.Channel != BuildChannel.Dev || _debugSimulationProfileSnapshot != null)
+            return false;
+
+        SaveIfDirty();
+        _debugSimulationProfileSnapshot = _profile;
+        _debugSimulationDurationRemaindersSnapshot = new Dictionary<string, double>(_durationRemainders);
+        _debugSimulationInputBucketStart = _inputBucketStart;
+        _debugSimulationInputBucketChips = _inputBucketChips;
+        _profile = new PlayerProgressProfile();
+        _durationRemainders.Clear();
+        _inputBucketStart = default;
+        _inputBucketChips = 0;
+        _dirty = false;
+        _immediateSaveRequested = false;
+        GD.Print("[PlayerProgress] Entered in-memory blind-box debug simulation; platform sync is disabled.");
+        return true;
+    }
+
+    public void EndDebugSimulation()
+    {
+        if (_debugSimulationProfileSnapshot == null)
+            return;
+
+        _profile = _debugSimulationProfileSnapshot;
+        _debugSimulationProfileSnapshot = null;
+        _durationRemainders.Clear();
+        if (_debugSimulationDurationRemaindersSnapshot != null)
+        {
+            foreach (var (key, value) in _debugSimulationDurationRemaindersSnapshot)
+                _durationRemainders[key] = value;
+        }
+        _debugSimulationDurationRemaindersSnapshot = null;
+        _inputBucketStart = _debugSimulationInputBucketStart;
+        _inputBucketChips = _debugSimulationInputBucketChips;
+        _dirty = false;
+        _immediateSaveRequested = false;
+        GD.Print("[PlayerProgress] Left blind-box debug simulation and restored real local progress.");
+    }
+
     public void SetDebugMultiplier(int multiplier)
     {
         _debugMultiplier = Math.Max(1, multiplier);
@@ -448,10 +510,13 @@ public sealed class PlayerProgress
             return false;
 
 #if DEBUG
-        if (_debugMultiplier != 1)
+        if (_debugSimulationProfileSnapshot != null || _debugMultiplier != 1)
         {
             _profile.PlatformSuppressedAchievementApiNames.Add(apiName);
-            GD.Print($"[Achievement] Platform upload suppressed because DEBUG multiplier is x{_debugMultiplier}: {apiName}");
+            var reason = _debugSimulationProfileSnapshot != null
+                ? "blind-box debug simulation is active"
+                : $"DEBUG multiplier is x{_debugMultiplier}";
+            GD.Print($"[Achievement] Platform upload suppressed because {reason}: {apiName}");
         }
 #endif
         return true;

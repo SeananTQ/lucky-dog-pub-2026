@@ -752,8 +752,69 @@ text = "▶ BlindBox Debug"
 
 [node name="BlindBoxDebugContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=1802294791]
 visible = false
-custom_minimum_size = Vector2(0, 330)
+custom_minimum_size = Vector2(0, 450)
 layout_mode = 2
+
+[node name="BlindBoxLocalTestModeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+layout_mode = 2
+
+[node name="BlindBoxLocalTestModeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestModeRow"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "启用盲盒本地测试模式"
+autowrap_mode = 3
+
+[node name="BlindBoxLocalTestModeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestModeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BlindBoxLocalTestVoucherRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BlindBoxLocalTestVoucherLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "虚拟装扮券"
+
+[node name="BlindBoxLocalTestVoucherDecrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+custom_minimum_size = Vector2(36, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "-"
+
+[node name="BlindBoxLocalTestVoucherCount" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlindBoxLocalTestVoucherIncrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+custom_minimum_size = Vector2(36, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "+"
+
+[node name="BlindBoxLocalTestActionRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BlindBoxLocalTestAdvance" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestActionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "推进到下一展示点"
+
+[node name="BlindBoxLocalTestClear" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestActionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "清除当前气球"
 
 [node name="BlindBoxFallbackRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 layout_mode = 2

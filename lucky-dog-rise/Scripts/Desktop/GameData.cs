@@ -61,6 +61,17 @@ public partial class GameData : Node
     private readonly Dictionary<int, int> _playtimeDropEmptyResultCounts = new();
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
     private bool _blindBoxFallbackEnabled = true;
+#if DEBUG
+    private bool _blindBoxLocalTestMode;
+    private BlindBoxRuntimeState _blindBoxLocalTestRuntimeState = new();
+    private int _blindBoxLocalTestVoucherCount;
+    private int _blindBoxLocalTestSavedChips;
+    private double _blindBoxLocalTestSavedTotalPlaySeconds;
+    private Dictionary<int, int> _blindBoxLocalTestSavedInventoryCounts = new();
+    private Dictionary<string, int> _blindBoxLocalTestSavedEquippedItems = new();
+    private List<int> _blindBoxLocalTestSavedNewItemIds = new();
+    private LuckyDealBuffState _blindBoxLocalTestSavedLuckyDealBuffState = new();
+#endif
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
     private double _saveTimer;
@@ -73,6 +84,18 @@ public partial class GameData : Node
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
     private const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
+
+    private BlindBoxRuntimeState ActiveBlindBoxRuntimeState
+    {
+        get
+        {
+#if DEBUG
+            if (_blindBoxLocalTestMode)
+                return _blindBoxLocalTestRuntimeState;
+#endif
+            return _blindBoxRuntimeState;
+        }
+    }
 
     public override void _Ready()
     {
@@ -96,7 +119,7 @@ public partial class GameData : Node
     public override void _Process(double delta)
     {
         TotalPlaySeconds += delta;
-        _blindBoxService.AdvanceScheduleClock(_blindBoxRuntimeState, delta);
+        _blindBoxService.AdvanceScheduleClock(ActiveBlindBoxRuntimeState, delta);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordDuration("GameRuntimeSeconds", delta, PlayerProgressSource.Gameplay);
         _blindBoxTickTimer -= delta;
@@ -104,6 +127,9 @@ public partial class GameData : Node
         {
             _blindBoxTickTimer = BlindBoxTickSeconds;
             MaintainLoopPresentation();
+#if DEBUG
+            if (!_blindBoxLocalTestMode)
+#endif
             MaintainSteamPlaytimeDrops();
             EmitSignal(SignalName.BlindBoxStateChanged);
         }
@@ -140,6 +166,9 @@ public partial class GameData : Node
 
     public override void _ExitTree()
     {
+#if DEBUG
+        EndBlindBoxLocalTestMode(force: true, synchronizeInventory: false);
+#endif
         UnbindPlatformInventoryService();
         FlushForShutdown();
     }
@@ -211,7 +240,7 @@ public partial class GameData : Node
     {
         MaintainLoopPresentation();
         return _blindBoxService.GetNextAvailableBox(
-            _blindBoxRuntimeState,
+            ActiveBlindBoxRuntimeState,
             PendingBlindBoxReward);
     }
 
@@ -226,11 +255,16 @@ public partial class GameData : Node
         MaintainLoopPresentation();
         var debugStatus = _blindBoxService.BuildDebugStatus(
             TotalPlaySeconds,
-            _blindBoxRuntimeState,
+            ActiveBlindBoxRuntimeState,
             PendingBlindBoxReward);
         var hintState = GetBlindBoxHintState();
-        var statusText = $"{debugStatus}\n兜底: {(_blindBoxFallbackEnabled ? "开启" : "关闭")}" +
+        var simulationText = _blindBoxLocalTestMode
+            ? $"本地测试: 开启，虚拟装扮券 x{_blindBoxLocalTestVoucherCount}"
+            : "本地测试: 关闭（使用真实 Steam/离线流程）";
+        var statusText = $"{simulationText}\n{debugStatus}\n兜底: {(_blindBoxFallbackEnabled ? "开启" : "关闭")}" +
                          $"\n入口最终状态: {hintState.Status}";
+        if (_blindBoxLocalTestMode)
+            return statusText;
         if (hintState.Box == null || !UsesSteamInventoryExchange(hintState.Box))
             return statusText;
 
@@ -240,6 +274,8 @@ public partial class GameData : Node
     }
 
     public bool IsBlindBoxFallbackEnabled => _blindBoxFallbackEnabled;
+    public bool IsBlindBoxLocalTestMode => _blindBoxLocalTestMode;
+    public int BlindBoxLocalTestVoucherCount => _blindBoxLocalTestVoucherCount;
 
     public void SetBlindBoxFallbackEnabled(bool enabled)
     {
@@ -249,6 +285,197 @@ public partial class GameData : Node
         _blindBoxFallbackEnabled = enabled;
         GD.Print($"[BlindBox] Local Refreshment fallback {(enabled ? "enabled" : "disabled")} for Dev testing.");
         EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    public bool SetBlindBoxLocalTestMode(bool enabled)
+    {
+        if (BuildInfo.Channel != BuildChannel.Dev)
+            return false;
+        if (enabled == _blindBoxLocalTestMode)
+            return true;
+        return enabled ? BeginBlindBoxLocalTestMode() : EndBlindBoxLocalTestMode();
+    }
+
+    public void AdjustBlindBoxLocalTestVoucherCount(int delta)
+    {
+        if (!_blindBoxLocalTestMode || delta == 0)
+            return;
+
+        _blindBoxLocalTestVoucherCount = Math.Clamp(_blindBoxLocalTestVoucherCount + delta, 0, 99);
+        EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    public bool AdvanceBlindBoxLocalTestPresentation()
+    {
+        if (!_blindBoxLocalTestMode || PendingBlindBoxReward != null)
+            return false;
+
+        MaintainBlindBoxLocalTestPresentation();
+        _blindBoxLocalTestRuntimeState.ScheduleSeconds = Math.Max(
+            _blindBoxLocalTestRuntimeState.ScheduleSeconds,
+            _blindBoxLocalTestRuntimeState.NextLoopPresentationSeconds);
+        MaintainBlindBoxLocalTestPresentation();
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        return true;
+    }
+
+    public bool ClearBlindBoxLocalTestPresentation()
+    {
+        if (!_blindBoxLocalTestMode || PendingBlindBoxReward != null)
+            return false;
+
+        _blindBoxLocalTestRuntimeState.LockedLoopScheduleId = 0;
+        _blindBoxLocalTestRuntimeState.LockedLoopBlindBoxId = 0;
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        return true;
+    }
+
+    private bool BeginBlindBoxLocalTestMode()
+    {
+        if (_saveDataMode != SettingsManager.SaveDataMode.LocalSave)
+        {
+            GD.PushWarning("[BlindBox] Local test mode requires the local-save inventory source.");
+            return false;
+        }
+
+        if (PendingBlindBoxReward != null
+            || PendingPlatformBlindBoxOpen != null
+            || _pendingPlatformPlaytimeDrop != null
+            || _platformInventoryService?.IsPlaytimeDropPending == true
+            || _platformInventoryService?.IsPromoGrantPending == true
+            || _platformInventoryService?.IsExchangePending == true)
+        {
+            GD.PushWarning("[BlindBox] Cannot enter local test mode while a blind-box reward or Steam inventory write is pending.");
+            return false;
+        }
+
+        FlushSave();
+        if (!PlayerProgress.BeginDebugSimulation())
+            return false;
+
+        _blindBoxLocalTestSavedChips = Chips;
+        _blindBoxLocalTestSavedTotalPlaySeconds = TotalPlaySeconds;
+        _blindBoxLocalTestSavedInventoryCounts = Inventory.GetOwnedItemCounts();
+        _blindBoxLocalTestSavedEquippedItems = Inventory.GetEquippedIdsByTypeName();
+        _blindBoxLocalTestSavedNewItemIds = Inventory.GetNewItemIds().ToList();
+        _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState
+        {
+            RemainingHands = _luckyDealBuffState.RemainingHands,
+            TriggerChance = _luckyDealBuffState.TriggerChance,
+        };
+        _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
+        {
+            SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
+                schedule.IsEnabled && !schedule.IsLoopTrack),
+        };
+        _blindBoxLocalTestVoucherCount = 1;
+        _blindBoxLocalTestMode = true;
+
+        MaintainBlindBoxLocalTestPresentation();
+        _blindBoxLocalTestRuntimeState.ScheduleSeconds =
+            _blindBoxLocalTestRuntimeState.NextLoopPresentationSeconds;
+        MaintainBlindBoxLocalTestPresentation();
+        _saveDirty = false;
+        _saveTimer = 0.0;
+        GD.Print("[BlindBox] Entered explicit in-memory local test mode; Steam blind-box writes and real save writes are disabled.");
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        return true;
+    }
+
+    private bool EndBlindBoxLocalTestMode(bool force = false, bool synchronizeInventory = true)
+    {
+        if (!_blindBoxLocalTestMode)
+            return true;
+        if (!force && PendingBlindBoxReward != null)
+        {
+            GD.PushWarning("[BlindBox] Finish or claim the current simulated reward before leaving local test mode.");
+            return false;
+        }
+
+        PendingBlindBoxReward = null;
+        PendingPlatformBlindBoxOpen = null;
+        Chips = _blindBoxLocalTestSavedChips;
+        TotalPlaySeconds = _blindBoxLocalTestSavedTotalPlaySeconds;
+        Inventory.LoadState(
+            _blindBoxLocalTestSavedInventoryCounts,
+            _blindBoxLocalTestSavedEquippedItems,
+            _blindBoxLocalTestSavedNewItemIds,
+            emitChanged: true);
+        _luckyDealBuffState = _blindBoxLocalTestSavedLuckyDealBuffState;
+        PlayerProgress.EndDebugSimulation();
+
+        _blindBoxLocalTestMode = false;
+        _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState();
+        _blindBoxLocalTestVoucherCount = 0;
+        _blindBoxLocalTestSavedInventoryCounts = new Dictionary<int, int>();
+        _blindBoxLocalTestSavedEquippedItems = new Dictionary<string, int>();
+        _blindBoxLocalTestSavedNewItemIds = new List<int>();
+        _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState();
+        _saveDirty = false;
+        _saveTimer = 0.0;
+        EmitSignal(SignalName.ChipsChanged, Chips);
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        if (synchronizeInventory)
+            _platformInventoryService?.StartInventorySynchronization();
+        GD.Print("[BlindBox] Left local test mode and restored the real local/Steam-backed state.");
+        return true;
+    }
+
+    private void MaintainBlindBoxLocalTestPresentation()
+    {
+        if (!_blindBoxLocalTestMode
+            || !_blindBoxService.TryGetLoopSchedule(out _, out var decorationBox)
+            || decorationBox == null)
+        {
+            return;
+        }
+
+        var selectedBox = _blindBoxLocalTestVoucherCount > 0
+            ? decorationBox
+            : _blindBoxService.GetFallbackRefreshmentBox();
+        if (selectedBox == null)
+            return;
+
+        _blindBoxService.MaintainLoopPresentation(
+            _blindBoxLocalTestRuntimeState,
+            PendingBlindBoxReward == null,
+            selectedBox.Id);
+    }
+
+    private PendingBlindBoxReward TryOpenBlindBoxLocalTest()
+    {
+        if (!_blindBoxService.TryGetNextAvailable(
+                _blindBoxLocalTestRuntimeState,
+                out var schedule,
+                out var box)
+            || schedule == null
+            || box == null)
+        {
+            return null;
+        }
+
+        BlindBoxOpenResult result;
+        if (UsesSteamInventoryExchange(box) && _blindBoxLocalTestVoucherCount <= 0)
+        {
+            var fallbackBox = _blindBoxService.GetFallbackRefreshmentBox();
+            result = fallbackBox == null
+                ? null
+                : _blindBoxService.TryOpenFallback(TotalPlaySeconds, schedule, fallbackBox);
+        }
+        else
+        {
+            result = _blindBoxService.TryOpenNext(TotalPlaySeconds, _blindBoxLocalTestRuntimeState);
+            if (result != null && UsesSteamInventoryExchange(box))
+                _blindBoxLocalTestVoucherCount--;
+        }
+
+        if (result == null)
+            return null;
+
+        GD.Print(
+            $"[BlindBox] Local test opened Box={result.Box.Id}, Reward={result.Item.Id}; " +
+            $"virtual decoration vouchers={_blindBoxLocalTestVoucherCount}.");
+        return FinalizeLocalBlindBoxOpen(result);
     }
 #endif
 
@@ -266,8 +493,12 @@ public partial class GameData : Node
         }
 
         var state = _blindBoxService.GetHintState(
-            _blindBoxRuntimeState,
+            ActiveBlindBoxRuntimeState,
             PendingBlindBoxReward);
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+            return state;
+#endif
         if (state.Status == BlindBoxHintStatus.PendingReward)
             return state;
 
@@ -317,6 +548,11 @@ public partial class GameData : Node
 
         if (PendingPlatformBlindBoxOpen != null)
             return null;
+
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+            return TryOpenBlindBoxLocalTest();
+#endif
 
         if (_blindBoxService.TryGetNextAvailable(_blindBoxRuntimeState, out var schedule, out var box)
             && schedule != null
@@ -374,7 +610,7 @@ public partial class GameData : Node
     private PendingBlindBoxReward FinalizeLocalBlindBoxOpen(BlindBoxOpenResult result)
     {
         PendingBlindBoxReward = result.PendingReward;
-        _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, result.Schedule);
+        _blindBoxService.ConsumeOpenedSchedule(ActiveBlindBoxRuntimeState, result.Schedule);
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -449,6 +685,13 @@ public partial class GameData : Node
 
     private void MaintainLoopPresentation()
     {
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+        {
+            MaintainBlindBoxLocalTestPresentation();
+            return;
+        }
+#endif
         if (!_blindBoxService.TryGetLoopSchedule(out _, out var decorationBox)
             || decorationBox == null)
             return;
@@ -677,6 +920,11 @@ public partial class GameData : Node
     {
         if (!snapshot.Succeeded)
             return;
+
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+            return;
+#endif
 
         ReconcilePendingPlaytimeDrop(snapshot.Items);
 
@@ -936,7 +1184,7 @@ public partial class GameData : Node
         var scheduleId = PendingBlindBoxReward.ScheduleId;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
-        _blindBoxService.CompleteClaimedSchedule(_blindBoxRuntimeState, scheduleId);
+        _blindBoxService.CompleteClaimedSchedule(ActiveBlindBoxRuntimeState, scheduleId);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -965,6 +1213,9 @@ public partial class GameData : Node
     public void ModifyChips(int delta)
     {
         Chips += delta;
+#if DEBUG
+        if (!_blindBoxLocalTestMode)
+#endif
         Progression.UpdateHighScore(Chips);
         EmitSignal(SignalName.ChipsChanged, Chips);
         QueueSaveIfUsingLocalSave();
@@ -972,6 +1223,13 @@ public partial class GameData : Node
 
     public bool TryBeginLinkTreeClaim(int linkTreeId, int steamPromoItemDefId)
     {
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+        {
+            GD.PushWarning("[LinkTree] Real claims are disabled while blind-box local test mode is active.");
+            return false;
+        }
+#endif
         if (linkTreeId <= 0 || steamPromoItemDefId <= 0)
             return false;
         if (PendingLinkTreeClaim != null)
@@ -1048,7 +1306,7 @@ public partial class GameData : Node
     public string GetPlayerProgressDebugStatus() =>
         $"Progress file: {PlayerProgress.AbsoluteSavePath}\n" +
         $"Unlocked: {PlayerProgress.UnlockedAchievementApiNames.Count}\n" +
-        $"Platform sync: {(PlayerProgress.IsPlatformSyncAllowed ? "Enabled" : "Paused by DEBUG multiplier")}\n" +
+        $"Platform sync: {(PlayerProgress.IsPlatformSyncAllowed ? "Enabled" : "Paused by DEBUG sandbox/multiplier")}\n" +
         $"Platform-suppressed: {PlayerProgress.PlatformSuppressedAchievementCount}\n" +
         $"Statistics: {PlayerProgress.Statistics.Count}";
 #endif
@@ -1080,6 +1338,7 @@ public partial class GameData : Node
 #if DEBUG
     public void ResetToStart()
     {
+        EndBlindBoxLocalTestMode(force: true);
         ResetPlaytimeDropTransientState();
         Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
@@ -1103,6 +1362,9 @@ public partial class GameData : Node
         if (_saveDataMode == mode)
             return;
 
+#if DEBUG
+        EndBlindBoxLocalTestMode(force: true);
+#endif
         FlushSave();
         _saveDataMode = mode;
         SettingsManager.SaveSaveDataMode(mode);
@@ -1115,6 +1377,9 @@ public partial class GameData : Node
 
     public void ResetLocalSave()
     {
+#if DEBUG
+        EndBlindBoxLocalTestMode(force: true);
+#endif
         FlushSave();
         ResetPlaytimeDropTransientState();
         var profile = SaveManager.ResetLocalSave();
@@ -1189,6 +1454,10 @@ public partial class GameData : Node
 
     private void QueueSaveIfUsingLocalSave()
     {
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+            return;
+#endif
         if (_saveDataMode != SettingsManager.SaveDataMode.LocalSave)
             return;
 
@@ -1216,6 +1485,10 @@ public partial class GameData : Node
 
     private void FlushSave()
     {
+#if DEBUG
+        if (_blindBoxLocalTestMode)
+            return;
+#endif
         if (!_saveDirty || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
             return;
 
