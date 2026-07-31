@@ -87,7 +87,7 @@ public sealed partial class SteamItemDef : Luban.BeanBase
     /// </summary>
     public readonly bool AutoStack;
     /// <summary>
-    /// Bundle/Generator 的内容配方；普通 Item 留空
+    /// Bundle/Generator 的内容配方。<br/>留空表示不输出 bundle；<br/>填写 @AUTO 表示由转换器根据业务表生成；<br/>也可直接填写 Steam 配方，例如 101002x1;101003x1。
     /// </summary>
     public readonly string Bundle;
     /// <summary>

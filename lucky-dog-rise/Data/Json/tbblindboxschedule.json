@@ -10,7 +10,8 @@
     "Priority": 50,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404001
   },
   {
     "Id": 1002,
@@ -23,7 +24,8 @@
     "Priority": 100,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404002
   },
   {
     "Id": 1003,
@@ -36,7 +38,8 @@
     "Priority": 10,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0
   },
   {
     "Id": 1004,
@@ -49,7 +52,8 @@
     "Priority": 50,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404004
   },
   {
     "Id": 1005,
@@ -62,7 +66,8 @@
     "Priority": 100,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404005
   },
   {
     "Id": 1006,
@@ -75,7 +80,8 @@
     "Priority": 10,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0
   },
   {
     "Id": 1007,
@@ -88,7 +94,8 @@
     "Priority": 50,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404007
   },
   {
     "Id": 1008,
@@ -101,7 +108,8 @@
     "Priority": 100,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404008
   },
   {
     "Id": 1009,
@@ -114,7 +122,8 @@
     "Priority": 10,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0
   },
   {
     "Id": 1010,
@@ -127,7 +136,8 @@
     "Priority": 50,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404010
   },
   {
     "Id": 1011,
@@ -140,7 +150,8 @@
     "Priority": 100,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404011
   },
   {
     "Id": 1012,
@@ -153,7 +164,8 @@
     "Priority": 10,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0
   },
   {
     "Id": 1013,
@@ -166,7 +178,8 @@
     "Priority": 50,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 404013
   },
   {
     "Id": 1014,
@@ -179,6 +192,7 @@
     "Priority": 10,
     "CanAccumulate": false,
     "MaxPendingCount": 1,
-    "IsEnabled": true
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0
   }
 ]

@@ -5,26 +5,23 @@
     "item": "lucky-dog-rise/Data/Json/tbitem.json",
     "blindBox": "lucky-dog-rise/Data/Json/tbblindbox.json"
   },
-  "sourceItemDefCount": 6,
+  "sourceItemDefCount": 19,
   "sourceGameItemCount": 102,
   "sourceBlindBoxCount": 5,
-  "exportedItemDefCount": 8,
+  "exportedItemDefCount": 120,
   "checkedLinkTreeReferenceCount": 4,
-  "checkedBlindBoxReferenceCount": 1,
+  "checkedBlindBoxReferenceCount": 3,
   "channels": [
     {
       "name": "playtest",
       "appid": 4972240
-    },
-    {
-      "name": "release",
-      "appid": 2583700
     }
   ],
-  "errors": [],
+  "errors": [
+    "StandardBlindBoxV1Generator：Bundle 配方 @AUTO 格式无效。",
+    "NewbieBlindBoxV1Generator：Bundle 配方 @AUTO 格式无效。"
+  ],
   "warnings": [
-    "BlindBox 1001 标准盲盒：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。",
-    "BlindBox 1002 新手盲盒：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。",
     "BlindBox 3001 测试活动盲盒：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。"
   ]
 }

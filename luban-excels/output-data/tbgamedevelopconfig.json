@@ -1,10 +1,11 @@
 [
   {
-    "BlindBoxWaitDurationMultiplier": 1,
+    "BlindBoxWaitDurationMultiplier": 4,
     "BlindBoxCostScale": 1,
     "PlayerStatisticScale": 10,
     "BlindBoxBacklogClaimDelaySeconds": 30,
     "BlindBoxPostNewbieDelaySeconds": 60,
-    "LinkTreeVisibleBannerCount": 5
+    "LinkTreeVisibleBannerCount": 5,
+    "SteamPlaytimeDropLeadSecondsSteam": 60
   }
 ]

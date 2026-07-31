@@ -28,6 +28,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         { if(!_buf["CanAccumulate"].IsBoolean) { throw new SerializationException(); }  CanAccumulate = _buf["CanAccumulate"]; }
         { if(!_buf["MaxPendingCount"].IsNumber) { throw new SerializationException(); }  MaxPendingCount = _buf["MaxPendingCount"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
+        { if(!_buf["SteamPlaytimeGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeGeneratorItemDefId = _buf["SteamPlaytimeGeneratorItemDefId"]; }
     }
 
     public static BlindBoxSchedule DeserializeBlindBoxSchedule(JSONNode _buf)
@@ -73,6 +74,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 是否启用
     /// </summary>
     public readonly bool IsEnabled;
+    /// <summary>
+    /// 该调度到达资格时间时，通过 TriggerItemDrop 请求的 Steam playtimegenerator ItemDef ID。不接入 Steam 掉落时填 0。同一个 ItemDef ID 不建议被多条调度共用。
+    /// </summary>
+    public readonly int SteamPlaytimeGeneratorItemDefId;
    
     public const int __ID__ = -621265139;
     public override int GetTypeId() => __ID__;
@@ -95,6 +100,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         + "CanAccumulate:" + CanAccumulate + ","
         + "MaxPendingCount:" + MaxPendingCount + ","
         + "IsEnabled:" + IsEnabled + ","
+        + "SteamPlaytimeGeneratorItemDefId:" + SteamPlaytimeGeneratorItemDefId + ","
         + "}";
     }
 }
