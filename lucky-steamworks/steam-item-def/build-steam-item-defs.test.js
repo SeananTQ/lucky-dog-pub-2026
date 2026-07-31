@@ -21,6 +21,8 @@ function receipt(overrides = {}) {
         AutoStack: false,
         Bundle: "",
         IsEnabled: true,
+        SteamUseDropLimit: false,
+        SteamDropLimit: 0,
         ...overrides,
     };
 }
@@ -96,6 +98,8 @@ function schedule(overrides = {}) {
         MaxGrantCount: 1,
         IsEnabled: true,
         SteamPlaytimeGeneratorItemDefId: 404001,
+        SteamDropWindowSeconds: 0,
+        SteamDropMaxPerWindow: 0,
         ...overrides,
     };
 }
@@ -318,7 +322,7 @@ test("derives playtime drop timing and limits from schedule and config", () => {
     assert.equal(output.drop_limit, 1);
 });
 
-test("derives recurring playtime interval without a total drop limit", () => {
+test("derives recurring playtime interval and drop window without a total drop limit", () => {
     const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
     const generator = receipt({
         Id: 403001,
@@ -341,16 +345,77 @@ test("derives recurring playtime interval without a total drop limit", () => {
         [],
         [gameItem()],
         [blindBox()],
-        [schedule({ IsLoopTrack: true, StartSeconds: 750, IntervalSeconds: 180, EndSeconds: -1, MaxGrantCount: -1 })],
+        [schedule({
+            IsLoopTrack: true,
+            StartSeconds: 780,
+            IntervalSeconds: 180,
+            EndSeconds: -1,
+            MaxGrantCount: -1,
+            SteamDropWindowSeconds: 360,
+            SteamDropMaxPerWindow: 2,
+        })],
         [],
         [config({ BlindBoxWaitDurationMultiplier: 10 })],
     );
 
     assert.deepEqual(result.errors, []);
     const output = result.items.find(item => item.itemdefid === 404001);
-    assert.equal(output.drop_interval, 29);
+    assert.equal(output.drop_interval, 30);
+    assert.equal(output.use_drop_window, true);
+    assert.equal(output.drop_window, 60);
+    assert.equal(output.drop_max_per_window, 2);
     assert.equal(output.use_drop_limit, false);
     assert.equal(Object.hasOwn(output, "drop_limit"), false);
+});
+
+test("keeps a retired playtime generator and disables future drops", () => {
+    const voucher = receipt({ Id: 402002, Key: "Voucher", PromoRule: "", GrantedManually: false });
+    const retired = receipt({
+        Id: 404013,
+        Key: "LegacyRecurringDrop",
+        Type: 4,
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "402002x1",
+        SteamUseDropLimit: true,
+        SteamDropLimit: 0,
+    });
+    const result = buildArtifacts([voucher, retired], []);
+
+    assert.deepEqual(result.errors, []);
+    const output = result.items.find(item => item.itemdefid === 404013);
+    assert.equal(output.use_drop_limit, true);
+    assert.equal(output.drop_limit, 0);
+});
+
+test("rejects an invalid recurring drop window", () => {
+    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
+    const generator = receipt({
+        Id: 404014,
+        Key: "RecurringDrop",
+        Type: 4,
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "402001x1",
+    });
+    const result = buildArtifacts(
+        [voucher, generator],
+        [],
+        [gameItem()],
+        [blindBox()],
+        [schedule({
+            IsLoopTrack: true,
+            EndSeconds: -1,
+            MaxGrantCount: -1,
+            SteamPlaytimeGeneratorItemDefId: 404014,
+            SteamDropWindowSeconds: 360,
+            SteamDropMaxPerWindow: 0,
+        })],
+        [],
+        [config()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("SteamDropMaxPerWindow 必须大于 0")));
 });
 
 test("rejects a playtime generator that grants the wrong blind box item", () => {

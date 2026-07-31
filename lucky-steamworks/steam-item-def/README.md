@@ -79,6 +79,7 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - 永久回执不是 `Type=Item`、`PromoRule=manual` 或 `GrantedManually=true`。
 - 永久回执允许交易、出售或没有设置为游戏内隐藏。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
+- 非 PlaytimeGenerator 配置了 Steam 投放上限，或启用 Schedule 引用了已经显式停发的 Generator。
 - BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。
 - 多个盲盒共用同一个 `@AUTO` Generator，或自动奖池缺少有效品质概率/候选物品。
 - BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或其 Bundle 与盲盒开箱成本不一致。
@@ -104,12 +105,14 @@ BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲�
 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 把一条本地投放计划映射到一个 Steam PlaytimeGenerator。转换器会校验该生成器的显式 `Bundle` 等于盲盒的 `SteamOpenCostItemDefId x1`，并自动生成 Steam 的分钟级投放参数。
 
 ```text
-实际投放秒数 = 本地基础秒数 * BlindBoxWaitDurationMultiplier
-Steam 资格秒数 = max(0, 实际投放秒数 - SteamPlaytimeDropLeadSeconds)
+一次性 Steam 资格秒数 = max(0, StartSeconds * BlindBoxWaitDurationMultiplier - SteamPlaytimeDropLeadSeconds)
+循环 Steam 资格秒数 = IntervalSeconds * BlindBoxWaitDurationMultiplier
 drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 ```
 
-一次性计划使用 `StartSeconds`，循环计划使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成对应的发放上限；无上限循环计划生成 `use_drop_limit=false`。Steam 提前形成资格，本地 UI 仍按自己的秒级计划展示，减少倒计时结束时库存尚未同步到位的概率。
+一次性计划继续使用提前量；循环计划不扣除提前量。循环行可通过 `SteamDropWindowSeconds` 和 `SteamDropMaxPerWindow` 生成 `use_drop_window`、`drop_window` 和 `drop_max_per_window`。`MaxGrantCount >= 0` 时生成对应的发放上限；无上限循环计划生成 `use_drop_limit=false`。
+
+已经发布但需要永久停止投放的 PlaytimeGenerator 应继续保留在 `SteamItemDef` 中，并填写 `SteamUseDropLimit=true`、`SteamDropLimit=0`。显式上限只允许用于没有被启用 Schedule 引用的 PlaytimeGenerator，避免与 Schedule 自动派生规则冲突。
 
 验证失败时只更新 `validation-report.json`，不会覆盖 schema 文件。禁止在校验失败后上传目录中可能残留的旧 schema。
 

@@ -343,6 +343,21 @@ function validateAndBuildItemDefs(records) {
         const storeHidden = requiredBoolean(record, "StoreHidden", label, errors);
         const autoStack = requiredBoolean(record, "AutoStack", label, errors);
         const isEnabled = requiredBoolean(record, "IsEnabled", label, errors);
+        const steamUseDropLimit = record.SteamUseDropLimit ?? false;
+        const steamDropLimit = record.SteamDropLimit ?? 0;
+
+        if (typeof steamUseDropLimit !== "boolean") {
+            errors.push(`${label}：SteamUseDropLimit 必须是布尔值。`);
+        }
+        if (!Number.isInteger(steamDropLimit) || steamDropLimit < 0) {
+            errors.push(`${label}：SteamDropLimit 必须是非负整数。`);
+        }
+        if (steamUseDropLimit === true && record.Type !== 4) {
+            errors.push(`${label}：只有 PlaytimeGenerator 可以配置 SteamUseDropLimit。`);
+        }
+        if (steamUseDropLimit !== true && steamDropLimit !== 0) {
+            errors.push(`${label}：SteamUseDropLimit=false 时 SteamDropLimit 必须为 0。`);
+        }
 
         if (grantedManually && !promo) {
             errors.push(`${label}：GrantedManually=true 时 PromoRule 不能为空。`);
@@ -383,6 +398,10 @@ function validateAndBuildItemDefs(records) {
         item.store_hidden = storeHidden;
         item.auto_stack = autoStack;
         if (bundle) item.bundle = bundle;
+        if (steamUseDropLimit === true) {
+            item.use_drop_limit = true;
+            item.drop_limit = steamDropLimit;
+        }
         items.push(item);
         definitions.push({
             id,
@@ -838,6 +857,10 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             errors.push(`${label}：Steam ItemDef ${generatorId} 必须是 Type=PlaytimeGenerator。`);
             continue;
         }
+        if (definition.schemaItem.use_drop_limit === true) {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 已在 SteamItemDef 中配置显式投放上限，不能再被启用 Schedule 引用。`);
+            continue;
+        }
         if (!Number.isInteger(box.SteamOpenCostItemDefId) || box.SteamOpenCostItemDefId <= 0) {
             errors.push(`${label}：BlindBox ${box.Id} 没有配置有效的 SteamOpenCostItemDefId。`);
             continue;
@@ -856,11 +879,37 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             continue;
         }
 
-        const baseSeconds = schedule.IsLoopTrack === true
-            ? Math.max(0, schedule.IntervalSeconds)
-            : schedule.StartSeconds;
-        const steamEligibilitySeconds = Math.max(0, baseSeconds * durationMultiplier - leadSeconds);
+        const isLoop = schedule.IsLoopTrack === true;
+        const baseSeconds = isLoop ? Math.max(0, schedule.IntervalSeconds) : schedule.StartSeconds;
+        const steamEligibilitySeconds = isLoop
+            ? baseSeconds * durationMultiplier
+            : Math.max(0, baseSeconds * durationMultiplier - leadSeconds);
         definition.schemaItem.drop_interval = Math.max(1, Math.ceil(steamEligibilitySeconds / 60));
+
+        const dropWindowSeconds = schedule.SteamDropWindowSeconds ?? 0;
+        const dropMaxPerWindow = schedule.SteamDropMaxPerWindow ?? 0;
+        if (!Number.isInteger(dropWindowSeconds) || dropWindowSeconds < 0) {
+            errors.push(`${label}：SteamDropWindowSeconds 必须是非负整数。`);
+        } else if (!Number.isInteger(dropMaxPerWindow) || dropMaxPerWindow < 0 || dropMaxPerWindow > 10) {
+            errors.push(`${label}：SteamDropMaxPerWindow 必须是 0 到 10 之间的整数。`);
+        } else if (dropWindowSeconds === 0 && dropMaxPerWindow !== 0) {
+            errors.push(`${label}：SteamDropWindowSeconds=0 时 SteamDropMaxPerWindow 必须为 0。`);
+        } else if (dropWindowSeconds > 0 && dropMaxPerWindow === 0) {
+            errors.push(`${label}：启用 Steam 掉落窗口时 SteamDropMaxPerWindow 必须大于 0。`);
+        } else if (!isLoop && (dropWindowSeconds > 0 || dropMaxPerWindow > 0)) {
+            errors.push(`${label}：Steam 掉落窗口只用于循环 Schedule。`);
+        } else if (dropWindowSeconds > 0) {
+            definition.schemaItem.use_drop_window = true;
+            definition.schemaItem.drop_window = Math.max(
+                1,
+                Math.ceil(dropWindowSeconds * durationMultiplier / 60),
+            );
+            definition.schemaItem.drop_max_per_window = dropMaxPerWindow;
+        } else {
+            delete definition.schemaItem.use_drop_window;
+            delete definition.schemaItem.drop_window;
+            delete definition.schemaItem.drop_max_per_window;
+        }
         const dropLimit = getScheduleDropLimit(schedule, label, errors);
         definition.schemaItem.use_drop_limit = dropLimit !== null;
         if (dropLimit !== null) definition.schemaItem.drop_limit = dropLimit;
@@ -872,6 +921,8 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             playtimeGeneratorItemDefId: generatorId,
             outputItemDefId: box.SteamOpenCostItemDefId,
             dropIntervalMinutes: definition.schemaItem.drop_interval,
+            dropWindowMinutes: definition.schemaItem.drop_window ?? null,
+            dropMaxPerWindow: definition.schemaItem.drop_max_per_window ?? null,
             dropLimit,
         });
     }
