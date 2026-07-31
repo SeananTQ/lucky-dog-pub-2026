@@ -12,6 +12,7 @@ public partial class SteamInventoryTestController : Control
     private const int TestBlindBoxId = 4001;
     private const ulong DefinitionLoadTimeoutMsec = 10000;
     private const ulong DefinitionPollIntervalMsec = 250;
+    private const ulong PlaytimeDropMinimumAttemptIntervalMsec = 65000;
 
     private enum InventoryRequestKind
     {
@@ -55,6 +56,7 @@ public partial class SteamInventoryTestController : Control
     private Callback<SteamInventoryResultReady_t> _resultReadyCallback = null!;
     private bool _definitionsLoaded;
     private bool _inventoryLoaded;
+    private ulong _nextPlaytimeDropAttemptMsec;
     private bool _definitionLoadPending;
     private ulong _definitionLoadDeadlineMsec;
     private ulong _nextDefinitionPollMsec;
@@ -284,6 +286,15 @@ public partial class SteamInventoryTestController : Control
             return;
         }
 
+        var nowMsec = Time.GetTicksMsec();
+        if (nowMsec < _nextPlaytimeDropAttemptMsec)
+        {
+            var remainingSeconds = (int)Math.Ceiling(
+                (_nextPlaytimeDropAttemptMsec - nowMsec) / 1000.0);
+            AppendLog($"TriggerItemDrop：Steam 按分钟限流，请等待 {remainingSeconds} 秒后再测试");
+            return;
+        }
+
         var accepted = SteamInventory.TriggerItemDrop(
             out var handle,
             (SteamItemDef_t)schedule.SteamPlaytimeGeneratorItemDefId);
@@ -293,6 +304,7 @@ public partial class SteamInventoryTestController : Control
         if (!accepted)
             return;
 
+        _nextPlaytimeDropAttemptMsec = nowMsec + PlaytimeDropMinimumAttemptIntervalMsec;
         TrackRequest(handle, InventoryRequestKind.TriggerPlaytimeDrop);
         _enablePlaytimeDropCheck.ButtonPressed = false;
         UpdateControls();

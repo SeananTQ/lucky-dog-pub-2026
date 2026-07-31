@@ -186,6 +186,10 @@ public static class SaveManager
         var validIds = LubanData.Tables.TbItem.DataList
             .Select(item => item.Id)
             .ToHashSet();
+        var initialItemIds = LubanData.Tables.TbItem.DataList
+            .Where(item => item.AcquisitionType == DataTables.EAcquisitionType.Initial)
+            .Select(item => item.Id)
+            .ToHashSet();
 
         if (profile.OwnedItemCounts.Count == 0 && profile.OwnedItemIds.Count > 0)
             profile.OwnedItemCounts = profile.OwnedItemIds
@@ -193,17 +197,13 @@ public static class SaveManager
                 .Distinct()
                 .ToDictionary(id => id, _ => 1);
 
-        // v4: baseline appearance choices added after existing profiles were created.
-        // Initial items are entitlements rather than rewards, so migrate them silently
-        // without New markers or player-progress acquisition events.
+        // Initial items are permanent local entitlements. Enforce this on every load so
+        // table additions and platform inventory reconciliation cannot strip base visuals.
+        foreach (var itemId in initialItemIds)
+            profile.OwnedItemCounts.TryAdd(itemId, 1);
+
         if (loadedVersion < 4)
         {
-            foreach (var item in LubanData.Tables.TbItem.DataList.Where(item =>
-                         item.AcquisitionType == DataTables.EAcquisitionType.Initial))
-            {
-                profile.OwnedItemCounts.TryAdd(item.Id, 1);
-            }
-
             profile.Version = 4;
         }
 
@@ -214,7 +214,9 @@ public static class SaveManager
         profile.OwnedItemIds = profile.OwnedItemCounts.Keys.ToList();
 
         profile.NewItemIds = profile.NewItemIds
-            .Where(id => validIds.Contains(id) && profile.OwnedItemCounts.ContainsKey(id))
+            .Where(id => validIds.Contains(id)
+                         && !initialItemIds.Contains(id)
+                         && profile.OwnedItemCounts.ContainsKey(id))
             .Distinct()
             .OrderBy(id => id)
             .ToList();

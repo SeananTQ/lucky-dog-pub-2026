@@ -59,6 +59,7 @@ public partial class GameData : Node
     private PendingPlatformPlaytimeDrop _pendingPlatformPlaytimeDrop;
     private readonly Dictionary<int, double> _playtimeDropRetryAtSeconds = new();
     private readonly Dictionary<int, int> _playtimeDropEmptyResultCounts = new();
+    private double _nextPlatformPlaytimeDropAttemptAtSeconds;
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
     private double _saveTimer;
@@ -70,6 +71,7 @@ public partial class GameData : Node
     private const double ProfileAutosaveSeconds = 60.0;
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
+    private const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
 
     public override void _Ready()
     {
@@ -376,6 +378,10 @@ public partial class GameData : Node
         }
 
         var now = Time.GetTicksMsec() / 1000.0;
+        // Steam evaluates playtime drops at minute granularity and rate-limits more frequent
+        // TriggerItemDrop calls. This throttle is shared by all schedule generators.
+        if (now < _nextPlatformPlaytimeDropAttemptAtSeconds)
+            return;
         if (_playtimeDropRetryAtSeconds.TryGetValue(schedule.Id, out var retryAt) && now < retryAt)
             return;
 
@@ -389,6 +395,8 @@ public partial class GameData : Node
             _recoverablePlatformService?.RequestReconnect();
             return;
         }
+
+        _nextPlatformPlaytimeDropAttemptAtSeconds = now + SteamPlaytimeDropMinimumAttemptIntervalSeconds;
 
         _pendingPlatformPlaytimeDrop = new PendingPlatformPlaytimeDrop
         {
@@ -656,7 +664,10 @@ public partial class GameData : Node
             return;
 
         var mappedItems = LubanData.Tables.TbItem.DataList
-            .Where(item => item.SteamItemDefId > 0)
+            // Initial items are permanent local entitlements. Steam owns the quantity of
+            // earned items only; a missing Steam instance must not remove a base visual.
+            .Where(item => item.SteamItemDefId > 0
+                           && item.AcquisitionType != EAcquisitionType.Initial)
             .ToArray();
         if (mappedItems.Length == 0)
             return;

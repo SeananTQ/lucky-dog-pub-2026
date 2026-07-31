@@ -276,6 +276,7 @@ lucky-dog-rise/
 - Steam 游玩投放由 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 驱动，通过共享平台服务调用 `TriggerItemDrop`，不使用 `AddPromoItem` 生成盲盒券。每条 Schedule 的处理进度保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`；超时或重连后先比较完整库存数量，再决定重试。
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。
 - Steam 映射物品以平台库存数量为准同步到本地背包。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
+- `Item.AcquisitionType=Initial` 的基础物品是永久本地权益，不参与 Steam 数量对账。存档加载时始终静默补齐 Initial 物品；即使这些行配置了 `SteamItemDefId`，Steam 缺少对应实例也不得删除基础物品、清空必选装备位或添加 New 标记。
 - `--disable-steam` 是显式离线开发模式，不参与自动恢复。Dev 渠道可保留表现层模拟；Playtest/Release 在 Steam 库存不可用时采用失败关闭，避免回退为可重复领取的内存实现。
 
 ## 胖窗口设计

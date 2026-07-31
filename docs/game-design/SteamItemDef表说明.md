@@ -204,11 +204,21 @@ drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 
 客户端不会等待 Steam 自动发放。运行时由 `BlindBoxSchedule` 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒，通过共享平台服务调用 `TriggerItemDrop`。Steam 回执包含目标盲盒券时，客户端刷新完整库存；回执为空时，客户端在本地正式到点后进行有限次数复查，用于兼容 Steam 计时偏差和已经消耗过测试资格的账号。
 
+Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
+
 每条 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。旧存档中已经领取过的新手 Schedule、循环轨道已经丢弃的历史资格不会重新补触发。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存比较盲盒券数量，再决定是否重试；不会直接重放一个结果未知的写请求。
 
 独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
 
 Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端 `GetItemDefinitionIDs` 返回的定义列表中。客户端定义完整性检查只校验可枚举的普通物品、盲盒券、Bundle 和 Generator，不得因为 PlaytimeGenerator 未被枚举而把整套 Steam 库存判为不可用。PlaytimeGenerator 是否可用以实际 `TriggerItemDrop` 请求及其 Steam 回执为准；独立测试场景也采用同一规则。
+
+独立测试场景的完整内容位于纵向滚动容器内，库存实例增加后仍可访问下方的发放、投放、维护、兑换和日志区域。
+
+## 当前 Playtest 验证结果
+
+当前 Playtest schema 共发布 120 条定义。Steam 客户端能够枚举 111 条普通物品及复杂定义，9 条 PlaytimeGenerator 不在枚举结果中，但均可提交真实 `TriggerItemDrop` 请求。
+
+主人已在主游戏中验证：PlaytimeGenerator 自动产出盲盒券；`402002` 标准盲盒券和 `402003` 新手盲盒券都能被 `ExchangeItems` 原子消耗；Steam Generator 返回的装扮可以完成本地表演、背包同步和重启恢复。`402003` 堆叠数量从 2 逐次降为 1、0，归零后对应库存行消失，符合 Steam 堆叠语义。
 
 ## ESteamItemDefType
 
