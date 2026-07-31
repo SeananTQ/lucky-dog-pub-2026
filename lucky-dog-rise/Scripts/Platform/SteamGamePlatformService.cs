@@ -538,8 +538,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
                 ? $"Steam 已通过 PlaytimeGenerator {request.ItemDefId} 发放 ItemDef={request.OutputItemDefId}。"
                 : $"Steam 已处理 PlaytimeGenerator {request.ItemDefId}，本次没有发放物品。",
             changedItems));
-        if (itemGranted)
-            RequestFullInventory();
+        // An empty TriggerItemDrop result does not guarantee that the cached full inventory is
+        // current. Always reconcile once so a concurrently granted voucher can unlock the UI.
+        RequestFullInventory();
     }
 
     private void ApplyExchangeResult(InventoryRequest request, IReadOnlyCollection<SteamItemDetails_t> items)

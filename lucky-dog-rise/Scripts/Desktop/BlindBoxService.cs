@@ -179,6 +179,45 @@ public sealed class BlindBoxService
         progress.ProcessedGrantCount = Math.Max(progress.ProcessedGrantCount, grantCount);
     }
 
+    public bool ReopenCurrentSteamPlaytimeDrop(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule)
+    {
+        var requiredGrantCount = 1;
+        if (schedule.IsLoopTrack
+            && runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var loopState))
+        {
+            requiredGrantCount = Math.Max(1, loopState.ProcessedGrantCount);
+        }
+
+        var progress = GetSteamPlaytimeDropState(runtimeState, schedule.Id);
+        var reopenedGrantCount = Math.Min(progress.ProcessedGrantCount, requiredGrantCount - 1);
+        if (progress.ProcessedGrantCount == reopenedGrantCount)
+            return false;
+
+        progress.ProcessedGrantCount = reopenedGrantCount;
+        return true;
+    }
+
+    public bool CompleteCurrentSteamPlaytimeDropFromInventory(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule)
+    {
+        var requiredGrantCount = 1;
+        if (schedule.IsLoopTrack
+            && runtimeState.LoopTrackStates.TryGetValue(schedule.Id, out var loopState))
+        {
+            requiredGrantCount = Math.Max(1, loopState.ProcessedGrantCount);
+        }
+
+        var progress = GetSteamPlaytimeDropState(runtimeState, schedule.Id);
+        if (progress.ProcessedGrantCount >= requiredGrantCount)
+            return false;
+
+        progress.ProcessedGrantCount = requiredGrantCount;
+        return true;
+    }
+
     public BlindBox? GetNextAvailableBox(
         BlindBoxRuntimeState runtimeState,
         PendingBlindBoxReward? pendingReward)
@@ -339,6 +378,26 @@ public sealed class BlindBoxService
         out BlindBox? box)
     {
         RefreshLoopTracks(runtimeState);
+        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
+        schedule = candidate.Schedule;
+        box = candidate.Box;
+        return schedule != null && box != null;
+    }
+
+    public bool TryGetNextPresentationCandidate(
+        BlindBoxRuntimeState runtimeState,
+        out BlindBoxSchedule? schedule,
+        out BlindBox? box)
+    {
+        RefreshLoopTracks(runtimeState);
+
+        schedule = GetCurrentSequenceSchedule(runtimeState);
+        if (schedule != null)
+        {
+            box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+            return box is { IsEnabled: true };
+        }
+
         var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
         schedule = candidate.Schedule;
         box = candidate.Box;
@@ -803,6 +862,17 @@ public sealed class BlindBoxService
         CompleteSteamPlaytimeDrop(eligibleState, firstSchedule.Id, grantCount);
         if (eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
             GD.PushError("[BlindBox] Regression check failed: Steam playtime drop progress was not recorded.");
+
+        if (!ReopenCurrentSteamPlaytimeDrop(eligibleState, firstSchedule)
+            || eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 0)
+        {
+            GD.PushError("[BlindBox] Regression check failed: missing current Steam voucher was not reopened.");
+        }
+        if (!CompleteCurrentSteamPlaytimeDropFromInventory(eligibleState, firstSchedule)
+            || eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
+        {
+            GD.PushError("[BlindBox] Regression check failed: an owned current Steam voucher did not satisfy its drop.");
+        }
 
         var sequenceSchedules = GetSequenceSchedules();
         var sequenceIndex = sequenceSchedules.FindIndex(schedule => schedule.Id == firstSchedule.Id);

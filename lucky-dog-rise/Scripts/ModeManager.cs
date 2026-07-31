@@ -812,26 +812,24 @@ public partial class ModeManager : Control
         var state = _gameData.GetBlindBoxHintState();
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
-        SetBossBlindBoxHintDisplayVisible(state.Status != BlindBoxHintStatus.PendingReward && !hideWaitingBubble);
+        var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward or BlindBoxHintStatus.Opening;
+        SetBossBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble);
 
         switch (state.Status)
         {
             case BlindBoxHintStatus.PendingReward:
+            case BlindBoxHintStatus.Opening:
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
+            case BlindBoxHintStatus.PlatformSyncing:
+            case BlindBoxHintStatus.PlatformUnavailable:
                 _bossBlindBoxHint.ShowValueFromAssetPath(
                     state.Box?.HintIconPath,
                     _blindBoxIcon,
                     state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
                     _gameData.Chips);
-                break;
-            case BlindBoxHintStatus.PlatformSyncing:
-            case BlindBoxHintStatus.PlatformUnavailable:
-            case BlindBoxHintStatus.Opening:
-                _bossBlindBoxHint.ShowIconOnly(
-                    BalloonHintController.LoadHintTexture(state.Box?.HintIconPath) ?? _blindBoxIcon);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

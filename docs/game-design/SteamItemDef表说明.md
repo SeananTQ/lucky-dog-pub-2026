@@ -202,7 +202,7 @@ drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 
 一次性 Schedule 的本地基础秒数使用 `StartSeconds`；循环 Schedule 使用 `IntervalSeconds`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环则生成 `use_drop_limit=false`。Steam 资格会比本地展示时间略早形成，但客户端仍需在本地 Schedule 到点后才展示和开启盲盒。
 
-客户端不会等待 Steam 自动发放。运行时由 `BlindBoxSchedule` 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒，通过共享平台服务调用 `TriggerItemDrop`。Steam 回执包含目标盲盒券时，客户端刷新完整库存；回执为空时，客户端在本地正式到点后进行有限次数复查，用于兼容 Steam 计时偏差和已经消耗过测试资格的账号。
+客户端不会等待 Steam 自动发放。运行时由 `BlindBoxSchedule` 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒，通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到可开启后才与后台循环投放竞争全局请求间隔。每次回执后都读取一次完整库存；回执为空时，Schedule 保持待处理并在限频间隔后复查。空结果不能证明该 Generator 已达到 `drop_limit`，也不能被记录为一次成功处理。若完整库存已经包含当前待展示盲盒所需的券，则当前 Schedule 已经得到实际满足，应停止重复触发对应 PlaytimeGenerator。
 
 Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
 

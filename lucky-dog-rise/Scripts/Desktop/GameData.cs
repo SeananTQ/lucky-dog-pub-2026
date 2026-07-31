@@ -220,10 +220,18 @@ public partial class GameData : Node
 #if DEBUG
     public string GetBlindBoxDebugStatus()
     {
-        return _blindBoxService.BuildDebugStatus(
+        var debugStatus = _blindBoxService.BuildDebugStatus(
             TotalPlaySeconds,
             _blindBoxRuntimeState,
             PendingBlindBoxReward);
+        var hintState = GetBlindBoxHintState();
+        if (hintState.Box == null || !UsesSteamInventoryExchange(hintState.Box))
+            return $"{debugStatus}\n入口最终状态: {hintState.Status}";
+
+        var voucherItemDefId = hintState.Box.SteamOpenCostItemDefId;
+        var voucherQuantity = GetPlatformInventoryQuantity(voucherItemDefId);
+        return $"{debugStatus}\n入口最终状态: {hintState.Status}" +
+               $"\nSteam券: ItemDef={voucherItemDefId}, Qty={voucherQuantity}";
     }
 #endif
 
@@ -239,34 +247,45 @@ public partial class GameData : Node
                 {
                     Status = BlindBoxHintStatus.Opening,
                     Box = LubanData.Tables.TbBlindBox.GetOrDefault(PendingPlatformBlindBoxOpen.BlindBoxId),
+                    Cost = PendingPlatformBlindBoxOpen.ReservedChipCost,
                 };
 
         if (!UsesSteamInventoryExchange(state.Box))
             return state;
         if (PendingPlatformBlindBoxOpen != null)
-            return new BlindBoxHintState { Status = BlindBoxHintStatus.Opening, Box = state.Box };
+            return new BlindBoxHintState
+            {
+                Status = BlindBoxHintStatus.Opening,
+                Box = state.Box,
+                Cost = state.Cost,
+                RemainingSeconds = state.RemainingSeconds,
+            };
         if (_platformInventoryService?.IsInventoryReady != true)
         {
             var status = _recoverablePlatformService?.ConnectionState
                 is PlatformConnectionState.Connecting or PlatformConnectionState.InventorySyncing
                 ? BlindBoxHintStatus.PlatformSyncing
                 : BlindBoxHintStatus.PlatformUnavailable;
-            return new BlindBoxHintState { Status = status, Box = state.Box };
+            return new BlindBoxHintState
+            {
+                Status = status,
+                Box = state.Box,
+                Cost = state.Cost,
+                RemainingSeconds = state.RemainingSeconds,
+            };
         }
 
         var ownsCostItem = _platformInventoryService.InventoryItems.Any(item =>
             item.ItemDefId == state.Box.SteamOpenCostItemDefId && item.Quantity > 0);
-        if (!ownsCostItem
-            && (_pendingPlatformPlaytimeDrop != null
-                || _platformInventoryService.IsPlaytimeDropPending
-                || _playtimeDropRetryAtSeconds.Values.Any(retryAt =>
-                    retryAt > Time.GetTicksMsec() / 1000.0)))
-        {
-            return new BlindBoxHintState { Status = BlindBoxHintStatus.PlatformSyncing, Box = state.Box };
-        }
         return ownsCostItem
             ? state
-            : new BlindBoxHintState { Status = BlindBoxHintStatus.PlatformUnavailable, Box = state.Box };
+            : new BlindBoxHintState
+            {
+                Status = BlindBoxHintStatus.PlatformSyncing,
+                Box = state.Box,
+                Cost = state.Cost,
+                RemainingSeconds = state.RemainingSeconds,
+            };
     }
 
     public PendingBlindBoxReward TryOpenBlindBox()
@@ -363,16 +382,21 @@ public partial class GameData : Node
             || _platformInventoryService?.IsInventoryReady != true
             || _pendingPlatformPlaytimeDrop != null
             || _platformInventoryService.IsPlaytimeDropPending
-            || !_blindBoxService.TryGetNextSteamPlaytimeDrop(
+            || _platformInventoryService.IsPromoGrantPending
+            || _platformInventoryService.IsExchangePending)
+        {
+            return;
+        }
+
+        ReconcileCurrentSteamPlaytimeDropWithInventory();
+        if (!_blindBoxService.TryGetNextSteamPlaytimeDrop(
                 _blindBoxRuntimeState,
                 out var schedule,
                 out var box,
                 out var grantCount)
             || schedule == null
             || box == null
-            || !UsesSteamInventoryExchange(box)
-            || _platformInventoryService.IsPromoGrantPending
-            || _platformInventoryService.IsExchangePending)
+            || !UsesSteamInventoryExchange(box))
         {
             return;
         }
@@ -440,18 +464,12 @@ public partial class GameData : Node
         {
             var emptyResultCount = _playtimeDropEmptyResultCounts.GetValueOrDefault(pending.ScheduleId) + 1;
             _playtimeDropEmptyResultCounts[pending.ScheduleId] = emptyResultCount;
-            if (emptyResultCount >= 3)
-            {
-                GD.Print(
-                    $"[BlindBox] PlaytimeGenerator {pending.GeneratorItemDefId} returned no item " +
-                    "three times after the local due time; treating this grant as already handled by Steam.");
-                CompleteSteamPlaytimeDrop(pending.ScheduleId, pending.GrantCount);
-            }
-            else
-            {
-                _playtimeDropRetryAtSeconds[pending.ScheduleId] = Time.GetTicksMsec() / 1000.0 + 15.0;
-                EmitSignal(SignalName.BlindBoxStateChanged);
-            }
+            _playtimeDropRetryAtSeconds[pending.ScheduleId] =
+                Time.GetTicksMsec() / 1000.0 + SteamPlaytimeDropMinimumAttemptIntervalSeconds;
+            GD.Print(
+                $"[BlindBox] PlaytimeGenerator {pending.GeneratorItemDefId} returned no item " +
+                $"after local due time (retry {emptyResultCount}); keeping Schedule {pending.ScheduleId} pending.");
+            EmitSignal(SignalName.BlindBoxStateChanged);
             return;
         }
 
@@ -465,6 +483,50 @@ public partial class GameData : Node
         if (!result.Succeeded)
             _recoverablePlatformService?.RequestReconnect();
         EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    private void ReconcileCurrentSteamPlaytimeDropWithInventory()
+    {
+        if (_platformInventoryService == null
+            || !_blindBoxService.TryGetNextPresentationCandidate(
+                _blindBoxRuntimeState,
+                out var currentSchedule,
+                out var currentBox)
+            || currentSchedule == null
+            || currentBox == null
+            || !UsesSteamInventoryExchange(currentBox))
+        {
+            return;
+        }
+
+        if (GetPlatformInventoryQuantity(currentBox.SteamOpenCostItemDefId) > 0)
+        {
+            if (!_blindBoxService.CompleteCurrentSteamPlaytimeDropFromInventory(
+                    _blindBoxRuntimeState,
+                    currentSchedule))
+            {
+                return;
+            }
+
+            _playtimeDropRetryAtSeconds.Remove(currentSchedule.Id);
+            _playtimeDropEmptyResultCounts.Remove(currentSchedule.Id);
+            GD.Print(
+                $"[BlindBox] Steam inventory already contains ItemDef={currentBox.SteamOpenCostItemDefId}; " +
+                $"Schedule {currentSchedule.Id} no longer needs another TriggerItemDrop request.");
+            SaveImmediatelyIfUsingLocalSave();
+            EmitSignal(SignalName.BlindBoxStateChanged);
+            return;
+        }
+
+        if (_blindBoxService.ReopenCurrentSteamPlaytimeDrop(_blindBoxRuntimeState, currentSchedule))
+        {
+            GD.Print(
+                $"[BlindBox] Current Schedule {currentSchedule.Id} requires " +
+                $"ItemDef={currentBox.SteamOpenCostItemDefId}, but the voucher is missing; " +
+                "restored its PlaytimeGenerator request.");
+            SaveImmediatelyIfUsingLocalSave();
+            EmitSignal(SignalName.BlindBoxStateChanged);
+        }
     }
 
     private void OnPlatformInventoryExchangeCompleted(PlatformInventoryExchangeResult result)
