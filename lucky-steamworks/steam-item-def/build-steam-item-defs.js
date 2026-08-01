@@ -55,6 +55,13 @@ const DEFAULT_GAME_DEVELOP_CONFIG_INPUT = path.join(
     "Json",
     "tbgamedevelopconfig.json",
 );
+const DEFAULT_ITEM_DEF_ID_RANGE_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbsteamitemdefidrange.json",
+);
 const DEFAULT_OUTPUT_ROOT = path.join(TOOL_ROOT, "generated");
 const AUTO_BUNDLE_MARKER = "@AUTO";
 const AUTO_GENERATOR_WEIGHT_SCALE = 1000000;
@@ -90,6 +97,20 @@ const BLIND_BOX_ITEM_RULES = Object.freeze({
     4: { acquisitionType: 4, weightField: "EventBoxWeight" },
 });
 
+const ID_RANGE_ROWS = Object.freeze({
+    formalItem: 1001,
+    blindBoxCost: 1003,
+    blindBoxGenerator: 1006,
+    playtestOnly: 1009,
+    linkTreeReceipt: 1013,
+    claimBundle: 1016,
+    linkTreeBundle: 1017,
+    playtimeGenerator: 1021,
+    newbiePlaytimeGenerator: 1023,
+    recurringPlaytimeGenerator: 1024,
+    reservedLow: 1028,
+});
+
 function parseArguments(argv) {
     const options = {
         itemDefInput: DEFAULT_ITEM_DEF_INPUT,
@@ -99,6 +120,7 @@ function parseArguments(argv) {
         blindBoxScheduleInput: DEFAULT_BLIND_BOX_SCHEDULE_INPUT,
         blindBoxRarityRateInput: DEFAULT_BLIND_BOX_RARITY_RATE_INPUT,
         gameDevelopConfigInput: DEFAULT_GAME_DEVELOP_CONFIG_INPUT,
+        itemDefIdRangeInput: DEFAULT_ITEM_DEF_ID_RANGE_INPUT,
         outputRoot: DEFAULT_OUTPUT_ROOT,
         channels: Object.keys(CHANNELS),
     };
@@ -141,6 +163,9 @@ function parseArguments(argv) {
             case "--game-develop-config-input":
                 options.gameDevelopConfigInput = path.resolve(value);
                 break;
+            case "--item-def-id-range-input":
+                options.itemDefIdRangeInput = path.resolve(value);
+                break;
             case "--output-root":
                 options.outputRoot = path.resolve(value);
                 break;
@@ -175,6 +200,7 @@ function printUsage() {
   --blind-box-schedule-input <file> Luban 导出的 tbblindboxschedule.json
   --blind-box-rarity-rate-input <file> Luban 导出的 tbblindboxrarityrate.json
   --game-develop-config-input <file> Luban 导出的 tbgamedevelopconfig.json
+  --item-def-id-range-input <file> Luban 导出的 tbsteamitemdefidrange.json
   --output-root <dir>      输出目录
   --channel <value>        both（默认）、playtest 或 release
   -h, --help               显示本帮助
@@ -197,6 +223,127 @@ function readJsonArray(filePath, label) {
         throw new Error(`${label}根节点必须是数组：${filePath}`);
     }
     return value;
+}
+
+function buildIdRangePlan(records) {
+    const errors = [];
+    const byId = new Map();
+    for (const record of records) {
+        const label = `SteamItemDefIdRange ${record.Id ?? "<未知>"}`;
+        if (!Number.isInteger(record.Id) || record.Id <= 0) {
+            errors.push(`${label}：Id 必须是正整数。`);
+            continue;
+        }
+        if (byId.has(record.Id)) {
+            errors.push(`${label}：Id 重复。`);
+            continue;
+        }
+        if (!Number.isInteger(record.StartItemDefId)
+            || !Number.isInteger(record.EndItemDefId)
+            || record.StartItemDefId <= 0
+            || record.EndItemDefId >= 1000000
+            || record.StartItemDefId > record.EndItemDefId) {
+            errors.push(`${label}：起止 ItemDef ID 必须位于 1..999999，且起始值不能大于截止值。`);
+            continue;
+        }
+        byId.set(record.Id, record);
+    }
+
+    for (const [name, id] of Object.entries(ID_RANGE_ROWS)) {
+        if (!byId.has(id)) errors.push(`SteamItemDefIdRange：缺少 ${name} 规划行 ${id}。`);
+    }
+
+    return { records, byId, errors };
+}
+
+function idInRange(plan, rangeId, itemDefId) {
+    const range = plan?.byId.get(rangeId);
+    return Boolean(range)
+        && Number.isInteger(itemDefId)
+        && itemDefId >= range.StartItemDefId
+        && itemDefId <= range.EndItemDefId;
+}
+
+function validateIdPlanning(
+    plan,
+    itemDefRecords,
+    itemRecords,
+    linkTreeRecords,
+    blindBoxRecords,
+    scheduleRecords,
+) {
+    if (!plan || plan.records.length === 0) return [];
+    const errors = [...plan.errors];
+    if (plan.errors.length > 0) return errors;
+
+    for (const item of itemRecords) {
+        if (!Number.isInteger(item.SteamItemDefId) || item.SteamItemDefId <= 0) continue;
+        if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, item.SteamItemDefId)) continue;
+        const expected = 100000 + item.Id;
+        if (!idInRange(plan, ID_RANGE_ROWS.formalItem, item.SteamItemDefId)
+            || item.SteamItemDefId !== expected) {
+            errors.push(
+                `Item ${item.Id} ${item.Name || ""}：正式 SteamItemDefId 必须为 100000 + Item.Id = ${expected}，实际为 ${item.SteamItemDefId}。`,
+            );
+        }
+    }
+
+    for (const definition of itemDefRecords.filter(record => record.IsEnabled === true)) {
+        if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, definition.Id)) continue;
+        const valid = definition.Type === 1
+            ? idInRange(plan, ID_RANGE_ROWS.blindBoxCost, definition.Id)
+                || idInRange(plan, ID_RANGE_ROWS.linkTreeReceipt, definition.Id)
+            : definition.Type === 2
+                ? idInRange(plan, ID_RANGE_ROWS.claimBundle, definition.Id)
+                : definition.Type === 3
+                    ? idInRange(plan, ID_RANGE_ROWS.blindBoxGenerator, definition.Id)
+                    : definition.Type === 4
+                        ? idInRange(plan, ID_RANGE_ROWS.playtimeGenerator, definition.Id)
+                        : false;
+        if (!valid) {
+            errors.push(`${definition.Key || definition.Id}：ItemDef ${definition.Id} 不在其 Type 对应的已规划正式 ID 段内。`);
+        }
+    }
+
+    for (const box of blindBoxRecords.filter(record => record.IsEnabled === true)) {
+        const inputId = box.SteamOpenCostItemDefId;
+        const targetId = box.SteamExchangeTargetItemDefId;
+        if (inputId <= 0 && targetId <= 0) continue;
+        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, inputId)) {
+            const expected = 200000 + box.Id;
+            if (!idInRange(plan, ID_RANGE_ROWS.blindBoxCost, inputId) || inputId !== expected) {
+                errors.push(`BlindBox ${box.Id}：正式 SteamOpenCostItemDefId 必须为 200000 + BlindBox.Id = ${expected}。`);
+            }
+        }
+        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, targetId)
+            && !idInRange(plan, ID_RANGE_ROWS.blindBoxGenerator, targetId)) {
+            errors.push(`BlindBox ${box.Id}：SteamExchangeTargetItemDefId ${targetId} 不在盲盒 Generator 正式段内。`);
+        }
+    }
+
+    for (const entry of linkTreeRecords.filter(record => record.IsEnabled === true)) {
+        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, entry.SteamReceiptItemDefId)
+            && !idInRange(plan, ID_RANGE_ROWS.linkTreeReceipt, entry.SteamReceiptItemDefId)) {
+            errors.push(`LinkTree ${entry.Id}：永久回执 ${entry.SteamReceiptItemDefId} 不在 LinkTree 回执正式段内。`);
+        }
+        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, entry.SteamClaimBundleItemDefId)
+            && !idInRange(plan, ID_RANGE_ROWS.linkTreeBundle, entry.SteamClaimBundleItemDefId)) {
+            errors.push(`LinkTree ${entry.Id}：领奖 Bundle ${entry.SteamClaimBundleItemDefId} 不在 LinkTree Bundle 正式段内。`);
+        }
+    }
+
+    for (const schedule of scheduleRecords.filter(record =>
+        record.IsEnabled === true && record.SteamPlaytimeGeneratorItemDefId > 0)) {
+        const itemDefId = schedule.SteamPlaytimeGeneratorItemDefId;
+        if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, itemDefId)) continue;
+        const expectedRange = schedule.IsLoopTrack === true
+            ? ID_RANGE_ROWS.recurringPlaytimeGenerator
+            : ID_RANGE_ROWS.newbiePlaytimeGenerator;
+        if (!idInRange(plan, expectedRange, itemDefId)) {
+            errors.push(`BlindBoxSchedule ${schedule.Id}：PlaytimeGenerator ${itemDefId} 不在对应的正式投放段内。`);
+        }
+    }
+    return errors;
 }
 
 function requiredString(record, field, label, errors) {
@@ -774,7 +921,12 @@ function applyBlindBoxMappings(records, merged, itemRecords = [], rarityRateReco
     const references = [];
     const targetRecipes = new Map();
     const containerTargets = new Map();
-    const autoGeneratorBoxes = new Map();
+    const autoGeneratorIds = new Set(
+        merged.definitions
+            .filter(definition => definition.schemaItem.bundle === AUTO_BUNDLE_MARKER)
+            .map(definition => definition.id),
+    );
+    const autoGeneratorRecipes = new Map();
     let checkedReferenceCount = 0;
 
     for (const record of records) {
@@ -820,20 +972,22 @@ function applyBlindBoxMappings(records, merged, itemRecords = [], rarityRateReco
         }
         if (!input || !target) continue;
 
-        if (target.schemaItem.bundle === AUTO_BUNDLE_MARKER) {
-            const previousBoxId = autoGeneratorBoxes.get(targetId);
-            if (previousBoxId && previousBoxId !== record.Id) {
-                errors.push(`${label}：自动 Generator ${targetId} 已由 BlindBox ${previousBoxId} 生成奖池，不能复用。`);
-            } else if (!previousBoxId) {
-                autoGeneratorBoxes.set(targetId, record.Id);
-                const generatedBundle = buildAutoGeneratorBundle(
-                    record,
-                    itemRecords,
-                    rarityRateRecords,
-                    merged,
-                    errors,
+        if (autoGeneratorIds.has(targetId)) {
+            const generatedBundle = buildAutoGeneratorBundle(
+                record,
+                itemRecords,
+                rarityRateRecords,
+                merged,
+                errors,
+            );
+            const previous = autoGeneratorRecipes.get(targetId);
+            if (generatedBundle && previous && previous.bundle !== generatedBundle) {
+                errors.push(
+                    `${label}：自动 Generator ${targetId} 已由 BlindBox ${previous.boxId} 生成不同奖池，不能复用。`,
                 );
-                if (generatedBundle) target.schemaItem.bundle = generatedBundle;
+            } else if (generatedBundle && !previous) {
+                autoGeneratorRecipes.set(targetId, { boxId: record.Id, bundle: generatedBundle });
+                target.schemaItem.bundle = generatedBundle;
             }
         }
 
@@ -1038,7 +1192,11 @@ function buildArtifacts(
     blindBoxScheduleRecords = [],
     blindBoxRarityRateRecords = [],
     gameDevelopConfigRecords = [],
+    itemDefIdRangeRecords = [],
 ) {
+    const idRangePlan = itemDefIdRangeRecords.length > 0
+        ? buildIdRangePlan(itemDefIdRangeRecords)
+        : null;
     const itemDefs = validateAndBuildItemDefs(itemDefRecords);
     const gameItems = validateAndBuildGameItems(itemRecords);
     const merged = mergeDefinitions(itemDefs, gameItems);
@@ -1056,6 +1214,14 @@ function buildArtifacts(
     );
     const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
     const linkTree = validateLinkTree(linkTreeRecords, itemDefs, itemRecords, blindBoxRecords);
+    const idPlanningErrors = validateIdPlanning(
+        idRangePlan,
+        itemDefRecords,
+        itemRecords,
+        linkTreeRecords,
+        blindBoxRecords,
+        blindBoxScheduleRecords,
+    );
     return {
         items: merged.items,
         definitions: merged.definitions,
@@ -1064,6 +1230,21 @@ function buildArtifacts(
         checkedReferenceCount: linkTree.checkedReferenceCount,
         checkedBlindBoxReferenceCount: blindBoxes.checkedReferenceCount,
         checkedPlaytimeReferenceCount: playtime.checkedReferenceCount,
+        idRangePlan,
+        channelReferences: [
+            ...linkTreeRecords.filter(record => record.IsEnabled === true).flatMap(record => [
+                { label: `LinkTree ${record.Id} 永久回执`, itemDefId: record.SteamReceiptItemDefId },
+                { label: `LinkTree ${record.Id} 领奖 Bundle`, itemDefId: record.SteamClaimBundleItemDefId },
+            ]),
+            ...blindBoxes.references.flatMap(reference => [
+                { label: `BlindBox ${reference.blindBoxId} 开箱成本`, itemDefId: reference.inputItemDefId },
+                { label: `BlindBox ${reference.blindBoxId} 交换目标`, itemDefId: reference.targetItemDefId },
+            ]),
+            ...playtime.references.map(reference => ({
+                label: `BlindBoxSchedule ${reference.scheduleId} PlaytimeGenerator`,
+                itemDefId: reference.playtimeGeneratorItemDefId,
+            })),
+        ],
         errors: [
             ...itemDefs.errors,
             ...gameItems.errors,
@@ -1072,6 +1253,7 @@ function buildArtifacts(
             ...playtime.errors,
             ...bundleErrors,
             ...linkTree.errors,
+            ...idPlanningErrors,
         ],
         warnings: [
             ...itemDefs.warnings,
@@ -1080,6 +1262,31 @@ function buildArtifacts(
             ...playtime.warnings,
             ...linkTree.warnings,
         ],
+    };
+}
+
+function buildChannelArtifact(result, channel) {
+    if (!Object.hasOwn(CHANNELS, channel)) throw new Error(`未知渠道：${channel}`);
+    const errors = [];
+    const plan = result.idRangePlan;
+    const definitions = channel === "release" && plan
+        ? result.definitions.filter(definition =>
+            !idInRange(plan, ID_RANGE_ROWS.playtestOnly, definition.id))
+        : result.definitions;
+    const enabledById = new Map(definitions.map(definition => [definition.id, definition]));
+
+    if (channel === "release" && plan) {
+        for (const reference of result.channelReferences) {
+            if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, reference.itemDefId)) {
+                errors.push(`${reference.label} 引用了 Playtest 专用 ItemDef ${reference.itemDefId}，不得进入 Release。`);
+            }
+        }
+    }
+    errors.push(...validateBundleReferences(definitions, enabledById));
+    return {
+        items: definitions.map(definition => definition.schemaItem),
+        definitions,
+        errors,
     };
 }
 
@@ -1102,6 +1309,7 @@ function main(argv = process.argv.slice(2)) {
     const blindBoxScheduleRecords = readJsonArray(options.blindBoxScheduleInput, "BlindBoxSchedule JSON");
     const blindBoxRarityRateRecords = readJsonArray(options.blindBoxRarityRateInput, "BlindBoxRarityRate JSON");
     const gameDevelopConfigRecords = readJsonArray(options.gameDevelopConfigInput, "GameDevelopConfig JSON");
+    const itemDefIdRangeRecords = readJsonArray(options.itemDefIdRangeInput, "SteamItemDefIdRange JSON");
     const result = buildArtifacts(
         itemDefRecords,
         linkTreeRecords,
@@ -1110,7 +1318,15 @@ function main(argv = process.argv.slice(2)) {
         blindBoxScheduleRecords,
         blindBoxRarityRateRecords,
         gameDevelopConfigRecords,
+        itemDefIdRangeRecords,
     );
+    const channelResults = new Map(options.channels.map(channel => [
+        channel,
+        buildChannelArtifact(result, channel),
+    ]));
+    const channelErrors = options.channels.flatMap(channel =>
+        channelResults.get(channel).errors.map(error => `${channel}：${error}`));
+    const allErrors = [...result.errors, ...channelErrors];
 
     fs.mkdirSync(options.outputRoot, { recursive: true });
     const reportPath = path.join(options.outputRoot, "validation-report.json");
@@ -1123,13 +1339,17 @@ function main(argv = process.argv.slice(2)) {
             blindBoxSchedule: projectRelative(options.blindBoxScheduleInput),
             blindBoxRarityRate: projectRelative(options.blindBoxRarityRateInput),
             gameDevelopConfig: projectRelative(options.gameDevelopConfigInput),
+            steamItemDefIdRange: projectRelative(options.itemDefIdRangeInput),
         },
         sourceItemDefCount: itemDefRecords.length,
         sourceGameItemCount: itemRecords.length,
         sourceBlindBoxCount: blindBoxRecords.length,
         sourceBlindBoxScheduleCount: blindBoxScheduleRecords.length,
         sourceBlindBoxRarityRateCount: blindBoxRarityRateRecords.length,
-        exportedItemDefCount: result.items.length,
+        exportedItemDefCountByChannel: Object.fromEntries(options.channels.map(channel => [
+            channel,
+            channelResults.get(channel).items.length,
+        ])),
         checkedLinkTreeReferenceCount: result.checkedReferenceCount,
         checkedBlindBoxReferenceCount: result.checkedBlindBoxReferenceCount,
         checkedPlaytimeReferenceCount: result.checkedPlaytimeReferenceCount,
@@ -1137,19 +1357,20 @@ function main(argv = process.argv.slice(2)) {
             name: channel,
             appid: CHANNELS[channel].appId,
         })),
-        errors: result.errors,
+        errors: allErrors,
         warnings: result.warnings,
     });
 
-    if (result.errors.length) {
-        console.error(`生成已停止：发现 ${result.errors.length} 个错误。`);
-        for (const error of result.errors) console.error(`- ${error}`);
+    if (allErrors.length) {
+        console.error(`生成已停止：发现 ${allErrors.length} 个错误。`);
+        for (const error of allErrors) console.error(`- ${error}`);
         console.error(`校验报告：${reportPath}`);
         return 1;
     }
 
     console.log(
-        `校验通过：${result.items.length} 条 Steam ItemDef，`
+        `校验通过：Playtest ${channelResults.get("playtest")?.items.length ?? "未生成"} 条，`
+        + `Release ${channelResults.get("release")?.items.length ?? "未生成"} 条 Steam ItemDef，`
         + `${result.checkedReferenceCount} 条 LinkTree 引用，`
         + `${result.checkedBlindBoxReferenceCount} 条 BlindBox 映射，`
         + `${result.checkedPlaytimeReferenceCount} 条 PlaytimeGenerator 调度。`,
@@ -1159,7 +1380,7 @@ function main(argv = process.argv.slice(2)) {
         const outputPath = path.join(options.outputRoot, configuration.fileName);
         writeJson(outputPath, {
             appid: configuration.appId,
-            items: result.items,
+            items: channelResults.get(channel).items,
         });
         console.log(`- ${channel} (${configuration.appId})：${outputPath}`);
     }
@@ -1184,6 +1405,7 @@ if (require.main === module) {
 module.exports = {
     CHANNELS,
     buildArtifacts,
+    buildChannelArtifact,
     main,
     parseArguments,
 };

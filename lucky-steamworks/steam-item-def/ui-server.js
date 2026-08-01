@@ -19,6 +19,7 @@ const BLIND_BOX_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json"
 const BLIND_BOX_SCHEDULE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxschedule.json");
 const BLIND_BOX_RARITY_RATE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxrarityrate.json");
 const GAME_DEVELOP_CONFIG_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbgamedevelopconfig.json");
+const ITEM_DEF_ID_RANGE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbsteamitemdefidrange.json");
 const DEFAULT_PORT = 43117;
 const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -57,6 +58,7 @@ function loadPreview() {
     const blindBoxScheduleRecords = readJsonArray(BLIND_BOX_SCHEDULE_INPUT);
     const blindBoxRarityRateRecords = readJsonArray(BLIND_BOX_RARITY_RATE_INPUT);
     const gameDevelopConfigRecords = readJsonArray(GAME_DEVELOP_CONFIG_INPUT);
+    const itemDefIdRangeRecords = readJsonArray(ITEM_DEF_ID_RANGE_INPUT);
     const result = converter.buildArtifacts(
         itemDefRecords,
         linkTreeRecords,
@@ -65,6 +67,7 @@ function loadPreview() {
         blindBoxScheduleRecords,
         blindBoxRarityRateRecords,
         gameDevelopConfigRecords,
+        itemDefIdRangeRecords,
     );
     const linkTreesByItemDef = new Map();
     const blindBoxesByItemDef = new Map();
@@ -145,9 +148,11 @@ function loadPreview() {
         blindBoxSchedule: fileInfo(BLIND_BOX_SCHEDULE_INPUT),
         blindBoxRarityRate: fileInfo(BLIND_BOX_RARITY_RATE_INPUT),
         gameDevelopConfig: fileInfo(GAME_DEVELOP_CONFIG_INPUT),
+        steamItemDefIdRange: fileInfo(ITEM_DEF_ID_RANGE_INPUT),
     };
     const latestSourceMs = Math.max(...Object.values(sources).map(source => source.modifiedMs || 0));
     const channels = Object.entries(converter.CHANNELS).map(([name, configuration]) => {
+        const artifact = converter.buildChannelArtifact(result, name);
         const outputPath = path.join(OUTPUT_ROOT, configuration.fileName);
         const output = fileInfo(outputPath);
         return {
@@ -160,30 +165,36 @@ function loadPreview() {
             },
             schema: {
                 appid: configuration.appId,
-                items: result.items,
+                items: artifact.items,
             },
+            itemDefIds: artifact.definitions.map(definition => definition.id),
+            errors: artifact.errors,
         };
     });
+    const channelErrors = channels.flatMap(channel =>
+        channel.errors.map(error => `${channel.name}：${error}`));
+    const errors = [...result.errors, ...channelErrors];
 
     return {
-        ok: result.errors.length === 0,
+        ok: errors.length === 0,
         stats: {
             sourceItemDefs: itemDefRecords.length,
             sourceGameItems: itemRecords.length,
             sourceBlindBoxes: blindBoxRecords.length,
             sourceBlindBoxSchedules: blindBoxScheduleRecords.length,
             sourceBlindBoxRarityRates: blindBoxRarityRateRecords.length,
-            exportedItemDefs: result.items.length,
+            exportedItemDefs: channels.find(channel => channel.name === "playtest")?.schema.items.length
+                ?? result.items.length,
             linkTreeReferences: result.checkedReferenceCount,
             blindBoxReferences: result.checkedBlindBoxReferenceCount,
             playtimeReferences: result.checkedPlaytimeReferenceCount,
-            errors: result.errors.length,
+            errors: errors.length,
             warnings: result.warnings.length,
         },
         sources,
         rows,
         channels,
-        errors: result.errors,
+        errors,
         warnings: result.warnings,
         loadedAt: new Date().toISOString(),
     };

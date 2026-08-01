@@ -89,8 +89,7 @@ async function loadPreview({ announce = false } = {}) {
         if (!state.preview.channels.some(channel => channel.name === state.channel)) {
             state.channel = state.preview.channels[0]?.name || "playtest";
         }
-        const selectedExists = state.preview.rows.some(row => row.id === state.selectedItemDefId);
-        if (!selectedExists) state.selectedItemDefId = state.preview.rows[0]?.id ?? null;
+        ensureSelectedRow();
         render();
         if (announce) showToast("已重新读取 Luban 数据");
     } catch (error) {
@@ -148,7 +147,9 @@ function renderChannels() {
         button.textContent = channel.name === "playtest" ? "Playtest" : "Release";
         button.addEventListener("click", () => {
             state.channel = channel.name;
+            ensureSelectedRow();
             renderChannels();
+            renderTable();
             renderDetail();
         });
         elements.channelTabs.append(button);
@@ -156,6 +157,7 @@ function renderChannels() {
 
     const channel = currentChannel();
     elements.channelAppid.textContent = channel?.appid ?? "-";
+    elements.metricDefinitions.textContent = channel?.schema.items.length ?? 0;
     elements.outputState.className = "output-state";
     if (!channel?.output.exists) {
         elements.outputState.textContent = "尚未生成";
@@ -176,9 +178,10 @@ function policyTag(text, isGood = true) {
 }
 
 function renderTable() {
+    const rows = currentRows();
     elements.tableBody.replaceChildren();
-    elements.visibleCount.textContent = `${state.preview.rows.length} 条`;
-    for (const row of state.preview.rows) {
+    elements.visibleCount.textContent = `${rows.length} 条`;
+    for (const row of rows) {
         const tableRow = document.createElement("tr");
         if (row.id === state.selectedItemDefId) tableRow.classList.add("selected");
         tableRow.tabIndex = 0;
@@ -239,12 +242,24 @@ function currentChannel() {
     return state.preview?.channels.find(channel => channel.name === state.channel) || null;
 }
 
+function currentRows() {
+    const ids = new Set(currentChannel()?.itemDefIds || []);
+    return (state.preview?.rows || []).filter(row => ids.has(row.id));
+}
+
+function ensureSelectedRow() {
+    const rows = currentRows();
+    if (!rows.some(row => row.id === state.selectedItemDefId)) {
+        state.selectedItemDefId = rows[0]?.id ?? null;
+    }
+}
+
 function selectedSchemaItem() {
     return currentChannel()?.schema.items.find(item => item.itemdefid === state.selectedItemDefId) || null;
 }
 
 function renderDetail() {
-    const row = state.preview?.rows.find(entry => entry.id === state.selectedItemDefId);
+    const row = currentRows().find(entry => entry.id === state.selectedItemDefId);
     const item = selectedSchemaItem();
     if (!row || !item) {
         elements.detailTitle.textContent = "选择一条定义";

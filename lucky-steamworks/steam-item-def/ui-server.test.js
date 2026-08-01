@@ -18,19 +18,25 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.equal(preview.stats.blindBoxReferences, 3);
     assert.equal(preview.stats.playtimeReferences, 9);
     assert.equal(preview.channels.length, 2);
+    const playtest = preview.channels.find(channel => channel.name === "playtest");
+    const release = preview.channels.find(channel => channel.name === "release");
+    assert.ok(playtest.itemDefIds.includes(401001));
+    assert.ok(!release.itemDefIds.includes(401001));
+    assert.ok(release.itemDefIds.includes(501001));
     assert.equal(preview.rows.find(row => row.id === 401001).linkTrees.length, 1);
     assert.equal(preview.sources.item.exists, true);
     assert.equal(preview.sources.blindBox.exists, true);
     assert.equal(preview.sources.blindBoxSchedule.exists, true);
     assert.equal(preview.sources.blindBoxRarityRate.exists, true);
     assert.equal(preview.sources.gameDevelopConfig.exists, true);
+    assert.equal(preview.sources.steamItemDefIdRange.exists, true);
     assert.equal(preview.rows.find(row => row.id === 101002).source, "Item");
-    assert.ok(preview.rows.some(row => row.id === 402001));
-    assert.equal(preview.rows.find(row => row.id === 403001).exchange, "402001x1");
-    assert.ok(preview.rows.find(row => row.id === 403002).bundle.length > 0);
-    assert.equal(preview.rows.find(row => row.id === 404001).dropInterval, 1);
-    assert.equal(preview.rows.find(row => row.id === 404001).dropLimit, 1);
-    assert.equal(preview.rows.find(row => row.id === 404001).playtimeSchedules.length, 1);
+    assert.ok(preview.rows.some(row => row.id === 201001));
+    assert.equal(preview.rows.find(row => row.id === 301001).exchange, "201001x1;204001x1");
+    assert.ok(preview.rows.find(row => row.id === 301001).bundle.length > 0);
+    assert.equal(preview.rows.find(row => row.id === 700001).dropInterval, 1);
+    assert.equal(preview.rows.find(row => row.id === 700001).dropLimit, 1);
+    assert.equal(preview.rows.find(row => row.id === 700001).playtimeSchedules.length, 1);
 });
 
 test("serves preview data and rejects untrusted POST requests", async () => {

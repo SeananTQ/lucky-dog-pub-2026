@@ -21,7 +21,7 @@ Start-SteamItemDefTool.cmd
 
 页面每 30 秒向本地服务发送一次心跳。关闭所有工具页面后，服务会在连续空闲 10 分钟后自动退出；也可以点击右上角“关闭工具”立即退出。10 分钟内重新双击启动器会复用现有服务。
 
-网页不接受任意文件路径；服务只读取项目内固定的七份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
+网页不接受任意文件路径；服务只读取项目内固定的八份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
 
 ## 运行
 
@@ -41,6 +41,7 @@ lucky-dog-rise/Data/Json/tbblindbox.json
 lucky-dog-rise/Data/Json/tbblindboxschedule.json
 lucky-dog-rise/Data/Json/tbblindboxrarityrate.json
 lucky-dog-rise/Data/Json/tbgamedevelopconfig.json
+lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json
 ```
 
 默认生成：
@@ -52,6 +53,8 @@ lucky-steamworks/steam-item-def/generated/validation-report.json
 ```
 
 Playtest schema 固定使用 AppID `4972240`，Release schema 固定使用 AppID `2583700`。转换器不接受任意 AppID，避免把定义上传到错误应用。
+
+`SteamItemDefIdRange` 的导出 JSON 是 ID 分段规划的唯一权威来源。Playtest schema 会保留启用的测试段与正式段；Release schema 会剔除规划为 Playtest 专用的整个 ID 段，并拒绝任何仍指向该段的启用业务引用或 Bundle 配方。
 
 只生成一个渠道：
 
@@ -71,6 +74,8 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 转换器会阻止以下配置生成可上传 schema：
 
 - ItemDef ID 重复、超出 `1..999999` 或 Key 重复。
+- 正式 Item、盲盒成本、Generator、LinkTree 回执/Bundle 和 PlaytimeGenerator 没有落入 `SteamItemDefIdRange` 规划的对应分段。
+- Release 的启用业务配置或 Bundle 配方仍引用 Playtest 专用 ItemDef。
 - `SteamItemDef` 与 `Item` 的 ItemDef ID 冲突，或多个 `Item` 共用同一 ID。
 - Generator/Bundle 配方引用了未导出的 ItemDef。
 - `@AUTO` 被用于非 Generator 定义，或自动奖池候选物品没有 Steam ItemDef 映射。
@@ -81,7 +86,7 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 - 非 PlaytimeGenerator 配置了 Steam 投放上限，或启用 Schedule 引用了已经显式停发的 Generator。
 - BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。
-- 多个盲盒共用同一个 `@AUTO` Generator，或自动奖池缺少有效品质概率/候选物品。
+- 多个盲盒共用同一个 `@AUTO` Generator 但生成结果不同，或自动奖池缺少有效品质概率/候选物品。生成结果完全一致时允许复用同一 Generator。
 - BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或其 Bundle 与盲盒开箱成本不一致。
 
 BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲盒配置了 `IsPlatformInventoryRequired=true`，转换器会给出警告。
@@ -118,7 +123,7 @@ drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 
 ## IsEnabled 约定
 
-`IsEnabled=false` 的行不会进入生成结果。这个开关只适用于尚未发布的草稿；已经发布并产生过库存实例的 ItemDef 必须继续保留在 Steam schema 中，不得通过关闭该字段移除或复用 ID。
+`IsEnabled=false` 的行不会进入生成结果。尚未发布的草稿可以直接关闭；已经发布的定义仍须在 Excel 中保留且永不复用 ID。需要退役的 PlaytimeGenerator 应先以 `IsEnabled=true`、`SteamUseDropLimit=true`、`SteamDropLimit=0` 发布一次；确认 Steam 已收到停发配置后，后续可以设为 `IsEnabled=false`，让它退出本地预览和后续 schema。
 
 ## 测试
 

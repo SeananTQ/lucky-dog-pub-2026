@@ -3,7 +3,31 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildArtifacts } = require("./build-steam-item-defs");
+const { buildArtifacts, buildChannelArtifact } = require("./build-steam-item-defs");
+
+function idRanges() {
+    const ranges = {
+        1001: [100000, 199999],
+        1003: [201000, 229999],
+        1006: [301000, 301999],
+        1009: [400000, 499999],
+        1013: [501000, 501999],
+        1016: [600000, 699999],
+        1017: [601000, 601999],
+        1021: [700000, 799999],
+        1023: [700000, 700999],
+        1024: [701000, 701999],
+        1028: [1, 99999],
+    };
+    return Object.entries(ranges).map(([Id, [StartItemDefId, EndItemDefId]]) => ({
+        Id: Number(Id),
+        StartItemDefId,
+        EndItemDefId,
+        Description: "test",
+        Purpose: "test",
+        Example: "test",
+    }));
+}
 
 function receipt(overrides = {}) {
     return {
@@ -518,4 +542,84 @@ test("rejects a playtime generator that grants the wrong blind box item", () => 
     );
 
     assert.ok(result.errors.some(error => error.includes("应当发放 402001x1")));
+});
+
+test("allows blind boxes to share an AUTO generator when their generated pools match", () => {
+    const vouchers = [
+        receipt({ Id: 402001, Key: "VoucherA", PromoRule: "", GrantedManually: false }),
+        receipt({ Id: 402002, Key: "VoucherB", PromoRule: "", GrantedManually: false }),
+    ];
+    const generator = receipt({
+        Id: 403001,
+        Key: "SharedGenerator",
+        Type: 3,
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "@AUTO",
+    });
+    const result = buildArtifacts(
+        [...vouchers, generator],
+        [],
+        [gameItem()],
+        [
+            blindBox(),
+            blindBox({ Id: 1001, SteamOpenCostItemDefId: 402002 }),
+        ],
+        [],
+        [
+            rarityRate(),
+            rarityRate({ Id: 100104, BlindBoxId: 1001 }),
+        ],
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.items.find(item => item.itemdefid === 403001).exchange, "402001x1;402002x1");
+});
+
+test("filters the Playtest-only range from Release output", () => {
+    const result = buildArtifacts(
+        [receipt()],
+        [],
+        [gameItem()],
+        [],
+        [],
+        [],
+        [],
+        idRanges(),
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.ok(buildChannelArtifact(result, "playtest").items.some(item => item.itemdefid === 401001));
+    assert.ok(!buildChannelArtifact(result, "release").items.some(item => item.itemdefid === 401001));
+});
+
+test("rejects a Playtest-only business reference in Release", () => {
+    const result = buildArtifacts(
+        [receipt(), claimBundle()],
+        [linkTree()],
+        [gameItem()],
+        [],
+        [],
+        [],
+        [],
+        idRanges(),
+    );
+
+    assert.ok(buildChannelArtifact(result, "release").errors.some(error =>
+        error.includes("Playtest 专用 ItemDef")));
+});
+
+test("validates the formal Item mapping from the exported ID plan", () => {
+    const result = buildArtifacts(
+        [],
+        [],
+        [gameItem({ SteamItemDefId: 101003 })],
+        [],
+        [],
+        [],
+        [],
+        idRanges(),
+    );
+
+    assert.ok(result.errors.some(error => error.includes("100000 + Item.Id = 101002")));
 });
