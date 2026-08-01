@@ -32,7 +32,9 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["RewardItemId"].IsNumber) { throw new SerializationException(); }  RewardItemId = _buf["RewardItemId"]; }
         { if(!_buf["RewardChips"].IsNumber) { throw new SerializationException(); }  RewardChips = _buf["RewardChips"]; }
         { if(!_buf["SequentialPackId"].IsNumber) { throw new SerializationException(); }  SequentialPackId = _buf["SequentialPackId"]; }
-        { if(!_buf["SteamPromoItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPromoItemDefId = _buf["SteamPromoItemDefId"]; }
+        { if(!_buf["RewardBlindBoxId"].IsNumber) { throw new SerializationException(); }  RewardBlindBoxId = _buf["RewardBlindBoxId"]; }
+        { if(!_buf["SteamReceiptItemDefId"].IsNumber) { throw new SerializationException(); }  SteamReceiptItemDefId = _buf["SteamReceiptItemDefId"]; }
+        { if(!_buf["SteamClaimBundleItemDefId"].IsNumber) { throw new SerializationException(); }  SteamClaimBundleItemDefId = _buf["SteamClaimBundleItemDefId"]; }
     }
 
     public static LinkTree DeserializeLinkTree(JSONNode _buf)
@@ -101,9 +103,17 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly int SequentialPackId;
     /// <summary>
-    /// 未来 Steam 库存发奖/领取标记的 itemdef id；当前填 0
+    /// RewardType=BlindBox 时填写 BlindBox.Id
     /// </summary>
-    public readonly int SteamPromoItemDefId;
+    public readonly int RewardBlindBoxId;
+    /// <summary>
+    /// 领过奖励的玩家会在Steam服务器上留下凭证，防止再次领奖<br/>Bundle 中永久保留的回执。<br/>Banner 是否已领取只检查这个 ID。
+    /// </summary>
+    public readonly int SteamReceiptItemDefId;
+    /// <summary>
+    /// 客户端调用 AddPromoItem 的目标。<br/>必须指向 Type=Bundle、PromoRule=manual 的定义。
+    /// </summary>
+    public readonly int SteamClaimBundleItemDefId;
    
     public const int __ID__ = 1258843864;
     public override int GetTypeId() => __ID__;
@@ -130,7 +140,9 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "RewardItemId:" + RewardItemId + ","
         + "RewardChips:" + RewardChips + ","
         + "SequentialPackId:" + SequentialPackId + ","
-        + "SteamPromoItemDefId:" + SteamPromoItemDefId + ","
+        + "RewardBlindBoxId:" + RewardBlindBoxId + ","
+        + "SteamReceiptItemDefId:" + SteamReceiptItemDefId + ","
+        + "SteamClaimBundleItemDefId:" + SteamClaimBundleItemDefId + ","
         + "}";
     }
 }

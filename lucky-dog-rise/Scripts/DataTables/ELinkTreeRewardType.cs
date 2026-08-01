@@ -32,6 +32,10 @@ namespace DataTables
         /// 按玩家个人领取进度依次发放礼包格子；最后一格可重复兜底，当前预留
         /// </summary>
         SequentialPack = 3,
+        /// <summary>
+        /// 奖励玩家盲盒票并自动开启
+        /// </summary>
+        BlindBox = 4,
     }
 
 } 
