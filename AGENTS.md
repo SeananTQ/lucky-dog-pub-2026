@@ -263,6 +263,7 @@ lucky-dog-rise/
 
 ## Steam 平台与库存
 
+- Steam ItemDef ID 分段规划的唯一权威来源是导出的 `lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json`。修改 Steam schema 转换器、分配或校验 ItemDef ID、准备正式数据时，应直接读取该 JSON，不根据历史 ID、文字文档或编号习惯自行推断；编程阶段也不需要为此调用 Excel MCP。生成的 `SteamItemDefIdRange.cs` / `TbSteamItemDefIdRange.cs` 只是 Luban 运行时代码产物，不替代 JSON 作为转换器输入。
 - 平台入口目前由 `GamePlatformServiceFactory` 创建，普通启动使用 `RecoveringSteamPlatformService`。后续 Steam 库存功能优先复用这套入口、连接恢复和回调泵，不在各业务模块内重复创建或持有 `SteamworksRuntime`。`SteamGamePlatformService` 负责单次已连接 Steam 会话内的 API、回调和 `SteamInventoryResult_t` Handle 生命周期。
 - `IRecoverablePlatformService.ConnectionState` 是当前跨系统共享状态：`Offline / Connecting / InventorySyncing / Ready / Unavailable`。LinkTree、未来 Steam 库存盲盒和其他平台功能优先订阅该状态，避免各自形成含义不同的“是否在线”判断。
 - 当前以 `Ready` 表示本次 Steam 库存已同步并可执行库存写操作。缓存库存适合用于展示；涉及消耗、兑换或发放时，应以服务器同步结果为准。
