@@ -11,8 +11,8 @@
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
-    "SteamOpenCostItemDefId": 402002,
-    "SteamExchangeTargetItemDefId": 403002
+    "SteamOpenCostItemDefId": 201001,
+    "SteamExchangeTargetItemDefId": 301001
   },
   {
     "Id": 1002,
@@ -26,8 +26,8 @@
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
-    "SteamOpenCostItemDefId": 402003,
-    "SteamExchangeTargetItemDefId": 403003
+    "SteamOpenCostItemDefId": 201002,
+    "SteamExchangeTargetItemDefId": 301002
   },
   {
     "Id": 2001,
@@ -71,7 +71,7 @@
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common_Ticket.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": true,
-    "SteamOpenCostItemDefId": 402001,
-    "SteamExchangeTargetItemDefId": 403001
+    "SteamOpenCostItemDefId": 204001,
+    "SteamExchangeTargetItemDefId": 301001
   }
 ]

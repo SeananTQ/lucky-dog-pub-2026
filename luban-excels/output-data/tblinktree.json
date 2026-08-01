@@ -96,8 +96,8 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401005,
-    "SteamClaimBundleItemDefId": 406005
+    "SteamReceiptItemDefId": 501001,
+    "SteamClaimBundleItemDefId": 601001
   },
   {
     "Id": 1006,
@@ -116,8 +116,8 @@
     "RewardChips": 2500,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401006,
-    "SteamClaimBundleItemDefId": 406006
+    "SteamReceiptItemDefId": 501002,
+    "SteamClaimBundleItemDefId": 601002
   },
   {
     "Id": 1007,
@@ -136,8 +136,8 @@
     "RewardChips": 2500,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401007,
-    "SteamClaimBundleItemDefId": 406007
+    "SteamReceiptItemDefId": 501003,
+    "SteamClaimBundleItemDefId": 601003
   },
   {
     "Id": 1008,
@@ -156,7 +156,7 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401008,
-    "SteamClaimBundleItemDefId": 406008
+    "SteamReceiptItemDefId": 501004,
+    "SteamClaimBundleItemDefId": 601004
   }
 ]
