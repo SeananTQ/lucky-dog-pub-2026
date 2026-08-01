@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-28
+last_edit: 2026-08-01
 status: draft
 ---
 
@@ -10,11 +10,11 @@ status: draft
 
 LinkTree 页用于在系统功能面板中展示外部链接入口，并承接轻量活动奖励。玩家可以通过点击 Banner 打开外部页面，并在客户端确认外部页面打开成功后领取一次奖励。
 
-本功能当前使用 Steam Inventory 永久回执完成领取去重。Dev 构建提供独立的 LinkTree UI 模拟开关，用于反复测试角标、外部操作等待、领奖状态和反馈动画；模拟流程不访问 Steam Inventory，也不发放本地奖励。
+本功能使用 Steam Inventory 领取 Bundle 发放平台奖励，并以 Bundle 中永久保留的回执判断是否已经领取。Dev 构建提供独立的 LinkTree UI 模拟开关，用于反复测试角标、外部操作等待、领奖状态和反馈动画；模拟流程不访问 Steam Inventory，也不发放本地奖励。
 
 ## 当前入口
 
-当前配置来源为 `LinkTreeReward` 表。首批入口包括：
+当前配置来源为 `LinkTree` 表。首批正式入口类型包括：
 
 1. Twitter 关注页。
 2. Steam 社区页。
@@ -29,34 +29,40 @@ LinkTree 页面按照 `GameDevelopConfig.LinkTreeVisibleBannerCount` 控制最�
 
 ## 交互流程
 
-LinkTree 奖励入口采用三段状态：
+LinkTree 奖励入口采用四段状态：
 
 ```mermaid
 stateDiagram-v2
-    [*] --> NotOpened: 初始
-    NotOpened --> ReadyToClaim: 打开外部链接成功
+    [*] --> Unopened: 初始
+    Unopened --> OpenedAwaitingReturn: 外部链接打开请求成功
+    OpenedAwaitingReturn --> ReadyToClaim: 玩家点击非游戏内容
     ReadyToClaim --> Claimed: 玩家领取奖励
     Claimed --> [*]
 ```
 
 各状态表现如下：
 
-1. `NotOpened`
+1. `Unopened`
    - Banner 显示礼物角标。
    - 礼物角标使用未激活颜色。
    - 点击 Banner 打开 `PreClaimUrl`。
 
-2. `ReadyToClaim`
-   - 仅当外部链接打开校验成功后进入该状态。
+2. `OpenedAwaitingReturn`
+   - 外部链接打开请求通过 `OpenCheckType` 校验后进入该状态。
+   - 显示效果与 `Unopened` 相同，不提前提示奖励可领。
+   - 玩家需要在真实游戏内容之外点击一次，才会进入 `ReadyToClaim`。
+   - 非游戏内容命中复用宿主窗口的真实交互区域判断；透明缓冲区不属于游戏内容。
+
+3. `ReadyToClaim`
    - 礼物角标变为可领取颜色。
    - 点击 Banner 或角标领取奖励。
 
-3. `Claimed`
+4. `Claimed`
    - 礼物角标隐藏。
    - 玩家在当前记录来源下不能再次领取该入口奖励。
    - 再次点击 Banner 打开 `PostClaimUrl`。
 
-当前客户端可信度要求较低。只要 `OS.ShellOpen` 返回成功，即可认为玩家已经完成访问动作。即使玩家刻意作弊，也不作为本阶段重点防护对象。
+外部行为校验仍属于客户端可信流程。系统只确认 `OS.ShellOpen` 请求成功，并等待一次非游戏内容点击，不验证玩家是否真的完成关注、浏览或其它网页操作。该限制的作用是避免奖励过早变为可领，不承担反作弊职责。
 
 ## 奖励类型
 
@@ -70,11 +76,13 @@ stateDiagram-v2
 
 2. `FixedItem`
    - 固定道具奖励。
-   - 所有玩家领取相同的 `RewardItemId` 道具。
+   - `RewardItemId` 填本地 `Item.Id`，用于展示和映射。
+   - 实际物品由 Steam 领取 Bundle 直接发放，其 ItemDef 来自 `Item.SteamItemDefId`；客户端不在本地凭空添加该道具。
 
 3. `FixedChips`
    - 固定筹码奖励。
    - 所有玩家领取相同数量的 `RewardChips` 筹码。
+   - Steam Bundle 只发永久回执，回执确认后由客户端增加筹码。筹码属于本地可信度较低的单机资源，不要求进入 Steam Inventory。
 
 4. `SequentialPack`
    - 顺序礼包奖励。
@@ -82,11 +90,16 @@ stateDiagram-v2
    - 如果玩家仍有领取资格但已经超过最后一格，则之后每次领取最后一格奖励。
    - 当前版本只预留表字段，不实现该功能。
 
-当前开发重点只实现 `FixedItem` 和 `FixedChips`。
+5. `BlindBox`
+   - 奖励一张指定盲盒的 Steam 开箱成本券，并在领奖后自动进入开盒表演。
+   - `RewardBlindBoxId` 填本地 `BlindBox.Id`；领取 Bundle 的实际内容必须包含该盲盒的 `SteamOpenCostItemDefId`。
+   - 当前已完成表字段、枚举和转换器配方校验；客户端自动兑换并进入开盒表演尚未实现。
+
+当前客户端已实现 `None`、`FixedItem` 和 `FixedChips`。`SequentialPack` 与 `BlindBox` 仍属于后续工作。
 
 ## 领取记录
 
-领取记录来源不放入 `LinkTreeReward` 表。它属于运行环境策略，而不是单个入口的策划数据。
+领取记录来源不放入 `LinkTree` 表。它属于运行环境策略，而不是单个入口的策划数据。
 
 当前策略如下：
 
@@ -98,16 +111,21 @@ stateDiagram-v2
 
 2. 正常模式使用 Steam Inventory。
    - Steam Inventory 负责判断玩家是否已经领取过正式奖励。
-   - 本地客户端只负责展示状态和发起领取请求。
+   - 客户端对 `SteamClaimBundleItemDefId` 调用 `AddPromoItem`；Bundle 展开后不会作为库存实例保留。
+   - `SteamReceiptItemDefId` 对应的永久回执必须包含在 Bundle 中，启动同步时以该回执恢复 `Claimed`。
+   - 固定物品由同一 Bundle 直接写入 Steam 库存，再通过完整库存同步映射到本地背包。
+   - 固定筹码只在永久回执得到确认后由客户端本地发放。
    - 玩家修改本地时间或本地数据不应绕过 Steam 的最终领取判断。
 
-LinkTree 永久回执不得被消费。`AddPromoItem` 请求成功不等于回执实例已经生成，客户端只有在 Steam 返回结果或完整库存中确认目标 ItemDef 后才发放本地奖励。`ConsumeItem` 删除实例后不会重置一次性 Promo 资格，因此不能用于重复测试首次领奖流程；完整规则与测试方式见 [SteamItemDef 表说明](SteamItemDef表说明.md#回执生命周期与测试限制)。
+LinkTree 永久回执不得被消费。`AddPromoItem` 请求成功不等于领取 Bundle 已经展开，客户端只有在返回结果或后续完整库存中确认永久回执后，才完成领奖状态并发放本地筹码。`ConsumeItem` 删除回执实例后不会重置一次性 Promo 资格，因此不能用于重复测试首次领奖流程；完整规则与测试方式见 [SteamItemDef 表说明](SteamItemDef表说明.md#回执生命周期与测试限制)。
+
+领奖前先保存一笔本地待处理事务，其中同时记录 LinkTree ID、领取 Bundle ItemDef ID 和永久回执 ItemDef ID。回调丢失、断线或进程中断后，客户端先同步完整库存并查找永久回执，再决定完成事务或允许重试。旧版只保存一个 Steam ItemDef ID 的待处理事务在迁移时直接清除，不猜测其新含义。
 
 Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 Dev 渠道或 Steam 登录状态隐式切换为内存领奖。调试行为只由显式 UI 模拟开关控制。
 
 ## 数据表
 
-`LinkTreeReward` 表描述入口展示、链接和奖励内容。
+`LinkTree` 表描述入口展示、链接和奖励内容。
 
 字段说明：
 
@@ -158,6 +176,7 @@ Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 
 
 13. `RewardItemId`
     - `RewardType=FixedItem` 时使用。
+    - 填本地 `Item.Id`，用于奖励图标和 Steam 物品映射，不填写 Steam ItemDef ID。
 
 14. `RewardChips`
     - `RewardType=FixedChips` 时使用。
@@ -166,9 +185,17 @@ Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 
     - `RewardType=SequentialPack` 时使用。
     - 当前预留。
 
-16. `SteamPromoItemDefId`
+16. `RewardBlindBoxId`
+    - `RewardType=BlindBox` 时使用，填写本地 `BlindBox.Id`。
+
+17. `SteamReceiptItemDefId`
     - Steam Inventory 中用于标记该入口已经领取的一次性永久回执 ItemDef ID。
     - LinkTree 奖励固定为一次性领取，不再额外配置领取次数。
+
+18. `SteamClaimBundleItemDefId`
+    - 客户端调用 `AddPromoItem` 时提交的领取 Bundle ItemDef ID。
+    - Bundle 必须包含 `SteamReceiptItemDefId`，并根据奖励类型包含固定物品或盲盒开箱成本券。
+    - 旧版或停用条目允许暂时填 `0`，但不能执行真实领奖。
 
 ## 枚举
 
@@ -192,6 +219,7 @@ Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 
 2. `FixedItem`
 3. `FixedChips`
 4. `SequentialPack`
+5. `BlindBox`
 
 ## 暂不实现内容
 
@@ -199,5 +227,6 @@ Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 
 
 1. LinkTree 数据热更新。
 2. 顺序礼包奖励。
-3. 本地可见开始时间和结束时间。
-4. 自建服务器校验。
+3. LinkTree 盲盒奖励的自动兑换与开盒表演。
+4. 本地可见开始时间和结束时间。
+5. 自建服务器校验。

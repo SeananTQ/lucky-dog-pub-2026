@@ -20,34 +20,26 @@ status: draft
 
 `SteamItemDef` 表管理 LinkTree 回执、盲盒券、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBox` 表通过 `SteamOpenCostItemDefId` 和 `SteamExchangeTargetItemDefId` 表达开箱关系，由转换器派生 Steam `exchange` 与 `container_contents_generator`；`BlindBoxSchedule` 通过 `SteamPlaytimeGeneratorItemDefId` 表达按游玩时间生成盲盒券的关系。
 
-当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。`LinkTree.SteamPromoItemDefId` 则填写本表中对应的永久领奖回执 ID。
+当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。每条可领奖入口同时引用一个永久回执和一个领取 Bundle：`SteamReceiptItemDefId` 用于判断是否已经领取，`SteamClaimBundleItemDefId` 是客户端调用 `AddPromoItem` 的目标。
 
 ```mermaid
 flowchart LR
     LinkTree[LinkTree 行] -->|RewardItemId| Item[Item: 实际奖励道具]
-    LinkTree -->|SteamPromoItemDefId| Receipt[SteamItemDef: 永久领奖回执]
-    Receipt -->|调用 AddPromoItem| SteamInventory[Steam Inventory]
-    SteamInventory -->|结果包含回执实例| LocalInventory[确认首次领取并发放本地奖励]
-    SteamInventory -->|结果不包含回执实例| RefuseReward[拒绝发放本地奖励]
+    LinkTree -->|SteamReceiptItemDefId| Receipt[SteamItemDef: 永久领奖回执]
+    LinkTree -->|SteamClaimBundleItemDefId| ClaimBundle[SteamItemDef: 领取 Bundle]
+    ClaimBundle -->|Bundle 内容| Receipt
+    ClaimBundle -->|FixedItem 时包含| SteamItem[Item.SteamItemDefId]
+    ClaimBundle -->|BlindBox 时包含| BoxTicket[BlindBox.SteamOpenCostItemDefId]
+    ClaimBundle -->|调用 AddPromoItem| SteamInventory[Steam Inventory]
+    SteamInventory -->|完整库存包含回执| Complete[确认首次领取]
+    SteamInventory -->|不包含回执| RefuseReward[不完成领奖]
 ```
 
-## 当前 LinkTree 回执
+## LinkTree 领取定义
 
-当前已预留四条永久领奖回执：
+每条启用真实领奖的 LinkTree 入口由两条 SteamItemDef 组成。具体 ItemDef ID 属于环境配置，测试版和正式版可以更换，业务规则不依赖某个固定数字段。
 
-1. `401001` / `LinkTreeTwitterFollowClaim`
-   - 对应 `TwitterFollow`。
-
-2. `401002` / `LinkTreeSteamCommunityClaim`
-   - 对应 `SteamCommunity`。
-
-3. `401003` / `LinkTreeSteamStoreClaim`
-   - 对应 `SteamStore`。
-
-4. `401004` / `LinkTreeXiaohongshuProfileClaim`
-   - 对应 `XiaohongshuProfile`。
-
-四条回执统一使用以下规则：
+永久回执统一使用以下规则：
 
 1. `Type=Item`。
 2. `PromoRule=manual`。
@@ -55,18 +47,42 @@ flowchart LR
 4. `Tradable=FALSE`、`Marketable=FALSE`。
 5. `GameOnly=TRUE`、`StoreHidden=TRUE`。
 6. `AutoStack=FALSE`。
+7. `Bundle` 留空。
 
-客户端在玩家完成 LinkTree 的打开流程后调用 `AddPromoItem`。Steam 只会为符合规则且尚未领取的玩家创建一次回执实例；该实例不销毁，用于后续判断该奖励是否已经领取。
+领取 Bundle 统一使用以下规则：
+
+1. `Type=Bundle`。
+2. `PromoRule=manual`。
+3. `GrantedManually=TRUE`。
+4. `Tradable=FALSE`、`Marketable=FALSE`。
+5. `GameOnly=TRUE`、`StoreHidden=TRUE`。
+6. `AutoStack=FALSE`。
+7. `Bundle` 必须包含该入口的永久回执，且配方由奖励类型决定。
+
+领取 Bundle 配方规则：
+
+1. `RewardType=None` 或 `FixedChips`
+   - 只包含永久回执。
+2. `RewardType=FixedItem`
+   - 包含永久回执和 `RewardItemId` 对应的 `Item.SteamItemDefId`。
+3. `RewardType=BlindBox`
+   - 包含永久回执和 `RewardBlindBoxId` 对应的 `BlindBox.SteamOpenCostItemDefId`。
+4. `RewardType=SequentialPack`
+   - 当前未实现，不允许配置为启用的真实领奖入口。
+
+客户端在玩家完成 LinkTree 的打开流程后，对领取 Bundle 调用 `AddPromoItem`。Steam 展开 Bundle 后返回其中的最终物品，Bundle 本身不会保留在库存中。永久回执不销毁，用于启动同步、领奖回调和中断恢复时判断该奖励是否已经领取。
+
+固定物品由 Steam 直接写入玩家库存，再由完整库存同步映射到本地 `Item` 和背包。客户端不得根据 `RewardItemId` 直接添加本地物品，因此篡改本地表不能改变 Steam 实际发放内容。固定筹码不进入 Steam Inventory；永久回执确认后，客户端按 `RewardChips` 增加本地筹码。
 
 ## 回执生命周期与测试限制
 
-`AddPromoItem` 发放的是一次性 Promo。接口接受请求或返回 `k_EResultOK`，不代表一定生成了库存实例；玩家不符合资格或该 Promo 已经发放过时，结果仍可能成功，但其中不包含任何新增物品。客户端只有在返回结果或后续完整库存中实际确认目标 ItemDef 后，才能发放对应的本地奖励。
+`AddPromoItem` 发放的是一次性 Promo。接口接受请求或返回 `k_EResultOK`，不代表领取 Bundle 一定展开了新物品；玩家不符合资格或该 Promo 已经发放过时，结果仍可能成功，但其中不包含任何新增物品。客户端只有在返回结果或后续完整库存中实际确认永久回执后，才能完成领奖状态并发放本地筹码。
 
-`ConsumeItem` 只会永久删除指定库存实例，不会重置 Steam 服务器对该账号保存的一次性 Promo 发放记录。回执被消耗后，再次调用同一 ItemDef 的 `AddPromoItem` 可能仍返回成功，但不会重新生成回执。因此，LinkTree 永久回执在正式业务中不得被消耗，也不能将 `ConsumeItem` 作为重置领奖资格的调试手段。
+`ConsumeItem` 只会永久删除指定库存实例，不会重置 Steam 服务器对该账号保存的一次性 Promo 发放记录。回执被消耗后，再次对同一个领取 Bundle 调用 `AddPromoItem` 可能仍返回成功，但不会重新生成回执。因此，LinkTree 永久回执在正式业务中不得被消耗，也不能将 `ConsumeItem` 作为重置领奖资格的调试手段。
 
 `GenerateItems` 可以为发行商组内的开发者账号生成测试实例，但它不会重置一次性 Promo 的发放记录。该接口只适合恢复测试账号中被误删的实例或验证库存读取，不适合验证完整的首次 `AddPromoItem` 领奖流程。
 
-完整重测首次领奖流程时，应使用该 Steam 账号从未领取过的新 ItemDef，或使用另一个测试账号。独立 Steam Inventory 测试场景中的消耗和生成功能均会真实修改当前开发者账号的库存。
+完整重测首次领奖流程时，应使用该 Steam 账号从未领取过的新领取 Bundle 与永久回执组合，或使用另一个测试账号。独立 Steam Inventory 测试场景中的消耗和生成功能均会真实修改当前开发者账号的库存。
 
 相关 Steam 官方说明：[ISteamInventory::AddPromoItem、ConsumeItem 与 GenerateItems](https://partner.steamgames.com/doc/api/isteaminventory)。
 
@@ -118,7 +134,7 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 1. `manual`
    - 仅在客户端显式调用 `AddPromoItem` 或 `AddPromoItems` 时检查和发放。
-   - LinkTree 永久领奖回执使用此值。
+   - LinkTree 永久回执与领取 Bundle 都使用此值。
 
 2. `owns:2583700`
    - 正式 AppID 的拥有者满足促销资格。
@@ -126,7 +142,7 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 `GrantedManually`
 
-是否只允许通过指定 ItemDef 的 `AddPromoItem` 或 `AddPromoItems` 发放。LinkTree 回执填写 `TRUE`，避免被通用 `GrantPromoItems` 意外领取。
+是否只允许通过指定 ItemDef 的 `AddPromoItem` 或 `AddPromoItems` 发放。LinkTree 永久回执与领取 Bundle 填写 `TRUE`，避免被通用 `GrantPromoItems` 意外领取。
 
 ### Steam 社区可见性
 
@@ -157,8 +173,9 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 仅 `Bundle`、`Generator` 和 `PlaytimeGenerator` 使用的内容配方。
 
 1. `Bundle`
-   - 填固定内容，例如 `100101;100102x5`。
+   - 填固定内容，例如 `<ReceiptItemDefId>x1;<RewardItemDefId>x1`。
    - Steam 发放礼包时自动展开为这些实际物品。
+   - LinkTree 领取 Bundle 使用显式固定配方，不使用 `@AUTO`。
 
 2. `Generator`
    - 填随机权重，例如 `100101x80;100102x20`。
@@ -192,12 +209,12 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 ## PlaytimeGenerator 投放
 
-`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须显式产出该行盲盒的 `SteamOpenCostItemDefId`，例如：
+`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须显式产出该行盲盒的 `SteamOpenCostItemDefId`，关系如下：
 
 ```text
-BlindBoxSchedule.BlindBoxId = 1002
-BlindBox 1002.SteamOpenCostItemDefId = 402002
-PlaytimeGenerator.Bundle = 402002x1
+BlindBoxSchedule.BlindBoxId = <BlindBoxId>
+BlindBox <BlindBoxId>.SteamOpenCostItemDefId = <OpenCostItemDefId>
+PlaytimeGenerator.Bundle = <OpenCostItemDefId>x1
 ```
 
 转换器依据本地投放时间、等待倍率、Steam 提前量和掉落窗口生成分钟级参数。
@@ -238,9 +255,11 @@ Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端
 
 ## 当前 Playtest 验证结果
 
-当前 Playtest schema 共发布 120 条定义。Steam 客户端能够枚举 111 条普通物品及复杂定义，9 条 PlaytimeGenerator 不在枚举结果中，但均可提交真实 `TriggerItemDrop` 请求。
+Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerator 可能不在定义枚举结果中，但仍可提交真实 `TriggerItemDrop` 请求。定义总数会随内容配置继续变化，测试场景应比较当前本地可枚举定义与服务器返回结果，不把某次测试数量写成长期规则。
 
-主人已在主游戏中验证：PlaytimeGenerator 自动产出盲盒券；`402002` 标准盲盒券和 `402003` 新手盲盒券都能被 `ExchangeItems` 原子消耗；Steam Generator 返回的装扮可以完成本地表演、背包同步和重启恢复。`402003` 堆叠数量从 2 逐次降为 1、0，归零后对应库存行消失，符合 Steam 堆叠语义。
+主人已在主游戏中验证：PlaytimeGenerator 能自动产出标准盲盒券和新手盲盒券；两种券都能被 `ExchangeItems` 原子消耗；Steam Generator 返回的装扮可以完成本地表演、背包同步和重启恢复。堆叠券数量能够逐次减少，归零后对应库存行消失，符合 Steam 堆叠语义。
+
+主人已在独立测试场景验证 LinkTree 领取 Bundle：Steam 回调会同时返回永久回执和固定物品，固定筹码入口只新增永久回执；主客户端能够以回执恢复已领取状态，并由库存同步获得固定物品。测试还保留了一条未领取入口作为负向对照。上述验证使用测试 ItemDef，正式数据更换 ID 后需要重新执行同样的开发者账号与普通玩家账号验收。
 
 ## ESteamItemDefType
 
@@ -272,7 +291,7 @@ Luban 导出和 Steamworks 发布是两步独立流程。前者只生成项目�
 
 1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox`、`BlindBoxSchedule`、`BlindBoxRarityRate`、`GameDevelopConfig` 和 `LinkTree` Sheet 维护业务数据。
 2. Luban 导出本地数据和 C# 类型。
-3. 转换脚本合并七张表的导出数据，生成自动奖池、游玩投放参数和盲盒交换关系，校验引用后输出 Steam schema JSON。
+3. 转换脚本合并各张表的导出数据，生成 LinkTree 领取 Bundle 校验、自动奖池、游玩投放参数和盲盒交换关系，校验引用后输出 Steam schema JSON。
 4. 主人在 Steamworks 后台分别为 Playtest AppID `4972240` 和正式 AppID `2583700` 上传并发布 ItemDef。
 5. 客户端调用 `LoadItemDefinitions` 与对应的 Inventory API，同步 Steam 服务器已发布的定义和玩家库存。
 
@@ -280,6 +299,8 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前转换器已支持：LinkTree 永久回执、盲盒券、盲盒交换关系、`@AUTO` Generator 奖池、Item 品质标签，以及由 `BlindBoxSchedule` 派生的 PlaytimeGenerator 投放参数。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
+当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、盲盒券、盲盒交换关系、`@AUTO` Generator 奖池、Item 品质标签，以及由 `BlindBoxSchedule` 派生的 PlaytimeGenerator 投放参数。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
+
+LinkTree `RewardType=BlindBox` 的表结构与转换器校验已经具备，但主客户端尚未在领取 Bundle 返回盲盒券后自动执行兑换和开盒表演。该流程应复用现有 Steam 盲盒 `ExchangeItems`、事务复查和奖励展示，不新增第二套开奖实现。
 
 当前数据中仍保留部分 `4` 开头的测试 ItemDef。正式数据可继续使用新的 ID 段，但已经发布或产生过库存实例的测试定义仍需保留，不得删除或复用其 ID。
