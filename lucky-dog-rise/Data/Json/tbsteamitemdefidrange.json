@@ -1,0 +1,226 @@
+[
+  {
+    "Id": 1001,
+    "StartItemDefId": 100000,
+    "EndItemDefId": 199999,
+    "Description": "正式 Item 使用 SteamItemDefId = 100000 + Item.Id；Item.Id 必须为 1-99999，并由转换器校验。Playtest 专用 Item 使用测试段，不受此公式约束。",
+    "Purpose": "玩家实际拥有的内容物品",
+    "Example": "101xxx 狗皮肤、102xxx 头饰、103xxx 眼镜"
+  },
+  {
+    "Id": 1002,
+    "StartItemDefId": 200000,
+    "EndItemDefId": 299999,
+    "Description": "可消耗库存物品总段；具体用途继续使用子段划分。",
+    "Purpose": "通常保存在玩家 Steam 库存中、等待被消耗的可堆叠物品",
+    "Example": "盲盒券、熔炼材料"
+  },
+  {
+    "Id": 1003,
+    "StartItemDefId": 201000,
+    "EndItemDefId": 229999,
+    "Description": "盲盒开箱成本与 BlindBox 一一对应：SteamOpenCostItemDefId = 200000 + BlindBox.Id。采用该映射的 BlindBox.Id 必须为 1-29999，并由转换器校验。",
+    "Purpose": "盲盒券和其它盲盒开箱成本",
+    "Example": "BlindBox 1001 的开箱成本 ItemDef 为 201001"
+  },
+  {
+    "Id": 1004,
+    "StartItemDefId": 230000,
+    "EndItemDefId": 299999,
+    "Description": "可消耗库存物品的后续功能预留段。",
+    "Purpose": "盲盒券以外的可堆叠材料",
+    "Example": "230xxx 可用于熔炼助燃剂等材料"
+  },
+  {
+    "Id": 1005,
+    "StartItemDefId": 300000,
+    "EndItemDefId": 399999,
+    "Description": "Generator 与交换产物定义总段；同一个权重随机池可以被多种途径使用，不要求与 BlindBox 一一对应。",
+    "Purpose": "权重随机物品生成器和交换目标",
+    "Example": "301xxx 盲盒 Generator、302xxx 熔炼 Generator"
+  },
+  {
+    "Id": 1006,
+    "StartItemDefId": 301000,
+    "EndItemDefId": 301999,
+    "Description": "盲盒随机奖池 Generator 子段。",
+    "Purpose": "盲盒 ExchangeItems 的交换目标",
+    "Example": "标准盲盒、新手盲盒等 Generator"
+  },
+  {
+    "Id": 1007,
+    "StartItemDefId": 302000,
+    "EndItemDefId": 302999,
+    "Description": "熔炼随机奖池 Generator 子段。",
+    "Purpose": "未来物品回收或熔炼功能的交换目标",
+    "Example": "同品质物品熔炼为更高品质物品"
+  },
+  {
+    "Id": 1008,
+    "StartItemDefId": 303000,
+    "EndItemDefId": 399999,
+    "Description": "Generator 后续功能预留段。",
+    "Purpose": "尚未分配的 Generator 和交换目标",
+    "Example": "未来随机池功能"
+  },
+  {
+    "Id": 1009,
+    "StartItemDefId": 400000,
+    "EndItemDefId": 499999,
+    "Description": "Playtest 专用总段，仅输出到 Playtest，不得进入 Release schema。转换器必须同时检查 SteamItemDef 和 Item.SteamItemDefId。",
+    "Purpose": "需要真实 Steam 环境验证的测试定义",
+    "Example": "历史测试与后续新功能测试"
+  },
+  {
+    "Id": 1010,
+    "StartItemDefId": 400000,
+    "EndItemDefId": 409999,
+    "Description": "Playtest 历史测试区，永久冻结。已发布定义继续保留，但不再分配新定义或改变原有身份。",
+    "Purpose": "保存已经上传到 Playtest 的历史测试定义",
+    "Example": "现有盲盒、LinkTree 与 PlaytimeGenerator 测试定义"
+  },
+  {
+    "Id": 1011,
+    "StartItemDefId": 410000,
+    "EndItemDefId": 499999,
+    "Description": "后续 Playtest 测试区。每个新功能按需谨慎分配一小段，不要求跨表对齐子 ID。",
+    "Purpose": "新增功能的 Steam 实机测试",
+    "Example": "每个新功能通常分配数十个 ItemDef"
+  },
+  {
+    "Id": 1012,
+    "StartItemDefId": 500000,
+    "EndItemDefId": 599999,
+    "Description": "永久回执总段。回执保留在玩家库存中，不参与消耗。",
+    "Purpose": "避免重复领奖，并证明玩家参加过特定入口或活动",
+    "Example": "501xxx LinkTree、502xxx 补偿中心"
+  },
+  {
+    "Id": 1013,
+    "StartItemDefId": 501000,
+    "EndItemDefId": 501999,
+    "Description": "LinkTree 永久回执子段。",
+    "Purpose": "记录每个 LinkTree Banner 是否已经领取",
+    "Example": "一个启用领奖的 Banner 对应一个独立回执"
+  },
+  {
+    "Id": 1014,
+    "StartItemDefId": 502000,
+    "EndItemDefId": 502999,
+    "Description": "补偿中心永久回执子段。",
+    "Purpose": "记录每次补偿活动是否已经领取",
+    "Example": "一个补偿活动对应一个独立回执"
+  },
+  {
+    "Id": 1015,
+    "StartItemDefId": 503000,
+    "EndItemDefId": 599999,
+    "Description": "永久回执后续功能预留段。",
+    "Purpose": "尚未分配的永久资格与活动记录",
+    "Example": "未来活动或其它一次性领取功能"
+  },
+  {
+    "Id": 1016,
+    "StartItemDefId": 600000,
+    "EndItemDefId": 699999,
+    "Description": "Promo/Claim Bundle 总段。当前 LinkTree 和补偿领取 Bundle 通常与永久回执一一对应，但关联关系始终由表字段和 Bundle 配方决定，不依赖数字相同。",
+    "Purpose": "发放固定奖励，或发放包含永久回执的一揽子奖励",
+    "Example": "601xxx LinkTree、602xxx 补偿、603xxx 新手礼包"
+  },
+  {
+    "Id": 1017,
+    "StartItemDefId": 601000,
+    "EndItemDefId": 601999,
+    "Description": "LinkTree 领取 Bundle 子段。",
+    "Purpose": "发放 LinkTree 永久回执及其固定奖励",
+    "Example": "永久回执加固定物品，或仅永久回执"
+  },
+  {
+    "Id": 1018,
+    "StartItemDefId": 602000,
+    "EndItemDefId": 602999,
+    "Description": "补偿中心领取 Bundle 子段。",
+    "Purpose": "发放补偿回执及补偿内容",
+    "Example": "补偿回执加盲盒券或固定物品"
+  },
+  {
+    "Id": 1019,
+    "StartItemDefId": 603000,
+    "EndItemDefId": 603999,
+    "Description": "新手礼包 Bundle 子段。",
+    "Purpose": "发放新玩家的一次性固定礼包",
+    "Example": "新玩家盲盒招待券礼包"
+  },
+  {
+    "Id": 1020,
+    "StartItemDefId": 604000,
+    "EndItemDefId": 699999,
+    "Description": "Promo/Claim Bundle 后续功能预留段。",
+    "Purpose": "尚未分配的固定礼包和促销 Bundle",
+    "Example": "未来活动礼包"
+  },
+  {
+    "Id": 1021,
+    "StartItemDefId": 700000,
+    "EndItemDefId": 799999,
+    "Description": "PlaytimeGenerator 总段。",
+    "Purpose": "根据 Steam 记录的游玩时间投放库存物品",
+    "Example": "固定系统投放与限时活动投放"
+  },
+  {
+    "Id": 1022,
+    "StartItemDefId": 700000,
+    "EndItemDefId": 709999,
+    "Description": "固定系统投放总段。",
+    "Purpose": "长期随客户端维护的系统级 PlaytimeGenerator",
+    "Example": "新手一次性投放、长期循环投放"
+  },
+  {
+    "Id": 1023,
+    "StartItemDefId": 700000,
+    "EndItemDefId": 700999,
+    "Description": "新手一次性投放子段。",
+    "Purpose": "前期按游玩时间发放的新手盲盒券",
+    "Example": "新手盲盒队列中的 Steam 投放"
+  },
+  {
+    "Id": 1024,
+    "StartItemDefId": 701000,
+    "EndItemDefId": 701999,
+    "Description": "长期循环投放子段。",
+    "Purpose": "游戏正常阶段持续运行的循环投放",
+    "Example": "长期循环装扮盲盒券"
+  },
+  {
+    "Id": 1025,
+    "StartItemDefId": 702000,
+    "EndItemDefId": 709999,
+    "Description": "固定系统投放预留段。",
+    "Purpose": "尚未分配的长期系统投放",
+    "Example": "未来固定 PlaytimeGenerator"
+  },
+  {
+    "Id": 1026,
+    "StartItemDefId": 710000,
+    "EndItemDefId": 799999,
+    "Description": "限时活动投放段，按顺序分配，不把活动日期编码进 ID。",
+    "Purpose": "活动期间按游玩时间发放奖励",
+    "Example": "节日活动、版本庆典活动"
+  },
+  {
+    "Id": 1027,
+    "StartItemDefId": 800000,
+    "EndItemDefId": 999999,
+    "Description": "未来功能预留段，分配新用途前需要先更新本规划。",
+    "Purpose": "尚未确定的 Steam Inventory 功能",
+    "Example": "Steam 市场、熔炼扩展等"
+  },
+  {
+    "Id": 1028,
+    "StartItemDefId": 1,
+    "EndItemDefId": 99999,
+    "Description": "低位保留段，暂不使用。",
+    "Purpose": "为未来无法预见的兼容需求保留",
+    "Example": "不分配正式或测试定义"
+  }
+]

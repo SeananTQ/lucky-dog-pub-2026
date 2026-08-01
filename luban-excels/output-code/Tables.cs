@@ -33,6 +33,7 @@ public partial class Tables
     public TbBlindBoxVisual TbBlindBoxVisual {get; }
     public TbLinkTree TbLinkTree {get; }
     public TbSteamItemDef TbSteamItemDef {get; }
+    public TbSteamItemDefIdRange TbSteamItemDefIdRange {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -55,6 +56,7 @@ public partial class Tables
         TbBlindBoxVisual = new TbBlindBoxVisual(loader("tbblindboxvisual"));
         TbLinkTree = new TbLinkTree(loader("tblinktree"));
         TbSteamItemDef = new TbSteamItemDef(loader("tbsteamitemdef"));
+        TbSteamItemDefIdRange = new TbSteamItemDefIdRange(loader("tbsteamitemdefidrange"));
         ResolveRef();
     }
     
@@ -79,6 +81,7 @@ public partial class Tables
         TbBlindBoxVisual.ResolveRef(this);
         TbLinkTree.ResolveRef(this);
         TbSteamItemDef.ResolveRef(this);
+        TbSteamItemDefIdRange.ResolveRef(this);
     }
 }
 
