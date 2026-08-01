@@ -19,6 +19,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
+        { var __json0 = _buf["VoucherUpgradeBlindBoxIds"]; if(!__json0.IsArray) { throw new SerializationException(); } VoucherUpgradeBlindBoxIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  VoucherUpgradeBlindBoxIds.Add(__v0); }   }
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
         { if(!_buf["StartSeconds"].IsNumber) { throw new SerializationException(); }  StartSeconds = _buf["StartSeconds"]; }
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
@@ -40,6 +41,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 对应 BlindBox.Id
     /// </summary>
     public readonly int BlindBoxId;
+    /// <summary>
+    /// 按优先级填写可使用票券升级为的 BlindBox.Id。展示本行盲盒时，客户端按列表顺序检查对应盲盒的开箱票券，首个票券充足的盲盒将替代本行配置的 BlindBoxId；均不可用时仍展示原盲盒。留空表示不允许升级。
+    /// </summary>
+    public readonly System.Collections.Generic.List<int> VoucherUpgradeBlindBoxIds;
     /// <summary>
     /// TRUE 表示正常阶段循环装扮券生产行
     /// </summary>
@@ -89,6 +94,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "BlindBoxId:" + BlindBoxId + ","
+        + "VoucherUpgradeBlindBoxIds:" + Luban.StringUtil.CollectionToString(VoucherUpgradeBlindBoxIds) + ","
         + "IsLoopTrack:" + IsLoopTrack + ","
         + "StartSeconds:" + StartSeconds + ","
         + "IntervalSeconds:" + IntervalSeconds + ","

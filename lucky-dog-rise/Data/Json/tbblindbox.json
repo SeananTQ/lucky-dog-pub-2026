@@ -61,7 +61,7 @@
   },
   {
     "Id": 4001,
-    "Name": "盲盒招待券",
+    "Name": "新手盲盒招待券专用，后续招待券需新建ID",
     "BoxType": 1,
     "DisplayMode": 1,
     "CostChips": 0,

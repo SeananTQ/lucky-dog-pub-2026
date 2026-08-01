@@ -2,6 +2,7 @@
   {
     "Id": 1001,
     "BlindBoxId": 4001,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 30,
     "IntervalSeconds": 30,
@@ -15,6 +16,7 @@
   {
     "Id": 1002,
     "BlindBoxId": 1002,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 90,
     "IntervalSeconds": 60,
@@ -28,6 +30,9 @@
   {
     "Id": 1003,
     "BlindBoxId": 2001,
+    "VoucherUpgradeBlindBoxIds": [
+      4001
+    ],
     "IsLoopTrack": false,
     "StartSeconds": 150,
     "IntervalSeconds": 60,
@@ -41,6 +46,7 @@
   {
     "Id": 1004,
     "BlindBoxId": 1001,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 210,
     "IntervalSeconds": 60,
@@ -54,6 +60,7 @@
   {
     "Id": 1005,
     "BlindBoxId": 1002,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 270,
     "IntervalSeconds": 60,
@@ -67,6 +74,9 @@
   {
     "Id": 1006,
     "BlindBoxId": 2001,
+    "VoucherUpgradeBlindBoxIds": [
+      4001
+    ],
     "IsLoopTrack": false,
     "StartSeconds": 330,
     "IntervalSeconds": 60,
@@ -80,6 +90,7 @@
   {
     "Id": 1007,
     "BlindBoxId": 1001,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 390,
     "IntervalSeconds": 60,
@@ -93,6 +104,7 @@
   {
     "Id": 1008,
     "BlindBoxId": 1002,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 450,
     "IntervalSeconds": 60,
@@ -106,6 +118,9 @@
   {
     "Id": 1009,
     "BlindBoxId": 2001,
+    "VoucherUpgradeBlindBoxIds": [
+      4001
+    ],
     "IsLoopTrack": false,
     "StartSeconds": 510,
     "IntervalSeconds": 60,
@@ -119,6 +134,7 @@
   {
     "Id": 1010,
     "BlindBoxId": 1001,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 570,
     "IntervalSeconds": 60,
@@ -132,6 +148,7 @@
   {
     "Id": 1011,
     "BlindBoxId": 1002,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 630,
     "IntervalSeconds": 60,
@@ -145,6 +162,9 @@
   {
     "Id": 1012,
     "BlindBoxId": 2001,
+    "VoucherUpgradeBlindBoxIds": [
+      4001
+    ],
     "IsLoopTrack": false,
     "StartSeconds": 690,
     "IntervalSeconds": 60,
@@ -158,6 +178,7 @@
   {
     "Id": 2001,
     "BlindBoxId": 1001,
+    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": true,
     "StartSeconds": 780,
     "IntervalSeconds": 180,
