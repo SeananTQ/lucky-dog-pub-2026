@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamInventoryTestController.cs" id="1_inventory"]
 
-[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_promoItemStatusLabel", "_playtimeGeneratorOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
+[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_promoItemStatusLabel", "_playtimeGeneratorOption", "_maintenanceItemOption", "_exchangeBlindBoxOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,6 +17,8 @@ _inventoryStatusLabel = NodePath("Center/Panel/Margin/Content/InventoryScroll/In
 _promoItemOption = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemOption")
 _promoItemStatusLabel = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemStatus")
 _playtimeGeneratorOption = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/PlaytimeGeneratorOption")
+_maintenanceItemOption = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MaintenanceItemOption")
+_exchangeBlindBoxOption = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeBlindBoxOption")
 _enableGrantCheck = NodePath("Center/Panel/Margin/Content/GrantTest/EnableGrant")
 _enablePlaytimeDropCheck = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/EnablePlaytimeDrop")
 _enableMaintenanceCheck = NodePath("Center/Panel/Margin/Content/MaintenanceTest/EnableMaintenance")
@@ -192,6 +194,11 @@ layout_mode = 2
 text = "开发者库存维护测试"
 horizontal_alignment = 1
 
+[node name="MaintenanceItemOption" type="OptionButton" parent="Center/Panel/Margin/Content/MaintenanceTest"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+fit_to_longest_item = false
+
 [node name="EnableMaintenance" type="CheckButton" parent="Center/Panel/Margin/Content/MaintenanceTest"]
 layout_mode = 2
 disabled = true
@@ -222,6 +229,11 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "真实盲盒兑换测试"
 horizontal_alignment = 1
+
+[node name="ExchangeBlindBoxOption" type="OptionButton" parent="Center/Panel/Margin/Content/ExchangeTest"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+fit_to_longest_item = false
 
 [node name="ExchangeStatus" type="Label" parent="Center/Panel/Margin/Content/ExchangeTest"]
 layout_mode = 2
