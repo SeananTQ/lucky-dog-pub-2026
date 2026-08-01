@@ -38,7 +38,7 @@ public sealed partial class BlindBox : Luban.BeanBase
     }
 
     /// <summary>
-    /// 唯一 ID
+    /// BlindBox.Id &lt;= 29999
     /// </summary>
     public readonly int Id;
     /// <summary>

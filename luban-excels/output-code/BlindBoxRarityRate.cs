@@ -29,6 +29,9 @@ public sealed partial class BlindBoxRarityRate : Luban.BeanBase
         return new BlindBoxRarityRate(_buf);
     }
 
+    /// <summary>
+    /// id无实际意义01与稀有读无关
+    /// </summary>
     public readonly int Id;
     /// <summary>
     /// 对应 BlindBox.Id
