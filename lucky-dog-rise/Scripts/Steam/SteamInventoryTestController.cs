@@ -471,13 +471,6 @@ public partial class SteamInventoryTestController : Control
             return;
 
         var itemDefId = GetSelectedMaintenanceItemDefId();
-        if (_lastInventoryItems.Any(item => (int)item.m_iDefinition == itemDefId && item.m_unQuantity > 0))
-        {
-            AppendLog($"GenerateItems({itemDefId})：库存中已存在该 ItemDef，拒绝生成重复凭证");
-            UpdateControls();
-            return;
-        }
-
         SteamItemDef_t[] itemDefs = [(SteamItemDef_t)itemDefId];
         uint[] quantities = [1];
         var accepted = SteamInventory.GenerateItems(out var handle, itemDefs, quantities, 1);
@@ -870,8 +863,7 @@ public partial class SteamInventoryTestController : Control
             || anyRequestPending
             || !selectedItemOwned;
         _generateItemButton.Disabled = !_enableMaintenanceCheck.ButtonPressed
-            || anyRequestPending
-            || selectedItemOwned;
+            || anyRequestPending;
         _enableExchangeCheck.Disabled = !available
             || !_definitionsLoaded
             || !_inventoryLoaded
