@@ -17,7 +17,7 @@ public interface IPlatformInventoryService
     IReadOnlyList<PlatformInventoryItem> InventoryItems { get; }
 
     void StartInventorySynchronization();
-    bool TryGrantPromoItem(int itemDefId, out string message);
+    bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message);
     bool TryTriggerPlaytimeDrop(int generatorItemDefId, int outputItemDefId, out string message);
     bool TryExchangeItem(
         ulong inputInstanceId,
@@ -38,10 +38,12 @@ public sealed record PlatformInventorySnapshot(
     IReadOnlyList<PlatformInventoryItem> Items);
 
 public readonly record struct PlatformPromoItemGrantResult(
-    int ItemDefId,
+    int PromoItemDefId,
+    int ReceiptItemDefId,
     bool Succeeded,
     bool ReceiptOwned,
-    string Message);
+    string Message,
+    IReadOnlyList<PlatformInventoryItem> ChangedItems);
 
 public sealed record PlatformPlaytimeDropResult(
     int GeneratorItemDefId,

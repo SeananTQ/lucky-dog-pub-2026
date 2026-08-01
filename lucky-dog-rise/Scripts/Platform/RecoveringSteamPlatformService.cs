@@ -137,7 +137,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             RequestReconnect();
     }
 
-    public bool TryGrantPromoItem(int itemDefId, out string message)
+    public bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message)
     {
         if (!IsInventoryReady || _session == null)
         {
@@ -145,7 +145,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             return false;
         }
 
-        var accepted = _session.TryGrantPromoItem(itemDefId, out message);
+        var accepted = _session.TryGrantPromoItem(promoItemDefId, receiptItemDefId, out message);
         if (accepted)
             _promoGrantDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
         return accepted;

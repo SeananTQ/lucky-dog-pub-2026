@@ -1035,11 +1035,17 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ClaimSteamLinkTreeReward(LinkTreeRewardEntry entry)
     {
-        var itemDefId = entry.Data.SteamPromoItemDefId;
-        var itemDef = LubanData.Tables.TbSteamItemDef.GetOrDefault(itemDefId);
-        if (itemDefId <= 0 || itemDef == null || !itemDef.IsEnabled)
+        var bundleItemDefId = entry.Data.SteamClaimBundleItemDefId;
+        var receiptItemDefId = entry.Data.SteamReceiptItemDefId;
+        var bundleItemDef = LubanData.Tables.TbSteamItemDef.GetOrDefault(bundleItemDefId);
+        var receiptItemDef = LubanData.Tables.TbSteamItemDef.GetOrDefault(receiptItemDefId);
+        if (bundleItemDefId <= 0 || receiptItemDefId <= 0
+            || bundleItemDef is not { IsEnabled: true, Type: ESteamItemDefType.Bundle }
+            || receiptItemDef is not { IsEnabled: true, Type: ESteamItemDefType.Item })
         {
-            GD.PushWarning($"[LinkTree] Invalid Steam promo ItemDef for {entry.Data.Key}: {itemDefId}.");
+            GD.PushWarning(
+                $"[LinkTree] Invalid Steam Bundle/receipt for {entry.Data.Key}: " +
+                $"Bundle={bundleItemDefId}, Receipt={receiptItemDefId}.");
             return;
         }
         if (!_inventoryService!.IsInventoryReady)
@@ -1052,12 +1058,15 @@ public partial class SystemPanelController : CanvasLayer
             GD.PushWarning("[LinkTree] Steam-backed rewards require LocalSave mode so the claim transaction can be recovered.");
             return;
         }
-        if (_gameData == null || !_gameData.TryBeginLinkTreeClaim(entry.Data.Id, itemDefId))
+        if (_gameData == null || !_gameData.TryBeginLinkTreeClaim(
+                entry.Data.Id,
+                bundleItemDefId,
+                receiptItemDefId))
         {
             GD.PushWarning($"[LinkTree] Another LinkTree claim transaction is pending; refusing {entry.Data.Key}.");
             return;
         }
-        if (!_inventoryService.TryGrantPromoItem(itemDefId, out var message))
+        if (!_inventoryService.TryGrantPromoItem(bundleItemDefId, receiptItemDefId, out var message))
         {
             _gameData.ClearPendingLinkTreeClaim();
             GD.PushWarning($"[LinkTree] {message}");
@@ -1082,11 +1091,12 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         var pending = _gameData?.PendingLinkTreeClaim;
-        if (pending != null && snapshot.OwnedItemDefIds.Contains(pending.SteamPromoItemDefId))
+        if (pending != null && snapshot.OwnedItemDefIds.Contains(pending.SteamReceiptItemDefId))
         {
             var pendingEntry = _linkTreeRewardEntries.FirstOrDefault(entry =>
                 entry.Data.Id == pending.LinkTreeId
-                && entry.Data.SteamPromoItemDefId == pending.SteamPromoItemDefId);
+                && entry.Data.SteamClaimBundleItemDefId == pending.SteamClaimBundleItemDefId
+                && entry.Data.SteamReceiptItemDefId == pending.SteamReceiptItemDefId);
             if (pendingEntry != null)
                 CompleteSteamLinkTreeClaim(pendingEntry, recovered: true);
             else
@@ -1103,7 +1113,7 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var entry in _linkTreeRewardEntries)
         {
-            if (!snapshot.OwnedItemDefIds.Contains(entry.Data.SteamPromoItemDefId))
+            if (!snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
                 continue;
 
             entry.ClaimPending = false;
@@ -1142,7 +1152,8 @@ public partial class SystemPanelController : CanvasLayer
     private void OnPlatformPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
     {
         var entry = _linkTreeRewardEntries.FirstOrDefault(candidate =>
-            candidate.Data.SteamPromoItemDefId == result.ItemDefId);
+            candidate.Data.SteamClaimBundleItemDefId == result.PromoItemDefId
+            && candidate.Data.SteamReceiptItemDefId == result.ReceiptItemDefId);
         if (entry == null)
         {
             // Other inventory-backed features share AddPromoItem with LinkTree.
@@ -1165,7 +1176,8 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (_gameData?.PendingLinkTreeClaim is not { } pending
             || pending.LinkTreeId != entry.Data.Id
-            || pending.SteamPromoItemDefId != entry.Data.SteamPromoItemDefId)
+            || pending.SteamClaimBundleItemDefId != entry.Data.SteamClaimBundleItemDefId
+            || pending.SteamReceiptItemDefId != entry.Data.SteamReceiptItemDefId)
         {
             entry.State = LinkTreeRewardState.Claimed;
             RefreshLinkTreeRewardEntry(entry);
@@ -1200,10 +1212,8 @@ public partial class SystemPanelController : CanvasLayer
                     GD.PushWarning($"[LinkTree] Reward item is missing for {data.Key} ({data.Id}): {data.RewardItemId}.");
                     return false;
                 }
-                if (_gameData == null)
-                    return false;
-
-                _gameData.AddItem(data.RewardItemId, count: 1, markNew: true, source: PlayerProgressSource.Gameplay);
+                // The LinkTree Bundle grants the real Steam inventory item. Full inventory
+                // synchronization maps it into PlayerInventory; never fabricate it locally.
                 return true;
 
             case ELinkTreeRewardType.FixedChips:

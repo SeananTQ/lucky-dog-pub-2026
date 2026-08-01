@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamInventoryTestController.cs" id="1_inventory"]
 
-[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_playtimeGeneratorOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
+[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_promoItemStatusLabel", "_playtimeGeneratorOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,8 +13,9 @@ script = ExtResource("1_inventory")
 _statusLabel = NodePath("Center/Panel/Margin/Content/Status")
 _identityLabel = NodePath("Center/Panel/Margin/Content/Identity")
 _definitionStatusLabel = NodePath("Center/Panel/Margin/Content/DefinitionStatus")
-_inventoryStatusLabel = NodePath("Center/Panel/Margin/Content/InventoryStatus")
+_inventoryStatusLabel = NodePath("Center/Panel/Margin/Content/InventoryScroll/InventoryStatus")
 _promoItemOption = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemOption")
+_promoItemStatusLabel = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemStatus")
 _playtimeGeneratorOption = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/PlaytimeGeneratorOption")
 _enableGrantCheck = NodePath("Center/Panel/Margin/Content/GrantTest/EnableGrant")
 _enablePlaytimeDropCheck = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/EnablePlaytimeDrop")
@@ -107,10 +108,14 @@ text = "Steam ItemDef：尚未加载"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="InventoryStatus" type="Label" parent="Center/Panel/Margin/Content"]
-custom_minimum_size = Vector2(0, 110)
+[node name="InventoryScroll" type="ScrollContainer" parent="Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
-size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="InventoryStatus" type="Label" parent="Center/Panel/Margin/Content/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "玩家库存：尚未读取"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -130,10 +135,16 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 disabled = true
 
+[node name="PromoItemStatus" type="Label" parent="Center/Panel/Margin/Content/GrantTest"]
+layout_mode = 2
+text = "Promo 发放：尚未选择 ItemDef"
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="EnableGrant" type="CheckButton" parent="Center/Panel/Margin/Content/GrantTest"]
 layout_mode = 2
 disabled = true
-text = "我确认：AddPromoItem 是一次性发放；请求成功也可能不产生新实例"
+text = "我确认：AddPromoItem 会真实领取所选 Promo；Bundle 会把最终物品写入当前 Steam 账号"
 
 [node name="AddPromoItem" type="Button" parent="Center/Panel/Margin/Content/GrantTest"]
 custom_minimum_size = Vector2(0, 44)

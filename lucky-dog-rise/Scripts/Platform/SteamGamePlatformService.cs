@@ -35,7 +35,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private PlatformInventoryItem[] _inventoryItems = [];
     private bool _hasPendingAchievementStore;
     private bool _inventorySynchronizationStarted;
-    private int _promoItemAwaitingInventoryVerification;
+    private InventoryRequest? _promoItemAwaitingInventoryVerification;
     private InventoryRequest? _playtimeDropAwaitingInventoryVerification;
 
     public SteamGamePlatformService(SteamworksRuntime runtime)
@@ -64,7 +64,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public bool IsReadyForWrites { get; private set; }
     public bool IsInventoryReady { get; private set; }
     public bool IsPromoGrantPending => _inventoryRequests.Values.Any(request =>
-        request.Kind == InventoryRequestKind.AddPromoItem) || _promoItemAwaitingInventoryVerification > 0;
+        request.Kind == InventoryRequestKind.AddPromoItem) || _promoItemAwaitingInventoryVerification != null;
     public bool IsPlaytimeDropPending => _inventoryRequests.Values.Any(request =>
         request.Kind == InventoryRequestKind.TriggerPlaytimeDrop)
         || _playtimeDropAwaitingInventoryVerification != null;
@@ -121,32 +121,37 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
         SteamInventory.DestroyResult((SteamInventoryResult_t)promoRequest.Key);
         _inventoryRequests.Remove(promoRequest.Key);
-        _promoItemAwaitingInventoryVerification = promoRequest.Value.ItemDefId;
+        _promoItemAwaitingInventoryVerification = promoRequest.Value;
         if (RequestFullInventory())
             return true;
 
-        var itemDefId = _promoItemAwaitingInventoryVerification;
-        _promoItemAwaitingInventoryVerification = 0;
+        var request = _promoItemAwaitingInventoryVerification.Value;
+        _promoItemAwaitingInventoryVerification = null;
         PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
-            itemDefId, false, false, $"Steam 领奖请求超时，无法复查 ItemDef={itemDefId}。"));
+            request.ItemDefId,
+            request.OutputItemDefId,
+            false,
+            false,
+            $"Steam 领奖请求超时，无法复查回执 ItemDef={request.OutputItemDefId}。",
+            []));
         return false;
     }
 
-    public bool TryGrantPromoItem(int itemDefId, out string message)
+    public bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message)
     {
         if (!IsAvailable || !IsInventoryReady)
         {
             message = "Steam 库存尚未同步完成。";
             return false;
         }
-        if (itemDefId <= 0)
+        if (promoItemDefId <= 0 || receiptItemDefId <= 0)
         {
-            message = $"无效的 Steam ItemDef：{itemDefId}";
+            message = $"无效的 Steam Promo/回执 ItemDef：{promoItemDefId}/{receiptItemDefId}";
             return false;
         }
-        if (_ownedInventoryItemDefIds.Contains(itemDefId))
+        if (_ownedInventoryItemDefIds.Contains(receiptItemDefId))
         {
-            message = $"Steam 库存已拥有回执 ItemDef={itemDefId}。";
+            message = $"Steam 库存已拥有回执 ItemDef={receiptItemDefId}。";
             return false;
         }
         if (_inventoryRequests.Count > 0 || IsPromoGrantPending)
@@ -155,14 +160,17 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return false;
         }
 
-        if (!SteamInventory.AddPromoItem(out var handle, (SteamItemDef_t)itemDefId))
+        if (!SteamInventory.AddPromoItem(out var handle, (SteamItemDef_t)promoItemDefId))
         {
-            message = $"Steam 拒绝 AddPromoItem({itemDefId}) 请求。";
+            message = $"Steam 拒绝 AddPromoItem({promoItemDefId}) 请求。";
             return false;
         }
 
-        _inventoryRequests[HandleValue(handle)] = new InventoryRequest(InventoryRequestKind.AddPromoItem, itemDefId);
-        message = $"已提交 AddPromoItem({itemDefId})，等待 Steam 回执。";
+        _inventoryRequests[HandleValue(handle)] = new InventoryRequest(
+            InventoryRequestKind.AddPromoItem,
+            promoItemDefId,
+            OutputItemDefId: receiptItemDefId);
+        message = $"已提交 AddPromoItem({promoItemDefId})，等待回执 ItemDef={receiptItemDefId}。";
         return true;
     }
 
@@ -476,7 +484,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             if (request.Kind == InventoryRequestKind.FullInventory)
                 ApplyFullInventory(items);
             else if (request.Kind == InventoryRequestKind.AddPromoItem)
-                ApplyPromoGrantResult(request.ItemDefId, items);
+                ApplyPromoGrantResult(request, items);
             else if (request.Kind == InventoryRequestKind.TriggerPlaytimeDrop)
                 ApplyPlaytimeDropResult(request, items);
             else
@@ -505,18 +513,19 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             new HashSet<int>(_ownedInventoryItemDefIds),
             _inventoryItems.ToArray()));
 
-        if (_promoItemAwaitingInventoryVerification > 0)
+        if (_promoItemAwaitingInventoryVerification is { } promoRequest)
         {
-            var itemDefId = _promoItemAwaitingInventoryVerification;
-            _promoItemAwaitingInventoryVerification = 0;
-            var receiptOwned = _ownedInventoryItemDefIds.Contains(itemDefId);
+            _promoItemAwaitingInventoryVerification = null;
+            var receiptOwned = _ownedInventoryItemDefIds.Contains(promoRequest.OutputItemDefId);
             PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
-                itemDefId,
+                promoRequest.ItemDefId,
+                promoRequest.OutputItemDefId,
                 receiptOwned,
                 receiptOwned,
                 receiptOwned
-                    ? $"Steam 库存已确认回执 ItemDef={itemDefId}。"
-                    : $"Steam 未发放回执 ItemDef={itemDefId}。"));
+                    ? $"Steam 库存已确认回执 ItemDef={promoRequest.OutputItemDefId}。"
+                    : $"Steam 未发放回执 ItemDef={promoRequest.OutputItemDefId}。",
+                []));
         }
 
         CompletePlaytimeDropInventoryVerification();
@@ -556,24 +565,36 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         RequestFullInventory();
     }
 
-    private void ApplyPromoGrantResult(int itemDefId, IReadOnlyCollection<SteamItemDetails_t> items)
+    private void ApplyPromoGrantResult(InventoryRequest request, IReadOnlyCollection<SteamItemDetails_t> items)
     {
-        var receiptOwned = items.Any(item => (int)item.m_iDefinition == itemDefId && item.m_unQuantity > 0);
+        var changedItems = items.Select(ToPlatformInventoryItem).ToArray();
+        var receiptOwned = changedItems.Any(item =>
+            item.ItemDefId == request.OutputItemDefId && item.Quantity > 0);
         if (receiptOwned)
         {
-            _ownedInventoryItemDefIds.Add(itemDefId);
+            _ownedInventoryItemDefIds.Add(request.OutputItemDefId);
             PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
-                itemDefId, true, true, $"Steam 已发放回执 ItemDef={itemDefId}。"));
+                request.ItemDefId,
+                request.OutputItemDefId,
+                true,
+                true,
+                $"Steam 已通过 Promo ItemDef={request.ItemDefId} 发放回执 ItemDef={request.OutputItemDefId}。",
+                changedItems));
             RequestFullInventory();
             return;
         }
 
-        _promoItemAwaitingInventoryVerification = itemDefId;
+        _promoItemAwaitingInventoryVerification = request;
         if (!RequestFullInventory())
         {
-            _promoItemAwaitingInventoryVerification = 0;
+            _promoItemAwaitingInventoryVerification = null;
             PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
-                itemDefId, false, false, $"Steam 未返回回执 ItemDef={itemDefId}，且库存复查请求失败。"));
+                request.ItemDefId,
+                request.OutputItemDefId,
+                false,
+                false,
+                $"Steam 未返回回执 ItemDef={request.OutputItemDefId}，且库存复查请求失败。",
+                changedItems));
         }
     }
 
@@ -595,8 +616,14 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     {
         if (request.Kind == InventoryRequestKind.AddPromoItem)
         {
-            _promoItemAwaitingInventoryVerification = 0;
-            PromoItemGrantCompleted(new PlatformPromoItemGrantResult(request.ItemDefId, false, false, message));
+            _promoItemAwaitingInventoryVerification = null;
+            PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+                request.ItemDefId,
+                request.OutputItemDefId,
+                false,
+                false,
+                message,
+                []));
             return;
         }
 

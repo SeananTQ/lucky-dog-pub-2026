@@ -36,12 +36,17 @@ public sealed class SaveProfile
 public sealed class PendingLinkTreeClaim
 {
     public int LinkTreeId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int SteamPromoItemDefId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int SteamClaimBundleItemDefId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int SteamReceiptItemDefId { get; set; }
 }
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 10;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -171,7 +176,9 @@ public static class SaveManager
             }
         }
         if (profile.PendingLinkTreeClaim is { } pendingLinkTreeClaim
-            && (pendingLinkTreeClaim.LinkTreeId <= 0 || pendingLinkTreeClaim.SteamPromoItemDefId <= 0))
+            && (pendingLinkTreeClaim.LinkTreeId <= 0
+                || pendingLinkTreeClaim.SteamClaimBundleItemDefId <= 0
+                || pendingLinkTreeClaim.SteamReceiptItemDefId <= 0))
         {
             profile.PendingLinkTreeClaim = null;
         }
@@ -291,6 +298,16 @@ public static class SaveManager
                 profile.PendingPlatformBlindBoxOpen.IsDeferredBacklog = false;
             profile.Version = 9;
             GD.Print("[Save] Migrated blind-box loop state to fixed display points and Steam voucher backlog.");
+        }
+
+        if (loadedVersion < 10)
+        {
+            // The old field represented a directly granted receipt. New claims target a Bundle
+            // and verify a separate permanent receipt, so an old in-flight transaction is unsafe
+            // to reinterpret after an update.
+            profile.PendingLinkTreeClaim = null;
+            profile.Version = 10;
+            GD.Print("[Save] Cleared legacy LinkTree claim transaction for Bundle-based rewards.");
         }
 
         var newPlayerScheduleCount = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(

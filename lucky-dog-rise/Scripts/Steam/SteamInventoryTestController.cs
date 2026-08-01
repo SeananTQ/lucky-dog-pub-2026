@@ -33,6 +33,7 @@ public partial class SteamInventoryTestController : Control
     [Export] private Label _definitionStatusLabel = null!;
     [Export] private Label _inventoryStatusLabel = null!;
     [Export] private OptionButton _promoItemOption = null!;
+    [Export] private Label _promoItemStatusLabel = null!;
     [Export] private OptionButton _playtimeGeneratorOption = null!;
     [Export] private CheckButton _enableGrantCheck = null!;
     [Export] private CheckButton _enablePlaytimeDropCheck = null!;
@@ -83,6 +84,7 @@ public partial class SteamInventoryTestController : Control
         {
             _enableGrantCheck.ButtonPressed = false;
             _enableMaintenanceCheck.ButtonPressed = false;
+            UpdatePromoItemStatus();
             UpdateControls();
         };
         _playtimeGeneratorOption.ItemSelected += _ =>
@@ -170,15 +172,50 @@ public partial class SteamInventoryTestController : Control
     private void PopulatePromoItemOptions()
     {
         _promoItemOption.Clear();
-        foreach (var itemDef in LubanData.Tables.TbSteamItemDef.DataList.Where(itemDef => itemDef.IsEnabled))
+        var activeBundleIds = LubanData.Tables.TbLinkTree.DataList
+            .Where(entry => entry.IsEnabled && entry.SteamClaimBundleItemDefId > 0)
+            .Select(entry => entry.SteamClaimBundleItemDefId)
+            .ToHashSet();
+        var definitions = LubanData.Tables.TbSteamItemDef.DataList
+            .Where(itemDef => itemDef.IsEnabled
+                              && itemDef.GrantedManually
+                              && string.Equals(itemDef.PromoRule, "manual", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(itemDef => activeBundleIds.Contains(itemDef.Id))
+            .ThenBy(itemDef => itemDef.Type == DataTables.ESteamItemDefType.Bundle ? 0 : 1)
+            .ThenBy(itemDef => itemDef.Id);
+        foreach (var itemDef in definitions)
         {
             var index = _promoItemOption.ItemCount;
-            _promoItemOption.AddItem($"{itemDef.Id} - {itemDef.Name}");
+            var activeMarker = activeBundleIds.Contains(itemDef.Id) ? "[LinkTree启用] " : string.Empty;
+            _promoItemOption.AddItem($"{activeMarker}{itemDef.Id} - {itemDef.Name} ({itemDef.Type})");
             _promoItemOption.SetItemMetadata(index, itemDef.Id);
         }
 
         if (_promoItemOption.ItemCount > 0)
             _promoItemOption.Selected = 0;
+        UpdatePromoItemStatus();
+    }
+
+    private void UpdatePromoItemStatus()
+    {
+        var definition = GetSelectedPromoDefinition();
+        if (definition == null)
+        {
+            _promoItemStatusLabel.Text = "Promo 发放：没有可显式领取的 ItemDef";
+            return;
+        }
+
+        var entries = LubanData.Tables.TbLinkTree.DataList
+            .Where(entry => entry.SteamClaimBundleItemDefId == definition.Id)
+            .OrderBy(entry => entry.Id)
+            .ToArray();
+        var entryText = entries.Length == 0
+            ? "未被 LinkTree 引用"
+            : string.Join("；", entries.Select(entry =>
+                $"LinkTree {entry.Id}/{entry.Key}，回执={entry.SteamReceiptItemDefId}"));
+        var bundleText = string.IsNullOrWhiteSpace(definition.Bundle) ? "<无>" : definition.Bundle;
+        _promoItemStatusLabel.Text =
+            $"Promo 发放：目标={definition.Id}，Type={definition.Type}，Bundle={bundleText}\n{entryText}";
     }
 
     private void PopulatePlaytimeGeneratorOptions()
@@ -606,13 +643,13 @@ public partial class SteamInventoryTestController : Control
         _lastInventoryItems = items.ToArray();
         var builder = new StringBuilder();
         builder.AppendLine($"玩家库存：{items.Count} 个实例/堆叠");
-        foreach (var item in items.OrderBy(item => (int)item.m_iDefinition).Take(20))
+        foreach (var item in items
+                     .OrderBy(item => (int)item.m_iDefinition)
+                     .ThenBy(item => (ulong)item.m_itemId))
         {
             builder.AppendLine(
                 $"ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, Qty={item.m_unQuantity}, Flags={item.m_unFlags}");
         }
-        if (items.Count > 20)
-            builder.AppendLine($"……另有 {items.Count - 20} 个实例/堆叠未展开显示");
 
         _inventoryStatusLabel.Text = builder.ToString().TrimEnd();
         AppendLog($"GetAllItems 完成：{items.Count} 个实例/堆叠");
@@ -629,10 +666,32 @@ public partial class SteamInventoryTestController : Control
 
         foreach (var item in items)
         {
+            var itemDefId = (int)item.m_iDefinition;
             AppendLog(
-                $"AddPromoItem 成功：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, Qty={item.m_unQuantity}, Flags={item.m_unFlags}");
+                $"AddPromoItem 返回：ItemDef={itemDefId}, Instance={(ulong)item.m_itemId}, " +
+                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}；{DescribePromoResultItem(itemDefId)}");
         }
         RefreshInventory();
+    }
+
+    private static string DescribePromoResultItem(int itemDefId)
+    {
+        var receiptEntry = LubanData.Tables.TbLinkTree.DataList.FirstOrDefault(entry =>
+            entry.SteamReceiptItemDefId == itemDefId);
+        if (receiptEntry != null)
+            return $"LinkTree 永久回执（{receiptEntry.Id}/{receiptEntry.Key}）";
+
+        var localItem = LubanData.Tables.TbItem.DataList.FirstOrDefault(item =>
+            item.SteamItemDefId == itemDefId);
+        if (localItem != null)
+            return $"本地 Item={localItem.Id} {localItem.Name}";
+
+        var blindBox = LubanData.Tables.TbBlindBox.DataList.FirstOrDefault(box =>
+            box.SteamOpenCostItemDefId == itemDefId);
+        if (blindBox != null)
+            return $"盲盒券（BlindBox={blindBox.Id} {blindBox.Name}）";
+
+        return "未映射的 Steam 库存物品";
     }
 
     private void ShowPlaytimeDropResult(IReadOnlyCollection<SteamItemDetails_t> items)
@@ -771,6 +830,7 @@ public partial class SteamInventoryTestController : Control
                 : $"盲盒兑换：持有 ItemDef {blindBox!.SteamOpenCostItemDefId} ×{voucherQuantity}；" +
                   $"交换目标 ItemDef {blindBox.SteamExchangeTargetItemDefId}";
         UpdatePlaytimeDropStatus();
+        UpdatePromoItemStatus();
     }
 
     private PlaytimeGeneratorTestOption GetSelectedPlaytimeGenerator()
@@ -807,6 +867,12 @@ public partial class SteamInventoryTestController : Control
         return _promoItemOption.ItemCount > 0 && _promoItemOption.Selected >= 0
             ? (int)_promoItemOption.GetItemMetadata(_promoItemOption.Selected)
             : 0;
+    }
+
+    private DataTables.SteamItemDef GetSelectedPromoDefinition()
+    {
+        var itemDefId = GetSelectedItemDefId();
+        return itemDefId > 0 ? LubanData.Tables.TbSteamItemDef.GetOrDefault(itemDefId) : null;
     }
 
     private void TrackRequest(SteamInventoryResult_t handle, InventoryRequestKind requestKind)

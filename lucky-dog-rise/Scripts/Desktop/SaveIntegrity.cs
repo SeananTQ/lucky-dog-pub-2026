@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -186,6 +186,8 @@ internal static class SaveIntegrity
         {
             LinkTreeId = pending.LinkTreeId,
             SteamPromoItemDefId = pending.SteamPromoItemDefId,
+            SteamClaimBundleItemDefId = pending.SteamClaimBundleItemDefId,
+            SteamReceiptItemDefId = pending.SteamReceiptItemDefId,
         };
     }
 

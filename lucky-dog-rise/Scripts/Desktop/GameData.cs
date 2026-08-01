@@ -1221,7 +1221,10 @@ public partial class GameData : Node
         QueueSaveIfUsingLocalSave();
     }
 
-    public bool TryBeginLinkTreeClaim(int linkTreeId, int steamPromoItemDefId)
+    public bool TryBeginLinkTreeClaim(
+        int linkTreeId,
+        int steamClaimBundleItemDefId,
+        int steamReceiptItemDefId)
     {
 #if DEBUG
         if (_blindBoxLocalTestMode)
@@ -1230,16 +1233,18 @@ public partial class GameData : Node
             return false;
         }
 #endif
-        if (linkTreeId <= 0 || steamPromoItemDefId <= 0)
+        if (linkTreeId <= 0 || steamClaimBundleItemDefId <= 0 || steamReceiptItemDefId <= 0)
             return false;
         if (PendingLinkTreeClaim != null)
             return PendingLinkTreeClaim.LinkTreeId == linkTreeId
-                && PendingLinkTreeClaim.SteamPromoItemDefId == steamPromoItemDefId;
+                && PendingLinkTreeClaim.SteamClaimBundleItemDefId == steamClaimBundleItemDefId
+                && PendingLinkTreeClaim.SteamReceiptItemDefId == steamReceiptItemDefId;
 
         PendingLinkTreeClaim = new PendingLinkTreeClaim
         {
             LinkTreeId = linkTreeId,
-            SteamPromoItemDefId = steamPromoItemDefId,
+            SteamClaimBundleItemDefId = steamClaimBundleItemDefId,
+            SteamReceiptItemDefId = steamReceiptItemDefId,
         };
         SaveImmediatelyIfUsingLocalSave();
         return true;
