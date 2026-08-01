@@ -6,17 +6,21 @@
     "blindBox": "lucky-dog-rise/Data/Json/tbblindbox.json",
     "blindBoxSchedule": "lucky-dog-rise/Data/Json/tbblindboxschedule.json",
     "blindBoxRarityRate": "lucky-dog-rise/Data/Json/tbblindboxrarityrate.json",
-    "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json"
+    "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json",
+    "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
   "sourceItemDefCount": 50,
   "sourceGameItemCount": 102,
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
-  "exportedItemDefCount": 151,
+  "exportedItemDefCountByChannel": {
+    "playtest": 149,
+    "release": 123
+  },
   "checkedLinkTreeReferenceCount": 8,
   "checkedBlindBoxReferenceCount": 3,
-  "checkedPlaytimeReferenceCount": 7,
+  "checkedPlaytimeReferenceCount": 9,
   "channels": [
     {
       "name": "playtest",
@@ -27,15 +31,10 @@
       "appid": 2583700
     }
   ],
-  "errors": [
-    "BlindBoxSchedule 1004：Steam PlaytimeGenerator 700003 不存在或未导出。",
-    "BlindBoxSchedule 1005：PlaytimeGenerator 700004 应当发放 201002x1，实际为 201001x1。",
-    "BlindBoxSchedule 1007：PlaytimeGenerator 700005 应当发放 201001x1，实际为 201002x1。",
-    "BlindBoxSchedule 1008：Steam PlaytimeGenerator 700006 不存在或未导出。",
-    "StandardBlindBoxV1Generator：@AUTO 没有找到可生成配方的 BlindBox 映射。",
-    "NewbieBlindBoxV1Generator：@AUTO 没有找到可生成配方的 BlindBox 映射。"
-  ],
+  "errors": [],
   "warnings": [
+    "StandardBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "NewbieBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
     "BlindBox 3001 测试活动盲盒：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。"
   ]
 }

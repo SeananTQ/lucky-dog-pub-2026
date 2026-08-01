@@ -523,7 +523,9 @@ function validateAndBuildItemDefs(records) {
         }
 
         if (!isEnabled) {
-            warnings.push(`${label}：IsEnabled=false，本次不会输出。已发布的 ItemDef 不应使用此方式移除。`);
+            warnings.push(
+                `${label}：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。`,
+            );
             continue;
         }
 

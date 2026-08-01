@@ -1214,6 +1214,73 @@
       "tags": "rarity:special_1"
     },
     {
+      "itemdefid": 201001,
+      "type": "item",
+      "name": "Standard Blind Box",
+      "description": "A consumable Steam inventory item used to open one standard blind box.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": true,
+      "container_contents_generator": 301001
+    },
+    {
+      "itemdefid": 201002,
+      "type": "item",
+      "name": "Newbie Blind Box",
+      "description": "A consumable Steam inventory item used to open one newbie blind box.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": true,
+      "container_contents_generator": 301002
+    },
+    {
+      "itemdefid": 204001,
+      "type": "item",
+      "name": "Decoration Blind Box Voucher",
+      "description": "Opens one decoration blind box.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": true,
+      "container_contents_generator": 301001
+    },
+    {
+      "itemdefid": 301001,
+      "type": "generator",
+      "name": "Standard Blind Box V1 Generator",
+      "description": "Generates one standard blind box reward.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "101002x471;101003x5294;101004x1385;101005x2647;101006x235;101007x4231;101008x692;101009x2647;101010x235;101011x692;101012x692;102001x31905;102002x12692;102003x31905;102004x12692;102005x2077;102006x12692;102007x31905;102008x7941;102009x31905;102010x7941;102011x12692;102012x31905;103001x31905;103002x12692;103003x7941;103004x2077;105001x10635;105002x2647;105003x4231;105004x2647;105005x2647;105006x10635;105007x4231;105008x10635;106002x5294;106003x5294;106004x8462;106005x8461;106006x5294;106007x471;106008x31905;106009x31905;106010x31905;106011x2077;107001x31905;107002x31905;107003x31905;107005x12692;107006x12692;107007x31905;107008x7941;107009x12692;107010x471;107011x12692;107012x2077;107013x12692;107014x31905;107015x31905;107016x12692;107017x7941;107018x31905;107019x7941;108001x12692;108003x12692;108004x7941;108005x31905;108007x2077;108008x2077;108009x31905;108010x31905;108011x118;108012x12692;108013x2077;112001x12692;112002x31905",
+      "exchange": "201001x1;204001x1"
+    },
+    {
+      "itemdefid": 301002,
+      "type": "generator",
+      "name": "Newbie Blind Box V1 Generator",
+      "description": "Generates one newbie blind box reward.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "101002x640;101003x17895;101004x4903;101005x8947;101006x320;101007x15849;101008x2452;101009x8947;101010x320;101011x2452;101012x2452;102001x17619;102002x23774;102003x17619;102004x23774;102005x3677;102006x23774;102007x17619;102008x13421;102009x17619;102010x13421;102011x23774;102012x17619;103001x17619;103002x23774;103003x13421;103004x3677;105001x5873;105002x4474;105003x7924;105004x4474;105005x4474;105006x5873;105007x7924;105008x5873;106002x8947;106003x8947;106004x15849;106005x15849;106006x8947;106007x320;106008x17619;106009x17619;106010x17619;106011x3677;107001x17619;107002x17619;107003x17619;107005x23774;107006x23774;107007x17619;107008x13421;107009x23774;107010x320;107011x23774;107012x3677;107013x23774;107014x17619;107015x17619;107016x23774;107017x13421;107018x17619;107019x13421;108001x23774;108003x23774;108004x13421;108005x17619;108007x3677;108008x3677;108009x17619;108010x17619;108011x80;108012x23774;108013x3677;112001x23773;112002x17619",
+      "exchange": "201002x1"
+    },
+    {
       "itemdefid": 401001,
       "type": "item",
       "name": "LinkTree Claim - Twitter Follow",
@@ -1322,14 +1389,12 @@
       "type": "item",
       "name": "Decoration Blind Box Voucher",
       "description": "Opens one decoration blind box.",
-      "promo": "manual",
-      "granted_manually": true,
+      "granted_manually": false,
       "tradable": false,
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 403001
+      "auto_stack": true
     },
     {
       "itemdefid": 402002,
@@ -1341,8 +1406,7 @@
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 403002
+      "auto_stack": true
     },
     {
       "itemdefid": 402003,
@@ -1354,8 +1418,7 @@
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 403003
+      "auto_stack": true
     },
     {
       "itemdefid": 403001,
@@ -1368,36 +1431,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x1;101003x1",
-      "exchange": "402001x1"
-    },
-    {
-      "itemdefid": 403002,
-      "type": "generator",
-      "name": "Standard Blind Box V1 Generator",
-      "description": "Generates one standard blind box reward.",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false,
-      "bundle": "101002x471;101003x5294;101004x1385;101005x2647;101006x235;101007x4231;101008x692;101009x2647;101010x235;101011x692;101012x692;102001x31905;102002x12692;102003x31905;102004x12692;102005x2077;102006x12692;102007x31905;102008x7941;102009x31905;102010x7941;102011x12692;102012x31905;103001x31905;103002x12692;103003x7941;103004x2077;105001x10635;105002x2647;105003x4231;105004x2647;105005x2647;105006x10635;105007x4231;105008x10635;106002x5294;106003x5294;106004x8462;106005x8461;106006x5294;106007x471;106008x31905;106009x31905;106010x31905;106011x2077;107001x31905;107002x31905;107003x31905;107005x12692;107006x12692;107007x31905;107008x7941;107009x12692;107010x471;107011x12692;107012x2077;107013x12692;107014x31905;107015x31905;107016x12692;107017x7941;107018x31905;107019x7941;108001x12692;108003x12692;108004x7941;108005x31905;108007x2077;108008x2077;108009x31905;108010x31905;108011x118;108012x12692;108013x2077;112001x12692;112002x31905",
-      "exchange": "402002x1"
-    },
-    {
-      "itemdefid": 403003,
-      "type": "generator",
-      "name": "Newbie Blind Box V1 Generator",
-      "description": "Generates one newbie blind box reward.",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false,
-      "bundle": "101002x640;101003x17895;101004x4903;101005x8947;101006x320;101007x15849;101008x2452;101009x8947;101010x320;101011x2452;101012x2452;102001x17619;102002x23774;102003x17619;102004x23774;102005x3677;102006x23774;102007x17619;102008x13421;102009x17619;102010x13421;102011x23774;102012x17619;103001x17619;103002x23774;103003x13421;103004x3677;105001x5873;105002x4474;105003x7924;105004x4474;105005x4474;105006x5873;105007x7924;105008x5873;106002x8947;106003x8947;106004x15849;106005x15849;106006x8947;106007x320;106008x17619;106009x17619;106010x17619;106011x3677;107001x17619;107002x17619;107003x17619;107005x23774;107006x23774;107007x17619;107008x13421;107009x23774;107010x320;107011x23774;107012x3677;107013x23774;107014x17619;107015x17619;107016x23774;107017x13421;107018x17619;107019x13421;108001x23774;108003x23774;108004x13421;108005x17619;108007x3677;108008x3677;108009x17619;108010x17619;108011x80;108012x23774;108013x3677;112001x23773;112002x17619",
-      "exchange": "402003x1"
+      "bundle": "101002x1;101003x1"
     },
     {
       "itemdefid": 404001,
@@ -1411,9 +1445,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402001x1",
-      "drop_interval": 1,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404002,
@@ -1427,9 +1460,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402003x1",
-      "drop_interval": 5,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404004,
@@ -1443,9 +1475,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402002x1",
-      "drop_interval": 13,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404005,
@@ -1459,9 +1490,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402003x1",
-      "drop_interval": 17,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404007,
@@ -1475,9 +1505,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402002x1",
-      "drop_interval": 25,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404008,
@@ -1491,9 +1520,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402003x1",
-      "drop_interval": 29,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404010,
@@ -1507,9 +1535,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402002x1",
-      "drop_interval": 37,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404011,
@@ -1523,9 +1550,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402003x1",
-      "drop_interval": 41,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 404013,
@@ -1554,11 +1580,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "402002x1",
-      "drop_interval": 12,
-      "use_drop_window": true,
-      "drop_window": 24,
-      "drop_max_per_window": 2,
-      "use_drop_limit": false
+      "use_drop_limit": true,
+      "drop_limit": 0
     },
     {
       "itemdefid": 406005,
@@ -1615,6 +1638,260 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "401008x1;191012x1"
+    },
+    {
+      "itemdefid": 501001,
+      "type": "item",
+      "name": "LinkTree Claim - Twitter Follow",
+      "description": "Permanent receipt for the Twitter follow reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 501002,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Community",
+      "description": "Permanent receipt for the Steam Community reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 501003,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Store",
+      "description": "Permanent receipt for the Steam Store reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 501004,
+      "type": "item",
+      "name": "LinkTree Claim - Xiaohongshu Profile",
+      "description": "Permanent receipt for the Xiaohongshu profile reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 601001,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Twitter Follow",
+      "description": "Grants the permanent receipt and fixed item reward for the Twitter follow entry.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501001x1;192005x1"
+    },
+    {
+      "itemdefid": 601002,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Steam Community",
+      "description": "Grants the permanent receipt for the Steam Community entry. The chip reward is granted locally.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501002x1"
+    },
+    {
+      "itemdefid": 601003,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Steam Store",
+      "description": "Grants the permanent receipt for the Steam Store entry. The chip reward is granted locally.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501003x1"
+    },
+    {
+      "itemdefid": 601004,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Xiaohongshu Profile",
+      "description": "Grants the permanent receipt and fixed item reward for the Xiaohongshu profile entry.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501004x1;191012x1"
+    },
+    {
+      "itemdefid": 700001,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1001 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1001.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "204001x1",
+      "drop_interval": 1,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700002,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1002 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1002.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201002x1",
+      "drop_interval": 5,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700004,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1004 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1004.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201001x1",
+      "drop_interval": 13,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700005,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1005 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1005.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201002x1",
+      "drop_interval": 17,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700007,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1007 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1007.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201001x1",
+      "drop_interval": 25,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700008,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1008 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1008.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201002x1",
+      "drop_interval": 29,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700010,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1010 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1010.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201001x1",
+      "drop_interval": 37,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700011,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1011 Playtime Drop",
+      "description": "Grants the blind box item configured by newbie schedule 1011.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201002x1",
+      "drop_interval": 41,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 701001,
+      "type": "playtimegenerator",
+      "name": "Recurring Decoration Blind Box Drop",
+      "description": "Grants recurring standard blind box vouchers under the Steam playtime drop window.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "201001x1",
+      "drop_interval": 12,
+      "use_drop_window": true,
+      "drop_window": 24,
+      "drop_max_per_window": 2,
+      "use_drop_limit": false
     }
   ]
 }
