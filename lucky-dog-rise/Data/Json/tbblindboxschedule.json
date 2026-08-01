@@ -47,7 +47,7 @@
     "EndSeconds": 210,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700003,
+    "SteamPlaytimeGeneratorItemDefId": 700004,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },
@@ -60,7 +60,7 @@
     "EndSeconds": 270,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700004,
+    "SteamPlaytimeGeneratorItemDefId": 700005,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },
@@ -86,7 +86,7 @@
     "EndSeconds": 390,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700005,
+    "SteamPlaytimeGeneratorItemDefId": 700007,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },
@@ -99,7 +99,7 @@
     "EndSeconds": 450,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700006,
+    "SteamPlaytimeGeneratorItemDefId": 700008,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },
@@ -125,7 +125,7 @@
     "EndSeconds": 570,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700007,
+    "SteamPlaytimeGeneratorItemDefId": 700010,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },
@@ -138,7 +138,7 @@
     "EndSeconds": 630,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700008,
+    "SteamPlaytimeGeneratorItemDefId": 700011,
     "SteamDropWindowSeconds": 0,
     "SteamDropMaxPerWindow": 0
   },

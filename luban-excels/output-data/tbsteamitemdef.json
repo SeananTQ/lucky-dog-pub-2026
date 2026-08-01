@@ -229,7 +229,7 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "@AUTO",
-    "IsEnabled": true,
+    "IsEnabled": false,
     "SteamUseDropLimit": false,
     "SteamDropLimit": 0
   },
@@ -247,7 +247,7 @@
     "StoreHidden": true,
     "AutoStack": false,
     "Bundle": "@AUTO",
-    "IsEnabled": true,
+    "IsEnabled": false,
     "SteamUseDropLimit": false,
     "SteamDropLimit": 0
   },
