@@ -490,63 +490,158 @@ function validateAndBuildGameItems(records) {
     return { items, definitions, allById, enabledById, errors, warnings };
 }
 
-function validateLinkTree(records, itemDefs) {
+function parseFixedBundleRecipe(bundle) {
+    if (typeof bundle !== "string" || !bundle.trim()) return null;
+
+    const quantities = new Map();
+    for (const rawRecipe of bundle.split(";")) {
+        const recipe = rawRecipe.trim();
+        const match = /^(\d+)(?:x(\d+))?$/.exec(recipe);
+        if (!match) return null;
+        const itemDefId = Number.parseInt(match[1], 10);
+        const quantity = match[2] ? Number.parseInt(match[2], 10) : 1;
+        if (quantity <= 0) return null;
+        quantities.set(itemDefId, (quantities.get(itemDefId) ?? 0) + quantity);
+    }
+    return quantities;
+}
+
+function formatExpectedBundle(entries) {
+    return entries.map(([itemDefId, quantity]) => `${itemDefId}x${quantity}`).join(";");
+}
+
+function validateLinkTree(records, itemDefs, itemRecords, blindBoxRecords) {
     const errors = [];
     const warnings = [];
-    const claimedByItemDef = new Map();
+    const claimedByReceipt = new Map();
+    const claimedByBundle = new Map();
+    const itemsById = new Map(itemRecords.map(record => [record.Id, record]));
+    const blindBoxesById = new Map(blindBoxRecords.map(record => [record.Id, record]));
     let checkedReferenceCount = 0;
 
     for (const record of records) {
         const key = typeof record.Key === "string" && record.Key.trim()
             ? record.Key.trim()
             : `LinkTree ${record.Id ?? "<未知>"}`;
-        const itemDefId = record.SteamPromoItemDefId;
+        const receiptItemDefId = record.SteamReceiptItemDefId ?? record.SteamPromoItemDefId ?? 0;
+        const claimBundleItemDefId = record.SteamClaimBundleItemDefId ?? 0;
         const isEnabled = record.IsEnabled === true;
 
-        if (!Number.isInteger(itemDefId) || itemDefId < 0) {
-            errors.push(`${key}：SteamPromoItemDefId 必须是大于等于 0 的整数。`);
+        if (!Number.isInteger(receiptItemDefId) || receiptItemDefId < 0) {
+            errors.push(`${key}：SteamReceiptItemDefId 必须是大于等于 0 的整数。`);
+            continue;
+        }
+        if (!Number.isInteger(claimBundleItemDefId) || claimBundleItemDefId < 0) {
+            errors.push(`${key}：SteamClaimBundleItemDefId 必须是大于等于 0 的整数。`);
             continue;
         }
 
-        if (itemDefId === 0) {
+        if (receiptItemDefId === 0) {
             if (isEnabled) {
-                warnings.push(`${key}：启用的入口没有配置 SteamPromoItemDefId。`);
+                errors.push(`${key}：启用的入口必须配置 SteamReceiptItemDefId。`);
             }
             continue;
         }
 
         checkedReferenceCount += 1;
-        const definition = itemDefs.allById.get(itemDefId);
-        if (!definition) {
-            errors.push(`${key}：引用的 Steam ItemDef ${itemDefId} 不存在。`);
+        const receipt = itemDefs.allById.get(receiptItemDefId);
+        if (!receipt) {
+            errors.push(`${key}：引用的永久回执 Steam ItemDef ${receiptItemDefId} 不存在。`);
             continue;
         }
-        if (!itemDefs.enabledById.has(itemDefId)) {
-            errors.push(`${key}：引用的 Steam ItemDef ${itemDefId} 已禁用。`);
+        if (!itemDefs.enabledById.has(receiptItemDefId)) {
+            errors.push(`${key}：引用的永久回执 Steam ItemDef ${receiptItemDefId} 已禁用。`);
         }
-        if (claimedByItemDef.has(itemDefId)) {
-            errors.push(`${key}：Steam ItemDef ${itemDefId} 已被 ${claimedByItemDef.get(itemDefId)} 使用；每个永久回执只能对应一个入口。`);
+        if (claimedByReceipt.has(receiptItemDefId)) {
+            errors.push(`${key}：Steam ItemDef ${receiptItemDefId} 已被 ${claimedByReceipt.get(receiptItemDefId)} 使用；每个永久回执只能对应一个入口。`);
         } else {
-            claimedByItemDef.set(itemDefId, key);
+            claimedByReceipt.set(receiptItemDefId, key);
         }
 
-        if (definition.Type !== 1) {
-            errors.push(`${key}：永久回执 ${itemDefId} 必须是 Type=Item。`);
+        if (receipt.Type !== 1) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须是 Type=Item。`);
         }
-        if (definition.PromoRule !== "manual") {
-            errors.push(`${key}：永久回执 ${itemDefId} 必须配置 PromoRule=manual。`);
+        if (receipt.PromoRule !== "manual") {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 PromoRule=manual。`);
         }
-        if (definition.GrantedManually !== true) {
-            errors.push(`${key}：永久回执 ${itemDefId} 必须配置 GrantedManually=true。`);
+        if (receipt.GrantedManually !== true) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 GrantedManually=true。`);
         }
-        if (definition.Tradable !== false || definition.Marketable !== false) {
-            errors.push(`${key}：永久回执 ${itemDefId} 必须不可交易且不可出售。`);
+        if (receipt.Tradable !== false || receipt.Marketable !== false) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须不可交易且不可出售。`);
         }
-        if (definition.GameOnly !== true || definition.StoreHidden !== true) {
-            errors.push(`${key}：永久回执 ${itemDefId} 必须配置 GameOnly=true 且 StoreHidden=true。`);
+        if (receipt.GameOnly !== true || receipt.StoreHidden !== true) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 GameOnly=true 且 StoreHidden=true。`);
         }
-        if (definition.Bundle) {
-            errors.push(`${key}：永久回执 ${itemDefId} 的 Bundle 必须留空。`);
+        if (receipt.Bundle) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 的 Bundle 必须留空。`);
+        }
+
+        // Disabled legacy entries may retain only their historical receipt.
+        if (!isEnabled && claimBundleItemDefId === 0) continue;
+        if (claimBundleItemDefId === 0) {
+            errors.push(`${key}：启用的入口必须配置 SteamClaimBundleItemDefId。`);
+            continue;
+        }
+
+        const claimBundle = itemDefs.allById.get(claimBundleItemDefId);
+        if (!claimBundle) {
+            errors.push(`${key}：引用的领奖 Bundle Steam ItemDef ${claimBundleItemDefId} 不存在。`);
+            continue;
+        }
+        if (!itemDefs.enabledById.has(claimBundleItemDefId)) {
+            errors.push(`${key}：引用的领奖 Bundle Steam ItemDef ${claimBundleItemDefId} 已禁用。`);
+        }
+        if (claimedByBundle.has(claimBundleItemDefId)) {
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 已被 ${claimedByBundle.get(claimBundleItemDefId)} 使用；每个入口必须使用独立 Bundle。`);
+        } else {
+            claimedByBundle.set(claimBundleItemDefId, key);
+        }
+        if (claimBundle.Type !== 2) {
+            errors.push(`${key}：领奖目标 ${claimBundleItemDefId} 必须是 Type=Bundle。`);
+        }
+        if (claimBundle.PromoRule !== "manual" || claimBundle.GrantedManually !== true) {
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须配置 PromoRule=manual 且 GrantedManually=true。`);
+        }
+        if (claimBundle.Tradable !== false || claimBundle.Marketable !== false
+            || claimBundle.GameOnly !== true || claimBundle.StoreHidden !== true) {
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须不可交易、不可出售，并配置 GameOnly=true、StoreHidden=true。`);
+        }
+
+        const expected = new Map([[receiptItemDefId, 1]]);
+        if (record.RewardType === 1) {
+            const item = itemsById.get(record.RewardItemId);
+            if (!item) {
+                errors.push(`${key}：RewardItemId ${record.RewardItemId} 不存在。`);
+            } else if (!Number.isInteger(item.SteamItemDefId) || item.SteamItemDefId <= 0) {
+                errors.push(`${key}：奖励 Item ${record.RewardItemId} 没有配置 SteamItemDefId。`);
+            } else {
+                expected.set(item.SteamItemDefId, (expected.get(item.SteamItemDefId) ?? 0) + 1);
+            }
+        } else if (record.RewardType === 2) {
+            if (!Number.isInteger(record.RewardChips) || record.RewardChips <= 0) {
+                errors.push(`${key}：FixedChips 必须配置大于 0 的 RewardChips。`);
+            }
+        } else if (record.RewardType === 4) {
+            const box = blindBoxesById.get(record.RewardBlindBoxId);
+            if (!box) {
+                errors.push(`${key}：RewardBlindBoxId ${record.RewardBlindBoxId} 不存在。`);
+            } else if (!Number.isInteger(box.SteamOpenCostItemDefId) || box.SteamOpenCostItemDefId <= 0) {
+                errors.push(`${key}：奖励 BlindBox ${record.RewardBlindBoxId} 没有配置 SteamOpenCostItemDefId。`);
+            } else {
+                expected.set(box.SteamOpenCostItemDefId, (expected.get(box.SteamOpenCostItemDefId) ?? 0) + 1);
+            }
+        } else if (record.RewardType === 3) {
+            errors.push(`${key}：SequentialPack 尚未定义可信的 Steam Bundle 配方。`);
+        } else if (record.RewardType !== 0) {
+            errors.push(`${key}：不支持的 RewardType ${record.RewardType}。`);
+        }
+
+        const actual = parseFixedBundleRecipe(claimBundle.Bundle);
+        const expectedRecipe = formatExpectedBundle([...expected.entries()]);
+        if (!actual || actual.size !== expected.size
+            || [...expected].some(([id, quantity]) => actual.get(id) !== quantity)) {
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 的内容必须为 ${expectedRecipe}，实际为 ${claimBundle.Bundle || "<空>"}。`);
         }
     }
 
@@ -960,7 +1055,7 @@ function buildArtifacts(
         merged,
     );
     const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
-    const linkTree = validateLinkTree(linkTreeRecords, itemDefs);
+    const linkTree = validateLinkTree(linkTreeRecords, itemDefs, itemRecords, blindBoxRecords);
     return {
         items: merged.items,
         definitions: merged.definitions,

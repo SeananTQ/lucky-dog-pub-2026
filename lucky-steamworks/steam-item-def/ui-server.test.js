@@ -14,7 +14,7 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
 
     assert.equal(preview.ok, true);
     assert.equal(preview.stats.exportedItemDefs, preview.rows.length);
-    assert.equal(preview.stats.linkTreeReferences, 4);
+    assert.equal(preview.stats.linkTreeReferences, 8);
     assert.equal(preview.stats.blindBoxReferences, 3);
     assert.equal(preview.stats.playtimeReferences, 9);
     assert.equal(preview.channels.length, 2);

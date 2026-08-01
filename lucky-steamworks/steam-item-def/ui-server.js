@@ -71,17 +71,24 @@ function loadPreview() {
     const schedulesByItemDef = new Map();
 
     for (const entry of linkTreeRecords) {
-        if (!Number.isInteger(entry.SteamPromoItemDefId) || entry.SteamPromoItemDefId <= 0) continue;
-        const references = linkTreesByItemDef.get(entry.SteamPromoItemDefId) || [];
-        references.push({
-            id: entry.Id,
-            key: entry.Key,
-            rewardType: entry.RewardType,
-            rewardItemId: entry.RewardItemId,
-            rewardChips: entry.RewardChips,
-            isEnabled: entry.IsEnabled,
-        });
-        linkTreesByItemDef.set(entry.SteamPromoItemDefId, references);
+        for (const [itemDefId, role] of [
+            [entry.SteamReceiptItemDefId ?? entry.SteamPromoItemDefId, "永久回执"],
+            [entry.SteamClaimBundleItemDefId, "领奖礼包"],
+        ]) {
+            if (!Number.isInteger(itemDefId) || itemDefId <= 0) continue;
+            const references = linkTreesByItemDef.get(itemDefId) || [];
+            references.push({
+                id: entry.Id,
+                key: entry.Key,
+                role,
+                rewardType: entry.RewardType,
+                rewardItemId: entry.RewardItemId,
+                rewardChips: entry.RewardChips,
+                rewardBlindBoxId: entry.RewardBlindBoxId,
+                isEnabled: entry.IsEnabled,
+            });
+            linkTreesByItemDef.set(itemDefId, references);
+        }
     }
 
     for (const reference of result.blindBoxReferences) {

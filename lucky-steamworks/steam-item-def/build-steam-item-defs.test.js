@@ -32,9 +32,25 @@ function linkTree(overrides = {}) {
         Id: 1001,
         Key: "TwitterFollow",
         IsEnabled: true,
-        SteamPromoItemDefId: 401001,
+        RewardType: 1,
+        RewardItemId: 1002,
+        RewardChips: 0,
+        RewardBlindBoxId: 0,
+        SteamReceiptItemDefId: 401001,
+        SteamClaimBundleItemDefId: 406001,
         ...overrides,
     };
+}
+
+function claimBundle(overrides = {}) {
+    return receipt({
+        Id: 406001,
+        Key: "LinkTreeTwitterFollowRewardBundle",
+        Type: 2,
+        Name: "LinkTree Reward Bundle - Twitter Follow",
+        Bundle: "401001x1;101002x1",
+        ...overrides,
+    });
 }
 
 function gameItem(overrides = {}) {
@@ -113,11 +129,11 @@ function config(overrides = {}) {
 }
 
 test("builds a Steam schema item from a valid permanent receipt", () => {
-    const result = buildArtifacts([receipt()], [linkTree()]);
+    const result = buildArtifacts([receipt(), claimBundle()], [linkTree()], [gameItem()]);
 
     assert.deepEqual(result.errors, []);
     assert.equal(result.checkedReferenceCount, 1);
-    assert.deepEqual(result.items[0], {
+    assert.deepEqual(result.items.find(item => item.itemdefid === 401001), {
         itemdefid: 401001,
         type: "item",
         name: "LinkTree Claim - Twitter Follow",
@@ -133,7 +149,11 @@ test("builds a Steam schema item from a valid permanent receipt", () => {
 });
 
 test("rejects a missing LinkTree ItemDef reference", () => {
-    const result = buildArtifacts([receipt()], [linkTree({ SteamPromoItemDefId: 401999 })]);
+    const result = buildArtifacts(
+        [receipt(), claimBundle()],
+        [linkTree({ SteamReceiptItemDefId: 401999 })],
+        [gameItem()],
+    );
 
     assert.ok(result.errors.some(error => error.includes("401999") && error.includes("不存在")));
 });
@@ -141,7 +161,7 @@ test("rejects a missing LinkTree ItemDef reference", () => {
 test("rejects a receipt shared by multiple LinkTree entries", () => {
     const result = buildArtifacts(
         [receipt()],
-        [linkTree(), linkTree({ Id: 1002, Key: "SteamCommunity" })],
+        [linkTree(), linkTree({ Id: 1002, Key: "SteamCommunity", SteamClaimBundleItemDefId: 0 })],
     );
 
     assert.ok(result.errors.some(error => error.includes("每个永久回执只能对应一个入口")));
@@ -149,12 +169,61 @@ test("rejects a receipt shared by multiple LinkTree entries", () => {
 
 test("rejects an unsafe LinkTree receipt configuration", () => {
     const result = buildArtifacts(
-        [receipt({ Tradable: true, PromoRule: "owns:2583700" })],
+        [receipt({ Tradable: true, PromoRule: "owns:2583700" }), claimBundle()],
         [linkTree()],
+        [gameItem()],
     );
 
     assert.ok(result.errors.some(error => error.includes("PromoRule=manual")));
     assert.ok(result.errors.some(error => error.includes("不可交易")));
+});
+
+test("validates a fixed chips LinkTree bundle containing only its receipt", () => {
+    const result = buildArtifacts(
+        [receipt(), claimBundle({ Bundle: "401001x1" })],
+        [linkTree({ RewardType: 2, RewardItemId: 0, RewardChips: 2500 })],
+    );
+
+    assert.deepEqual(result.errors, []);
+});
+
+test("rejects a LinkTree bundle with the wrong fixed item reward", () => {
+    const result = buildArtifacts(
+        [receipt(), claimBundle({ Bundle: "401001x1;101003x1" })],
+        [linkTree()],
+        [gameItem()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("必须为 401001x1;101002x1")));
+});
+
+test("validates a blind box LinkTree bundle using the box open-cost ItemDef", () => {
+    const voucher = receipt({
+        Id: 402001,
+        Key: "DecorationBlindBoxVoucher",
+        PromoRule: "",
+        GrantedManually: false,
+    });
+    const result = buildArtifacts(
+        [
+            receipt(),
+            voucher,
+            receipt({
+                Id: 403001,
+                Key: "DecorationBlindBoxGenerator",
+                Type: 3,
+                PromoRule: "",
+                GrantedManually: false,
+                Bundle: "101002x1",
+            }),
+            claimBundle({ Bundle: "401001x1;402001x1" }),
+        ],
+        [linkTree({ RewardType: 4, RewardItemId: 0, RewardBlindBoxId: 4001 })],
+        [gameItem()],
+        [blindBox()],
+    );
+
+    assert.deepEqual(result.errors, []);
 });
 
 test("requires bundle content for bundle and generator definitions", () => {

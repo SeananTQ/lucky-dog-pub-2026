@@ -74,10 +74,10 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - `SteamItemDef` 与 `Item` 的 ItemDef ID 冲突，或多个 `Item` 共用同一 ID。
 - Generator/Bundle 配方引用了未导出的 ItemDef。
 - `@AUTO` 被用于非 Generator 定义，或自动奖池候选物品没有 Steam ItemDef 映射。
-- LinkTree 引用了不存在或已禁用的 ItemDef。
-- 多条 LinkTree 共用同一个永久回执。
-- 永久回执不是 `Type=Item`、`PromoRule=manual` 或 `GrantedManually=true`。
-- 永久回执允许交易、出售或没有设置为游戏内隐藏。
+- LinkTree 引用了不存在或已禁用的永久回执或领奖 Bundle。
+- 多条 LinkTree 共用同一个永久回执或领奖 Bundle。
+- 永久回执不是安全的 `Type=Item`，或领奖目标不是安全的 `Type=Bundle`、`PromoRule=manual`、`GrantedManually=true`。
+- LinkTree 领奖 Bundle 的实际内容与奖励类型不一致。固定物品必须包含永久回执和 `Item.SteamItemDefId`；筹码只包含永久回执；盲盒必须包含永久回执和 `BlindBox.SteamOpenCostItemDefId`。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 - 非 PlaytimeGenerator 配置了 Steam 投放上限，或启用 Schedule 引用了已经显式停发的 Generator。
 - BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。

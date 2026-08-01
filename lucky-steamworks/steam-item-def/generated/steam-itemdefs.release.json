@@ -1266,6 +1266,58 @@
       "auto_stack": false
     },
     {
+      "itemdefid": 401005,
+      "type": "item",
+      "name": "LinkTree Claim - Twitter Follow",
+      "description": "Permanent receipt for the Twitter follow reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401006,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Community",
+      "description": "Permanent receipt for the Steam Community reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401007,
+      "type": "item",
+      "name": "LinkTree Claim - Steam Store",
+      "description": "Permanent receipt for the Steam Store reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 401008,
+      "type": "item",
+      "name": "LinkTree Claim - Xiaohongshu Profile",
+      "description": "Permanent receipt for the Xiaohongshu profile reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
       "itemdefid": 402001,
       "type": "item",
       "name": "Decoration Blind Box Voucher",
@@ -1507,6 +1559,62 @@
       "drop_window": 24,
       "drop_max_per_window": 2,
       "use_drop_limit": false
+    },
+    {
+      "itemdefid": 406005,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Twitter Follow",
+      "description": "Grants the permanent receipt and fixed item reward for the Twitter follow entry.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "401005x1;192005x1"
+    },
+    {
+      "itemdefid": 406006,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Steam Community",
+      "description": "Grants the permanent receipt for the Steam Community entry. The chip reward is granted locally.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "401006x1"
+    },
+    {
+      "itemdefid": 406007,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Steam Store",
+      "description": "Grants the permanent receipt for the Steam Store entry. The chip reward is granted locally.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "401007x1"
+    },
+    {
+      "itemdefid": 406008,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Xiaohongshu Profile",
+      "description": "Grants the permanent receipt and fixed item reward for the Xiaohongshu profile entry.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "401008x1;191012x1"
     }
   ]
 }

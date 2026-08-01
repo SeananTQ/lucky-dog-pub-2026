@@ -8,13 +8,13 @@
     "blindBoxRarityRate": "lucky-dog-rise/Data/Json/tbblindboxrarityrate.json",
     "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json"
   },
-  "sourceItemDefCount": 20,
+  "sourceItemDefCount": 28,
   "sourceGameItemCount": 102,
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
-  "exportedItemDefCount": 121,
-  "checkedLinkTreeReferenceCount": 4,
+  "exportedItemDefCount": 129,
+  "checkedLinkTreeReferenceCount": 8,
   "checkedBlindBoxReferenceCount": 3,
   "checkedPlaytimeReferenceCount": 9,
   "channels": [
