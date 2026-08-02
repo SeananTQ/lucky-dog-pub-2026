@@ -18,6 +18,7 @@ public partial class GlobalInputTracker : Node
     private IntPtr _kbHook = IntPtr.Zero;
     private IntPtr _msHook = IntPtr.Zero;
     private int _pendingPresses;
+    private double _inputRewardTokens = InputRewardBucketCapacity;
 
     private readonly bool[] _keysDown = new bool[256];
 
@@ -44,6 +45,8 @@ public partial class GlobalInputTracker : Node
     private const int VK_MEDIA_PLAY_PAUSE = 0xB3;
     private const int VK_LAUNCH_MAIL = 0xB4;
     private const int VK_LAUNCH_APP2 = 0xB7;
+    private const double InputRewardTokensPerSecond = 20.0;
+    private const double InputRewardBucketCapacity = 40.0;
     private const int WM_LBUTTONDOWN = 0x0201;
     private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
@@ -126,13 +129,22 @@ public partial class GlobalInputTracker : Node
 
     public override void _Process(double delta)
     {
+        _inputRewardTokens = Math.Min(
+            InputRewardBucketCapacity,
+            _inputRewardTokens + Math.Max(0.0, delta) * InputRewardTokensPerSecond);
+
         var count = Interlocked.Exchange(ref _pendingPresses, 0);
-        if (count > 0 && GameData != null)
-        {
-            GameData.ModifyChips(count);
-            GameData.RecordTypingInput(count);
-            EmitSignal(SignalName.TypingInputOccurred, count);
-        }
+        if (count <= 0 || GameData == null)
+            return;
+
+        var rewardedCount = Math.Min(count, (int)_inputRewardTokens);
+        if (rewardedCount <= 0)
+            return;
+
+        _inputRewardTokens -= rewardedCount;
+        GameData.ModifyChips(rewardedCount);
+        GameData.RecordTypingInput(rewardedCount);
+        EmitSignal(SignalName.TypingInputOccurred, rewardedCount);
     }
 
     private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)
