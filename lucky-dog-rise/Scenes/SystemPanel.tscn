@@ -30,12 +30,13 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseHookToggle")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
 _armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow/ArmAppearanceOption")
 _pokerFrameRateOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerFrameRateRow/PokerFrameRateOption")
 _vsyncToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow/VsyncToggle")
+_disableGlobalMouseHookToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DisableGlobalMouseHookRow/DisableGlobalMouseHookToggle")
 _linkTreeBannerScene = ExtResource("13_linktree_banner")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1259360735]
@@ -691,6 +692,19 @@ size_flags_horizontal = 3
 text = "模拟 LinkTree 领奖流程"
 
 [node name="LinkTreeUiSimulationToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="DisableGlobalMouseHookRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+tooltip_text = "仅用于诊断 WH_MOUSE_LL 对其他游戏鼠标输入的影响。开启后暂停跨应用鼠标筹码、外部点击自动收起面板和 LinkTree 外部返回判定；键盘统计与游戏内鼠标交互不受影响。"
+
+[node name="DisableGlobalMouseHookLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/DisableGlobalMouseHookRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "禁用全局鼠标钩子（诊断）"
+
+[node name="DisableGlobalMouseHookToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/DisableGlobalMouseHookRow"]
 layout_mode = 2
 size_flags_vertical = 4
 

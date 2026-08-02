@@ -12,6 +12,7 @@ DragHandler
 GameData
 GameManager
 GlobalInputTracker
+RawInputMouseListener
 HandAreaController
 HUDController
 InfoPanelController
@@ -23,6 +24,7 @@ SingleInstanceGuard
 SystemPanelController
 TaskbarSnap
 TestDesktopController
+TestGlobalRawInputController
 TutorialManager
 UIThemePreviewController
 WindowManager

@@ -15,6 +15,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DebugGrantChipsRequestedEventHandler();
     [Signal] public delegate void DebugGrantLuckyDealsRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
+    [Signal] public delegate void GlobalMouseHookDisabledChangedEventHandler(bool disabled);
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -27,6 +28,7 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
+    [Export] private CheckButton _disableGlobalMouseHookToggle = null!;
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
@@ -460,6 +462,9 @@ public partial class SystemPanelController : CanvasLayer
 
             SetLinkTreeUiSimulation(enabled);
         };
+        _disableGlobalMouseHookToggle.SetPressedNoSignal(false);
+        _disableGlobalMouseHookToggle.Toggled += disabled =>
+            EmitSignal(SignalName.GlobalMouseHookDisabledChanged, disabled);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
         _playerProgressMultiplierOption.AddItem("统计 x1", 1);
         _playerProgressMultiplierOption.AddItem("统计 x10", 10);

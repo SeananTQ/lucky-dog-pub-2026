@@ -95,21 +95,45 @@ public partial class GlobalInputTracker : Node
 
     public override void _Ready()
     {
-        var mod = GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName);
-
         _kbCallback = KbHookProc;
+        var mod = GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName);
         _kbHook = SetWindowsHookEx(WH_KEYBOARD_LL, _kbCallback, mod, 0);
         if (_kbHook == IntPtr.Zero)
             GD.PrintErr($"[GlobalInputTracker] KB hook failed (error={Marshal.GetLastWin32Error()})");
         else
             GD.Print("[GlobalInputTracker] KB hook installed");
 
-        _msCallback = MsHookProc;
-        _msHook = SetWindowsHookEx(WH_MOUSE_LL, _msCallback, mod, 0);
+        SetMouseHookEnabled(true);
+    }
+
+    public void SetMouseHookEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            if (_msHook != IntPtr.Zero)
+                return;
+
+            _msCallback ??= MsHookProc;
+            var mod = GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName);
+            _msHook = SetWindowsHookEx(WH_MOUSE_LL, _msCallback, mod, 0);
+            if (_msHook == IntPtr.Zero)
+                GD.PrintErr($"[GlobalInputTracker] Mouse hook failed (error={Marshal.GetLastWin32Error()})");
+            else
+                GD.Print("[GlobalInputTracker] Mouse hook installed");
+            return;
+        }
+
         if (_msHook == IntPtr.Zero)
-            GD.PrintErr($"[GlobalInputTracker] Mouse hook failed (error={Marshal.GetLastWin32Error()})");
-        else
-            GD.Print("[GlobalInputTracker] Mouse hook installed");
+            return;
+
+        if (!UnhookWindowsHookEx(_msHook))
+        {
+            GD.PrintErr($"[GlobalInputTracker] Mouse hook removal failed (error={Marshal.GetLastWin32Error()})");
+            return;
+        }
+
+        _msHook = IntPtr.Zero;
+        GD.Print("[GlobalInputTracker] Mouse hook removed");
     }
 
     public override void _ExitTree()
@@ -119,11 +143,7 @@ public partial class GlobalInputTracker : Node
             UnhookWindowsHookEx(_kbHook);
             _kbHook = IntPtr.Zero;
         }
-        if (_msHook != IntPtr.Zero)
-        {
-            UnhookWindowsHookEx(_msHook);
-            _msHook = IntPtr.Zero;
-        }
+        SetMouseHookEnabled(false);
         GD.Print("[GlobalInputTracker] Hooks removed");
     }
 

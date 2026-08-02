@@ -13,6 +13,7 @@ public partial class ModeManager : Control
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
     private SystemPanelController _settingsPanel = null!;
+    private GlobalInputTracker _globalInputTracker = null!;
     public SystemPanelController SettingsPanelObj => _settingsPanel;
     private Node2D _bossKeyContent = null!;
     private DogVisual _bossDogVisual = null!;
@@ -204,6 +205,7 @@ public partial class ModeManager : Control
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DebugGrantLuckyDealsRequested += OnDebugGrantLuckyDeals;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
+        _settingsPanel.GlobalMouseHookDisabledChanged += OnGlobalMouseHookDisabledChanged;
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
@@ -268,14 +270,14 @@ public partial class ModeManager : Control
         RestoreBossBlindBoxRewardIfNeeded();
         CallDeferred(MethodName.RestoreBossBlindBoxRewardIfNeeded);
 
-        var tracker = new GlobalInputTracker();
-        tracker.Name = "GlobalInputTracker";
-        tracker.GameData = _gameData;
-        tracker.TypingInputOccurred += OnTypingInputOccurred;
-        tracker.GlobalMousePressed += OnGlobalMousePressed;
-        tracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
-        tracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
-        AddChild(tracker);
+        _globalInputTracker = new GlobalInputTracker();
+        _globalInputTracker.Name = "GlobalInputTracker";
+        _globalInputTracker.GameData = _gameData;
+        _globalInputTracker.TypingInputOccurred += OnTypingInputOccurred;
+        _globalInputTracker.GlobalMousePressed += OnGlobalMousePressed;
+        _globalInputTracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
+        _globalInputTracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
+        AddChild(_globalInputTracker);
 
         if (deferBossStartupReveal)
             RevealBossStartupAfterFirstDraw(deferredBossStartupScreen);
@@ -1096,6 +1098,13 @@ public partial class ModeManager : Control
             StartEnhancedTopmostBoost();
         }
     }
+
+#if DEBUG
+    private void OnGlobalMouseHookDisabledChanged(bool disabled)
+    {
+        _globalInputTracker.SetMouseHookEnabled(!disabled);
+    }
+#endif
 
     private void AutoHideSettingsPanelIfClickedOutside(Vector2I screenPosition)
     {
