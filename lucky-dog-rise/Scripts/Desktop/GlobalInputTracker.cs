@@ -16,17 +16,15 @@ public partial class GlobalInputTracker : Node
     public GameData GameData { get; set; } = null!;
 
     private IntPtr _kbHook = IntPtr.Zero;
-    private IntPtr _msHook = IntPtr.Zero;
+    private RawInputMouseListener _rawMouseListener = null!;
     private int _pendingPresses;
     private double _inputRewardTokens = InputRewardBucketCapacity;
 
     private readonly bool[] _keysDown = new bool[256];
 
     private LowLevelKeyboardProc _kbCallback;
-    private LowLevelMouseProc _msCallback;
 
     private const int WH_KEYBOARD_LL = 13;
-    private const int WH_MOUSE_LL = 14;
     private const int WM_KEYDOWN = 0x0100;
     private const int WM_KEYUP = 0x0101;
     private const int WM_SYSKEYDOWN = 0x0104;
@@ -47,30 +45,8 @@ public partial class GlobalInputTracker : Node
     private const int VK_LAUNCH_APP2 = 0xB7;
     private const double InputRewardTokensPerSecond = 20.0;
     private const double InputRewardBucketCapacity = 40.0;
-    private const int WM_LBUTTONDOWN = 0x0201;
-    private const int WM_RBUTTONDOWN = 0x0204;
-    private const int WM_MBUTTONDOWN = 0x0207;
-    private const int WM_XBUTTONDOWN = 0x020B;
 
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Point
-    {
-        public int X;
-        public int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MsllHookStruct
-    {
-        public Point Pt;
-        public uint MouseData;
-        public uint Flags;
-        public uint Time;
-        public IntPtr ExtraInfo;
-    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, Delegate lpfn,
@@ -90,7 +66,8 @@ public partial class GlobalInputTracker : Node
         if (@event is InputEventKey key && key.Pressed && !key.Echo &&
             !IsDebugPresentationHotkey(key.Keycode) && !IsHardwareFunctionKey(key.Keycode))
             Interlocked.Increment(ref _pendingPresses);
-        // 鼠标：WH_MOUSE_LL 有/无焦点都能收到，不走 _Input 避免重复
+        // Mouse presses come from RawInputMouseListener both in and out of focus.
+        // Do not count mouse events here, otherwise focused clicks are duplicated.
     }
 
     public override void _Ready()
@@ -103,37 +80,23 @@ public partial class GlobalInputTracker : Node
         else
             GD.Print("[GlobalInputTracker] KB hook installed");
 
-        SetMouseHookEnabled(true);
+        _rawMouseListener = new RawInputMouseListener
+        {
+            Name = "RawInputMouseListener",
+        };
+        _rawMouseListener.RawMousePressed += OnRawMousePressed;
+        AddChild(_rawMouseListener);
     }
 
-    public void SetMouseHookEnabled(bool enabled)
+    public void SetGlobalMouseListeningEnabled(bool enabled)
     {
+        if (_rawMouseListener == null)
+            return;
+
         if (enabled)
-        {
-            if (_msHook != IntPtr.Zero)
-                return;
-
-            _msCallback ??= MsHookProc;
-            var mod = GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName);
-            _msHook = SetWindowsHookEx(WH_MOUSE_LL, _msCallback, mod, 0);
-            if (_msHook == IntPtr.Zero)
-                GD.PrintErr($"[GlobalInputTracker] Mouse hook failed (error={Marshal.GetLastWin32Error()})");
-            else
-                GD.Print("[GlobalInputTracker] Mouse hook installed");
-            return;
-        }
-
-        if (_msHook == IntPtr.Zero)
-            return;
-
-        if (!UnhookWindowsHookEx(_msHook))
-        {
-            GD.PrintErr($"[GlobalInputTracker] Mouse hook removal failed (error={Marshal.GetLastWin32Error()})");
-            return;
-        }
-
-        _msHook = IntPtr.Zero;
-        GD.Print("[GlobalInputTracker] Mouse hook removed");
+            _rawMouseListener.StartListening();
+        else
+            _rawMouseListener.StopListening();
     }
 
     public override void _ExitTree()
@@ -143,8 +106,12 @@ public partial class GlobalInputTracker : Node
             UnhookWindowsHookEx(_kbHook);
             _kbHook = IntPtr.Zero;
         }
-        SetMouseHookEnabled(false);
-        GD.Print("[GlobalInputTracker] Hooks removed");
+        if (_rawMouseListener != null)
+        {
+            _rawMouseListener.RawMousePressed -= OnRawMousePressed;
+            _rawMouseListener.StopListening();
+        }
+        GD.Print("[GlobalInputTracker] Keyboard hook removed; Raw Input mouse listener stopped");
     }
 
     public override void _Process(double delta)
@@ -192,21 +159,10 @@ public partial class GlobalInputTracker : Node
         return CallNextHookEx(_kbHook, nCode, wParam, lParam);
     }
 
-    private IntPtr MsHookProc(int nCode, IntPtr wParam, IntPtr lParam)
+    private void OnRawMousePressed(int button, Vector2I screenPosition)
     {
-        if (nCode >= 0)
-        {
-            var msg = (int)wParam;
-            if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN ||
-                msg == WM_MBUTTONDOWN || msg == WM_XBUTTONDOWN)
-            {
-                Interlocked.Increment(ref _pendingPresses);
-                var hook = Marshal.PtrToStructure<MsllHookStruct>(lParam);
-                EmitSignal(SignalName.GlobalMousePressed, new Vector2I(hook.Pt.X, hook.Pt.Y));
-            }
-        }
-
-        return CallNextHookEx(_msHook, nCode, wParam, lParam);
+        Interlocked.Increment(ref _pendingPresses);
+        EmitSignal(SignalName.GlobalMousePressed, screenPosition);
     }
 
     private static bool IsDebugPresentationHotkey(Key key)

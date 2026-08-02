@@ -205,7 +205,7 @@ public partial class ModeManager : Control
         _settingsPanel.DebugGrantChipsRequested += OnDebugGrantChips;
         _settingsPanel.DebugGrantLuckyDealsRequested += OnDebugGrantLuckyDeals;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
-        _settingsPanel.GlobalMouseHookDisabledChanged += OnGlobalMouseHookDisabledChanged;
+        _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
@@ -1100,9 +1100,9 @@ public partial class ModeManager : Control
     }
 
 #if DEBUG
-    private void OnGlobalMouseHookDisabledChanged(bool disabled)
+    private void OnGlobalMouseListeningDisabledChanged(bool disabled)
     {
-        _globalInputTracker.SetMouseHookEnabled(!disabled);
+        _globalInputTracker.SetGlobalMouseListeningEnabled(!disabled);
     }
 #endif
 

@@ -1,10 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://bnushgh22loxs"]
 
-[ext_resource type="Script" path="res://Scripts/Desktop/TestGlobalRawInputController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://Scripts/Desktop/RawInputMouseListener.cs" id="2_listener"]
-[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="3_theme"]
+[ext_resource type="Script" uid="uid://cpog8sea5l4u0" path="res://Scripts/Desktop/TestGlobalRawInputController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://bgieqk5tve8g5" path="res://Scripts/Desktop/RawInputMouseListener.cs" id="2_listener"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="3_theme"]
 
-[node name="TestGlobalRawInput" type="Control" node_paths=PackedStringArray("_listener", "_statusLabel", "_rawPacketCountLabel", "_movementPacketCountLabel", "_pressCountLabel", "_lastPressLabel", "_toggleListeningButton", "_resetButton", "_quitButton")]
+[node name="TestGlobalRawInput" type="Control" unique_id=1570671233 node_paths=PackedStringArray("_listener", "_statusLabel", "_rawPacketCountLabel", "_movementPacketCountLabel", "_pressCountLabel", "_lastPressLabel", "_toggleListeningButton", "_resetButton", "_quitButton")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,10 +23,10 @@ _toggleListeningButton = NodePath("Background/Center/Panel/Margin/VBox/ButtonRow
 _resetButton = NodePath("Background/Center/Panel/Margin/VBox/ButtonRow/ResetButton")
 _quitButton = NodePath("Background/Center/Panel/Margin/VBox/ButtonRow/QuitButton")
 
-[node name="RawInputMouseListener" type="Node" parent="."]
+[node name="RawInputMouseListener" type="Node" parent="." unique_id=717175295]
 script = ExtResource("2_listener")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=360674588]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,7 +35,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.035, 0.055, 0.065, 1)
 
-[node name="Center" type="CenterContainer" parent="Background"]
+[node name="Center" type="CenterContainer" parent="Background" unique_id=1054546494]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -43,107 +43,107 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Background/Center"]
+[node name="Panel" type="PanelContainer" parent="Background/Center" unique_id=405183338]
 custom_minimum_size = Vector2(680, 470)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="Background/Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="Background/Center/Panel" unique_id=1919963916]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="VBox" type="VBoxContainer" parent="Background/Center/Panel/Margin"]
+[node name="VBox" type="VBoxContainer" parent="Background/Center/Panel/Margin" unique_id=1927321833]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Background/Center/Panel/Margin/VBox"]
+[node name="Title" type="Label" parent="Background/Center/Panel/Margin/VBox" unique_id=828269246]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Raw Input 后台鼠标测试"
 horizontal_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="Background/Center/Panel/Margin/VBox"]
+[node name="StatusLabel" type="Label" parent="Background/Center/Panel/Margin/VBox" unique_id=1877475311]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "状态：正在初始化"
 horizontal_alignment = 1
 
-[node name="Intro" type="Label" parent="Background/Center/Panel/Margin/VBox"]
+[node name="Intro" type="Label" parent="Background/Center/Panel/Margin/VBox" unique_id=116529872]
 layout_mode = 2
 text = "把焦点切到记事本、浏览器或其他应用后点击鼠标：点击计数应继续增加。移动鼠标时，移动包计数会增加，但移动数据不会发送到 Godot 主线程。"
 autowrap_mode = 3
 
-[node name="StatsSeparator" type="HSeparator" parent="Background/Center/Panel/Margin/VBox"]
+[node name="StatsSeparator" type="HSeparator" parent="Background/Center/Panel/Margin/VBox" unique_id=96976869]
 layout_mode = 2
 
-[node name="StatsGrid" type="GridContainer" parent="Background/Center/Panel/Margin/VBox"]
+[node name="StatsGrid" type="GridContainer" parent="Background/Center/Panel/Margin/VBox" unique_id=380331087]
 layout_mode = 2
 theme_override_constants/h_separation = 24
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="RawPacketLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="RawPacketLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=629647828]
 layout_mode = 2
 text = "收到的 Raw Input 鼠标包"
 
-[node name="RawPacketValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="RawPacketValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=227412468]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "0"
 horizontal_alignment = 2
 
-[node name="MovementPacketLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="MovementPacketLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=1986274882]
 layout_mode = 2
 text = "已忽略的移动包"
 
-[node name="MovementPacketValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="MovementPacketValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=998079091]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "0"
 horizontal_alignment = 2
 
-[node name="PressCountLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="PressCountLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=25729289]
 layout_mode = 2
 text = "鼠标按下次数"
 
-[node name="PressCountValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="PressCountValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=1865269158]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "0"
 horizontal_alignment = 2
 
-[node name="LastPressLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="LastPressLabel" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=165646551]
 layout_mode = 2
 text = "最后一次按下"
 
-[node name="LastPressValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid"]
+[node name="LastPressValue" type="Label" parent="Background/Center/Panel/Margin/VBox/StatsGrid" unique_id=1845104435]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "尚未收到点击"
 horizontal_alignment = 2
 
-[node name="ButtonRow" type="HBoxContainer" parent="Background/Center/Panel/Margin/VBox"]
+[node name="ButtonRow" type="HBoxContainer" parent="Background/Center/Panel/Margin/VBox" unique_id=1531582660]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ToggleListeningButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow"]
+[node name="ToggleListeningButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow" unique_id=163638652]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "停止监听"
 
-[node name="ResetButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow"]
+[node name="ResetButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow" unique_id=40471524]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "清空计数"
 
-[node name="QuitButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow"]
+[node name="QuitButton" type="Button" parent="Background/Center/Panel/Margin/VBox/ButtonRow" unique_id=1552224645]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "退出测试"
 
-[node name="CsInstruction" type="Label" parent="Background/Center/Panel/Margin/VBox"]
+[node name="CsInstruction" type="Label" parent="Background/Center/Panel/Margin/VBox" unique_id=1879957687]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.82, 0.85, 1)
 text = "CS 验收：保持该测试场景运行并监听，使用相同灵敏度、鼠标回报率和桌面移动距离，重复记录 360° 转身结果。"
