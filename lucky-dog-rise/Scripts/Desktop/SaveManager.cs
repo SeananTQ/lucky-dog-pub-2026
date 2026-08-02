@@ -47,6 +47,7 @@ public sealed class PendingLinkTreeClaim
 public static class SaveManager
 {
     public const int CurrentVersion = 10;
+    public const int MinimumSupportedVersion = 10;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -71,20 +72,89 @@ public static class SaveManager
         }
 
         if (TryLoadVerified(SavePath, out var profile, out var failure))
-            return Normalize(profile!);
+            return LoadSupportedOrReplaceLegacy(profile!, "primary");
 
         GD.PushError($"[Save] Primary save rejected: {failure}.");
         if (TryLoadVerified(BackupPath, out profile, out _))
         {
+            if (profile!.Version < MinimumSupportedVersion)
+                return ReplaceLegacySave(profile, "backup");
+
             CopyFile(BackupPath, SavePath);
             GD.PushWarning("[Save] Restored the verified backup save.");
-            return Normalize(profile!);
+            return Normalize(profile);
         }
 
         BackupRejectedSave(failure == "invalid signature" ? InvalidSignaturePath : CorruptBackupPath);
         var replacement = CreateDefaultProfile();
         SaveInternal(replacement, backupExisting: false);
         return replacement;
+    }
+
+    private static SaveProfile LoadSupportedOrReplaceLegacy(SaveProfile profile, string source)
+    {
+        return profile.Version < MinimumSupportedVersion
+            ? ReplaceLegacySave(profile, source)
+            : Normalize(profile);
+    }
+
+    private static SaveProfile ReplaceLegacySave(SaveProfile profile, string source)
+    {
+        var legacyVersion = Math.Max(1, profile.Version);
+        if (!TryArchiveActiveSaves(legacyVersion, out var archiveDescription))
+        {
+            GD.PushError(
+                $"[Save] Failed to archive unsupported {source} save V{legacyVersion}. " +
+                "Continuing with the legacy migration path to avoid losing player data.");
+            return Normalize(profile);
+        }
+
+        var replacement = CreateDefaultProfile();
+        SaveInternal(replacement, backupExisting: false);
+        GD.PushWarning(
+            $"[Save] Unsupported {source} save V{legacyVersion} was archived ({archiveDescription}). " +
+            $"Created a fresh V{CurrentVersion} profile; Steam achievements and inventory remain platform-owned.");
+        return replacement;
+    }
+
+    private static bool TryArchiveActiveSaves(int legacyVersion, out string archiveDescription)
+    {
+        var uniqueId = Guid.NewGuid().ToString("N")[..8];
+        var suffix = $"v{legacyVersion}_{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffZ}_{uniqueId}";
+        var candidates = new[]
+        {
+            (Source: SavePath, Destination: $"{SaveDir}/profile_0.legacy_{suffix}.json"),
+            (Source: BackupPath, Destination: $"{SaveDir}/profile_0.backup.legacy_{suffix}.json"),
+        };
+        var archived = new List<(string Source, string Destination)>();
+
+        try
+        {
+            foreach (var candidate in candidates)
+            {
+                if (!FileAccess.FileExists(candidate.Source))
+                    continue;
+
+                System.IO.File.Copy(
+                    ProjectSettings.GlobalizePath(candidate.Source),
+                    ProjectSettings.GlobalizePath(candidate.Destination),
+                    overwrite: false);
+                archived.Add(candidate);
+            }
+
+            foreach (var candidate in archived)
+                System.IO.File.Delete(ProjectSettings.GlobalizePath(candidate.Source));
+
+            archiveDescription = archived.Count == 0
+                ? "no active save files found"
+                : string.Join(", ", archived.Select(candidate => candidate.Destination));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            archiveDescription = ex.Message;
+            return false;
+        }
     }
 
     public static void Save(SaveProfile profile)
