@@ -320,7 +320,8 @@ public partial class InfoPanelController : CanvasLayer
         _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
             or BlindBoxHintStatus.PlatformSyncing
             or BlindBoxHintStatus.PlatformUnavailable
-            or BlindBoxHintStatus.Opening;
+            or BlindBoxHintStatus.Opening
+            or BlindBoxHintStatus.PendingReward;
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
