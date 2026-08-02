@@ -109,6 +109,8 @@ public partial class ModeManager : Control
     private bool _desktopTongueFeedbackEnabled = true;
     private double _fullscreenCheckTimer;
     private bool _hiddenByFullscreenApp;
+    private SingleInstanceGuard _singleInstanceGuard;
+    private bool _activationRequestedBeforeReady;
     private double _enhancedTopmostTimer;
     private double _enhancedTopmostBoostTimer;
     private double _enhancedTopmostDelayedBoostTimer;
@@ -123,6 +125,9 @@ public partial class ModeManager : Control
     public override void _EnterTree()
     {
         GetTree().AutoAcceptQuit = false;
+        _singleInstanceGuard = GetNodeOrNull<SingleInstanceGuard>("/root/SingleInstanceGuard");
+        if (_singleInstanceGuard != null)
+            _singleInstanceGuard.ActivationRequested += OnExternalActivationRequested;
         _platformService = GamePlatformServiceFactory.Create();
         GD.Print(_platformService.IsAvailable
             ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
@@ -276,6 +281,12 @@ public partial class ModeManager : Control
             RevealBossStartupAfterFirstDraw(deferredBossStartupScreen);
         else
             CallDeferred(MethodName.PlayBossRiseIntro);
+
+        if (_activationRequestedBeforeReady)
+        {
+            _activationRequestedBeforeReady = false;
+            OnExternalActivationRequested();
+        }
     }
 
     private double _displayTimer;
@@ -456,8 +467,37 @@ public partial class ModeManager : Control
 
     public override void _ExitTree()
     {
+        if (_singleInstanceGuard != null)
+            _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         DisposePlatformService();
+    }
+
+    private void OnExternalActivationRequested()
+    {
+        if (_shutdownRequested)
+            return;
+
+        if (!IsNodeReady())
+        {
+            _activationRequestedBeforeReady = true;
+            return;
+        }
+
+        GetWindow().Visible = true;
+        SetNativeWindowCloaked(false);
+        if (_hiddenByFullscreenApp)
+            SetHiddenByFullscreenApp(false);
+
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd != IntPtr.Zero)
+        {
+            WindowNative.ShowWindow(hWnd, WindowNative.SW_RESTORE);
+            WindowNative.SetForegroundWindow(hWnd);
+        }
+        ReassertTopmostNoActivate();
+        (_platformService as IRecoverablePlatformService)?.RequestReconnect();
+        GD.Print("[SingleInstance] Existing game window was revealed after another launch request.");
     }
 
     private void OnPokerFrameRateChanged(int frameRate)

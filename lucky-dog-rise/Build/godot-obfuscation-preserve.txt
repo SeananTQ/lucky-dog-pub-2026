@@ -19,6 +19,7 @@ InteractionHintController
 ItemAreaController
 ItemCellController
 ModeManager
+SingleInstanceGuard
 SystemPanelController
 TaskbarSnap
 TestDesktopController

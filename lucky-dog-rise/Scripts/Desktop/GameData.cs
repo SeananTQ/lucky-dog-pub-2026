@@ -647,17 +647,7 @@ public partial class GameData : Node
     private PendingBlindBoxReward FinalizeLocalBlindBoxOpen(BlindBoxOpenResult result)
     {
         PendingBlindBoxReward = result.PendingReward;
-        var clearedLoopPresentation = result.Schedule.IsLoopTrack
-                                      && ActiveBlindBoxRuntimeState.LockedLoopBlindBoxId > 0;
         _blindBoxService.ConsumeOpenedSchedule(ActiveBlindBoxRuntimeState, result.Schedule);
-        if (clearedLoopPresentation)
-        {
-            GD.Print(
-                $"[BlindBoxTiming] Open cleared loop balloon Schedule={result.Schedule.Id}, " +
-                $"Box={result.Box.Id}, Clock={ActiveBlindBoxRuntimeState.ScheduleSeconds:0.000}, " +
-                $"NextPoint={ActiveBlindBoxRuntimeState.NextLoopPresentationSeconds:0.000}, " +
-                $"RemainingReal={GetLoopPresentationRemainingRealSeconds():0.0}s.");
-        }
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -774,34 +764,13 @@ public partial class GameData : Node
 
         var canLockPresentation = PendingBlindBoxReward == null
                                   && PendingPlatformBlindBoxOpen == null;
-        var previousLockedBoxId = _blindBoxRuntimeState.LockedLoopBlindBoxId;
-        var previousNextPoint = _blindBoxRuntimeState.NextLoopPresentationSeconds;
         if (_blindBoxService.MaintainLoopPresentation(
                 _blindBoxRuntimeState,
                 canLockPresentation,
                 selectedBox.Id))
         {
-            if (previousLockedBoxId <= 0 && _blindBoxRuntimeState.LockedLoopBlindBoxId > 0)
-            {
-                GD.Print(
-                    $"[BlindBoxTiming] Locked loop balloon Schedule={_blindBoxRuntimeState.LockedLoopScheduleId}, " +
-                    $"Box={_blindBoxRuntimeState.LockedLoopBlindBoxId}, " +
-                    $"Clock={_blindBoxRuntimeState.ScheduleSeconds:0.000}, " +
-                    $"DuePoint={previousNextPoint:0.000}, " +
-                    $"NextPoint={_blindBoxRuntimeState.NextLoopPresentationSeconds:0.000}.");
-            }
             QueueSaveIfUsingLocalSave();
         }
-    }
-
-    private double GetLoopPresentationRemainingRealSeconds()
-    {
-        var multiplier = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()
-            ?.BlindBoxWaitDurationMultiplier ?? 1f;
-        return Math.Max(
-            0.0,
-            (_blindBoxRuntimeState.NextLoopPresentationSeconds
-             - _blindBoxRuntimeState.ScheduleSeconds) * Math.Max(1f, multiplier));
     }
 
     private void MaintainSteamPlaytimeDrops()
@@ -1679,12 +1648,6 @@ public partial class GameData : Node
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
         PendingPlatformBlindBoxOpen = profile.PendingPlatformBlindBoxOpen;
         PendingLinkTreeClaim = profile.PendingLinkTreeClaim;
-        GD.Print(
-            $"[BlindBoxTiming] Loaded Clock={_blindBoxRuntimeState.ScheduleSeconds:0.000}, " +
-            $"NextPoint={_blindBoxRuntimeState.NextLoopPresentationSeconds:0.000}, " +
-            $"LockedSchedule={_blindBoxRuntimeState.LockedLoopScheduleId}, " +
-            $"LockedBox={_blindBoxRuntimeState.LockedLoopBlindBoxId}, " +
-            $"RemainingReal={GetLoopPresentationRemainingRealSeconds():0.0}s.");
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

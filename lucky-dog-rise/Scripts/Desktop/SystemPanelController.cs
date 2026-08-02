@@ -1576,7 +1576,14 @@ public partial class SystemPanelController : CanvasLayer
     private void RestartGame()
     {
         _gameData?.SaveImmediatelyIfUsingLocalSave();
-        OS.CreateInstance(OS.GetCmdlineArgs());
+        SingleInstanceGuard.ReleaseForRestart();
+        var processId = OS.CreateInstance(OS.GetCmdlineArgs());
+        if (processId < 0)
+        {
+            SingleInstanceGuard.ReacquireAfterFailedRestart();
+            OS.Alert("Failed to restart Lucky Dog Rise. The current game will remain open.", "Lucky Dog Rise");
+            return;
+        }
         GetTree().Quit();
     }
 

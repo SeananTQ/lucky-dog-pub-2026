@@ -31,6 +31,7 @@ buses/default_bus_layout="uid://1igy362olshj"
 
 [autoload]
 
+SingleInstanceGuard="*res://Scripts/Desktop/SingleInstanceGuard.cs"
 AudioManager="*res://Scripts/AudioManager.cs"
 
 [display]
