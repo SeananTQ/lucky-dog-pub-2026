@@ -35,6 +35,15 @@ public partial class GlobalInputTracker : Node
     private const int VK_RWIN = 0x5C;
     private const int VK_F2 = 0x71;
     private const int VK_F3 = 0x72;
+    private const int VK_BROWSER_BACK = 0xA6;
+    private const int VK_BROWSER_HOME = 0xAC;
+    private const int VK_VOLUME_MUTE = 0xAD;
+    private const int VK_VOLUME_DOWN = 0xAE;
+    private const int VK_VOLUME_UP = 0xAF;
+    private const int VK_MEDIA_NEXT_TRACK = 0xB0;
+    private const int VK_MEDIA_PLAY_PAUSE = 0xB3;
+    private const int VK_LAUNCH_MAIL = 0xB4;
+    private const int VK_LAUNCH_APP2 = 0xB7;
     private const int WM_LBUTTONDOWN = 0x0201;
     private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
@@ -75,7 +84,8 @@ public partial class GlobalInputTracker : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventKey key && key.Pressed && !key.Echo && !IsDebugPresentationHotkey(key.Keycode))
+        if (@event is InputEventKey key && key.Pressed && !key.Echo &&
+            !IsDebugPresentationHotkey(key.Keycode) && !IsHardwareFunctionKey(key.Keycode))
             Interlocked.Increment(ref _pendingPresses);
         // 鼠标：WH_MOUSE_LL 有/无焦点都能收到，不走 _Input 避免重复
     }
@@ -137,7 +147,7 @@ public partial class GlobalInputTracker : Node
                     EmitSignal(SignalName.GlobalWinKeyPressed);
                 else if (vkCode == VK_ESCAPE)
                     EmitSignal(SignalName.GlobalEscapeKeyPressed);
-                if (!IsDebugPresentationHotkey(vkCode))
+                if (!IsDebugPresentationHotkey(vkCode) && !IsHardwareFunctionKey(vkCode))
                     Interlocked.Increment(ref _pendingPresses);
             }
         }
@@ -183,5 +193,25 @@ public partial class GlobalInputTracker : Node
 #else
         return false;
 #endif
+    }
+
+    private static bool IsHardwareFunctionKey(Key key)
+    {
+        return key is Key.Volumemute or Key.Volumedown or Key.Volumeup
+            or Key.Medianext or Key.Mediaprevious or Key.Mediastop
+            or Key.Mediaplay or Key.Mediarecord
+            or Key.Launchmail or Key.Launchmedia
+            or >= Key.Launch0 and <= Key.Launchf;
+    }
+
+    private static bool IsHardwareFunctionKey(int virtualKeyCode)
+    {
+        // Windows groups browser, volume, media, and application-launch keys into
+        // two contiguous virtual-key ranges. These controls are not typing input;
+        // some keyboard wheels emit many press/release pairs for a single gesture.
+        return virtualKeyCode is >= VK_BROWSER_BACK and <= VK_BROWSER_HOME
+            or >= VK_VOLUME_MUTE and <= VK_VOLUME_UP
+            or >= VK_MEDIA_NEXT_TRACK and <= VK_MEDIA_PLAY_PAUSE
+            or >= VK_LAUNCH_MAIL and <= VK_LAUNCH_APP2;
     }
 }
