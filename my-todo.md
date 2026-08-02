@@ -9,7 +9,7 @@ Game Over的逻辑还在，需要处理掉,只是隐藏了
 
 胖窗口右侧过大
 
-K A 2 3 4
+[x]K A 2 3 4
 
 
 Windows 代码签名证书：证明 LuckyDogRise.exe 来自 Seanan Studio，降低 SmartScreen 和杀毒软件警告。尚未完成。
