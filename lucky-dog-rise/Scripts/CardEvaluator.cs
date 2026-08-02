@@ -112,14 +112,15 @@ public static class CardEvaluator
         if (groups[0].Count() == 2 && groups[1].Count() == 2)
             return groups.Take(2).SelectMany(g => g.Select(x => x.Index)).ToArray();
 
-        // One pair
+        // Any pair is currently a winning hand. Keep high and low pairs explicit
+        // so future hold strategy or reward rules can differentiate them again.
         if (groups[0].Count() == 2)
         {
             int pairRank = groups[0].Key;
-            // Hold jacks or better
+            // High pair (J, Q, K, A): currently held the same as a low pair.
             if (pairRank == 0 || pairRank >= 10)
                 return groups[0].Select(x => x.Index).ToArray();
-            // Low pair - still hold it (better than nothing)
+            // Low pair: also held under the current all-pair Playtest rule.
             return groups[0].Select(x => x.Index).ToArray();
         }
 
