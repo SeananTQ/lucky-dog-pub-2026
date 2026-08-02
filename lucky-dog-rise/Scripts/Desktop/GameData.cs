@@ -271,6 +271,22 @@ public partial class GameData : Node
                          $"\n入口最终状态: {hintState.Status}";
         if (_blindBoxLocalTestMode)
             return statusText;
+
+        if (_blindBoxService.TryGetLoopSchedule(out _, out var loopBox)
+            && loopBox != null
+            && UsesSteamInventoryExchange(loopBox))
+        {
+            var loopVoucherQuantity = GetPlatformInventoryQuantity(loopBox.SteamOpenCostItemDefId);
+            var loopVoucherLimit = GetLoopSteamVoucherInventoryLimit();
+            var limitText = loopVoucherLimit > 0
+                ? $"{loopVoucherQuantity}/{loopVoucherLimit}" +
+                  (IsLoopSteamVoucherInventoryLimitReached(loopVoucherQuantity, loopVoucherLimit)
+                      ? "，投放暂停"
+                      : "，可继续投放")
+                : $"{loopVoucherQuantity}/无限制";
+            statusText += $"\n循环Steam券: ItemDef={loopBox.SteamOpenCostItemDefId}, Qty={limitText}";
+        }
+
         if (hintState.Box == null || !UsesSteamInventoryExchange(hintState.Box))
             return statusText;
 
@@ -828,6 +844,18 @@ public partial class GameData : Node
             return;
 
         var outputQuantity = GetPlatformInventoryQuantity(box.SteamOpenCostItemDefId);
+        var loopVoucherLimit = GetLoopSteamVoucherInventoryLimit();
+        if (schedule.IsLoopTrack
+            && IsLoopSteamVoucherInventoryLimitReached(outputQuantity, loopVoucherLimit))
+        {
+            GD.Print(
+                $"[BlindBox] Skipped recurring TriggerItemDrop({schedule.SteamPlaytimeGeneratorItemDefId}): " +
+                $"Steam voucher ItemDef={box.SteamOpenCostItemDefId} is at inventory limit " +
+                $"{outputQuantity}/{loopVoucherLimit}.");
+            CompleteSteamPlaytimeDrop(schedule.Id, grantCount);
+            return;
+        }
+
         if (!_platformInventoryService.TryTriggerPlaytimeDrop(
                 schedule.SteamPlaytimeGeneratorItemDefId,
                 box.SteamOpenCostItemDefId,
@@ -1172,6 +1200,15 @@ public partial class GameData : Node
                 ? item.Quantity - reservedQuantity
                 : 0u);
         }) ?? 0L));
+
+    private static int GetLoopSteamVoucherInventoryLimit()
+    {
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        return Math.Max(0, config?.BlindBoxLoopSteamVoucherInventoryLimit ?? 0);
+    }
+
+    private static bool IsLoopSteamVoucherInventoryLimitReached(uint quantity, int limit) =>
+        limit > 0 && quantity >= (uint)limit;
 
     private void ReserveConsumedPlatformInput(PendingPlatformBlindBoxOpen transaction)
     {

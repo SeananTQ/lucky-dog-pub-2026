@@ -849,6 +849,8 @@ public sealed class BlindBoxService
                 GD.PushError("[BlindBox] SteamPlaytimeDropLeadSeconds cannot be negative.");
             if (config.SteamPlaytimeRequestLeadSeconds < 0)
                 GD.PushError("[BlindBox] SteamPlaytimeRequestLeadSeconds cannot be negative.");
+            if (config.BlindBoxLoopSteamVoucherInventoryLimit < 0)
+                GD.PushError("[BlindBox] BlindBoxLoopSteamVoucherInventoryLimit cannot be negative.");
             if (config.SteamPlaytimeRequestLeadSeconds < config.SteamPlaytimeDropLeadSeconds)
             {
                 GD.PushError(
