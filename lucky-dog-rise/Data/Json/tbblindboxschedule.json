@@ -178,7 +178,9 @@
   {
     "Id": 2001,
     "BlindBoxId": 1001,
-    "VoucherUpgradeBlindBoxIds": [],
+    "VoucherUpgradeBlindBoxIds": [
+      4001
+    ],
     "IsLoopTrack": true,
     "StartSeconds": 780,
     "IntervalSeconds": 180,

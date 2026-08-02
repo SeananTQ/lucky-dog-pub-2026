@@ -18,6 +18,10 @@ public partial class GameData : Node
         public uint OutputQuantityBefore { get; init; }
     }
 
+    private readonly record struct PlatformInventoryConsumptionReservation(
+        uint QuantityBefore,
+        uint ReservedQuantity);
+
     public const int StartingChips = 2800;
 #if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
@@ -57,6 +61,8 @@ public partial class GameData : Node
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
     private PendingPlatformPlaytimeDrop _pendingPlatformPlaytimeDrop;
+    private readonly Dictionary<ulong, PlatformInventoryConsumptionReservation>
+        _platformInventoryConsumptionReservations = new();
     private readonly Dictionary<int, double> _playtimeDropRetryAtSeconds = new();
     private readonly Dictionary<int, int> _playtimeDropEmptyResultCounts = new();
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
@@ -510,6 +516,18 @@ public partial class GameData : Node
             return state;
         }
 
+        if (_blindBoxService.TryGetNextAvailable(
+                ActiveBlindBoxRuntimeState,
+                out var currentSchedule,
+                out var configuredBox)
+            && currentSchedule != null
+            && configuredBox != null)
+        {
+            var presentedBox = ResolveVoucherUpgradeBox(currentSchedule, configuredBox);
+            if (presentedBox.Id != configuredBox.Id)
+                return _blindBoxService.CreateReadyHintState(presentedBox);
+        }
+
         if (!UsesSteamInventoryExchange(state.Box))
             return state;
         if (CanOpenPlatformBlindBox(state.Box))
@@ -556,24 +574,27 @@ public partial class GameData : Node
 
         if (_blindBoxService.TryGetNextAvailable(_blindBoxRuntimeState, out var schedule, out var box)
             && schedule != null
-            && box != null
-            && UsesSteamInventoryExchange(box))
+            && box != null)
         {
-            if (CanOpenPlatformBlindBox(box))
+            var presentedBox = ResolveVoucherUpgradeBox(schedule, box);
+            if (UsesSteamInventoryExchange(presentedBox))
             {
-                if (BeginPlatformBlindBoxOpen(schedule, box))
+                if (CanOpenPlatformBlindBox(presentedBox))
+                {
+                    if (BeginPlatformBlindBoxOpen(schedule, presentedBox))
+                        return null;
+
+                    if (_blindBoxFallbackEnabled)
+                        return TryOpenFallbackBlindBox(schedule, presentedBox);
                     return null;
+                }
 
                 if (_blindBoxFallbackEnabled)
-                    return TryOpenFallbackBlindBox(schedule, box);
+                    return TryOpenFallbackBlindBox(schedule, presentedBox);
+
+                _recoverablePlatformService?.RequestReconnect();
                 return null;
             }
-
-            if (_blindBoxFallbackEnabled)
-                return TryOpenFallbackBlindBox(schedule, box);
-
-            _recoverablePlatformService?.RequestReconnect();
-            return null;
         }
 
         var result = _blindBoxService.TryOpenNext(TotalPlaySeconds, _blindBoxRuntimeState);
@@ -610,7 +631,17 @@ public partial class GameData : Node
     private PendingBlindBoxReward FinalizeLocalBlindBoxOpen(BlindBoxOpenResult result)
     {
         PendingBlindBoxReward = result.PendingReward;
+        var clearedLoopPresentation = result.Schedule.IsLoopTrack
+                                      && ActiveBlindBoxRuntimeState.LockedLoopBlindBoxId > 0;
         _blindBoxService.ConsumeOpenedSchedule(ActiveBlindBoxRuntimeState, result.Schedule);
+        if (clearedLoopPresentation)
+        {
+            GD.Print(
+                $"[BlindBoxTiming] Open cleared loop balloon Schedule={result.Schedule.Id}, " +
+                $"Box={result.Box.Id}, Clock={ActiveBlindBoxRuntimeState.ScheduleSeconds:0.000}, " +
+                $"NextPoint={ActiveBlindBoxRuntimeState.NextLoopPresentationSeconds:0.000}, " +
+                $"RemainingReal={GetLoopPresentationRemainingRealSeconds():0.0}s.");
+        }
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -683,6 +714,27 @@ public partial class GameData : Node
         _platformInventoryService?.IsInventoryReady == true
         && GetPlatformInventoryQuantity(box.SteamOpenCostItemDefId) > 0;
 
+    private BlindBox ResolveVoucherUpgradeBox(
+        BlindBoxSchedule schedule,
+        BlindBox configuredBox)
+    {
+        if (_platformInventoryService?.IsInventoryReady != true)
+            return configuredBox;
+
+        foreach (var upgradeBoxId in schedule.VoucherUpgradeBlindBoxIds)
+        {
+            var upgradeBox = LubanData.Tables.TbBlindBox.GetOrDefault(upgradeBoxId);
+            if (upgradeBox is { IsEnabled: true }
+                && UsesSteamInventoryExchange(upgradeBox)
+                && CanOpenPlatformBlindBox(upgradeBox))
+            {
+                return upgradeBox;
+            }
+        }
+
+        return configuredBox;
+    }
+
     private void MaintainLoopPresentation()
     {
 #if DEBUG
@@ -706,13 +758,34 @@ public partial class GameData : Node
 
         var canLockPresentation = PendingBlindBoxReward == null
                                   && PendingPlatformBlindBoxOpen == null;
+        var previousLockedBoxId = _blindBoxRuntimeState.LockedLoopBlindBoxId;
+        var previousNextPoint = _blindBoxRuntimeState.NextLoopPresentationSeconds;
         if (_blindBoxService.MaintainLoopPresentation(
                 _blindBoxRuntimeState,
                 canLockPresentation,
                 selectedBox.Id))
         {
+            if (previousLockedBoxId <= 0 && _blindBoxRuntimeState.LockedLoopBlindBoxId > 0)
+            {
+                GD.Print(
+                    $"[BlindBoxTiming] Locked loop balloon Schedule={_blindBoxRuntimeState.LockedLoopScheduleId}, " +
+                    $"Box={_blindBoxRuntimeState.LockedLoopBlindBoxId}, " +
+                    $"Clock={_blindBoxRuntimeState.ScheduleSeconds:0.000}, " +
+                    $"DuePoint={previousNextPoint:0.000}, " +
+                    $"NextPoint={_blindBoxRuntimeState.NextLoopPresentationSeconds:0.000}.");
+            }
             QueueSaveIfUsingLocalSave();
         }
+    }
+
+    private double GetLoopPresentationRemainingRealSeconds()
+    {
+        var multiplier = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()
+            ?.BlindBoxWaitDurationMultiplier ?? 1f;
+        return Math.Max(
+            0.0,
+            (_blindBoxRuntimeState.NextLoopPresentationSeconds
+             - _blindBoxRuntimeState.ScheduleSeconds) * Math.Max(1f, multiplier));
     }
 
     private void MaintainSteamPlaytimeDrops()
@@ -907,6 +980,8 @@ public partial class GameData : Node
             return;
         }
 
+        ReserveConsumedPlatformInput(transaction);
+
         var reward = result.ChangedItems.FirstOrDefault(item =>
             item.Quantity > 0 && IsValidPlatformReward(transaction, item.ItemDefId));
         if (reward.InstanceId == 0 || !TryFinalizePlatformBlindBoxOpen(reward))
@@ -920,6 +995,8 @@ public partial class GameData : Node
     {
         if (!snapshot.Succeeded)
             return;
+
+        ReconcilePlatformConsumptionReservations(snapshot.Items);
 
 #if DEBUG
         if (_blindBoxLocalTestMode)
@@ -1031,8 +1108,10 @@ public partial class GameData : Node
         if (PendingPlatformBlindBoxOpen == null)
             return;
 
-        var refund = refundReservedChips ? PendingPlatformBlindBoxOpen.ReservedChipCost : 0;
+        var transaction = PendingPlatformBlindBoxOpen;
+        var refund = refundReservedChips ? transaction.ReservedChipCost : 0;
         PendingPlatformBlindBoxOpen = null;
+        _platformInventoryConsumptionReservations.Remove(transaction.InputInstanceId);
         if (refund > 0)
             ModifyChips(refund);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -1050,6 +1129,7 @@ public partial class GameData : Node
         _platformInventoryService = null;
         _recoverablePlatformService = null;
         _pendingPlatformPlaytimeDrop = null;
+        _platformInventoryConsumptionReservations.Clear();
     }
 
     private void ReconcilePendingPlaytimeDrop(IReadOnlyList<PlatformInventoryItem> platformItems)
@@ -1083,7 +1163,48 @@ public partial class GameData : Node
 
     private uint GetPlatformInventoryQuantity(int itemDefId) => checked((uint)(_platformInventoryService?.InventoryItems
         .Where(item => item.ItemDefId == itemDefId)
-        .Sum(item => (long)item.Quantity) ?? 0L));
+        .Sum(item =>
+        {
+            var reservedQuantity = _platformInventoryConsumptionReservations
+                .GetValueOrDefault(item.InstanceId)
+                .ReservedQuantity;
+            return (long)(item.Quantity > reservedQuantity
+                ? item.Quantity - reservedQuantity
+                : 0u);
+        }) ?? 0L));
+
+    private void ReserveConsumedPlatformInput(PendingPlatformBlindBoxOpen transaction)
+    {
+        transaction.InventoryQuantitiesBeforeExchange.TryGetValue(
+            transaction.InputInstanceId,
+            out var quantityBefore);
+        if (quantityBefore == 0)
+            return;
+
+        _platformInventoryConsumptionReservations[transaction.InputInstanceId] =
+            new PlatformInventoryConsumptionReservation(quantityBefore, 1);
+        GD.Print(
+            $"[BlindBox] Reserved consumed Steam voucher ItemDef={transaction.InputItemDefId}, " +
+            $"Instance={transaction.InputInstanceId} until full inventory confirmation.");
+    }
+
+    private void ReconcilePlatformConsumptionReservations(
+        IReadOnlyList<PlatformInventoryItem> platformItems)
+    {
+        foreach (var (instanceId, reservation) in _platformInventoryConsumptionReservations.ToArray())
+        {
+            var quantityNow = platformItems
+                .Where(item => item.InstanceId == instanceId)
+                .Sum(item => (long)item.Quantity);
+            if (quantityNow + reservation.ReservedQuantity > reservation.QuantityBefore)
+                continue;
+
+            _platformInventoryConsumptionReservations.Remove(instanceId);
+            GD.Print(
+                $"[BlindBox] Full inventory confirmed consumed Steam voucher Instance={instanceId}; " +
+                "released the local reservation.");
+        }
+    }
 
     private void CompleteSteamPlaytimeDrop(int scheduleId, int grantCount)
     {
@@ -1521,6 +1642,12 @@ public partial class GameData : Node
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
         PendingPlatformBlindBoxOpen = profile.PendingPlatformBlindBoxOpen;
         PendingLinkTreeClaim = profile.PendingLinkTreeClaim;
+        GD.Print(
+            $"[BlindBoxTiming] Loaded Clock={_blindBoxRuntimeState.ScheduleSeconds:0.000}, " +
+            $"NextPoint={_blindBoxRuntimeState.NextLoopPresentationSeconds:0.000}, " +
+            $"LockedSchedule={_blindBoxRuntimeState.LockedLoopScheduleId}, " +
+            $"LockedBox={_blindBoxRuntimeState.LockedLoopBlindBoxId}, " +
+            $"RemainingReal={GetLoopPresentationRemainingRealSeconds():0.0}s.");
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

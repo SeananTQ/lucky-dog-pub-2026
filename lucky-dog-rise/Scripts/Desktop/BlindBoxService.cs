@@ -136,7 +136,7 @@ public sealed class BlindBoxService
         out int grantCount)
     {
         NormalizeSteamPlaytimeDropProgress(runtimeState);
-        var leadScheduleSeconds = GetSteamPlaytimeDropLeadSeconds() * GetScheduleClockRate();
+        var leadScheduleSeconds = GetSteamPlaytimeRequestLeadSeconds() * GetScheduleClockRate();
         var eligibilitySeconds = runtimeState.ScheduleSeconds + leadScheduleSeconds;
 
         var candidate = LubanData.Tables.TbBlindBoxSchedule.DataList
@@ -822,10 +822,10 @@ public sealed class BlindBoxService
             : config.BlindBoxWaitDurationMultiplier;
     }
 
-    private static double GetSteamPlaytimeDropLeadSeconds()
+    private static double GetSteamPlaytimeRequestLeadSeconds()
     {
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        return config == null ? 0.0 : Math.Max(0.0, config.SteamPlaytimeDropLeadSeconds);
+        return config == null ? 0.0 : Math.Max(0.0, config.SteamPlaytimeRequestLeadSeconds);
     }
 
     private static double ToRealSeconds(double scheduleSeconds) =>
@@ -847,6 +847,14 @@ public sealed class BlindBoxService
                 GD.PushError("[BlindBox] BlindBoxLoopIntervalSeconds must be positive.");
             if (config.SteamPlaytimeDropLeadSeconds < 0)
                 GD.PushError("[BlindBox] SteamPlaytimeDropLeadSeconds cannot be negative.");
+            if (config.SteamPlaytimeRequestLeadSeconds < 0)
+                GD.PushError("[BlindBox] SteamPlaytimeRequestLeadSeconds cannot be negative.");
+            if (config.SteamPlaytimeRequestLeadSeconds < config.SteamPlaytimeDropLeadSeconds)
+            {
+                GD.PushError(
+                    "[BlindBox] SteamPlaytimeRequestLeadSeconds must be greater than or equal to " +
+                    "SteamPlaytimeDropLeadSeconds.");
+            }
         }
 
         var enabledSchedules = LubanData.Tables.TbBlindBoxSchedule.DataList
@@ -866,6 +874,34 @@ public sealed class BlindBoxService
             {
                 GD.PushError($"[BlindBox] Schedule {schedule.Id} references a missing or disabled box {schedule.BlindBoxId}.");
                 continue;
+            }
+
+            var upgradeIds = new HashSet<int>();
+            foreach (var upgradeBoxId in schedule.VoucherUpgradeBlindBoxIds)
+            {
+                if (!upgradeIds.Add(upgradeBoxId))
+                {
+                    GD.PushError(
+                        $"[BlindBox] Schedule {schedule.Id} contains duplicate voucher upgrade box {upgradeBoxId}.");
+                    continue;
+                }
+
+                var upgradeBox = LubanData.Tables.TbBlindBox.GetOrDefault(upgradeBoxId);
+                if (upgradeBox is not { IsEnabled: true })
+                {
+                    GD.PushError(
+                        $"[BlindBox] Schedule {schedule.Id} references missing or disabled voucher upgrade box {upgradeBoxId}.");
+                    continue;
+                }
+
+                if (!upgradeBox.IsPlatformInventoryRequired
+                    || upgradeBox.SteamOpenCostItemDefId <= 0
+                    || upgradeBox.SteamExchangeTargetItemDefId <= 0)
+                {
+                    GD.PushError(
+                        $"[BlindBox] Schedule {schedule.Id} voucher upgrade box {upgradeBoxId} " +
+                        "must configure a platform inventory cost and exchange target.");
+                }
             }
 
             var rates = LubanData.Tables.TbBlindBoxRarityRate.DataList
@@ -922,6 +958,28 @@ public sealed class BlindBoxService
             || GetAvailableSchedules(state).Any())
             GD.PushError("[BlindBox] Regression check failed: loop stage initialization is incorrect.");
 
+        var restoredCountdownState = new BlindBoxRuntimeState
+        {
+            SequenceIndex = sequenceSchedules.Count,
+            ScheduleSeconds = state.ScheduleSeconds + GetLoopIntervalScheduleSeconds() * 0.25,
+            LoopStageStarted = true,
+            NextLoopPresentationSeconds = state.NextLoopPresentationSeconds,
+            NextLoopTriggerSeconds = state.NextLoopTriggerSeconds,
+        };
+        MaintainLoopPresentation(
+            restoredCountdownState,
+            canLockPresentation: true,
+            fallbackBox.Id);
+        if (restoredCountdownState.LockedLoopBlindBoxId != 0
+            || Math.Abs(
+                restoredCountdownState.NextLoopPresentationSeconds
+                - state.NextLoopPresentationSeconds) > 0.001)
+        {
+            GD.PushError(
+                "[BlindBox] Regression check failed: restoring a running loop countdown " +
+                "locked or advanced its display point before it was due.");
+        }
+
         state.ScheduleSeconds = expectedFirstPoint;
         MaintainLoopPresentation(state, canLockPresentation: true, loopSchedule.BlindBoxId);
         var firstLoop = GetAvailableSchedules(state).FirstOrDefault();
@@ -955,7 +1013,7 @@ public sealed class BlindBoxService
         if (firstSchedule == null)
             return;
 
-        var leadScheduleSeconds = GetSteamPlaytimeDropLeadSeconds() * GetScheduleClockRate();
+        var leadScheduleSeconds = GetSteamPlaytimeRequestLeadSeconds() * GetScheduleClockRate();
         var triggerSeconds = Math.Max(0.0, firstSchedule.StartSeconds - leadScheduleSeconds);
         if (triggerSeconds > 0.01)
         {
