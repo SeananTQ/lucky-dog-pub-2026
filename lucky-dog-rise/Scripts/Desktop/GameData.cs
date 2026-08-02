@@ -22,7 +22,7 @@ public partial class GameData : Node
         uint QuantityBefore,
         uint ReservedQuantity);
 
-    public const int StartingChips = 2800;
+    public const int StartingChips = 500;
 #if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
 #endif
