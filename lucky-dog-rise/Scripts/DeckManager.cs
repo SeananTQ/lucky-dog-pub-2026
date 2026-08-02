@@ -205,8 +205,6 @@ public class DeckManager
     {
         int suit = _rng.Next(4);
         int startRank = _rng.Next(9); // 0-8 for A-5 through 9-K
-        if (startRank == 8) // 9-K straight flush
-            return new[] { suit * 13 + 9, suit * 13 + 10, suit * 13 + 11, suit * 13 + 12, suit * 13 + 0 };
         return Enumerable.Range(startRank, 5).Select(r => suit * 13 + r).ToArray();
     }
 
@@ -246,9 +244,7 @@ public class DeckManager
     private int[] GenerateStraight()
     {
         int startRank = _rng.Next(9);
-        var ranks = startRank == 8
-            ? new[] { 9, 10, 11, 12, 0 }
-            : Enumerable.Range(startRank, 5).ToArray();
+        var ranks = Enumerable.Range(startRank, 5).ToArray();
         // Assign different suits
         var suits = Enumerable.Range(0, 4).OrderBy(_ => _rng.Next()).ToArray();
         return ranks.Select((r, i) => r + suits[i % 4] * 13).ToArray();

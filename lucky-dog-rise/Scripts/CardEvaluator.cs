@@ -56,10 +56,6 @@ public static class CardEvaluator
     {
         isRoyal = false;
 
-        // A-2-3-4-5 (wheel): sorted = [0,1,2,3,12]
-        if (sortedRanks.SequenceEqual(new[] { 0, 1, 2, 3, 12 }))
-            return true;
-
         // 10-J-Q-K-A (royal): sorted = [0,9,10,11,12]
         if (sortedRanks.SequenceEqual(new[] { 0, 9, 10, 11, 12 }))
         {
@@ -145,19 +141,28 @@ public static class CardEvaluator
         for (int start = 0; start <= 1; start++)
         {
             var window = sortedByRank.Skip(start).Take(4).ToArray();
-            int min = window[0].Rank;
-            int max = window[3].Rank;
-            // Allow A-low straight
-            if (min == 0 && window[1].Rank <= 4)
-            {
-                var altRanks = window.Select(x => x.Rank == 0 ? 13 : x.Rank).ToArray();
-                if (altRanks[3] - altRanks[0] <= 4)
-                    return window.Select(x => x.Index).ToArray();
-            }
-            if (max - min <= 4 && window.Select(x => x.Rank).Distinct().Count() == 4)
+            if (CanCompleteStraight(window.Select(x => x.Rank)))
                 return window.Select(x => x.Index).ToArray();
         }
 
         return held.ToArray();
+    }
+
+    private static bool CanCompleteStraight(IEnumerable<int> ranks)
+    {
+        var uniqueRanks = ranks.Distinct().ToArray();
+        if (uniqueRanks.Length != 4)
+            return false;
+
+        // A-2-3-4-5 through 9-10-J-Q-K are contiguous in this project's
+        // A=0 rank encoding.
+        for (int startRank = 0; startRank <= 8; startRank++)
+        {
+            if (uniqueRanks.All(rank => rank >= startRank && rank <= startRank + 4))
+                return true;
+        }
+
+        // 10-J-Q-K-A is the only legal sequence that crosses the rank boundary.
+        return uniqueRanks.All(rank => rank == 0 || rank >= 9);
     }
 }
