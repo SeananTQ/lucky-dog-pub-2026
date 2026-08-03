@@ -637,7 +637,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="StatusVBox" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter"]
-custom_minimum_size = Vector2(320, 128)
+custom_minimum_size = Vector2(320, 176)
 layout_mode = 2
 theme_override_constants/separation = 12
 
@@ -647,12 +647,13 @@ layout_mode = 2
 size_flags_horizontal = 4
 
 [node name="LinkTreeStatusLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter/StatusVBox"]
-custom_minimum_size = Vector2(320, 48)
+custom_minimum_size = Vector2(320, 92)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "LinkTree_SyncingRewards"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 3
 autowrap_mode = 3
 
 [node name="LinkTreeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]

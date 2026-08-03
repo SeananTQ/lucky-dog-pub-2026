@@ -278,7 +278,7 @@ public static class L10n
             {
                 if (translations.TryGetValue(locales[col], out var translation))
                 {
-                    var text = fields[col];
+                    var text = DecodeCsvEscapes(fields[col]);
                     if (IsEmptyTextMarker(text))
                     {
                         ExplicitEmptyTexts.Add(GetTranslationId(locales[col], key));
@@ -348,6 +348,12 @@ public static class L10n
     private static bool IsEmptyTextMarker(string text)
     {
         return text.Trim() == EmptyTextMarker;
+    }
+
+    // CSV is read one physical line at a time, so localized line breaks use a literal \n escape.
+    private static string DecodeCsvEscapes(string text)
+    {
+        return text.Replace("\\n", "\n", StringComparison.Ordinal);
     }
 
     private static bool IsExplicitEmptyText(string locale, string key)
