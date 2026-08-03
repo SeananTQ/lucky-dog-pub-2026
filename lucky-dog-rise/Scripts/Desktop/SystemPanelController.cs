@@ -870,6 +870,14 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_simulateLinkTreeUi)
         {
+            if (_simulateLinkTreeSyncPending)
+            {
+                entry.ClaimPending = true;
+                RefreshLinkTreeRewardEntry(entry);
+                GD.Print($"[LinkTree] Simulated Steam claim loading for {entry.Data.Key} ({entry.Data.Id}).");
+                return;
+            }
+
             CompleteSimulatedLinkTreeClaim(entry);
             return;
         }
@@ -887,6 +895,8 @@ public partial class SystemPanelController : CanvasLayer
     }
 
 #if DEBUG
+    private bool IsLinkTreeClaimLoadingPreview => _simulateLinkTreeUi && _simulateLinkTreeSyncPending;
+
     private bool HasPendingRealLinkTreeClaim()
     {
         return _gameData?.PendingLinkTreeClaim != null
@@ -976,7 +986,7 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_simulateLinkTreeUi)
             state = LinkTreePageState.Ready;
-        if (_simulateLinkTreeSyncPending)
+        if (_simulateLinkTreeSyncPending && !IsLinkTreeClaimLoadingPreview)
             state = LinkTreePageState.Loading;
 #endif
         var showBanners = state == LinkTreePageState.Ready;
