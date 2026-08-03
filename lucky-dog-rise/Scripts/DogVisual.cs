@@ -19,6 +19,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
     private Button _hitButton = null!;
+    private readonly List<Button> _hitButtons = new();
 
     private GameData _gameData = null!;
     private DogSkin _dogSkin = null!;
@@ -46,8 +47,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     [Export] public bool ShowEquippedEyewearByDefault { get; set; }
 
     public bool CanPlayInteractionHint => IsNodeReady()
-        && _hitButton.Visible
-        && !_hitButton.Disabled;
+        && _hitButtons.Any(button => button.Visible && !button.Disabled);
     public bool IsInteractionHintPlaying => (_pawTween?.IsRunning() ?? false)
         || (_tongueTween?.IsRunning() ?? false);
 
@@ -81,7 +81,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _eyewear = GetNode<Sprite2D>("HeadRoot/Eyewear");
         _headwear = GetNode<Sprite2D>("HeadRoot/Headwear");
         _hitButton = GetNode<Button>("HitButton");
-        _hitButton.Pressed += () => EmitSignal(SignalName.DogClicked);
+        RegisterHitButton(_hitButton);
+        RegisterHitButton(GetNodeOrNull<Button>("ClawLeftHitButton"));
+        RegisterHitButton(GetNodeOrNull<Button>("ClawRightHitButton"));
 
         EnsurePositionCache();
         RefreshEquippedVisuals();
@@ -309,11 +311,14 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (!IsNodeReady()) return;
 
-        _hitButton.Visible = enabled;
-        _hitButton.Disabled = !enabled;
-        _hitButton.MouseFilter = enabled
-            ? Control.MouseFilterEnum.Stop
-            : Control.MouseFilterEnum.Ignore;
+        foreach (var button in _hitButtons)
+        {
+            button.Visible = enabled;
+            button.Disabled = !enabled;
+            button.MouseFilter = enabled
+                ? Control.MouseFilterEnum.Stop
+                : Control.MouseFilterEnum.Ignore;
+        }
     }
 
     public void SetIntroPartVisibility(bool showHeadParts, bool showTongue, bool showClaws)
@@ -791,5 +796,14 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         return d.ContainsKey(preferredKey)
             ? (float)d[preferredKey].AsDouble()
             : (float)d[fallbackKey].AsDouble();
+    }
+
+    private void RegisterHitButton(Button button)
+    {
+        if (button == null)
+            return;
+
+        _hitButtons.Add(button);
+        button.Pressed += () => EmitSignal(SignalName.DogClicked);
     }
 }

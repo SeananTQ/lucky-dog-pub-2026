@@ -63,3 +63,21 @@ offset_right = 292.0
 offset_bottom = 3.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
 flat = true
+
+[node name="ClawLeftHitButton" type="Button" parent="." unique_id=1948148158]
+offset_left = -415.99997
+offset_top = -37.0
+offset_right = -248.99997
+offset_bottom = 68.0
+rotation = -0.57375354
+theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
+flat = true
+
+[node name="ClawRightHitButton" type="Button" parent="." unique_id=1883058200]
+offset_left = 237.15698
+offset_top = -157.18701
+offset_right = 413.95514
+offset_bottom = 9.025894
+rotation = 0.12628189
+theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")
+flat = true
