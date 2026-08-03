@@ -133,6 +133,10 @@ namespace DataTables
         /// 看到皇家同花顺
         /// </summary>
         SawRoyalFlush = 3010,
+        /// <summary>
+        /// 劝玩家别喝了
+        /// </summary>
+        RefuseRefreshment = 4001,
     }
 
 } 

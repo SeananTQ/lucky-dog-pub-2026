@@ -362,5 +362,18 @@
     "RightPawAnimation": "",
     "TongueAnimation": "哈气",
     "Notes": "舌头上下略微移动"
+  },
+  {
+    "Id": 4001,
+    "DogReactionTrigger": 4001,
+    "AssetRef": 1008,
+    "EarAsset": "",
+    "EyeAsset": "",
+    "OverrideHeadwear": "",
+    "WearGlasses": false,
+    "LeftPawAnimation": "",
+    "RightPawAnimation": "",
+    "TongueAnimation": "",
+    "Notes": "当有Buff持续中时，玩家又在背包中点击了Refreshment，则狗狗作出该表情动作"
   }
 ]
