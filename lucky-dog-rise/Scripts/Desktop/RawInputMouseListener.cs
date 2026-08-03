@@ -374,8 +374,7 @@ public partial class RawInputMouseListener : Node
 
         if (message == WmReregisterRawInput)
         {
-            if (RegisterRawMouse())
-                QueueLog("[RawInputMouse] Restored background registration after Godot input reset.");
+            RegisterRawMouse();
             return IntPtr.Zero;
         }
 
