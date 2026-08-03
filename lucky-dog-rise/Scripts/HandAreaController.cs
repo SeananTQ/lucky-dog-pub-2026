@@ -15,6 +15,13 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     private const float KnockDownTime = 0.1f;
     private const float KnockUpTime = 0.12f;
     private const float KnockIntervalTime = 0.05f;
+    private static readonly Vector2 HintLiftOffset = new(-8f, -18f);
+    private static readonly Vector2 HintTapOffset = new(0f, 3f);
+    private const float HintLiftAngle = -0.035f;
+    private const float HintPrimaryTapAngle = KnockAngle * 0.85f;
+    private const double HintLiftTime = 0.16;
+    private const double HintPrimaryTapTime = 0.09;
+    private const double HintPrimaryRecoverTime = 0.17;
 
     public bool Enabled { get; set; }
 
@@ -93,7 +100,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
-    /// 提示确认：手臂贴桌面左右擦两次，不播放敲击声，也不触发补牌。
+    /// 提示确认：手臂做一次明显的预敲桌动作，不播放真实敲击声，也不触发补牌。
     /// </summary>
     public void PlayInteractionHint()
     {
@@ -103,18 +110,28 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         ResetHintAnimation();
         AudioManager.Instance.PlaySfx("Player_HandRubOnTable");
         _hintTween = CreateTween();
-        _hintTween.TweenProperty(this, "position:x", _restPosition.X - 10f, 0.11f)
-            .SetEase(Tween.EaseType.InOut)
+        _hintTween.TweenProperty(this, "position", _restPosition + HintLiftOffset, HintLiftTime)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Cubic);
+        _hintTween.Parallel().TweenProperty(this, "rotation", HintLiftAngle, HintLiftTime)
+            .SetEase(Tween.EaseType.Out)
             .SetTrans(Tween.TransitionType.Quad);
-        _hintTween.TweenProperty(this, "position:x", _restPosition.X, 0.12f)
-            .SetEase(Tween.EaseType.InOut)
+
+        _hintTween.Chain().TweenProperty(this, "position", _restPosition + HintTapOffset, HintPrimaryTapTime)
+            .SetEase(Tween.EaseType.In)
             .SetTrans(Tween.TransitionType.Quad);
-        _hintTween.TweenProperty(this, "position:x", _restPosition.X - 8f, 0.10f)
-            .SetEase(Tween.EaseType.InOut)
+        _hintTween.Parallel().TweenProperty(this, "rotation", HintPrimaryTapAngle, HintPrimaryTapTime)
+            .SetEase(Tween.EaseType.In)
             .SetTrans(Tween.TransitionType.Quad);
-        _hintTween.TweenProperty(this, "position:x", _restPosition.X, 0.11f)
-            .SetEase(Tween.EaseType.InOut)
-            .SetTrans(Tween.TransitionType.Quad);
+
+        _hintTween.Chain().TweenProperty(this, "position", _restPosition, HintPrimaryRecoverTime)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Back);
+        _hintTween.Parallel().TweenProperty(this, "rotation", 0f, HintPrimaryRecoverTime)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Bounce);
+
+        _hintTween.Chain().TweenCallback(Callable.From(ResetHintAnimation));
     }
 
     private void ResetHintAnimation()

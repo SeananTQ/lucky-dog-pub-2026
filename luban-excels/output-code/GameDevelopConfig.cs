@@ -25,6 +25,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["SteamPlaytimeDropLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeDropLeadSeconds = _buf["SteamPlaytimeDropLeadSeconds"]; }
         { if(!_buf["SteamPlaytimeRequestLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeRequestLeadSeconds = _buf["SteamPlaytimeRequestLeadSeconds"]; }
         { if(!_buf["BlindBoxLoopSteamVoucherInventoryLimit"].IsNumber) { throw new SerializationException(); }  BlindBoxLoopSteamVoucherInventoryLimit = _buf["BlindBoxLoopSteamVoucherInventoryLimit"]; }
+        { if(!_buf["ProactiveInteractionHintIdleSeconds"].IsNumber) { throw new SerializationException(); }  ProactiveInteractionHintIdleSeconds = _buf["ProactiveInteractionHintIdleSeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -64,6 +65,10 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// 循环Steam盲盒券库存上限
     /// </summary>
     public readonly int BlindBoxLoopSteamVoucherInventoryLimit;
+    /// <summary>
+    /// 新手操作提示等待时间
+    /// </summary>
+    public readonly int ProactiveInteractionHintIdleSeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -83,6 +88,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "SteamPlaytimeDropLeadSeconds:" + SteamPlaytimeDropLeadSeconds + ","
         + "SteamPlaytimeRequestLeadSeconds:" + SteamPlaytimeRequestLeadSeconds + ","
         + "BlindBoxLoopSteamVoucherInventoryLimit:" + BlindBoxLoopSteamVoucherInventoryLimit + ","
+        + "ProactiveInteractionHintIdleSeconds:" + ProactiveInteractionHintIdleSeconds + ","
         + "}";
     }
 }

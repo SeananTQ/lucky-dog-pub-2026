@@ -7,6 +7,7 @@
     "LinkTreeVisibleBannerCount": 5,
     "SteamPlaytimeDropLeadSeconds": 60,
     "SteamPlaytimeRequestLeadSeconds": 90,
-    "BlindBoxLoopSteamVoucherInventoryLimit": 9
+    "BlindBoxLoopSteamVoucherInventoryLimit": 9,
+    "ProactiveInteractionHintIdleSeconds": 6
   }
 ]

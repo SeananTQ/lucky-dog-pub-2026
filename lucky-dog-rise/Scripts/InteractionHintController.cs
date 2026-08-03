@@ -26,7 +26,8 @@ public interface IInteractionHintTarget
 /// </summary>
 public partial class InteractionHintController : Node
 {
-    private const double ProactiveHintIdleSeconds = 9.0;
+    private const double DefaultProactiveHintIdleSeconds = 9.0;
+    private const string ProactiveHintIdleSecondsConfigField = "ProactiveInteractionHintIdleSeconds";
     [Export(PropertyHint.Range, "0,10,0.05")]
     private double _proactiveHintRepeatIntervalSeconds = 0.8;
     private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();
@@ -41,6 +42,12 @@ public partial class InteractionHintController : Node
     private double _secondsSinceEffectiveInteraction;
     private bool _proactiveHintAnimationWasPlaying;
     private double _proactiveHintRepeatDelayRemaining;
+    private double _proactiveHintIdleSeconds = DefaultProactiveHintIdleSeconds;
+
+    public override void _Ready()
+    {
+        _proactiveHintIdleSeconds = LoadProactiveHintIdleSeconds();
+    }
 
     public void RegisterTarget(InteractionHintTargetId id, IInteractionHintTarget target)
     {
@@ -159,7 +166,7 @@ public partial class InteractionHintController : Node
             return;
 
         _secondsSinceEffectiveInteraction += delta;
-        if (_secondsSinceEffectiveInteraction < ProactiveHintIdleSeconds)
+        if (_secondsSinceEffectiveInteraction < _proactiveHintIdleSeconds)
             return;
 
         if (IsAvailableHintAnimationPlaying())
@@ -223,5 +230,38 @@ public partial class InteractionHintController : Node
         _secondsSinceEffectiveInteraction = 0.0;
         _proactiveHintAnimationWasPlaying = false;
         _proactiveHintRepeatDelayRemaining = 0.0;
+    }
+
+    private static double LoadProactiveHintIdleSeconds()
+    {
+        try
+        {
+            var configs = LubanData.Tables.TbGameDevelopConfig.DataList;
+            if (configs.Count == 0)
+            {
+                GD.PushWarning($"[InteractionHint] Missing GameDevelopConfig row; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
+                return DefaultProactiveHintIdleSeconds;
+            }
+
+            var config = configs[0];
+            var field = config.GetType().GetField(ProactiveHintIdleSecondsConfigField);
+            if (field == null)
+            {
+                GD.PushWarning($"[InteractionHint] GameDevelopConfig.{ProactiveHintIdleSecondsConfigField} not found; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
+                return DefaultProactiveHintIdleSeconds;
+            }
+
+            var value = Convert.ToDouble(field.GetValue(config));
+            if (value > 0.0)
+                return value;
+
+            GD.PushWarning($"[InteractionHint] GameDevelopConfig.{ProactiveHintIdleSecondsConfigField} must be positive; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"[InteractionHint] Failed to load GameDevelopConfig.{ProactiveHintIdleSecondsConfigField}: {ex.Message}; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
+        }
+
+        return DefaultProactiveHintIdleSeconds;
     }
 }
