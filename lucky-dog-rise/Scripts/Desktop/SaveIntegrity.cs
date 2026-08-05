@@ -11,7 +11,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 10;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -78,6 +78,9 @@ internal static class SaveIntegrity
             LuckyDealBuffState = integrityVersion >= 2
                 ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState)
                 : null,
+            RefreshmentRuntimeState = integrityVersion >= 10
+                ? CanonicalizeRefreshmentRuntimeState(profile.RefreshmentRuntimeState)
+                : null,
             CreatedAt = profile.CreatedAt ?? string.Empty,
             UpdatedAt = profile.UpdatedAt ?? string.Empty,
         };
@@ -92,6 +95,20 @@ internal static class SaveIntegrity
         {
             RemainingHands = Math.Max(0, state.RemainingHands),
             TriggerChance = Math.Clamp(state.TriggerChance, 0f, 1f),
+        };
+    }
+
+    private static RefreshmentRuntimeState CanonicalizeRefreshmentRuntimeState(RefreshmentRuntimeState? state)
+    {
+        state ??= new RefreshmentRuntimeState();
+        return new RefreshmentRuntimeState
+        {
+            CurrentItemId = Math.Max(0, state.CurrentItemId),
+            Status = Enum.IsDefined(typeof(TableRefreshmentStatus), state.Status)
+                ? state.Status
+                : TableRefreshmentStatus.Empty,
+            BuffSourceItemId = Math.Max(0, state.BuffSourceItemId),
+            BuffTotalHands = Math.Max(0, state.BuffTotalHands),
         };
     }
 

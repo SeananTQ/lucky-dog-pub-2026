@@ -34,6 +34,8 @@ public partial class GameData : Node
     [Signal] public delegate void InventoryChangedEventHandler();
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void BlindBoxRewardReadyEventHandler();
+    [Signal] public delegate void RefreshmentStateChangedEventHandler();
+    [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
 
     public void EmitHandResolved(EHandRank rank, int payout)
     {
@@ -56,6 +58,7 @@ public partial class GameData : Node
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
     private LuckyDealBuffState _luckyDealBuffState = new();
+    private RefreshmentRuntimeState _refreshmentRuntimeState = new();
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
@@ -77,6 +80,7 @@ public partial class GameData : Node
     private Dictionary<string, int> _blindBoxLocalTestSavedEquippedItems = new();
     private List<int> _blindBoxLocalTestSavedNewItemIds = new();
     private LuckyDealBuffState _blindBoxLocalTestSavedLuckyDealBuffState = new();
+    private RefreshmentRuntimeState _blindBoxLocalTestSavedRefreshmentRuntimeState = new();
 #endif
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -90,6 +94,8 @@ public partial class GameData : Node
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
     private const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
+    private const int RefreshmentLuckyDealHands = 3;
+    private const float RefreshmentLuckyDealTriggerChance = 0.75f;
 
     private BlindBoxRuntimeState ActiveBlindBoxRuntimeState
     {
@@ -115,6 +121,7 @@ public partial class GameData : Node
         Inventory.InventoryChanged += OnInventoryChanged;
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
+        EmitSignal(SignalName.RefreshmentStateChanged);
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.BackfillExternalInventory(Inventory);
@@ -224,21 +231,34 @@ public partial class GameData : Node
 
     public void ToggleEquipItem(int itemId)
     {
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+        if (item != null && item.ItemType == EItemType.Refreshment)
+        {
+            TrySelectTableRefreshment(itemId);
+            return;
+        }
+
         Inventory.ToggleEquip(itemId);
     }
 
     public void AddItem(int itemId, int count = 1, bool markNew = true, PlayerProgressSource source = PlayerProgressSource.Gameplay)
     {
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
         // Debug 发放只用于调整/录制，不应改变玩家当前的真实穿搭。
         var autoEquipNewOutfit = source != PlayerProgressSource.Debug
+            && item is not { ItemType: EItemType.Refreshment }
             && SettingsManager.LoadAutoEquipNewOutfits();
         Inventory.AddItem(itemId, count, markNew, autoEquipNewOutfit);
         if (CanRecordPlayerProgress && source != PlayerProgressSource.Debug)
         {
-            var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
             if (item != null)
                 PlayerProgress.RecordExternalItemAcquired(item, count, source);
         }
+
+        if (item is { ItemType: EItemType.Refreshment }
+            && _refreshmentRuntimeState.Status == TableRefreshmentStatus.Empty
+            && _luckyDealBuffState.RemainingHands <= 0)
+            SetTableRefreshment(item.Id);
         QueueSaveIfUsingLocalSave();
     }
 
@@ -385,6 +405,7 @@ public partial class GameData : Node
             RemainingHands = _luckyDealBuffState.RemainingHands,
             TriggerChance = _luckyDealBuffState.TriggerChance,
         };
+        _blindBoxLocalTestSavedRefreshmentRuntimeState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
         {
             SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
@@ -424,6 +445,7 @@ public partial class GameData : Node
             _blindBoxLocalTestSavedNewItemIds,
             emitChanged: true);
         _luckyDealBuffState = _blindBoxLocalTestSavedLuckyDealBuffState;
+        _refreshmentRuntimeState = _blindBoxLocalTestSavedRefreshmentRuntimeState;
         PlayerProgress.EndDebugSimulation();
 
         _blindBoxLocalTestMode = false;
@@ -433,10 +455,12 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedEquippedItems = new Dictionary<string, int>();
         _blindBoxLocalTestSavedNewItemIds = new List<int>();
         _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState();
+        _blindBoxLocalTestSavedRefreshmentRuntimeState = new RefreshmentRuntimeState();
         _saveDirty = false;
         _saveTimer = 0.0;
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
+        EmitSignal(SignalName.RefreshmentStateChanged);
         if (synchronizeInventory)
             _platformInventoryService?.StartInventorySynchronization();
         GD.Print("[BlindBox] Left local test mode and restored the real local/Steam-backed state.");
@@ -1388,7 +1412,116 @@ public partial class GameData : Node
 
     public bool CanAffordBet => Chips >= BetAmount;
     public int LuckyDealRemainingHands => _luckyDealBuffState.RemainingHands;
+    public RefreshmentRuntimeState RefreshmentState => _refreshmentRuntimeState;
+    public bool IsRefreshmentBuffActive =>
+        _refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive
+        && _luckyDealBuffState.RemainingHands > 0;
     public bool IsUsingLocalSave => _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
+
+    public bool IsTableRefreshment(int itemId) =>
+        itemId > 0
+        && _refreshmentRuntimeState.CurrentItemId == itemId
+        && _refreshmentRuntimeState.Status != TableRefreshmentStatus.Empty;
+
+    public bool TrySelectTableRefreshment(int itemId)
+    {
+        if (_refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive)
+        {
+            EmitSignal(SignalName.RefreshmentSelectionRefused);
+            return false;
+        }
+
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+            return false;
+
+        SetTableRefreshment(itemId);
+        Inventory.ClearNew(itemId);
+        QueueSaveIfUsingLocalSave();
+        return true;
+    }
+
+    public bool TryUseTableRefreshment()
+    {
+        if (!_refreshmentRuntimeState.IsReadyToUse
+            || _luckyDealBuffState.RemainingHands > 0)
+            return false;
+
+        var itemId = _refreshmentRuntimeState.CurrentItemId;
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+        {
+            ClearTableRefreshment();
+            return false;
+        }
+
+        var previousState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
+        var previousRemainingHands = _luckyDealBuffState.RemainingHands;
+        var previousTriggerChance = _luckyDealBuffState.TriggerChance;
+        _refreshmentRuntimeState = new RefreshmentRuntimeState
+        {
+            CurrentItemId = itemId,
+            Status = TableRefreshmentStatus.BuffActive,
+            BuffSourceItemId = itemId,
+            BuffTotalHands = RefreshmentLuckyDealHands,
+        };
+        GrantLuckyDealBuff(RefreshmentLuckyDealHands, RefreshmentLuckyDealTriggerChance);
+
+        // RemoveItem emits InventoryChanged synchronously. Publish the complete Buff state
+        // first so inventory observers never see a transient Empty table state.
+        if (!Inventory.RemoveItem(itemId, 1))
+        {
+            _refreshmentRuntimeState = previousState;
+            _luckyDealBuffState.RemainingHands = previousRemainingHands;
+            _luckyDealBuffState.TriggerChance = previousTriggerChance;
+            return false;
+        }
+
+        AudioManager.Instance.PlaySfx("Refreshment_BuffStart");
+        EmitSignal(SignalName.RefreshmentStateChanged);
+        QueueSaveIfUsingLocalSave();
+        return true;
+    }
+
+    private void SetTableRefreshment(int itemId)
+    {
+        _refreshmentRuntimeState = new RefreshmentRuntimeState
+        {
+            CurrentItemId = itemId,
+            Status = TableRefreshmentStatus.ReadyToUse,
+        };
+        EmitSignal(SignalName.RefreshmentStateChanged);
+    }
+
+    private void ClearTableRefreshment()
+    {
+        if (_refreshmentRuntimeState.Status == TableRefreshmentStatus.Empty)
+            return;
+
+        _refreshmentRuntimeState = new RefreshmentRuntimeState();
+        EmitSignal(SignalName.RefreshmentStateChanged);
+        QueueSaveIfUsingLocalSave();
+    }
+
+    private void SanitizeTableRefreshment()
+    {
+        if (_refreshmentRuntimeState.Status == TableRefreshmentStatus.Empty)
+            return;
+
+        if (_refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive)
+        {
+            if (_luckyDealBuffState.RemainingHands > 0)
+                return;
+
+            ClearTableRefreshment();
+            return;
+        }
+
+        var itemId = _refreshmentRuntimeState.CurrentItemId;
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+            ClearTableRefreshment();
+    }
 
     public void RecordTypingInput(int count)
     {
@@ -1463,6 +1596,12 @@ public partial class GameData : Node
 
         _luckyDealBuffState.RemainingHands--;
         triggerChance = _luckyDealBuffState.TriggerChance;
+        if (_luckyDealBuffState.RemainingHands <= 0
+            && _refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive)
+        {
+            _refreshmentRuntimeState = new RefreshmentRuntimeState();
+            EmitSignal(SignalName.RefreshmentStateChanged);
+        }
         QueueSaveIfUsingLocalSave();
         return true;
     }
@@ -1479,9 +1618,11 @@ public partial class GameData : Node
         PendingLinkTreeClaim = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
+        _refreshmentRuntimeState = new RefreshmentRuntimeState();
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
+        EmitSignal(SignalName.RefreshmentStateChanged);
         QueueSaveIfUsingLocalSave();
     }
 #endif
@@ -1505,6 +1646,7 @@ public partial class GameData : Node
             PlayerProgress.BackfillExternalInventory(Inventory);
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
+        EmitSignal(SignalName.RefreshmentStateChanged);
     }
 
     public void ResetLocalSave()
@@ -1522,9 +1664,11 @@ public partial class GameData : Node
             LoadBlindBoxState(profile);
             LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
+            LoadRefreshmentState(profile);
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
             EmitSignal(SignalName.BlindBoxStateChanged);
+            EmitSignal(SignalName.RefreshmentStateChanged);
         }
     }
 
@@ -1538,6 +1682,7 @@ public partial class GameData : Node
         LoadBlindBoxState(profile);
         LoadLuckyDealBuffState(profile);
         Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
+        LoadRefreshmentState(profile);
         QueueSaveIfUsingLocalSave();
 #else
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
@@ -1548,6 +1693,7 @@ public partial class GameData : Node
             LoadBlindBoxState(profile);
             LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
+            LoadRefreshmentState(profile);
             QueueSaveIfUsingLocalSave();
             return;
         }
@@ -1559,7 +1705,9 @@ public partial class GameData : Node
         PendingLinkTreeClaim = null;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
+        _refreshmentRuntimeState = new RefreshmentRuntimeState();
         Inventory.ResetToDebugAllItems(emitChanged: false);
+        EnsureDefaultTableRefreshment();
         _saveDirty = false;
         _saveTimer = 0.0;
 #endif
@@ -1580,6 +1728,7 @@ public partial class GameData : Node
 
     private void OnInventoryChanged()
     {
+        SanitizeTableRefreshment();
         EmitSignal(SignalName.InventoryChanged);
         QueueSaveIfUsingLocalSave();
     }
@@ -1637,6 +1786,7 @@ public partial class GameData : Node
             PendingPlatformBlindBoxOpen = PendingPlatformBlindBoxOpen,
             PendingLinkTreeClaim = PendingLinkTreeClaim,
             LuckyDealBuffState = _luckyDealBuffState,
+            RefreshmentRuntimeState = _refreshmentRuntimeState,
         });
         _saveDirty = false;
         _profileAutosaveTimer = ProfileAutosaveSeconds;
@@ -1653,5 +1803,40 @@ public partial class GameData : Node
     private void LoadLuckyDealBuffState(SaveProfile profile)
     {
         _luckyDealBuffState = profile.LuckyDealBuffState ?? new LuckyDealBuffState();
+    }
+
+    private void LoadRefreshmentState(SaveProfile profile)
+    {
+        _refreshmentRuntimeState = profile.RefreshmentRuntimeState ?? new RefreshmentRuntimeState();
+        SanitizeTableRefreshment();
+        EnsureDefaultTableRefreshment();
+    }
+
+    private void EnsureDefaultTableRefreshment()
+    {
+        if (_refreshmentRuntimeState.Status != TableRefreshmentStatus.Empty
+            || _luckyDealBuffState.RemainingHands > 0)
+            return;
+
+        var item = Inventory.GetOwnedOfType(EItemType.Refreshment).FirstOrDefault();
+        if (item == null)
+            return;
+
+        _refreshmentRuntimeState = new RefreshmentRuntimeState
+        {
+            CurrentItemId = item.Id,
+            Status = TableRefreshmentStatus.ReadyToUse,
+        };
+    }
+
+    private static RefreshmentRuntimeState CloneRefreshmentRuntimeState(RefreshmentRuntimeState state)
+    {
+        return new RefreshmentRuntimeState
+        {
+            CurrentItemId = state.CurrentItemId,
+            Status = state.Status,
+            BuffSourceItemId = state.BuffSourceItemId,
+            BuffTotalHands = state.BuffTotalHands,
+        };
     }
 }

@@ -33,6 +33,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private float _desktopTongueBurstTimer;
     private int _desktopTongueBurstCount;
     private bool _desktopTongueExtended;
+    private int _temporaryReactionToken;
+    private bool _temporaryReactionActive;
+    private EDogReactionTrigger _temporaryReactionTrigger;
+    private EDogReactionTrigger _temporaryReactionRestore = EDogReactionTrigger.Default;
 
     [Export] private float _tonguePantOffset = 10f;
     [Export] private float _tonguePantStepDuration = 0.06f;
@@ -292,8 +296,35 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (!IsNodeReady()) return;
 
+        if (_temporaryReactionActive && trigger != _temporaryReactionTrigger)
+            _temporaryReactionActive = false;
+
         _currentReaction = trigger;
         ReapplyCurrentReaction();
+    }
+
+    public void PlayTemporaryReaction(EDogReactionTrigger trigger, double seconds = 0.9)
+    {
+        if (!IsNodeReady()) return;
+
+        if (!_temporaryReactionActive || _currentReaction != _temporaryReactionTrigger)
+            _temporaryReactionRestore = _currentReaction;
+
+        _temporaryReactionActive = true;
+        _temporaryReactionTrigger = trigger;
+        var token = ++_temporaryReactionToken;
+        ApplyReaction(trigger);
+        GetTree().CreateTimer(seconds).Timeout += () =>
+        {
+            if (!IsNodeReady()
+                || token != _temporaryReactionToken
+                || !_temporaryReactionActive
+                || _currentReaction != _temporaryReactionTrigger)
+                return;
+
+            _temporaryReactionActive = false;
+            ApplyReaction(_temporaryReactionRestore);
+        };
     }
 
     /// <summary>

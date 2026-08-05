@@ -143,6 +143,7 @@ public partial class SystemPanelController : CanvasLayer
             {
                 _gameData.EquipmentChanged -= RefreshWardrobeGrid;
                 _gameData.InventoryChanged -= RefreshWardrobeGrid;
+                _gameData.RefreshmentStateChanged -= RefreshWardrobeGrid;
                 _gameData.EquipmentChanged -= RefreshArmAppearanceSelection;
                 _gameData.InventoryChanged -= BuildArmAppearanceOptions;
             }
@@ -150,6 +151,7 @@ public partial class SystemPanelController : CanvasLayer
             _gameData = value;
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
+            _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
             _gameData.EquipmentChanged += RefreshArmAppearanceSelection;
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
             EnsureCurrentTabReady();
@@ -1563,9 +1565,12 @@ public partial class SystemPanelController : CanvasLayer
     private Node CreateItemCell(Item item)
     {
         var cell = ItemCellScene.Instantiate<ItemCellController>();
+        var isSelected = item.ItemType == EItemType.Refreshment
+            ? _gameData.IsTableRefreshment(item.Id)
+            : _gameData.Inventory.IsEquipped(item.Id);
         cell.Setup(
             item,
-            _gameData.Inventory.IsEquipped(item.Id),
+            isSelected,
             _gameData.Inventory.GetCount(item.Id),
             _gameData.Inventory.IsNew(item.Id));
         cell.Pressed += () => _gameData.ToggleEquipItem(item.Id);

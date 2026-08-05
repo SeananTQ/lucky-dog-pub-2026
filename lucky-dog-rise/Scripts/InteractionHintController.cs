@@ -11,6 +11,7 @@ public enum InteractionHintTargetId
     HandConfirm,
     CardSelection,
     DogAdvice,
+    RefreshmentUse,
 }
 
 public interface IInteractionHintTarget
@@ -32,7 +33,7 @@ public partial class InteractionHintController : Node
     private double _proactiveHintRepeatIntervalSeconds = 0.8;
     private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();
     private readonly Dictionary<InteractionHintTargetId, Action> _hintActions = new();
-    private readonly HashSet<InteractionHintTargetId> _availableTargets = new();
+    private readonly List<InteractionHintTargetId> _availableTargets = new();
     private bool _hasPendingClick;
     private bool _shouldResolvePendingClick;
     private bool _pendingClickWasHandled;
@@ -66,7 +67,10 @@ public partial class InteractionHintController : Node
     {
         _availableTargets.Clear();
         foreach (var id in targetIds)
-            _availableTargets.Add(id);
+        {
+            if (!_availableTargets.Contains(id))
+                _availableTargets.Add(id);
+        }
         ResetProactiveHintIdlePeriod();
     }
 
@@ -194,6 +198,11 @@ public partial class InteractionHintController : Node
 
     private bool TryPlayAvailableHints()
     {
+        // 一组候选目标只允许同时播放一个提示，避免点击空白处时从正在播放的
+        // 目标跳到下一个目标，造成筹码和饮品同时响应。
+        if (IsAvailableHintAnimationPlaying())
+            return false;
+
         foreach (var id in _availableTargets)
         {
             if (_targets.TryGetValue(id, out var target)

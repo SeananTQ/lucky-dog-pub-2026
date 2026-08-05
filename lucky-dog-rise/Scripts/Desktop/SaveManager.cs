@@ -29,6 +29,8 @@ public sealed class SaveProfile
     public PendingLinkTreeClaim? PendingLinkTreeClaim { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public LuckyDealBuffState? LuckyDealBuffState { get; set; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RefreshmentRuntimeState? RefreshmentRuntimeState { get; set; } = new();
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
 }
@@ -46,7 +48,7 @@ public sealed class PendingLinkTreeClaim
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 11;
     public const int MinimumSupportedVersion = 10;
 
     private const string SaveDir = "user://saves";
@@ -255,6 +257,7 @@ public static class SaveManager
         profile.LuckyDealBuffState ??= new LuckyDealBuffState();
         profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
         profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);
+        profile.RefreshmentRuntimeState ??= new RefreshmentRuntimeState();
         profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
         profile.BlindBoxRuntimeState.SteamPlaytimeDropStates ??=
             new Dictionary<int, BlindBoxSteamPlaytimeDropState>();
@@ -421,10 +424,105 @@ public static class SaveManager
                 profile.PendingBlindBoxReward = null;
         }
 
+        var legacyRefreshmentItemId = TryGetLegacyRefreshmentItemId(
+            profile.EquippedItemIdsByType,
+            profile.OwnedItemCounts);
         var inventory = new PlayerInventory();
         inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         profile.EquippedItemIdsByType = inventory.GetEquippedIdsByTypeName();
+        profile.RefreshmentRuntimeState = NormalizeRefreshmentRuntimeState(
+            profile.RefreshmentRuntimeState,
+            profile.LuckyDealBuffState,
+            profile.OwnedItemCounts,
+            legacyRefreshmentItemId);
         return profile;
+    }
+
+    private static int TryGetLegacyRefreshmentItemId(
+        IReadOnlyDictionary<string, int> equippedItemIdsByType,
+        IReadOnlyDictionary<int, int> ownedItemCounts)
+    {
+        if (!equippedItemIdsByType.TryGetValue(DataTables.EItemType.Refreshment.ToString(), out var itemId)
+            || itemId <= 0
+            || !ownedItemCounts.TryGetValue(itemId, out var count)
+            || count <= 0)
+            return 0;
+
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+        return item is { ItemType: DataTables.EItemType.Refreshment } ? itemId : 0;
+    }
+
+    private static RefreshmentRuntimeState NormalizeRefreshmentRuntimeState(
+        RefreshmentRuntimeState? state,
+        LuckyDealBuffState luckyDealBuffState,
+        IReadOnlyDictionary<int, int> ownedItemCounts,
+        int legacyRefreshmentItemId)
+    {
+        state ??= new RefreshmentRuntimeState();
+
+        var validRefreshmentIds = LubanData.Tables.TbItem.DataList
+            .Where(item => item.ItemType == DataTables.EItemType.Refreshment)
+            .Select(item => item.Id)
+            .ToHashSet();
+
+        if (!validRefreshmentIds.Contains(state.CurrentItemId)
+            || !ownedItemCounts.TryGetValue(state.CurrentItemId, out var currentCount)
+            || currentCount <= 0)
+        {
+            state.CurrentItemId = 0;
+        }
+
+        if (!validRefreshmentIds.Contains(state.BuffSourceItemId))
+            state.BuffSourceItemId = 0;
+
+        state.BuffTotalHands = Math.Max(0, state.BuffTotalHands);
+        if (!Enum.IsDefined(typeof(TableRefreshmentStatus), state.Status))
+            state.Status = TableRefreshmentStatus.Empty;
+
+        if (luckyDealBuffState.RemainingHands <= 0)
+        {
+            if (state.Status == TableRefreshmentStatus.BuffActive)
+                return new RefreshmentRuntimeState();
+
+            if (state.CurrentItemId <= 0)
+                state.CurrentItemId = legacyRefreshmentItemId > 0
+                    ? legacyRefreshmentItemId
+                    : GetFirstOwnedRefreshmentId(ownedItemCounts, validRefreshmentIds);
+
+            state.Status = state.CurrentItemId > 0
+                ? TableRefreshmentStatus.ReadyToUse
+                : TableRefreshmentStatus.Empty;
+            state.BuffSourceItemId = 0;
+            state.BuffTotalHands = 0;
+            return state;
+        }
+
+        if (state.Status == TableRefreshmentStatus.BuffActive && state.BuffSourceItemId > 0)
+        {
+            state.CurrentItemId = state.BuffSourceItemId;
+            if (state.BuffTotalHands <= 0)
+                state.BuffTotalHands = luckyDealBuffState.RemainingHands;
+            return state;
+        }
+
+        return state.CurrentItemId > 0
+            ? new RefreshmentRuntimeState
+            {
+                CurrentItemId = state.CurrentItemId,
+                Status = TableRefreshmentStatus.ReadyToUse,
+            }
+            : new RefreshmentRuntimeState();
+    }
+
+    private static int GetFirstOwnedRefreshmentId(
+        IReadOnlyDictionary<int, int> ownedItemCounts,
+        IReadOnlySet<int> validRefreshmentIds)
+    {
+        return ownedItemCounts
+            .Where(pair => pair.Value > 0 && validRefreshmentIds.Contains(pair.Key))
+            .Select(pair => pair.Key)
+            .OrderBy(id => id)
+            .FirstOrDefault();
     }
 
     private static double InferLegacyBlindBoxScheduleSeconds(SaveProfile profile)

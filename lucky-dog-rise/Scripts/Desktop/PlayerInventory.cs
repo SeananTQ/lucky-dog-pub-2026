@@ -280,6 +280,37 @@ public class PlayerInventory
         InventoryChanged?.Invoke();
     }
 
+    public bool RemoveItem(int itemId, int count = 1)
+    {
+        var item = FindItem(itemId);
+        if (item == null || count <= 0 || GetCount(itemId) < count)
+            return false;
+
+        var nextCount = GetCount(itemId) - count;
+        if (nextCount > 0)
+        {
+            _ownedItemCounts[itemId] = nextCount;
+            InventoryChanged?.Invoke();
+            return true;
+        }
+
+        _ownedItemCounts.Remove(itemId);
+        _newItemIds.Remove(itemId);
+
+        var equipmentChanged = false;
+        if (_equipped.TryGetValue(item.ItemType, out var equippedItemId) && equippedItemId == itemId)
+        {
+            _equipped.Remove(item.ItemType);
+            equipmentChanged = true;
+            ApplyDefaultEquipment();
+        }
+
+        if (equipmentChanged)
+            EquipmentChanged?.Invoke();
+        InventoryChanged?.Invoke();
+        return true;
+    }
+
     public bool ClearNew(int itemId, bool emitChanged = true)
     {
         if (!_newItemIds.Remove(itemId))
@@ -297,15 +328,17 @@ public class PlayerInventory
     }
 
     /// <summary>
-    /// ItemType 是否属于装扮槽，只由 EquipmentSlotConfig 决定。
+    /// ItemType 是否属于装扮槽，Refreshment 属于桌面消耗品，不能再走装备流程。
     /// 普通库存物品无需装备槽，也无需在 PSD 坐标 JSON 中存在记录。
     /// </summary>
-    public static bool IsEquipmentType(EItemType type) => GetEquipmentSlot(type) != null;
+    public static bool IsEquipmentType(EItemType type) =>
+        type != EItemType.Refreshment && GetEquipmentSlot(type) != null;
 
     public static IReadOnlyList<EItemType> GetEquipmentTypes()
     {
         return LubanData.Tables.TbEquipmentSlotConfig.DataList
             .Select(slot => slot.ItemType)
+            .Where(IsEquipmentType)
             .Distinct()
             .ToArray();
     }

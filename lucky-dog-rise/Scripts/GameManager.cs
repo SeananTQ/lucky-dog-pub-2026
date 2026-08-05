@@ -40,16 +40,12 @@ public partial class GameManager : Node2D
         get => _gameData;
         set
         {
+            if (_gameData == value)
+                return;
+
+            DetachGameData();
             _gameData = value;
-            if (_hud != null && _chipStack != null)
-            {
-                _dogVisual.GameData = _gameData;
-                RefreshUI();
-                ApplyEquippedVisuals();
-                _gameData.EquipmentChanged += ApplyEquippedVisuals;
-                _hud.SetMessage("");
-                _chipStack.ShowHint("Click to bet");
-            }
+            AttachGameData();
         }
     }
 
@@ -79,14 +75,16 @@ public partial class GameManager : Node2D
         _dogVisual = GetNode<DogVisual>("DogArea");
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
+        _itemArea = GetNode<ItemAreaController>("ItemArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
         _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
         _interactionHints.RegisterTarget(InteractionHintTargetId.HandConfirm, _handArea);
         _interactionHints.RegisterTarget(InteractionHintTargetId.CardSelection, _cardTable);
         _interactionHints.RegisterTarget(InteractionHintTargetId.DogAdvice, _dogVisual);
+        _interactionHints.RegisterTarget(InteractionHintTargetId.RefreshmentUse, _itemArea);
+        _itemArea.InteractionActivated += _interactionHints.NotifyInteractionHandled;
         _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
         SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
-        _itemArea = GetNode<ItemAreaController>("ItemArea");
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
         _blindBoxOverlay = BlindBoxRevealOverlayScene.Instantiate<BlindBoxRevealOverlayController>();
@@ -104,12 +102,7 @@ public partial class GameManager : Node2D
         _cardTable.LastReplacementStarted += OnLastReplacementStarted;
         RefreshInteractionHintTargets();
 
-        if (_gameData != null)
-        {
-            RefreshUI();
-            _hud.SetMessage("");
-            _chipStack.ShowHint("Click to bet");
-        }
+        AttachGameData();
 
         AudioManager.Instance.PlayRandomBgm();
     }
@@ -117,6 +110,9 @@ public partial class GameManager : Node2D
     public override void _ExitTree()
     {
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
+        if (_itemArea != null && _interactionHints != null)
+            _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
+        DetachGameData();
     }
 
     public override void _Process(double delta)
@@ -430,19 +426,28 @@ public partial class GameManager : Node2D
         switch (State)
         {
             case GameState.WaitingForBet:
-                _interactionHints.SetAvailableTargets(InteractionHintTargetId.BetStack);
+                SetAvailableInteractionHintTargets(InteractionHintTargetId.BetStack);
                 break;
             case GameState.Settled when _pendingReward != null && IsInstanceValid(_pendingReward):
-                _interactionHints.SetAvailableTargets(InteractionHintTargetId.RewardStack);
+                SetAvailableInteractionHintTargets(InteractionHintTargetId.RewardStack);
                 break;
             case GameState.Dealt:
             case GameState.Holding:
-                _interactionHints.SetAvailableTargets(GetPlayDecisionHintTarget());
+                SetAvailableInteractionHintTargets(GetPlayDecisionHintTarget());
                 break;
             default:
-                _interactionHints.SetAvailableTargets();
+                SetAvailableInteractionHintTargets();
                 break;
         }
+    }
+
+    private void SetAvailableInteractionHintTargets(params InteractionHintTargetId[] primaryTargets)
+    {
+        var targets = primaryTargets.ToList();
+        if (_itemArea != null && _itemArea.CanPlayInteractionHint)
+            targets.Insert(0, InteractionHintTargetId.RefreshmentUse);
+
+        _interactionHints.SetAvailableTargets(targets.ToArray());
     }
 
     private InteractionHintTargetId GetPlayDecisionHintTarget()
@@ -510,7 +515,6 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.BodyDecoration, (tex, name) => _handArea.SetBodyDecoration(tex, name), () => _handArea.SetBodyDecoration(null, ""));
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name), () => _handArea.SetClothes(null, ""));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name), () => _handArea.SetAccessory(null, ""));
-        ApplyItemTexture(EItemType.Refreshment, (tex, name) => _itemArea.SetTreat(tex, name), _itemArea.ClearTreat);
         _dogVisual.RefreshEquippedHeadwear();
         _dogVisual.RefreshEquippedEyewear();
     }
@@ -536,6 +540,45 @@ public partial class GameManager : Node2D
     public void OnPlayDogReaction(int trigger)
     {
         _dogVisual.ApplyReaction((EDogReactionTrigger)trigger);
+        _hud.SetMessage("");
+    }
+
+    private void OnRefreshmentStateChanged()
+    {
+        RefreshInteractionHintTargets();
+    }
+
+    private void AttachGameData()
+    {
+        if (_gameData == null || _hud == null || _chipStack == null || _itemArea == null)
+            return;
+
+        _dogVisual.GameData = _gameData;
+        _itemArea.BindGameData(_gameData);
+        _gameData.EquipmentChanged += ApplyEquippedVisuals;
+        _gameData.RefreshmentStateChanged += OnRefreshmentStateChanged;
+        _gameData.RefreshmentSelectionRefused += OnRefreshmentSelectionRefused;
+        RefreshUI();
+        ApplyEquippedVisuals();
+        _hud.SetMessage("");
+        _chipStack.ShowHint("Click to bet");
+    }
+
+    private void DetachGameData()
+    {
+        if (_gameData == null)
+            return;
+
+        _gameData.EquipmentChanged -= ApplyEquippedVisuals;
+        _gameData.RefreshmentStateChanged -= OnRefreshmentStateChanged;
+        _gameData.RefreshmentSelectionRefused -= OnRefreshmentSelectionRefused;
+        if (_itemArea != null)
+            _itemArea.BindGameData(null);
+    }
+
+    private void OnRefreshmentSelectionRefused()
+    {
+        _dogVisual.PlayTemporaryReaction(EDogReactionTrigger.RefuseRefreshment);
         _hud.SetMessage("");
     }
 }
