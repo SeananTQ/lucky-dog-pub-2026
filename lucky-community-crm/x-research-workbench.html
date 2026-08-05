@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lucky Dog Rise · X 潜在用户搜索台</title>
+<style>
+:root{
+  --bg:#F6F0E3;
+  --panel:#FFF9EE;
+  --panel2:#EEE5D3;
+  --text:#3F4A3D;
+  --muted:#7A806F;
+  --line:#D9CEB9;
+  --accent:#2F8B63;
+  --accent-strong:#216B4B;
+  --good:#4F8A5B;
+  --bad:#B85C5C;
+  --warn:#B58A2E;
+  --cream:#F3E6C8;
+  --basil-soft:#DCE9DD;
+  --shadow:0 10px 30px rgba(73,86,64,.10);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.78), transparent 30%),
+    linear-gradient(180deg,#F8F2E7 0%,#F2E8D7 100%);
+  color:var(--text);
+}
+header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(255,249,238,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  padding:17px 22px;
+  box-shadow:0 4px 18px rgba(73,86,64,.06);
+}
+h1{font-size:21px;margin:0 0 5px;color:var(--accent-strong);letter-spacing:.1px}
+.sub{font-size:13px;color:var(--muted)}
+main{max-width:1320px;margin:auto;padding:20px;display:grid;grid-template-columns:1.25fr .75fr;gap:20px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.panel{
+  background:rgba(255,249,238,.94);
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.panel h2{
+  font-size:16px;margin:0;padding:16px 17px;
+  border-bottom:1px solid var(--line);
+  color:var(--accent-strong);
+  background:linear-gradient(90deg,rgba(220,233,221,.72),rgba(255,249,238,.25));
+}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--line)}
+input,select,textarea,button{font:inherit}
+input,select,textarea{
+  background:#FFFCF5;color:var(--text);
+  border:1px solid #CEC2AD;border-radius:11px;padding:9px 10px;
+  outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(47,139,99,.12);
+  background:#FFFDF8;
+}
+input{min-width:220px}
+textarea{width:100%;min-height:86px;resize:vertical}
+button,.btn{
+  border:1px solid #D3C8B5;border-radius:999px;padding:8px 12px;cursor:pointer;
+  background:#F5EBD8;color:var(--text);text-decoration:none;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:transform .12s,filter .12s,box-shadow .12s;
+}
+button:hover,.btn:hover{filter:brightness(1.02);transform:translateY(-1px);box-shadow:0 5px 12px rgba(73,86,64,.10)}
+.primary{background:var(--accent);color:#fff;border-color:var(--accent-strong)}
+.danger{background:#F5DEDA;color:#8E4545;border-color:#E1BDB7}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:13px 16px}
+.stat{
+  background:linear-gradient(180deg,#F2E9D9,#EDE1CE);
+  border:1px solid #DDD0BA;border-radius:13px;padding:11px;
+}
+.stat b{display:block;font-size:19px;color:var(--accent-strong)}
+.stat span{font-size:12px;color:var(--muted)}
+.group{border-top:1px solid var(--line)}
+.group:first-child{border-top:0}
+.group-title{
+  padding:12px 16px;font-weight:700;
+  color:#56604F;
+  background:linear-gradient(90deg,#E8E0CF,#F3ECDF);
+}
+.row{
+  display:grid;grid-template-columns:1fr auto;gap:12px;
+  padding:13px 16px;border-top:1px solid var(--line);align-items:start;
+  background:rgba(255,252,245,.55);
+}
+.row:hover{background:#FFFDF8}
+.keyword{font-weight:700;word-break:break-word;color:#394338}
+.meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.status{border-radius:999px;padding:4px 8px;font-size:12px;border:1px solid var(--line)}
+.status.testing{color:#8C6A20;background:#F8EBC8;border-color:#E3CC8D}
+.status.good{color:#356D43;background:#E4F0E4;border-color:#BBD3BF}
+.status.bad{color:#9A4848;background:#F5DEDA;border-color:#E1BDB7}
+.note{font-size:12px;color:#6E7567;margin-top:8px;background:#F3EBDD;border-left:3px solid #B6C7AA;padding:7px 9px;border-radius:7px}
+.card{padding:14px 16px;border-top:1px solid var(--line);background:rgba(255,252,245,.35)}
+.card:first-of-type{border-top:0}
+label{font-size:12px;color:var(--muted);display:block;margin:8px 0 5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.candidate{padding:13px 16px;border-top:1px solid var(--line);background:#FFFDF8}
+.candidate:nth-child(even){background:#FBF5E9}
+.candidate-head{display:flex;justify-content:space-between;gap:10px}
+.candidate-name{font-weight:700;color:#354137}
+.badge{font-size:12px;border:1px solid #BFCDB8;border-radius:999px;padding:3px 7px;background:var(--basil-soft);color:#416A49}
+.small{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.footer{padding:14px 16px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);background:#F4ECDE}
+.hidden{display:none}
+::selection{background:#CFE2D3;color:#2C4433}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lucky Dog Rise · X 潜在用户搜索台</h1>
+  <div class="sub">找到“已经愿意让可爱角色长期住在电脑桌面上的 Steam 用户” · 罗勒奶油版</div>
+</header>
+
+<main>
+<section class="panel">
+  <h2>关键词实验台</h2>
+  <div class="toolbar">
+    <input id="filter" placeholder="筛选关键词、类别或说明…" />
+    <select id="statusFilter">
+      <option value="">全部状态</option>
+      <option value="testing">待验证</option>
+      <option value="good">有效</option>
+      <option value="bad">无效</option>
+    </select>
+    <button id="addKeyword">＋ 添加关键词</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sAll">0</b><span>关键词</span></div>
+    <div class="stat"><b id="sGood">0</b><span>有效</span></div>
+    <div class="stat"><b id="sTesting">0</b><span>待验证</span></div>
+    <div class="stat"><b id="sCandidates">0</b><span>候选人</span></div>
+  </div>
+  <div id="keywordList"></div>
+  <div class="footer">状态、备注和候选人都保存在本机浏览器 localStorage。建议定期导出备份。</div>
+</section>
+
+<aside>
+  <section class="panel">
+    <h2>添加候选人</h2>
+    <div class="card">
+      <div class="two">
+        <div><label>X 用户名 / 名称</label><input id="cName" placeholder="@name 或显示名" style="width:100%;min-width:0"></div>
+        <div><label>主页或推文链接</label><input id="cUrl" placeholder="https://x.com/..." style="width:100%;min-width:0"></div>
+      </div>
+      <div class="three">
+        <div><label>等级</label><select id="cGrade" style="width:100%"><option>A+</option><option>A</option><option>B</option><option>C</option><option>跳过</option></select></div>
+        <div><label>类型</label><select id="cType" style="width:100%"><option>普通玩家</option><option>创作者</option><option>主播/VTuber</option><option>宠物用户</option></select></div>
+        <div><label>状态</label><select id="cState" style="width:100%"><option>待互动</option><option>已回复</option><option>已回应</option><option>待邀请</option><option>已邀请</option></select></div>
+      </div>
+      <label>匹配证据 / 下一步</label>
+      <textarea id="cNotes" placeholder="例如：晒过 Bongo Cat；喜欢 on-screen games；仍活跃；Playtest 开放后个性化邀请。"></textarea>
+      <button class="primary" id="saveCandidate">保存候选人</button>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:18px">
+    <h2>候选人列表</h2>
+    <div class="toolbar">
+      <input id="candidateFilter" placeholder="筛选名称、等级、备注…" style="min-width:0;width:100%">
+    </div>
+    <div id="candidateList"></div>
+  </section>
+
+  <section class="panel" style="margin-top:18px">
+    <h2>数据备份</h2>
+    <div class="card">
+      <button id="exportJson">导出 JSON</button>
+      <button id="exportCsv">导出候选人 CSV</button>
+      <label>导入 JSON 备份</label>
+      <input type="file" id="importJson" accept=".json,application/json" style="width:100%;min-width:0">
+      <button class="danger" id="resetAll" style="margin-top:10px">清空本地数据</button>
+    </div>
+  </section>
+</aside>
+</main>
+
+<script>
+const seedKeywords = [
+ {group:"Bongo Cat · 情感投入",q:'"Bongo Cat" obsessed',why:"寻找明确表达上瘾、喜爱的真实玩家。"},
+ {group:"Bongo Cat · 情感投入",q:'"Bongo Cat" addicted',why:"寻找高情感投入用户。"},
+ {group:"Bongo Cat · 收集",q:'"Bongo Cat" hats',why:"帽子收集与 Lucky Dog 装扮系统高度重合。"},
+ {group:"Bongo Cat · 收集",q:'"Bongo Cat" skins',why:"寻找在意皮肤和装扮的玩家。"},
+ {group:"Bongo Cat · 使用场景",q:'"Bongo Cat" while working',why:"验证工作陪伴需求。"},
+ {group:"Bongo Cat · 使用场景",q:'"Bongo Cat" while studying',why:"验证学习陪伴需求。"},
+ {group:"Bongo Cat · 桌面常驻",q:'"Bongo Cat" taskbar',why:"寻找主动晒任务栏截图的人。"},
+ {group:"Bongo Cat · 桌面常驻",q:'"Bongo Cat" desktop',why:"寻找桌面常驻截图与使用体验。"},
+ {group:"Bongo Cat · 社交传播",q:'"Bongo Cat" friends',why:"寻找会拉朋友一起安装、具有社交传播力的人。"},
+ {group:"Bongo Cat · 社交传播",q:'"Bongo Cat" screenshot',why:"寻找愿意公开分享使用画面的用户。"},
+ {group:"其他桌面游戏",q:'"Cornerpond"',why:"Bongo Cat 相邻用户池。"},
+ {group:"其他桌面游戏",q:'"Rusty\'s Retirement" "while working"',why:"寻找边工作边运行桌面游戏的人。"},
+ {group:"其他桌面游戏",q:'"Rusty\'s Retirement" desktop',why:"寻找桌面常驻使用者。"},
+ {group:"其他桌面游戏",q:'"Desktop Mate" screenshot',why:"寻找已晒桌面角色截图的人。"},
+ {group:"其他桌面游戏",q:'"Desktop Mate" "while working"',why:"验证工作陪伴场景。"},
+ {group:"真实用户语言",q:'"I love on-screen games"',why:"极高价值表达；不是开发者营销词。"},
+ {group:"真实用户语言",q:'"games that stay on my desktop"',why:"直接命中桌面常驻偏好。"},
+ {group:"真实用户语言",q:'"little guy on my taskbar"',why:"寻找把桌面角色人格化的用户。"},
+ {group:"真实用户语言",q:'"keeps me company while I work"',why:"寻找陪伴动机用户。"},
+ {group:"真实用户语言",q:'"collecting little hats"',why:"寻找装扮收集动机。"},
+ {group:"狗派精准需求",q:'"Bongo Cat" "dog version"',why:"最高精准度：明确想要狗版。"},
+ {group:"狗派精准需求",q:'"Bongo Cat" "dog person"',why:"寻找更偏爱狗的现有桌宠用户。"},
+ {group:"狗派精准需求",q:'"wish this was a dog"',why:"直接需求表达。"},
+ {group:"狗派精准需求",q:'"need a dog version"',why:"直接需求表达。"}
+];
+
+const LS_KEY="ldr_x_research_v1";
+let data = JSON.parse(localStorage.getItem(LS_KEY)||"null") || {
+ keywords: seedKeywords.map((x,i)=>({...x,id:crypto.randomUUID(),status:"testing",note:"",opens:0})),
+ candidates:[]
+};
+
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(data));render();}
+function xSearch(q,mode="live"){
+ const encoded=encodeURIComponent(q);
+ return `https://x.com/search?q=${encoded}&src=typed_query&f=${mode}`;
+}
+function statusLabel(s){return s==="good"?"有效":s==="bad"?"无效":"待验证";}
+function esc(s=""){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+function render(){
+ const f=document.querySelector("#filter").value.toLowerCase();
+ const sf=document.querySelector("#statusFilter").value;
+ const filtered=data.keywords.filter(k=>(!sf||k.status===sf)&&(`${k.q} ${k.group} ${k.why} ${k.note}`.toLowerCase().includes(f)));
+ const groups={}; filtered.forEach(k=>(groups[k.group]??=[]).push(k));
+ const host=document.querySelector("#keywordList"); host.innerHTML="";
+ Object.entries(groups).forEach(([g,items])=>{
+   const wrap=document.createElement("div"); wrap.className="group";
+   wrap.innerHTML=`<div class="group-title">${esc(g)} <span style="color:var(--muted);font-weight:400">(${items.length})</span></div>`;
+   items.forEach(k=>{
+     const row=document.createElement("div"); row.className="row";
+     row.innerHTML=`
+      <div>
+       <div class="keyword">${esc(k.q)}</div>
+       <div class="meta">${esc(k.why)} · 已打开 ${k.opens||0} 次</div>
+       ${k.note?`<div class="note">备注：${esc(k.note)}</div>`:""}
+      </div>
+      <div class="actions">
+       <a class="btn primary openX" data-id="${k.id}" href="${xSearch(k.q,"live")}" target="_blank">最新</a>
+       <a class="btn openX" data-id="${k.id}" href="${xSearch(k.q,"top")}" target="_blank">热门</a>
+       <button data-act="cycle" data-id="${k.id}" class="status ${k.status}">${statusLabel(k.status)}</button>
+       <button data-act="note" data-id="${k.id}">备注</button>
+       <button data-act="delete" data-id="${k.id}">×</button>
+      </div>`;
+     wrap.appendChild(row);
+   });
+   host.appendChild(wrap);
+ });
+ document.querySelectorAll(".openX").forEach(a=>a.onclick=()=>{const k=data.keywords.find(x=>x.id===a.dataset.id);k.opens=(k.opens||0)+1;localStorage.setItem(LS_KEY,JSON.stringify(data));});
+ document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>handleAction(b.dataset.act,b.dataset.id));
+
+ document.querySelector("#sAll").textContent=data.keywords.length;
+ document.querySelector("#sGood").textContent=data.keywords.filter(k=>k.status==="good").length;
+ document.querySelector("#sTesting").textContent=data.keywords.filter(k=>k.status==="testing").length;
+ document.querySelector("#sCandidates").textContent=data.candidates.length;
+
+ const cf=document.querySelector("#candidateFilter").value.toLowerCase();
+ const cand=data.candidates.filter(c=>JSON.stringify(c).toLowerCase().includes(cf));
+ const ch=document.querySelector("#candidateList"); ch.innerHTML=cand.length?"":"<div class='card small'>还没有候选人。</div>";
+ cand.forEach(c=>{
+  const el=document.createElement("div"); el.className="candidate";
+  el.innerHTML=`<div class="candidate-head"><div><div class="candidate-name">${esc(c.name||"未命名")}</div><div class="small">${esc(c.type)} · ${esc(c.state)}</div></div><span class="badge">${esc(c.grade)}</span></div>
+  <div class="small">${esc(c.notes||"")}</div>
+  <div class="actions" style="margin-top:8px;justify-content:flex-start">
+   ${c.url?`<a class="btn primary" href="${esc(c.url)}" target="_blank">打开</a>`:""}
+   <button data-cact="state" data-id="${c.id}">推进状态</button>
+   <button data-cact="delete" data-id="${c.id}">删除</button>
+  </div>`;
+  ch.appendChild(el);
+ });
+ document.querySelectorAll("[data-cact]").forEach(b=>b.onclick=()=>candidateAction(b.dataset.cact,b.dataset.id));
+}
+
+function handleAction(act,id){
+ const k=data.keywords.find(x=>x.id===id); if(!k)return;
+ if(act==="cycle"){k.status=k.status==="testing"?"good":k.status==="good"?"bad":"testing";}
+ if(act==="note"){const v=prompt("记录结果、噪声来源、建议搜索方式：",k.note||""); if(v!==null)k.note=v;}
+ if(act==="delete"&&confirm("删除这个关键词？")) data.keywords=data.keywords.filter(x=>x.id!==id);
+ save();
+}
+function candidateAction(act,id){
+ const c=data.candidates.find(x=>x.id===id); if(!c)return;
+ if(act==="delete"&&confirm("删除候选人？")) data.candidates=data.candidates.filter(x=>x.id!==id);
+ if(act==="state"){
+  const states=["待互动","已回复","已回应","待邀请","已邀请"]; c.state=states[(states.indexOf(c.state)+1)%states.length];
+ }
+ save();
+}
+
+document.querySelector("#filter").oninput=render;
+document.querySelector("#statusFilter").onchange=render;
+document.querySelector("#candidateFilter").oninput=render;
+document.querySelector("#addKeyword").onclick=()=>{
+ const q=prompt("搜索关键词（可使用 X 精确短语语法）："); if(!q)return;
+ const group=prompt("类别：","自定义实验")||"自定义实验";
+ const why=prompt("为什么值得搜索：","")||"";
+ data.keywords.unshift({id:crypto.randomUUID(),group,q,why,status:"testing",note:"",opens:0}); save();
+};
+document.querySelector("#saveCandidate").onclick=()=>{
+ const name=document.querySelector("#cName").value.trim();
+ const url=document.querySelector("#cUrl").value.trim();
+ if(!name&&!url){alert("至少填写名称或链接。");return;}
+ data.candidates.unshift({
+  id:crypto.randomUUID(),name,url,
+  grade:document.querySelector("#cGrade").value,
+  type:document.querySelector("#cType").value,
+  state:document.querySelector("#cState").value,
+  notes:document.querySelector("#cNotes").value.trim()
+ });
+ ["#cName","#cUrl","#cNotes"].forEach(s=>document.querySelector(s).value=""); save();
+};
+function download(name,text,type){
+ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+document.querySelector("#exportJson").onclick=()=>download("lucky-dog-x-research.json",JSON.stringify(data,null,2),"application/json");
+document.querySelector("#exportCsv").onclick=()=>{
+ const rows=[["name","url","grade","type","state","notes"],...data.candidates.map(c=>[c.name,c.url,c.grade,c.type,c.state,c.notes])];
+ const csv=rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");
+ download("lucky-dog-candidates.csv","\ufeff"+csv,"text/csv;charset=utf-8");
+};
+document.querySelector("#importJson").onchange=async e=>{
+ const file=e.target.files[0]; if(!file)return;
+ try{const incoming=JSON.parse(await file.text()); if(!incoming.keywords||!incoming.candidates)throw 0; data=incoming;save();}
+ catch{alert("无法识别这个备份文件。");}
+};
+document.querySelector("#resetAll").onclick=()=>{
+ if(confirm("确定清空全部本地数据并恢复默认关键词？")){
+  data={keywords:seedKeywords.map(x=>({...x,id:crypto.randomUUID(),status:"testing",note:"",opens:0})),candidates:[]}; save();
+ }
+};
+render();
+</script>
+</body>
+</html>
