@@ -1,6 +1,207 @@
 {
   "schemaVersion": 4,
-  "keywords": [],
+  "keywords": [
+    {
+      "id": "shiba-hat",
+      "group": "成就灵感 · 帽子",
+      "q": "shiba inu wearing hat",
+      "why": "寻找适合作为 Hats Off 成就图标的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-sunglasses",
+      "group": "成就灵感 · 眼镜",
+      "q": "shiba inu sunglasses",
+      "why": "寻找适合作为 A New Look 成就图标的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-costume",
+      "group": "成就灵感 · 服装",
+      "q": "shiba inu costume",
+      "why": "寻找穿衣服或特殊造型的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-fashion",
+      "group": "成就灵感 · 装扮",
+      "q": "shiba inu outfit",
+      "why": "寻找适合桌宠装扮系统风格的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-cute-face",
+      "group": "通用成就",
+      "q": "shiba inu cute face",
+      "why": "寻找正脸、高辨识度柴犬头像。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-smile",
+      "group": "通用成就",
+      "q": "shiba inu smiling",
+      "why": "寻找带有快乐情绪的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-surprised",
+      "group": "狗狗互动 · Starstruck",
+      "q": "shiba inu surprised face",
+      "why": "寻找适合表达崇拜、惊讶状态的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-looking-up",
+      "group": "狗狗互动 · Starstruck",
+      "q": "shiba inu looking up",
+      "why": "寻找像仰望主人一样的互动照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-paw",
+      "group": "狗狗互动",
+      "q": "shiba inu paw",
+      "why": "寻找伸爪、互动动作照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-sitting",
+      "group": "通用成就",
+      "q": "shiba inu sitting front view",
+      "why": "寻找适合作为 Steam 小图标的稳定构图。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-table",
+      "group": "扑克主题",
+      "q": "shiba inu at table",
+      "why": "寻找适合扑克、桌面主题的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-playing",
+      "group": "扑克主题",
+      "q": "shiba inu playing",
+      "why": "寻找具有游戏感、互动感的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-toy",
+      "group": "盲盒品质 · Gift",
+      "q": "shiba inu with toy",
+      "why": "寻找像带给主人礼物的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-carrying",
+      "group": "盲盒品质 · Gift",
+      "q": "shiba inu carrying something",
+      "why": "寻找叼东西、带回礼物的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-garden",
+      "group": "盲盒品质 · 自然",
+      "q": "shiba inu garden",
+      "why": "寻找森林、自然环境中的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-outdoor",
+      "group": "盲盒品质 · 自然",
+      "q": "shiba inu outdoor",
+      "why": "寻找天空、户外背景的柴犬。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-owner",
+      "group": "授权来源",
+      "q": "shiba inu owner",
+      "why": "寻找明确属于个人账号的柴犬主人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-my-dog",
+      "group": "授权来源",
+      "q": "\"my shiba\"",
+      "why": "寻找主人自己发布的柴犬照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-daily",
+      "group": "授权来源",
+      "q": "shiba inu daily",
+      "why": "寻找长期运营柴犬账号的主人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    },
+    {
+      "id": "shiba-instagram-style",
+      "group": "高质量照片",
+      "q": "shiba inu portrait",
+      "why": "寻找适合 Steam 成就小图标裁切的高质量照片。",
+      "status": "testing",
+      "note": "",
+      "opens": 0,
+      "blacklisted": false
+    }
+  ],
   "collapsed": false,
-  "updatedAt": 1786108386866
+  "updatedAt": 1786108593856
 }
