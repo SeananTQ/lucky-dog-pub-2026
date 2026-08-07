@@ -33,13 +33,14 @@
     <div class="panel-body stack">
       <div class="toolbar">
         <input id="keywordSearch" placeholder="筛选关键词、类别、说明、备注…">
-        <select id="keywordStatusFilter"><option value="">全部状态</option><option value="testing">待验证</option><option value="good">有效</option><option value="bad">无效</option></select>
+        <select id="keywordStatusFilter"><option value="">全部状态</option><option value="testing">待验证</option><option value="good">有效</option><option value="great">很棒</option><option value="bad">无效</option></select>
         <button id="addKeywordBtn" class="btn primary">＋ 添加关键词</button>
         <button id="collapseBtn" class="btn">折叠分组</button>
       </div>
       <div class="stats">
         <div class="stat"><b id="stKeywords">0</b><span>关键词</span></div>
         <div class="stat"><b id="stGood">0</b><span>有效</span></div>
+        <div class="stat"><b id="stGreat">0</b><span>很棒</span></div>
         <div class="stat"><b id="stTesting">0</b><span>待验证</span></div>
         <div class="stat"><b id="stBad">0</b><span>无效</span></div>
         <div class="stat"><b id="stCandidates">0</b><span>候选人</span></div>
@@ -55,7 +56,7 @@
         <input type="hidden" id="candidateId">
         <div class="row2"><div><label>X 用户名 / 名称</label><input id="cName" placeholder="@name 或显示名"></div><div><label>主页或推文链接</label><input id="cUrl" placeholder="https://x.com/..."></div></div>
         <div class="row3"><div><label>等级</label><select id="cRank"><option>S</option><option selected>A+</option><option>A</option><option>B</option><option>C</option></select></div><div><label>类型</label><select id="cType"><option>主播/VTuber</option><option>普通玩家</option><option>宠物用户</option><option>内容创作者</option><option>行业账号</option><option>竞品观察</option></select></div><div><label>状态</label><select id="cState"><option>待互动</option><option>已回复</option><option>已回应</option><option>待邀请</option><option>已邀请</option><option>已接受</option><option>仅观察</option></select></div></div>
-        <div class="row2"><div><label>所属 LIST</label><select id="cList"><option>Desktop Companion Players</option><option>Potential Creators</option><option>Desktop Pet Industry</option><option>Competitor Watch</option><option>Dog Owners</option><option>未分类</option></select></div><div><label>竞品连接</label><select id="cRisk"><option>无明显连接</option><option>偶尔互动</option><option>直接认识团队</option><option>团队成员</option></select></div></div>
+        <div class="row2"><div><label>所属 LIST</label><select id="cList"><option>桌面陪伴玩家</option><option>潜在创作者</option><option>桌宠行业</option><option>竞品观察</option><option>养狗用户</option><option>未分类</option></select></div><div><label>竞品连接</label><select id="cRisk"><option>无明显连接</option><option>偶尔互动</option><option>直接认识团队</option><option>团队成员</option></select></div></div>
         <div><label>匹配证据 / 下一步</label><textarea id="cNotes" placeholder="例如：晒过 Bongo Cat；强调桌面陪伴；会主动申请 Steam Playtest；真实养狗；活跃直播；开放测试后个性化邀请。"></textarea></div>
         <div class="actions"><button id="saveCandidateBtn" class="btn primary">保存候选人</button><button id="clearCandidateBtn" class="btn">清空表单</button></div>
       </div>
@@ -99,7 +100,7 @@
 <div id="keywordModal" class="modal-wrap"><div class="modal"><div class="modal-head"><span id="keywordModalTitle">添加关键词</span><button class="btn small" data-close="keywordModal">关闭</button></div><div class="modal-body">
   <input type="hidden" id="kId"><div class="row2"><div><label>关键词</label><input id="kQuery"></div><div><label>分组</label><input id="kGroup" placeholder="例如：Bongo Cat · 情感投入"></div></div>
   <div><label>搜索目的 / 说明</label><textarea id="kWhy"></textarea></div><div><label>实验备注</label><textarea id="kNote"></textarea></div>
-  <div class="row2"><div><label>状态</label><select id="kStatus"><option value="testing">待验证</option><option value="good">有效</option><option value="bad">无效</option></select></div><div><label>打开次数</label><input id="kOpens" type="number" min="0" value="0"></div></div>
+  <div class="row2"><div><label>状态</label><select id="kStatus"><option value="testing">待验证</option><option value="good">有效</option><option value="great">很棒</option><option value="bad">无效</option></select></div><div><label>打开次数</label><input id="kOpens" type="number" min="0" value="0"></div></div>
   <div class="actions"><button id="saveKeywordBtn" class="btn primary">保存关键词</button><button id="deleteKeywordBtn" class="btn danger">删除关键词</button></div>
 </div></div></div>
 

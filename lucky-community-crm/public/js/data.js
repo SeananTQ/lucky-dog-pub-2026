@@ -4,6 +4,16 @@ import { seed, seedKeywords, uid } from './seed.js';
 
 export const CURRENT_SCHEMA_VERSION = 2;
 
+// 旧数据的英文 LIST → 中文（升级时统一转换）
+const LIST_TRANSLATION = {
+  'Desktop Companion Players': '桌面陪伴玩家',
+  'Potential Creators': '潜在创作者',
+  'Desktop Pet Industry': '桌宠行业',
+  'Competitor Watch': '竞品观察',
+  'Dog Owners': '养狗用户',
+};
+const translateList = v => LIST_TRANSLATION[v] || v;
+
 // 旧的浏览器 localStorage key
 const V3_KEY = 'lucky_dog_x_workbench_v3';
 const V1_KEY = 'ldr_x_research_v1';
@@ -29,7 +39,7 @@ export function upgrade(raw) {
       rank: c.rank || c.grade || 'A',
       type: c.type || '普通玩家',
       state: c.state || '待互动',
-      list: c.list || '未分类',
+      list: translateList(c.list || '未分类'),
       risk: c.risk || '无明显连接',
       notes: c.notes || '',
     })),

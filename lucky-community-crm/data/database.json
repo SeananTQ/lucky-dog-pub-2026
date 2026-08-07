@@ -69,7 +69,7 @@
       "group": "Bongo Cat · 桌面常驻",
       "q": "\"Bongo Cat\" desktop",
       "why": "寻找桌面常驻截图与使用体验。",
-      "status": "testing",
+      "status": "great",
       "note": "",
       "opens": 1
     },
@@ -80,7 +80,7 @@
       "why": "寻找会拉朋友一起安装、具有社交传播力的人。",
       "status": "testing",
       "note": "",
-      "opens": 0
+      "opens": 1
     },
     {
       "id": "99a91802-169e-428d-bde2-b1abb217fc31",
@@ -219,11 +219,11 @@
     },
     {
       "id": "a07964c1-74d1-4084-a16e-f5e5f30ce98a",
-      "q": "\"Bongo Cat\" love",
       "group": "Bongo Cat · 情感投入",
+      "q": "\"Bongo Cat\" love",
       "why": "寻找自然表达喜欢 Bongo Cat 的用户。",
-      "note": "",
       "status": "good",
+      "note": "",
       "opens": 1
     },
     {
@@ -267,9 +267,9 @@
       "group": "Bongo Cat · 桌面常驻",
       "q": "\"Bongo Cat\" \"on my PC\"",
       "why": "寻找明确长期运行在电脑上的用户。",
-      "status": "testing",
+      "status": "bad",
       "note": "",
-      "opens": 0
+      "opens": 1
     },
     {
       "id": "a9910cc8-ceeb-4b5b-88e0-2103c547f637",
@@ -481,13 +481,24 @@
   ],
   "candidates": [
     {
+      "id": "589b8103-1b88-47cf-9bed-e853dcf8fb27",
+      "name": "@ViroseciousVT",
+      "url": "https://x.com/ViroseciousVT/status/1958250434856173703",
+      "rank": "S",
+      "type": "主播/VTuber",
+      "state": "已回复",
+      "list": "潜在创作者",
+      "risk": "无明显连接",
+      "notes": "既是主播，又晒了多人在一起的Bongo Cat图片"
+    },
+    {
       "id": "3d8a305c-739c-4fe1-96a9-93f842f0ba89",
       "name": "@Kael_Hasturn",
       "url": "https://x.com/Kael_Hasturn",
       "rank": "A+",
       "type": "主播/VTuber",
       "state": "已回应",
-      "list": "Desktop Companion Players",
+      "list": "桌面陪伴玩家",
       "risk": "无明显连接",
       "notes": "中国人\n已回点赞"
     },
@@ -498,7 +509,7 @@
       "rank": "A+",
       "type": "主播/VTuber",
       "state": "已回复",
-      "list": "Desktop Companion Players",
+      "list": "桌面陪伴玩家",
       "risk": "无明显连接",
       "notes": "Bongo Cat 新用户"
     },
@@ -509,7 +520,7 @@
       "rank": "S",
       "type": "主播/VTuber",
       "state": "已回复",
-      "list": "Potential Creators",
+      "list": "潜在创作者",
       "risk": "无明显连接",
       "notes": "把自己定位为福瑞puppy的主播\n玩过 Bongo Cat"
     },
@@ -520,7 +531,7 @@
       "rank": "A",
       "type": "主播/VTuber",
       "state": "已回复",
-      "list": "Potential Creators",
+      "list": "潜在创作者",
       "risk": "无明显连接",
       "notes": "Steam 用户、游戏主播，晒过 Bongo Cat"
     },
@@ -531,11 +542,11 @@
       "rank": "S",
       "type": "主播/VTuber",
       "state": "已回复",
-      "list": "Potential Creators",
+      "list": "潜在创作者",
       "risk": "无明显连接",
       "notes": "玩过并沉迷 Bongo Cat；\n喜欢桌面常驻和白天陪伴；\n会把房间代码分享到 Discord；\n是狗主人；\n会直播；\n会发布游戏内容；\n会主动转发可爱小动物内容；\n会主动愿望单并申请陌生游戏的 Playtest；\n现在仍活跃；\n粉丝不多，反而可能更愿意认真回应。"
     }
   ],
   "collapsed": false,
-  "updatedAt": 1786086366005
+  "updatedAt": 1786093084990
 }

@@ -30,6 +30,7 @@ export function render() {
 function renderStats() {
   el('stKeywords').textContent = data.keywords.length;
   el('stGood').textContent = data.keywords.filter(k => k.status === 'good').length;
+  el('stGreat').textContent = data.keywords.filter(k => k.status === 'great').length;
   el('stTesting').textContent = data.keywords.filter(k => k.status === 'testing').length;
   el('stBad').textContent = data.keywords.filter(k => k.status === 'bad').length;
   el('stCandidates').textContent = data.candidates.length;
@@ -73,7 +74,7 @@ function renderKeywords() {
     if (!data.collapsed) items.forEach(k => {
       const row = document.createElement('div');
       row.className = 'keyword';
-      row.innerHTML = `<div><div class="keyword-name">${esc(k.q)}</div><div class="keyword-desc">${esc(k.why)}</div><div class="keyword-note">已打开 ${k.opens || 0} 次${k.note ? ` · 备注：${esc(k.note)}` : ''}</div></div><div class="actions"><a class="btn primary small" data-open-k="${k.id}" href="${xSearch(k.q, 'live')}" target="_blank">最新</a><a class="btn small" data-open-k="${k.id}" href="${xSearch(k.q, 'top')}" target="_blank">热门</a><span class="pill ${k.status}">${k.status === 'good' ? '有效' : k.status === 'bad' ? '无效' : '待验证'}</span><button class="btn small" data-cycle-k="${k.id}">切换状态</button><button class="btn small" data-edit-k="${k.id}">编辑</button></div>`;
+      row.innerHTML = `<div><div class="keyword-name">${esc(k.q)}</div><div class="keyword-desc">${esc(k.why)}</div><div class="keyword-note">已打开 ${k.opens || 0} 次${k.note ? ` · 备注：${esc(k.note)}` : ''}</div></div><div class="actions"><a class="btn primary small" data-open-k="${k.id}" href="${xSearch(k.q, 'live')}" target="_blank">最新</a><a class="btn small" data-open-k="${k.id}" href="${xSearch(k.q, 'top')}" target="_blank">热门</a><span class="pill ${k.status}">${k.status === 'good' ? '有效' : k.status === 'great' ? '很棒' : k.status === 'bad' ? '无效' : '待验证'}</span><button class="btn small" data-cycle-k="${k.id}">切换状态</button><button class="btn small" data-edit-k="${k.id}">编辑</button></div>`;
       section.appendChild(row);
     });
     box.appendChild(section);
@@ -94,7 +95,7 @@ function clearCandidate() {
   el('cRank').value = 'A+';
   el('cType').value = '主播/VTuber';
   el('cState').value = '待互动';
-  el('cList').value = 'Desktop Companion Players';
+  el('cList').value = '桌面陪伴玩家';
   el('cRisk').value = '无明显连接';
   el('cNotes').value = '';
 }
@@ -130,7 +131,7 @@ function deleteCandidate(id) {
 function cycleKeyword(id) {
   const k = data.keywords.find(x => x.id === id);
   if (!k) return;
-  k.status = k.status === 'testing' ? 'good' : k.status === 'good' ? 'bad' : 'testing';
+  k.status = k.status === 'testing' ? 'good' : k.status === 'good' ? 'great' : k.status === 'great' ? 'bad' : 'testing';
   save();
 }
 function openKeywordModal(id = '') {
