@@ -20,5 +20,7 @@ export function readKeywords() { return request('/api/keywords', 'GET'); }
 export function writeKeywords(data) { return request('/api/keywords', 'POST', data); }
 export function readCandidates() { return request('/api/candidates', 'GET'); }
 export function writeCandidates(data) { return request('/api/candidates', 'POST', data); }
+export function readTabs() { return request('/api/tabs', 'GET'); }
+export function writeTabs(data) { return request('/api/tabs', 'POST', data); }
 export function getConfig() { return request('/api/config', 'GET'); }
 export function setConfig(cfg) { return request('/api/config', 'POST', cfg); }

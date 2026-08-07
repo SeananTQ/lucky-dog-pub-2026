@@ -11,7 +11,7 @@ const { exec } = require('child_process');
 const ROOT = __dirname; // server.js 所在目录，作为所有相对路径基准（保证整个文件夹可移动）
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');
-const DEFAULT_CONFIG = { keywordsFile: 'data/keywords.json', candidatesFile: 'data/candidates.json', preferredPort: 3020 };
+const DEFAULT_CONFIG = { keywordsFile: 'data/keywords.json', candidatesFile: 'data/candidates.json', tabsFile: 'data/tabs.json', preferredPort: 3020 };
 
 // 把用户填的保存位置解析成绝对路径：相对路径以项目根为基准，绝对路径直接用
 function resolveDataPath(p) {
@@ -26,6 +26,7 @@ function loadConfig() {
   const cfg = {
     keywordsFile: raw.keywordsFile || DEFAULT_CONFIG.keywordsFile,
     candidatesFile: raw.candidatesFile || DEFAULT_CONFIG.candidatesFile,
+    tabsFile: raw.tabsFile || DEFAULT_CONFIG.tabsFile,
     preferredPort: Number(raw.preferredPort) || DEFAULT_CONFIG.preferredPort,
   };
 
@@ -36,8 +37,8 @@ function loadConfig() {
   if (hasLegacy && !splitReady) {
     try {
       const d = JSON.parse(fs.readFileSync(legacyFile, 'utf8'));
-      writeFileAtomic(resolveDataPath(cfg.keywordsFile), { schemaVersion: 3, keywords: d.keywords || [], collapsed: !!d.collapsed, updatedAt: d.updatedAt || Date.now() });
-      writeFileAtomic(resolveDataPath(cfg.candidatesFile), { schemaVersion: 3, candidates: d.candidates || [], updatedAt: d.updatedAt || Date.now() });
+      writeFileAtomic(resolveDataPath(cfg.keywordsFile), { schemaVersion: 4, keywords: d.keywords || [], collapsed: !!d.collapsed, updatedAt: d.updatedAt || Date.now() });
+      writeFileAtomic(resolveDataPath(cfg.candidatesFile), { schemaVersion: 4, candidates: d.candidates || [], updatedAt: d.updatedAt || Date.now() });
       fs.renameSync(legacyFile, legacyFile + '.legacy.bak');
       console.log('已把旧合并数据拆分为 关键词/候选人 两个文件。');
     } catch (e) {
@@ -45,15 +46,59 @@ function loadConfig() {
     }
   }
 
+  migrateToTabs(cfg);
+
   saveConfig(cfg);
   return cfg;
+}
+
+// 页签化迁移：确保 tabs.json 存在；把扁平的关键词/候选人文件包成按页签的 map
+function migrateToTabs(cfg) {
+  const tabsFile = resolveDataPath(cfg.tabsFile);
+  const kwFile = resolveDataPath(cfg.keywordsFile);
+  const cdFile = resolveDataPath(cfg.candidatesFile);
+
+  // 1. tabs.json：不存在则创建默认页签
+  let tabsData = readFile(tabsFile);
+  if (!tabsData || !Array.isArray(tabsData.tabs) || tabsData.tabs.length === 0) {
+    tabsData = {
+      schemaVersion: 4,
+      tabs: [
+        { id: 'steam', name: 'Steam桌宠用户' },
+        { id: 'shiba', name: '柴犬用户' },
+      ],
+      activeId: 'steam',
+      updatedAt: Date.now(),
+    };
+    writeFileAtomic(tabsFile, tabsData);
+    console.log('已创建默认页签（Steam桌宠用户 / 柴犬用户）。');
+  }
+  const tabIds = tabsData.tabs.map(t => t.id);
+
+  // 2. 关键词文件：扁平 -> 按页签 map
+  const kw = readFile(kwFile);
+  if (kw && Array.isArray(kw.keywords) && !kw.tabs) {
+    const map = { steam: { keywords: kw.keywords, collapsed: !!kw.collapsed } };
+    tabIds.forEach(id => { if (id !== 'steam' && !map[id]) map[id] = { keywords: [], collapsed: false }; });
+    writeFileAtomic(kwFile, { schemaVersion: 4, tabs: map, updatedAt: kw.updatedAt || Date.now() });
+    console.log('已将关键词文件升级为按页签存储。');
+  }
+
+  // 3. 候选人文件：扁平 -> 按页签 map
+  const cd = readFile(cdFile);
+  if (cd && Array.isArray(cd.candidates) && !cd.tabs) {
+    const map = { steam: { candidates: cd.candidates } };
+    tabIds.forEach(id => { if (id !== 'steam' && !map[id]) map[id] = { candidates: [] }; });
+    writeFileAtomic(cdFile, { schemaVersion: 4, tabs: map, updatedAt: cd.updatedAt || Date.now() });
+    console.log('已将候选人文件升级为按页签存储。');
+  }
 }
 function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
 }
 function configView(cfg) {
   // 暴露给前端的配置视图：相对路径保留原样显示，绝对路径原样显示
-  return { keywordsFile: cfg.keywordsFile, candidatesFile: cfg.candidatesFile, preferredPort: cfg.preferredPort, root: ROOT };
+  return { keywordsFile: cfg.keywordsFile, candidatesFile: cfg.candidatesFile, tabsFile: cfg.tabsFile, preferredPort: cfg.preferredPort, root: ROOT };
 }
 
 const config = loadConfig();
@@ -72,8 +117,10 @@ function writeFileAtomic(abs, obj) {
 }
 const readKeywords = () => readFile(resolveDataPath(config.keywordsFile));
 const readCandidates = () => readFile(resolveDataPath(config.candidatesFile));
+const readTabs = () => readFile(resolveDataPath(config.tabsFile));
 const writeKeywords = (d) => writeFileAtomic(resolveDataPath(config.keywordsFile), d);
 const writeCandidates = (d) => writeFileAtomic(resolveDataPath(config.candidatesFile), d);
+const writeTabs = (d) => writeFileAtomic(resolveDataPath(config.tabsFile), d);
 
 // ---------- 静态文件 / MIME ----------
 const MIME = {
@@ -124,6 +171,13 @@ const server = http.createServer(async (req, res) => {
       writeCandidates(d);
       return sendJson(res, 200, { ok: true });
     }
+    if (p === '/api/tabs' && req.method === 'GET') return sendJson(res, 200, dataReply(readTabs()));
+    if (p === '/api/tabs' && req.method === 'POST') {
+      const d = await readBody(req);
+      if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
+      writeTabs(d);
+      return sendJson(res, 200, { ok: true });
+    }
     if (p === '/api/config' && req.method === 'GET') {
       return sendJson(res, 200, configView(config));
     }
@@ -134,6 +188,9 @@ const server = http.createServer(async (req, res) => {
       }
       if (body.candidatesFile !== undefined && typeof body.candidatesFile === 'string' && body.candidatesFile.trim()) {
         config.candidatesFile = body.candidatesFile.trim();
+      }
+      if (body.tabsFile !== undefined && typeof body.tabsFile === 'string' && body.tabsFile.trim()) {
+        config.tabsFile = body.tabsFile.trim();
       }
       if (body.preferredPort !== undefined) {
         const port = Number(body.preferredPort);
@@ -182,6 +239,7 @@ function listenWithFallback(port, maxAttempts) {
   console.log(` 服务地址: ${url}`);
   console.log(` 关键词文件: ${config.keywordsFile}`);
   console.log(` 候选人文件: ${config.candidatesFile}`);
+  console.log(` 页签文件: ${config.tabsFile}`);
   console.log(' 按 Ctrl+C 停止服务');
   console.log('==============================================');
   // Windows 自动打开浏览器到实际端口

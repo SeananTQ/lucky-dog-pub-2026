@@ -2,7 +2,7 @@
 // upgrade() 是唯一的"旧格式 → 新格式"入口，未来升版本时在此追加步骤即可。
 import { seed, seedKeywords, uid } from './seed.js';
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 // 旧数据的英文 LIST → 中文（升级时统一转换）
 const LIST_TRANSLATION = {
@@ -61,6 +61,32 @@ export function mergeSeeds(data) {
     ),
   };
   return merged;
+}
+
+// ---------- 页签（分组工作台）归一化 ----------
+const DEFAULT_TABS = [
+  { id: 'steam', name: 'Steam桌宠用户' },
+  { id: 'shiba', name: '柴犬用户' },
+];
+
+// 归一化页签列表；返回 { tabs, activeId }
+export function normalizeTabs(raw) {
+  const tabs = (raw?.tabs && Array.isArray(raw.tabs) && raw.tabs.length > 0)
+    ? raw.tabs.map(t => ({ id: t.id || uid(), name: t.name || '未命名' }))
+    : DEFAULT_TABS.map(t => ({ ...t }));
+  let activeId = raw?.activeId;
+  if (!tabs.some(t => t.id === activeId)) activeId = tabs[0].id;
+  return { tabs, activeId };
+}
+
+// 确保每个页签 id 都在关键词/候选人 map 里有键（缺则给空结构）
+export function ensureTabKeys(map, tabIds, empty) {
+  const m = map && typeof map === 'object' ? map : {};
+  tabIds.forEach(id => {
+    if (!m[id]) m[id] = { ...empty };
+    else m[id] = { ...empty, ...m[id] };
+  });
+  return m;
 }
 
 // 从浏览器 localStorage 读取旧数据；返回 { data, from }，没有则返回 null

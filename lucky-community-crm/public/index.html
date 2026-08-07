@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lucky Dog Rise · X 潜在用户搜索台 V3</title>
+<title>Lucky Dog Rise · X 潜在用户搜索台 V4</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header><h1>Lucky Dog Rise · X 潜在用户搜索台 V3</h1><p>罗勒奶油宽屏工作台 · 自动保存 · 支持 S / A+ / A / B / C · 完整关键词库</p></header>
+<header><h1>Lucky Dog Rise · X 潜在用户搜索台 V4</h1><p>罗勒奶油宽屏工作台 · 自动保存 · 支持 S / A+ / A / B / C · 完整关键词库</p></header>
+<nav id="tabBar" class="tabs"></nav>
 <div class="workspace">
   <section class="panel">
     <div class="panel-title"><span>候选人列表</span><span id="saveState" class="save-indicator">已自动保存</span></div>
@@ -80,6 +81,7 @@
         <div class="section-note">关键词文件与候选人文件保存位置。填<strong>相对路径</strong>（如 <code>data/keywords.json</code>）会随项目文件夹移动；填<strong>绝对路径</strong>则不会随项目移动。</div>
         <div><label>关键词文件路径</label><input id="cfgKeywordsFile" placeholder="data/keywords.json"></div>
         <div><label>候选人文件路径</label><input id="cfgCandidatesFile" placeholder="data/candidates.json"></div>
+        <div><label>页签文件路径</label><input id="cfgTabsFile" placeholder="data/tabs.json"></div>
         <div class="actions"><button id="saveConfigBtn" class="btn primary">保存设置</button><span id="cfgStatus" class="save-indicator"></span></div>
       </div>
     </section>

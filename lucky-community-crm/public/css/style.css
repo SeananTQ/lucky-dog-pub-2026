@@ -7,6 +7,12 @@
 button,input,select,textarea{font:inherit}button{cursor:pointer}
 header{position:sticky;top:0;z-index:20;padding:14px 20px;background:rgba(255,250,241,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 4px 16px rgba(73,86,64,.05)}
 header h1{margin:0;color:#236b4a;font-size:24px}header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px 0;position:sticky;top:74px;z-index:15}
+.tabs .tab{border:1px solid var(--line);background:#fffaf1;color:var(--text);border-radius:999px 999px 0 0;padding:8px 16px;font-weight:800;font-size:14px;border-bottom:0}
+.tabs .tab:hover{filter:brightness(1.02)}
+.tabs .tab.active{background:var(--accent);border-color:#236b4a;color:#fff}
+.tabs .tab.add{border-radius:999px;border:1px dashed var(--line);background:transparent;color:var(--muted);font-weight:700;padding:8px 12px}
+.tabs .tab-manage{margin-left:auto;display:flex;gap:7px}
 .workspace{display:grid;grid-template-columns:430px minmax(760px,1fr) 470px;gap:16px;padding:16px;align-items:start;min-width:1660px}
 .panel{background:rgba(255,250,241,.96);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);overflow:hidden}
 .panel-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#e7f0e3,#f7f1e6);color:#226f4d;font-weight:800}
