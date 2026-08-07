@@ -1,38 +1,27 @@
-// 入口：启动流程、页签+关键词+候选人三文件加载、首次运行迁移
+// 入口：启动流程、加载全部页签的独立文件、首次运行迁移
 import * as api from './api.js';
 import * as ui from './ui.js';
-import { mergeSeeds, normalizeTabs, ensureTabKeys, readLocalStorageMigrations } from './data.js';
+import { mergeSeeds, normalizeTabs, readLocalStorageMigrations } from './data.js';
 
 async function boot() {
-  const [tr, kr, cr] = await Promise.all([api.readTabs(), api.readKeywords(), api.readCandidates()]);
-
+  const tr = await api.readTabs();
   const { tabs, activeId } = normalizeTabs(tr?.exists ? tr.data : null);
   const tabIds = tabs.map(t => t.id);
-  let firstRun = false;
+  let firstRun = !tr?.exists;
 
-  // 关键词 map：文件已是按页签结构则用；否则按默认页签起步
-  let kwMap;
-  if (kr.exists && kr.data && kr.data.tabs) {
-    kwMap = ensureTabKeys(kr.data.tabs, tabIds, { keywords: [], collapsed: false });
-  } else {
-    firstRun = true;
-    const base = (kr.exists && Array.isArray(kr.data?.keywords)) ? kr.data.keywords : [];
-    kwMap = ensureTabKeys({ [tabIds[0]]: { keywords: base, collapsed: false } }, tabIds, { keywords: [], collapsed: false });
-  }
-
-  // 候选人 map
-  let cdMap;
-  if (cr.exists && cr.data && cr.data.tabs) {
-    cdMap = ensureTabKeys(cr.data.tabs, tabIds, { candidates: [] });
-  } else {
-    firstRun = true;
-    const base = (cr.exists && Array.isArray(cr.data?.candidates)) ? cr.data.candidates : [];
-    cdMap = ensureTabKeys({ [tabIds[0]]: { candidates: base } }, tabIds, { candidates: [] });
-  }
+  // 加载每个页签独立的关键词/候选人文件
+  const kwMap = {};
+  const cdMap = {};
+  await Promise.all(tabIds.map(async id => {
+    const [kr, cr] = await Promise.all([api.readKeywords(id), api.readCandidates(id)]);
+    if (!kr.exists || !cr.exists) firstRun = true;
+    kwMap[id] = { keywords: kr.exists ? (kr.data.keywords || []) : [], collapsed: kr.exists ? !!kr.data.collapsed : false };
+    cdMap[id] = { candidates: cr.exists ? (cr.data.candidates || []) : [] };
+  }));
 
   // 首次运行：尝试从旧 localStorage 迁移到默认页签
   let migratedFrom = null;
-  if (firstRun && !kr.exists && !cr.exists) {
+  if (firstRun && tabIds.length > 0) {
     const mig = readLocalStorageMigrations();
     if (mig) {
       kwMap[tabIds[0]].keywords = mergeSeeds(mig.data).keywords;
@@ -45,9 +34,12 @@ async function boot() {
   ui.initUI();
   ui.render();
 
+  // 首次运行：把每个页签落盘
   if (firstRun) {
-    await ui.saveKeywords();
-    await ui.saveCandidates();
+    for (const id of tabIds) {
+      await api.writeKeywords(id, { schemaVersion: 4, keywords: kwMap[id].keywords, collapsed: kwMap[id].collapsed, updatedAt: Date.now() });
+      await api.writeCandidates(id, { schemaVersion: 4, candidates: cdMap[id].candidates, updatedAt: Date.now() });
+    }
     await ui.persistTabs();
   }
 

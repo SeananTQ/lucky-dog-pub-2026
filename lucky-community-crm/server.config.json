@@ -1,6 +1,6 @@
 {
-  "keywordsFile": "data/keywords.json",
-  "candidatesFile": "data/candidates.json",
+  "keywordsDir": "data/keywords",
+  "candidatesDir": "data/candidates",
   "tabsFile": "data/tabs.json",
   "preferredPort": 3020
 }

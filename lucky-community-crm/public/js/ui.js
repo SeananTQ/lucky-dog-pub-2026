@@ -53,14 +53,14 @@ function flashSaved() {
 export async function saveKeywords() {
   data.updatedAt = Date.now();
   syncActiveToMaps();
-  await api.writeKeywords({ schemaVersion: CURRENT_SCHEMA_VERSION, tabs: kwMap, updatedAt: data.updatedAt });
+  await api.writeKeywords(activeId, { schemaVersion: CURRENT_SCHEMA_VERSION, keywords: kwMap[activeId].keywords, collapsed: kwMap[activeId].collapsed, updatedAt: data.updatedAt });
   flashSaved();
   render();
 }
 export async function saveCandidates() {
   data.updatedAt = Date.now();
   syncActiveToMaps();
-  await api.writeCandidates({ schemaVersion: CURRENT_SCHEMA_VERSION, tabs: cdMap, updatedAt: data.updatedAt });
+  await api.writeCandidates(activeId, { schemaVersion: CURRENT_SCHEMA_VERSION, candidates: cdMap[activeId].candidates, updatedAt: data.updatedAt });
   flashSaved();
   render();
 }
@@ -136,7 +136,7 @@ function renderKeywords() {
   });
   box.querySelectorAll('[data-open-k]').forEach(a => a.onclick = () => {
     const k = data.keywords.find(x => x.id === a.dataset.openK);
-    if (k) { k.opens++; api.writeKeywords(keywordObj()); renderStats(); }
+    if (k) { k.opens++; api.writeKeywords(activeId, keywordObj()); renderStats(); }
   });
   box.querySelectorAll('[data-cycle-k]').forEach(b => b.onclick = () => cycleKeyword(b.dataset.cycleK));
   box.querySelectorAll('[data-edit-k]').forEach(b => b.onclick = () => openKeywordModal(b.dataset.editK));
@@ -266,7 +266,8 @@ async function addTab() {
   activeId = id;
   rebuildDataFromActive();
   await persistTabs();
-  render();
+  await saveKeywords(); // 写入新页签的关键词文件
+  await saveCandidates(); // 写入新页签的候选人文件
 }
 async function renameTab() {
   const t = tabs.find(x => x.id === activeId);
@@ -281,13 +282,28 @@ async function deleteTab() {
   if (tabs.length <= 1) { alert('至少保留一个页签。'); return; }
   const t = tabs.find(x => x.id === activeId);
   if (!confirm(`删除页签「${t.name}」？其关键词与候选人将一并删除。`)) return;
-  tabs = tabs.filter(x => x.id !== activeId);
-  delete kwMap[activeId];
-  delete cdMap[activeId];
+  const delId = activeId;
+  tabs = tabs.filter(x => x.id !== delId);
+  delete kwMap[delId];
+  delete cdMap[delId];
+  await api.deleteKeywords(delId); // 删除该页签的关键词文件
+  await api.deleteCandidates(delId); // 删除该页签的候选人文件
   activeId = tabs[0].id;
   rebuildDataFromActive();
   await persistTabs();
   render();
+}
+
+// 从导入文件里提取某类数据：兼容扁平格式（顶层 keywords/candidates）和备份/映射格式（顶层 tabs）
+function extractField(raw, activeId, field) {
+  if (!raw || typeof raw !== 'object') return [];
+  if (Array.isArray(raw[field])) return raw[field];
+  if (raw.tabs && typeof raw.tabs === 'object') {
+    if (raw.tabs[activeId]?.[field]) return raw.tabs[activeId][field];
+    const ids = Object.keys(raw.tabs);
+    if (ids.length > 0) return raw.tabs[ids[0]]?.[field] || [];
+  }
+  return [];
 }
 
 // ---------- 事件绑定 + 配置面板 ----------
@@ -379,10 +395,11 @@ export function initUI() {
     const f = e.target.files[0];
     if (!f) return;
     try {
-      data.keywords = mergeSeeds(upgrade(JSON.parse(await f.text()))).keywords;
+      const parsed = JSON.parse(await f.text());
+      data.keywords = upgrade({ keywords: extractField(parsed, activeId, 'keywords') }).keywords;
       data.collapsed = false;
       saveKeywords();
-      alert('关键词导入成功。');
+      alert(`关键词导入成功（${data.keywords.length} 条，干净替换当前页签）。`);
     } catch (err) {
       alert('无法识别这个 JSON 文件。');
     }
@@ -392,9 +409,10 @@ export function initUI() {
     const f = e.target.files[0];
     if (!f) return;
     try {
-      data.candidates = upgrade(JSON.parse(await f.text())).candidates;
+      const parsed = JSON.parse(await f.text());
+      data.candidates = upgrade({ candidates: extractField(parsed, activeId, 'candidates') }).candidates;
       saveCandidates();
-      alert('候选人导入成功。');
+      alert(`候选人导入成功（${data.candidates.length} 人，干净替换当前页签）。`);
     } catch (err) {
       alert('无法识别这个 JSON 文件。');
     }
@@ -410,20 +428,20 @@ export function initUI() {
 
   // 保存位置设置（两个文件）
   api.getConfig().then(cfg => {
-    el('cfgKeywordsFile').value = cfg.keywordsFile;
-    el('cfgCandidatesFile').value = cfg.candidatesFile;
+    el('cfgKeywordsDir').value = cfg.keywordsDir;
+    el('cfgCandidatesDir').value = cfg.candidatesDir;
     el('cfgTabsFile').value = cfg.tabsFile;
   }).catch(() => {});
   el('saveConfigBtn').onclick = async () => {
-    const kw = el('cfgKeywordsFile').value.trim();
-    const cd = el('cfgCandidatesFile').value.trim();
+    const kw = el('cfgKeywordsDir').value.trim();
+    const cd = el('cfgCandidatesDir').value.trim();
     const tb = el('cfgTabsFile').value.trim();
-    if (!kw || !cd || !tb) return alert('请填写三个数据文件路径。');
-    const cfg = await api.setConfig({ keywordsFile: kw, candidatesFile: cd, tabsFile: tb });
+    if (!kw || !cd || !tb) return alert('请填写关键词目录、候选人目录、页签文件路径。');
+    const cfg = await api.setConfig({ keywordsDir: kw, candidatesDir: cd, tabsFile: tb });
     el('cfgStatus').textContent = '已保存（重启后生效）';
     setTimeout(() => { el('cfgStatus').textContent = ''; }, 2500);
-    el('cfgKeywordsFile').value = cfg.keywordsFile;
-    el('cfgCandidatesFile').value = cfg.candidatesFile;
+    el('cfgKeywordsDir').value = cfg.keywordsDir;
+    el('cfgCandidatesDir').value = cfg.candidatesDir;
     el('cfgTabsFile').value = cfg.tabsFile;
   };
 

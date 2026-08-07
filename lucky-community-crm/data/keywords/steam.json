@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 4,
+  "keywords": [
+    {
+      "id": "2ca8cf3e-52a6-4058-96e9-9b63091a2226",
+      "group": "Bongo Cat · 情感投入",
+      "q": "\"Bongo Cat\" obsessed",
+      "why": "寻找明确表达上瘾、喜爱的真实玩家。",
+      "status": "good",
+      "note": "",
+      "opens": 4
+    },
+    {
+      "id": "e5b054fb-cddd-4e0b-b060-31f55e982818",
+      "group": "Bongo Cat · 情感投入",
+      "q": "\"Bongo Cat\" addicted",
+      "why": "寻找高情感投入用户。",
+      "status": "good",
+      "note": "",
+      "opens": 4
+    },
+    {
+      "id": "8cfdcc7d-8ce4-4602-8fd6-038b602cd167",
+      "group": "Bongo Cat · 收集",
+      "q": "\"Bongo Cat\" hats",
+      "why": "帽子收集与 Lucky Dog 装扮系统高度重合。",
+      "status": "good",
+      "note": "",
+      "opens": 2
+    },
+    {
+      "id": "e6569ab0-a295-4383-944e-2ca256c7d74d",
+      "group": "Bongo Cat · 收集",
+      "q": "\"Bongo Cat\" skins",
+      "why": "寻找在意皮肤和装扮的玩家。",
+      "status": "good",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "911369b9-0747-4e22-997e-22b674317fb6",
+      "group": "Bongo Cat · 使用场景",
+      "q": "\"Bongo Cat\" while working",
+      "why": "验证工作陪伴需求。",
+      "status": "good",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "67078c2d-4a0a-458c-98f3-856db57d41ca",
+      "group": "Bongo Cat · 使用场景",
+      "q": "\"Bongo Cat\" while studying",
+      "why": "验证学习陪伴需求。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "643d5e73-6d2b-4811-8d9a-c9742f9146a2",
+      "group": "Bongo Cat · 桌面常驻",
+      "q": "\"Bongo Cat\" taskbar",
+      "why": "寻找主动晒任务栏截图的人。",
+      "status": "good",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "0da04007-3369-4bc5-a17d-d73fb9e1c0f9",
+      "group": "Bongo Cat · 桌面常驻",
+      "q": "\"Bongo Cat\" desktop",
+      "why": "寻找桌面常驻截图与使用体验。",
+      "status": "great",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "26166252-2c54-4483-90e8-87fdaa78df0f",
+      "group": "Bongo Cat · 社交传播",
+      "q": "\"Bongo Cat\" friends",
+      "why": "寻找会拉朋友一起安装、具有社交传播力的人。",
+      "status": "great",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "99a91802-169e-428d-bde2-b1abb217fc31",
+      "group": "Bongo Cat · 社交传播",
+      "q": "\"Bongo Cat\" screenshot",
+      "why": "寻找愿意公开分享使用画面的用户。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "00ef1651-5e17-481c-8803-14b1bc3168ea",
+      "group": "其他桌面游戏",
+      "q": "\"Cornerpond\"",
+      "why": "Bongo Cat 相邻用户池。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "286e2347-d1ca-4eb8-9f7d-f064f129a807",
+      "group": "其他桌面游戏",
+      "q": "\"Rusty's Retirement\" \"while working\"",
+      "why": "寻找边工作边运行桌面游戏的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "bee4daea-c8be-4cda-bf4e-d7c9a5648217",
+      "group": "其他桌面游戏",
+      "q": "\"Rusty's Retirement\" desktop",
+      "why": "寻找桌面常驻使用者。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "65c427eb-5c9a-46b2-a7d9-21c1db00c1aa",
+      "group": "其他桌面游戏",
+      "q": "\"Desktop Mate\" screenshot",
+      "why": "寻找已晒桌面角色截图的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "96a17df3-f151-4a55-8a49-ed201a9b1566",
+      "group": "其他桌面游戏",
+      "q": "\"Desktop Mate\" \"while working\"",
+      "why": "验证工作陪伴场景。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "be927703-3bb9-4902-b232-f1fcd45988ae",
+      "group": "真实用户语言",
+      "q": "\"I love on-screen games\"",
+      "why": "极高价值表达；不是开发者营销词。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "c6f99dd0-8c81-4ea8-b1cb-bed76b8dc906",
+      "group": "真实用户语言",
+      "q": "\"games that stay on my desktop\"",
+      "why": "直接命中桌面常驻偏好。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "f21141f8-be75-4524-80da-f6b113547108",
+      "group": "真实用户语言",
+      "q": "\"little guy on my taskbar\"",
+      "why": "寻找把桌面角色人格化的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "7e1fdbb1-e4ad-4892-9812-c7e4057eb895",
+      "group": "真实用户语言",
+      "q": "\"keeps me company while I work\"",
+      "why": "寻找陪伴动机用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "bd602440-88f6-4bbe-998b-03da69401196",
+      "group": "真实用户语言",
+      "q": "\"collecting little hats\"",
+      "why": "寻找装扮收集动机。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "83924876-e0ae-45f8-86b4-434eb4f6b00c",
+      "group": "狗派精准需求",
+      "q": "\"Bongo Cat\" \"dog version\"",
+      "why": "最高精准度：明确想要狗版。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "5e7711c5-138b-4838-a2a2-ca0208c4ad61",
+      "group": "狗派精准需求",
+      "q": "\"Bongo Cat\" \"dog person\"",
+      "why": "寻找更偏爱狗的现有桌宠用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "f5af6671-f8e4-4517-a74e-0d5e1c35d619",
+      "group": "狗派精准需求",
+      "q": "\"wish this was a dog\"",
+      "why": "直接需求表达。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "c5277b40-1bf6-4f85-adb5-1885e4c0a72e",
+      "group": "狗派精准需求",
+      "q": "\"need a dog version\"",
+      "why": "直接需求表达。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "a07964c1-74d1-4084-a16e-f5e5f30ce98a",
+      "group": "Bongo Cat · 情感投入",
+      "q": "\"Bongo Cat\" love",
+      "why": "寻找自然表达喜欢 Bongo Cat 的用户。",
+      "status": "good",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "adab16ed-76d8-4eb6-9b49-4adbad33a4c0",
+      "group": "Bongo Cat · 收集",
+      "q": "\"Bongo Cat\" legendary hat",
+      "why": "寻找深度收集与长期游玩用户。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "7e3a8494-6242-4b1c-bfa8-db8b623ef65a",
+      "group": "Bongo Cat · 使用场景",
+      "q": "\"Bongo Cat\" \"while working\"",
+      "why": "验证工作陪伴需求。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "a692a4a9-8249-4846-b9ab-fcdcee6489c6",
+      "group": "Bongo Cat · 使用场景",
+      "q": "\"Bongo Cat\" \"while studying\"",
+      "why": "验证学习陪伴需求。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "6c4ac99d-2359-49af-a8d6-94942a5b01e5",
+      "group": "Bongo Cat · 使用场景",
+      "q": "\"Bongo Cat\" \"during the day\"",
+      "why": "寻找白天常驻与陪伴感表达。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "3d4843ca-b6bb-4ed5-8ec5-1b7eb00e8478",
+      "group": "Bongo Cat · 桌面常驻",
+      "q": "\"Bongo Cat\" \"on my PC\"",
+      "why": "寻找明确长期运行在电脑上的用户。",
+      "status": "bad",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "a9910cc8-ceeb-4b5b-88e0-2103c547f637",
+      "group": "Bongo Cat · 社交传播",
+      "q": "\"Bongo Cat\" Discord",
+      "why": "寻找会把房间代码分享到 Discord 的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 1
+    },
+    {
+      "id": "f1a2052a-2272-4c5c-8e0e-dd82e7fd2309",
+      "group": "Bongo Cat · 社交传播",
+      "q": "\"Bongo Cat\" room code",
+      "why": "寻找多人房间和社群使用者。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "13f44445-37cf-4422-a185-27c99cbf181c",
+      "group": "Bongo Cat · 活跃度",
+      "q": "\"Bongo Cat\" hours",
+      "why": "寻找长时间运行和深度使用者。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "289c70b9-230f-4c60-9976-6623c87daa40",
+      "group": "Bongo Cat · 活跃度",
+      "q": "\"Bongo Cat\" still playing",
+      "why": "寻找当前仍在使用的玩家。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "8ea4fd52-6e97-4ce4-bdcd-4cce58dcb627",
+      "group": "其他桌面游戏",
+      "q": "\"Rusty's Retirement\" \"while studying\"",
+      "why": "寻找学习时常驻的玩家。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "7d387ba0-6129-46d2-a1e7-0598f4a78cdc",
+      "group": "其他桌面游戏",
+      "q": "\"Desktop Mate\" desktop",
+      "why": "寻找桌面角色长期使用者。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "ab421d52-c5ae-4cc2-b177-4d0875523a36",
+      "group": "其他桌面游戏",
+      "q": "Shimeji desktop",
+      "why": "寻找熟悉桌面角色生态的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "6048e4e1-490b-4052-a086-33f2950c489c",
+      "group": "真实用户语言",
+      "q": "\"I love idle games\"",
+      "why": "寻找主动表达挂机游戏偏好的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "7a1b05fe-9e44-465b-80a0-0d7a317f20a9",
+      "group": "真实用户语言",
+      "q": "\"game that lives on my desktop\"",
+      "why": "寻找把游戏视为桌面居民的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "9080e413-a3fe-48f2-9743-c08ab0f4360a",
+      "group": "真实用户语言",
+      "q": "\"someone there with you during the day\"",
+      "why": "寻找明确强调白天陪伴感的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "cc5b431f-291e-4b58-a07e-8da7e45c196c",
+      "group": "真实用户语言",
+      "q": "\"my desktop feels alive\"",
+      "why": "寻找让电脑桌面更有生命感的需求。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "550c3e09-0f66-4521-9889-76b425697077",
+      "group": "真实用户语言",
+      "q": "\"leave it open all day\" game",
+      "why": "寻找全天常驻型使用者。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "2c4bcf57-09a8-45ce-8150-caa5fa6ac27e",
+      "group": "Steam Playtest 行为",
+      "q": "\"requested access\" Steam",
+      "why": "寻找会主动申请试玩资格的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "d2f9cb61-ada6-4157-b20f-d244279d559d",
+      "group": "Steam Playtest 行为",
+      "q": "\"requested the playtest\"",
+      "why": "寻找公开表达申请 Playtest 的玩家。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "21559aa5-78b7-4f0b-97f2-9ec9f4a1c814",
+      "group": "Steam Playtest 行为",
+      "q": "\"joined the playtest\" Steam",
+      "why": "寻找实际参加过试玩的用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "6dc83f9f-29ed-4f10-bd59-49083b954d3a",
+      "group": "Steam Playtest 行为",
+      "q": "\"wishlist and requested\"",
+      "why": "寻找愿望单 + 请求访问的完整行为。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "8f174e97-9ab2-40ad-96e3-232b52e83422",
+      "group": "Steam Playtest 行为",
+      "q": "\"Steam Playtest\" \"requested access\"",
+      "why": "更精确地抓主动测试用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "f1f1c943-a013-435b-a98a-97be42711958",
+      "group": "Steam Playtest 行为",
+      "q": "\"wishlisted and requested\" Steam",
+      "why": "寻找愿望单与 Playtest 双行为。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "e17e93d1-b0db-438e-a435-ba559e7ad246",
+      "group": "内容创作者信号",
+      "q": "\"Bongo Cat\" Twitch",
+      "why": "寻找主播或直播用户。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "9f3293ff-8af4-441f-9a6f-874ef52d5a8f",
+      "group": "内容创作者信号",
+      "q": "\"Bongo Cat\" streamer",
+      "why": "寻找会把桌宠带进直播场景的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "1fa94cd4-c483-4a09-937d-3d6897d3e18d",
+      "group": "内容创作者信号",
+      "q": "\"Bongo Cat\" VTuber",
+      "why": "寻找虚拟主播和可爱角色受众。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "97deceb2-2a08-41be-81ce-b6ec308b84b8",
+      "group": "内容创作者信号",
+      "q": "\"Bongo Cat\" \"LIVE NOW\"",
+      "why": "寻找正在直播或做内容的人。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    },
+    {
+      "id": "c3e04541-845d-40eb-ac1b-26f368947d6e",
+      "group": "内容创作者信号",
+      "q": "\"on-screen games\" Twitch",
+      "why": "寻找明确喜欢屏幕常驻游戏的主播。",
+      "status": "testing",
+      "note": "",
+      "opens": 0
+    }
+  ],
+  "collapsed": false,
+  "updatedAt": 1786095769424
+}

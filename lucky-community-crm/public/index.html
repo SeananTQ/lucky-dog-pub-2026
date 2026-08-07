@@ -77,9 +77,9 @@
     <section class="panel">
       <div class="panel-title">保存位置设置</div>
       <div class="panel-body stack">
-        <div class="section-note">关键词文件与候选人文件保存位置。填<strong>相对路径</strong>（如 <code>data/keywords.json</code>）会随项目文件夹移动；填<strong>绝对路径</strong>则不会随项目移动。</div>
-        <div><label>关键词文件路径</label><input id="cfgKeywordsFile" placeholder="data/keywords.json"></div>
-        <div><label>候选人文件路径</label><input id="cfgCandidatesFile" placeholder="data/candidates.json"></div>
+        <div class="section-note">数据保存位置。每个页签在关键词/候选人目录下各占一个文件。填<strong>相对路径</strong>会随项目文件夹移动；填<strong>绝对路径</strong>则不会。</div>
+        <div><label>关键词目录</label><input id="cfgKeywordsDir" placeholder="data/keywords"></div>
+        <div><label>候选人目录</label><input id="cfgCandidatesDir" placeholder="data/candidates"></div>
         <div><label>页签文件路径</label><input id="cfgTabsFile" placeholder="data/tabs.json"></div>
         <div class="actions"><button id="saveConfigBtn" class="btn primary">保存设置</button><span id="cfgStatus" class="save-indicator"></span></div>
       </div>

@@ -11,11 +11,12 @@ const { exec } = require('child_process');
 const ROOT = __dirname; // server.js 所在目录，作为所有相对路径基准（保证整个文件夹可移动）
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');
-const DEFAULT_CONFIG = { keywordsFile: 'data/keywords.json', candidatesFile: 'data/candidates.json', tabsFile: 'data/tabs.json', preferredPort: 3020 };
+const DEFAULT_CONFIG = { keywordsDir: 'data/keywords', candidatesDir: 'data/candidates', tabsFile: 'data/tabs.json', preferredPort: 3020 };
 
 // 把用户填的保存位置解析成绝对路径：相对路径以项目根为基准，绝对路径直接用
-function resolveDataPath(p) {
-  return path.isAbsolute(p) ? p : path.resolve(ROOT, p);
+function resolveDataPath(...segments) {
+  const joined = path.join(...segments);
+  return path.isAbsolute(joined) ? joined : path.resolve(ROOT, joined);
 }
 
 // ---------- 配置 ----------
@@ -24,41 +25,23 @@ function loadConfig() {
   try { raw = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch {}
 
   const cfg = {
-    keywordsFile: raw.keywordsFile || DEFAULT_CONFIG.keywordsFile,
-    candidatesFile: raw.candidatesFile || DEFAULT_CONFIG.candidatesFile,
+    keywordsDir: raw.keywordsDir || DEFAULT_CONFIG.keywordsDir,
+    candidatesDir: raw.candidatesDir || DEFAULT_CONFIG.candidatesDir,
     tabsFile: raw.tabsFile || DEFAULT_CONFIG.tabsFile,
     preferredPort: Number(raw.preferredPort) || DEFAULT_CONFIG.preferredPort,
   };
 
-  // 旧版单文件迁移：把合并的 database.json 拆成关键词/候选人两个文件
-  const legacyFile = raw.dataFile ? resolveDataPath(raw.dataFile) : resolveDataPath('data/database.json');
-  const hasLegacy = fs.existsSync(legacyFile);
-  const splitReady = fs.existsSync(resolveDataPath(cfg.keywordsFile)) && fs.existsSync(resolveDataPath(cfg.candidatesFile));
-  if (hasLegacy && !splitReady) {
-    try {
-      const d = JSON.parse(fs.readFileSync(legacyFile, 'utf8'));
-      writeFileAtomic(resolveDataPath(cfg.keywordsFile), { schemaVersion: 4, keywords: d.keywords || [], collapsed: !!d.collapsed, updatedAt: d.updatedAt || Date.now() });
-      writeFileAtomic(resolveDataPath(cfg.candidatesFile), { schemaVersion: 4, candidates: d.candidates || [], updatedAt: d.updatedAt || Date.now() });
-      fs.renameSync(legacyFile, legacyFile + '.legacy.bak');
-      console.log('已把旧合并数据拆分为 关键词/候选人 两个文件。');
-    } catch (e) {
-      console.error('迁移旧数据失败：', e.message);
-    }
-  }
-
-  migrateToTabs(cfg);
+  migrateToPerTab(cfg, raw);
 
   saveConfig(cfg);
   return cfg;
 }
 
-// 页签化迁移：确保 tabs.json 存在；把扁平的关键词/候选人文件包成按页签的 map
-function migrateToTabs(cfg) {
+// 页签独立文件迁移：把旧格式（合并 database.json / 扁平 / 单文件 map）收敛成"每页签一个文件"
+function migrateToPerTab(cfg, raw) {
   const tabsFile = resolveDataPath(cfg.tabsFile);
-  const kwFile = resolveDataPath(cfg.keywordsFile);
-  const cdFile = resolveDataPath(cfg.candidatesFile);
 
-  // 1. tabs.json：不存在则创建默认页签
+  // 1. tabs.json 确保存在
   let tabsData = readFile(tabsFile);
   if (!tabsData || !Array.isArray(tabsData.tabs) || tabsData.tabs.length === 0) {
     tabsData = {
@@ -75,30 +58,64 @@ function migrateToTabs(cfg) {
   }
   const tabIds = tabsData.tabs.map(t => t.id);
 
-  // 2. 关键词文件：扁平 -> 按页签 map
-  const kw = readFile(kwFile);
-  if (kw && Array.isArray(kw.keywords) && !kw.tabs) {
-    const map = { steam: { keywords: kw.keywords, collapsed: !!kw.collapsed } };
-    tabIds.forEach(id => { if (id !== 'steam' && !map[id]) map[id] = { keywords: [], collapsed: false }; });
-    writeFileAtomic(kwFile, { schemaVersion: 4, tabs: map, updatedAt: kw.updatedAt || Date.now() });
-    console.log('已将关键词文件升级为按页签存储。');
+  // 2. 旧合并 database.json 拆分（若存在且尚未处理）
+  const legacyFile = raw.dataFile ? resolveDataPath(raw.dataFile) : resolveDataPath('data/database.json');
+  if (fs.existsSync(legacyFile)) {
+    const legacy = readFile(legacyFile);
+    if (legacy) {
+      writeFileAtomic(resolveDataPath(cfg.keywordsDir, 'steam.json'), { schemaVersion: 4, keywords: legacy.keywords || [], collapsed: !!legacy.collapsed, updatedAt: legacy.updatedAt || Date.now() });
+      writeFileAtomic(resolveDataPath(cfg.candidatesDir, 'steam.json'), { schemaVersion: 4, candidates: legacy.candidates || [], updatedAt: legacy.updatedAt || Date.now() });
+      fs.renameSync(legacyFile, legacyFile + '.legacy.bak');
+      console.log('已把旧合并数据拆分为 关键词/候选人 独立文件。');
+    }
   }
 
-  // 3. 候选人文件：扁平 -> 按页签 map
-  const cd = readFile(cdFile);
-  if (cd && Array.isArray(cd.candidates) && !cd.tabs) {
-    const map = { steam: { candidates: cd.candidates } };
-    tabIds.forEach(id => { if (id !== 'steam' && !map[id]) map[id] = { candidates: [] }; });
-    writeFileAtomic(cdFile, { schemaVersion: 4, tabs: map, updatedAt: cd.updatedAt || Date.now() });
-    console.log('已将候选人文件升级为按页签存储。');
+  // 3. 旧单文件（扁平或 map）迁移到按页签文件
+  migrateOldTypeFile('keywords', cfg, raw, tabIds);
+  migrateOldTypeFile('candidates', cfg, raw, tabIds);
+
+  // 4. 确保每个页签都有独立文件
+  tabIds.forEach(id => {
+    const kp = resolveDataPath(cfg.keywordsDir, id + '.json');
+    if (!fs.existsSync(kp)) writeFileAtomic(kp, { schemaVersion: 4, keywords: [], collapsed: false, updatedAt: Date.now() });
+    const cp = resolveDataPath(cfg.candidatesDir, id + '.json');
+    if (!fs.existsSync(cp)) writeFileAtomic(cp, { schemaVersion: 4, candidates: [], updatedAt: Date.now() });
+  });
+}
+
+// 把旧的关键词/候选人单文件（扁平或 map）拆成按页签的独立文件
+function migrateOldTypeFile(type, cfg, raw, tabIds) {
+  const isKw = type === 'keywords';
+  const oldKey = isKw ? 'keywordsFile' : 'candidatesFile';
+  const oldPath = raw[oldKey] ? resolveDataPath(raw[oldKey]) : resolveDataPath(isKw ? 'data/keywords.json' : 'data/candidates.json');
+  if (!fs.existsSync(oldPath)) return;
+  const data = readFile(oldPath);
+  if (!data) return;
+  const dir = isKw ? cfg.keywordsDir : cfg.candidatesDir;
+  const first = resolveDataPath(dir, tabIds[0] + '.json');
+  if (fs.existsSync(first)) return; // 已迁移过，跳过
+  let perTab;
+  if (data.tabs) {
+    perTab = data.tabs;
+  } else {
+    perTab = { [tabIds[0]]: isKw ? { keywords: data.keywords || [], collapsed: !!data.collapsed } : { candidates: data.candidates || [] } };
   }
+  tabIds.forEach(id => {
+    const t = perTab[id] || {};
+    const obj = isKw
+      ? { schemaVersion: 4, keywords: t.keywords || [], collapsed: !!t.collapsed, updatedAt: data.updatedAt || Date.now() }
+      : { schemaVersion: 4, candidates: t.candidates || [], updatedAt: data.updatedAt || Date.now() };
+    writeFileAtomic(resolveDataPath(dir, id + '.json'), obj);
+  });
+  fs.renameSync(oldPath, oldPath + '.map.bak');
+  console.log(`已将${isKw ? '关键词' : '候选人'}数据拆分为按页签独立文件。`);
 }
 function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
 }
 function configView(cfg) {
   // 暴露给前端的配置视图：相对路径保留原样显示，绝对路径原样显示
-  return { keywordsFile: cfg.keywordsFile, candidatesFile: cfg.candidatesFile, tabsFile: cfg.tabsFile, preferredPort: cfg.preferredPort, root: ROOT };
+  return { keywordsDir: cfg.keywordsDir, candidatesDir: cfg.candidatesDir, tabsFile: cfg.tabsFile, preferredPort: cfg.preferredPort, root: ROOT };
 }
 
 const config = loadConfig();
@@ -115,11 +132,15 @@ function writeFileAtomic(abs, obj) {
   fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), 'utf8');
   fs.renameSync(tmp, abs); // 原子替换，避免半写损坏
 }
-const readKeywords = () => readFile(resolveDataPath(config.keywordsFile));
-const readCandidates = () => readFile(resolveDataPath(config.candidatesFile));
+const kwPath = (id) => resolveDataPath(config.keywordsDir, id + '.json');
+const cdPath = (id) => resolveDataPath(config.candidatesDir, id + '.json');
+const readKeywords = (id) => readFile(kwPath(id));
+const writeKeywords = (id, d) => writeFileAtomic(kwPath(id), d);
+const deleteKeywords = (id) => { if (fs.existsSync(kwPath(id))) fs.unlinkSync(kwPath(id)); };
+const readCandidates = (id) => readFile(cdPath(id));
+const writeCandidates = (id, d) => writeFileAtomic(cdPath(id), d);
+const deleteCandidates = (id) => { if (fs.existsSync(cdPath(id))) fs.unlinkSync(cdPath(id)); };
 const readTabs = () => readFile(resolveDataPath(config.tabsFile));
-const writeKeywords = (d) => writeFileAtomic(resolveDataPath(config.keywordsFile), d);
-const writeCandidates = (d) => writeFileAtomic(resolveDataPath(config.candidatesFile), d);
 const writeTabs = (d) => writeFileAtomic(resolveDataPath(config.tabsFile), d);
 
 // ---------- 静态文件 / MIME ----------
@@ -157,19 +178,29 @@ const server = http.createServer(async (req, res) => {
     // ---------- JSON 接口 ----------
     const dataReply = (d) => (d ? { exists: true, data: d } : { exists: false });
 
-    if (p === '/api/keywords' && req.method === 'GET') return sendJson(res, 200, dataReply(readKeywords()));
-    if (p === '/api/keywords' && req.method === 'POST') {
-      const d = await readBody(req);
-      if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
-      writeKeywords(d);
-      return sendJson(res, 200, { ok: true });
+    const kwMatch = p.match(/^\/api\/keywords\/([A-Za-z0-9_-]+)$/);
+    if (kwMatch) {
+      const id = kwMatch[1];
+      if (req.method === 'GET') return sendJson(res, 200, dataReply(readKeywords(id)));
+      if (req.method === 'POST') {
+        const d = await readBody(req);
+        if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
+        writeKeywords(id, d);
+        return sendJson(res, 200, { ok: true });
+      }
+      if (req.method === 'DELETE') { deleteKeywords(id); return sendJson(res, 200, { ok: true }); }
     }
-    if (p === '/api/candidates' && req.method === 'GET') return sendJson(res, 200, dataReply(readCandidates()));
-    if (p === '/api/candidates' && req.method === 'POST') {
-      const d = await readBody(req);
-      if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
-      writeCandidates(d);
-      return sendJson(res, 200, { ok: true });
+    const cdMatch = p.match(/^\/api\/candidates\/([A-Za-z0-9_-]+)$/);
+    if (cdMatch) {
+      const id = cdMatch[1];
+      if (req.method === 'GET') return sendJson(res, 200, dataReply(readCandidates(id)));
+      if (req.method === 'POST') {
+        const d = await readBody(req);
+        if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
+        writeCandidates(id, d);
+        return sendJson(res, 200, { ok: true });
+      }
+      if (req.method === 'DELETE') { deleteCandidates(id); return sendJson(res, 200, { ok: true }); }
     }
     if (p === '/api/tabs' && req.method === 'GET') return sendJson(res, 200, dataReply(readTabs()));
     if (p === '/api/tabs' && req.method === 'POST') {
@@ -183,11 +214,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/config' && req.method === 'POST') {
       const body = await readBody(req);
-      if (body.keywordsFile !== undefined && typeof body.keywordsFile === 'string' && body.keywordsFile.trim()) {
-        config.keywordsFile = body.keywordsFile.trim();
+      if (body.keywordsDir !== undefined && typeof body.keywordsDir === 'string' && body.keywordsDir.trim()) {
+        config.keywordsDir = body.keywordsDir.trim();
       }
-      if (body.candidatesFile !== undefined && typeof body.candidatesFile === 'string' && body.candidatesFile.trim()) {
-        config.candidatesFile = body.candidatesFile.trim();
+      if (body.candidatesDir !== undefined && typeof body.candidatesDir === 'string' && body.candidatesDir.trim()) {
+        config.candidatesDir = body.candidatesDir.trim();
       }
       if (body.tabsFile !== undefined && typeof body.tabsFile === 'string' && body.tabsFile.trim()) {
         config.tabsFile = body.tabsFile.trim();
@@ -237,8 +268,8 @@ function listenWithFallback(port, maxAttempts) {
   console.log('==============================================');
   console.log(' Lucky Dog X 关系管理工作台');
   console.log(` 服务地址: ${url}`);
-  console.log(` 关键词文件: ${config.keywordsFile}`);
-  console.log(` 候选人文件: ${config.candidatesFile}`);
+  console.log(` 关键词目录: ${config.keywordsDir}`);
+  console.log(` 候选人目录: ${config.candidatesDir}`);
   console.log(` 页签文件: ${config.tabsFile}`);
   console.log(' 按 Ctrl+C 停止服务');
   console.log('==============================================');
