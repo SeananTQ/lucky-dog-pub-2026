@@ -16,7 +16,9 @@ async function request(url, method, body) {
   }
 }
 
-export function readData() { return request('/api/data', 'GET'); }
-export function writeData(data) { return request('/api/data', 'POST', data); }
+export function readKeywords() { return request('/api/keywords', 'GET'); }
+export function writeKeywords(data) { return request('/api/keywords', 'POST', data); }
+export function readCandidates() { return request('/api/candidates', 'GET'); }
+export function writeCandidates(data) { return request('/api/candidates', 'POST', data); }
 export function getConfig() { return request('/api/config', 'GET'); }
 export function setConfig(cfg) { return request('/api/config', 'POST', cfg); }

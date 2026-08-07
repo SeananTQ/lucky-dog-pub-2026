@@ -1,4 +1,5 @@
 {
-  "dataFile": "data/database.json",
+  "keywordsFile": "data/keywords.json",
+  "candidatesFile": "data/candidates.json",
   "preferredPort": 3020
 }

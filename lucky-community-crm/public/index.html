@@ -33,7 +33,7 @@
     <div class="panel-body stack">
       <div class="toolbar">
         <input id="keywordSearch" placeholder="筛选关键词、类别、说明、备注…">
-        <select id="keywordStatusFilter"><option value="">全部状态</option><option value="testing">待验证</option><option value="good">有效</option><option value="great">很棒</option><option value="bad">无效</option></select>
+        <select id="keywordStatusFilter"><option value="">全部状态</option><option value="testing">待验证</option><option value="good">有效</option><option value="great">很棒</option><option value="bad">无效</option><option value="blacklisted">黑名单</option></select>
         <button id="addKeywordBtn" class="btn primary">＋ 添加关键词</button>
         <button id="collapseBtn" class="btn">折叠分组</button>
       </div>
@@ -65,9 +65,11 @@
     <section class="panel">
       <div class="panel-title">数据备份与迁移</div>
       <div class="panel-body stack">
-        <div class="section-note">V3 会自动保存到浏览器 localStorage，并尝试读取 V1 的 <code>ldr_x_research_v1</code> 数据。若浏览器未自动迁移，可从旧版导出 JSON，再在这里导入。</div>
-        <div class="actions"><button id="exportJsonBtn" class="btn primary">导出完整 JSON</button><button id="exportCsvBtn" class="btn">导出候选人 CSV</button></div>
-        <div><label>导入 JSON</label><input id="importFile" type="file" accept=".json,application/json"></div>
+        <div class="section-note">关键词与候选人分两个文件保存。<strong>关键词文件可以发给别人</strong>（不含你的用户数据）；候选人文件是你的私有数据。</div>
+        <div class="actions"><button id="exportKeywordsBtn" class="btn primary">导出关键词</button><button id="exportCandidatesBtn" class="btn">导出候选人</button></div>
+        <div class="actions"><button id="exportBackupBtn" class="btn">导出完整备份</button><button id="exportCsvBtn" class="btn">导出候选人 CSV</button></div>
+        <div><label>导入关键词 JSON</label><input id="importKeywordsFile" type="file" accept=".json,application/json"></div>
+        <div><label>导入候选人 JSON</label><input id="importCandidatesFile" type="file" accept=".json,application/json"></div>
         <button id="resetBtn" class="btn danger">恢复默认关键词并清空候选人</button>
       </div>
     </section>
@@ -75,8 +77,9 @@
     <section class="panel">
       <div class="panel-title">保存位置设置</div>
       <div class="panel-body stack">
-        <div class="section-note">数据文件保存位置。填<strong>相对路径</strong>（如 <code>data/database.json</code>）会随项目文件夹移动；填<strong>绝对路径</strong>则不会随项目移动。</div>
-        <div><label>数据文件路径</label><input id="cfgDataFile" placeholder="data/database.json"></div>
+        <div class="section-note">关键词文件与候选人文件保存位置。填<strong>相对路径</strong>（如 <code>data/keywords.json</code>）会随项目文件夹移动；填<strong>绝对路径</strong>则不会随项目移动。</div>
+        <div><label>关键词文件路径</label><input id="cfgKeywordsFile" placeholder="data/keywords.json"></div>
+        <div><label>候选人文件路径</label><input id="cfgCandidatesFile" placeholder="data/candidates.json"></div>
         <div class="actions"><button id="saveConfigBtn" class="btn primary">保存设置</button><span id="cfgStatus" class="save-indicator"></span></div>
       </div>
     </section>
@@ -101,7 +104,7 @@
   <input type="hidden" id="kId"><div class="row2"><div><label>关键词</label><input id="kQuery"></div><div><label>分组</label><input id="kGroup" placeholder="例如：Bongo Cat · 情感投入"></div></div>
   <div><label>搜索目的 / 说明</label><textarea id="kWhy"></textarea></div><div><label>实验备注</label><textarea id="kNote"></textarea></div>
   <div class="row2"><div><label>状态</label><select id="kStatus"><option value="testing">待验证</option><option value="good">有效</option><option value="great">很棒</option><option value="bad">无效</option></select></div><div><label>打开次数</label><input id="kOpens" type="number" min="0" value="0"></div></div>
-  <div class="actions"><button id="saveKeywordBtn" class="btn primary">保存关键词</button><button id="deleteKeywordBtn" class="btn danger">删除关键词</button></div>
+  <div class="actions"><button id="saveKeywordBtn" class="btn primary">保存关键词</button><button id="blacklistKeywordBtn" class="btn">加入黑名单</button><button id="deleteKeywordBtn" class="btn danger">删除关键词</button></div>
 </div></div></div>
 
 <script type="module" src="js/app.js"></script>

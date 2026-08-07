@@ -2,7 +2,7 @@
 // upgrade() 是唯一的"旧格式 → 新格式"入口，未来升版本时在此追加步骤即可。
 import { seed, seedKeywords, uid } from './seed.js';
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 // 旧数据的英文 LIST → 中文（升级时统一转换）
 const LIST_TRANSLATION = {
@@ -31,6 +31,7 @@ export function upgrade(raw) {
       status: k.status || 'testing',
       note: k.note || '',
       opens: Number(k.opens || 0),
+      blacklisted: !!k.blacklisted,
     })),
     candidates: (raw.candidates || []).map(c => ({
       id: c.id || uid(),

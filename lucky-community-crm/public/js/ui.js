@@ -1,6 +1,6 @@
 // 界面渲染 + 全部事件绑定。持有内存中的 data，通过 api 持久化到项目文件。
 import * as api from './api.js';
-import { upgrade, mergeSeeds } from './data.js';
+import { upgrade, mergeSeeds, CURRENT_SCHEMA_VERSION } from './data.js';
 import { seed, uid } from './seed.js';
 
 const el = id => document.getElementById(id);
@@ -13,11 +13,26 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': 
 const rankClass = r => (r === 'A+' ? 'Ap' : r);
 const xSearch = (q, mode) => `https://x.com/search?q=${encodeURIComponent(q)}&src=typed_query&f=${mode}`;
 
-async function save() {
-  data.updatedAt = Date.now();
-  await api.writeData(data);
+const keywordObj = () => ({ schemaVersion: CURRENT_SCHEMA_VERSION, keywords: data.keywords, collapsed: data.collapsed, updatedAt: data.updatedAt });
+const candidateObj = () => ({ schemaVersion: CURRENT_SCHEMA_VERSION, candidates: data.candidates, updatedAt: data.updatedAt });
+const activeKeywords = () => data.keywords.filter(k => !k.blacklisted);
+const blacklistCount = () => data.keywords.length - activeKeywords().length;
+
+function flashSaved() {
   el('saveState').textContent = '刚刚自动保存';
   setTimeout(() => { el('saveState').textContent = '已自动保存'; }, 900);
+}
+
+export async function saveKeywords() {
+  data.updatedAt = Date.now();
+  await api.writeKeywords(keywordObj());
+  flashSaved();
+  render();
+}
+export async function saveCandidates() {
+  data.updatedAt = Date.now();
+  await api.writeCandidates(candidateObj());
+  flashSaved();
   render();
 }
 
@@ -28,13 +43,14 @@ export function render() {
 }
 
 function renderStats() {
-  el('stKeywords').textContent = data.keywords.length;
-  el('stGood').textContent = data.keywords.filter(k => k.status === 'good').length;
-  el('stGreat').textContent = data.keywords.filter(k => k.status === 'great').length;
-  el('stTesting').textContent = data.keywords.filter(k => k.status === 'testing').length;
-  el('stBad').textContent = data.keywords.filter(k => k.status === 'bad').length;
+  const active = activeKeywords();
+  el('stKeywords').textContent = active.length;
+  el('stGood').textContent = active.filter(k => k.status === 'good').length;
+  el('stGreat').textContent = active.filter(k => k.status === 'great').length;
+  el('stTesting').textContent = active.filter(k => k.status === 'testing').length;
+  el('stBad').textContent = active.filter(k => k.status === 'bad').length;
   el('stCandidates').textContent = data.candidates.length;
-  el('keywordCountTitle').textContent = `完整库：${data.keywords.length} 条`;
+  el('keywordCountTitle').textContent = `完整库：${active.length} 条${blacklistCount() ? ` · 黑名单 ${blacklistCount()}` : ''}`;
 }
 
 function renderCandidates() {
@@ -62,7 +78,10 @@ function renderCandidates() {
 function renderKeywords() {
   const term = el('keywordSearch').value.toLowerCase();
   const sf = el('keywordStatusFilter').value;
-  const arr = data.keywords.filter(k => (!sf || k.status === sf) && `${k.q} ${k.group} ${k.why} ${k.note}`.toLowerCase().includes(term));
+  const base = sf === 'blacklisted'
+    ? data.keywords.filter(k => k.blacklisted)
+    : activeKeywords().filter(k => !sf || k.status === sf);
+  const arr = base.filter(k => `${k.q} ${k.group} ${k.why} ${k.note}`.toLowerCase().includes(term));
   const groups = {};
   arr.forEach(k => (groups[k.group] ??= []).push(k));
   const box = el('keywordList');
@@ -73,18 +92,22 @@ function renderKeywords() {
     section.innerHTML = `<div class="group-title">${esc(g)}（${items.length}）</div>`;
     if (!data.collapsed) items.forEach(k => {
       const row = document.createElement('div');
-      row.className = 'keyword';
-      row.innerHTML = `<div><div class="keyword-name">${esc(k.q)}</div><div class="keyword-desc">${esc(k.why)}</div><div class="keyword-note">已打开 ${k.opens || 0} 次${k.note ? ` · 备注：${esc(k.note)}` : ''}</div></div><div class="actions"><a class="btn primary small" data-open-k="${k.id}" href="${xSearch(k.q, 'live')}" target="_blank">最新</a><a class="btn small" data-open-k="${k.id}" href="${xSearch(k.q, 'top')}" target="_blank">热门</a><span class="pill ${k.status}">${k.status === 'good' ? '有效' : k.status === 'great' ? '很棒' : k.status === 'bad' ? '无效' : '待验证'}</span><button class="btn small" data-cycle-k="${k.id}">切换状态</button><button class="btn small" data-edit-k="${k.id}">编辑</button></div>`;
+      row.className = 'keyword' + (k.blacklisted ? ' blacklisted' : '');
+      const blkBtn = k.blacklisted
+        ? `<button class="btn small" data-blk-k="${k.id}">恢复</button>`
+        : `<button class="btn small" data-blk-k="${k.id}">拉黑</button>`;
+      row.innerHTML = `<div><div class="keyword-name">${esc(k.q)}</div><div class="keyword-desc">${esc(k.why)}</div><div class="keyword-note">已打开 ${k.opens || 0} 次${k.note ? ` · 备注：${esc(k.note)}` : ''}</div></div><div class="actions"><a class="btn primary small" data-open-k="${k.id}" href="${xSearch(k.q, 'live')}" target="_blank">最新</a><a class="btn small" data-open-k="${k.id}" href="${xSearch(k.q, 'top')}" target="_blank">热门</a><span class="pill ${k.status}">${k.status === 'good' ? '有效' : k.status === 'great' ? '很棒' : k.status === 'bad' ? '无效' : '待验证'}</span><button class="btn small" data-cycle-k="${k.id}">切换状态</button><button class="btn small" data-edit-k="${k.id}">编辑</button>${blkBtn}</div>`;
       section.appendChild(row);
     });
     box.appendChild(section);
   });
   box.querySelectorAll('[data-open-k]').forEach(a => a.onclick = () => {
     const k = data.keywords.find(x => x.id === a.dataset.openK);
-    if (k) { k.opens++; api.writeData(data); renderStats(); }
+    if (k) { k.opens++; api.writeKeywords(keywordObj()); renderStats(); }
   });
   box.querySelectorAll('[data-cycle-k]').forEach(b => b.onclick = () => cycleKeyword(b.dataset.cycleK));
   box.querySelectorAll('[data-edit-k]').forEach(b => b.onclick = () => openKeywordModal(b.dataset.editK));
+  box.querySelectorAll('[data-blk-k]').forEach(b => b.onclick = () => blacklistKeyword(b.dataset.blkK));
 }
 
 // ---------- 候选人 ----------
@@ -118,12 +141,12 @@ function nextCandidate(id) {
   if (!c) return;
   const states = ['待互动', '已回复', '已回应', '待邀请', '已邀请', '已接受', '仅观察'];
   c.state = states[(states.indexOf(c.state) + 1) % states.length];
-  save();
+  saveCandidates();
 }
 function deleteCandidate(id) {
   if (confirm('删除这个候选人？')) {
     data.candidates = data.candidates.filter(x => x.id !== id);
-    save();
+    saveCandidates();
   }
 }
 
@@ -132,7 +155,13 @@ function cycleKeyword(id) {
   const k = data.keywords.find(x => x.id === id);
   if (!k) return;
   k.status = k.status === 'testing' ? 'good' : k.status === 'good' ? 'great' : k.status === 'great' ? 'bad' : 'testing';
-  save();
+  saveKeywords();
+}
+function blacklistKeyword(id) {
+  const k = data.keywords.find(x => x.id === id);
+  if (!k) return;
+  k.blacklisted = !k.blacklisted;
+  saveKeywords();
 }
 function openKeywordModal(id = '') {
   const k = id ? data.keywords.find(x => x.id === id) : null;
@@ -144,6 +173,9 @@ function openKeywordModal(id = '') {
   el('kStatus').value = k?.status || 'testing';
   el('kOpens').value = k?.opens || 0;
   el('keywordModalTitle').textContent = k ? '编辑关键词' : '添加关键词';
+  const blkBtn = el('blacklistKeywordBtn');
+  blkBtn.style.display = k ? 'inline-flex' : 'none';
+  blkBtn.textContent = k?.blacklisted ? '移出黑名单' : '加入黑名单';
   el('deleteKeywordBtn').style.display = k ? 'inline-flex' : 'none';
   el('keywordModal').classList.add('show');
 }
@@ -178,7 +210,7 @@ export function initUI() {
     if (i >= 0) data.candidates[i] = obj;
     else data.candidates.unshift(obj);
     clearCandidate();
-    save();
+    saveCandidates();
   };
   el('clearCandidateBtn').onclick = clearCandidate;
 
@@ -200,19 +232,28 @@ export function initUI() {
     if (i >= 0) data.keywords[i] = obj;
     else data.keywords.unshift(obj);
     el('keywordModal').classList.remove('show');
-    save();
+    saveKeywords();
+  };
+  el('blacklistKeywordBtn').onclick = () => {
+    const id = el('kId').value;
+    if (!id) return;
+    const k = data.keywords.find(x => x.id === id);
+    if (k) k.blacklisted = !k.blacklisted;
+    el('keywordModal').classList.remove('show');
+    saveKeywords();
   };
   el('deleteKeywordBtn').onclick = () => {
-    if (el('kId').value && confirm('删除这个关键词？')) {
-      data.keywords = data.keywords.filter(x => x.id !== el('kId').value);
+    const id = el('kId').value;
+    if (id && confirm('删除这个关键词？')) {
+      data.keywords = data.keywords.filter(x => x.id !== id);
       el('keywordModal').classList.remove('show');
-      save();
+      saveKeywords();
     }
   };
   el('collapseBtn').onclick = () => {
     data.collapsed = !data.collapsed;
     el('collapseBtn').textContent = data.collapsed ? '展开分组' : '折叠分组';
-    save();
+    saveKeywords();
   };
 
   // 模态框关闭
@@ -224,21 +265,35 @@ export function initUI() {
     .forEach(f => f.addEventListener(f.tagName === 'INPUT' ? 'input' : 'change', render));
 
   // 导出 / 导入 / 重置
-  el('exportJsonBtn').onclick = () => download('lucky-dog-x-workbench-v3.json', JSON.stringify(data, null, 2), 'application/json');
+  el('exportKeywordsBtn').onclick = () => download('lucky-dog-keywords.json', JSON.stringify(keywordObj(), null, 2), 'application/json');
+  el('exportCandidatesBtn').onclick = () => download('lucky-dog-candidates.json', JSON.stringify(candidateObj(), null, 2), 'application/json');
+  el('exportBackupBtn').onclick = () => download('lucky-dog-backup-full.json', JSON.stringify(data, null, 2), 'application/json');
   el('exportCsvBtn').onclick = () => {
     const rows = [['name', 'url', 'rank', 'type', 'state', 'list', 'risk', 'notes'],
       ...data.candidates.map(c => [c.name, c.url, c.rank, c.type, c.state, c.list, c.risk, c.notes])];
     const csv = rows.map(r => r.map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
-    download('lucky-dog-candidates-v3.csv', '﻿' + csv, 'text/csv;charset=utf-8');
+    download('lucky-dog-candidates.csv', '﻿' + csv, 'text/csv;charset=utf-8');
   };
-  el('importFile').onchange = async e => {
+  el('importKeywordsFile').onchange = async e => {
     const f = e.target.files[0];
     if (!f) return;
     try {
-      const incoming = mergeSeeds(upgrade(JSON.parse(await f.text())));
-      data = incoming;
-      save();
-      alert('导入成功，并补齐了默认关键词。');
+      data.keywords = mergeSeeds(upgrade(JSON.parse(await f.text()))).keywords;
+      data.collapsed = false;
+      saveKeywords();
+      alert('关键词导入成功。');
+    } catch (err) {
+      alert('无法识别这个 JSON 文件。');
+    }
+    e.target.value = '';
+  };
+  el('importCandidatesFile').onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      data.candidates = upgrade(JSON.parse(await f.text())).candidates;
+      saveCandidates();
+      alert('候选人导入成功。');
     } catch (err) {
       alert('无法识别这个 JSON 文件。');
     }
@@ -247,21 +302,25 @@ export function initUI() {
   el('resetBtn').onclick = () => {
     if (confirm('确定恢复默认关键词并清空候选人？此操作不可撤销。')) {
       data = seed();
-      save();
+      saveKeywords();
+      saveCandidates();
     }
   };
 
-  // 保存位置设置
+  // 保存位置设置（两个文件）
   api.getConfig().then(cfg => {
-    el('cfgDataFile').value = cfg.dataFile;
+    el('cfgKeywordsFile').value = cfg.keywordsFile;
+    el('cfgCandidatesFile').value = cfg.candidatesFile;
   }).catch(() => {});
   el('saveConfigBtn').onclick = async () => {
-    const p = el('cfgDataFile').value.trim();
-    if (!p) return alert('请填写数据文件路径。');
-    const cfg = await api.setConfig({ dataFile: p });
+    const kw = el('cfgKeywordsFile').value.trim();
+    const cd = el('cfgCandidatesFile').value.trim();
+    if (!kw || !cd) return alert('请填写两个数据文件路径。');
+    const cfg = await api.setConfig({ keywordsFile: kw, candidatesFile: cd });
     el('cfgStatus').textContent = '已保存（重启后生效）';
     setTimeout(() => { el('cfgStatus').textContent = ''; }, 2500);
-    el('cfgDataFile').value = cfg.dataFile;
+    el('cfgKeywordsFile').value = cfg.keywordsFile;
+    el('cfgCandidatesFile').value = cfg.candidatesFile;
   };
 
   el('collapseBtn').textContent = data.collapsed ? '展开分组' : '折叠分组';

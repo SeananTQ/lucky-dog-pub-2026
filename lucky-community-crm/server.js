@@ -11,51 +11,69 @@ const { exec } = require('child_process');
 const ROOT = __dirname; // server.js 所在目录，作为所有相对路径基准（保证整个文件夹可移动）
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');
-const DEFAULT_CONFIG = { dataFile: 'data/database.json', preferredPort: 3020 };
-
-// ---------- 配置 ----------
-function loadConfig() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    return {
-      dataFile: raw.dataFile || DEFAULT_CONFIG.dataFile,
-      preferredPort: Number(raw.preferredPort) || DEFAULT_CONFIG.preferredPort,
-    };
-  } catch {
-    const cfg = { ...DEFAULT_CONFIG };
-    saveConfig(cfg);
-    return cfg;
-  }
-}
-function saveConfig(cfg) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
-}
+const DEFAULT_CONFIG = { keywordsFile: 'data/keywords.json', candidatesFile: 'data/candidates.json', preferredPort: 3020 };
 
 // 把用户填的保存位置解析成绝对路径：相对路径以项目根为基准，绝对路径直接用
 function resolveDataPath(p) {
   return path.isAbsolute(p) ? p : path.resolve(ROOT, p);
 }
+
+// ---------- 配置 ----------
+function loadConfig() {
+  let raw = {};
+  try { raw = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch {}
+
+  const cfg = {
+    keywordsFile: raw.keywordsFile || DEFAULT_CONFIG.keywordsFile,
+    candidatesFile: raw.candidatesFile || DEFAULT_CONFIG.candidatesFile,
+    preferredPort: Number(raw.preferredPort) || DEFAULT_CONFIG.preferredPort,
+  };
+
+  // 旧版单文件迁移：把合并的 database.json 拆成关键词/候选人两个文件
+  const legacyFile = raw.dataFile ? resolveDataPath(raw.dataFile) : resolveDataPath('data/database.json');
+  const hasLegacy = fs.existsSync(legacyFile);
+  const splitReady = fs.existsSync(resolveDataPath(cfg.keywordsFile)) && fs.existsSync(resolveDataPath(cfg.candidatesFile));
+  if (hasLegacy && !splitReady) {
+    try {
+      const d = JSON.parse(fs.readFileSync(legacyFile, 'utf8'));
+      writeFileAtomic(resolveDataPath(cfg.keywordsFile), { schemaVersion: 3, keywords: d.keywords || [], collapsed: !!d.collapsed, updatedAt: d.updatedAt || Date.now() });
+      writeFileAtomic(resolveDataPath(cfg.candidatesFile), { schemaVersion: 3, candidates: d.candidates || [], updatedAt: d.updatedAt || Date.now() });
+      fs.renameSync(legacyFile, legacyFile + '.legacy.bak');
+      console.log('已把旧合并数据拆分为 关键词/候选人 两个文件。');
+    } catch (e) {
+      console.error('迁移旧数据失败：', e.message);
+    }
+  }
+
+  saveConfig(cfg);
+  return cfg;
+}
+function saveConfig(cfg) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+}
 function configView(cfg) {
   // 暴露给前端的配置视图：相对路径保留原样显示，绝对路径原样显示
-  return { dataFile: cfg.dataFile, preferredPort: cfg.preferredPort, root: ROOT };
+  return { keywordsFile: cfg.keywordsFile, candidatesFile: cfg.candidatesFile, preferredPort: cfg.preferredPort, root: ROOT };
 }
 
 const config = loadConfig();
 
 // ---------- 数据读写（原子写，防损坏） ----------
-function readData() {
-  const file = resolveDataPath(config.dataFile);
-  if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
+function readFile(abs) {
+  if (!fs.existsSync(abs)) return null;
+  return JSON.parse(fs.readFileSync(abs, 'utf8'));
 }
-function writeData(data) {
-  const file = resolveDataPath(config.dataFile);
-  const dir = path.dirname(file);
+function writeFileAtomic(abs, obj) {
+  const dir = path.dirname(abs);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = file + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
-  fs.renameSync(tmp, file); // 原子替换，避免半写损坏
+  const tmp = abs + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), 'utf8');
+  fs.renameSync(tmp, abs); // 原子替换，避免半写损坏
 }
+const readKeywords = () => readFile(resolveDataPath(config.keywordsFile));
+const readCandidates = () => readFile(resolveDataPath(config.candidatesFile));
+const writeKeywords = (d) => writeFileAtomic(resolveDataPath(config.keywordsFile), d);
+const writeCandidates = (d) => writeFileAtomic(resolveDataPath(config.candidatesFile), d);
 
 // ---------- 静态文件 / MIME ----------
 const MIME = {
@@ -90,14 +108,20 @@ const server = http.createServer(async (req, res) => {
 
   try {
     // ---------- JSON 接口 ----------
-    if (p === '/api/data' && req.method === 'GET') {
-      const data = readData();
-      return data ? sendJson(res, 200, { exists: true, data }) : sendJson(res, 200, { exists: false });
+    const dataReply = (d) => (d ? { exists: true, data: d } : { exists: false });
+
+    if (p === '/api/keywords' && req.method === 'GET') return sendJson(res, 200, dataReply(readKeywords()));
+    if (p === '/api/keywords' && req.method === 'POST') {
+      const d = await readBody(req);
+      if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
+      writeKeywords(d);
+      return sendJson(res, 200, { ok: true });
     }
-    if (p === '/api/data' && req.method === 'POST') {
-      const data = await readBody(req);
-      if (!data || typeof data !== 'object') return sendJson(res, 400, { error: '无效数据' });
-      writeData(data);
+    if (p === '/api/candidates' && req.method === 'GET') return sendJson(res, 200, dataReply(readCandidates()));
+    if (p === '/api/candidates' && req.method === 'POST') {
+      const d = await readBody(req);
+      if (!d || typeof d !== 'object') return sendJson(res, 400, { error: '无效数据' });
+      writeCandidates(d);
       return sendJson(res, 200, { ok: true });
     }
     if (p === '/api/config' && req.method === 'GET') {
@@ -105,8 +129,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/config' && req.method === 'POST') {
       const body = await readBody(req);
-      if (body.dataFile !== undefined && typeof body.dataFile === 'string' && body.dataFile.trim()) {
-        config.dataFile = body.dataFile.trim();
+      if (body.keywordsFile !== undefined && typeof body.keywordsFile === 'string' && body.keywordsFile.trim()) {
+        config.keywordsFile = body.keywordsFile.trim();
+      }
+      if (body.candidatesFile !== undefined && typeof body.candidatesFile === 'string' && body.candidatesFile.trim()) {
+        config.candidatesFile = body.candidatesFile.trim();
       }
       if (body.preferredPort !== undefined) {
         const port = Number(body.preferredPort);
@@ -153,7 +180,8 @@ function listenWithFallback(port, maxAttempts) {
   console.log('==============================================');
   console.log(' Lucky Dog X 关系管理工作台');
   console.log(` 服务地址: ${url}`);
-  console.log(` 数据文件: ${config.dataFile}`);
+  console.log(` 关键词文件: ${config.keywordsFile}`);
+  console.log(` 候选人文件: ${config.candidatesFile}`);
   console.log(' 按 Ctrl+C 停止服务');
   console.log('==============================================');
   // Windows 自动打开浏览器到实际端口
