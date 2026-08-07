@@ -78,7 +78,7 @@
       "group": "Bongo Cat · 社交传播",
       "q": "\"Bongo Cat\" friends",
       "why": "寻找会拉朋友一起安装、具有社交传播力的人。",
-      "status": "testing",
+      "status": "great",
       "note": "",
       "opens": 1
     },
@@ -87,9 +87,9 @@
       "group": "Bongo Cat · 社交传播",
       "q": "\"Bongo Cat\" screenshot",
       "why": "寻找愿意公开分享使用画面的用户。",
-      "status": "testing",
+      "status": "bad",
       "note": "",
-      "opens": 0
+      "opens": 1
     },
     {
       "id": "00ef1651-5e17-481c-8803-14b1bc3168ea",
@@ -278,7 +278,7 @@
       "why": "寻找会把房间代码分享到 Discord 的用户。",
       "status": "testing",
       "note": "",
-      "opens": 0
+      "opens": 1
     },
     {
       "id": "f1a2052a-2272-4c5c-8e0e-dd82e7fd2309",
@@ -548,5 +548,5 @@
     }
   ],
   "collapsed": false,
-  "updatedAt": 1786093084990
+  "updatedAt": 1786093631382
 }
