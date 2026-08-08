@@ -12,7 +12,10 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     private const string ReferenceRefreshmentFileName = "Whisky.png";
     private const double StatusBalloonHideDelaySeconds = 0.15;
+    private static readonly Vector2 UseFeedbackOvershootScale = new(1.08f, 1.12f);
+    private static readonly Color UseFeedbackBrightModulate = new(1.22f, 1.22f, 1.22f, 1f);
 
+    [Export] private Node2D _refreshmentAnchor = null!;
     [Export] private Sprite2D _refreshmentSprite = null!;
     [Export] private Button _clickButton = null!;
     [Export] private Control _useBalloon = null!;
@@ -22,8 +25,10 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     private readonly Dictionary<string, Vector2> _localCache = new();
     private readonly Dictionary<string, float> _balloonVerticalOffsetCache = new();
+    private readonly Dictionary<string, float> _heightCache = new();
     private GameData _gameData;
     private Tween _hintTween;
+    private Tween _useFeedbackTween;
     private Tween _useBalloonTween;
     private Tween _useCheckTween;
     private Tween _useCheckHintTween;
@@ -56,8 +61,8 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     public override void _Ready()
     {
-        _referenceRefreshmentPosition = _refreshmentSprite.Position;
-        _refreshmentRestPosition = _referenceRefreshmentPosition;
+        _referenceRefreshmentPosition = _refreshmentAnchor.Position + _refreshmentSprite.Position;
+        _refreshmentRestPosition = _refreshmentAnchor.Position;
         _useBalloonBasePosition = _useBalloon.Position;
         _statusBalloonBasePosition = _statusBalloon.Position;
         _useBalloonBaseScale = _useBalloon.Scale;
@@ -117,10 +122,14 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     public void SetRefreshment(Texture2D texture, string fileName, int configuredBalloonOffsetY)
     {
         ResetHintAnimation();
+        ResetUseFeedbackTransform();
         _refreshmentSprite.Texture = texture;
         _refreshmentSprite.Visible = true;
-        _refreshmentSprite.Position = _localCache.GetValueOrDefault(fileName, _referenceRefreshmentPosition);
-        _refreshmentRestPosition = _refreshmentSprite.Position;
+        var centerPosition = _localCache.GetValueOrDefault(fileName, _referenceRefreshmentPosition);
+        var height = _heightCache.GetValueOrDefault(fileName, texture.GetHeight());
+        _refreshmentAnchor.Position = centerPosition + new Vector2(0f, height * 0.5f);
+        _refreshmentSprite.Position = new Vector2(0f, -height * 0.5f);
+        _refreshmentRestPosition = _refreshmentAnchor.Position;
         var balloonOffsetY = _balloonVerticalOffsetCache.GetValueOrDefault(fileName, 0f)
             + configuredBalloonOffsetY;
         _useBalloon.Position = _useBalloonBasePosition + new Vector2(0f, balloonOffsetY);
@@ -164,22 +173,22 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         if (playAudio)
             PlayInteractionHintSfx();
         _hintTween = CreateTween();
-        _hintTween.TweenProperty(_refreshmentSprite, "position", _refreshmentRestPosition + new Vector2(0f, -12f), 0.12)
+        _hintTween.TweenProperty(_refreshmentAnchor, "position", _refreshmentRestPosition + new Vector2(0f, -12f), 0.12)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_refreshmentSprite, "rotation", -0.08f, 0.12)
+        _hintTween.Parallel().TweenProperty(_refreshmentAnchor, "rotation", -0.08f, 0.12)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Chain().TweenProperty(_refreshmentSprite, "rotation", 0.075f, 0.10)
+        _hintTween.Chain().TweenProperty(_refreshmentAnchor, "rotation", 0.075f, 0.10)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.InOut);
-        _hintTween.TweenProperty(_refreshmentSprite, "rotation", -0.045f, 0.08)
+        _hintTween.TweenProperty(_refreshmentAnchor, "rotation", -0.045f, 0.08)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.InOut);
-        _hintTween.Chain().TweenProperty(_refreshmentSprite, "position", _refreshmentRestPosition, 0.16)
+        _hintTween.Chain().TweenProperty(_refreshmentAnchor, "position", _refreshmentRestPosition, 0.16)
             .SetTrans(Tween.TransitionType.Bounce)
             .SetEase(Tween.EaseType.Out);
-        _hintTween.Parallel().TweenProperty(_refreshmentSprite, "rotation", 0f, 0.16)
+        _hintTween.Parallel().TweenProperty(_refreshmentAnchor, "rotation", 0f, 0.16)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
         _hintTween.Chain().TweenCallback(Callable.From(ResetHintAnimation));
@@ -396,10 +405,43 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             return;
 
         EmitSignal(SignalName.InteractionActivated);
-        _gameData?.TryUseTableRefreshment();
-        // Keep input ownership until Godot finishes dispatching this mouse event.
-        // A sibling Button behind the balloon may otherwise process the same release.
-        CallDeferred(nameof(HideUseBalloon));
+        var used = _gameData?.TryUseTableRefreshment() ?? false;
+        HideUseBalloon();
+        if (used)
+            PlayUseFeedback();
+    }
+
+    private void PlayUseFeedback()
+    {
+        _useFeedbackTween?.Kill();
+        _hintTween?.Kill();
+        _refreshmentAnchor.Position = _refreshmentRestPosition;
+        _refreshmentAnchor.Scale = Vector2.One;
+        _refreshmentAnchor.Modulate = Colors.White;
+
+        _useFeedbackTween = CreateTween();
+        _useFeedbackTween.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _useFeedbackTween.TweenProperty(_refreshmentAnchor, "scale", UseFeedbackOvershootScale, 0.12);
+        _useFeedbackTween.Parallel().TweenProperty(_refreshmentAnchor, "modulate", UseFeedbackBrightModulate, 0.10);
+        _useFeedbackTween.SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        _useFeedbackTween.TweenProperty(_refreshmentAnchor, "scale", new Vector2(1.05f, 0.95f), 0.13);
+        _useFeedbackTween.Parallel().TweenProperty(_refreshmentAnchor, "modulate", Colors.White, 0.13);
+        _useFeedbackTween.TweenProperty(_refreshmentAnchor, "scale", new Vector2(0.97f, 1.04f), 0.10);
+        _useFeedbackTween.TweenProperty(_refreshmentAnchor, "scale", new Vector2(1.02f, 0.98f), 0.09);
+        _useFeedbackTween.TweenProperty(_refreshmentAnchor, "scale", Vector2.One, 0.11);
+        _useFeedbackTween.TweenCallback(Callable.From(ResetUseFeedbackTransform));
+    }
+
+    private void ResetUseFeedbackTransform()
+    {
+        if (_refreshmentAnchor == null)
+            return;
+
+        _useFeedbackTween?.Kill();
+        _useFeedbackTween = null;
+        _refreshmentAnchor.Position = _refreshmentRestPosition;
+        _refreshmentAnchor.Scale = Vector2.One;
+        _refreshmentAnchor.Modulate = Colors.White;
     }
 
     private void FinishUseCheckInteractionHint()
@@ -496,11 +538,11 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private void ResetHintAnimation()
     {
         _hintTween?.Kill();
-        if (_refreshmentSprite == null)
+        if (_refreshmentAnchor == null)
             return;
 
-        _refreshmentSprite.Position = _refreshmentRestPosition;
-        _refreshmentSprite.Rotation = 0f;
+        _refreshmentAnchor.Position = _refreshmentRestPosition;
+        _refreshmentAnchor.Rotation = 0f;
     }
 
     /// <summary>
@@ -553,6 +595,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
             _localCache[fileOnly] = _referenceRefreshmentPosition + centerDelta;
             _balloonVerticalOffsetCache[fileOnly] = ReadTop(d) - referenceTop;
+            _heightCache[fileOnly] = ReadDim(d, "h", "height");
         }
     }
 

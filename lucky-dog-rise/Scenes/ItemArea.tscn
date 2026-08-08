@@ -15,17 +15,21 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="ItemArea" type="Node2D" unique_id=1174248165 node_paths=PackedStringArray("_refreshmentSprite", "_clickButton", "_useBalloon", "_useCheckIcon", "_statusBalloon", "_statusHandsLabel")]
+[node name="ItemArea" type="Node2D" unique_id=1174248165 node_paths=PackedStringArray("_refreshmentAnchor", "_refreshmentSprite", "_clickButton", "_useBalloon", "_useCheckIcon", "_statusBalloon", "_statusHandsLabel")]
 script = ExtResource("11_ctrl")
-_refreshmentSprite = NodePath("Refreshment")
+_refreshmentAnchor = NodePath("RefreshmentAnchor")
+_refreshmentSprite = NodePath("RefreshmentAnchor/Refreshment")
 _clickButton = NodePath("ClickButton")
 _useBalloon = NodePath("UseBalloon")
 _useCheckIcon = NodePath("UseBalloon/Content/CheckIcon")
 _statusBalloon = NodePath("StatusBalloon")
 _statusHandsLabel = NodePath("StatusBalloon/Content/HandsLabel")
 
-[node name="Refreshment" type="Sprite2D" parent="." unique_id=999000111]
-position = Vector2(0, -60)
+[node name="RefreshmentAnchor" type="Node2D" parent="." unique_id=999000112]
+position = Vector2(0, 42)
+
+[node name="Refreshment" type="Sprite2D" parent="RefreshmentAnchor" unique_id=999000111]
+position = Vector2(0, -102)
 texture = ExtResource("2_ausma")
 
 [node name="ClickButton" type="Button" parent="." unique_id=2130850672]
