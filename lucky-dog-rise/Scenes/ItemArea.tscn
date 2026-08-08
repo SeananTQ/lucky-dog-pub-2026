@@ -3,9 +3,9 @@
 [ext_resource type="Texture2D" uid="uid://tk7jlibu5ojn" path="res://Assets/v1/Treat/Whisky.png" id="2_ausma"]
 [ext_resource type="Texture2D" uid="uid://7l788rguhvsm" path="res://Assets/UI/Hint/BalloonHint_RefreshmentRight_MilkWhite_9Rect2x.png" id="3_balloon"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_status_font"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Hint/Hint_RefreshmentEffect_2x.svg" id="5_effect"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_CircleCheck.svg" id="6_check"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_LuckyDealBuff_Color_2x.svg" id="7_buff"]
+[ext_resource type="Texture2D" uid="uid://cgt2vy71oxpst" path="res://Assets/UI/Hint/Hint_RefreshmentEffect_2x.svg" id="5_effect"]
+[ext_resource type="Texture2D" uid="uid://bki8pb6byubip" path="res://Assets/UI/Icon/Icon_CircleCheck.svg" id="6_check"]
+[ext_resource type="Texture2D" uid="uid://de03qyutr1uw4" path="res://Assets/UI/Icon/Icon_LuckyDealBuff_Color_2x.svg" id="7_buff"]
 [ext_resource type="Script" uid="uid://bc8mrp6mh0u4q" path="res://Scripts/ItemAreaController.cs" id="11_ctrl"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_click"]
@@ -53,6 +53,20 @@ patch_margin_top = 20
 patch_margin_right = 56
 patch_margin_bottom = 51
 
+[node name="Shadow" type="NinePatchRect" parent="UseBalloon" unique_id=2088931270]
+self_modulate = Color(0.8100456, 0.80921537, 0.72677374, 0.2509804)
+show_behind_parent = true
+layout_mode = 0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 339.0
+offset_bottom = 315.0
+texture = ExtResource("3_balloon")
+patch_margin_left = 19
+patch_margin_top = 20
+patch_margin_right = 56
+patch_margin_bottom = 51
+
 [node name="Content" type="VBoxContainer" parent="UseBalloon" unique_id=2088931268]
 layout_mode = 0
 offset_left = 24.0
@@ -68,9 +82,9 @@ custom_minimum_size = Vector2(248, 108)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
+texture = ExtResource("5_effect")
 expand_mode = 5
 stretch_mode = 5
-texture = ExtResource("5_effect")
 
 [node name="CheckIcon" type="TextureRect" parent="UseBalloon/Content" unique_id=1490727666]
 custom_minimum_size = Vector2(76, 76)
@@ -78,18 +92,33 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 mouse_filter = 2
+texture = ExtResource("6_check")
 expand_mode = 5
 stretch_mode = 5
-texture = ExtResource("6_check")
 
 [node name="StatusBalloon" type="NinePatchRect" parent="." unique_id=1771006346]
+visible = false
 z_index = 20
 offset_left = -330.0
-offset_top = -385.0
+offset_top = -326.0
 offset_right = -2.0
-offset_bottom = -172.0
-pivot_offset = Vector2(312, 212)
+offset_bottom = -183.0
+pivot_offset = Vector2(312, 142)
 mouse_filter = 0
+texture = ExtResource("3_balloon")
+patch_margin_left = 19
+patch_margin_top = 20
+patch_margin_right = 56
+patch_margin_bottom = 51
+
+[node name="Shadow" type="NinePatchRect" parent="StatusBalloon" unique_id=2088931269]
+self_modulate = Color(0.8100456, 0.80921537, 0.72677374, 0.2509804)
+show_behind_parent = true
+layout_mode = 0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 331.0
+offset_bottom = 146.0
 texture = ExtResource("3_balloon")
 patch_margin_left = 19
 patch_margin_top = 20
@@ -99,9 +128,9 @@ patch_margin_bottom = 51
 [node name="Content" type="HBoxContainer" parent="StatusBalloon" unique_id=168496669]
 layout_mode = 0
 offset_left = 28.0
-offset_top = 24.0
+offset_top = 8.0
 offset_right = 300.0
-offset_bottom = 150.0
+offset_bottom = 100.0
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
@@ -111,17 +140,15 @@ custom_minimum_size = Vector2(84, 90)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
+texture = ExtResource("7_buff")
 expand_mode = 5
 stretch_mode = 5
-texture = ExtResource("7_buff")
 
 [node name="HandsLabel" type="Label" parent="StatusBalloon/Content" unique_id=1458724822]
 custom_minimum_size = Vector2(148, 0)
 layout_mode = 2
-size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
 theme_override_fonts/font = ExtResource("4_status_font")
-theme_override_font_sizes/font_size = 46
+theme_override_font_sizes/font_size = 38
 text = "99/99"
-horizontal_alignment = 0
 vertical_alignment = 1
