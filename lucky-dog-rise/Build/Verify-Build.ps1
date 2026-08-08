@@ -41,10 +41,10 @@ $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
 foreach ($debugSymbol in 'RandomAcquireItemRequested', 'DebugGrantChipsRequested', 'ResetToDebugAllItems') {
     if ($ascii.Contains($debugSymbol)) { throw "Debug symbol remains in release assembly: $debugSymbol" }
 }
-if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-11T16:00:00Z')) {
+if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-24T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
 }
-if ($Channel -eq 'Release' -and $ascii.Contains('2026-08-11T16:00:00Z')) {
+if ($Channel -eq 'Release' -and $ascii.Contains('2026-08-24T16:00:00Z')) {
     throw 'Playtest expiration metadata must not remain in the Release assembly.'
 }
 

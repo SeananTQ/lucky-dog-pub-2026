@@ -19,6 +19,7 @@ InfoPanelController
 InteractionHintController
 ItemAreaController
 ItemCellController
+LoadingIndicatorController
 ModeManager
 SingleInstanceGuard
 SystemPanelController
