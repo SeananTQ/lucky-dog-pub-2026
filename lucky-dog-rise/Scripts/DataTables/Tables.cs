@@ -35,6 +35,7 @@ public partial class Tables
     public TbLinkTree TbLinkTree {get; }
     public TbSteamItemDef TbSteamItemDef {get; }
     public TbSteamItemDefIdRange TbSteamItemDefIdRange {get; }
+    public TbRefreshmentConfig TbRefreshmentConfig {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -59,6 +60,7 @@ public partial class Tables
         TbLinkTree = new TbLinkTree(loader("tblinktree"));
         TbSteamItemDef = new TbSteamItemDef(loader("tbsteamitemdef"));
         TbSteamItemDefIdRange = new TbSteamItemDefIdRange(loader("tbsteamitemdefidrange"));
+        TbRefreshmentConfig = new TbRefreshmentConfig(loader("tbrefreshmentconfig"));
         ResolveRef();
     }
     
@@ -85,6 +87,7 @@ public partial class Tables
         TbLinkTree.ResolveRef(this);
         TbSteamItemDef.ResolveRef(this);
         TbSteamItemDefIdRange.ResolveRef(this);
+        TbRefreshmentConfig.ResolveRef(this);
     }
 }
 
