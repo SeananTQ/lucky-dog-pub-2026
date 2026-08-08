@@ -53,7 +53,8 @@
       "why": "验证学习陪伴需求。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "643d5e73-6d2b-4811-8d9a-c9742f9146a2",
@@ -89,7 +90,8 @@
       "why": "寻找愿意公开分享使用画面的用户。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "00ef1651-5e17-481c-8803-14b1bc3168ea",
@@ -233,7 +235,8 @@
       "why": "寻找深度收集与长期游玩用户。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "7e3a8494-6242-4b1c-bfa8-db8b623ef65a",
@@ -242,7 +245,8 @@
       "why": "验证工作陪伴需求。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "a692a4a9-8249-4846-b9ab-fcdcee6489c6",
@@ -251,7 +255,8 @@
       "why": "验证学习陪伴需求。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "6c4ac99d-2359-49af-a8d6-94942a5b01e5",
@@ -260,7 +265,8 @@
       "why": "寻找白天常驻与陪伴感表达。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "3d4843ca-b6bb-4ed5-8ec5-1b7eb00e8478",
@@ -269,7 +275,8 @@
       "why": "寻找明确长期运行在电脑上的用户。",
       "status": "bad",
       "note": "",
-      "opens": 1
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "a9910cc8-ceeb-4b5b-88e0-2103c547f637",
@@ -278,7 +285,7 @@
       "why": "寻找会把房间代码分享到 Discord 的用户。",
       "status": "testing",
       "note": "",
-      "opens": 1
+      "opens": 2
     },
     {
       "id": "f1a2052a-2272-4c5c-8e0e-dd82e7fd2309",
@@ -480,5 +487,5 @@
     }
   ],
   "collapsed": false,
-  "updatedAt": 1786095769424
+  "updatedAt": 1786170596830
 }
