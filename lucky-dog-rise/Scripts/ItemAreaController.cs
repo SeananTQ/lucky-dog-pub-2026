@@ -7,6 +7,7 @@ namespace LuckyDogRise;
 public partial class ItemAreaController : Node2D, IInteractionHintTarget
 {
     [Signal] public delegate void InteractionActivatedEventHandler();
+    [Signal] public delegate void InteractionIgnoredEventHandler();
 
     private const string ReferenceRefreshmentFileName = "Whisky.png";
     private const double StatusBalloonHideDelaySeconds = 0.15;
@@ -24,6 +25,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private Tween _hintTween;
     private Tween _useBalloonTween;
     private Tween _useCheckTween;
+    private Tween _useCheckHintTween;
     private Tween _statusBalloonTween;
     private Vector2 _referenceRefreshmentPosition;
     private Vector2 _refreshmentRestPosition;
@@ -33,16 +35,18 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private Vector2 _statusBalloonBaseScale;
     private bool _refreshmentHovered;
     private bool _statusBalloonHovered;
+    private bool _useFromRefreshmentArmed;
     private int _statusBalloonHideToken;
     private bool _cacheBuilt;
 
     public bool CanPlayInteractionHint =>
-        _gameData != null
-        && _gameData.RefreshmentState.Status == TableRefreshmentStatus.ReadyToUse
-        && _refreshmentSprite.Visible
-        && !_useBalloon.Visible;
+        _useBalloon.IsVisibleInTree()
+        || (_gameData != null
+            && _gameData.RefreshmentState.Status == TableRefreshmentStatus.ReadyToUse
+            && _refreshmentSprite.Visible);
 
-    public bool IsInteractionHintPlaying => _hintTween?.IsRunning() ?? false;
+    public bool IsInteractionHintPlaying => (_hintTween?.IsRunning() ?? false)
+        || (_useCheckHintTween?.IsRunning() ?? false);
 
     public bool CapturesPointerAt(Vector2 viewportPosition) =>
         ContainsViewportPoint(_useBalloon, viewportPosition)
@@ -142,8 +146,20 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         if (!CanPlayInteractionHint)
             return;
 
+        if (_useBalloon.IsVisibleInTree())
+        {
+            PlayUseCheckInteractionHint();
+            return;
+        }
+
+        PlayRefreshmentInteractionHint(playAudio: true);
+    }
+
+    private void PlayRefreshmentInteractionHint(bool playAudio)
+    {
         ResetHintAnimation();
-        AudioManager.Instance.PlaySfx("Refreshment_Hint");
+        if (playAudio)
+            AudioManager.Instance.PlaySfx("Refreshment_Hint");
         _hintTween = CreateTween();
         _hintTween.TweenProperty(_refreshmentSprite, "position", _refreshmentRestPosition + new Vector2(0f, -12f), 0.12)
             .SetTrans(Tween.TransitionType.Quad)
@@ -170,6 +186,15 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     {
         if (_gameData == null || !_refreshmentSprite.Visible)
             return;
+
+        if (_useBalloon.IsVisibleInTree())
+        {
+            if (_useFromRefreshmentArmed)
+                ConfirmUseRefreshment();
+            else
+                EmitSignal(SignalName.InteractionIgnored);
+            return;
+        }
 
         EmitSignal(SignalName.InteractionActivated);
         if (_gameData.RefreshmentState.Status == TableRefreshmentStatus.BuffActive)
@@ -206,11 +231,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         if (mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left)
             return;
 
-        EmitSignal(SignalName.InteractionActivated);
-        _gameData?.TryUseTableRefreshment();
-        // Keep input ownership until Godot finishes dispatching this mouse event.
-        // A sibling Button behind the balloon may otherwise process the same release.
-        CallDeferred(nameof(HideUseBalloon));
+        ConfirmUseRefreshment();
     }
 
     private void OnStatusBalloonGuiInput(InputEvent @event)
@@ -284,6 +305,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     {
         HideStatusBalloon(animate: false);
         StopUseBalloonAnimations();
+        _useFromRefreshmentArmed = false;
         _useBalloon.Visible = true;
         _useBalloon.Modulate = Colors.White with { A = 0f };
         _useBalloon.Scale = _useBalloonBaseScale * 0.96f;
@@ -297,6 +319,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private void HideUseBalloon()
     {
         StopUseBalloonAnimations();
+        _useFromRefreshmentArmed = false;
         _useBalloon.Visible = false;
         _useBalloon.Modulate = Colors.White;
         _useBalloon.Scale = _useBalloonBaseScale;
@@ -304,7 +327,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     private void StartUseCheckAnimation()
     {
-        if (!_useBalloon.Visible)
+        if (!_useBalloon.Visible || (_useCheckHintTween?.IsRunning() ?? false))
             return;
 
         StopUseCheckAnimation();
@@ -325,14 +348,73 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     {
         _useCheckTween?.Kill();
         _useCheckTween = null;
-        if (_useCheckIcon != null)
-            _useCheckIcon.Rotation = 0f;
+        ResetUseCheckTransform();
+    }
+
+    private void PlayUseCheckInteractionHint()
+    {
+        if (!_useBalloon.IsVisibleInTree())
+            return;
+
+        _useFromRefreshmentArmed = true;
+        PlayRefreshmentInteractionHint(playAudio: false);
+        StopUseCheckAnimation();
+        _useCheckHintTween?.Kill();
+        _useCheckIcon.PivotOffset = new Vector2(
+            _useCheckIcon.Size.X * 0.5f,
+            _useCheckIcon.Size.Y * 0.4f);
+        AudioManager.Instance.PlaySfx("Refreshment_Hint");
+
+        _useCheckHintTween = CreateTween();
+        _useCheckHintTween.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.InOut);
+        _useCheckHintTween.TweenProperty(_useCheckIcon, "rotation", -0.24f, 0.12);
+        _useCheckHintTween.TweenProperty(_useCheckIcon, "rotation", 0.24f, 0.16);
+        _useCheckHintTween.TweenProperty(_useCheckIcon, "rotation", -0.16f, 0.13);
+        _useCheckHintTween.TweenProperty(_useCheckIcon, "rotation", 0.10f, 0.11);
+        _useCheckHintTween.TweenProperty(_useCheckIcon, "rotation", 0f, 0.12);
+        _useCheckHintTween.TweenCallback(Callable.From(FinishUseCheckInteractionHint));
+    }
+
+    private void ConfirmUseRefreshment()
+    {
+        if (!_useBalloon.IsVisibleInTree())
+            return;
+
+        EmitSignal(SignalName.InteractionActivated);
+        _gameData?.TryUseTableRefreshment();
+        // Keep input ownership until Godot finishes dispatching this mouse event.
+        // A sibling Button behind the balloon may otherwise process the same release.
+        CallDeferred(nameof(HideUseBalloon));
+    }
+
+    private void FinishUseCheckInteractionHint()
+    {
+        _useCheckHintTween = null;
+        ResetUseCheckTransform();
+        StartUseCheckAnimation();
+    }
+
+    private void StopUseCheckInteractionHint()
+    {
+        _useCheckHintTween?.Kill();
+        _useCheckHintTween = null;
+        ResetUseCheckTransform();
+    }
+
+    private void ResetUseCheckTransform()
+    {
+        if (_useCheckIcon == null)
+            return;
+
+        _useCheckIcon.Rotation = 0f;
+        _useCheckIcon.PivotOffset = _useCheckIcon.Size * 0.5f;
     }
 
     private void StopUseBalloonAnimations()
     {
         _useBalloonTween?.Kill();
         _useBalloonTween = null;
+        StopUseCheckInteractionHint();
         StopUseCheckAnimation();
     }
 

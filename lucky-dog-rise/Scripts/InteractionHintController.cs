@@ -119,6 +119,14 @@ public partial class InteractionHintController : Node
         ResetProactiveHintIdlePeriod();
     }
 
+    /// <summary>
+    /// 本次点击由交互物接收但不推进流程：不触发误点提示，也不重置主动提示计时。
+    /// </summary>
+    public void NotifyInteractionIgnored()
+    {
+        _pendingClickWasHandled = true;
+    }
+
     public override void _Input(InputEvent @event)
     {
         if (!_inputContextActive)

@@ -83,6 +83,7 @@ public partial class GameManager : Node2D
         _interactionHints.RegisterTarget(InteractionHintTargetId.DogAdvice, _dogVisual);
         _interactionHints.RegisterTarget(InteractionHintTargetId.RefreshmentUse, _itemArea);
         _itemArea.InteractionActivated += _interactionHints.NotifyInteractionHandled;
+        _itemArea.InteractionIgnored += _interactionHints.NotifyInteractionIgnored;
         _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
         SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
@@ -111,7 +112,10 @@ public partial class GameManager : Node2D
     {
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_itemArea != null && _interactionHints != null)
+        {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
+            _itemArea.InteractionIgnored -= _interactionHints.NotifyInteractionIgnored;
+        }
         DetachGameData();
     }
 
@@ -448,7 +452,7 @@ public partial class GameManager : Node2D
     private void SetAvailableInteractionHintTargets(params InteractionHintTargetId[] primaryTargets)
     {
         var targets = primaryTargets.ToList();
-        if (_itemArea != null && _itemArea.CanPlayInteractionHint)
+        if (_itemArea != null)
             targets.Insert(0, InteractionHintTargetId.RefreshmentUse);
 
         _interactionHints.SetAvailableTargets(targets.ToArray());
