@@ -12,6 +12,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     private const string ReferenceRefreshmentFileName = "Whisky.png";
     private const double StatusBalloonHideDelaySeconds = 0.15;
+    private const double RefreshmentFadeOutDurationSeconds = 0.22;
     private static readonly Vector2 UseFeedbackOvershootScale = new(1.08f, 1.12f);
     private static readonly Color UseFeedbackBrightModulate = new(1.22f, 1.22f, 1.22f, 1f);
 
@@ -28,6 +29,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private readonly Dictionary<string, float> _heightCache = new();
     private GameData _gameData;
     private Tween _hintTween;
+    private Tween _refreshmentFadeTween;
     private Tween _useFeedbackTween;
     private Tween _useBalloonTween;
     private Tween _useCheckTween;
@@ -43,6 +45,9 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private bool _statusBalloonHovered;
     private bool _useFromRefreshmentArmed;
     private int _statusBalloonHideToken;
+    private int _refreshmentFadeToken;
+    private int _displayedRefreshmentItemId;
+    private TableRefreshmentStatus _lastRefreshmentStatus = TableRefreshmentStatus.Empty;
     private bool _cacheBuilt;
 
     public bool CanPlayInteractionHint =>
@@ -121,6 +126,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     public void SetRefreshment(Texture2D texture, string fileName, int configuredBalloonOffsetY)
     {
+        StopRefreshmentFade();
         ResetHintAnimation();
         ResetUseFeedbackTransform();
         _refreshmentSprite.Texture = texture;
@@ -141,7 +147,10 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     public void ClearRefreshment()
     {
+        StopRefreshmentFade();
         ResetHintAnimation();
+        ResetUseFeedbackTransform();
+        _displayedRefreshmentItemId = 0;
         _refreshmentHovered = false;
         _statusBalloonHovered = false;
         _statusBalloonHideToken++;
@@ -288,6 +297,17 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             return;
 
         var state = _gameData.RefreshmentState;
+        var shouldFadeOut = _lastRefreshmentStatus == TableRefreshmentStatus.BuffActive
+            && state.Status == TableRefreshmentStatus.Empty
+            && _refreshmentSprite.Visible
+            && _displayedRefreshmentItemId > 0;
+        _lastRefreshmentStatus = state.Status;
+        if (shouldFadeOut)
+        {
+            PlayRefreshmentFadeOut();
+            return;
+        }
+
         var itemId = state.Status == TableRefreshmentStatus.BuffActive
             ? state.BuffSourceItemId
             : state.CurrentItemId;
@@ -312,6 +332,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         }
 
         var fileName = item.AssetPathList[0].Replace('\\', '/').Split('/')[^1];
+        _displayedRefreshmentItemId = itemId;
         SetRefreshment(texture, fileName, config.BalloonOffsetY);
         RefreshStatusBalloonText();
         if (state.Status != TableRefreshmentStatus.BuffActive)
@@ -409,6 +430,60 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         HideUseBalloon();
         if (used)
             PlayUseFeedback();
+    }
+
+    private void PlayRefreshmentFadeOut()
+    {
+        StopRefreshmentFade();
+        var fadeToken = _refreshmentFadeToken;
+        var fadingItemId = _displayedRefreshmentItemId;
+
+        _hintTween?.Kill();
+        ResetUseFeedbackTransform();
+        _clickButton.Disabled = true;
+        _clickButton.MouseFilter = Control.MouseFilterEnum.Ignore;
+        HideUseBalloon();
+        HideStatusBalloon(animate: false);
+
+        _refreshmentFadeTween = CreateTween();
+        _refreshmentFadeTween.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _refreshmentFadeTween.TweenProperty(
+            _refreshmentAnchor,
+            "modulate",
+            UseFeedbackBrightModulate,
+            0.06);
+        _refreshmentFadeTween.TweenInterval(0.05);
+        _refreshmentFadeTween.TweenProperty(
+            _refreshmentAnchor,
+            "modulate",
+            Colors.White,
+            0.08);
+        _refreshmentFadeTween.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        _refreshmentFadeTween.TweenProperty(
+            _refreshmentAnchor,
+            "modulate:a",
+            0f,
+            RefreshmentFadeOutDurationSeconds);
+        _refreshmentFadeTween.TweenCallback(
+            Callable.From(() => FinishRefreshmentFadeOut(fadeToken, fadingItemId)));
+    }
+
+    private void FinishRefreshmentFadeOut(int fadeToken, int fadingItemId)
+    {
+        if (fadeToken != _refreshmentFadeToken
+            || _gameData == null
+            || _gameData.RefreshmentState.Status != TableRefreshmentStatus.Empty
+            || _displayedRefreshmentItemId != fadingItemId)
+            return;
+
+        ClearRefreshment();
+    }
+
+    private void StopRefreshmentFade()
+    {
+        _refreshmentFadeToken++;
+        _refreshmentFadeTween?.Kill();
+        _refreshmentFadeTween = null;
     }
 
     private void PlayUseFeedback()
