@@ -156,6 +156,7 @@ public partial class GameManager : Node2D
 
     private void OnBetRequested()
     {
+        if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.WaitingForBet) return;
         if (!CanStartNewHand())
         {
@@ -212,6 +213,7 @@ public partial class GameManager : Node2D
 
     private void OnDrawPressed()
     {
+        if (IsRefreshmentBalloonPointerCaptured()) return;
         // HandAreaController 会在第一下落地时通知，补牌不在点击瞬间启动。
         if (State == GameState.Dealt || State == GameState.Holding)
             _interactionHints.NotifyInteractionHandled();
@@ -229,6 +231,7 @@ public partial class GameManager : Node2D
 
     private void OnCardClicked(int index)
     {
+        if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
         _interactionHints.NotifyInteractionHandled();
 
@@ -251,6 +254,7 @@ public partial class GameManager : Node2D
 
     private void OnDogClicked()
     {
+        if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
 
         if (_dogHint.HasGivenHint)
@@ -546,6 +550,12 @@ public partial class GameManager : Node2D
     private void OnRefreshmentStateChanged()
     {
         RefreshInteractionHintTargets();
+    }
+
+    private bool IsRefreshmentBalloonPointerCaptured()
+    {
+        return _itemArea != null
+            && _itemArea.CapturesPointerAt(GetViewport().GetMousePosition());
     }
 
     private void AttachGameData()

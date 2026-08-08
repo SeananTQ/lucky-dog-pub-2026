@@ -58,10 +58,6 @@ z_index = 4
 position = Vector2(600, 848)
 script = ExtResource("12_cardtable")
 
-[node name="ItemArea" parent="." unique_id=894784746 instance=ExtResource("14_items")]
-z_index = 3
-position = Vector2(1074, 1055)
-
 [node name="DogArea" parent="." unique_id=23233845 instance=ExtResource("4_dog_scene")]
 position = Vector2(610, 677)
 
@@ -80,6 +76,10 @@ texture = ExtResource("8_4kpch")
 [node name="ChipStack" parent="." unique_id=1896668962 instance=ExtResource("9_chipstack")]
 z_index = 4
 position = Vector2(897, 1128)
+
+[node name="ItemArea" parent="." unique_id=894784746 instance=ExtResource("14_items")]
+z_index = 3
+position = Vector2(1074, 1055)
 
 [node name="TutorialManager" type="Node" parent="." unique_id=381839165]
 script = ExtResource("13_tutorial")

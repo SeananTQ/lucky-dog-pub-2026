@@ -44,6 +44,10 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     public bool IsInteractionHintPlaying => _hintTween?.IsRunning() ?? false;
 
+    public bool CapturesPointerAt(Vector2 viewportPosition) =>
+        ContainsViewportPoint(_useBalloon, viewportPosition)
+        || ContainsViewportPoint(_statusBalloon, viewportPosition);
+
     public override void _Ready()
     {
         _referenceRefreshmentPosition = _refreshmentSprite.Position;
@@ -199,12 +203,14 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             return;
 
         _useBalloon.AcceptEvent();
-        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left)
+        if (mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left)
             return;
 
         EmitSignal(SignalName.InteractionActivated);
-        HideUseBalloon();
         _gameData?.TryUseTableRefreshment();
+        // Keep input ownership until Godot finishes dispatching this mouse event.
+        // A sibling Button behind the balloon may otherwise process the same release.
+        CallDeferred(nameof(HideUseBalloon));
     }
 
     private void OnStatusBalloonGuiInput(InputEvent @event)
