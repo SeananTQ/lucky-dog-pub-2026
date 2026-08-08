@@ -102,7 +102,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
     /// <summary>
     /// 提示确认：手臂做一次明显的预敲桌动作，不播放真实敲击声，也不触发补牌。
     /// </summary>
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint)
             return;

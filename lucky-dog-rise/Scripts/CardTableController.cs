@@ -126,7 +126,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     /// <summary>
     /// 从左向右传递的错拍轻抬，表达整组卡牌可供选择，而不暗示具体哪张该弃。
     /// </summary>
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint)
             return;

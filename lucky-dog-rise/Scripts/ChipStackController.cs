@@ -181,7 +181,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _hintLabel.Visible = false;
     }
 
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint)
             return;

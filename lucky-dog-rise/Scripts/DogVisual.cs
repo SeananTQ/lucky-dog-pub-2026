@@ -330,7 +330,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     /// <summary>
     /// 新手交互提示：播放 2009，借由 AssetRef 继承 1009 的通用 Hello 动作。
     /// </summary>
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint || IsInteractionHintPlaying)
             return;

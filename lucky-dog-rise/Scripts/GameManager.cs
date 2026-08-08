@@ -77,13 +77,16 @@ public partial class GameManager : Node2D
         _handArea = GetNode<HandAreaController>("HandArea");
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
-        _interactionHints.RegisterTarget(InteractionHintTargetId.BetStack, _chipStack);
-        _interactionHints.RegisterTarget(InteractionHintTargetId.HandConfirm, _handArea);
-        _interactionHints.RegisterTarget(InteractionHintTargetId.CardSelection, _cardTable);
-        _interactionHints.RegisterTarget(InteractionHintTargetId.DogAdvice, _dogVisual);
-        _interactionHints.RegisterTarget(InteractionHintTargetId.RefreshmentUse, _itemArea);
+        _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetBetStack, _chipStack);
+        _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetRefreshment, _itemArea);
+        _interactionHints.RegisterTarget(InteractionHintKeys.RefreshmentUseConfirm, _itemArea);
+        _interactionHints.RegisterTarget(InteractionHintKeys.DealtCardSelection, _cardTable);
+        _interactionHints.RegisterTarget(InteractionHintKeys.DealtDogAdvice, _dogVisual);
+        _interactionHints.RegisterTarget(InteractionHintKeys.DealtHandConfirm, _handArea);
+        _interactionHints.RegisterTarget(InteractionHintKeys.HoldingHandConfirm, _handArea);
         _itemArea.InteractionActivated += _interactionHints.NotifyInteractionHandled;
         _itemArea.InteractionIgnored += _interactionHints.NotifyInteractionIgnored;
+        _itemArea.HintContextChanged += RefreshInteractionHintTargets;
         _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
         SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
@@ -115,6 +118,7 @@ public partial class GameManager : Node2D
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
             _itemArea.InteractionIgnored -= _interactionHints.NotifyInteractionIgnored;
+            _itemArea.HintContextChanged -= RefreshInteractionHintTargets;
         }
         DetachGameData();
     }
@@ -378,7 +382,7 @@ public partial class GameManager : Node2D
         reward.Collected += OnChipCollected;
         reward.InteractionActivated += _interactionHints.NotifyInteractionHandled;
         _pendingReward = reward;
-        _interactionHints.RegisterTarget(InteractionHintTargetId.RewardStack, reward);
+        _interactionHints.RegisterTarget(InteractionHintKeys.SettledRewardStack, reward);
         RefreshInteractionHintTargets();
     }
 
@@ -431,48 +435,49 @@ public partial class GameManager : Node2D
         if (_interactionHints == null)
             return;
 
+        if (_itemArea != null && _itemArea.IsUseBalloonOpen)
+        {
+            _interactionHints.SetAvailableKeys(InteractionHintKeys.RefreshmentUseConfirm);
+            return;
+        }
+
         switch (State)
         {
             case GameState.WaitingForBet:
-                SetAvailableInteractionHintTargets(InteractionHintTargetId.BetStack);
+                _interactionHints.SetAvailableKeys(
+                    InteractionHintKeys.WaitingForBetRefreshment,
+                    InteractionHintKeys.WaitingForBetBetStack);
                 break;
             case GameState.Settled when _pendingReward != null && IsInstanceValid(_pendingReward):
-                SetAvailableInteractionHintTargets(InteractionHintTargetId.RewardStack);
+                _interactionHints.SetAvailableKeys(InteractionHintKeys.SettledRewardStack);
                 break;
             case GameState.Dealt:
             case GameState.Holding:
-                SetAvailableInteractionHintTargets(GetPlayDecisionHintTarget());
+                _interactionHints.SetAvailableKeys(GetPlayDecisionHintKey());
                 break;
             default:
-                SetAvailableInteractionHintTargets();
+                _interactionHints.SetAvailableKeys();
                 break;
         }
     }
 
-    private void SetAvailableInteractionHintTargets(params InteractionHintTargetId[] primaryTargets)
-    {
-        var targets = primaryTargets.ToList();
-        if (_itemArea != null)
-            targets.Insert(0, InteractionHintTargetId.RefreshmentUse);
-
-        _interactionHints.SetAvailableTargets(targets.ToArray());
-    }
-
-    private InteractionHintTargetId GetPlayDecisionHintTarget()
+    private string GetPlayDecisionHintKey()
     {
         var faceUpCards = _deck.CurrentHand
             .Where((_, index) => _held[index])
             .ToArray();
 
         if (CanFaceUpCardsScore(faceUpCards))
-            return InteractionHintTargetId.HandConfirm;
+            return State == GameState.Holding
+                ? InteractionHintKeys.HoldingHandConfirm
+                : InteractionHintKeys.DealtHandConfirm;
 
         if (!_held.Any(isHeld => !isHeld))
-            return InteractionHintTargetId.CardSelection;
+            return InteractionHintKeys.DealtCardSelection;
 
         return _dogHint.HasGivenHint
-            ? InteractionHintTargetId.HandConfirm
-            : InteractionHintTargetId.DogAdvice;
+            ? InteractionHintKeys.HoldingHandConfirm
+            : InteractionHintKeys.DealtDogAdvice;
     }
 
     /// <summary>
@@ -576,6 +581,7 @@ public partial class GameManager : Node2D
         ApplyEquippedVisuals();
         _hud.SetMessage("");
         _chipStack.ShowHint("Click to bet");
+        RefreshInteractionHintTargets();
     }
 
     private void DetachGameData()

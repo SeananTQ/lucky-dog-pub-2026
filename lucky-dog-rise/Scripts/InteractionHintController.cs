@@ -1,24 +1,20 @@
 using Godot;
-using System;
 using System.Collections.Generic;
+using DataTables;
 
 namespace LuckyDogRise;
 
-public enum InteractionHintTargetId
+public enum InteractionHintTriggerKind
 {
-    BetStack,
-    RewardStack,
-    HandConfirm,
-    CardSelection,
-    DogAdvice,
-    RefreshmentUse,
+    PassiveMistake,
+    ProactiveIdle,
 }
 
 public interface IInteractionHintTarget
 {
     bool CanPlayInteractionHint { get; }
     bool IsInteractionHintPlaying { get; }
-    void PlayInteractionHint();
+    void PlayInteractionHint(InteractionHintTriggerKind triggerKind);
 }
 
 /// <summary>
@@ -27,13 +23,11 @@ public interface IInteractionHintTarget
 /// </summary>
 public partial class InteractionHintController : Node
 {
-    private const double DefaultProactiveHintIdleSeconds = 9.0;
-    private const string ProactiveHintIdleSecondsConfigField = "ProactiveInteractionHintIdleSeconds";
-    [Export(PropertyHint.Range, "0,10,0.05")]
-    private double _proactiveHintRepeatIntervalSeconds = 0.8;
-    private readonly Dictionary<InteractionHintTargetId, IInteractionHintTarget> _targets = new();
-    private readonly Dictionary<InteractionHintTargetId, Action> _hintActions = new();
-    private readonly List<InteractionHintTargetId> _availableTargets = new();
+    private const double DefaultProactiveHintIdleSeconds = 6.0;
+    private const double DefaultProactiveHintRepeatSeconds = 0.8;
+    private readonly Dictionary<string, IInteractionHintTarget> _targets = new();
+    private readonly List<string> _availableKeys = new();
+    private readonly HashSet<string> _warnedConfigKeys = new();
     private bool _hasPendingClick;
     private bool _shouldResolvePendingClick;
     private bool _pendingClickWasHandled;
@@ -41,37 +35,25 @@ public partial class InteractionHintController : Node
     private bool _proactiveHintContextActive;
     private bool _inputContextActive = true;
     private double _secondsSinceEffectiveInteraction;
+    private bool _proactiveHintHasPlayed;
     private bool _proactiveHintAnimationWasPlaying;
     private double _proactiveHintRepeatDelayRemaining;
-    private double _proactiveHintIdleSeconds = DefaultProactiveHintIdleSeconds;
+    private string _activeProactiveHintKey = "";
 
-    public override void _Ready()
+    public void RegisterTarget(string key, IInteractionHintTarget target)
     {
-        _proactiveHintIdleSeconds = LoadProactiveHintIdleSeconds();
+        _targets[key] = target;
+        _ = LoadHintSettings(key);
     }
 
-    public void RegisterTarget(InteractionHintTargetId id, IInteractionHintTarget target)
+    public void SetAvailableKeys(params string[] keys)
     {
-        _targets[id] = target;
-    }
-
-    /// <summary>
-    /// 在目标的提示动画尚未实现时，也可先登记一项可替换的提示行为，例如诊断输出。
-    /// </summary>
-    public void RegisterHintAction(InteractionHintTargetId id, Action hintAction)
-    {
-        _hintActions[id] = hintAction;
-    }
-
-    public void SetAvailableTargets(params InteractionHintTargetId[] targetIds)
-    {
-        _availableTargets.Clear();
-        foreach (var id in targetIds)
+        _availableKeys.Clear();
+        foreach (var key in keys)
         {
-            if (!_availableTargets.Contains(id))
-                _availableTargets.Add(id);
+            if (!_availableKeys.Contains(key))
+                _availableKeys.Add(key);
         }
-        ResetProactiveHintIdlePeriod();
     }
 
     public void SetProactiveHintsEnabled(bool enabled)
@@ -166,22 +148,48 @@ public partial class InteractionHintController : Node
         _hasPendingClick = false;
         _shouldResolvePendingClick = false;
         if (!_pendingClickWasHandled)
-            TryPlayAvailableHints();
+            TryPlayBestAvailableHint(InteractionHintTriggerKind.PassiveMistake);
     }
 
     private void ProcessProactiveHint(double delta)
     {
         if (!_inputContextActive
             || !_proactiveHintsEnabled
-            || !_proactiveHintContextActive
-            || _availableTargets.Count == 0)
+            || !_proactiveHintContextActive)
             return;
 
-        _secondsSinceEffectiveInteraction += delta;
-        if (_secondsSinceEffectiveInteraction < _proactiveHintIdleSeconds)
+        var candidate = GetBestAvailableCandidate(proactiveOnly: true);
+        if (candidate == null)
+        {
+            if (_activeProactiveHintKey.Length > 0)
+            {
+                _activeProactiveHintKey = "";
+                ResetProactiveHintIdlePeriod();
+            }
             return;
+        }
 
-        if (IsAvailableHintAnimationPlaying())
+        if (_activeProactiveHintKey != candidate.Value.Key)
+        {
+            _activeProactiveHintKey = candidate.Value.Key;
+            ResetProactiveHintIdlePeriod();
+        }
+
+        if (!_proactiveHintHasPlayed)
+        {
+            _secondsSinceEffectiveInteraction += delta;
+            if (_secondsSinceEffectiveInteraction < candidate.Value.Settings.IdleSeconds)
+                return;
+
+            if (TryPlayCandidate(candidate.Value, InteractionHintTriggerKind.ProactiveIdle))
+            {
+                _proactiveHintHasPlayed = true;
+                _proactiveHintAnimationWasPlaying = true;
+            }
+            return;
+        }
+
+        if (candidate.Value.Target.IsInteractionHintPlaying)
         {
             _proactiveHintAnimationWasPlaying = true;
             return;
@@ -190,9 +198,12 @@ public partial class InteractionHintController : Node
         if (_proactiveHintAnimationWasPlaying)
         {
             _proactiveHintAnimationWasPlaying = false;
-            _proactiveHintRepeatDelayRemaining = Mathf.Max(0.0, _proactiveHintRepeatIntervalSeconds);
+            _proactiveHintRepeatDelayRemaining = candidate.Value.Settings.RepeatSeconds;
             return;
         }
+
+        if (candidate.Value.Settings.RepeatSeconds <= 0.0)
+            return;
 
         if (_proactiveHintRepeatDelayRemaining > 0.0)
         {
@@ -200,42 +211,61 @@ public partial class InteractionHintController : Node
             return;
         }
 
-        if (TryPlayAvailableHints())
+        if (TryPlayCandidate(candidate.Value, InteractionHintTriggerKind.ProactiveIdle))
             _proactiveHintAnimationWasPlaying = true;
     }
 
-    private bool TryPlayAvailableHints()
+    private bool TryPlayBestAvailableHint(InteractionHintTriggerKind triggerKind)
     {
-        // 一组候选目标只允许同时播放一个提示，避免点击空白处时从正在播放的
-        // 目标跳到下一个目标，造成筹码和饮品同时响应。
         if (IsAvailableHintAnimationPlaying())
             return false;
 
-        foreach (var id in _availableTargets)
-        {
-            if (_targets.TryGetValue(id, out var target)
-                && target.CanPlayInteractionHint
-                && !target.IsInteractionHintPlaying)
-            {
-                target.PlayInteractionHint();
-                return true;
-            }
+        var candidate = GetBestAvailableCandidate(proactiveOnly: false);
+        return candidate != null && TryPlayCandidate(candidate.Value, triggerKind);
+    }
 
-            if (_hintActions.TryGetValue(id, out var hintAction))
+    private bool TryPlayCandidate(HintCandidate candidate, InteractionHintTriggerKind triggerKind)
+    {
+        if (!candidate.Target.CanPlayInteractionHint
+            || candidate.Target.IsInteractionHintPlaying
+            || IsAvailableHintAnimationPlaying())
+            return false;
+
+        candidate.Target.PlayInteractionHint(triggerKind);
+        return true;
+    }
+
+    private HintCandidate? GetBestAvailableCandidate(bool proactiveOnly)
+    {
+        HintCandidate? best = null;
+        for (var index = 0; index < _availableKeys.Count; index++)
+        {
+            var key = _availableKeys[index];
+            if (!_targets.TryGetValue(key, out var target) || !target.CanPlayInteractionHint)
+                continue;
+
+            var settings = LoadHintSettings(key);
+            if (proactiveOnly && !settings.ProactiveEnabled)
+                continue;
+
+            var candidate = new HintCandidate(key, target, settings, index);
+            if (best == null
+                || candidate.Settings.Priority > best.Value.Settings.Priority
+                || (candidate.Settings.Priority == best.Value.Settings.Priority
+                    && candidate.Order < best.Value.Order))
             {
-                hintAction();
-                return true;
+                best = candidate;
             }
         }
 
-        return false;
+        return best;
     }
 
     private bool IsAvailableHintAnimationPlaying()
     {
-        foreach (var id in _availableTargets)
+        foreach (var key in _availableKeys)
         {
-            if (_targets.TryGetValue(id, out var target) && target.IsInteractionHintPlaying)
+            if (_targets.TryGetValue(key, out var target) && target.IsInteractionHintPlaying)
                 return true;
         }
 
@@ -245,40 +275,60 @@ public partial class InteractionHintController : Node
     private void ResetProactiveHintIdlePeriod()
     {
         _secondsSinceEffectiveInteraction = 0.0;
+        _proactiveHintHasPlayed = false;
         _proactiveHintAnimationWasPlaying = false;
         _proactiveHintRepeatDelayRemaining = 0.0;
     }
 
-    private static double LoadProactiveHintIdleSeconds()
+    private HintSettings LoadHintSettings(string key)
     {
-        try
+        var config = LubanData.Tables.TbInteractionHintConfig.GetOrDefault(key);
+        if (config == null)
         {
-            var configs = LubanData.Tables.TbGameDevelopConfig.DataList;
-            if (configs.Count == 0)
-            {
-                GD.PushWarning($"[InteractionHint] Missing GameDevelopConfig row; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
-                return DefaultProactiveHintIdleSeconds;
-            }
-
-            var config = configs[0];
-            var field = config.GetType().GetField(ProactiveHintIdleSecondsConfigField);
-            if (field == null)
-            {
-                GD.PushWarning($"[InteractionHint] GameDevelopConfig.{ProactiveHintIdleSecondsConfigField} not found; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
-                return DefaultProactiveHintIdleSeconds;
-            }
-
-            var value = Convert.ToDouble(field.GetValue(config));
-            if (value > 0.0)
-                return value;
-
-            GD.PushWarning($"[InteractionHint] GameDevelopConfig.{ProactiveHintIdleSecondsConfigField} must be positive; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
-        }
-        catch (Exception ex)
-        {
-            GD.PushWarning($"[InteractionHint] Failed to load GameDevelopConfig.{ProactiveHintIdleSecondsConfigField}: {ex.Message}; using {DefaultProactiveHintIdleSeconds:0.##}s proactive hint idle fallback.");
+            WarnConfigOnce(
+                $"missing:{key}",
+                $"[InteractionHint] Missing InteractionHintConfig key '{key}'; using " +
+                $"{DefaultProactiveHintIdleSeconds:0.##}s idle and {DefaultProactiveHintRepeatSeconds:0.##}s repeat fallbacks.");
+            return new HintSettings(true, DefaultProactiveHintIdleSeconds, DefaultProactiveHintRepeatSeconds, 0);
         }
 
-        return DefaultProactiveHintIdleSeconds;
+        var idleSeconds = config.ProactiveIdleSeconds;
+        if (idleSeconds <= 0f)
+        {
+            WarnConfigOnce(
+                $"idle:{key}",
+                $"[InteractionHint] InteractionHintConfig '{key}' has non-positive ProactiveIdleSeconds; " +
+                $"using {DefaultProactiveHintIdleSeconds:0.##}s fallback.");
+            idleSeconds = (float)DefaultProactiveHintIdleSeconds;
+        }
+
+        var repeatSeconds = config.ProactiveRepeatSeconds;
+        if (repeatSeconds < 0f)
+        {
+            WarnConfigOnce(
+                $"repeat:{key}",
+                $"[InteractionHint] InteractionHintConfig '{key}' has negative ProactiveRepeatSeconds; treating it as 0 (no repeat).");
+            repeatSeconds = 0f;
+        }
+
+        return new HintSettings(config.ProactiveEnabled, idleSeconds, repeatSeconds, config.Priority);
     }
+
+    private void WarnConfigOnce(string warningKey, string message)
+    {
+        if (_warnedConfigKeys.Add(warningKey))
+            GD.PushWarning(message);
+    }
+
+    private readonly record struct HintSettings(
+        bool ProactiveEnabled,
+        double IdleSeconds,
+        double RepeatSeconds,
+        int Priority);
+
+    private readonly record struct HintCandidate(
+        string Key,
+        IInteractionHintTarget Target,
+        HintSettings Settings,
+        int Order);
 }

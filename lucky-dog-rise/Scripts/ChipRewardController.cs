@@ -204,7 +204,7 @@ public partial class ChipRewardController : Node2D
         AudioManager.Instance.PlaySfx("Chip_RewardStackLanding");
     }
 
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint)
             return;

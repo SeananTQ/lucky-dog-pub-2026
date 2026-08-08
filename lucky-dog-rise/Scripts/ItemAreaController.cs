@@ -8,6 +8,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 {
     [Signal] public delegate void InteractionActivatedEventHandler();
     [Signal] public delegate void InteractionIgnoredEventHandler();
+    [Signal] public delegate void HintContextChangedEventHandler();
 
     private const string ReferenceRefreshmentFileName = "Whisky.png";
     private const double StatusBalloonHideDelaySeconds = 0.15;
@@ -47,6 +48,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     public bool IsInteractionHintPlaying => (_hintTween?.IsRunning() ?? false)
         || (_useCheckHintTween?.IsRunning() ?? false);
+    public bool IsUseBalloonOpen => _useBalloon.IsVisibleInTree();
 
     public bool CapturesPointerAt(Vector2 viewportPosition) =>
         ContainsViewportPoint(_useBalloon, viewportPosition)
@@ -141,14 +143,14 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         _clickButton.MouseFilter = Control.MouseFilterEnum.Ignore;
     }
 
-    public void PlayInteractionHint()
+    public void PlayInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!CanPlayInteractionHint)
             return;
 
         if (_useBalloon.IsVisibleInTree())
         {
-            PlayUseCheckInteractionHint();
+            PlayUseCheckInteractionHint(triggerKind);
             return;
         }
 
@@ -196,15 +198,17 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             return;
         }
 
-        EmitSignal(SignalName.InteractionActivated);
         if (_gameData.RefreshmentState.Status == TableRefreshmentStatus.BuffActive)
         {
-            ShowStatusBalloon(animate: true);
+            EmitSignal(SignalName.InteractionIgnored);
             return;
         }
 
         if (_gameData.RefreshmentState.Status == TableRefreshmentStatus.ReadyToUse)
+        {
+            EmitSignal(SignalName.InteractionActivated);
             ShowUseBalloon();
+        }
     }
 
     private void OnRefreshmentMouseEntered()
@@ -303,6 +307,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
     private void ShowUseBalloon()
     {
+        var wasVisible = _useBalloon.IsVisibleInTree();
         HideStatusBalloon(animate: false);
         StopUseBalloonAnimations();
         _useFromRefreshmentArmed = false;
@@ -314,15 +319,20 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         _useBalloonTween.TweenProperty(_useBalloon, "scale", _useBalloonBaseScale, 0.14);
         _useBalloonTween.Parallel().TweenProperty(_useBalloon, "modulate:a", 1f, 0.10);
         _useBalloonTween.TweenCallback(Callable.From(StartUseCheckAnimation));
+        if (!wasVisible)
+            EmitSignal(SignalName.HintContextChanged);
     }
 
     private void HideUseBalloon()
     {
+        var wasVisible = _useBalloon.IsVisibleInTree();
         StopUseBalloonAnimations();
         _useFromRefreshmentArmed = false;
         _useBalloon.Visible = false;
         _useBalloon.Modulate = Colors.White;
         _useBalloon.Scale = _useBalloonBaseScale;
+        if (wasVisible)
+            EmitSignal(SignalName.HintContextChanged);
     }
 
     private void StartUseCheckAnimation()
@@ -351,12 +361,13 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         ResetUseCheckTransform();
     }
 
-    private void PlayUseCheckInteractionHint()
+    private void PlayUseCheckInteractionHint(InteractionHintTriggerKind triggerKind)
     {
         if (!_useBalloon.IsVisibleInTree())
             return;
 
-        _useFromRefreshmentArmed = true;
+        if (triggerKind == InteractionHintTriggerKind.ProactiveIdle)
+            _useFromRefreshmentArmed = true;
         PlayRefreshmentInteractionHint(playAudio: false);
         StopUseCheckAnimation();
         _useCheckHintTween?.Kill();
