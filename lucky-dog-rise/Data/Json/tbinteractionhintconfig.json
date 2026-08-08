@@ -1,0 +1,66 @@
+[
+  {
+    "Key": "Poker.WaitingForBet.Refreshment",
+    "Description": "准备下注：提示点击桌面消耗品",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 5,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 200
+  },
+  {
+    "Key": "Poker.WaitingForBet.BetStack",
+    "Description": "准备下注：提示点击下注筹码",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 5,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  },
+  {
+    "Key": "Poker.Refreshment.UseConfirm",
+    "Description": "消耗品气球已打开：提示点击对号或酒杯",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 3,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 300
+  },
+  {
+    "Key": "Poker.Dealt.CardSelection",
+    "Description": "发牌后：提示选择需要替换的牌",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 6,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  },
+  {
+    "Key": "Poker.Dealt.DogAdvice",
+    "Description": "发牌后：提示点击小狗询问建议",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 5,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  },
+  {
+    "Key": "Poker.Dealt.HandConfirm",
+    "Description": "发牌后：提示敲桌确认",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 12,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  },
+  {
+    "Key": "Poker.Holding.HandConfirm",
+    "Description": "调整保留牌后：提示敲桌确认",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 9,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  },
+  {
+    "Key": "Poker.Settled.RewardStack",
+    "Description": "结算后：提示领取奖励筹码",
+    "ProactiveEnabled": true,
+    "ProactiveIdleSeconds": 5,
+    "ProactiveRepeatSeconds": 0.8,
+    "Priority": 100
+  }
+]
