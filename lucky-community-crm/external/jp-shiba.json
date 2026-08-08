@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 4,
+  "tabs": {
+    "shiba": {
+      "keywords": [
+        {
+          "id": "jp-shiba",
+          "group": "柴犬基础搜索",
+          "q": "柴犬",
+          "why": "寻找日本柴犬主人和日常账号。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-daily",
+          "group": "柴犬主人",
+          "q": "柴犬の日常",
+          "why": "寻找持续发布柴犬生活照片的主人。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-my-shiba",
+          "group": "柴犬主人",
+          "q": "うちの柴犬",
+          "why": "寻找主人视角发布的柴犬照片。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-name",
+          "group": "柴犬主人",
+          "q": "柴犬 名前",
+          "why": "寻找带狗狗名字和个人账号。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "jp-shiba-hat",
+          "group": "成就灵感 · 帽子",
+          "q": "柴犬 帽子",
+          "why": "寻找 Hats Off 成就素材。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-cap",
+          "group": "成就灵感 · 帽子",
+          "q": "柴犬 キャップ",
+          "why": "寻找戴帽子的柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-sunglasses",
+          "group": "成就灵感 · 眼镜",
+          "q": "柴犬 サングラス",
+          "why": "寻找眼镜柴犬，对应 A New Look。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-fashion",
+          "group": "成就灵感 · 装扮",
+          "q": "柴犬 服",
+          "why": "寻找穿衣服的柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-costume",
+          "group": "成就灵感 · 装扮",
+          "q": "柴犬 コスプレ",
+          "why": "寻找特殊造型柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "jp-shiba-cute",
+          "group": "通用成就",
+          "q": "柴犬 可愛い",
+          "why": "寻找高互动可爱柴犬照片。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-face",
+          "group": "通用成就",
+          "q": "柴犬 正面",
+          "why": "寻找适合 Steam 图标裁切的正脸照片。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-smile",
+          "group": "通用成就",
+          "q": "柴犬 笑顔",
+          "why": "寻找快乐表情柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "jp-shiba-surprise",
+          "group": "狗狗互动 · Starstruck",
+          "q": "柴犬 びっくり顔",
+          "why": "寻找惊讶、崇拜表情。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-looking",
+          "group": "狗狗互动",
+          "q": "柴犬 見上げる",
+          "why": "寻找看向主人、仰望动作。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-paw",
+          "group": "狗狗互动",
+          "q": "柴犬 お手",
+          "why": "寻找伸爪互动照片。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "jp-shiba-toy",
+          "group": "盲盒品质 · Gift",
+          "q": "柴犬 おもちゃ",
+          "why": "寻找带玩具、礼物感照片。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-carry",
+          "group": "盲盒品质 · Gift",
+          "q": "柴犬 くわえる",
+          "why": "寻找叼东西的柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "jp-shiba-nature",
+          "group": "盲盒品质 · 自然",
+          "q": "柴犬 公園",
+          "why": "寻找自然环境中的柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "jp-shiba-outdoor",
+          "group": "盲盒品质 · 自然",
+          "q": "柴犬 散歩",
+          "why": "寻找散步中的真实柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+
+        {
+          "id": "en-shiba-owner",
+          "group": "国际主人",
+          "q": "\"my shiba\"",
+          "why": "寻找主人自发分享。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "en-shiba-hat",
+          "group": "国际装扮",
+          "q": "shiba inu wearing hat",
+          "why": "寻找帽子柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        },
+        {
+          "id": "en-shiba-sunglasses",
+          "group": "国际装扮",
+          "q": "shiba inu sunglasses",
+          "why": "寻找眼镜柴犬。",
+          "status": "testing",
+          "note": "",
+          "opens": 0
+        }
+      ],
+      "collapsed": false
+    }
+  }
+}

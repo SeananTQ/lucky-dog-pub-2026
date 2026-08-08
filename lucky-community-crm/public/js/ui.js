@@ -396,10 +396,14 @@ export function initUI() {
     if (!f) return;
     try {
       const parsed = JSON.parse(await f.text());
-      data.keywords = upgrade({ keywords: extractField(parsed, activeId, 'keywords') }).keywords;
+      const incoming = upgrade({ keywords: extractField(parsed, activeId, 'keywords') }).keywords;
+      // 合并：按关键词文本去重（忽略大小写），保留已有，追加新的一批
+      const seen = new Set(data.keywords.map(k => (k.q || '').trim().toLowerCase()));
+      const added = incoming.filter(k => !seen.has((k.q || '').trim().toLowerCase()));
+      data.keywords = data.keywords.concat(added);
       data.collapsed = false;
       saveKeywords();
-      alert(`关键词导入成功（${data.keywords.length} 条，干净替换当前页签）。`);
+      alert(`关键词合并成功：新增 ${added.length} 条，共 ${data.keywords.length} 条（已按文本去重）。`);
     } catch (err) {
       alert('无法识别这个 JSON 文件。');
     }
