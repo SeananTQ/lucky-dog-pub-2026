@@ -94,9 +94,6 @@ public partial class GameData : Node
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
     private const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
-    private const int RefreshmentLuckyDealHands = 3;
-    private const float RefreshmentLuckyDealTriggerChance = 0.75f;
-
     private BlindBoxRuntimeState ActiveBlindBoxRuntimeState
     {
         get
@@ -111,6 +108,7 @@ public partial class GameData : Node
 
     public override void _Ready()
     {
+        ValidateRefreshmentConfigs();
         _blindBoxService = new BlindBoxService(this);
         _saveDataMode = SettingsManager.LoadSaveDataMode();
         PlayerProgress = new PlayerProgress();
@@ -404,6 +402,7 @@ public partial class GameData : Node
         {
             RemainingHands = _luckyDealBuffState.RemainingHands,
             TriggerChance = _luckyDealBuffState.TriggerChance,
+            LuckyDealMode = _luckyDealBuffState.LuckyDealMode,
         };
         _blindBoxLocalTestSavedRefreshmentRuntimeState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
@@ -1432,7 +1431,10 @@ public partial class GameData : Node
         }
 
         var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
-        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+        if (item == null
+            || item.ItemType != EItemType.Refreshment
+            || !Inventory.Owns(itemId)
+            || !TryGetUsableRefreshmentConfig(itemId, out _))
             return false;
 
         SetTableRefreshment(itemId);
@@ -1449,7 +1451,10 @@ public partial class GameData : Node
 
         var itemId = _refreshmentRuntimeState.CurrentItemId;
         var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
-        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+        if (item == null
+            || item.ItemType != EItemType.Refreshment
+            || !Inventory.Owns(itemId)
+            || !TryGetUsableRefreshmentConfig(itemId, out var config))
         {
             ClearTableRefreshment();
             return false;
@@ -1458,14 +1463,18 @@ public partial class GameData : Node
         var previousState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
         var previousRemainingHands = _luckyDealBuffState.RemainingHands;
         var previousTriggerChance = _luckyDealBuffState.TriggerChance;
+        var previousLuckyDealMode = _luckyDealBuffState.LuckyDealMode;
         _refreshmentRuntimeState = new RefreshmentRuntimeState
         {
             CurrentItemId = itemId,
             Status = TableRefreshmentStatus.BuffActive,
             BuffSourceItemId = itemId,
-            BuffTotalHands = RefreshmentLuckyDealHands,
+            BuffTotalHands = config.DurationHands,
         };
-        GrantLuckyDealBuff(RefreshmentLuckyDealHands, RefreshmentLuckyDealTriggerChance);
+        GrantLuckyDealBuff(
+            config.DurationHands,
+            config.LuckyDealTriggerChance,
+            config.LuckyDealMode);
 
         // RemoveItem emits InventoryChanged synchronously. Publish the complete Buff state
         // first so inventory observers never see a transient Empty table state.
@@ -1474,10 +1483,12 @@ public partial class GameData : Node
             _refreshmentRuntimeState = previousState;
             _luckyDealBuffState.RemainingHands = previousRemainingHands;
             _luckyDealBuffState.TriggerChance = previousTriggerChance;
+            _luckyDealBuffState.LuckyDealMode = previousLuckyDealMode;
             return false;
         }
 
-        AudioManager.Instance.PlaySfx("Refreshment_BuffStart");
+        if (!string.IsNullOrWhiteSpace(config.UseSfxCue))
+            AudioManager.Instance.PlaySfx(config.UseSfxCue);
         EmitSignal(SignalName.RefreshmentStateChanged);
         QueueSaveIfUsingLocalSave();
         return true;
@@ -1519,7 +1530,10 @@ public partial class GameData : Node
 
         var itemId = _refreshmentRuntimeState.CurrentItemId;
         var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
-        if (item == null || item.ItemType != EItemType.Refreshment || !Inventory.Owns(itemId))
+        if (item == null
+            || item.ItemType != EItemType.Refreshment
+            || !Inventory.Owns(itemId)
+            || !TryGetUsableRefreshmentConfig(itemId, out _))
             ClearTableRefreshment();
     }
 
@@ -1577,24 +1591,30 @@ public partial class GameData : Node
 #endif
 
     /// <summary>供未来消耗品和当前 Debug 共用的幸运 Buff 发放接口。</summary>
-    public void GrantLuckyDealBuff(int turns, float triggerChance)
+    public void GrantLuckyDealBuff(
+        int turns,
+        float triggerChance,
+        ELuckyDealMode luckyDealMode = ELuckyDealMode.GuidedDraw)
     {
         if (turns <= 0)
             return;
 
         _luckyDealBuffState.RemainingHands = checked(_luckyDealBuffState.RemainingHands + turns);
         _luckyDealBuffState.TriggerChance = Mathf.Clamp(triggerChance, 0f, 1f);
+        _luckyDealBuffState.LuckyDealMode = luckyDealMode;
         QueueSaveIfUsingLocalSave();
     }
 
     /// <summary>在一局成功下注时消耗一次 Buff；未触发幸运牌局同样消耗。</summary>
-    public bool TryConsumeLuckyDealBuff(out float triggerChance)
+    public bool TryConsumeLuckyDealBuff(out ELuckyDealMode luckyDealMode, out float triggerChance)
     {
+        luckyDealMode = ELuckyDealMode.GuidedDraw;
         triggerChance = 0f;
         if (_luckyDealBuffState.RemainingHands <= 0)
             return false;
 
         _luckyDealBuffState.RemainingHands--;
+        luckyDealMode = _luckyDealBuffState.LuckyDealMode;
         triggerChance = _luckyDealBuffState.TriggerChance;
         if (_luckyDealBuffState.RemainingHands <= 0
             && _refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive)
@@ -1818,7 +1838,8 @@ public partial class GameData : Node
             || _luckyDealBuffState.RemainingHands > 0)
             return;
 
-        var item = Inventory.GetOwnedOfType(EItemType.Refreshment).FirstOrDefault();
+        var item = Inventory.GetOwnedOfType(EItemType.Refreshment)
+            .FirstOrDefault(item => TryGetUsableRefreshmentConfig(item.Id, out _));
         if (item == null)
             return;
 
@@ -1838,5 +1859,43 @@ public partial class GameData : Node
             BuffSourceItemId = state.BuffSourceItemId,
             BuffTotalHands = state.BuffTotalHands,
         };
+    }
+
+    private static void ValidateRefreshmentConfigs()
+    {
+        foreach (var config in LubanData.Tables.TbRefreshmentConfig.DataList)
+            _ = TryGetUsableRefreshmentConfig(config.ItemId, out _, logError: true);
+
+        foreach (var item in LubanData.Tables.TbItem.DataList.Where(item => item.ItemType == EItemType.Refreshment))
+        {
+            if (LubanData.Tables.TbRefreshmentConfig.GetOrDefault(item.Id) == null)
+                GD.PushError($"[RefreshmentConfig] Missing config for Refreshment item {item.Id} ({item.Name}).");
+        }
+    }
+
+    private static bool TryGetUsableRefreshmentConfig(
+        int itemId,
+        out RefreshmentConfig config,
+        bool logError = false)
+    {
+        config = LubanData.Tables.TbRefreshmentConfig.GetOrDefault(itemId);
+        string error = null;
+        if (config == null)
+            error = "config is missing";
+        else if (config.ItemId_Ref?.ItemType != EItemType.Refreshment)
+            error = "referenced Item is not Refreshment";
+        else if (config.DurationHands is < 1 or > 99)
+            error = $"DurationHands {config.DurationHands} is outside 1-99";
+        else if (config.LuckyDealTriggerChance is < 0f or > 1f)
+            error = $"LuckyDealTriggerChance {config.LuckyDealTriggerChance} is outside 0-1";
+        else if (config.LuckyDealMode != ELuckyDealMode.GuidedDraw)
+            error = $"LuckyDealMode '{config.LuckyDealMode}' is not implemented";
+
+        if (error == null)
+            return true;
+
+        if (logError)
+            GD.PushError($"[RefreshmentConfig] Item {itemId}: {error}.");
+        return false;
     }
 }

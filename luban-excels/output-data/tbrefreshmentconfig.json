@@ -1,7 +1,7 @@
 [
   {
     "ItemId": 9001,
-    "DurationHands": 3,
+    "DurationHands": 30,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.9,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -10,7 +10,7 @@
   },
   {
     "ItemId": 9002,
-    "DurationHands": 3,
+    "DurationHands": 20,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.8,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -19,7 +19,7 @@
   },
   {
     "ItemId": 9003,
-    "DurationHands": 3,
+    "DurationHands": 20,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.8,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -28,7 +28,7 @@
   },
   {
     "ItemId": 9004,
-    "DurationHands": 3,
+    "DurationHands": 30,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.9,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -37,7 +37,7 @@
   },
   {
     "ItemId": 9005,
-    "DurationHands": 3,
+    "DurationHands": 20,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.8,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -46,7 +46,7 @@
   },
   {
     "ItemId": 9006,
-    "DurationHands": 3,
+    "DurationHands": 20,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.8,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -55,7 +55,7 @@
   },
   {
     "ItemId": 9007,
-    "DurationHands": 3,
+    "DurationHands": 20,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.8,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -64,7 +64,7 @@
   },
   {
     "ItemId": 9008,
-    "DurationHands": 3,
+    "DurationHands": 30,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.9,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -73,7 +73,7 @@
   },
   {
     "ItemId": 9009,
-    "DurationHands": 3,
+    "DurationHands": 15,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.7,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -82,7 +82,7 @@
   },
   {
     "ItemId": 9010,
-    "DurationHands": 3,
+    "DurationHands": 30,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 0.9,
     "InteractionHintSfxCue": "Refreshment_Hint",
@@ -91,11 +91,11 @@
   },
   {
     "ItemId": 9011,
-    "DurationHands": 3,
+    "DurationHands": 50,
     "LuckyDealMode": 1,
     "LuckyDealTriggerChance": 1,
     "InteractionHintSfxCue": "Refreshment_Hint",
     "UseSfxCue": "Refreshment_BuffStart",
-    "BalloonOffsetY": 30
+    "BalloonOffsetY": 100
   }
 ]

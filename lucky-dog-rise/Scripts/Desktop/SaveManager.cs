@@ -48,7 +48,7 @@ public sealed class PendingLinkTreeClaim
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 12;
     public const int MinimumSupportedVersion = 10;
 
     private const string SaveDir = "user://saves";
@@ -257,6 +257,11 @@ public static class SaveManager
         profile.LuckyDealBuffState ??= new LuckyDealBuffState();
         profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
         profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);
+        if (!Enum.IsDefined(profile.LuckyDealBuffState.LuckyDealMode)
+            || profile.LuckyDealBuffState.LuckyDealMode == 0)
+        {
+            profile.LuckyDealBuffState.LuckyDealMode = DataTables.ELuckyDealMode.GuidedDraw;
+        }
         profile.RefreshmentRuntimeState ??= new RefreshmentRuntimeState();
         profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
         profile.BlindBoxRuntimeState.SteamPlaytimeDropStates ??=

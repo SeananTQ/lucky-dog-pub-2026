@@ -6,12 +6,13 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using DataTables;
 
 namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 11;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -76,7 +77,7 @@ internal static class SaveIntegrity
                 : null,
             // v1 存档的签名没有这个字段；保持 null 并由 JsonIgnore 省略，兼容旧 HMAC。
             LuckyDealBuffState = integrityVersion >= 2
-                ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState)
+                ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState, includeLuckyDealMode: integrityVersion >= 11)
                 : null,
             RefreshmentRuntimeState = integrityVersion >= 10
                 ? CanonicalizeRefreshmentRuntimeState(profile.RefreshmentRuntimeState)
@@ -88,13 +89,19 @@ internal static class SaveIntegrity
         return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical, CanonicalJsonOptions));
     }
 
-    private static LuckyDealBuffState CanonicalizeLuckyDealBuff(LuckyDealBuffState? state)
+    private static LuckyDealBuffState CanonicalizeLuckyDealBuff(
+        LuckyDealBuffState? state,
+        bool includeLuckyDealMode)
     {
         state ??= new LuckyDealBuffState();
+        var luckyDealMode = Enum.IsDefined(state.LuckyDealMode) && state.LuckyDealMode != 0
+            ? state.LuckyDealMode
+            : ELuckyDealMode.GuidedDraw;
         return new LuckyDealBuffState
         {
             RemainingHands = Math.Max(0, state.RemainingHands),
             TriggerChance = Math.Clamp(state.TriggerChance, 0f, 1f),
+            LuckyDealMode = includeLuckyDealMode ? luckyDealMode : 0,
         };
     }
 

@@ -320,7 +320,12 @@ public partial class GameManager : Node2D
         _gameData.ModifyChips(-_gameData.BetAmount);
         _gameData.RecordPokerHandStarted(_gameData.BetAmount, _currentHandProgressSource);
         _gameData.EmitNewHandStarted();
-        _deck.Deal(_gameData.TryConsumeLuckyDealBuff(out float triggerChance) ? triggerChance : null);
+        var hasLuckyDealBuff = _gameData.TryConsumeLuckyDealBuff(
+            out var luckyDealMode,
+            out var triggerChance);
+        _deck.Deal(
+            hasLuckyDealBuff ? luckyDealMode : null,
+            hasLuckyDealBuff ? triggerChance : null);
         _held = [true, true, true, true, true];
         _dogHint.ResetForNewHand();
         _chipStack.HideHint();

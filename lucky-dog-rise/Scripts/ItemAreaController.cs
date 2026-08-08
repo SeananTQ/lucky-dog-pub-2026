@@ -114,14 +114,15 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         HideUseBalloon();
     }
 
-    public void SetRefreshment(Texture2D texture, string fileName)
+    public void SetRefreshment(Texture2D texture, string fileName, int configuredBalloonOffsetY)
     {
         ResetHintAnimation();
         _refreshmentSprite.Texture = texture;
         _refreshmentSprite.Visible = true;
         _refreshmentSprite.Position = _localCache.GetValueOrDefault(fileName, _referenceRefreshmentPosition);
         _refreshmentRestPosition = _refreshmentSprite.Position;
-        var balloonOffsetY = _balloonVerticalOffsetCache.GetValueOrDefault(fileName, 0f);
+        var balloonOffsetY = _balloonVerticalOffsetCache.GetValueOrDefault(fileName, 0f)
+            + configuredBalloonOffsetY;
         _useBalloon.Position = _useBalloonBasePosition + new Vector2(0f, balloonOffsetY);
         _statusBalloon.Position = _statusBalloonBasePosition + new Vector2(0f, balloonOffsetY);
         _clickButton.Visible = true;
@@ -161,7 +162,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     {
         ResetHintAnimation();
         if (playAudio)
-            AudioManager.Instance.PlaySfx("Refreshment_Hint");
+            PlayInteractionHintSfx();
         _hintTween = CreateTween();
         _hintTween.TweenProperty(_refreshmentSprite, "position", _refreshmentRestPosition + new Vector2(0f, -12f), 0.12)
             .SetTrans(Tween.TransitionType.Quad)
@@ -282,7 +283,13 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             ? state.BuffSourceItemId
             : state.CurrentItemId;
         var item = itemId > 0 ? LubanData.Tables.TbItem.GetOrDefault(itemId) : null;
-        if (item == null || item.ItemType != EItemType.Refreshment || item.AssetPathList.Count == 0)
+        var config = itemId > 0
+            ? LubanData.Tables.TbRefreshmentConfig.GetOrDefault(itemId)
+            : null;
+        if (item == null
+            || config == null
+            || item.ItemType != EItemType.Refreshment
+            || item.AssetPathList.Count == 0)
         {
             ClearRefreshment();
             return;
@@ -296,7 +303,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         }
 
         var fileName = item.AssetPathList[0].Replace('\\', '/').Split('/')[^1];
-        SetRefreshment(texture, fileName);
+        SetRefreshment(texture, fileName, config.BalloonOffsetY);
         RefreshStatusBalloonText();
         if (state.Status != TableRefreshmentStatus.BuffActive)
             HideStatusBalloon(animate: false);
@@ -371,7 +378,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         _useCheckIcon.PivotOffset = new Vector2(
             _useCheckIcon.Size.X * 0.5f,
             _useCheckIcon.Size.Y * 0.4f);
-        AudioManager.Instance.PlaySfx("Refreshment_Hint");
+        PlayInteractionHintSfx();
 
         _useCheckHintTween = CreateTween();
         _useCheckHintTween.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.InOut);
@@ -470,6 +477,20 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
         var totalHands = Mathf.Max(1, _gameData.RefreshmentState.BuffTotalHands);
         _statusHandsLabel.Text = $"{Mathf.Max(0, _gameData.LuckyDealRemainingHands)}/{totalHands}";
+    }
+
+    private void PlayInteractionHintSfx()
+    {
+        if (_gameData == null)
+            return;
+
+        var state = _gameData.RefreshmentState;
+        var itemId = state.Status == TableRefreshmentStatus.BuffActive
+            ? state.BuffSourceItemId
+            : state.CurrentItemId;
+        var cue = LubanData.Tables.TbRefreshmentConfig.GetOrDefault(itemId)?.InteractionHintSfxCue;
+        if (!string.IsNullOrWhiteSpace(cue))
+            AudioManager.Instance.PlaySfx(cue);
     }
 
     private void ResetHintAnimation()

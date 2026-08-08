@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -25,4 +27,6 @@ public sealed class LuckyDealBuffState
 {
     public int RemainingHands { get; set; }
     public float TriggerChance { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ELuckyDealMode LuckyDealMode { get; set; } = ELuckyDealMode.GuidedDraw;
 }

@@ -2,6 +2,7 @@ using System;
 using DataTables;
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 
 namespace LuckyDogRise;
 
@@ -31,7 +32,7 @@ public class DeckManager
         _fixedSeed = seed;
     }
 
-    public void Deal(float? luckyTriggerChance = null)
+    public void Deal(ELuckyDealMode? luckyDealMode = null, float? luckyTriggerChance = null)
     {
         // 每手用新种子，方便复现
         int seed = _fixedSeed ?? new Random().Next();
@@ -49,7 +50,18 @@ public class DeckManager
         LuckyDealPlan = null;
         if (luckyTriggerChance.HasValue && _rng.NextDouble() < luckyTriggerChance.Value)
         {
-            LuckyDealPlan = CreateLuckyDealPlan();
+            if (luckyDealMode != ELuckyDealMode.GuidedDraw)
+            {
+                GD.PushError($"[LuckyDeal] Unsupported mode '{luckyDealMode}'; dealing a natural hand instead.");
+            }
+            else
+            {
+                LuckyDealPlan = CreateLuckyDealPlan();
+            }
+        }
+
+        if (LuckyDealPlan != null)
+        {
             PredeterminedRank = CardEvaluator.Evaluate(LuckyDealPlan.WinnerHand);
             CurrentHand = (int[])LuckyDealPlan.InitialVisibleHand.Clone();
             FinalHand = (int[])CurrentHand.Clone();
