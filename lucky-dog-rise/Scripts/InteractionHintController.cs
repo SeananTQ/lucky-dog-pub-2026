@@ -31,6 +31,11 @@ public partial class InteractionHintController : Node
     private bool _hasPendingClick;
     private bool _shouldResolvePendingClick;
     private bool _pendingClickWasHandled;
+    private string _passiveHintKey = "";
+    private IInteractionHintTarget _passiveHintTarget;
+    private bool _passiveHintAnimationWasPlaying;
+    private double _passiveHintCooldownDuration;
+    private double _passiveHintCooldownRemaining;
     private bool _proactiveHintsEnabled = true;
     private bool _proactiveHintContextActive;
     private bool _inputContextActive = true;
@@ -89,6 +94,7 @@ public partial class InteractionHintController : Node
         _hasPendingClick = false;
         _shouldResolvePendingClick = false;
         _pendingClickWasHandled = false;
+        ResetPassiveHintCooldown();
         ResetProactiveHintIdlePeriod();
     }
 
@@ -98,6 +104,7 @@ public partial class InteractionHintController : Node
     public void NotifyInteractionHandled()
     {
         _pendingClickWasHandled = true;
+        ResetPassiveHintCooldown();
         ResetProactiveHintIdlePeriod();
     }
 
@@ -131,6 +138,7 @@ public partial class InteractionHintController : Node
 
     public override void _Process(double delta)
     {
+        ProcessPassiveHintCooldown(delta);
         ResolveIncorrectClickHint();
         ProcessProactiveHint(delta);
     }
@@ -148,7 +156,51 @@ public partial class InteractionHintController : Node
         _hasPendingClick = false;
         _shouldResolvePendingClick = false;
         if (!_pendingClickWasHandled)
-            TryPlayBestAvailableHint(InteractionHintTriggerKind.PassiveMistake);
+            TryPlayPassiveHint();
+    }
+
+    private void ProcessPassiveHintCooldown(double delta)
+    {
+        if (_passiveHintAnimationWasPlaying)
+        {
+            if (_passiveHintTarget != null && _passiveHintTarget.IsInteractionHintPlaying)
+                return;
+
+            _passiveHintAnimationWasPlaying = false;
+            _passiveHintCooldownRemaining = _passiveHintCooldownDuration;
+            return;
+        }
+
+        if (_passiveHintCooldownRemaining > 0.0)
+            _passiveHintCooldownRemaining = Mathf.Max(0.0, _passiveHintCooldownRemaining - delta);
+    }
+
+    private bool TryPlayPassiveHint()
+    {
+        if (_proactiveHintHasPlayed)
+            return false;
+
+        var candidate = GetBestAvailableCandidate(proactiveOnly: false);
+        if (candidate == null)
+        {
+            ResetPassiveHintCooldown();
+            return false;
+        }
+
+        if (_passiveHintKey.Length > 0 && _passiveHintKey != candidate.Value.Key)
+            ResetPassiveHintCooldown();
+
+        if (_passiveHintAnimationWasPlaying || _passiveHintCooldownRemaining > 0.0)
+            return false;
+
+        if (!TryPlayCandidate(candidate.Value, InteractionHintTriggerKind.PassiveMistake))
+            return false;
+
+        _passiveHintKey = candidate.Value.Key;
+        _passiveHintTarget = candidate.Value.Target;
+        _passiveHintAnimationWasPlaying = true;
+        _passiveHintCooldownDuration = candidate.Value.Settings.PassiveCooldownSeconds;
+        return true;
     }
 
     private void ProcessProactiveHint(double delta)
@@ -215,15 +267,6 @@ public partial class InteractionHintController : Node
             _proactiveHintAnimationWasPlaying = true;
     }
 
-    private bool TryPlayBestAvailableHint(InteractionHintTriggerKind triggerKind)
-    {
-        if (IsAvailableHintAnimationPlaying())
-            return false;
-
-        var candidate = GetBestAvailableCandidate(proactiveOnly: false);
-        return candidate != null && TryPlayCandidate(candidate.Value, triggerKind);
-    }
-
     private bool TryPlayCandidate(HintCandidate candidate, InteractionHintTriggerKind triggerKind)
     {
         if (!candidate.Target.CanPlayInteractionHint
@@ -280,6 +323,15 @@ public partial class InteractionHintController : Node
         _proactiveHintRepeatDelayRemaining = 0.0;
     }
 
+    private void ResetPassiveHintCooldown()
+    {
+        _passiveHintKey = "";
+        _passiveHintTarget = null;
+        _passiveHintAnimationWasPlaying = false;
+        _passiveHintCooldownDuration = 0.0;
+        _passiveHintCooldownRemaining = 0.0;
+    }
+
     private HintSettings LoadHintSettings(string key)
     {
         var config = LubanData.Tables.TbInteractionHintConfig.GetOrDefault(key);
@@ -288,8 +340,9 @@ public partial class InteractionHintController : Node
             WarnConfigOnce(
                 $"missing:{key}",
                 $"[InteractionHint] Missing InteractionHintConfig key '{key}'; using " +
-                $"{DefaultProactiveHintIdleSeconds:0.##}s idle and {DefaultProactiveHintRepeatSeconds:0.##}s repeat fallbacks.");
-            return new HintSettings(true, DefaultProactiveHintIdleSeconds, DefaultProactiveHintRepeatSeconds, 0);
+                $"{DefaultProactiveHintIdleSeconds:0.##}s idle, {DefaultProactiveHintRepeatSeconds:0.##}s repeat, " +
+                "and 0s passive cooldown fallbacks.");
+            return new HintSettings(true, DefaultProactiveHintIdleSeconds, DefaultProactiveHintRepeatSeconds, 0.0, 0);
         }
 
         var idleSeconds = config.ProactiveIdleSeconds;
@@ -311,7 +364,21 @@ public partial class InteractionHintController : Node
             repeatSeconds = 0f;
         }
 
-        return new HintSettings(config.ProactiveEnabled, idleSeconds, repeatSeconds, config.Priority);
+        var passiveCooldownSeconds = config.PassiveCooldownSeconds;
+        if (passiveCooldownSeconds < 0f)
+        {
+            WarnConfigOnce(
+                $"passive-cooldown:{key}",
+                $"[InteractionHint] InteractionHintConfig '{key}' has negative PassiveCooldownSeconds; treating it as 0.");
+            passiveCooldownSeconds = 0f;
+        }
+
+        return new HintSettings(
+            config.ProactiveEnabled,
+            idleSeconds,
+            repeatSeconds,
+            passiveCooldownSeconds,
+            config.Priority);
     }
 
     private void WarnConfigOnce(string warningKey, string message)
@@ -324,6 +391,7 @@ public partial class InteractionHintController : Node
         bool ProactiveEnabled,
         double IdleSeconds,
         double RepeatSeconds,
+        double PassiveCooldownSeconds,
         int Priority);
 
     private readonly record struct HintCandidate(

@@ -199,10 +199,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         }
 
         if (_gameData.RefreshmentState.Status == TableRefreshmentStatus.BuffActive)
-        {
-            EmitSignal(SignalName.InteractionIgnored);
             return;
-        }
 
         if (_gameData.RefreshmentState.Status == TableRefreshmentStatus.ReadyToUse)
         {

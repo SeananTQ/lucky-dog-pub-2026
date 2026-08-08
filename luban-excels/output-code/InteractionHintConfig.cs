@@ -22,6 +22,7 @@ public sealed partial class InteractionHintConfig : Luban.BeanBase
         { if(!_buf["ProactiveEnabled"].IsBoolean) { throw new SerializationException(); }  ProactiveEnabled = _buf["ProactiveEnabled"]; }
         { if(!_buf["ProactiveIdleSeconds"].IsNumber) { throw new SerializationException(); }  ProactiveIdleSeconds = _buf["ProactiveIdleSeconds"]; }
         { if(!_buf["ProactiveRepeatSeconds"].IsNumber) { throw new SerializationException(); }  ProactiveRepeatSeconds = _buf["ProactiveRepeatSeconds"]; }
+        { if(!_buf["PassiveCooldownSeconds"].IsNumber) { throw new SerializationException(); }  PassiveCooldownSeconds = _buf["PassiveCooldownSeconds"]; }
         { if(!_buf["Priority"].IsNumber) { throw new SerializationException(); }  Priority = _buf["Priority"]; }
     }
 
@@ -51,6 +52,10 @@ public sealed partial class InteractionHintConfig : Luban.BeanBase
     /// </summary>
     public readonly float ProactiveRepeatSeconds;
     /// <summary>
+    /// 动画本身的时间算是基础间隔，需要加上这个字段用于额外间隔
+    /// </summary>
+    public readonly float PassiveCooldownSeconds;
+    /// <summary>
     /// 多个提示同时可用时数值越高越优先
     /// </summary>
     public readonly int Priority;
@@ -70,6 +75,7 @@ public sealed partial class InteractionHintConfig : Luban.BeanBase
         + "ProactiveEnabled:" + ProactiveEnabled + ","
         + "ProactiveIdleSeconds:" + ProactiveIdleSeconds + ","
         + "ProactiveRepeatSeconds:" + ProactiveRepeatSeconds + ","
+        + "PassiveCooldownSeconds:" + PassiveCooldownSeconds + ","
         + "Priority:" + Priority + ","
         + "}";
     }

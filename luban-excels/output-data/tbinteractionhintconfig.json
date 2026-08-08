@@ -5,6 +5,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 5,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0.5,
     "Priority": 200
   },
   {
@@ -13,6 +14,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 5,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0,
     "Priority": 100
   },
   {
@@ -21,6 +23,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 3,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0,
     "Priority": 300
   },
   {
@@ -29,6 +32,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 6,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0.5,
     "Priority": 100
   },
   {
@@ -37,6 +41,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 5,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0,
     "Priority": 100
   },
   {
@@ -44,7 +49,8 @@
     "Description": "发牌后：提示敲桌确认",
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 12,
-    "ProactiveRepeatSeconds": 0.8,
+    "ProactiveRepeatSeconds": 1.2,
+    "PassiveCooldownSeconds": 1.2,
     "Priority": 100
   },
   {
@@ -52,7 +58,8 @@
     "Description": "调整保留牌后：提示敲桌确认",
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 9,
-    "ProactiveRepeatSeconds": 0.8,
+    "ProactiveRepeatSeconds": 1.2,
+    "PassiveCooldownSeconds": 1.2,
     "Priority": 100
   },
   {
@@ -61,6 +68,7 @@
     "ProactiveEnabled": true,
     "ProactiveIdleSeconds": 5,
     "ProactiveRepeatSeconds": 0.8,
+    "PassiveCooldownSeconds": 0,
     "Priority": 100
   }
 ]
