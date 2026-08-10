@@ -12,6 +12,8 @@ public partial class LoadingIndicatorController : Control
     [Export] private TextureRect _steamLogo = null!;
 
     private double _elapsedSeconds;
+    private bool _loadingStateInitialized;
+    private bool _isLoading;
 
     public override void _Ready()
     {
@@ -52,6 +54,13 @@ public partial class LoadingIndicatorController : Control
             return;
         }
 
+        // UI state refreshes may repeat while the same platform request is pending.
+        // Restart the animation only on an actual hidden -> loading transition.
+        if (_loadingStateInitialized && _isLoading == loading)
+            return;
+
+        _loadingStateInitialized = true;
+        _isLoading = loading;
         Visible = loading;
         SetProcess(loading);
         if (loading)

@@ -124,9 +124,7 @@ public partial class SystemPanelController : CanvasLayer
     private int _currentSeed;
     private double _debugTimeRefreshTimer;
     private bool _resetPlayerProgressPending;
-    private bool _simulateLinkTreeSyncPending;
     private bool _steamMockActive;
-    private bool _simulateLinkTreeUi;
 #endif
 
     // Wardrobe 页
@@ -140,6 +138,8 @@ public partial class SystemPanelController : CanvasLayer
     private IPlatformInventoryService _inventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
     private LinkTreePageState _linkTreePageState = LinkTreePageState.Loading;
+    private double _linkTreeLoadingElapsedSeconds;
+    private bool _linkTreeShowRecoveryAdvice;
     private bool _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
     public GameData GameData
     {
@@ -253,6 +253,8 @@ public partial class SystemPanelController : CanvasLayer
     private static readonly Color LinkTreeGiftLockedColor = new(0.6039216f, 0.70980394f, 0.7411765f, 1f);
     private static readonly Color LinkTreeGiftReadyColor = new(0f, 0.78039217f, 0.40392157f, 1f);
     private static readonly Color LinkTreeGiftClaimedColor = new(1f, 1f, 1f, 0f);
+    private static readonly Color LinkTreeBusyImageModulate = new(0.4f, 0.4f, 0.4f, 1f);
+    private const double LinkTreeRecoveryAdviceDelaySeconds = 10.0;
     private static readonly Vector2 LinkTreeRewardFeedbackStartScale = new(0.62f, 0.62f);
     private static readonly Vector2 LinkTreeRewardFeedbackRestScale = Vector2.One;
     private static readonly Vector2 LinkTreeRewardFeedbackEndScale = new(0.72f, 0.72f);
@@ -444,7 +446,6 @@ public partial class SystemPanelController : CanvasLayer
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
-        var linkTreeUiSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow/LinkTreeUiSimulationToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
@@ -465,17 +466,6 @@ public partial class SystemPanelController : CanvasLayer
         steamMockPanelToggle.SetPressedNoSignal(false);
         steamMockPanelToggle.Toggled += visible =>
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
-        linkTreeUiSimulationToggle.Toggled += enabled =>
-        {
-            if (enabled && HasPendingRealLinkTreeClaim())
-            {
-                linkTreeUiSimulationToggle.SetPressedNoSignal(false);
-                GD.PushWarning("[LinkTree] Cannot enter UI simulation while a real Steam claim is pending.");
-                return;
-            }
-
-            SetLinkTreeUiSimulation(enabled);
-        };
         _disableGlobalMouseListeningToggle.SetPressedNoSignal(false);
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
@@ -574,6 +564,8 @@ public partial class SystemPanelController : CanvasLayer
     public void SetSteamMockActive(bool active)
     {
         _steamMockActive = active;
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.DebugIdLabel.Visible = active;
         if (active)
             ResetSteamMockLinkTreeState();
         RefreshLinkTreePagePresentation();
@@ -622,6 +614,18 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (_panelScrollDragPotential && !Input.IsMouseButtonPressed(MouseButton.Left))
             ResetPanelScrollDrag();
+
+        if (_linkTreePageState == LinkTreePageState.Loading && !_linkTreeShowRecoveryAdvice)
+        {
+            _linkTreeLoadingElapsedSeconds += delta;
+            if (_linkTreeLoadingElapsedSeconds >= LinkTreeRecoveryAdviceDelaySeconds
+                && _recoverablePlatformService?.ConnectionState == PlatformConnectionState.Unavailable)
+            {
+                _linkTreeShowRecoveryAdvice = true;
+                if (_linkTreeContent.Visible)
+                    RefreshLinkTreePagePresentation();
+            }
+        }
 
 #if DEBUG
         if (_gameData == null || !_debugContent.Visible)
@@ -747,10 +751,6 @@ public partial class SystemPanelController : CanvasLayer
         {
             RefreshLinkTreeVisibleEntries();
             _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
-#if DEBUG
-            if (_simulateLinkTreeUi)
-                return;
-#endif
             RefreshLinkTreePageFromPlatformState();
             _recoverablePlatformService?.RequestReconnect();
         }
@@ -810,6 +810,7 @@ public partial class SystemPanelController : CanvasLayer
     private sealed class LinkTreeRewardEntry
     {
         public Button Banner = null!;
+        public TextureRect BannerImage = null!;
         public TextureRect GiftBadge = null!;
         public LoadingIndicatorController LoadingIndicator = null!;
         public Control RewardVisualRoot = null!;
@@ -863,6 +864,7 @@ public partial class SystemPanelController : CanvasLayer
         var entry = new LinkTreeRewardEntry
         {
             Banner = banner,
+            BannerImage = banner.GetNode<TextureRect>("BannerImage"),
             GiftBadge = banner.GetNode<TextureRect>("GiftBadge"),
             LoadingIndicator = banner.GetNode<LoadingIndicatorController>("LoadingIndicator"),
             RewardVisualRoot = banner.GetNode<Control>("RewardVisualRoot"),
@@ -874,6 +876,9 @@ public partial class SystemPanelController : CanvasLayer
             State = LinkTreeRewardState.Unopened,
         };
         entry.DebugIdLabel.Text = data.Id.ToString();
+#if DEBUG
+        entry.DebugIdLabel.Visible = _steamMockActive;
+#endif
         _linkTreeRewardEntries.Add(entry);
         banner.Visible = false;
         banner.Pressed += () => OnLinkTreeBannerPressed(entry);
@@ -970,26 +975,10 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
-#if DEBUG
-        if (_simulateLinkTreeUi)
-        {
-            if (_simulateLinkTreeSyncPending)
-            {
-                entry.ClaimPending = true;
-                RefreshLinkTreeRewardEntry(entry);
-                GD.Print($"[LinkTree] Simulated Steam claim loading for {entry.Data.Key} ({entry.Data.Id}).");
-                return;
-            }
-
-            CompleteSimulatedLinkTreeClaim(entry);
-            return;
-        }
-#endif
-
         if (_inventoryService != null)
         {
             entry.ClaimPending = true;
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             ClaimSteamLinkTreeReward(entry);
             return;
         }
@@ -997,67 +986,10 @@ public partial class SystemPanelController : CanvasLayer
         GD.PushWarning($"[LinkTree] Steam Inventory unavailable; refusing reward claim for {entry.Data.Key}.");
     }
 
-#if DEBUG
-    private bool IsLinkTreeClaimLoadingPreview => _simulateLinkTreeUi && _simulateLinkTreeSyncPending;
-
-    private bool HasPendingRealLinkTreeClaim()
-    {
-        return _gameData?.PendingLinkTreeClaim != null
-            || _inventoryService?.IsPromoGrantPending == true;
-    }
-
-    private void SetLinkTreeUiSimulation(bool enabled)
-    {
-        if (_simulateLinkTreeUi == enabled)
-            return;
-
-        _simulateLinkTreeUi = enabled;
-        foreach (var entry in _linkTreeRewardEntries)
-        {
-            entry.RewardFeedbackTween?.Kill();
-            entry.ClaimPending = false;
-            entry.State = LinkTreeRewardState.Unopened;
-            entry.RewardVisualRoot.Visible = false;
-            entry.DebugIdLabel.Visible = enabled;
-            RefreshLinkTreeRewardEntry(entry);
-        }
-
-        _refreshLinkTreeSelectionOnNextInventorySnapshot = !enabled;
-        RefreshLinkTreeVisibleEntries();
-        if (enabled)
-        {
-            SetLinkTreePageState(LinkTreePageState.Ready);
-            GD.Print("[LinkTree] UI simulation enabled; Steam Inventory and local rewards are bypassed.");
-            return;
-        }
-
-        SetLinkTreePageState(LinkTreePageState.Loading);
-        InitializeLinkTreeInventory();
-        _recoverablePlatformService?.RequestReconnect();
-        GD.Print("[LinkTree] UI simulation disabled; restoring the real Steam inventory state.");
-    }
-
-    private void CompleteSimulatedLinkTreeClaim(LinkTreeRewardEntry entry)
-    {
-        entry.State = LinkTreeRewardState.Claimed;
-        RefreshLinkTreeRewardEntry(entry);
-        SetupLinkTreeRewardPreview(entry);
-        PlayLinkTreeRewardFeedback(entry);
-        GD.Print($"[LinkTree] Simulated UI claim for {entry.Data.Key} ({entry.Data.Id}); no reward or Steam receipt was granted.");
-    }
-#endif
-
     private void InitializeLinkTreeInventory()
     {
         if (!IsNodeReady())
             return;
-#if DEBUG
-        if (_simulateLinkTreeUi)
-        {
-            SetLinkTreePageState(LinkTreePageState.Ready);
-            return;
-        }
-#endif
         if (_platformService == null)
         {
             SetLinkTreePageState(LinkTreePageState.Loading);
@@ -1079,6 +1011,11 @@ public partial class SystemPanelController : CanvasLayer
         if (!IsNodeReady())
             return;
 
+        if (_linkTreePageState != state)
+        {
+            _linkTreeLoadingElapsedSeconds = 0.0;
+            _linkTreeShowRecoveryAdvice = false;
+        }
         _linkTreePageState = state;
         RefreshLinkTreePagePresentation();
     }
@@ -1086,55 +1023,61 @@ public partial class SystemPanelController : CanvasLayer
     private void RefreshLinkTreePagePresentation()
     {
         var state = _linkTreePageState;
-#if DEBUG
-        if (_simulateLinkTreeUi)
-            state = LinkTreePageState.Ready;
-        if (_simulateLinkTreeSyncPending && !IsLinkTreeClaimLoadingPreview)
-            state = LinkTreePageState.Loading;
-#endif
         var showBanners = state == LinkTreePageState.Ready;
         var unavailableText = L10n.Tr(L10nKey.LinkTree_RewardsUnavailable);
+        var syncingText = GetLinkTreeSyncStatusText(_linkTreeShowRecoveryAdvice);
         _linkTreeStatusCenter.Visible = !showBanners;
         _linkTreeStatusLabel.Text = state switch
         {
-            LinkTreePageState.Loading => L10n.Tr(L10nKey.LinkTree_SyncingRewards),
+            LinkTreePageState.Loading => syncingText,
             LinkTreePageState.Unavailable => unavailableText,
             _ => string.Empty,
         };
         foreach (var entry in _linkTreeRewardEntries)
+        {
+            RefreshLinkTreeRewardEntry(entry);
             entry.Banner.Visible = showBanners && entry.SelectedForDisplay;
+        }
     }
 
-    private bool IsSharedInventoryStatePending()
+    private static string GetLinkTreeSyncStatusText(bool includeRecoveryAdvice)
+    {
+        var text = L10n.Tr(L10nKey.LinkTree_SyncingRewards);
+        if (includeRecoveryAdvice)
+            return text;
+
+        var paragraphBreak = text.IndexOf("\n\n", StringComparison.Ordinal);
+        return paragraphBreak >= 0 ? text[..paragraphBreak] : text;
+    }
+
+    private bool IsSharedInventoryRevalidationPending()
     {
         if (_inventoryService == null || _recoverablePlatformService == null)
             return false;
 
         return _recoverablePlatformService.ConnectionState != PlatformConnectionState.Ready
-               || _recoverablePlatformService.InventoryTrustState != PlatformInventoryTrustState.Trusted
+               || _recoverablePlatformService.InventoryTrustState != PlatformInventoryTrustState.Trusted;
+    }
+
+    private bool IsSharedInventoryWritePending()
+    {
+        return _linkTreeRewardEntries.Any(entry => entry.ClaimPending)
                || _gameData?.PendingPlatformBlindBoxOpen != null
                || _gameData?.PendingLinkTreeClaim != null
-               || _inventoryService.IsExchangePending
-               || _inventoryService.IsPromoGrantPending
-               || _inventoryService.IsPlaytimeDropPending;
+               || _inventoryService?.IsExchangePending == true
+               || _inventoryService?.IsPromoGrantPending == true
+               || _inventoryService?.IsPlaytimeDropPending == true;
     }
 
     private void RefreshLinkTreePageFromPlatformState()
     {
-#if DEBUG
-        if (_simulateLinkTreeUi)
-        {
-            SetLinkTreePageState(LinkTreePageState.Ready);
-            return;
-        }
-#endif
         if (_inventoryService == null || _recoverablePlatformService == null)
         {
             SetLinkTreePageState(LinkTreePageState.Unavailable);
             return;
         }
 
-        SetLinkTreePageState(IsSharedInventoryStatePending()
+        SetLinkTreePageState(IsSharedInventoryRevalidationPending()
             ? LinkTreePageState.Loading
             : LinkTreePageState.Ready);
     }
@@ -1201,7 +1144,7 @@ public partial class SystemPanelController : CanvasLayer
             || receiptItemDef is not { IsEnabled: true, Type: ESteamItemDefType.Item })
         {
             entry.ClaimPending = false;
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             GD.PushWarning(
                 $"[LinkTree] Invalid Steam Bundle/receipt for {entry.Data.Key}: " +
                 $"Bundle={bundleItemDefId}, Receipt={receiptItemDefId}.");
@@ -1216,7 +1159,7 @@ public partial class SystemPanelController : CanvasLayer
         if (_gameData?.IsUsingLocalSave != true)
         {
             entry.ClaimPending = false;
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             GD.PushWarning("[LinkTree] Steam-backed rewards require LocalSave mode so the claim transaction can be recovered.");
             return;
         }
@@ -1226,7 +1169,7 @@ public partial class SystemPanelController : CanvasLayer
                 receiptItemDefId))
         {
             entry.ClaimPending = false;
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             GD.PushWarning($"[LinkTree] Another LinkTree claim transaction is pending; refusing {entry.Data.Key}.");
             return;
         }
@@ -1234,7 +1177,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _gameData.ClearPendingLinkTreeClaim();
             entry.ClaimPending = false;
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             GD.PushWarning($"[LinkTree] {message}");
             return;
         }
@@ -1244,10 +1187,6 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnPlatformInventorySnapshotChanged(PlatformInventorySnapshot snapshot)
     {
-#if DEBUG
-        if (_simulateLinkTreeUi)
-            return;
-#endif
         DiagnosticLog.Record("platform_inventory_snapshot", new Dictionary<string, object>
         {
             ["succeeded"] = snapshot.Succeeded,
@@ -1322,10 +1261,6 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnPlatformConnectionStateChanged(PlatformConnectionState state)
     {
-#if DEBUG
-        if (_simulateLinkTreeUi)
-            return;
-#endif
         RefreshLinkTreePageFromPlatformState();
         if (state == PlatformConnectionState.Ready)
             ResumeWaitingLinkTreeClaims();
@@ -1349,12 +1284,13 @@ public partial class SystemPanelController : CanvasLayer
         if (!result.Succeeded || !result.ReceiptOwned)
         {
             _gameData?.ClearPendingLinkTreeClaim();
-            RefreshLinkTreeRewardEntry(entry);
+            RefreshLinkTreeInteractionPresentation();
             GD.PushWarning($"[LinkTree] {result.Message}");
             return;
         }
 
         entry.ClaimPending = true;
+        RefreshLinkTreeInteractionPresentation();
         _inventoryService?.StartInventorySynchronization();
         GD.Print($"[LinkTree] {result.Message}");
     }
@@ -1379,7 +1315,7 @@ public partial class SystemPanelController : CanvasLayer
 
         entry.ClaimPending = false;
         entry.State = LinkTreeRewardState.Claimed;
-        RefreshLinkTreeRewardEntry(entry);
+        RefreshLinkTreeInteractionPresentation();
         if (!wasAlreadyApplied)
         {
             SetupLinkTreeRewardPreview(entry);
@@ -1462,19 +1398,34 @@ public partial class SystemPanelController : CanvasLayer
             ClaimSteamLinkTreeReward(waitingEntry);
     }
 
-    private static void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
+    private void RefreshLinkTreeInteractionPresentation()
+    {
+        foreach (var entry in _linkTreeRewardEntries)
+            RefreshLinkTreeRewardEntry(entry);
+    }
+
+    private void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
     {
         var showLoading = entry.ClaimPending && entry.State != LinkTreeRewardState.Claimed;
-        entry.Banner.Disabled = showLoading;
+        var inventoryWritePending = IsSharedInventoryWritePending();
+        entry.Banner.Disabled = inventoryWritePending;
+        entry.BannerImage.Modulate = inventoryWritePending ? LinkTreeBusyImageModulate : Colors.White;
         entry.LoadingIndicator.SetLoading(showLoading);
         entry.GiftBadge.Visible = entry.State != LinkTreeRewardState.Claimed && !showLoading;
-        entry.GiftBadge.Modulate = entry.State switch
+        var giftBadgeColor = entry.State switch
         {
             LinkTreeRewardState.Unopened => LinkTreeGiftLockedColor,
             LinkTreeRewardState.OpenedAwaitingReturn => LinkTreeGiftLockedColor,
             LinkTreeRewardState.ReadyToClaim => LinkTreeGiftReadyColor,
             _ => LinkTreeGiftClaimedColor,
         };
+        entry.GiftBadge.Modulate = inventoryWritePending
+            ? new Color(
+                giftBadgeColor.R * LinkTreeBusyImageModulate.R,
+                giftBadgeColor.G * LinkTreeBusyImageModulate.G,
+                giftBadgeColor.B * LinkTreeBusyImageModulate.B,
+                giftBadgeColor.A)
+            : giftBadgeColor;
     }
 
     private static void SetupLinkTreeRewardPreview(LinkTreeRewardEntry entry)
