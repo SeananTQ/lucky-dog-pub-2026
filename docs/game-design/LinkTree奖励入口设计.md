@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-01
+last_edit: 2026-08-11
 status: draft
 ---
 
@@ -10,7 +10,7 @@ status: draft
 
 LinkTree 页用于在系统功能面板中展示外部链接入口，并承接轻量活动奖励。玩家可以通过点击 Banner 打开外部页面，并在客户端确认外部页面打开成功后领取一次奖励。
 
-本功能使用 Steam Inventory 领取 Bundle 发放平台奖励，并以 Bundle 中永久保留的回执判断是否已经领取。Dev 构建提供独立的 LinkTree UI 模拟开关，用于反复测试角标、外部操作等待、领奖状态和反馈动画；模拟流程不访问 Steam Inventory，也不发放本地奖励。
+本功能使用 Steam Inventory 领取 Bundle 发放平台奖励，并以 Bundle 中永久保留的回执判断是否已经领取。LinkTree 与盲盒共用同一套 Steam Inventory 连接状态、库存可信状态、写事务串行保护和恢复机制；Dev 构建通过统一的进程内 Steam Mock 验证两项功能在相同网络场景下的表现，不再维护独立的 LinkTree 模拟开关。
 
 ## 当前入口
 
@@ -64,6 +64,33 @@ stateDiagram-v2
 
 外部行为校验仍属于客户端可信流程。系统只确认 `OS.ShellOpen` 请求成功，并等待一次非游戏内容点击，不验证玩家是否真的完成关注、浏览或其它网页操作。该限制的作用是避免奖励过早变为可领，不承担反作弊职责。
 
+## Steam 库存状态与玩家反馈
+
+LinkTree 是当前面向玩家显式展示 Steam Inventory 状态的页面。盲盒入口尽量隐藏奖励来源差异；当盲盒或 LinkTree 发现 Steam 库存结果不再可信时，LinkTree 应立即反映共享状态，不要求玩家离开页面后重新进入。
+
+共享状态分为两个维度：
+
+- `PlatformConnectionState` 表示连接阶段：`Offline`、`Connecting`、`InventorySyncing`、`Ready`、`Unavailable`。
+- `PlatformInventoryTrustState` 表示缓存库存是否可以用于发奖判断：`Unknown`、`Trusted`、`RevalidationRequired`。
+
+正式文档和代码使用“库存状态需重新验证”或 `RevalidationRequired`，不使用含义容易混淆的“脏状态”。连接达到 `Ready` 并不单独构成页面恢复条件；只有完整库存同步成功、可信状态回到 `Trusted` 后，LinkTree 才重新展示可操作 Banner。
+
+玩家可见表现分为两层：
+
+1. 正常 Steam 写事务进行中，例如 LinkTree 正在领奖、盲盒正在兑换或后台正在提交库存写请求。
+   - 这属于正常通信等待，不立即判断为网络故障。
+   - Banner 保持可见，但所有 Banner 图片亮度降至 40%，礼物角标同步压暗，所有 Banner 暂时禁止点击，避免并发写入造成奖励归属混淆。
+   - 如果事务由某个 LinkTree Banner 发起，只在该 Banner 左侧奖励图标位置显示连续旋转的 Loading；其余 Banner 不显示 Loading。
+   - 玩家仍可切换到其他系统页签，也可以稍后切回 LinkTree。
+
+2. Steam 连接不可用，或任何库存事务出现超时、断联、回调丢失等情况，导致库存进入 `Unknown` 或 `RevalidationRequired`。
+   - LinkTree 隐藏 Banner，显示页面级 Loading，并在后台请求重连和完整库存同步。
+   - 初始只显示简短的“正在检查 Steam 奖励”提示，避免把正常的短暂恢复过程表现成严重故障。
+   - 仅当连接持续处于 `Unavailable` 十秒后，才补充检查网络或切换加速器、VPN 节点的建议。
+   - 页面订阅连接状态、库存可信状态和库存快照事件，因此恢复会实时反映，不要求玩家重新切换页签。
+
+Steam Inventory 写操作在盲盒与 LinkTree 之间共用事务保护。客户端不能同时提交两笔需要通过完整库存差异判断结果的写操作；否则 LinkTree Bundle 新增物品可能被误认为盲盒 Generator 奖励，或反向串单。
+
 ## 奖励类型
 
 `ELinkTreeRewardType` 描述玩家领取后获得什么奖励。
@@ -103,11 +130,12 @@ stateDiagram-v2
 
 当前策略如下：
 
-1. Dev 构建可以显式开启 LinkTree UI 模拟。
-   - 开启后，所有有效入口从未领取状态开始，仅在内存中推进表现状态。
-   - 模拟领奖不创建 Steam 回执，不修改本地存档，也不发放筹码或道具。
-   - 关闭后重新同步 Steam Inventory，并恢复真实领取状态。
-   - 已有真实 Steam 领奖事务在途时，不允许进入模拟模式。
+1. Dev 构建通过统一的 Steam Mock 模拟 LinkTree。
+   - Steam Mock 面板选择任意非“正常（真实 Steam）”场景后，盲盒与 LinkTree 同时进入同一模拟网络环境。
+   - LinkTree 继续执行正式的 `AddPromoItem`、永久回执确认、完整库存复查和奖励反馈状态机，但平台装饰器会拦截真实写入，并生成可复现的模拟库存回调。
+   - 模拟状态只存在于当前进程，不写真实 Steam 库存、不写真实存档，也不上传成就；切回真实 Steam 时恢复进入沙箱前的状态并重新同步库存。
+   - 模拟期间在 Banner 右上角以小字号显示 Banner ID，便于确认配置；真实 Steam 场景不显示 ID。
+   - 真实或模拟事务在途时不允许直接切换场景，必须等待完成或重置，避免两套库存混合。
 
 2. 正常模式使用 Steam Inventory。
    - Steam Inventory 负责判断玩家是否已经领取过正式奖励。
@@ -121,7 +149,7 @@ LinkTree 永久回执不得被消费。`AddPromoItem` 请求成功不等于领�
 
 领奖前先保存一笔本地待处理事务，其中同时记录 LinkTree ID、领取 Bundle ItemDef ID 和永久回执 ItemDef ID。回调丢失、断线或进程中断后，客户端先同步完整库存并查找永久回执，再决定完成事务或允许重试。旧版只保存一个 Steam ItemDef ID 的待处理事务在迁移时直接清除，不猜测其新含义。
 
-Steam Inventory 不可用时，LinkTree 显示平台服务不可用，不根据 Dev 渠道或 Steam 登录状态隐式切换为内存领奖。调试行为只由显式 UI 模拟开关控制。
+Steam Inventory 不可用或库存状态需要重新验证时，LinkTree 显示共享的页面级恢复状态，不根据 Dev 渠道或 Steam 登录状态隐式切换为内存领奖。调试行为只由 Debug Steam Mock 面板中显式选择的场景控制。
 
 ## 数据表
 
