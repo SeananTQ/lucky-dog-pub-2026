@@ -280,7 +280,7 @@ public partial class ModeManager : Control
             _steamMockPanel.Name = "SteamMockPanel";
             AddChild(_steamMockPanel);
             _steamMockPanel.Bind(_platformService, _gameData);
-            _steamMockPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y - 420));
+            _steamMockPanel.SetPanelBottom(_contentOffset.Y);
             _steamMockPanel.CloseRequested += OnSteamMockPanelCloseRequested;
             _steamMockPanel.SimulationReset += OnSteamMockSimulationReset;
         }

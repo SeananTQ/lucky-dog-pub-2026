@@ -562,6 +562,8 @@ public partial class SystemPanelController : CanvasLayer
     {
         _steamMockActive = active;
         RefreshLinkTreePagePresentation();
+        RefreshBlindBoxLocalTestControls();
+        RefreshBlindBoxDebugStatus();
     }
 #endif
 
@@ -1543,13 +1545,21 @@ public partial class SystemPanelController : CanvasLayer
         if (_blindBoxLocalTestModeToggle == null || _gameData == null)
             return;
 
+        var mockActive = _gameData.IsSteamMockSimulationActive;
         var enabled = _gameData.IsBlindBoxLocalTestMode;
         _blindBoxLocalTestModeToggle.SetPressedNoSignal(enabled);
-        _blindBoxLocalTestVoucherCount.Text = _gameData.BlindBoxLocalTestVoucherCount.ToString();
-        _blindBoxLocalTestVoucherDecrease.Disabled = !enabled;
-        _blindBoxLocalTestVoucherIncrease.Disabled = !enabled;
-        _blindBoxLocalTestAdvance.Disabled = !enabled;
-        _blindBoxLocalTestClear.Disabled = !enabled;
+        _blindBoxLocalTestModeToggle.Disabled = mockActive;
+        _blindBoxLocalTestModeToggle.TooltipText = mockActive
+            ? "Steam Mock 已启用；模拟券和阶段请使用上方面板。"
+            : string.Empty;
+        _blindBoxLocalTestVoucherCount.Text = mockActive
+            ? "—"
+            : _gameData.BlindBoxLocalTestVoucherCount.ToString();
+        _blindBoxLocalTestVoucherDecrease.Disabled = mockActive || !enabled;
+        _blindBoxLocalTestVoucherIncrease.Disabled = mockActive || !enabled;
+        var sandboxActive = mockActive || enabled;
+        _blindBoxLocalTestAdvance.Disabled = !sandboxActive;
+        _blindBoxLocalTestClear.Disabled = !sandboxActive;
     }
 #endif
 

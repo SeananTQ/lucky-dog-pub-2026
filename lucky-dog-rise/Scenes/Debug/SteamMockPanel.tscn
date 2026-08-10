@@ -32,7 +32,7 @@ _phaseValue = NodePath("Panel/Root/SteamPage/StateGrid/PhaseValue")
 _phaseTimerValue = NodePath("Panel/Root/SteamPage/StateGrid/PhaseTimerValue")
 _voucherValue = NodePath("Panel/Root/SteamPage/StateGrid/VoucherValue")
 _transactionValue = NodePath("Panel/Root/SteamPage/StateGrid/TransactionValue")
-_lastEventValue = NodePath("Panel/Root/SteamPage/LastEventValue")
+_lastEventValue = NodePath("Panel/Root/SteamPage/LastEventRow/LastEventValue")
 _eventLog = NodePath("Panel/Root/SteamPage/EventLog")
 
 [node name="Panel" type="PanelContainer" parent="."]
@@ -97,11 +97,12 @@ text = "重置场景"
 [node name="AdvanceButton" type="Button" parent="Panel/Root/SteamPage/ActionRow"]
 custom_minimum_size = Vector2(200, 36)
 layout_mode = 2
+tooltip_text = "仅在开盒请求已经提交、当前阶段仍在等待时可用。"
 text = "推进到下一阶段"
 
 [node name="StateGrid" type="GridContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2
-columns = 4
+columns = 6
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 3
 
@@ -143,8 +144,9 @@ layout_mode = 2
 custom_minimum_size = Vector2(75, 0)
 layout_mode = 2
 text = "最后事件"
-[node name="LastEventValue" type="Label" parent="Panel/Root/SteamPage"]
+[node name="LastEventValue" type="Label" parent="Panel/Root/SteamPage/LastEventRow"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "真实 Steam"
 autowrap_mode = 2
 
@@ -152,7 +154,7 @@ autowrap_mode = 2
 layout_mode = 2
 
 [node name="EventLog" type="RichTextLabel" parent="Panel/Root/SteamPage"]
-custom_minimum_size = Vector2(0, 98)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true

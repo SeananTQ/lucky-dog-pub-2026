@@ -294,9 +294,11 @@ public partial class GameData : Node
             ActiveBlindBoxRuntimeState,
             PendingBlindBoxReward);
         var hintState = GetBlindBoxHintState();
-        var simulationText = _blindBoxLocalTestMode
-            ? $"本地测试: 开启，虚拟装扮券 x{_blindBoxLocalTestVoucherCount}"
-            : "本地测试: 关闭（使用真实 Steam/离线流程）";
+        var simulationText = _steamMockSimulationActive
+            ? "Steam Mock: 开启（模拟券以上方面板为准）"
+            : _blindBoxLocalTestMode
+                ? $"本地测试: 开启，虚拟装扮券 x{_blindBoxLocalTestVoucherCount}"
+                : "本地测试: 关闭（使用真实 Steam/离线流程）";
         var statusText = $"{simulationText}\n{debugStatus}\n兜底: {(_blindBoxFallbackEnabled ? "开启" : "关闭")}" +
                          $"\n入口最终状态: {hintState.Status}";
         if (_blindBoxLocalTestMode)
@@ -326,9 +328,9 @@ public partial class GameData : Node
     }
 
     public bool IsBlindBoxFallbackEnabled => _blindBoxFallbackEnabled;
-    public bool IsBlindBoxLocalTestMode => _blindBoxLocalTestMode;
+    public bool IsBlindBoxLocalTestMode => _blindBoxLocalTestMode && !_steamMockSimulationActive;
     public bool IsSteamMockSimulationActive => _steamMockSimulationActive;
-    public int BlindBoxLocalTestVoucherCount => _blindBoxLocalTestVoucherCount;
+    public int BlindBoxLocalTestVoucherCount => _steamMockSimulationActive ? 0 : _blindBoxLocalTestVoucherCount;
 
     public void SetBlindBoxFallbackEnabled(bool enabled)
     {
@@ -437,7 +439,7 @@ public partial class GameData : Node
 
     public void AdjustBlindBoxLocalTestVoucherCount(int delta)
     {
-        if (!_blindBoxLocalTestMode || delta == 0)
+        if (!_blindBoxLocalTestMode || _steamMockSimulationActive || delta == 0)
             return;
 
         _blindBoxLocalTestVoucherCount = Math.Clamp(_blindBoxLocalTestVoucherCount + delta, 0, 99);
@@ -449,11 +451,11 @@ public partial class GameData : Node
         if (!_blindBoxLocalTestMode || PendingBlindBoxReward != null)
             return false;
 
-        MaintainBlindBoxLocalTestPresentation();
+        MaintainLoopPresentation();
         _blindBoxLocalTestRuntimeState.ScheduleSeconds = Math.Max(
             _blindBoxLocalTestRuntimeState.ScheduleSeconds,
             _blindBoxLocalTestRuntimeState.NextLoopPresentationSeconds);
-        MaintainBlindBoxLocalTestPresentation();
+        MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
         return true;
     }
@@ -465,6 +467,7 @@ public partial class GameData : Node
 
         _blindBoxLocalTestRuntimeState.LockedLoopScheduleId = 0;
         _blindBoxLocalTestRuntimeState.LockedLoopBlindBoxId = 0;
+        _blindBoxPresentationDecision = null;
         EmitSignal(SignalName.BlindBoxStateChanged);
         return true;
     }
@@ -1502,6 +1505,13 @@ public partial class GameData : Node
 
     private void ReconcilePlatformInventory(IReadOnlyList<PlatformInventoryItem> platformItems)
     {
+#if DEBUG
+        // Mock snapshots must drive pending-transaction verification, but they are not
+        // authoritative ownership data and must never overwrite the sandbox inventory.
+        if (_steamMockSimulationActive)
+            return;
+#endif
+
         if (!IsUsingLocalSave)
             return;
 

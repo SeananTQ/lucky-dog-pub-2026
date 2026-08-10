@@ -26,30 +26,33 @@ public partial class SteamMockPanelController : CanvasLayer
     private IDebugSteamMockController _controller = null!;
     private GameData _gameData = null!;
     private bool _updatingSelection;
+    private float _panelBottomY;
 
     public Rect2 PanelRect => _panel == null ? default : new Rect2(_panel.Position, _panel.Size);
 
     public override void _Ready()
     {
-        _scenarioOption.AddItem("正常（真实 Steam）", (int)DebugSteamScenario.RealSteam);
-        _scenarioOption.AddItem("开盒前不可用", (int)DebugSteamScenario.UnavailableBeforeOpen);
-        _scenarioOption.AddItem("慢响应后成功", (int)DebugSteamScenario.SlowSuccess);
-        _scenarioOption.AddItem("请求超时，复查确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
-        _scenarioOption.AddItem("请求超时，复查后 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
-        _scenarioOption.AddItem("提交后断联", (int)DebugSteamScenario.DisconnectAfterSubmit);
-        _scenarioOption.AddItem("断联后恢复并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
+        _scenarioOption.AddItem("正常：使用真实 Steam，不进行模拟", (int)DebugSteamScenario.RealSteam);
+        _scenarioOption.AddItem("开盒前不可用：点击时立即使用本地 Fallback", (int)DebugSteamScenario.UnavailableBeforeOpen);
+        _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功发奖", (int)DebugSteamScenario.SlowSuccess);
+        _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
+        _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒后安全 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
+        _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
+        _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;
         _resetButton.Pressed += ResetScenario;
         _advanceButton.Pressed += AdvancePhase;
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         Visible = false;
         SetProcess(false);
+        CallDeferred(MethodName.AlignPanelAboveContent);
     }
 
     public override void _Process(double delta)
     {
         if (_controller == null || !Visible)
             return;
+        AlignPanelAboveContent();
         Refresh(_controller.Snapshot);
     }
 
@@ -66,14 +69,27 @@ public partial class SteamMockPanelController : CanvasLayer
         Refresh(_controller.Snapshot);
     }
 
-    public void SetPanelPosition(Vector2 position) => _panel.Position = position;
+    public void SetPanelBottom(float bottomY)
+    {
+        _panelBottomY = bottomY;
+        CallDeferred(MethodName.AlignPanelAboveContent);
+    }
 
     public void SetPanelVisible(bool visible)
     {
         Visible = visible;
         SetProcess(visible);
+        if (visible)
+            CallDeferred(MethodName.AlignPanelAboveContent);
         if (visible && _controller != null)
             Refresh(_controller.Snapshot);
+    }
+
+    private void AlignPanelAboveContent()
+    {
+        if (_panel == null || _panelBottomY <= 0f)
+            return;
+        _panel.Position = new Vector2(0f, _panelBottomY - _panel.Size.Y);
     }
 
     public bool ContainsPoint(Vector2 windowLocalPoint) => Visible && PanelRect.HasPoint(windowLocalPoint);
