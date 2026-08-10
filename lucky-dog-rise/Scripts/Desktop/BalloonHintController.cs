@@ -8,6 +8,10 @@ namespace LuckyDogRise;
 
 public partial class BalloonHintController : PanelContainer
 {
+#if DEBUG
+    public static bool ShowPaymentSourceLabels { get; set; }
+#endif
+
     public enum TailSide
     {
         Left,
@@ -84,7 +88,9 @@ public partial class BalloonHintController : PanelContainer
         if (valueMode == EBlindBoxValueMode.Chips)
         {
             ShowCost(icon, cost, currentChips);
+#if DEBUG
             AddPaymentSourceLabel(paymentSource);
+#endif
             return;
         }
 
@@ -97,11 +103,17 @@ public partial class BalloonHintController : PanelContainer
             EBlindBoxValueMode.Free => $"[font_size=14]{L10n.Tr(L10nKey.BlindBox_Free)}[/font_size]",
             _ => $"[font_size=20]{cost}[/font_size]",
         });
+#if DEBUG
         AddPaymentSourceLabel(paymentSource);
+#endif
     }
 
+#if DEBUG
     private void AddPaymentSourceLabel(BlindBoxPaymentSource paymentSource)
     {
+        if (!ShowPaymentSourceLabels)
+            return;
+
         var label = paymentSource switch
         {
             BlindBoxPaymentSource.Chips => "CHIPS",
@@ -113,6 +125,7 @@ public partial class BalloonHintController : PanelContainer
         if (!string.IsNullOrEmpty(label))
             SetTextContent($"[font_size=9]{label}[/font_size]\n{_currentTextBbcode}");
     }
+#endif
 
     public void ShowIconOnly(Texture2D? icon)
     {

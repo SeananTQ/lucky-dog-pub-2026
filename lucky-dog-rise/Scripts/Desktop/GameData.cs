@@ -1855,11 +1855,10 @@ public partial class GameData : Node
         EmitSignal(SignalName.RefreshmentStateChanged);
     }
 
+#if DEBUG
     public void ResetLocalSave()
     {
-#if DEBUG
         EndBlindBoxLocalTestMode(force: true);
-#endif
         FlushSave();
         ResetPlaytimeDropTransientState();
         var profile = SaveManager.ResetLocalSave();
@@ -1877,6 +1876,7 @@ public partial class GameData : Node
             EmitSignal(SignalName.RefreshmentStateChanged);
         }
     }
+#endif
 
     private void LoadDataForCurrentMode()
     {

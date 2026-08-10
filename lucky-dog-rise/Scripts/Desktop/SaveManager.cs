@@ -264,12 +264,14 @@ public static class SaveManager
         return profile;
     }
 
+#if DEBUG
     public static SaveProfile ResetLocalSave()
     {
         var profile = CreateDefaultProfile();
         Save(profile);
         return profile;
     }
+#endif
 
     private static SaveProfile Normalize(SaveProfile profile)
     {

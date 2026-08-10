@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DataTables;
 
@@ -25,6 +26,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
+    [Export] private Label _progressionHighScoreLabel = null!;
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
@@ -95,11 +97,11 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _blindBoxBubbleToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
-    private ConfirmOverlayController _resetSaveConfirm = null!;
     private bool _refreshingArmAppearanceOption;
 
 #if DEBUG
     // Debug 页
+    private ConfirmOverlayController _resetSaveConfirm = null!;
     private Label _seedLabel = null!;
     private Label _playTimeLabel = null!;
     private Label _luckyDealBuffLabel = null!;
@@ -107,6 +109,7 @@ public partial class SystemPanelController : CanvasLayer
     private Control _blindBoxDebugContent = null!;
     private Label _blindBoxDebugLabel = null!;
     private CheckButton _blindBoxFallbackToggle = null!;
+    private CheckButton _blindBoxPaymentSourceLabelsToggle = null!;
     private CheckButton _blindBoxLocalTestModeToggle = null!;
     private Label _blindBoxLocalTestVoucherCount = null!;
     private Button _blindBoxLocalTestVoucherDecrease = null!;
@@ -148,6 +151,7 @@ public partial class SystemPanelController : CanvasLayer
                 _gameData.RefreshmentStateChanged -= RefreshWardrobeGrid;
                 _gameData.EquipmentChanged -= RefreshArmAppearanceSelection;
                 _gameData.InventoryChanged -= BuildArmAppearanceOptions;
+                _gameData.ChipsChanged -= OnChipsChangedForProgressionLabel;
             }
 
             _gameData = value;
@@ -156,10 +160,12 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
             _gameData.EquipmentChanged += RefreshArmAppearanceSelection;
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
+            _gameData.ChipsChanged += OnChipsChangedForProgressionLabel;
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
                 BuildArmAppearanceOptions();
+                RefreshProgressionHighScoreLabel();
 #if DEBUG
                 RefreshBlindBoxFallbackToggle();
                 RefreshBlindBoxLocalTestControls();
@@ -287,9 +293,11 @@ public partial class SystemPanelController : CanvasLayer
 #else
         GetNode("Panel/RootVBox/TitleRow/DebugTab").Free();
         GetNode("Panel/RootVBox/Scroll/ContentVBox/DebugContent").Free();
+        GetNode("ResetSaveConfirm").Free();
 #endif
         SwitchTab(0);
         _buildVersionLabel.Text = BuildInfo.DisplayVersion;
+        RefreshProgressionHighScoreLabel();
 
         // === Settings 页 ===
         _sfxVolumeSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeSlider");
@@ -302,11 +310,9 @@ public partial class SystemPanelController : CanvasLayer
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
         _armAppearanceOption.GetPopup().AddThemeConstantOverride("icon_max_width", 32);
-        _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
         var restartBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/RestartBtn");
-        var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ResetSaveBtn");
 
         BuildLanguageOptions();
 
@@ -375,19 +381,7 @@ public partial class SystemPanelController : CanvasLayer
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => EmitSignal(SignalName.QuitRequested);
         restartBtn.Pressed += RestartGame;
-        resetSaveBtn.Pressed += () =>
-        {
-#if DEBUG
-            _resetPlayerProgressPending = false;
-#endif
-            _resetSaveConfirm.ShowConfirmKey(
-                L10nKey.Settings_ResetSaveData,
-                L10nKey.Settings_ResetSaveMessage,
-                L10nKey.Settings_ResetSaveConfirm,
-                L10nKey.Common_Cancel);
-        };
         _exportDiagnosticsButton.Pressed += () => ExportDiagnostics();
-        _resetSaveConfirm.Confirmed += OnResetConfirmed;
 
         _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
         _switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
@@ -421,6 +415,7 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
         _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
         _blindBoxFallbackToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow/BlindBoxFallbackToggle");
+        _blindBoxPaymentSourceLabelsToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxPaymentSourceLabelsRow/BlindBoxPaymentSourceLabelsToggle");
         _blindBoxLocalTestModeToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestModeRow/BlindBoxLocalTestModeToggle");
         _blindBoxLocalTestVoucherCount = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow/BlindBoxLocalTestVoucherCount");
         _blindBoxLocalTestVoucherDecrease = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow/BlindBoxLocalTestVoucherDecrease");
@@ -436,6 +431,7 @@ public partial class SystemPanelController : CanvasLayer
         var linkTreeSyncSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         var linkTreeUiSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow/LinkTreeUiSimulationToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
+        var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
@@ -471,6 +467,9 @@ public partial class SystemPanelController : CanvasLayer
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
+        _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
+        resetSaveBtn.Pressed += ConfirmResetSave;
+        _resetSaveConfirm.Confirmed += OnResetConfirmed;
         _playerProgressMultiplierOption.AddItem("统计 x1", 1);
         _playerProgressMultiplierOption.AddItem("统计 x10", 10);
         _playerProgressMultiplierOption.AddItem("统计 x100", 100);
@@ -521,6 +520,13 @@ public partial class SystemPanelController : CanvasLayer
 
             _gameData.SetBlindBoxFallbackEnabled(enabled);
             RefreshBlindBoxDebugStatus();
+        };
+        BalloonHintController.ShowPaymentSourceLabels = false;
+        _blindBoxPaymentSourceLabelsToggle.SetPressedNoSignal(false);
+        _blindBoxPaymentSourceLabelsToggle.Toggled += enabled =>
+        {
+            BalloonHintController.ShowPaymentSourceLabels = enabled;
+            EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
         };
         randomizeSceneBtn.Pressed += () => EmitSignal(SignalName.RandomizeRequested);
         randomizeDogBtn.Pressed += () => EmitSignal(SignalName.RandomizeDogRequested);
@@ -695,6 +701,19 @@ public partial class SystemPanelController : CanvasLayer
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
 #endif
+    }
+
+    private void OnChipsChangedForProgressionLabel(int _)
+    {
+        RefreshProgressionHighScoreLabel();
+    }
+
+    private void RefreshProgressionHighScoreLabel()
+    {
+        if (_progressionHighScoreLabel == null || _gameData == null)
+            return;
+
+        _progressionHighScoreLabel.Text = _gameData.Progression.HighScore.ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private enum LinkTreeRewardState
@@ -1656,13 +1675,17 @@ public partial class SystemPanelController : CanvasLayer
     public void SetPanelPosition(Vector2 pos)
     {
         _panel.Position = pos;
+#if DEBUG
         _resetSaveConfirm?.SetOverlayRect(pos, PanelSize);
+#endif
     }
 
     public void Close()
     {
+#if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
+#endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 0f, 0.1f).SetEase(Tween.EaseType.In);
@@ -1671,8 +1694,10 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+#if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
+#endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
@@ -1698,10 +1723,12 @@ public partial class SystemPanelController : CanvasLayer
         {
             _exportDiagnosticsButton.Disabled = true;
             _exportDiagnosticsStatusLabel.Text = string.Empty;
+            _exportDiagnosticsStatusLabel.Visible = false;
             var path = DiagnosticLog.ExportPackage(_gameData, _platformService);
             _exportDiagnosticsStatusLabel.Modulate = new Color(0.24f, 0.68f, 0.42f);
             _exportDiagnosticsStatusLabel.Text = L10n.Format(L10nKey.Settings_ExportDiagnosticsSuccess, path);
             _exportDiagnosticsStatusLabel.TooltipText = path;
+            _exportDiagnosticsStatusLabel.Visible = true;
             if (revealInExplorer)
             {
                 try
@@ -1722,6 +1749,7 @@ public partial class SystemPanelController : CanvasLayer
             _exportDiagnosticsStatusLabel.Modulate = new Color(0.82f, 0.25f, 0.25f);
             _exportDiagnosticsStatusLabel.Text = L10n.Tr(L10nKey.Settings_ExportDiagnosticsFailed);
             _exportDiagnosticsStatusLabel.TooltipText = exception.Message;
+            _exportDiagnosticsStatusLabel.Visible = true;
             return string.Empty;
         }
         finally
@@ -1734,7 +1762,9 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (!_panel.Visible) return false;
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
+#if DEBUG
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
+#endif
             || PopupContainsPoint(_languageOption.GetPopup(), windowPos)
             || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
             || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPos)
@@ -2026,6 +2056,17 @@ public partial class SystemPanelController : CanvasLayer
     }
 #endif
 
+#if DEBUG
+    private void ConfirmResetSave()
+    {
+        _resetPlayerProgressPending = false;
+        _resetSaveConfirm.ShowConfirmKey(
+            L10nKey.Settings_ResetSaveData,
+            L10nKey.Settings_ResetSaveMessage,
+            L10nKey.Settings_ResetSaveConfirm,
+            L10nKey.Common_Cancel);
+    }
+
     private void OnResetSaveConfirmed()
     {
         _gameData.ResetLocalSave();
@@ -2033,6 +2074,7 @@ public partial class SystemPanelController : CanvasLayer
         if (_wardrobeContent.Visible)
             BuildWardrobe();
     }
+#endif
 
 #if DEBUG
     private void ConfirmResetPlayerProgress()
@@ -2046,9 +2088,9 @@ public partial class SystemPanelController : CanvasLayer
     }
 #endif
 
+#if DEBUG
     private void OnResetConfirmed()
     {
-#if DEBUG
         if (_resetPlayerProgressPending)
         {
             _resetPlayerProgressPending = false;
@@ -2056,9 +2098,9 @@ public partial class SystemPanelController : CanvasLayer
             RefreshDebugPlayTime();
             return;
         }
-#endif
         OnResetSaveConfirmed();
     }
+#endif
 
 #if DEBUG
     private void ResetSettingsToDefaults()
