@@ -155,12 +155,12 @@ public partial class SteamMockPanelController : CanvasLayer
         if (_scenarioOption == null)
             return;
         RestoreScenarioSelection(snapshot.Scenario);
-        _connectionValue.Text = $"{snapshot.ConnectionState} / {snapshot.InventoryTrustState}";
-        _phaseValue.Text = snapshot.Phase.ToString();
+        _connectionValue.Text = FormatConnectionState(snapshot);
+        _phaseValue.Text = FormatPhase(snapshot.Phase);
         _phaseTimerValue.Text = $"{snapshot.PhaseElapsedSeconds:0.0} 秒";
         _voucherValue.Text = snapshot.VoucherQuantity.ToString();
-        _transactionValue.Text = snapshot.PendingOperation;
-        _lastEventValue.Text = snapshot.LastEvent;
+        _transactionValue.Text = CompactText(snapshot.PendingOperation, 20);
+        _lastEventValue.Text = CompactText(snapshot.LastEvent, 72);
         _eventLog.Text = string.Join('\n', snapshot.Events.Select(BbcodeEscape));
         _scenarioOption.Disabled = snapshot.HasPendingTransaction
                                    || _gameData?.PendingBlindBoxReward != null
@@ -185,5 +185,45 @@ public partial class SteamMockPanelController : CanvasLayer
     private static string BbcodeEscape(string value) => value
         .Replace("[", "[lb]")
         .Replace("]", "[rb]");
+
+    private static string FormatConnectionState(DebugSteamMockSnapshot snapshot)
+    {
+        var connection = snapshot.ConnectionState switch
+        {
+            PlatformConnectionState.Offline => "离线",
+            PlatformConnectionState.Connecting => "连接中",
+            PlatformConnectionState.InventorySyncing => "同步中",
+            PlatformConnectionState.Ready => "可用",
+            PlatformConnectionState.Unavailable => "不可用",
+            _ => snapshot.ConnectionState.ToString(),
+        };
+
+        var trust = snapshot.InventoryTrustState switch
+        {
+            PlatformInventoryTrustState.Unknown => "未确认",
+            PlatformInventoryTrustState.Trusted => "可信",
+            PlatformInventoryTrustState.RevalidationRequired => "需复查",
+            _ => snapshot.InventoryTrustState.ToString(),
+        };
+        return $"{connection} / {trust}";
+    }
+
+    private static string FormatPhase(DebugSteamPhase phase) => phase switch
+    {
+        DebugSteamPhase.Ready => "就绪",
+        DebugSteamPhase.ExchangeWaiting => "盲盒兑换",
+        DebugSteamPhase.PromoGrantWaiting => "奖励发放",
+        DebugSteamPhase.Unavailable => "不可用",
+        DebugSteamPhase.InventoryVerification => "库存复查",
+        DebugSteamPhase.Completed => "已完成",
+        _ => phase.ToString(),
+    };
+
+    private static string CompactText(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+            return value;
+        return value[..Math.Max(0, maxLength - 1)] + "…";
+    }
 }
 #endif

@@ -217,7 +217,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _events.Clear();
         if (_scenario == DebugSteamScenario.UnavailableBeforeOpen)
         {
-            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, "Steam Mock 请求前不可用。");
+            SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired, "Steam Mock 请求前不可用。");
             SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable, "开盒前 Steam 已不可用，将立即选择本地 Fallback。");
         }
         else
@@ -266,7 +266,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         }
         if (_connectionState == PlatformConnectionState.Unavailable)
         {
-            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, "Mock 仍处于断联阶段。");
+            SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired, "Mock 仍处于断联阶段。");
             AddEvent("Mock 忽略库存同步请求：当前仍处于断联阶段。");
             return;
         }
@@ -361,15 +361,15 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             AddEvent("业务请求恢复连接；Mock 将遵循当前场景阶段。", publish: true);
     }
 
-    public void MarkInventoryDirty(string reason)
+    public void RequireInventoryRevalidation(string reason)
     {
         if (!IsMockActive)
         {
-            _innerRecoverable?.MarkInventoryDirty(reason);
+            _innerRecoverable?.RequireInventoryRevalidation(reason);
             return;
         }
 
-        SetInventoryTrustState(PlatformInventoryTrustState.Dirty, reason);
+        SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired, reason);
         AddEvent($"库存标记为待确认：{reason}", publish: true);
     }
 
@@ -520,7 +520,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void PublishInventorySnapshot(string message, bool succeeded)
     {
         SetInventoryTrustState(
-            succeeded ? PlatformInventoryTrustState.Trusted : PlatformInventoryTrustState.Dirty,
+            succeeded ? PlatformInventoryTrustState.Trusted : PlatformInventoryTrustState.RevalidationRequired,
             message);
         AddEvent(message);
         DiagnosticLog.Record("steam_mock_inventory_snapshot", new Dictionary<string, object>
@@ -544,7 +544,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _phaseStartedAt = NowSeconds();
         _connectionState = state;
         if (state is PlatformConnectionState.Unavailable or PlatformConnectionState.InventorySyncing)
-            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, message);
+            SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired, message);
         AddEvent(message);
         DiagnosticLog.Record("steam_mock_phase", new Dictionary<string, object>
         {

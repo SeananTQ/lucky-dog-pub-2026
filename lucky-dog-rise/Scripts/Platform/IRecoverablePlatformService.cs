@@ -13,9 +13,14 @@ public enum PlatformConnectionState
 
 public enum PlatformInventoryTrustState
 {
+    /// <summary>No verified inventory snapshot is available yet.</summary>
     Unknown,
+
+    /// <summary>The latest full inventory snapshot can be used for platform decisions.</summary>
     Trusted,
-    Dirty,
+
+    /// <summary>The cached snapshot must not be trusted until a full inventory sync succeeds.</summary>
+    RevalidationRequired,
 }
 
 public interface IRecoverablePlatformService
@@ -27,5 +32,5 @@ public interface IRecoverablePlatformService
     PlatformInventoryTrustState InventoryTrustState { get; }
     string InventoryTrustMessage { get; }
     void RequestReconnect();
-    void MarkInventoryDirty(string reason);
+    void RequireInventoryRevalidation(string reason);
 }

@@ -75,7 +75,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_promoGrantDeadlineSeconds > 0.0 && now >= _promoGrantDeadlineSeconds)
         {
-            MarkInventoryDirty("Steam LinkTree 领奖请求超时，等待库存复查。");
+            RequireInventoryRevalidation("Steam LinkTree 领奖请求超时，等待库存复查。");
             _promoGrantDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -86,7 +86,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_playtimeDropDeadlineSeconds > 0.0 && now >= _playtimeDropDeadlineSeconds)
         {
-            MarkInventoryDirty("Steam 游玩投放请求超时，等待库存复查。");
+            RequireInventoryRevalidation("Steam 游玩投放请求超时，等待库存复查。");
             _playtimeDropDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -97,7 +97,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_exchangeDeadlineSeconds > 0.0 && now >= _exchangeDeadlineSeconds)
         {
-            MarkInventoryDirty("Steam 盲盒兑换请求超时，等待库存复查。");
+            RequireInventoryRevalidation("Steam 盲盒兑换请求超时，等待库存复查。");
             _exchangeDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -201,12 +201,12 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         return accepted;
     }
 
-    public void MarkInventoryDirty(string reason)
+    public void RequireInventoryRevalidation(string reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
             reason = "Steam 库存状态需要重新确认。";
         InventoryTrustMessage = reason;
-        SetInventoryTrustState(PlatformInventoryTrustState.Dirty);
+        SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired);
     }
 
     public bool OpenFriendsOverlay() => _session?.OpenFriendsOverlay() == true;
@@ -301,7 +301,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     {
         _promoGrantDeadlineSeconds = 0.0;
         if (!result.Succeeded)
-            MarkInventoryDirty(result.Message);
+            RequireInventoryRevalidation(result.Message);
         PromoItemGrantCompleted(result);
     }
 
@@ -309,7 +309,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     {
         _playtimeDropDeadlineSeconds = 0.0;
         if (!result.Succeeded)
-            MarkInventoryDirty(result.Message);
+            RequireInventoryRevalidation(result.Message);
         PlaytimeDropCompleted(result);
     }
 
@@ -317,7 +317,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     {
         _exchangeDeadlineSeconds = 0.0;
         if (!result.Succeeded)
-            MarkInventoryDirty(result.Message);
+            RequireInventoryRevalidation(result.Message);
         InventoryExchangeCompleted(result);
     }
 
@@ -326,7 +326,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     private void HandleInventoryFailure(string message, bool publishSnapshot)
     {
-        MarkInventoryDirty(message);
+        RequireInventoryRevalidation(message);
         _session?.CancelPendingInventorySynchronization();
         _inventoryDeadlineSeconds = 0.0;
         _statusMessage = message;
@@ -339,7 +339,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private void HandleDisconnected(string message)
     {
         _statusMessage = string.IsNullOrWhiteSpace(message) ? "Steam 连接已中断。" : message;
-        MarkInventoryDirty(_statusMessage);
+        RequireInventoryRevalidation(_statusMessage);
         DisposeSession();
         ScheduleRetry(_statusMessage);
     }
@@ -403,7 +403,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     {
         if (IsPromoGrantPending || IsPlaytimeDropPending || IsExchangePending)
             return;
-        MarkInventoryDirty(message);
+        RequireInventoryRevalidation(message);
         _inventorySynchronizationRequested = true;
         BeginInventorySynchronization();
     }
