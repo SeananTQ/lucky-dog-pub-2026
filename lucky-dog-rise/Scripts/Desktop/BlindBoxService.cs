@@ -102,12 +102,22 @@ public enum BlindBoxHintStatus
     Opening,
 }
 
+public enum BlindBoxPaymentSource
+{
+    Unknown,
+    Chips,
+    LocalRefreshment,
+    SteamVoucher,
+    SteamFallback,
+}
+
 public sealed class BlindBoxHintState
 {
     public BlindBoxHintStatus Status { get; init; }
     public BlindBox? Box { get; init; }
     public int Cost { get; init; }
     public double RemainingSeconds { get; init; }
+    public BlindBoxPaymentSource PaymentSource { get; init; }
 }
 
 public sealed class BlindBoxService
@@ -367,6 +377,11 @@ public sealed class BlindBoxService
                 : BlindBoxHintStatus.NotEnoughChips,
             Box = box,
             Cost = cost,
+            PaymentSource = box.IsPlatformInventoryRequired && box.SteamOpenCostItemDefId > 0
+                ? BlindBoxPaymentSource.SteamVoucher
+                : box.BoxType == EBlindBoxType.Refreshment
+                    ? BlindBoxPaymentSource.LocalRefreshment
+                    : BlindBoxPaymentSource.Chips,
         };
     }
 
@@ -465,6 +480,12 @@ public sealed class BlindBoxService
                 Status = _gameData.Chips >= cost ? BlindBoxHintStatus.Ready : BlindBoxHintStatus.NotEnoughChips,
                 Box = available.Box,
                 Cost = cost,
+                PaymentSource = available.Box.IsPlatformInventoryRequired
+                    && available.Box.SteamOpenCostItemDefId > 0
+                        ? BlindBoxPaymentSource.SteamVoucher
+                        : available.Box.BoxType == EBlindBoxType.Refreshment
+                            ? BlindBoxPaymentSource.LocalRefreshment
+                            : BlindBoxPaymentSource.Chips,
             };
         }
 

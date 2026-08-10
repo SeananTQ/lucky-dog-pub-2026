@@ -25,6 +25,7 @@ SingleInstanceGuard
 SystemPanelController
 TaskbarSnap
 TestDesktopController
+TestDesktopRiseIntroController
 TestGlobalRawInputController
 TutorialManager
 UIThemePreviewController

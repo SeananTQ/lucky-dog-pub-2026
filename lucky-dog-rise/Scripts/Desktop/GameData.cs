@@ -60,6 +60,8 @@ public partial class GameData : Node
     private LuckyDealBuffState _luckyDealBuffState = new();
     private RefreshmentRuntimeState _refreshmentRuntimeState = new();
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
+    private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
+    public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
@@ -564,15 +566,26 @@ public partial class GameData : Node
         {
             var presentedBox = ResolveVoucherUpgradeBox(currentSchedule, configuredBox);
             if (presentedBox.Id != configuredBox.Id)
-                return _blindBoxService.CreateReadyHintState(presentedBox);
+                return WithBlindBoxPaymentSource(
+                    _blindBoxService.CreateReadyHintState(presentedBox),
+                    BlindBoxPaymentSource.SteamVoucher);
+            if (currentSchedule.IsLoopTrack
+                && presentedBox.BoxType == EBlindBoxType.Refreshment)
+            {
+                return WithBlindBoxPaymentSource(
+                    state,
+                    BlindBoxPaymentSource.SteamFallback);
+            }
         }
 
         if (!UsesSteamInventoryExchange(state.Box))
             return state;
         if (CanOpenPlatformBlindBox(state.Box))
-            return state;
+            return WithBlindBoxPaymentSource(state, BlindBoxPaymentSource.SteamVoucher);
         if (_blindBoxFallbackEnabled && _blindBoxService.GetFallbackRefreshmentBox() is { } fallbackBox)
-            return _blindBoxService.CreateReadyHintState(fallbackBox);
+            return WithBlindBoxPaymentSource(
+                _blindBoxService.CreateReadyHintState(fallbackBox),
+                BlindBoxPaymentSource.SteamFallback);
         if (_platformInventoryService?.IsInventoryReady != true)
         {
             var status = _recoverablePlatformService?.ConnectionState
@@ -594,6 +607,20 @@ public partial class GameData : Node
             Box = state.Box,
             Cost = state.Cost,
             RemainingSeconds = state.RemainingSeconds,
+        };
+    }
+
+    private static BlindBoxHintState WithBlindBoxPaymentSource(
+        BlindBoxHintState state,
+        BlindBoxPaymentSource paymentSource)
+    {
+        return new BlindBoxHintState
+        {
+            Status = state.Status,
+            Box = state.Box,
+            Cost = state.Cost,
+            RemainingSeconds = state.RemainingSeconds,
+            PaymentSource = paymentSource,
         };
     }
 
@@ -664,6 +691,14 @@ public partial class GameData : Node
         GD.Print(
             $"[BlindBox] Opened local fallback Box={fallbackBox.Id} for Schedule={originalSchedule.Id}; " +
             $"Steam Box={originalBox.Id}, ItemDef={originalBox.SteamOpenCostItemDefId}; no local debt created.");
+        DiagnosticLog.Record("blindbox_opened", new Dictionary<string, object>
+        {
+            ["source"] = "fallback",
+            ["scheduleId"] = originalSchedule.Id,
+            ["boxId"] = fallbackBox.Id,
+            ["rewardItemId"] = result.Item.Id,
+            ["chips"] = Chips,
+        });
         return FinalizeLocalBlindBoxOpen(result);
     }
 
@@ -1409,6 +1444,45 @@ public partial class GameData : Node
         SaveImmediatelyIfUsingLocalSave();
     }
 
+    public bool TryApplyLinkTreeRewardOnce(int linkTreeId, int chipDelta)
+    {
+        if (linkTreeId <= 0)
+            return false;
+        if (_appliedLinkTreeRewardIds.Contains(linkTreeId))
+            return true;
+
+        if (chipDelta != 0)
+        {
+            Chips = checked(Chips + chipDelta);
+            Progression.UpdateHighScore(Chips);
+            EmitSignal(SignalName.ChipsChanged, Chips);
+        }
+
+        _appliedLinkTreeRewardIds.Add(linkTreeId);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
+    public bool HasAppliedLinkTreeReward(int linkTreeId) =>
+        linkTreeId > 0 && _appliedLinkTreeRewardIds.Contains(linkTreeId);
+
+    public void InitializeLinkTreeRewardLedgerBaseline(IEnumerable<int> linkTreeIds)
+    {
+        if (LinkTreeRewardLedgerInitialized)
+            return;
+
+        foreach (var linkTreeId in linkTreeIds.Where(id => id > 0))
+            _appliedLinkTreeRewardIds.Add(linkTreeId);
+        LinkTreeRewardLedgerInitialized = true;
+        SaveImmediatelyIfUsingLocalSave();
+        DiagnosticLog.Record("linktree_ledger_baseline_initialized", new Dictionary<string, object>
+        {
+            ["receiptCount"] = _appliedLinkTreeRewardIds.Count,
+            ["chipsGranted"] = 0,
+        });
+        GD.Print($"[LinkTree] Initialized legacy reward ledger baseline with {_appliedLinkTreeRewardIds.Count} receipt(s); no historical chips were granted.");
+    }
+
     public bool CanAffordBet => Chips >= BetAmount;
     public int LuckyDealRemainingHands => _luckyDealBuffState.RemainingHands;
     public RefreshmentRuntimeState RefreshmentState => _refreshmentRuntimeState;
@@ -1801,6 +1875,8 @@ public partial class GameData : Node
             OwnedItemCounts = Inventory.GetOwnedItemCounts(),
             EquippedItemIdsByType = Inventory.GetEquippedIdsByTypeName(),
             NewItemIds = Inventory.GetNewItemIds().ToList(),
+            AppliedLinkTreeRewardIds = _appliedLinkTreeRewardIds.OrderBy(id => id).ToList(),
+            LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
             PendingPlatformBlindBoxOpen = PendingPlatformBlindBoxOpen,
@@ -1818,6 +1894,10 @@ public partial class GameData : Node
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
         PendingPlatformBlindBoxOpen = profile.PendingPlatformBlindBoxOpen;
         PendingLinkTreeClaim = profile.PendingLinkTreeClaim;
+        _appliedLinkTreeRewardIds.Clear();
+        foreach (var linkTreeId in profile.AppliedLinkTreeRewardIds ?? [])
+            _appliedLinkTreeRewardIds.Add(linkTreeId);
+        LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? true;
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

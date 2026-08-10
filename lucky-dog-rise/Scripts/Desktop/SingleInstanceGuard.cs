@@ -7,7 +7,14 @@ namespace LuckyDogRise;
 public partial class SingleInstanceGuard : Node
 {
     private const int ActivationAcknowledgementTimeoutMilliseconds = 1500;
-    private const int ShutdownHandoffTimeoutMilliseconds = 1500;
+    private const int ShutdownHandoffTimeoutMilliseconds = 8500;
+
+    public enum InstanceState
+    {
+        Starting,
+        Interactive,
+        ShuttingDown,
+    }
 
     private static SingleInstanceGuard _instance;
 
@@ -16,7 +23,9 @@ public partial class SingleInstanceGuard : Node
     private EventWaitHandle _activationAcknowledgement;
     private bool _ownsMutex;
 
-    public event Action ActivationRequested;
+    public Func<bool> ActivationRequested;
+    public InstanceState State { get; private set; } = InstanceState.Starting;
+    public bool IsPrimaryInstance => !OperatingSystem.IsWindows() || _ownsMutex;
 
     public override void _EnterTree()
     {
@@ -72,11 +81,16 @@ public partial class SingleInstanceGuard : Node
 
         try
         {
-            ActivationRequested?.Invoke();
+            bool accepted = State != InstanceState.ShuttingDown
+                && ActivationRequested?.Invoke() == true;
+            if (accepted)
+                _activationAcknowledgement?.Set();
+            else
+                GD.Print("[SingleInstance] Activation request was not acknowledged because the instance is shutting down.");
         }
-        finally
+        catch (Exception exception)
         {
-            _activationAcknowledgement?.Set();
+            GD.PushError($"[SingleInstance] Activation request failed: {exception}");
         }
     }
 
@@ -92,7 +106,11 @@ public partial class SingleInstanceGuard : Node
 
     public static void ReleaseForRestart()
     {
-        _instance?.ReleaseOwnership();
+        if (_instance == null)
+            return;
+
+        _instance.State = InstanceState.ShuttingDown;
+        _instance.ReleaseOwnership();
     }
 
     public static bool ReacquireAfterFailedRestart()
@@ -101,7 +119,20 @@ public partial class SingleInstanceGuard : Node
             return true;
 
         _instance._ownsMutex = _instance.TryAcquireMutex(0);
+        if (_instance._ownsMutex)
+            _instance.State = InstanceState.Interactive;
         return _instance._ownsMutex;
+    }
+
+    public void MarkInteractive()
+    {
+        if (_ownsMutex && State != InstanceState.ShuttingDown)
+            State = InstanceState.Interactive;
+    }
+
+    public void BeginShutdown()
+    {
+        State = InstanceState.ShuttingDown;
     }
 
     private bool TryAcquireMutex(int timeoutMilliseconds)

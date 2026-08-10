@@ -12,7 +12,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 13;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -66,6 +66,12 @@ internal static class SaveIntegrity
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             NewItemIds = (profile.NewItemIds ?? []).OrderBy(id => id).ToList(),
+            AppliedLinkTreeRewardIds = integrityVersion >= 12
+                ? (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList()
+                : null,
+            LinkTreeRewardLedgerInitialized = integrityVersion >= 13
+                ? profile.LinkTreeRewardLedgerInitialized ?? false
+                : null,
             BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState, integrityVersion),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),

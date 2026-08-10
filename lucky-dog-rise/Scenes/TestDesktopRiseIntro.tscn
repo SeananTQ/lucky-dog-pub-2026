@@ -1,0 +1,44 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/TestDesktopRiseIntroController.cs" id="1_test"]
+[ext_resource type="PackedScene" path="res://Scenes/DesktopRiseIntro.tscn" id="2_rise"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_taskbar"]
+bg_color = Color(0.12, 0.14, 0.17, 1)
+
+[node name="TestDesktopRiseIntro" type="Node2D" node_paths=PackedStringArray("_riseIntro", "_playButton", "_statusLabel")]
+script = ExtResource("1_test")
+_riseIntro = NodePath("DesktopRiseIntro")
+_playButton = NodePath("CanvasLayer/PlayButton")
+_statusLabel = NodePath("CanvasLayer/Status")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+offset_right = 265.0
+offset_bottom = 235.0
+color = Color(0.18, 0.21, 0.24, 1)
+mouse_filter = 2
+
+[node name="Taskbar" type="Panel" parent="."]
+offset_top = 184.0
+offset_right = 265.0
+offset_bottom = 235.0
+theme_override_styles/panel = SubResource("StyleBox_taskbar")
+
+[node name="DesktopRiseIntro" parent="." instance=ExtResource("2_rise")]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="PlayButton" type="Button" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 244.0
+offset_right = 132.0
+offset_bottom = 280.0
+text = "Play Rise"
+
+[node name="Status" type="Label" parent="CanvasLayer"]
+offset_left = 144.0
+offset_top = 250.0
+offset_right = 560.0
+offset_bottom = 278.0
+text = "Ready"

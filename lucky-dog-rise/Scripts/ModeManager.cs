@@ -9,6 +9,18 @@ namespace LuckyDogRise;
 
 public partial class ModeManager : Control
 {
+    private enum StartupState
+    {
+        HiddenBootstrap,
+        LocalInitializing,
+        PlatformWaiting,
+        ReadyToReveal,
+        IntroPlaying,
+        Interactive,
+        Failed,
+    }
+
+    private const double StartupPlatformWaitSeconds = 10.0;
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
@@ -63,6 +75,12 @@ public partial class ModeManager : Control
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
     private bool _shutdownRequested;
     private bool _platformDisposed;
+    private bool _duplicateLaunch;
+    private StartupState _startupState = StartupState.HiddenBootstrap;
+    private double _startupPlatformWaitRemaining;
+    private bool _startupFocusRequested;
+    private Rect2I _startupScreen;
+    private bool _startupUseInitialMeetingPosition;
     private int _pokerFrameRate = 60;
     private double _pokerRenderAccumulator;
     private bool _pokerViewportWasActive;
@@ -126,7 +144,16 @@ public partial class ModeManager : Control
     public override void _EnterTree()
     {
         GetTree().AutoAcceptQuit = false;
+        SetNativeMainWindowVisible(false);
+        _startupState = StartupState.LocalInitializing;
         _singleInstanceGuard = GetNodeOrNull<SingleInstanceGuard>("/root/SingleInstanceGuard");
+        if (_singleInstanceGuard is { IsPrimaryInstance: false })
+        {
+            _duplicateLaunch = true;
+            SetProcess(false);
+            return;
+        }
+        DiagnosticLog.Initialize();
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested += OnExternalActivationRequested;
         _platformService = GamePlatformServiceFactory.Create();
@@ -135,10 +162,19 @@ public partial class ModeManager : Control
             : _platformService is IRecoverablePlatformService
                 ? $"[Platform] Steam recovery active. {_platformService.StatusMessage}"
                 : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
+        DiagnosticLog.Record("platform_service_created", new Dictionary<string, object>
+        {
+            ["provider"] = _platformService.ProviderName,
+            ["available"] = _platformService.IsAvailable,
+            ["state"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
+        });
     }
 
     public override void _Ready()
     {
+        if (_duplicateLaunch)
+            return;
+
         SettingsManager.ApplyDisplayPerformanceSettings();
 
         if (!BuildInfo.ValidateCurrentBuild())
@@ -211,6 +247,12 @@ public partial class ModeManager : Control
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
         RefreshSettingsPanelModeActions();
 
+        if (OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
+        {
+            RunDiagnosticsExportSmoke();
+            return;
+        }
+
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
 
@@ -239,12 +281,11 @@ public partial class ModeManager : Control
         ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
-        bool deferBossStartupReveal = false;
-        Rect2I deferredBossStartupScreen = default;
         if (initialMeetingState == SettingsManager.TutorialStepState.NotStarted)
         {
             // A：初次见面，保持当前居中出现的位置，为后续右侧新手引导预留空间。
             SetWindowAboveTaskbar();
+            _startupUseInitialMeetingPosition = true;
             SettingsManager.SaveTutorialStepState(
                 SettingsManager.InitialMeetingTutorialId,
                 SettingsManager.TutorialStepState.Shown);
@@ -252,14 +293,11 @@ public partial class ModeManager : Control
         else
         {
             // B：非初次见面的启动位置，与 C：从扑克切回桌宠使用同一套右侧面板预留公式。
-            deferredBossStartupScreen = GetBestScreenUsableRect(new Rect2I(
+            _startupScreen = GetBestScreenUsableRect(new Rect2I(
                 DisplayServer.WindowGetPosition(),
                 new Vector2I((int)_windowBaseSize.X, (int)_windowBaseSize.Y)));
-            // Godot 启动图仍在宿主窗口中时不能移动窗口，否则会看到启动图闪到任务栏。
-            // 先绘制一个透明首帧，再在首帧结束后移动并显示桌宠。
-            deferBossStartupReveal = true;
-            HideBossKeyContent();
         }
+        HideBossKeyContent();
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
         EnableLayeredWindow();
 
@@ -279,16 +317,11 @@ public partial class ModeManager : Control
         _globalInputTracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
         AddChild(_globalInputTracker);
 
-        if (deferBossStartupReveal)
-            RevealBossStartupAfterFirstDraw(deferredBossStartupScreen);
-        else
-            CallDeferred(MethodName.PlayBossRiseIntro);
-
-        if (_activationRequestedBeforeReady)
-        {
-            _activationRequestedBeforeReady = false;
-            OnExternalActivationRequested();
-        }
+        _startupPlatformWaitRemaining = StartupPlatformWaitSeconds;
+        _startupState = _platformService is IRecoverablePlatformService recoverable
+            && recoverable.ConnectionState != PlatformConnectionState.Ready
+                ? StartupState.PlatformWaiting
+                : StartupState.ReadyToReveal;
     }
 
     private double _displayTimer;
@@ -298,6 +331,10 @@ public partial class ModeManager : Control
     {
         _platformService?.RunCallbacks();
         _achievementSynchronizer?.Tick(_);
+        UpdateStartup(_);
+
+        if (_startupState is not (StartupState.IntroPlaying or StartupState.Interactive))
+            return;
 
         if (CurrentMode == Mode.BossKey)
             _gameData?.RecordDesktopModeSeconds(_, visible: !_hiddenByFullscreenApp);
@@ -336,6 +373,9 @@ public partial class ModeManager : Control
 
     public override void _Notification(int what)
     {
+        if (_duplicateLaunch)
+            return;
+
         if (what == NotificationWMCloseRequest)
         {
             RequestGracefulQuit();
@@ -475,18 +515,17 @@ public partial class ModeManager : Control
         DisposePlatformService();
     }
 
-    private void OnExternalActivationRequested()
+    private bool OnExternalActivationRequested()
     {
         if (_shutdownRequested)
-            return;
+            return false;
 
-        if (!IsNodeReady())
+        if (!IsNodeReady() || _startupState < StartupState.IntroPlaying)
         {
-            _activationRequestedBeforeReady = true;
-            return;
+            _startupFocusRequested = true;
+            return true;
         }
 
-        GetWindow().Visible = true;
         SetNativeWindowCloaked(false);
         if (_hiddenByFullscreenApp)
             SetHiddenByFullscreenApp(false);
@@ -500,6 +539,7 @@ public partial class ModeManager : Control
         ReassertTopmostNoActivate();
         (_platformService as IRecoverablePlatformService)?.RequestReconnect();
         GD.Print("[SingleInstance] Existing game window was revealed after another launch request.");
+        return true;
     }
 
     private void OnPokerFrameRateChanged(int frameRate)
@@ -558,18 +598,42 @@ public partial class ModeManager : Control
         _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
     }
 
+    private void RunDiagnosticsExportSmoke()
+    {
+        var exportDirectory = System.Environment.GetEnvironmentVariable("LUCKYDOG_DIAGNOSTICS_SMOKE_DIR");
+        if (string.IsNullOrWhiteSpace(exportDirectory))
+        {
+            GD.PushError("[DiagnosticsSmoke] Export failed: LUCKYDOG_DIAGNOSTICS_SMOKE_DIR is missing.");
+            GetTree().Quit(3);
+            return;
+        }
+
+        try
+        {
+            var path = DiagnosticLog.ExportPackage(_gameData, _platformService, exportDirectory);
+            GD.Print($"[DiagnosticsSmoke] Export passed: {path}");
+            GetTree().Quit();
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[DiagnosticsSmoke] Export failed: {exception}");
+            GetTree().Quit(3);
+        }
+    }
+
     private void RequestGracefulQuit()
     {
         if (_shutdownRequested)
             return;
 
         _shutdownRequested = true;
+        _singleInstanceGuard?.BeginShutdown();
         var totalStopwatch = Stopwatch.StartNew();
 
         var cloakStopwatch = Stopwatch.StartNew();
         bool windowCloaked = SetNativeWindowCloaked(true);
         if (!windowCloaked)
-            GetWindow().Visible = false;
+            SetNativeMainWindowVisible(false);
         GD.Print($"[Shutdown] Window hidden in {cloakStopwatch.ElapsedMilliseconds} ms (DWM cloak: {windowCloaked}).");
 
         try
@@ -630,14 +694,55 @@ public partial class ModeManager : Control
             SetNativeWindowCloaked(false);
     }
 
-    private async void RevealBossStartupAfterFirstDraw(Rect2I screen)
+    private void UpdateStartup(double delta)
     {
-        // 启动图消失后的第一个游戏帧保持透明，避免移动时把 Godot Logo 一起带走。
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        if (_startupState == StartupState.PlatformWaiting)
+        {
+            _startupPlatformWaitRemaining -= delta;
+            if ((_platformService as IRecoverablePlatformService)?.ConnectionState == PlatformConnectionState.Ready)
+            {
+                GD.Print("[Startup] Steam inventory is ready; revealing desktop pet.");
+                DiagnosticLog.Record("startup_reveal_ready", new Dictionary<string, object> { ["reason"] = "platform_ready" });
+                _startupState = StartupState.ReadyToReveal;
+            }
+            else if (_startupPlatformWaitRemaining <= 0)
+            {
+                GD.Print("[Startup] Steam inventory wait reached 10 seconds; revealing with background recovery enabled.");
+                DiagnosticLog.Record("startup_reveal_ready", new Dictionary<string, object> { ["reason"] = "platform_timeout" });
+                _startupState = StartupState.ReadyToReveal;
+            }
+        }
 
-        PositionBossKeyForRightPlayPanel(screen);
+        if (_startupState == StartupState.ReadyToReveal)
+        {
+            _startupState = StartupState.IntroPlaying;
+            RevealBossStartup();
+        }
+    }
+
+    private async void RevealBossStartup()
+    {
+        bool windowCloaked = SetNativeWindowCloaked(true);
+
+        if (!_startupUseInitialMeetingPosition)
+            PositionBossKeyForRightPlayPanel(_startupScreen);
+
         ShowBossKeyContent();
         PlayBossRiseIntro();
+        SetNativeMainWindowVisible(true);
+
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+
+        if (windowCloaked)
+            SetNativeWindowCloaked(false);
+
+        _singleInstanceGuard?.MarkInteractive();
+        if (_startupFocusRequested)
+        {
+            _startupFocusRequested = false;
+            OnExternalActivationRequested();
+        }
     }
 
     private void OnDesktopBgmPlaybackChanged(bool enabled)
@@ -713,6 +818,8 @@ public partial class ModeManager : Control
 
     private void OnBossRiseIntroFinished()
     {
+        if (_startupState == StartupState.IntroPlaying)
+            _startupState = StartupState.Interactive;
         _bossRiseIntroSuppressesBlindBoxHint = false;
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
             return;
@@ -871,7 +978,8 @@ public partial class ModeManager : Control
                     _blindBoxIcon,
                     state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
-                    _gameData.Chips);
+                    _gameData.Chips,
+                    state.PaymentSource);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
@@ -1776,7 +1884,22 @@ public partial class ModeManager : Control
 
         WindowNative.SetWindowLong(hWnd, WindowNative.GWL_EXSTYLE, style);
         WindowNative.SetWindowPos(hWnd, WindowNative.HWND_TOPMOST, 0, 0, 0, 0,
-            WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_SHOWWINDOW);
+            WindowNative.SWP_NOMOVE | WindowNative.SWP_NOSIZE | WindowNative.SWP_NOACTIVATE);
+    }
+
+    private static bool SetNativeMainWindowVisible(bool visible)
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+
+        var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        if (hWnd == IntPtr.Zero)
+            return false;
+
+        WindowNative.ShowWindow(
+            hWnd,
+            visible ? WindowNative.SW_SHOWNOACTIVATE : WindowNative.SW_HIDE);
+        return true;
     }
 
     private static bool SetNativeWindowCloaked(bool cloaked)

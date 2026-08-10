@@ -342,7 +342,8 @@ public partial class InfoPanelController : CanvasLayer
                     _blindBoxIcon,
                     state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
                     state.Cost,
-                    _gameData.Chips);
+                    _gameData.Chips,
+                    state.PaymentSource);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

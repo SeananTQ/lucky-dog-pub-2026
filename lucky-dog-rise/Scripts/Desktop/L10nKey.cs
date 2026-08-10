@@ -55,6 +55,9 @@ public static class L10nKey
     public const string Settings_ResetSaveData = nameof(Settings_ResetSaveData);
     public const string Settings_ResetSaveMessage = nameof(Settings_ResetSaveMessage);
     public const string Settings_ResetSaveConfirm = nameof(Settings_ResetSaveConfirm);
+    public const string Settings_ExportDiagnostics = nameof(Settings_ExportDiagnostics);
+    public const string Settings_ExportDiagnosticsSuccess = nameof(Settings_ExportDiagnosticsSuccess);
+    public const string Settings_ExportDiagnosticsFailed = nameof(Settings_ExportDiagnosticsFailed);
     public const string Wardrobe_EmptyCategory = nameof(Wardrobe_EmptyCategory);
     public const string Wardrobe_Tab_Dog = nameof(Wardrobe_Tab_Dog);
     public const string Wardrobe_Tab_Hat = nameof(Wardrobe_Tab_Hat);

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Godot;
@@ -20,6 +21,10 @@ public sealed class SaveProfile
     public Dictionary<int, int> OwnedItemCounts { get; set; } = new();
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
     public List<int> NewItemIds { get; set; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<int>? AppliedLinkTreeRewardIds { get; set; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
     public Dictionary<int, int> BlindBoxClaimedCountsBySchedule { get; set; } = new();
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
@@ -46,9 +51,20 @@ public sealed class PendingLinkTreeClaim
     public int SteamReceiptItemDefId { get; set; }
 }
 
+public enum SaveLoadDisposition
+{
+    Primary,
+    Created,
+    BackupRecovered,
+    ReplacedInvalid,
+    ReplacedLegacy,
+}
+
+public sealed record SaveLoadResult(SaveProfile Profile, SaveLoadDisposition Disposition, string Detail);
+
 public static class SaveManager
 {
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 14;
     public const int MinimumSupportedVersion = 10;
 
     private const string SaveDir = "user://saves";
@@ -56,6 +72,7 @@ public static class SaveManager
     private const string BackupPath = "user://saves/profile_0.backup.json";
     private const string CorruptBackupPath = "user://saves/profile_0.corrupt.json";
     private const string InvalidSignaturePath = "user://saves/profile_0.invalid_signature.json";
+    private const string TempPath = "user://saves/profile_0.tmp.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -64,33 +81,74 @@ public static class SaveManager
 
     public static SaveProfile LoadOrCreate()
     {
+        return LoadOrCreateDetailed().Profile;
+    }
+
+    public static SaveLoadResult LoadOrCreateDetailed()
+    {
         EnsureSaveDir();
 
         if (!FileAccess.FileExists(SavePath))
         {
             var fresh = CreateDefaultProfile();
             Save(fresh);
-            return fresh;
+            return ReportLoad(fresh, SaveLoadDisposition.Created, "No save existed; created a new profile.");
         }
 
         if (TryLoadVerified(SavePath, out var profile, out var failure))
-            return LoadSupportedOrReplaceLegacy(profile!, "primary");
+        {
+            bool replacedLegacy = profile!.Version < MinimumSupportedVersion;
+            var loaded = LoadSupportedOrReplaceLegacy(profile!, "primary");
+            var disposition = replacedLegacy
+                ? SaveLoadDisposition.ReplacedLegacy
+                : SaveLoadDisposition.Primary;
+            return ReportLoad(loaded, disposition, "Loaded the verified primary save.");
+        }
 
         GD.PushError($"[Save] Primary save rejected: {failure}.");
         if (TryLoadVerified(BackupPath, out profile, out _))
         {
             if (profile!.Version < MinimumSupportedVersion)
-                return ReplaceLegacySave(profile, "backup");
+                return ReportLoad(
+                    ReplaceLegacySave(profile, "backup"),
+                    SaveLoadDisposition.ReplacedLegacy,
+                    "The verified backup was from an unsupported version and was replaced.");
 
-            CopyFile(BackupPath, SavePath);
-            GD.PushWarning("[Save] Restored the verified backup save.");
-            return Normalize(profile);
+            RestoreVerifiedBackupAtomically();
+            return ReportLoad(
+                Normalize(profile),
+                SaveLoadDisposition.BackupRecovered,
+                $"Primary was rejected ({failure}); restored the verified backup.");
         }
 
         BackupRejectedSave(failure == "invalid signature" ? InvalidSignaturePath : CorruptBackupPath);
         var replacement = CreateDefaultProfile();
         SaveInternal(replacement, backupExisting: false);
-        return replacement;
+        return ReportLoad(
+            replacement,
+            SaveLoadDisposition.ReplacedInvalid,
+            $"Primary was rejected ({failure}) and no verified backup was available.");
+    }
+
+    private static SaveLoadResult ReportLoad(
+        SaveProfile profile,
+        SaveLoadDisposition disposition,
+        string detail)
+    {
+        if (disposition != SaveLoadDisposition.Primary)
+            GD.PushWarning($"[SaveRecovery] {disposition}: {detail}");
+        else
+            GD.Print($"[SaveRecovery] {disposition}: {detail}");
+        DiagnosticLog.Record("save_loaded", new Dictionary<string, object?>
+        {
+            ["disposition"] = disposition.ToString(),
+            ["version"] = profile.Version,
+            ["integrityVersion"] = profile.IntegrityVersion,
+            ["chips"] = profile.Chips,
+            ["updatedAt"] = profile.UpdatedAt,
+            ["detail"] = detail,
+        });
+        return new SaveLoadResult(profile, disposition, detail);
     }
 
     private static SaveProfile LoadSupportedOrReplaceLegacy(SaveProfile profile, string source)
@@ -179,11 +237,7 @@ public static class SaveManager
         profile.IntegrityVersion = SaveIntegrity.CurrentVersion;
         profile.IntegrityTag = SaveIntegrity.Sign(profile);
         var json = JsonSerializer.Serialize(profile, JsonOptions);
-        if (backupExisting && FileAccess.FileExists(SavePath))
-            CopyFile(SavePath, BackupPath);
-
-        using var file = FileAccess.Open(SavePath, FileAccess.ModeFlags.Write);
-        file.StoreString(json);
+        WriteProfileAtomically(json, backupExisting);
     }
 
     public static SaveProfile CreateDefaultProfile()
@@ -192,6 +246,7 @@ public static class SaveManager
         {
             Version = CurrentVersion,
             Chips = GameData.StartingChips,
+            LinkTreeRewardLedgerInitialized = true,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
         };
 
@@ -228,6 +283,18 @@ public static class SaveManager
         profile.OwnedItemCounts ??= new Dictionary<int, int>();
         profile.EquippedItemIdsByType ??= new Dictionary<string, int>();
         profile.NewItemIds ??= new List<int>();
+        profile.AppliedLinkTreeRewardIds ??= new List<int>();
+        profile.AppliedLinkTreeRewardIds = profile.AppliedLinkTreeRewardIds
+            .Where(id => id > 0)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
+        if (loadedVersion < 14)
+        {
+            // Older builds had no durable local-reward ledger. Existing Steam receipts
+            // become the first baseline and must not trigger historical chip grants.
+            profile.LinkTreeRewardLedgerInitialized = false;
+        }
         profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
         profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
         if (profile.PendingPlatformBlindBoxOpen is { } pendingPlatformOpen)
@@ -578,6 +645,82 @@ public static class SaveManager
         using var input = FileAccess.Open(from, FileAccess.ModeFlags.Read);
         using var output = FileAccess.Open(to, FileAccess.ModeFlags.Write);
         output.StoreBuffer(input.GetBuffer((long)input.GetLength()));
+    }
+
+    private static void WriteProfileAtomically(string json, bool backupExisting)
+    {
+        var temp = ProjectSettings.GlobalizePath(TempPath);
+        var primary = ProjectSettings.GlobalizePath(SavePath);
+        var backup = ProjectSettings.GlobalizePath(BackupPath);
+
+        try
+        {
+            var bytes = Encoding.UTF8.GetBytes(json);
+            using (var stream = new System.IO.FileStream(
+                       temp,
+                       System.IO.FileMode.Create,
+                       System.IO.FileAccess.Write,
+                       System.IO.FileShare.None,
+                       4096,
+                       System.IO.FileOptions.WriteThrough))
+            {
+                stream.Write(bytes);
+                stream.Flush(flushToDisk: true);
+            }
+
+            if (!TryLoadVerified(TempPath, out _, out var tempFailure))
+                throw new System.IO.InvalidDataException($"Temporary save verification failed: {tempFailure}.");
+
+            bool primaryExists = System.IO.File.Exists(primary);
+            bool primaryVerified = TryLoadVerified(SavePath, out _, out _);
+            if (primaryExists && backupExisting && primaryVerified)
+            {
+                System.IO.File.Replace(temp, primary, backup, ignoreMetadataErrors: true);
+            }
+            else if (primaryExists)
+            {
+                // Never replace a known-good backup with an invalid primary.
+                System.IO.File.Move(temp, primary, overwrite: true);
+            }
+            else
+            {
+                System.IO.File.Move(temp, primary);
+            }
+
+            if (!TryLoadVerified(SavePath, out _, out var committedFailure))
+                throw new System.IO.InvalidDataException($"Committed save verification failed: {committedFailure}.");
+            DiagnosticLog.Record("save_committed", new Dictionary<string, object?>
+            {
+                ["bytes"] = Encoding.UTF8.GetByteCount(json),
+                ["backupUpdated"] = primaryExists && backupExisting && primaryVerified,
+            });
+        }
+        finally
+        {
+            if (System.IO.File.Exists(temp))
+                System.IO.File.Delete(temp);
+        }
+    }
+
+    private static void RestoreVerifiedBackupAtomically()
+    {
+        var backup = ProjectSettings.GlobalizePath(BackupPath);
+        var temp = ProjectSettings.GlobalizePath(TempPath);
+        var primary = ProjectSettings.GlobalizePath(SavePath);
+
+        System.IO.File.Copy(backup, temp, overwrite: true);
+        using (var stream = new System.IO.FileStream(
+                   temp,
+                   System.IO.FileMode.Open,
+                   System.IO.FileAccess.ReadWrite,
+                   System.IO.FileShare.None))
+            stream.Flush(flushToDisk: true);
+
+        if (!TryLoadVerified(TempPath, out _, out var failure))
+            throw new System.IO.InvalidDataException($"Backup restore verification failed: {failure}.");
+
+        System.IO.File.Move(temp, primary, overwrite: true);
+        GD.PushWarning("[Save] Restored the verified backup save atomically.");
     }
 
     private static SaveProfile? TryLoadExistingWithoutRecovery()

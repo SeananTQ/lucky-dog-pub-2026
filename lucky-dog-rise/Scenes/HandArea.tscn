@@ -34,7 +34,7 @@ texture = ExtResource("5_oqccp")
 
 [node name="HitButton" type="Button" parent="." unique_id=62838072]
 offset_left = 45.0
-offset_top = -95.0
+offset_top = -103.0
 offset_right = 555.0
 offset_bottom = 45.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_hitbox")

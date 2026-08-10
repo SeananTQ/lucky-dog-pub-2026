@@ -29,6 +29,8 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
     [Export] private CheckButton _disableGlobalMouseListeningToggle = null!;
+    [Export] private Button _exportDiagnosticsButton = null!;
+    [Export] private Label _exportDiagnosticsStatusLabel = null!;
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
@@ -384,6 +386,7 @@ public partial class SystemPanelController : CanvasLayer
                 L10nKey.Settings_ResetSaveConfirm,
                 L10nKey.Common_Cancel);
         };
+        _exportDiagnosticsButton.Pressed += () => ExportDiagnostics();
         _resetSaveConfirm.Confirmed += OnResetConfirmed;
 
         _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
@@ -1112,11 +1115,31 @@ public partial class SystemPanelController : CanvasLayer
         if (_simulateLinkTreeUi)
             return;
 #endif
+        DiagnosticLog.Record("platform_inventory_snapshot", new Dictionary<string, object>
+        {
+            ["succeeded"] = snapshot.Succeeded,
+            ["itemTypeCount"] = snapshot.OwnedItemDefIds.Count,
+            ["itemStackCount"] = snapshot.Items.Count,
+            ["pendingLinkTreeClaim"] = _gameData?.PendingLinkTreeClaim != null,
+        });
         if (!snapshot.Succeeded)
         {
             SetLinkTreePageState(LinkTreePageState.Unavailable);
             GD.PushWarning($"[LinkTree] {snapshot.Message}");
             return;
+        }
+
+        if (_gameData?.LinkTreeRewardLedgerInitialized == false)
+        {
+            var pendingLinkTreeId = _gameData.PendingLinkTreeClaim?.LinkTreeId;
+            var baselineIds = _linkTreeRewardEntries
+                .Where(entry => snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
+                // A persisted in-flight claim is not historical. If its receipt appeared
+                // while the game was closed, the recovery block below must still grant it.
+                .Where(entry => entry.Data.Id != pendingLinkTreeId)
+                .Select(entry => entry.Data.Id)
+                .ToArray();
+            _gameData.InitializeLinkTreeRewardLedgerBaseline(baselineIds);
         }
 
         var pending = _gameData?.PendingLinkTreeClaim;
@@ -1126,8 +1149,10 @@ public partial class SystemPanelController : CanvasLayer
                 entry.Data.Id == pending.LinkTreeId
                 && entry.Data.SteamClaimBundleItemDefId == pending.SteamClaimBundleItemDefId
                 && entry.Data.SteamReceiptItemDefId == pending.SteamReceiptItemDefId);
-            if (pendingEntry != null)
+            if (pendingEntry != null && IsLinkTreeRewardConfirmedBySnapshot(pendingEntry.Data, snapshot))
                 CompleteSteamLinkTreeClaim(pendingEntry, recovered: true);
+            else if (pendingEntry != null)
+                GD.Print($"[LinkTree] Receipt exists but the fixed reward item is not in the full inventory snapshot yet: {pendingEntry.Data.Key}.");
             else
             {
                 GD.PushWarning($"[LinkTree] Pending claim does not match current LinkTree data: LinkTreeId={pending.LinkTreeId}.");
@@ -1145,9 +1170,10 @@ public partial class SystemPanelController : CanvasLayer
             if (!snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
                 continue;
 
-            entry.ClaimPending = false;
-            entry.State = LinkTreeRewardState.Claimed;
-            RefreshLinkTreeRewardEntry(entry);
+            if (!IsLinkTreeRewardConfirmedBySnapshot(entry.Data, snapshot))
+                continue;
+
+            CompleteSteamLinkTreeClaim(entry, recovered: true);
         }
 
         ResumeWaitingLinkTreeClaims();
@@ -1203,22 +1229,23 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
-        CompleteSteamLinkTreeClaim(entry, recovered: false);
+        entry.ClaimPending = true;
+        _inventoryService?.StartInventorySynchronization();
         GD.Print($"[LinkTree] {result.Message}");
     }
 
     private void CompleteSteamLinkTreeClaim(LinkTreeRewardEntry entry, bool recovered)
     {
-        if (_gameData?.PendingLinkTreeClaim is not { } pending
-            || pending.LinkTreeId != entry.Data.Id
-            || pending.SteamClaimBundleItemDefId != entry.Data.SteamClaimBundleItemDefId
-            || pending.SteamReceiptItemDefId != entry.Data.SteamReceiptItemDefId)
+        if (_gameData?.PendingLinkTreeClaim is { } pending
+            && (pending.LinkTreeId != entry.Data.Id
+                || pending.SteamClaimBundleItemDefId != entry.Data.SteamClaimBundleItemDefId
+                || pending.SteamReceiptItemDefId != entry.Data.SteamReceiptItemDefId))
         {
-            entry.State = LinkTreeRewardState.Claimed;
-            RefreshLinkTreeRewardEntry(entry);
+            GD.PushWarning($"[LinkTree] Refusing mismatched pending reward completion for {entry.Data.Key}.");
             return;
         }
 
+        bool wasAlreadyApplied = _gameData?.HasAppliedLinkTreeReward(entry.Data.Id) == true;
         if (!TryGrantLinkTreeReward(entry.Data))
         {
             GD.PushError($"[LinkTree] Steam receipt exists but local reward failed for {entry.Data.Key}.");
@@ -1228,10 +1255,24 @@ public partial class SystemPanelController : CanvasLayer
         entry.ClaimPending = false;
         entry.State = LinkTreeRewardState.Claimed;
         RefreshLinkTreeRewardEntry(entry);
-        SetupLinkTreeRewardPreview(entry);
-        PlayLinkTreeRewardFeedback(entry);
-        _gameData.ClearPendingLinkTreeClaim();
+        if (!wasAlreadyApplied)
+        {
+            SetupLinkTreeRewardPreview(entry);
+            PlayLinkTreeRewardFeedback(entry);
+        }
+        if (_gameData.PendingLinkTreeClaim?.LinkTreeId == entry.Data.Id)
+            _gameData.ClearPendingLinkTreeClaim();
         GD.Print($"[LinkTree] {(recovered ? "Recovered" : "Completed")} Steam-backed reward for {entry.Data.Key} ({entry.Data.Id}).");
+        DiagnosticLog.Record("linktree_reward_completed", new Dictionary<string, object>
+        {
+            ["linkTreeId"] = entry.Data.Id,
+            ["rewardType"] = entry.Data.RewardType.ToString(),
+            ["rewardChips"] = entry.Data.RewardChips,
+            ["rewardItemId"] = entry.Data.RewardItemId,
+            ["recovered"] = recovered,
+            ["wasAlreadyApplied"] = wasAlreadyApplied,
+            ["chips"] = _gameData.Chips,
+        });
     }
 
     private bool TryGrantLinkTreeReward(LinkTree data)
@@ -1247,17 +1288,15 @@ public partial class SystemPanelController : CanvasLayer
                     GD.PushWarning($"[LinkTree] Reward item is missing for {data.Key} ({data.Id}): {data.RewardItemId}.");
                     return false;
                 }
-                // The LinkTree Bundle grants the real Steam inventory item. Full inventory
-                // synchronization maps it into PlayerInventory; never fabricate it locally.
-                return true;
+                // Full snapshot confirmation happens before this method. Record the local
+                // application ledger without fabricating another copy of the Steam item.
+                return _gameData?.TryApplyLinkTreeRewardOnce(data.Id, 0) == true;
 
             case ELinkTreeRewardType.FixedChips:
                 if (_gameData == null)
                     return false;
 
-                if (data.RewardChips != 0)
-                    _gameData.ModifyChips(data.RewardChips);
-                return true;
+                return _gameData.TryApplyLinkTreeRewardOnce(data.Id, data.RewardChips);
 
             case ELinkTreeRewardType.SequentialPack:
                 GD.PushWarning($"[LinkTree] SequentialPack reward is not implemented yet: {data.Key} ({data.Id}).");
@@ -1267,6 +1306,20 @@ public partial class SystemPanelController : CanvasLayer
                 GD.PushWarning($"[LinkTree] Unknown reward type for {data.Key} ({data.Id}): {data.RewardType}.");
                 return false;
         }
+    }
+
+    private static bool IsLinkTreeRewardConfirmedBySnapshot(
+        LinkTree data,
+        PlatformInventorySnapshot snapshot)
+    {
+        if (data.RewardType != ELinkTreeRewardType.FixedItem)
+            return true;
+
+        var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
+        if (item == null || item.SteamItemDefId <= 0)
+            return false;
+
+        return snapshot.OwnedItemDefIds.Contains(item.SteamItemDefId);
     }
 
     private void ResumeWaitingLinkTreeClaims()
@@ -1637,6 +1690,44 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
         GetTree().Quit();
+    }
+
+    public string ExportDiagnostics(bool revealInExplorer = true)
+    {
+        try
+        {
+            _exportDiagnosticsButton.Disabled = true;
+            _exportDiagnosticsStatusLabel.Text = string.Empty;
+            var path = DiagnosticLog.ExportPackage(_gameData, _platformService);
+            _exportDiagnosticsStatusLabel.Modulate = new Color(0.24f, 0.68f, 0.42f);
+            _exportDiagnosticsStatusLabel.Text = L10n.Format(L10nKey.Settings_ExportDiagnosticsSuccess, path);
+            _exportDiagnosticsStatusLabel.TooltipText = path;
+            if (revealInExplorer)
+            {
+                try
+                {
+                    DiagnosticLog.RevealInExplorer(path);
+                }
+                catch (Exception exception)
+                {
+                    GD.PushWarning($"[Diagnostics] Export succeeded, but Explorer could not reveal the file: {exception.Message}");
+                }
+            }
+            GD.Print($"[Diagnostics] Exported diagnostic package: {path}");
+            return path;
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[Diagnostics] Export failed: {exception}");
+            _exportDiagnosticsStatusLabel.Modulate = new Color(0.82f, 0.25f, 0.25f);
+            _exportDiagnosticsStatusLabel.Text = L10n.Tr(L10nKey.Settings_ExportDiagnosticsFailed);
+            _exportDiagnosticsStatusLabel.TooltipText = exception.Message;
+            return string.Empty;
+        }
+        finally
+        {
+            _exportDiagnosticsButton.Disabled = false;
+        }
     }
 
     public bool ContainsPoint(Vector2 windowPos)

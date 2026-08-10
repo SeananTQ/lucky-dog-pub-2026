@@ -47,6 +47,8 @@ internal static class WindowNative
     public const uint SWP_SHOWWINDOW = 0x0040;
 
     public const int DWMWA_CLOAK = 13;
+    public const int SW_HIDE = 0;
+    public const int SW_SHOWNOACTIVATE = 4;
     public const int SW_RESTORE = 9;
 
     [StructLayout(LayoutKind.Sequential)]

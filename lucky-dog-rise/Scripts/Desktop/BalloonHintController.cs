@@ -77,12 +77,14 @@ public partial class BalloonHintController : PanelContainer
         Texture2D? fallbackIcon,
         EBlindBoxValueMode valueMode,
         int cost,
-        int currentChips = -1)
+        int currentChips = -1,
+        BlindBoxPaymentSource paymentSource = BlindBoxPaymentSource.Unknown)
     {
         var icon = LoadAssetTexture(iconPath) ?? fallbackIcon;
         if (valueMode == EBlindBoxValueMode.Chips)
         {
             ShowCost(icon, cost, currentChips);
+            AddPaymentSourceLabel(paymentSource);
             return;
         }
 
@@ -95,6 +97,21 @@ public partial class BalloonHintController : PanelContainer
             EBlindBoxValueMode.Free => $"[font_size=14]{L10n.Tr(L10nKey.BlindBox_Free)}[/font_size]",
             _ => $"[font_size=20]{cost}[/font_size]",
         });
+        AddPaymentSourceLabel(paymentSource);
+    }
+
+    private void AddPaymentSourceLabel(BlindBoxPaymentSource paymentSource)
+    {
+        var label = paymentSource switch
+        {
+            BlindBoxPaymentSource.Chips => "CHIPS",
+            BlindBoxPaymentSource.LocalRefreshment => "LOCAL",
+            BlindBoxPaymentSource.SteamVoucher => "STEAM",
+            BlindBoxPaymentSource.SteamFallback => "FALLBACK",
+            _ => string.Empty,
+        };
+        if (!string.IsNullOrEmpty(label))
+            SetTextContent($"[font_size=9]{label}[/font_size]\n{_currentTextBbcode}");
     }
 
     public void ShowIconOnly(Texture2D? icon)
