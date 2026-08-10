@@ -93,6 +93,8 @@ public partial class GameData : Node
     private List<int> _blindBoxLocalTestSavedNewItemIds = new();
     private LuckyDealBuffState _blindBoxLocalTestSavedLuckyDealBuffState = new();
     private RefreshmentRuntimeState _blindBoxLocalTestSavedRefreshmentRuntimeState = new();
+    private HashSet<int> _blindBoxLocalTestSavedLinkTreeRewardIds = [];
+    private bool _blindBoxLocalTestSavedLinkTreeLedgerInitialized;
 #endif
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -387,6 +389,8 @@ public partial class GameData : Node
         PendingBlindBoxReward = null;
         PendingPlatformBlindBoxOpen = null;
         _platformInventoryConsumptionReservations.Clear();
+        PendingLinkTreeClaim = null;
+        _appliedLinkTreeRewardIds.Clear();
         Chips = _blindBoxLocalTestSavedChips;
         TotalPlaySeconds = _blindBoxLocalTestSavedTotalPlaySeconds;
         Inventory.LoadState(
@@ -508,6 +512,10 @@ public partial class GameData : Node
             LuckyDealMode = _luckyDealBuffState.LuckyDealMode,
         };
         _blindBoxLocalTestSavedRefreshmentRuntimeState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
+        _blindBoxLocalTestSavedLinkTreeRewardIds = _appliedLinkTreeRewardIds.ToHashSet();
+        _blindBoxLocalTestSavedLinkTreeLedgerInitialized = LinkTreeRewardLedgerInitialized;
+        _appliedLinkTreeRewardIds.Clear();
+        LinkTreeRewardLedgerInitialized = true;
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
         {
             SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
@@ -548,6 +556,10 @@ public partial class GameData : Node
             emitChanged: true);
         _luckyDealBuffState = _blindBoxLocalTestSavedLuckyDealBuffState;
         _refreshmentRuntimeState = _blindBoxLocalTestSavedRefreshmentRuntimeState;
+        _appliedLinkTreeRewardIds.Clear();
+        _appliedLinkTreeRewardIds.UnionWith(_blindBoxLocalTestSavedLinkTreeRewardIds);
+        LinkTreeRewardLedgerInitialized = _blindBoxLocalTestSavedLinkTreeLedgerInitialized;
+        PendingLinkTreeClaim = null;
         PlayerProgress.EndDebugSimulation();
 
         _blindBoxLocalTestMode = false;
@@ -559,6 +571,8 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedNewItemIds = new List<int>();
         _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState();
         _blindBoxLocalTestSavedRefreshmentRuntimeState = new RefreshmentRuntimeState();
+        _blindBoxLocalTestSavedLinkTreeRewardIds = [];
+        _blindBoxLocalTestSavedLinkTreeLedgerInitialized = false;
         _saveDirty = false;
         _saveTimer = 0.0;
         EmitSignal(SignalName.ChipsChanged, Chips);
@@ -983,7 +997,9 @@ public partial class GameData : Node
     }
 
     private bool CanOpenPlatformBlindBox(BlindBox box) =>
-        _platformInventoryService?.IsInventoryReady == true
+        PendingLinkTreeClaim == null
+        && _platformInventoryService?.IsPromoGrantPending != true
+        && _platformInventoryService?.IsInventoryReady == true
         && GetPlatformInventoryQuantity(box.SteamOpenCostItemDefId) > 0;
 
     private BlindBox ResolveVoucherUpgradeBox(
@@ -1628,7 +1644,7 @@ public partial class GameData : Node
         int steamReceiptItemDefId)
     {
 #if DEBUG
-        if (_blindBoxLocalTestMode)
+        if (_blindBoxLocalTestMode && !_steamMockSimulationActive)
         {
             GD.PushWarning("[LinkTree] Real claims are disabled while blind-box local test mode is active.");
             return false;
@@ -1636,6 +1652,14 @@ public partial class GameData : Node
 #endif
         if (linkTreeId <= 0 || steamClaimBundleItemDefId <= 0 || steamReceiptItemDefId <= 0)
             return false;
+        if (PendingPlatformBlindBoxOpen != null
+            || _pendingPlatformPlaytimeDrop != null
+            || _platformInventoryService?.IsExchangePending == true
+            || _platformInventoryService?.IsPlaytimeDropPending == true)
+        {
+            GD.PushWarning("[LinkTree] A blind-box or playtime inventory transaction is pending.");
+            return false;
+        }
         if (PendingLinkTreeClaim != null)
             return PendingLinkTreeClaim.LinkTreeId == linkTreeId
                 && PendingLinkTreeClaim.SteamClaimBundleItemDefId == steamClaimBundleItemDefId
@@ -1670,6 +1694,9 @@ public partial class GameData : Node
         if (chipDelta != 0)
         {
             Chips = checked(Chips + chipDelta);
+#if DEBUG
+            if (!_blindBoxLocalTestMode)
+#endif
             Progression.UpdateHighScore(Chips);
             EmitSignal(SignalName.ChipsChanged, Chips);
         }

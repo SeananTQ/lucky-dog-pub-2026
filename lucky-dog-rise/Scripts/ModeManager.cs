@@ -1423,6 +1423,7 @@ public partial class ModeManager : Control
         CancelBlindBoxOpeningUi();
         _gameManager?.HidePendingBlindBoxReward();
         _bossBlindBoxOverlay?.HideOverlay();
+        _settingsPanel?.ResetSteamMockLinkTreeState();
         RefreshBossBlindBoxHint();
         _infoPanel?.RefreshBlindBoxButton();
     }

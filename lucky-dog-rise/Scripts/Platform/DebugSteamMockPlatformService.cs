@@ -16,6 +16,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 {
     private const ulong VoucherInstanceId = 9_100_000_000_000_001;
     private const ulong RewardInstanceId = 9_100_000_000_000_002;
+    private const ulong LinkTreeReceiptInstanceBase = 9_100_100_000_000_000;
+    private const ulong LinkTreeRewardInstanceBase = 9_100_200_000_000_000;
     private const int EventLimit = 50;
     private readonly IGamePlatformService _inner;
     private readonly IPlatformInventoryService _innerInventory;
@@ -23,6 +25,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private readonly IPlatformAchievementTestOperations _innerAchievementTest;
     private readonly List<string> _events = [];
     private readonly List<PlatformInventoryItem> _mockItems = [];
+    private readonly Dictionary<(int Bundle, int Receipt), DebugSteamLinkTreeGrant> _linkTreeGrants = [];
     private DebugSteamScenario _scenario;
     private DebugSteamPhase _phase = DebugSteamPhase.Ready;
     private PlatformConnectionState _connectionState = PlatformConnectionState.Ready;
@@ -33,6 +36,11 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private ulong _pendingInputInstanceId;
     private int _pendingInputItemDefId;
     private int _pendingOutputItemDefId;
+    private bool _promoGrantPending;
+    private int _pendingPromoItemDefId;
+    private int _pendingReceiptItemDefId;
+    private PlatformInventoryTrustState _inventoryTrustState = PlatformInventoryTrustState.Unknown;
+    private string _inventoryTrustMessage = "Steam Mock 尚未完成可信同步。";
     private string _lastEvent = "真实 Steam";
     private bool _disposed;
 
@@ -51,7 +59,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _innerInventory.InventoryExchangeCompleted += OnInnerInventoryExchangeCompleted;
         }
         if (_innerRecoverable != null)
+        {
             _innerRecoverable.ConnectionStateChanged += OnInnerConnectionStateChanged;
+            _innerRecoverable.InventoryTrustStateChanged += OnInnerInventoryTrustStateChanged;
+        }
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged += OnInnerStoreStatusChanged;
         _phaseStartedAt = NowSeconds();
@@ -65,6 +76,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted = delegate { };
     public event Action<PlatformInventoryExchangeResult> InventoryExchangeCompleted = delegate { };
     public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
+    public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged = delegate { };
     public event Action<DebugSteamMockSnapshot> SnapshotChanged = delegate { };
 
     public bool IsMockActive => _scenario != DebugSteamScenario.RealSteam;
@@ -76,21 +88,30 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public bool IsReadyForWrites => !IsMockActive && (_inner as IPlatformAchievementTestOperations)?.IsReadyForWrites == true;
     public bool IsInventoryReady => IsMockActive
         ? _connectionState == PlatformConnectionState.Ready
+          && _inventoryTrustState == PlatformInventoryTrustState.Trusted
         : _innerInventory?.IsInventoryReady == true;
-    public bool IsPromoGrantPending => IsMockActive ? false : _innerInventory?.IsPromoGrantPending == true;
+    public bool IsPromoGrantPending => IsMockActive ? _promoGrantPending : _innerInventory?.IsPromoGrantPending == true;
     public bool IsPlaytimeDropPending => IsMockActive ? false : _innerInventory?.IsPlaytimeDropPending == true;
     public bool IsExchangePending => IsMockActive ? _exchangePending : _innerInventory?.IsExchangePending == true;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => IsMockActive ? _mockItems : _innerInventory?.InventoryItems ?? [];
     public PlatformConnectionState ConnectionState => IsMockActive
         ? _connectionState
         : _innerRecoverable?.ConnectionState ?? PlatformConnectionState.Offline;
+    public PlatformInventoryTrustState InventoryTrustState => IsMockActive
+        ? _inventoryTrustState
+        : _innerRecoverable?.InventoryTrustState ?? PlatformInventoryTrustState.Unknown;
+    public string InventoryTrustMessage => IsMockActive
+        ? _inventoryTrustMessage
+        : _innerRecoverable?.InventoryTrustMessage ?? "Steam 库存状态未知。";
     public DebugSteamMockSnapshot Snapshot => new(
         _scenario,
         _phase,
         Math.Max(0.0, NowSeconds() - _phaseStartedAt),
         ConnectionState,
+        InventoryTrustState,
         GetVoucherQuantity(),
-        _exchangePending,
+        _exchangePending || _promoGrantPending,
+        _exchangePending ? "盲盒兑换" : _promoGrantPending ? "LinkTree 领奖" : "无",
         _lastEvent,
         _events.ToArray());
 
@@ -99,18 +120,21 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         if (_disposed)
             return;
         _inner.RunCallbacks();
-        if (!IsMockActive || !_exchangePending)
+        if (!IsMockActive || (!_exchangePending && !_promoGrantPending))
             return;
 
         var elapsed = NowSeconds() - _phaseStartedAt;
         switch (_scenario)
         {
-            case DebugSteamScenario.SlowSuccess when _phase == DebugSteamPhase.ExchangeWaiting && elapsed >= 3.0:
-                CompleteExchangeSuccess("慢响应在 3 秒后返回有效奖励。");
+            case DebugSteamScenario.SlowSuccess
+                when _phase is DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 3.0:
+                CompletePendingOperationSuccess("慢响应在 3 秒后返回成功结果。");
                 break;
             case DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback
-                when _phase == DebugSteamPhase.ExchangeWaiting && elapsed >= 10.0:
-                BeginInventoryVerification("兑换请求 10 秒无回执，开始完整库存复查。");
+                when _phase is DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 10.0:
+                BeginInventoryVerification("请求 10 秒无回执，开始完整库存复查。");
                 break;
             case DebugSteamScenario.TimeoutVerifiedSuccess when _phase == DebugSteamPhase.InventoryVerification && elapsed >= 10.0:
                 CompleteVerification(success: true);
@@ -119,8 +143,9 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 CompleteVerification(success: false);
                 break;
             case DebugSteamScenario.DisconnectAfterSubmit or DebugSteamScenario.DisconnectRecoverSuccess
-                when _phase == DebugSteamPhase.ExchangeWaiting && elapsed >= 1.0:
-                SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable, "提交 1 秒后连接中断，兑换结果未知。");
+                when _phase is DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 1.0:
+                SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable, "提交 1 秒后连接中断，请求结果未知。");
                 break;
             case DebugSteamScenario.DisconnectRecoverSuccess when _phase == DebugSteamPhase.Unavailable && elapsed >= 10.0:
                 BeginInventoryVerification("断联保持 10 秒后恢复，开始同步库存。");
@@ -135,6 +160,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public bool TrySelectScenario(DebugSteamScenario scenario, out string message)
     {
         if (_exchangePending
+            || _promoGrantPending
             || (!IsMockActive && scenario != DebugSteamScenario.RealSteam
                 && (_innerInventory?.IsExchangePending == true
                     || _innerInventory?.IsPromoGrantPending == true
@@ -157,12 +183,22 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             ResetScenario();
     }
 
+    public void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants)
+    {
+        _linkTreeGrants.Clear();
+        foreach (var grant in grants.Where(grant => grant.BundleItemDefId > 0 && grant.ReceiptItemDefId > 0))
+            _linkTreeGrants[(grant.BundleItemDefId, grant.ReceiptItemDefId)] = grant;
+    }
+
     public void ResetScenario()
     {
         _exchangePending = false;
         _pendingInputInstanceId = 0;
         _pendingInputItemDefId = 0;
         _pendingOutputItemDefId = 0;
+        _promoGrantPending = false;
+        _pendingPromoItemDefId = 0;
+        _pendingReceiptItemDefId = 0;
         _mockItems.Clear();
         if (_scenario == DebugSteamScenario.RealSteam)
         {
@@ -170,6 +206,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _phase = DebugSteamPhase.Ready;
             _phaseStartedAt = NowSeconds();
             _lastEvent = "真实 Steam";
+            SetInventoryTrustState(PlatformInventoryTrustState.Unknown, "正在恢复真实 Steam 库存同步。");
             _innerInventory?.StartInventorySynchronization();
             PublishSnapshot();
             return;
@@ -179,26 +216,35 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _mockItems.Add(new PlatformInventoryItem(VoucherInstanceId, _voucherItemDefId, 1));
         _events.Clear();
         if (_scenario == DebugSteamScenario.UnavailableBeforeOpen)
+        {
+            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, "Steam Mock 请求前不可用。");
             SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable, "开盒前 Steam 已不可用，将立即选择本地 Fallback。");
+        }
         else
+        {
+            SetInventoryTrustState(PlatformInventoryTrustState.Trusted, "Steam Mock 初始库存可信。");
             SetPhase(DebugSteamPhase.Ready, PlatformConnectionState.Ready, "模拟库存已重置，包含 1 张确定实例的装扮券。");
+        }
         PublishInventorySnapshot("Steam Mock 初始库存。", succeeded: _connectionState == PlatformConnectionState.Ready);
         PublishSnapshot();
     }
 
     public void AdvancePhase()
     {
-        if (!IsMockActive || !_exchangePending)
+        if (!IsMockActive || (!_exchangePending && !_promoGrantPending))
             return;
         switch (_phase)
         {
-            case DebugSteamPhase.ExchangeWaiting when _scenario == DebugSteamScenario.SlowSuccess:
-                CompleteExchangeSuccess("手动推进：模拟兑换成功。");
+            case DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario == DebugSteamScenario.SlowSuccess:
+                CompletePendingOperationSuccess("手动推进：模拟请求成功。");
                 break;
-            case DebugSteamPhase.ExchangeWaiting when _scenario is DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback:
+            case DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario is DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback:
                 BeginInventoryVerification("手动推进：进入库存复查。");
                 break;
-            case DebugSteamPhase.ExchangeWaiting when _scenario is DebugSteamScenario.DisconnectAfterSubmit or DebugSteamScenario.DisconnectRecoverSuccess:
+            case DebugSteamPhase.ExchangeWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario is DebugSteamScenario.DisconnectAfterSubmit or DebugSteamScenario.DisconnectRecoverSuccess:
                 SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable, "手动推进：连接中断，结果未知。");
                 break;
             case DebugSteamPhase.Unavailable:
@@ -220,6 +266,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         }
         if (_connectionState == PlatformConnectionState.Unavailable)
         {
+            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, "Mock 仍处于断联阶段。");
             AddEvent("Mock 忽略库存同步请求：当前仍处于断联阶段。");
             return;
         }
@@ -235,9 +282,31 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "当前平台不支持 Steam 库存。";
             return false;
         }
-        message = "Debug Steam Mock 已启用；LinkTree 真实领奖被禁止。";
-        AddEvent(message);
-        return false;
+        if (_scenario == DebugSteamScenario.UnavailableBeforeOpen || !IsInventoryReady)
+        {
+            message = "Steam Mock 当前不可用，LinkTree 领奖尚未提交。";
+            AddEvent(message);
+            return false;
+        }
+        if (_exchangePending || _promoGrantPending)
+        {
+            message = "Steam Mock 已有库存写事务正在处理。";
+            return false;
+        }
+        if (!_linkTreeGrants.ContainsKey((promoItemDefId, receiptItemDefId)))
+        {
+            message = $"Steam Mock 未配置 LinkTree Bundle/回执：{promoItemDefId}/{receiptItemDefId}。";
+            AddEvent(message);
+            return false;
+        }
+
+        _promoGrantPending = true;
+        _pendingPromoItemDefId = promoItemDefId;
+        _pendingReceiptItemDefId = receiptItemDefId;
+        SetPhase(DebugSteamPhase.PromoGrantWaiting, PlatformConnectionState.Ready, "已提交模拟 LinkTree AddPromoItem 请求。");
+        message = "Steam Mock 已接收 LinkTree 领奖请求。";
+        PublishSnapshot();
+        return true;
     }
 
     public bool TryTriggerPlaytimeDrop(int generatorItemDefId, int outputItemDefId, out string message)
@@ -268,7 +337,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "Steam Mock 当前不可用。";
             return false;
         }
-        if (_exchangePending || inputInstanceId != VoucherInstanceId || inputItemDefId != _voucherItemDefId)
+        if (_exchangePending || _promoGrantPending
+            || inputInstanceId != VoucherInstanceId || inputItemDefId != _voucherItemDefId)
         {
             message = "Steam Mock 兑换请求与模拟库存不匹配，或已有在途请求。";
             return false;
@@ -289,6 +359,18 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _innerRecoverable?.RequestReconnect();
         else
             AddEvent("业务请求恢复连接；Mock 将遵循当前场景阶段。", publish: true);
+    }
+
+    public void MarkInventoryDirty(string reason)
+    {
+        if (!IsMockActive)
+        {
+            _innerRecoverable?.MarkInventoryDirty(reason);
+            return;
+        }
+
+        SetInventoryTrustState(PlatformInventoryTrustState.Dirty, reason);
+        AddEvent($"库存标记为待确认：{reason}", publish: true);
     }
 
     public bool OpenFriendsOverlay() => !IsMockActive && _inner.OpenFriendsOverlay();
@@ -330,7 +412,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _innerInventory.InventoryExchangeCompleted -= OnInnerInventoryExchangeCompleted;
         }
         if (_innerRecoverable != null)
+        {
             _innerRecoverable.ConnectionStateChanged -= OnInnerConnectionStateChanged;
+            _innerRecoverable.InventoryTrustStateChanged -= OnInnerInventoryTrustStateChanged;
+        }
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged -= OnInnerStoreStatusChanged;
         _inner.Dispose();
@@ -338,6 +423,14 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
     private void BeginInventoryVerification(string message) =>
         SetPhase(DebugSteamPhase.InventoryVerification, PlatformConnectionState.InventorySyncing, message);
+
+    private void CompletePendingOperationSuccess(string message)
+    {
+        if (_exchangePending)
+            CompleteExchangeSuccess(message);
+        else if (_promoGrantPending)
+            CompletePromoGrantSuccess(message);
+    }
 
     private void CompleteExchangeSuccess(string message)
     {
@@ -350,13 +443,34 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         PublishInventorySnapshot("兑换回调后的完整模拟库存。", true);
     }
 
+    private void CompletePromoGrantSuccess(string message)
+    {
+        var changedItems = ApplySuccessfulPromoGrant();
+        _promoGrantPending = false;
+        SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, message);
+        PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
+            _pendingPromoItemDefId,
+            _pendingReceiptItemDefId,
+            true,
+            true,
+            message,
+            changedItems));
+        PublishInventorySnapshot("LinkTree 领奖回调后的完整模拟库存。", true);
+    }
+
     private void CompleteVerification(bool success)
     {
-        if (success)
+        var operation = _exchangePending ? "盲盒兑换" : _promoGrantPending ? "LinkTree 领奖" : "库存请求";
+        if (success && _exchangePending)
             ApplySuccessfulInventoryResult();
+        else if (success && _promoGrantPending)
+            ApplySuccessfulPromoGrant();
         _exchangePending = false;
+        _promoGrantPending = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready,
-            success ? "库存复查确认：券已消耗且奖励存在。" : "库存复查确认：券未消耗且没有奖励，允许安全 Fallback。");
+            success
+                ? $"库存复查确认：{operation}已成功。"
+                : $"库存复查确认：{operation}未发生；盲盒可安全 Fallback，LinkTree 可重试。");
         PublishInventorySnapshot(_lastEvent, true);
     }
 
@@ -367,8 +481,47 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _mockItems.Add(new PlatformInventoryItem(RewardInstanceId, _rewardItemDefId, 1));
     }
 
+    private IReadOnlyList<PlatformInventoryItem> ApplySuccessfulPromoGrant()
+    {
+        if (!_linkTreeGrants.TryGetValue(
+                (_pendingPromoItemDefId, _pendingReceiptItemDefId),
+                out var grant))
+        {
+            return [];
+        }
+
+        var changedItems = new List<PlatformInventoryItem>();
+        var receipt = new PlatformInventoryItem(
+            LinkTreeReceiptInstanceBase + checked((ulong)grant.ReceiptItemDefId),
+            grant.ReceiptItemDefId,
+            1);
+        if (_mockItems.All(item => item.InstanceId != receipt.InstanceId))
+        {
+            _mockItems.Add(receipt);
+            changedItems.Add(receipt);
+        }
+
+        if (grant.RewardItemDefId > 0)
+        {
+            var reward = new PlatformInventoryItem(
+                LinkTreeRewardInstanceBase + checked((ulong)grant.ReceiptItemDefId),
+                grant.RewardItemDefId,
+                1);
+            if (_mockItems.All(item => item.InstanceId != reward.InstanceId))
+            {
+                _mockItems.Add(reward);
+                changedItems.Add(reward);
+            }
+        }
+
+        return changedItems;
+    }
+
     private void PublishInventorySnapshot(string message, bool succeeded)
     {
+        SetInventoryTrustState(
+            succeeded ? PlatformInventoryTrustState.Trusted : PlatformInventoryTrustState.Dirty,
+            message);
         AddEvent(message);
         DiagnosticLog.Record("steam_mock_inventory_snapshot", new Dictionary<string, object>
         {
@@ -390,6 +543,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _phase = phase;
         _phaseStartedAt = NowSeconds();
         _connectionState = state;
+        if (state is PlatformConnectionState.Unavailable or PlatformConnectionState.InventorySyncing)
+            SetInventoryTrustState(PlatformInventoryTrustState.Dirty, message);
         AddEvent(message);
         DiagnosticLog.Record("steam_mock_phase", new Dictionary<string, object>
         {
@@ -397,6 +552,15 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         });
         if (previousState != state)
             ConnectionStateChanged(state);
+    }
+
+    private void SetInventoryTrustState(PlatformInventoryTrustState state, string message)
+    {
+        var changed = _inventoryTrustState != state;
+        _inventoryTrustState = state;
+        _inventoryTrustMessage = message;
+        if (changed)
+            InventoryTrustStateChanged(state);
     }
 
     private uint GetVoucherQuantity() => checked((uint)_mockItems
@@ -422,6 +586,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void OnInnerPlaytimeDropCompleted(PlatformPlaytimeDropResult value) { if (!IsMockActive) PlaytimeDropCompleted(value); }
     private void OnInnerInventoryExchangeCompleted(PlatformInventoryExchangeResult value) { if (!IsMockActive) InventoryExchangeCompleted(value); }
     private void OnInnerConnectionStateChanged(PlatformConnectionState value) { if (!IsMockActive) ConnectionStateChanged(value); }
+    private void OnInnerInventoryTrustStateChanged(PlatformInventoryTrustState value) { if (!IsMockActive) InventoryTrustStateChanged(value); }
     private void OnInnerStoreStatusChanged(string value) { if (!IsMockActive) StoreStatusChanged(value); }
 }
 #endif

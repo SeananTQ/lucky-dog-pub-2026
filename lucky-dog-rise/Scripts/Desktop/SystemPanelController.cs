@@ -154,6 +154,7 @@ public partial class SystemPanelController : CanvasLayer
                 _gameData.EquipmentChanged -= RefreshArmAppearanceSelection;
                 _gameData.InventoryChanged -= BuildArmAppearanceOptions;
                 _gameData.ChipsChanged -= OnChipsChangedForProgressionLabel;
+                _gameData.BlindBoxStateChanged -= OnSharedInventoryTransactionStateChanged;
             }
 
             _gameData = value;
@@ -163,6 +164,7 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.EquipmentChanged += RefreshArmAppearanceSelection;
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
             _gameData.ChipsChanged += OnChipsChangedForProgressionLabel;
+            _gameData.BlindBoxStateChanged += OnSharedInventoryTransactionStateChanged;
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
@@ -187,7 +189,10 @@ public partial class SystemPanelController : CanvasLayer
                 _inventoryService.PromoItemGrantCompleted -= OnPlatformPromoItemGrantCompleted;
             }
             if (_recoverablePlatformService != null)
+            {
                 _recoverablePlatformService.ConnectionStateChanged -= OnPlatformConnectionStateChanged;
+                _recoverablePlatformService.InventoryTrustStateChanged -= OnPlatformInventoryTrustStateChanged;
+            }
 
             _platformService = value;
             _inventoryService = value as IPlatformInventoryService;
@@ -198,10 +203,18 @@ public partial class SystemPanelController : CanvasLayer
                 _inventoryService.PromoItemGrantCompleted += OnPlatformPromoItemGrantCompleted;
             }
             if (_recoverablePlatformService != null)
+            {
                 _recoverablePlatformService.ConnectionStateChanged += OnPlatformConnectionStateChanged;
+                _recoverablePlatformService.InventoryTrustStateChanged += OnPlatformInventoryTrustStateChanged;
+            }
 
             if (IsNodeReady())
+            {
+#if DEBUG
+                ConfigureSteamMockLinkTreeGrants();
+#endif
                 InitializeLinkTreeInventory();
+            }
         }
     }
 
@@ -561,9 +574,47 @@ public partial class SystemPanelController : CanvasLayer
     public void SetSteamMockActive(bool active)
     {
         _steamMockActive = active;
+        if (active)
+            ResetSteamMockLinkTreeState();
         RefreshLinkTreePagePresentation();
         RefreshBlindBoxLocalTestControls();
         RefreshBlindBoxDebugStatus();
+    }
+
+    public void ResetSteamMockLinkTreeState()
+    {
+        if (!IsNodeReady())
+            return;
+
+        foreach (var entry in _linkTreeRewardEntries)
+        {
+            entry.RewardFeedbackTween?.Kill();
+            entry.ClaimPending = false;
+            entry.State = LinkTreeRewardState.Unopened;
+            entry.RewardVisualRoot.Visible = false;
+            RefreshLinkTreeRewardEntry(entry);
+        }
+        _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
+        RefreshLinkTreeVisibleEntries();
+        RefreshLinkTreePageFromPlatformState();
+    }
+
+    private void ConfigureSteamMockLinkTreeGrants()
+    {
+        if (_platformService is not IDebugSteamMockController controller || _linkTreeRewardEntries.Count == 0)
+            return;
+
+        var grants = _linkTreeRewardEntries.Select(entry =>
+        {
+            var rewardItemDefId = entry.Data.RewardType == ELinkTreeRewardType.FixedItem
+                ? LubanData.Tables.TbItem.GetOrDefault(entry.Data.RewardItemId)?.SteamItemDefId ?? 0
+                : 0;
+            return new DebugSteamLinkTreeGrant(
+                entry.Data.SteamClaimBundleItemDefId,
+                entry.Data.SteamReceiptItemDefId,
+                rewardItemDefId);
+        }).ToArray();
+        controller.ConfigureLinkTreeGrants(grants);
     }
 #endif
 
@@ -700,6 +751,7 @@ public partial class SystemPanelController : CanvasLayer
             if (_simulateLinkTreeUi)
                 return;
 #endif
+            RefreshLinkTreePageFromPlatformState();
             _recoverablePlatformService?.RequestReconnect();
         }
         #if DEBUG
@@ -724,6 +776,12 @@ public partial class SystemPanelController : CanvasLayer
     private void OnChipsChangedForProgressionLabel(int _)
     {
         RefreshProgressionHighScoreLabel();
+    }
+
+    private void OnSharedInventoryTransactionStateChanged()
+    {
+        if (_linkTreeContent?.Visible == true)
+            RefreshLinkTreePageFromPlatformState();
     }
 
     private void RefreshProgressionHighScoreLabel()
@@ -787,6 +845,9 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var data in entries)
             AddLinkTreeBanner(data);
 
+#if DEBUG
+        ConfigureSteamMockLinkTreeGrants();
+#endif
         RefreshLinkTreeVisibleEntries();
     }
 
@@ -910,12 +971,6 @@ public partial class SystemPanelController : CanvasLayer
         }
 
 #if DEBUG
-        if (_steamMockActive)
-        {
-            GD.PushWarning("[LinkTree] Debug Steam Mock is active; real reward claims are disabled.");
-            RefreshLinkTreePagePresentation();
-            return;
-        }
         if (_simulateLinkTreeUi)
         {
             if (_simulateLinkTreeSyncPending)
@@ -1034,17 +1089,11 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_simulateLinkTreeUi)
             state = LinkTreePageState.Ready;
-        if (_steamMockActive)
-            state = LinkTreePageState.Unavailable;
         if (_simulateLinkTreeSyncPending && !IsLinkTreeClaimLoadingPreview)
             state = LinkTreePageState.Loading;
 #endif
         var showBanners = state == LinkTreePageState.Ready;
         var unavailableText = L10n.Tr(L10nKey.LinkTree_RewardsUnavailable);
-#if DEBUG
-        if (_steamMockActive)
-            unavailableText = "Debug Steam Mock 已启用，LinkTree 真实领奖已禁用。";
-#endif
         _linkTreeStatusCenter.Visible = !showBanners;
         _linkTreeStatusLabel.Text = state switch
         {
@@ -1054,6 +1103,40 @@ public partial class SystemPanelController : CanvasLayer
         };
         foreach (var entry in _linkTreeRewardEntries)
             entry.Banner.Visible = showBanners && entry.SelectedForDisplay;
+    }
+
+    private bool IsSharedInventoryStatePending()
+    {
+        if (_inventoryService == null || _recoverablePlatformService == null)
+            return false;
+
+        return _recoverablePlatformService.ConnectionState != PlatformConnectionState.Ready
+               || _recoverablePlatformService.InventoryTrustState != PlatformInventoryTrustState.Trusted
+               || _gameData?.PendingPlatformBlindBoxOpen != null
+               || _gameData?.PendingLinkTreeClaim != null
+               || _inventoryService.IsExchangePending
+               || _inventoryService.IsPromoGrantPending
+               || _inventoryService.IsPlaytimeDropPending;
+    }
+
+    private void RefreshLinkTreePageFromPlatformState()
+    {
+#if DEBUG
+        if (_simulateLinkTreeUi)
+        {
+            SetLinkTreePageState(LinkTreePageState.Ready);
+            return;
+        }
+#endif
+        if (_inventoryService == null || _recoverablePlatformService == null)
+        {
+            SetLinkTreePageState(LinkTreePageState.Unavailable);
+            return;
+        }
+
+        SetLinkTreePageState(IsSharedInventoryStatePending()
+            ? LinkTreePageState.Loading
+            : LinkTreePageState.Ready);
     }
 
     private void RefreshLinkTreeVisibleEntries()
@@ -1174,7 +1257,7 @@ public partial class SystemPanelController : CanvasLayer
         });
         if (!snapshot.Succeeded)
         {
-            SetLinkTreePageState(LinkTreePageState.Unavailable);
+            RefreshLinkTreePageFromPlatformState();
             GD.PushWarning($"[LinkTree] {snapshot.Message}");
             return;
         }
@@ -1233,7 +1316,7 @@ public partial class SystemPanelController : CanvasLayer
             RefreshLinkTreeVisibleEntries();
             _refreshLinkTreeSelectionOnNextInventorySnapshot = false;
         }
-        SetLinkTreePageState(LinkTreePageState.Ready);
+        RefreshLinkTreePageFromPlatformState();
         GD.Print($"[LinkTree] {snapshot.Message}");
     }
 
@@ -1243,21 +1326,13 @@ public partial class SystemPanelController : CanvasLayer
         if (_simulateLinkTreeUi)
             return;
 #endif
-        switch (state)
-        {
-            case PlatformConnectionState.Connecting:
-            case PlatformConnectionState.InventorySyncing:
-                SetLinkTreePageState(LinkTreePageState.Loading);
-                break;
-            case PlatformConnectionState.Offline:
-            case PlatformConnectionState.Unavailable:
-                SetLinkTreePageState(LinkTreePageState.Unavailable);
-                break;
-            case PlatformConnectionState.Ready:
-                ResumeWaitingLinkTreeClaims();
-                break;
-        }
+        RefreshLinkTreePageFromPlatformState();
+        if (state == PlatformConnectionState.Ready)
+            ResumeWaitingLinkTreeClaims();
     }
+
+    private void OnPlatformInventoryTrustStateChanged(PlatformInventoryTrustState _) =>
+        RefreshLinkTreePageFromPlatformState();
 
     private void OnPlatformPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
     {
@@ -1340,6 +1415,10 @@ public partial class SystemPanelController : CanvasLayer
                 }
                 // Full snapshot confirmation happens before this method. Record the local
                 // application ledger without fabricating another copy of the Steam item.
+#if DEBUG
+                if (_steamMockActive && _gameData?.HasAppliedLinkTreeReward(data.Id) != true)
+                    _gameData?.AddItem(data.RewardItemId, source: PlayerProgressSource.Debug);
+#endif
                 return _gameData?.TryApplyLinkTreeRewardOnce(data.Id, 0) == true;
 
             case ELinkTreeRewardType.FixedChips:

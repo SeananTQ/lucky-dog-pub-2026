@@ -33,10 +33,10 @@ public partial class SteamMockPanelController : CanvasLayer
     public override void _Ready()
     {
         _scenarioOption.AddItem("正常：使用真实 Steam，不进行模拟", (int)DebugSteamScenario.RealSteam);
-        _scenarioOption.AddItem("开盒前不可用：点击时立即使用本地 Fallback", (int)DebugSteamScenario.UnavailableBeforeOpen);
-        _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功发奖", (int)DebugSteamScenario.SlowSuccess);
+        _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
+        _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
-        _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒后安全 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
+        _scenarioOption.AddItem("请求超时：复查确认未发生；盲盒 Fallback / LinkTree 可重试", (int)DebugSteamScenario.TimeoutVerifiedFallback);
         _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;
@@ -155,14 +155,16 @@ public partial class SteamMockPanelController : CanvasLayer
         if (_scenarioOption == null)
             return;
         RestoreScenarioSelection(snapshot.Scenario);
-        _connectionValue.Text = snapshot.ConnectionState.ToString();
+        _connectionValue.Text = $"{snapshot.ConnectionState} / {snapshot.InventoryTrustState}";
         _phaseValue.Text = snapshot.Phase.ToString();
         _phaseTimerValue.Text = $"{snapshot.PhaseElapsedSeconds:0.0} 秒";
         _voucherValue.Text = snapshot.VoucherQuantity.ToString();
-        _transactionValue.Text = snapshot.HasPendingTransaction ? "有" : "无";
+        _transactionValue.Text = snapshot.PendingOperation;
         _lastEventValue.Text = snapshot.LastEvent;
         _eventLog.Text = string.Join('\n', snapshot.Events.Select(BbcodeEscape));
-        _scenarioOption.Disabled = snapshot.HasPendingTransaction || _gameData?.PendingBlindBoxReward != null;
+        _scenarioOption.Disabled = snapshot.HasPendingTransaction
+                                   || _gameData?.PendingBlindBoxReward != null
+                                   || _gameData?.PendingLinkTreeClaim != null;
         _advanceButton.Disabled = !snapshot.HasPendingTransaction;
     }
 

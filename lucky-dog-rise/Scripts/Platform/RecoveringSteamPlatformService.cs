@@ -33,6 +33,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted = delegate { };
     public event Action<PlatformInventoryExchangeResult> InventoryExchangeCompleted = delegate { };
     public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
+    public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged = delegate { };
 
     public string ProviderName => "Steam";
     public string StatusMessage => _statusMessage;
@@ -41,12 +42,15 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public string PersonaName => _session?.PersonaName ?? string.Empty;
     public bool IsReadyForWrites => _session?.IsReadyForWrites == true;
     public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
+        && InventoryTrustState == PlatformInventoryTrustState.Trusted
         && _session?.IsInventoryReady == true;
     public bool IsPromoGrantPending => _session?.IsPromoGrantPending == true;
     public bool IsPlaytimeDropPending => _session?.IsPlaytimeDropPending == true;
     public bool IsExchangePending => _session?.IsExchangePending == true;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _session?.InventoryItems ?? [];
     public PlatformConnectionState ConnectionState { get; private set; } = PlatformConnectionState.Offline;
+    public PlatformInventoryTrustState InventoryTrustState { get; private set; } = PlatformInventoryTrustState.Unknown;
+    public string InventoryTrustMessage { get; private set; } = "Steam 库存尚未完成可信同步。";
 
     public void RunCallbacks()
     {
@@ -71,6 +75,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_promoGrantDeadlineSeconds > 0.0 && now >= _promoGrantDeadlineSeconds)
         {
+            MarkInventoryDirty("Steam LinkTree 领奖请求超时，等待库存复查。");
             _promoGrantDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -81,6 +86,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_playtimeDropDeadlineSeconds > 0.0 && now >= _playtimeDropDeadlineSeconds)
         {
+            MarkInventoryDirty("Steam 游玩投放请求超时，等待库存复查。");
             _playtimeDropDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -91,6 +97,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_exchangeDeadlineSeconds > 0.0 && now >= _exchangeDeadlineSeconds)
         {
+            MarkInventoryDirty("Steam 盲盒兑换请求超时，等待库存复查。");
             _exchangeDeadlineSeconds = 0.0;
             SetConnectionState(PlatformConnectionState.InventorySyncing);
             _inventoryDeadlineSeconds = now + InventoryTimeoutSeconds;
@@ -119,7 +126,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         if (_session?.IsAvailable == true)
         {
             if (_inventorySynchronizationRequested
-                && ConnectionState is PlatformConnectionState.Connecting or PlatformConnectionState.Unavailable)
+                && (ConnectionState is PlatformConnectionState.Connecting or PlatformConnectionState.Unavailable
+                    || InventoryTrustState != PlatformInventoryTrustState.Trusted))
                 BeginInventorySynchronization();
             return;
         }
@@ -148,6 +156,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         var accepted = _session.TryGrantPromoItem(promoItemDefId, receiptItemDefId, out message);
         if (accepted)
             _promoGrantDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
+        else
+            RecoverRejectedInventoryWrite(message);
         return accepted;
     }
 
@@ -162,6 +172,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         var accepted = _session.TryTriggerPlaytimeDrop(generatorItemDefId, outputItemDefId, out message);
         if (accepted)
             _playtimeDropDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
+        else
+            RecoverRejectedInventoryWrite(message);
         return accepted;
     }
 
@@ -184,7 +196,17 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             out message);
         if (accepted)
             _exchangeDeadlineSeconds = NowSeconds() + InventoryTimeoutSeconds;
+        else
+            RecoverRejectedInventoryWrite(message);
         return accepted;
+    }
+
+    public void MarkInventoryDirty(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            reason = "Steam 库存状态需要重新确认。";
+        InventoryTrustMessage = reason;
+        SetInventoryTrustState(PlatformInventoryTrustState.Dirty);
     }
 
     public bool OpenFriendsOverlay() => _session?.OpenFriendsOverlay() == true;
@@ -263,6 +285,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             _statusMessage = snapshot.Message;
             _retryIndex = 0;
             _nextRetryAtSeconds = 0.0;
+            InventoryTrustMessage = snapshot.Message;
+            SetInventoryTrustState(PlatformInventoryTrustState.Trusted);
             SetConnectionState(PlatformConnectionState.Ready);
         }
         else
@@ -276,18 +300,24 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private void OnPromoItemGrantCompleted(PlatformPromoItemGrantResult result)
     {
         _promoGrantDeadlineSeconds = 0.0;
+        if (!result.Succeeded)
+            MarkInventoryDirty(result.Message);
         PromoItemGrantCompleted(result);
     }
 
     private void OnPlaytimeDropCompleted(PlatformPlaytimeDropResult result)
     {
         _playtimeDropDeadlineSeconds = 0.0;
+        if (!result.Succeeded)
+            MarkInventoryDirty(result.Message);
         PlaytimeDropCompleted(result);
     }
 
     private void OnInventoryExchangeCompleted(PlatformInventoryExchangeResult result)
     {
         _exchangeDeadlineSeconds = 0.0;
+        if (!result.Succeeded)
+            MarkInventoryDirty(result.Message);
         InventoryExchangeCompleted(result);
     }
 
@@ -296,6 +326,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     private void HandleInventoryFailure(string message, bool publishSnapshot)
     {
+        MarkInventoryDirty(message);
         _session?.CancelPendingInventorySynchronization();
         _inventoryDeadlineSeconds = 0.0;
         _statusMessage = message;
@@ -308,6 +339,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private void HandleDisconnected(string message)
     {
         _statusMessage = string.IsNullOrWhiteSpace(message) ? "Steam 连接已中断。" : message;
+        MarkInventoryDirty(_statusMessage);
         DisposeSession();
         ScheduleRetry(_statusMessage);
     }
@@ -349,6 +381,31 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         ConnectionState = state;
         GD.Print($"[PlatformRecovery] State -> {state}");
         ConnectionStateChanged(state);
+    }
+
+    private void SetInventoryTrustState(PlatformInventoryTrustState state)
+    {
+        if (InventoryTrustState == state)
+            return;
+
+        InventoryTrustState = state;
+        GD.Print($"[PlatformRecovery] Inventory trust -> {state}: {InventoryTrustMessage}");
+        DiagnosticLog.Record("platform_inventory_trust_changed", new Dictionary<string, object>
+        {
+            ["state"] = state.ToString(),
+            ["message"] = InventoryTrustMessage,
+            ["connectionState"] = ConnectionState.ToString(),
+        });
+        InventoryTrustStateChanged(state);
+    }
+
+    private void RecoverRejectedInventoryWrite(string message)
+    {
+        if (IsPromoGrantPending || IsPlaytimeDropPending || IsExchangePending)
+            return;
+        MarkInventoryDirty(message);
+        _inventorySynchronizationRequested = true;
+        BeginInventorySynchronization();
     }
 
     private static double NowSeconds() => Time.GetTicksMsec() / 1000.0;

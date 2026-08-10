@@ -138,6 +138,8 @@ public static class DiagnosticLog
                     ["platformProvider"] = platformService?.ProviderName ?? "Unavailable",
                     ["platformAvailable"] = platformService?.IsAvailable ?? false,
                     ["platformConnectionState"] = (platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
+                    ["platformInventoryTrustState"] = (platformService as IRecoverablePlatformService)?.InventoryTrustState.ToString(),
+                    ["platformInventoryTrustMessage"] = (platformService as IRecoverablePlatformService)?.InventoryTrustMessage,
                     ["chips"] = gameData?.Chips,
                     ["totalPlaySeconds"] = gameData?.TotalPlaySeconds,
                     ["ownedItemTypeCount"] = gameData?.Inventory.GetOwnedIds().Count(),
