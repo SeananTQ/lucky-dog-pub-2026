@@ -285,16 +285,17 @@
       "why": "寻找会把房间代码分享到 Discord 的用户。",
       "status": "testing",
       "note": "",
-      "opens": 2
+      "opens": 3
     },
     {
       "id": "f1a2052a-2272-4c5c-8e0e-dd82e7fd2309",
       "group": "Bongo Cat · 社交传播",
       "q": "\"Bongo Cat\" room code",
       "why": "寻找多人房间和社群使用者。",
-      "status": "testing",
+      "status": "bad",
       "note": "",
-      "opens": 0
+      "opens": 1,
+      "blacklisted": true
     },
     {
       "id": "13f44445-37cf-4422-a185-27c99cbf181c",
@@ -487,5 +488,5 @@
     }
   ],
   "collapsed": false,
-  "updatedAt": 1786170596830
+  "updatedAt": 1786345571968
 }

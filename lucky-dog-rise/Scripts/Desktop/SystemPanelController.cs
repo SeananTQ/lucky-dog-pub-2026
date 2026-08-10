@@ -1619,7 +1619,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         var cell = ItemCellScene.Instantiate<ItemCellController>();
         var isSelected = item.ItemType == EItemType.Refreshment
-            ? _gameData.IsTableRefreshment(item.Id)
+            ? _gameData.IsTableRefreshmentSelected(item.Id)
             : _gameData.Inventory.IsEquipped(item.Id);
         cell.Setup(
             item,

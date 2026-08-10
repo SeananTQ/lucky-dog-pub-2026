@@ -18,6 +18,14 @@ public partial class GameData : Node
         public uint OutputQuantityBefore { get; init; }
     }
 
+    private sealed class BlindBoxPresentationDecision
+    {
+        public required int ScheduleId { get; init; }
+        public required int ConfiguredBoxId { get; init; }
+        public required BlindBox PresentedBox { get; init; }
+        public required BlindBoxPaymentSource PaymentSource { get; init; }
+    }
+
     private readonly record struct PlatformInventoryConsumptionReservation(
         uint QuantityBefore,
         uint ReservedQuantity);
@@ -66,6 +74,7 @@ public partial class GameData : Node
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
     private PendingPlatformPlaytimeDrop _pendingPlatformPlaytimeDrop;
+    private BlindBoxPresentationDecision _blindBoxPresentationDecision;
     private readonly Dictionary<ulong, PlatformInventoryConsumptionReservation>
         _platformInventoryConsumptionReservations = new();
     private readonly Dictionary<int, double> _playtimeDropRetryAtSeconds = new();
@@ -544,7 +553,28 @@ public partial class GameData : Node
             PendingBlindBoxReward);
 #if DEBUG
         if (_blindBoxLocalTestMode)
+        {
+            if (state.Status is (BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
+                && _blindBoxService.TryGetNextAvailable(
+                    ActiveBlindBoxRuntimeState,
+                    out var localTestSchedule,
+                    out var localTestBox)
+                && localTestSchedule != null
+                && localTestBox != null
+                && TryGetOrCreateBlindBoxPresentationDecision(
+                    localTestSchedule,
+                    localTestBox,
+                    out var localTestPresentation,
+                    canOpenPlatformOverride: _blindBoxLocalTestVoucherCount > 0,
+                    voucherQuantityOverride: checked((uint)_blindBoxLocalTestVoucherCount)))
+            {
+                return WithBlindBoxPaymentSource(
+                    _blindBoxService.CreateReadyHintState(localTestPresentation.PresentedBox),
+                    localTestPresentation.PaymentSource);
+            }
+
             return state;
+        }
 #endif
         if (state.Status == BlindBoxHintStatus.PendingReward)
             return state;
@@ -562,20 +592,15 @@ public partial class GameData : Node
                 out var currentSchedule,
                 out var configuredBox)
             && currentSchedule != null
-            && configuredBox != null)
+            && configuredBox != null
+            && TryGetOrCreateBlindBoxPresentationDecision(
+                currentSchedule,
+                configuredBox,
+                out var presentation))
         {
-            var presentedBox = ResolveVoucherUpgradeBox(currentSchedule, configuredBox);
-            if (presentedBox.Id != configuredBox.Id)
-                return WithBlindBoxPaymentSource(
-                    _blindBoxService.CreateReadyHintState(presentedBox),
-                    BlindBoxPaymentSource.SteamVoucher);
-            if (currentSchedule.IsLoopTrack
-                && presentedBox.BoxType == EBlindBoxType.Refreshment)
-            {
-                return WithBlindBoxPaymentSource(
-                    state,
-                    BlindBoxPaymentSource.SteamFallback);
-            }
+            return WithBlindBoxPaymentSource(
+                _blindBoxService.CreateReadyHintState(presentation.PresentedBox),
+                presentation.PaymentSource);
         }
 
         if (!UsesSteamInventoryExchange(state.Box))
@@ -642,22 +667,29 @@ public partial class GameData : Node
             && schedule != null
             && box != null)
         {
-            var presentedBox = ResolveVoucherUpgradeBox(schedule, box);
-            if (UsesSteamInventoryExchange(presentedBox))
+            if (TryGetOrCreateBlindBoxPresentationDecision(schedule, box, out var presentation))
             {
-                if (CanOpenPlatformBlindBox(presentedBox))
+                if (presentation.PaymentSource == BlindBoxPaymentSource.SteamFallback
+                    && presentation.PresentedBox.Id != box.Id)
                 {
-                    if (BeginPlatformBlindBoxOpen(schedule, presentedBox))
-                        return null;
-
-                    if (_blindBoxFallbackEnabled)
-                        return TryOpenFallbackBlindBox(schedule, presentedBox);
-                    return null;
+                    return TryOpenFallbackBlindBox(schedule, box);
                 }
 
-                if (_blindBoxFallbackEnabled)
-                    return TryOpenFallbackBlindBox(schedule, presentedBox);
+                if (presentation.PaymentSource == BlindBoxPaymentSource.SteamVoucher)
+                {
+                    if (CanOpenPlatformBlindBox(presentation.PresentedBox)
+                        && BeginPlatformBlindBoxOpen(schedule, presentation.PresentedBox))
+                    {
+                        return null;
+                    }
 
+                    if (_blindBoxFallbackEnabled)
+                        return TryOpenFallbackBlindBox(schedule, presentation.PresentedBox);
+                    return null;
+                }
+            }
+            else if (UsesSteamInventoryExchange(box))
+            {
                 _recoverablePlatformService?.RequestReconnect();
                 return null;
             }
@@ -668,6 +700,80 @@ public partial class GameData : Node
             return null;
 
         return FinalizeLocalBlindBoxOpen(result);
+    }
+
+    private bool TryGetOrCreateBlindBoxPresentationDecision(
+        BlindBoxSchedule schedule,
+        BlindBox configuredBox,
+        out BlindBoxPresentationDecision decision,
+        bool? canOpenPlatformOverride = null,
+        uint? voucherQuantityOverride = null)
+    {
+        if (_blindBoxPresentationDecision is { } existing
+            && existing.ScheduleId == schedule.Id
+            && existing.ConfiguredBoxId == configuredBox.Id)
+        {
+            decision = existing;
+            return true;
+        }
+
+        var presentedBox = ResolveVoucherUpgradeBox(schedule, configuredBox);
+        var paymentSource = presentedBox.BoxType == EBlindBoxType.Refreshment
+            ? BlindBoxPaymentSource.LocalRefreshment
+            : BlindBoxPaymentSource.Chips;
+        var voucherItemDefId = 0;
+        var voucherQuantity = 0u;
+
+        if (UsesSteamInventoryExchange(presentedBox))
+        {
+            voucherItemDefId = presentedBox.SteamOpenCostItemDefId;
+            voucherQuantity = voucherQuantityOverride ?? GetPlatformInventoryQuantity(voucherItemDefId);
+            var canOpenPlatform = canOpenPlatformOverride ?? CanOpenPlatformBlindBox(presentedBox);
+            if (canOpenPlatform)
+            {
+                paymentSource = BlindBoxPaymentSource.SteamVoucher;
+            }
+            else if (_blindBoxFallbackEnabled
+                     && _blindBoxService.GetFallbackRefreshmentBox() is { } fallbackBox)
+            {
+                presentedBox = fallbackBox;
+                paymentSource = BlindBoxPaymentSource.SteamFallback;
+            }
+            else
+            {
+                decision = null;
+                return false;
+            }
+        }
+        else if (schedule.IsLoopTrack && presentedBox.BoxType == EBlindBoxType.Refreshment)
+        {
+            paymentSource = BlindBoxPaymentSource.SteamFallback;
+        }
+
+        decision = new BlindBoxPresentationDecision
+        {
+            ScheduleId = schedule.Id,
+            ConfiguredBoxId = configuredBox.Id,
+            PresentedBox = presentedBox,
+            PaymentSource = paymentSource,
+        };
+        _blindBoxPresentationDecision = decision;
+
+        DiagnosticLog.Record("blindbox_presentation_locked", new Dictionary<string, object>
+        {
+            ["scheduleId"] = schedule.Id,
+            ["configuredBoxId"] = configuredBox.Id,
+            ["presentedBoxId"] = presentedBox.Id,
+            ["paymentSource"] = paymentSource.ToString(),
+            ["platformReady"] = canOpenPlatformOverride
+                ?? (_platformInventoryService?.IsInventoryReady == true),
+            ["voucherItemDefId"] = voucherItemDefId,
+            ["voucherQuantity"] = voucherQuantity,
+        });
+        GD.Print(
+            $"[BlindBox] Locked presentation Schedule={schedule.Id}, ConfiguredBox={configuredBox.Id}, " +
+            $"PresentedBox={presentedBox.Id}, Source={paymentSource}, VoucherQty={voucherQuantity}.");
+        return true;
     }
 
     private PendingBlindBoxReward TryOpenFallbackBlindBox(
@@ -706,6 +812,7 @@ public partial class GameData : Node
     {
         PendingBlindBoxReward = result.PendingReward;
         _blindBoxService.ConsumeOpenedSchedule(ActiveBlindBoxRuntimeState, result.Schedule);
+        _blindBoxPresentationDecision = null;
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -1144,6 +1251,7 @@ public partial class GameData : Node
         PendingBlindBoxReward.IsPlatformInventoryReward = true;
         PendingPlatformBlindBoxOpen = null;
         _blindBoxService.ConsumeOpenedSchedule(_blindBoxRuntimeState, schedule);
+        _blindBoxPresentationDecision = null;
         if (CanRecordPlayerProgress)
         {
             PlayerProgress.RecordBlindBoxOpened(PlayerProgressSource.BlindBox);
@@ -1491,10 +1599,14 @@ public partial class GameData : Node
         && _luckyDealBuffState.RemainingHands > 0;
     public bool IsUsingLocalSave => _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
 
-    public bool IsTableRefreshment(int itemId) =>
+    /// <summary>
+    /// 背包 E 标记只表示这份消耗品尚未使用、当前正摆在桌上。
+    /// BuffActive 中的来源物品已经被消耗，之后新获得的同类物品不能继承 E 标记。
+    /// </summary>
+    public bool IsTableRefreshmentSelected(int itemId) =>
         itemId > 0
         && _refreshmentRuntimeState.CurrentItemId == itemId
-        && _refreshmentRuntimeState.Status != TableRefreshmentStatus.Empty;
+        && _refreshmentRuntimeState.Status == TableRefreshmentStatus.ReadyToUse;
 
     public bool TrySelectTableRefreshment(int itemId)
     {
