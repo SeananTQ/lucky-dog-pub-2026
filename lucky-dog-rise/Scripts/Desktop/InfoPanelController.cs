@@ -47,6 +47,8 @@ public partial class InfoPanelController : CanvasLayer
     private EHandRank _currentRank = EHandRank.Nothing;
     private int _currentPayout;
     private bool _hasResolvedHand;
+    private bool _blindBoxOpeningLoading;
+    private bool _blindBoxOpeningPendingConfirmation;
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
@@ -316,6 +318,17 @@ public partial class InfoPanelController : CanvasLayer
         if (_gameData == null)
             return;
 
+        if (_blindBoxOpeningLoading)
+        {
+            _blindBoxBtn.Disabled = true;
+            SetBlindBoxHintDisplayVisible(true);
+            if (_blindBoxOpeningPendingConfirmation)
+                _blindBoxHint.ShowPendingConfirmation();
+            else
+                _blindBoxHint.ShowLoading();
+            return;
+        }
+
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
             or BlindBoxHintStatus.PlatformSyncing
@@ -349,6 +362,23 @@ public partial class InfoPanelController : CanvasLayer
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
                 break;
         }
+    }
+
+    public void SetBlindBoxOpeningLoading(bool loading)
+    {
+        if (_blindBoxOpeningLoading == loading)
+            return;
+
+        _blindBoxOpeningLoading = loading;
+        if (!loading)
+            _blindBoxOpeningPendingConfirmation = false;
+        RefreshBlindBoxButton();
+    }
+
+    public void SetBlindBoxOpeningPendingConfirmation(bool pending)
+    {
+        _blindBoxOpeningPendingConfirmation = pending;
+        RefreshBlindBoxButton();
     }
 
     private void OnBlindBoxHintPressed()

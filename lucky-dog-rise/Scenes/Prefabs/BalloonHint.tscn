@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://bk27u00b88obv" path="res://Assets/UI/BlindBox/BlindBox_Common_Closed.png" id="2_box"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="5_loading_indicator"]
 
 [sub_resource type="StyleBoxFlat" id="bubble_style"]
 content_margin_left = 8.0
@@ -20,7 +21,7 @@ corner_radius_bottom_left = 5
 fallbacks = Array[Font]([ExtResource("4_misans_bold")])
 base_font = ExtResource("3_inter_bold")
 
-[node name="BalloonHint" type="PanelContainer" unique_id=182074822 node_paths=PackedStringArray("_iconRect", "_textLabel", "_tail")]
+[node name="BalloonHint" type="PanelContainer" unique_id=182074822 node_paths=PackedStringArray("_iconRect", "_textLabel", "_loadingIndicator", "_tail")]
 custom_minimum_size = Vector2(120, 54)
 offset_right = 120.0
 offset_bottom = 54.0
@@ -28,6 +29,7 @@ theme_override_styles/panel = SubResource("bubble_style")
 script = ExtResource("1_script")
 _iconRect = NodePath("Root/Icon")
 _textLabel = NodePath("Root/Text")
+_loadingIndicator = NodePath("LoadingIndicator")
 _tail = NodePath("Tail")
 
 [node name="Root" type="HBoxContainer" parent="." unique_id=957169719]
@@ -57,6 +59,21 @@ text = "[font_size=20]1000[/font_size]"
 fit_content = true
 autowrap_mode = 0
 horizontal_alignment = 1
+
+[node name="LoadingIndicator" parent="." instance=ExtResource("5_loading_indicator")]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -18.0
+offset_top = -18.0
+offset_right = 18.0
+offset_bottom = 18.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Tail" type="Polygon2D" parent="." unique_id=1037149699]
 position = Vector2(16, 52)

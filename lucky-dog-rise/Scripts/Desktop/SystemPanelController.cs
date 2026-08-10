@@ -17,6 +17,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DebugGrantLuckyDealsRequestedEventHandler();
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void GlobalMouseListeningDisabledChangedEventHandler(bool disabled);
+    [Signal] public delegate void SteamMockPanelVisibilityChangedEventHandler(bool visible);
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -124,6 +125,7 @@ public partial class SystemPanelController : CanvasLayer
     private double _debugTimeRefreshTimer;
     private bool _resetPlayerProgressPending;
     private bool _simulateLinkTreeSyncPending;
+    private bool _steamMockActive;
     private bool _simulateLinkTreeUi;
 #endif
 
@@ -428,7 +430,7 @@ public partial class SystemPanelController : CanvasLayer
         _seedInput = GetNode<LineEdit>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SeedInput");
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
-        var linkTreeSyncSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
+        var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         var linkTreeUiSimulationToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeUiSimulationRow/LinkTreeUiSimulationToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
@@ -447,11 +449,9 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.DebugGrantLuckyDealsRequested);
             RefreshDebugPlayTime();
         };
-        linkTreeSyncSimulationToggle.Toggled += enabled =>
-        {
-            _simulateLinkTreeSyncPending = enabled;
-            RefreshLinkTreePagePresentation();
-        };
+        steamMockPanelToggle.SetPressedNoSignal(false);
+        steamMockPanelToggle.Toggled += visible =>
+            EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         linkTreeUiSimulationToggle.Toggled += enabled =>
         {
             if (enabled && HasPendingRealLinkTreeClaim())
@@ -548,6 +548,22 @@ public partial class SystemPanelController : CanvasLayer
         RefreshDebugPlayTime();
 #endif
     }
+
+#if DEBUG
+    public void SetSteamMockPanelToggle(bool visible)
+    {
+        if (!IsNodeReady())
+            return;
+        var toggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
+        toggle.SetPressedNoSignal(visible);
+    }
+
+    public void SetSteamMockActive(bool active)
+    {
+        _steamMockActive = active;
+        RefreshLinkTreePagePresentation();
+    }
+#endif
 
     public override void _Process(double delta)
     {
@@ -892,6 +908,12 @@ public partial class SystemPanelController : CanvasLayer
         }
 
 #if DEBUG
+        if (_steamMockActive)
+        {
+            GD.PushWarning("[LinkTree] Debug Steam Mock is active; real reward claims are disabled.");
+            RefreshLinkTreePagePresentation();
+            return;
+        }
         if (_simulateLinkTreeUi)
         {
             if (_simulateLinkTreeSyncPending)
@@ -1010,15 +1032,22 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_simulateLinkTreeUi)
             state = LinkTreePageState.Ready;
+        if (_steamMockActive)
+            state = LinkTreePageState.Unavailable;
         if (_simulateLinkTreeSyncPending && !IsLinkTreeClaimLoadingPreview)
             state = LinkTreePageState.Loading;
 #endif
         var showBanners = state == LinkTreePageState.Ready;
+        var unavailableText = L10n.Tr(L10nKey.LinkTree_RewardsUnavailable);
+#if DEBUG
+        if (_steamMockActive)
+            unavailableText = "Debug Steam Mock 已启用，LinkTree 真实领奖已禁用。";
+#endif
         _linkTreeStatusCenter.Visible = !showBanners;
         _linkTreeStatusLabel.Text = state switch
         {
             LinkTreePageState.Loading => L10n.Tr(L10nKey.LinkTree_SyncingRewards),
-            LinkTreePageState.Unavailable => L10n.Tr(L10nKey.LinkTree_RewardsUnavailable),
+            LinkTreePageState.Unavailable => unavailableText,
             _ => string.Empty,
         };
         foreach (var entry in _linkTreeRewardEntries)

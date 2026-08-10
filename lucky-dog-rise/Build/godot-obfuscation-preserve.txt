@@ -20,6 +20,7 @@ InteractionHintController
 ItemAreaController
 ItemCellController
 LoadingIndicatorController
+SteamMockPanelController
 ModeManager
 SingleInstanceGuard
 SystemPanelController

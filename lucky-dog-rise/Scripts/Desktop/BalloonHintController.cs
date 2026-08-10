@@ -22,6 +22,7 @@ public partial class BalloonHintController : PanelContainer
 
     [Export] private TextureRect _iconRect = null!;
     [Export] private RichTextLabel _textLabel = null!;
+    [Export] private LoadingIndicatorController _loadingIndicator = null!;
     [Export] private Polygon2D _tail = null!;
     [Export] public TailSide TailPlacement { get; set; } = TailSide.Left;
     [Export] public float TailInset { get; set; } = 16f;
@@ -32,11 +33,14 @@ public partial class BalloonHintController : PanelContainer
     private readonly Color _normalTextColor = new(0.40784314f, 0.22745098f, 0.19607843f);
     private readonly Color _warningTextColor = new(0.90588236f, 0.54901963f, 0.627451f); // #E78CA0
     private bool _isDisplayVisible = true;
+    private bool _interactionEnabled = true;
+    private bool _showingLoading;
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
+        _loadingIndicator.SetLoading(false);
         SetTextContent(string.Empty);
         UpdateTail();
         PivotOffset = Size * 0.5f;
@@ -53,12 +57,14 @@ public partial class BalloonHintController : PanelContainer
 
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        if (_interactionEnabled
+            && @event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
             EmitSignal(SignalName.Pressed);
     }
 
     public void ShowCountdown(TimeSpan remaining)
     {
+        StopLoading();
         _iconRect.Visible = false;
         _textLabel.Visible = true;
         SetTextContent($"[font_size=20]{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}[/font_size]");
@@ -66,6 +72,7 @@ public partial class BalloonHintController : PanelContainer
 
     public void ShowCost(Texture2D? icon, int cost, int currentChips = -1)
     {
+        StopLoading();
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = true;
@@ -84,6 +91,7 @@ public partial class BalloonHintController : PanelContainer
         int currentChips = -1,
         BlindBoxPaymentSource paymentSource = BlindBoxPaymentSource.Unknown)
     {
+        StopLoading();
         var icon = LoadAssetTexture(iconPath) ?? fallbackIcon;
         if (valueMode == EBlindBoxValueMode.Chips)
         {
@@ -129,10 +137,44 @@ public partial class BalloonHintController : PanelContainer
 
     public void ShowIconOnly(Texture2D? icon)
     {
+        StopLoading();
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = false;
         SetTextContent(string.Empty);
+    }
+
+    public void ShowLoading()
+    {
+        if (_showingLoading)
+        {
+            _interactionEnabled = false;
+            return;
+        }
+
+        _showingLoading = true;
+        _iconRect.Visible = false;
+        _textLabel.Visible = false;
+        SetTextContent(string.Empty);
+        _loadingIndicator.SetLoading(true);
+        _interactionEnabled = false;
+    }
+
+    public void ShowPendingConfirmation()
+    {
+        _showingLoading = false;
+        _loadingIndicator.SetLoading(false);
+        _iconRect.Visible = false;
+        _textLabel.Visible = true;
+        _textLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        CustomMinimumSize = new Vector2(220, 64);
+        SetTextContent($"[font_size=10]{L10n.Tr(L10nKey.BlindBox_SteamResultPending)}[/font_size]");
+        _interactionEnabled = false;
+    }
+
+    public void SetInteractionEnabled(bool enabled)
+    {
+        _interactionEnabled = enabled;
     }
 
     public void FlashTextRed()
@@ -198,6 +240,15 @@ public partial class BalloonHintController : PanelContainer
     {
         _currentTextBbcode = bbcode;
         ResetTextColor();
+    }
+
+    private void StopLoading()
+    {
+        _showingLoading = false;
+        _loadingIndicator.SetLoading(false);
+        CustomMinimumSize = new Vector2(120, 54);
+        _textLabel.AutowrapMode = TextServer.AutowrapMode.Off;
+        _interactionEnabled = true;
     }
 
     private static Texture2D? LoadAssetTexture(string? lubanPath)

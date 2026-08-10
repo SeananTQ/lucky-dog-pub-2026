@@ -97,4 +97,5 @@ public static class L10nKey
     public const string BlindBox_TapToClaim = nameof(BlindBox_TapToClaim);
     public const string BlindBox_AutoClaimingInSeconds = nameof(BlindBox_AutoClaimingInSeconds);
     public const string BlindBox_Free = nameof(BlindBox_Free);
+    public const string BlindBox_SteamResultPending = nameof(BlindBox_SteamResultPending);
 }

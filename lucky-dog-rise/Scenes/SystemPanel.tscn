@@ -695,11 +695,12 @@ layout_mode = 2
 
 [node name="LinkTreeSyncSimulationRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
+tooltip_text = "显示扑克模式顶部的 Steam Mock 调试面板。仅当前进程有效，不写入设置。"
 
 [node name="LinkTreeSyncSimulationLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "模拟 LinkTree 同步中"
+text = "显示 Steam Mock 面板"
 
 [node name="LinkTreeSyncSimulationToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow"]
 layout_mode = 2

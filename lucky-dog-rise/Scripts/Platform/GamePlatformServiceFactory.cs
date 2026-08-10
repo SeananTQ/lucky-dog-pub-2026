@@ -16,6 +16,10 @@ public static class GamePlatformServiceFactory
             return new OfflineGamePlatformService("Steam 已通过命令行参数禁用。游戏继续以离线平台模式运行。");
         }
 
-        return new RecoveringSteamPlatformService();
+        IGamePlatformService service = new RecoveringSteamPlatformService();
+#if DEBUG
+        service = new DebugSteamMockPlatformService(service);
+#endif
+        return service;
     }
 }

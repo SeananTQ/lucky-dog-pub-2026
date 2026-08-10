@@ -21,6 +21,8 @@ public partial class ModeManager : Control
     }
 
     private const double StartupPlatformWaitSeconds = 10.0;
+    private const double BlindBoxLoadingMinimumSeconds = 0.5;
+    private const double BlindBoxPendingConfirmationSeconds = 20.0;
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
@@ -69,6 +71,17 @@ public partial class ModeManager : Control
     private Rect2 _dogHitRect;
     private Rect2 _btnHitRect;
     private Texture2D _blindBoxIcon = null!;
+    private bool _blindBoxOpeningUiActive;
+    private double _blindBoxOpeningUiElapsedSeconds;
+    private double _blindBoxOpeningUiMinimumSeconds;
+    private PendingBlindBoxReward _blindBoxOpeningResolvedReward = null!;
+    private bool _blindBoxOpeningPendingConfirmation;
+#if DEBUG
+    private SteamMockPanelController _steamMockPanel = null!;
+    private IDebugSteamMockController _steamMockController = null!;
+    private bool _steamMockPanelRequestedVisible;
+    private bool _lastSteamMockActive;
+#endif
 
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
@@ -222,6 +235,8 @@ public partial class ModeManager : Control
         _bossSystemButton.Pressed += OnBossSystemButtonPressed;
         _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
         RefreshBossBlindBoxHint();
+        if (_gameData.PendingPlatformBlindBoxOpen != null)
+            StartBlindBoxOpeningUi(BlindBoxPaymentSource.SteamVoucher);
 
         // 先实例化面板以读取实际尺寸
         _settingsPanel = GD.Load<PackedScene>("res://Scenes/SystemPanel.tscn").Instantiate<SystemPanelController>();
@@ -242,6 +257,7 @@ public partial class ModeManager : Control
         _settingsPanel.DebugGrantLuckyDealsRequested += OnDebugGrantLuckyDeals;
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
         _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
+        _settingsPanel.SteamMockPanelVisibilityChanged += OnSteamMockPanelVisibilityChanged;
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
@@ -255,6 +271,20 @@ public partial class ModeManager : Control
 
         _panelSize = _settingsPanel.PanelSize;
         _contentOffset = _panelSize;
+#if DEBUG
+        _steamMockController = _platformService as IDebugSteamMockController;
+        if (_steamMockController != null)
+        {
+            _steamMockPanel = GD.Load<PackedScene>("res://Scenes/Debug/SteamMockPanel.tscn")
+                .Instantiate<SteamMockPanelController>();
+            _steamMockPanel.Name = "SteamMockPanel";
+            AddChild(_steamMockPanel);
+            _steamMockPanel.Bind(_platformService, _gameData);
+            _steamMockPanel.SetPanelPosition(new Vector2(0, _contentOffset.Y - 420));
+            _steamMockPanel.CloseRequested += OnSteamMockPanelCloseRequested;
+            _steamMockPanel.SimulationReset += OnSteamMockSimulationReset;
+        }
+#endif
 
         _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
             .Instantiate<BlindBoxRevealOverlayController>();
@@ -332,6 +362,10 @@ public partial class ModeManager : Control
         _platformService?.RunCallbacks();
         _achievementSynchronizer?.Tick(_);
         UpdateStartup(_);
+        UpdateBlindBoxOpeningUi(_);
+#if DEBUG
+        UpdateSteamMockPresentation();
+#endif
 
         if (_startupState is not (StartupState.IntroPlaying or StartupState.Interactive))
             return;
@@ -438,11 +472,12 @@ public partial class ModeManager : Control
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
+            _infoPanel.SetBlindBoxOpeningLoading(_blindBoxOpeningUiActive);
         }
 
         // 扑克根节点会在模式切换时复用；每次回来都要以共享进度重建盲盒外壳，
         // 否则它会保留离开扑克模式前的旧盲盒贴图。
-        if (_gameData.PendingBlindBoxReward != null)
+        if (_gameData.PendingBlindBoxReward != null && !_blindBoxOpeningUiActive)
             _gameManager.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
 
         // 切换游玩模式的胖窗口尺寸（左信息面板 + 视觉缝隙 + 600×600 游戏内容 + 420 缓冲）
@@ -453,6 +488,9 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+#if DEBUG
+        RefreshSteamMockPanelVisibility();
+#endif
         ResetPokerViewportRendering();
         AudioManager.Instance.SetBgmPaused(false);
         _gameManager.SetInteractionHintPokerModeActive(true);
@@ -501,6 +539,9 @@ public partial class ModeManager : Control
         SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
+#if DEBUG
+        RefreshSteamMockPanelVisibility();
+#endif
         ResetPokerViewportRendering();
         RefreshSettingsPanelModeActions();
 
@@ -958,6 +999,16 @@ public partial class ModeManager : Control
             return;
         }
 
+        if (_blindBoxOpeningUiActive)
+        {
+            SetBossBlindBoxHintDisplayVisible(true);
+            if (_blindBoxOpeningPendingConfirmation)
+                _bossBlindBoxHint.ShowPendingConfirmation();
+            else
+                _bossBlindBoxHint.ShowLoading();
+            return;
+        }
+
         var state = _gameData.GetBlindBoxHintState();
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
@@ -1008,9 +1059,7 @@ public partial class ModeManager : Control
                     ShowBossBlindBoxReward(_gameData.PendingBlindBoxReward);
                 break;
             case BlindBoxHintStatus.Ready:
-                var pending = _gameData.TryOpenBlindBox();
-                if (pending != null)
-                    ShowBossBlindBoxReward(pending);
+                BeginBlindBoxOpen(state);
                 break;
             case BlindBoxHintStatus.NotEnoughChips:
                 _bossBlindBoxHint.FlashTextRed();
@@ -1067,7 +1116,9 @@ public partial class ModeManager : Control
 
     private void RestoreBossBlindBoxRewardIfNeeded()
     {
-        if (CurrentMode != Mode.BossKey || _gameData.PendingBlindBoxReward == null)
+        if (_blindBoxOpeningUiActive
+            || CurrentMode != Mode.BossKey
+            || _gameData.PendingBlindBoxReward == null)
             return;
         if (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible)
             return;
@@ -1155,9 +1206,12 @@ public partial class ModeManager : Control
         if (_infoPanel == null)
             return;
 
-        var pending = _gameData.TryOpenBlindBox();
-        if (pending != null)
-            _gameManager?.ShowPendingBlindBoxReward(pending);
+        var state = _gameData.GetBlindBoxHintState();
+        if (state.Status == BlindBoxHintStatus.Ready)
+            BeginBlindBoxOpen(state);
+        else if (state.Status == BlindBoxHintStatus.PendingReward
+                 && _gameData.PendingBlindBoxReward != null)
+            _gameManager?.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
     }
 
     private void OnBlindBoxRewardClaimRequested()
@@ -1238,16 +1292,167 @@ public partial class ModeManager : Control
         if (pending == null)
             return;
 
+        ResolveBlindBoxOpeningUi(pending);
+    }
+
+    private void BeginBlindBoxOpen(BlindBoxHintState state)
+    {
+        if (_blindBoxOpeningUiActive)
+            return;
+
+        StartBlindBoxOpeningUi(state.PaymentSource);
+        var pending = _gameData.TryOpenBlindBox();
+        if (pending != null)
+        {
+            ResolveBlindBoxOpeningUi(pending);
+            return;
+        }
+
+        if (_gameData.PendingPlatformBlindBoxOpen == null)
+            CancelBlindBoxOpeningUi();
+    }
+
+    private void StartBlindBoxOpeningUi(BlindBoxPaymentSource paymentSource)
+    {
+        _blindBoxOpeningUiActive = true;
+        _blindBoxOpeningUiElapsedSeconds = 0.0;
+        _blindBoxOpeningUiMinimumSeconds = BlindBoxLoadingMinimumSeconds;
+        _blindBoxOpeningResolvedReward = null!;
+        _blindBoxOpeningPendingConfirmation = false;
+        _infoPanel?.SetBlindBoxOpeningLoading(true);
+        RefreshBossBlindBoxHint();
+        DiagnosticLog.Record("blindbox_loading_started", new Dictionary<string, object>
+        {
+            ["paymentSource"] = paymentSource.ToString(),
+            ["minimumSeconds"] = _blindBoxOpeningUiMinimumSeconds,
+        });
+    }
+
+    private void ResolveBlindBoxOpeningUi(PendingBlindBoxReward pending)
+    {
+        if (!_blindBoxOpeningUiActive)
+        {
+            PresentBlindBoxReward(pending);
+            return;
+        }
+
+        _blindBoxOpeningResolvedReward = pending;
+        TryPresentResolvedBlindBoxReward();
+    }
+
+    private void UpdateBlindBoxOpeningUi(double delta)
+    {
+        if (!_blindBoxOpeningUiActive)
+            return;
+
+        _blindBoxOpeningUiElapsedSeconds += delta;
+        if (!_blindBoxOpeningPendingConfirmation
+            && _blindBoxOpeningResolvedReward == null
+            && _blindBoxOpeningUiElapsedSeconds >= BlindBoxPendingConfirmationSeconds)
+        {
+            _blindBoxOpeningPendingConfirmation = true;
+            _infoPanel?.SetBlindBoxOpeningPendingConfirmation(true);
+            RefreshBossBlindBoxHint();
+            DiagnosticLog.Record("blindbox_result_pending_confirmation", new Dictionary<string, object>
+            {
+                ["elapsedSeconds"] = _blindBoxOpeningUiElapsedSeconds,
+                ["platformState"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
+            });
+        }
+        TryPresentResolvedBlindBoxReward();
+    }
+
+    private void TryPresentResolvedBlindBoxReward()
+    {
+        if (!_blindBoxOpeningUiActive
+            || _blindBoxOpeningResolvedReward == null
+            || _blindBoxOpeningUiElapsedSeconds < _blindBoxOpeningUiMinimumSeconds)
+        {
+            return;
+        }
+
+        var pending = _blindBoxOpeningResolvedReward;
+        var elapsedSeconds = _blindBoxOpeningUiElapsedSeconds;
+        _blindBoxOpeningUiActive = false;
+        _blindBoxOpeningPendingConfirmation = false;
+        _blindBoxOpeningResolvedReward = null!;
+        _infoPanel?.SetBlindBoxOpeningLoading(false);
+        RefreshBossBlindBoxHint();
+        DiagnosticLog.Record("blindbox_loading_completed", new Dictionary<string, object>
+        {
+            ["elapsedSeconds"] = elapsedSeconds,
+            ["blindBoxId"] = pending.BlindBoxId,
+            ["rewardItemId"] = pending.ItemId,
+        });
+        PresentBlindBoxReward(pending);
+    }
+
+    private void PresentBlindBoxReward(PendingBlindBoxReward pending)
+    {
         if (CurrentMode == Mode.BossKey)
             ShowBossBlindBoxReward(pending);
         else if (CurrentMode == Mode.Play)
             _gameManager?.ShowPendingBlindBoxReward(pending);
     }
 
+    private void CancelBlindBoxOpeningUi()
+    {
+        _blindBoxOpeningUiActive = false;
+        _blindBoxOpeningPendingConfirmation = false;
+        _blindBoxOpeningResolvedReward = null!;
+        _infoPanel?.SetBlindBoxOpeningLoading(false);
+        RefreshBossBlindBoxHint();
+    }
+
+#if DEBUG
+    private void OnSteamMockPanelVisibilityChanged(bool visible)
+    {
+        _steamMockPanelRequestedVisible = visible;
+        RefreshSteamMockPanelVisibility();
+    }
+
+    private void OnSteamMockPanelCloseRequested()
+    {
+        _steamMockPanelRequestedVisible = false;
+        _settingsPanel.SetSteamMockPanelToggle(false);
+        RefreshSteamMockPanelVisibility();
+    }
+
+    private void OnSteamMockSimulationReset()
+    {
+        CancelBlindBoxOpeningUi();
+        _gameManager?.HidePendingBlindBoxReward();
+        _bossBlindBoxOverlay?.HideOverlay();
+        RefreshBossBlindBoxHint();
+        _infoPanel?.RefreshBlindBoxButton();
+    }
+
+    private void RefreshSteamMockPanelVisibility()
+    {
+        _steamMockPanel?.SetPanelVisible(
+            _steamMockPanelRequestedVisible && CurrentMode == Mode.Play);
+    }
+
+    private void UpdateSteamMockPresentation()
+    {
+        if (_steamMockController == null)
+            return;
+        var active = _steamMockController.IsMockActive;
+        if (_lastSteamMockActive == active)
+            return;
+        _lastSteamMockActive = active;
+        _settingsPanel.SetSteamMockActive(active);
+        RefreshBossBlindBoxHint();
+    }
+#endif
+
     private bool IsScreenPointOverInteractiveContent(Vector2I screenPosition)
     {
         var localPos = screenPosition - DisplayServer.WindowGetPosition();
         bool over = _settingsPanel != null && _settingsPanel.ContainsPoint(localPos);
+#if DEBUG
+        over |= _steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos);
+#endif
 
         if (CurrentMode == Mode.BossKey)
         {
@@ -1988,6 +2193,9 @@ public partial class ModeManager : Control
             {
                 var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
                 if (_settingsPanel.ContainsPoint(localPos)) return;
+#if DEBUG
+                if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;
+#endif
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
                     int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
