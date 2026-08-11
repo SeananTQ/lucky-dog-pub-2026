@@ -15,7 +15,7 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.equal(preview.ok, true);
     assert.equal(preview.stats.exportedItemDefs, preview.rows.length);
     assert.equal(preview.stats.linkTreeReferences, 8);
-    assert.equal(preview.stats.blindBoxReferences, 3);
+    assert.equal(preview.stats.blindBoxReferences, 2);
     assert.equal(preview.stats.playtimeReferences, 9);
     assert.equal(preview.channels.length, 2);
     const playtest = preview.channels.find(channel => channel.name === "playtest");
@@ -32,11 +32,13 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.equal(preview.sources.steamItemDefIdRange.exists, true);
     assert.equal(preview.rows.find(row => row.id === 101002).source, "Item");
     assert.ok(preview.rows.some(row => row.id === 201001));
-    assert.equal(preview.rows.find(row => row.id === 301001).exchange, "201001x1;204001x1");
+    assert.equal(preview.rows.find(row => row.id === 301001).exchange, "");
     assert.ok(preview.rows.find(row => row.id === 301001).bundle.length > 0);
-    assert.equal(preview.rows.find(row => row.id === 700001).dropInterval, 1);
-    assert.equal(preview.rows.find(row => row.id === 700001).dropLimit, 1);
-    assert.equal(preview.rows.find(row => row.id === 700001).playtimeSchedules.length, 1);
+    assert.equal(preview.rows.find(row => row.id === 700001).dropLimit, 0);
+    assert.equal(preview.rows.find(row => row.id === 700001).playtimeSchedules.length, 0);
+    assert.equal(preview.rows.find(row => row.id === 700101).dropInterval, 1);
+    assert.equal(preview.rows.find(row => row.id === 700101).dropLimit, 1);
+    assert.equal(preview.rows.find(row => row.id === 700101).playtimeSchedules.length, 1);
 });
 
 test("serves preview data and rejects untrusted POST requests", async () => {

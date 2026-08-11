@@ -1223,8 +1223,7 @@
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 301001
+      "auto_stack": true
     },
     {
       "itemdefid": 201002,
@@ -1236,8 +1235,7 @@
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 301002
+      "auto_stack": true
     },
     {
       "itemdefid": 204001,
@@ -1249,8 +1247,7 @@
       "marketable": false,
       "game_only": true,
       "store_hidden": true,
-      "auto_stack": true,
-      "container_contents_generator": 301001
+      "auto_stack": true
     },
     {
       "itemdefid": 301001,
@@ -1263,8 +1260,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x471;101003x5294;101004x1385;101005x2647;101006x235;101007x4231;101008x692;101009x2647;101010x235;101011x692;101012x692;102001x31905;102002x12692;102003x31905;102004x12692;102005x2077;102006x12692;102007x31905;102008x7941;102009x31905;102010x7941;102011x12692;102012x31905;103001x31905;103002x12692;103003x7941;103004x2077;105001x10635;105002x2647;105003x4231;105004x2647;105005x2647;105006x10635;105007x4231;105008x10635;106002x5294;106003x5294;106004x8462;106005x8461;106006x5294;106007x471;106008x31905;106009x31905;106010x31905;106011x2077;107001x31905;107002x31905;107003x31905;107005x12692;107006x12692;107007x31905;107008x7941;107009x12692;107010x471;107011x12692;107012x2077;107013x12692;107014x31905;107015x31905;107016x12692;107017x7941;107018x31905;107019x7941;108001x12692;108003x12692;108004x7941;108005x31905;108007x2077;108008x2077;108009x31905;108010x31905;108011x118;108012x12692;108013x2077;112001x12692;112002x31905",
-      "exchange": "201001x1;204001x1"
+      "bundle": "101002x471;101003x5294;101004x1385;101005x2647;101006x235;101007x4231;101008x692;101009x2647;101010x235;101011x692;101012x692;102001x31905;102002x12692;102003x31905;102004x12692;102005x2077;102006x12692;102007x31905;102008x7941;102009x31905;102010x7941;102011x12692;102012x31905;103001x31905;103002x12692;103003x7941;103004x2077;105001x10635;105002x2647;105003x4231;105004x2647;105005x2647;105006x10635;105007x4231;105008x10635;106002x5294;106003x5294;106004x8462;106005x8461;106006x5294;106007x471;106008x31905;106009x31905;106010x31905;106011x2077;107001x31905;107002x31905;107003x31905;107005x12692;107006x12692;107007x31905;107008x7941;107009x12692;107010x471;107011x12692;107012x2077;107013x12692;107014x31905;107015x31905;107016x12692;107017x7941;107018x31905;107019x7941;108001x12692;108003x12692;108004x7941;108005x31905;108007x2077;108008x2077;108009x31905;108010x31905;108011x118;108012x12692;108013x2077;112001x12692;112002x31905"
     },
     {
       "itemdefid": 301002,
@@ -1277,8 +1273,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x640;101003x17895;101004x4903;101005x8947;101006x320;101007x15849;101008x2452;101009x8947;101010x320;101011x2452;101012x2452;102001x17619;102002x23774;102003x17619;102004x23774;102005x3677;102006x23774;102007x17619;102008x13421;102009x17619;102010x13421;102011x23774;102012x17619;103001x17619;103002x23774;103003x13421;103004x3677;105001x5873;105002x4474;105003x7924;105004x4474;105005x4474;105006x5873;105007x7924;105008x5873;106002x8947;106003x8947;106004x15849;106005x15849;106006x8947;106007x320;106008x17619;106009x17619;106010x17619;106011x3677;107001x17619;107002x17619;107003x17619;107005x23774;107006x23774;107007x17619;107008x13421;107009x23774;107010x320;107011x23774;107012x3677;107013x23774;107014x17619;107015x17619;107016x23774;107017x13421;107018x17619;107019x13421;108001x23774;108003x23774;108004x13421;108005x17619;108007x3677;108008x3677;108009x17619;108010x17619;108011x80;108012x23774;108013x3677;112001x23773;112002x17619",
-      "exchange": "201002x1"
+      "bundle": "101002x640;101003x17895;101004x4903;101005x8947;101006x320;101007x15849;101008x2452;101009x8947;101010x320;101011x2452;101012x2452;102001x17619;102002x23774;102003x17619;102004x23774;102005x3677;102006x23774;102007x17619;102008x13421;102009x17619;102010x13421;102011x23774;102012x17619;103001x17619;103002x23774;103003x13421;103004x3677;105001x5873;105002x4474;105003x7924;105004x4474;105005x4474;105006x5873;105007x7924;105008x5873;106002x8947;106003x8947;106004x15849;106005x15849;106006x8947;106007x320;106008x17619;106009x17619;106010x17619;106011x3677;107001x17619;107002x17619;107003x17619;107005x23774;107006x23774;107007x17619;107008x13421;107009x23774;107010x320;107011x23774;107012x3677;107013x23774;107014x17619;107015x17619;107016x23774;107017x13421;107018x17619;107019x13421;108001x23774;108003x23774;108004x13421;108005x17619;108007x3677;108008x3677;108009x17619;108010x17619;108011x80;108012x23774;108013x3677;112001x23773;112002x17619"
     },
     {
       "itemdefid": 401001,
@@ -1759,9 +1754,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "204001x1",
-      "drop_interval": 1,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700002,
@@ -1775,9 +1769,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201002x1",
-      "drop_interval": 5,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700004,
@@ -1791,9 +1784,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201001x1",
-      "drop_interval": 13,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700005,
@@ -1807,9 +1799,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201002x1",
-      "drop_interval": 17,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700007,
@@ -1823,9 +1814,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201001x1",
-      "drop_interval": 25,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700008,
@@ -1839,9 +1829,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201002x1",
-      "drop_interval": 29,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700010,
@@ -1855,9 +1844,8 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201001x1",
-      "drop_interval": 37,
       "use_drop_limit": true,
-      "drop_limit": 1
+      "drop_limit": 0
     },
     {
       "itemdefid": 700011,
@@ -1871,6 +1859,133 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201002x1",
+      "use_drop_limit": true,
+      "drop_limit": 0
+    },
+    {
+      "itemdefid": 700101,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1001 Direct Reward",
+      "description": "Generates one standard decoration reward for newbie schedule 1001.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301001x1",
+      "drop_interval": 1,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700102,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1002 Direct Reward",
+      "description": "Generates one newbie decoration reward for newbie schedule 1002.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301002x1",
+      "drop_interval": 5,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700104,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1004 Direct Reward",
+      "description": "Generates one standard decoration reward for newbie schedule 1004.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301001x1",
+      "drop_interval": 13,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700105,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1005 Direct Reward",
+      "description": "Generates one newbie decoration reward for newbie schedule 1005.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301002x1",
+      "drop_interval": 17,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700107,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1007 Direct Reward",
+      "description": "Generates one standard decoration reward for newbie schedule 1007.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301001x1",
+      "drop_interval": 25,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700108,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1008 Direct Reward",
+      "description": "Generates one newbie decoration reward for newbie schedule 1008.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301002x1",
+      "drop_interval": 29,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700110,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1010 Direct Reward",
+      "description": "Generates one standard decoration reward for newbie schedule 1010.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301001x1",
+      "drop_interval": 37,
+      "use_drop_limit": true,
+      "drop_limit": 1
+    },
+    {
+      "itemdefid": 700111,
+      "type": "playtimegenerator",
+      "name": "Newbie Schedule 1011 Direct Reward",
+      "description": "Generates one newbie decoration reward for newbie schedule 1011.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301002x1",
       "drop_interval": 41,
       "use_drop_limit": true,
       "drop_limit": 1
@@ -1887,6 +2002,21 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "201001x1",
+      "use_drop_limit": true,
+      "drop_limit": 0
+    },
+    {
+      "itemdefid": 701101,
+      "type": "playtimegenerator",
+      "name": "Recurring Decoration Direct Reward",
+      "description": "Generates one recurring standard decoration reward under the Steam playtime drop window.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "301001x1",
       "drop_interval": 12,
       "use_drop_window": true,
       "drop_window": 24,

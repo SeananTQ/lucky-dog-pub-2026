@@ -1,6 +1,6 @@
 # Steam ItemDef 转换器
 
-`build-steam-item-defs.js` 合并 Luban 生成的 Steam 平台规则、实际物品、盲盒概率和投放计划，转换为 Steam Inventory schema，并校验 LinkTree 回执、BlindBox 交换关系与 PlaytimeGenerator 投放关系。
+`build-steam-item-defs.js` 合并 Luban 生成的 Steam 平台规则、实际物品、盲盒概率和投放计划，转换为 Steam Inventory schema，并校验 LinkTree 回执、盲盒奖励池与直接奖励 PlaytimeGenerator 投放关系。
 
 ## 图形界面
 
@@ -74,7 +74,7 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 转换器会阻止以下配置生成可上传 schema：
 
 - ItemDef ID 重复、超出 `1..999999` 或 Key 重复。
-- 正式 Item、盲盒成本、Generator、LinkTree 回执/Bundle 和 PlaytimeGenerator 没有落入 `SteamItemDefIdRange` 规划的对应分段。
+- 正式 Item、Generator、LinkTree 回执/Bundle 和 PlaytimeGenerator 没有落入 `SteamItemDefIdRange` 规划的对应分段；启用 Schedule 必须使用新版直接奖励子段。
 - Release 的启用业务配置或 Bundle 配方仍引用 Playtest 专用 ItemDef。
 - `SteamItemDef` 与 `Item` 的 ItemDef ID 冲突，或多个 `Item` 共用同一 ID。
 - Generator/Bundle 配方引用了未导出的 ItemDef。
@@ -82,20 +82,21 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - LinkTree 引用了不存在或已禁用的永久回执或领奖 Bundle。
 - 多条 LinkTree 共用同一个永久回执或领奖 Bundle。
 - 永久回执不是安全的 `Type=Item`，或领奖目标不是安全的 `Type=Bundle`、`PromoRule=manual`、`GrantedManually=true`。
-- LinkTree 领奖 Bundle 的实际内容与奖励类型不一致。固定物品必须包含永久回执和 `Item.SteamItemDefId`；筹码只包含永久回执；盲盒必须包含永久回执和 `BlindBox.SteamOpenCostItemDefId`。
+- LinkTree 领奖 Bundle 的实际内容与奖励类型不一致。固定物品必须包含永久回执和 `Item.SteamItemDefId`，筹码只包含永久回执。LinkTree 盲盒奖励尚未迁移到直接奖励架构，启用该类型会被拒绝。
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 - 非 PlaytimeGenerator 配置了 Steam 投放上限，或启用 Schedule 引用了已经显式停发的 Generator。
-- BlindBox 只填了一个 Steam 开箱 ID，或消耗项/交换目标的类型不正确。
+- PlaytimeGenerator 没有以数量 1 引用且只引用一个 Generator 奖励池。
 - 多个盲盒共用同一个 `@AUTO` Generator 但生成结果不同，或自动奖池缺少有效品质概率/候选物品。生成结果完全一致时允许复用同一 Generator。
-- BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或其 Bundle 与盲盒开箱成本不一致。
+- BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或没有落入新手/循环直接奖励 ID 子段。
+- `CostChipsOverride` 不是整数。`0` 表示继承，正数表示覆盖成本，负数表示免费并以绝对值作为删除线参考价格。
 
-BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲盒配置了 `IsPlatformInventoryRequired=true`，转换器会给出警告。
+历史盲盒券和 Exchange ItemDef 继续保留在 schema 中，但不再由 BlindBox 或 Schedule 引用；已经发布的旧 PlaytimeGenerator 使用 `use_drop_limit=true`、`drop_limit=0` 永久停发。
 
 ## 自动生成规则
 
 ### Generator 奖池
 
-当 `SteamItemDef.Type=Generator` 且 `Bundle=@AUTO` 时，转换器根据引用该 Generator 的 `BlindBox` 自动生成奖池。它先读取 `BlindBoxRarityRate` 的品质概率，再读取 `Item` 中该盲盒类型对应的权重列，将两阶段概率展平为 Steam 的单层权重：
+当 `SteamItemDef.Type=Generator` 且 `Bundle=@AUTO` 时，转换器沿 `BlindBoxSchedule → PlaytimeGenerator.Bundle → Generator` 建立盲盒与奖励池的映射，并自动生成奖池。它先读取 `BlindBoxRarityRate` 的品质概率，再读取 `Item` 中该盲盒类型对应的权重列，将两阶段概率展平为 Steam 的单层权重：
 
 ```text
 物品最终概率 = 品质概率 * 物品在该品质内的权重占比
@@ -107,10 +108,10 @@ BlindBox 的两个 Steam ID 都为 `0` 时不生成交换规则；如果该盲�
 
 ### PlaytimeGenerator 投放
 
-`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 把一条本地投放计划映射到一个 Steam PlaytimeGenerator。转换器会校验该生成器的显式 `Bundle` 等于盲盒的 `SteamOpenCostItemDefId x1`，并自动生成 Steam 的分钟级投放参数。
+`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 把一条本地投放计划映射到一个 Steam PlaytimeGenerator。该 PlaytimeGenerator 必须以数量 1 引用一个 `Generator` 奖励池；Steam 在同一次发放中递归展开，最终只把具体物品写入玩家库存。转换器同时自动生成 Steam 的分钟级投放参数。
 
 ```text
-一次性 Steam 资格秒数 = max(0, StartSeconds * BlindBoxWaitDurationMultiplier - SteamPlaytimeDropLeadSeconds)
+一次性 Steam 资格秒数 = max(0, StartSeconds * BlindBoxWaitDurationMultiplier - SteamPlaytimeEligibilityLeadSeconds)
 循环 Steam 资格秒数 = IntervalSeconds * BlindBoxWaitDurationMultiplier
 drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 ```

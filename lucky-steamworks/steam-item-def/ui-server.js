@@ -95,14 +95,10 @@ function loadPreview() {
     }
 
     for (const reference of result.blindBoxReferences) {
-        for (const [itemDefId, role] of [
-            [reference.inputItemDefId, "开箱消耗"],
-            [reference.targetItemDefId, "交换目标"],
-        ]) {
-            const references = blindBoxesByItemDef.get(itemDefId) || [];
-            references.push({ ...reference, role });
-            blindBoxesByItemDef.set(itemDefId, references);
-        }
+        const itemDefId = reference.targetItemDefId;
+        const references = blindBoxesByItemDef.get(itemDefId) || [];
+        references.push({ ...reference, role: "奖励池" });
+        blindBoxesByItemDef.set(itemDefId, references);
     }
 
     for (const reference of result.playtimeReferences) {

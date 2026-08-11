@@ -18,6 +18,8 @@ function idRanges() {
         1023: [700000, 700999],
         1024: [701000, 701999],
         1028: [1, 99999],
+        1030: [700100, 700999],
+        1032: [701100, 701999],
     };
     return Object.entries(ranges).map(([Id, [StartItemDefId, EndItemDefId]]) => ({
         Id: Number(Id),
@@ -106,12 +108,10 @@ function gameItem(overrides = {}) {
 function blindBox(overrides = {}) {
     return {
         Id: 4001,
-        Name: "盲盒券",
+        Name: "标准盲盒",
         BoxType: 1,
         IsPlatformInventoryRequired: true,
         IsEnabled: true,
-        SteamOpenCostItemDefId: 402001,
-        SteamExchangeTargetItemDefId: 403001,
         ...overrides,
     };
 }
@@ -140,6 +140,7 @@ function schedule(overrides = {}) {
         SteamPlaytimeGeneratorItemDefId: 404001,
         SteamDropWindowSeconds: 0,
         SteamDropMaxPerWindow: 0,
+        CostChipsOverride: 0,
         ...overrides,
     };
 }
@@ -147,9 +148,35 @@ function schedule(overrides = {}) {
 function config(overrides = {}) {
     return {
         BlindBoxWaitDurationMultiplier: 4,
-        SteamPlaytimeDropLeadSeconds: 60,
+        SteamPlaytimeEligibilityLeadSeconds: 60,
         ...overrides,
     };
+}
+
+function rewardGenerator(overrides = {}) {
+    return receipt({
+        Id: 403001,
+        Key: "DecorationRewardPool",
+        Type: 3,
+        Name: "Decoration Reward Pool",
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "101002x1",
+        ...overrides,
+    });
+}
+
+function playtimeGenerator(overrides = {}) {
+    return receipt({
+        Id: 404001,
+        Key: "Schedule1001DirectReward",
+        Type: 4,
+        Name: "Schedule 1001 Direct Reward",
+        PromoRule: "",
+        GrantedManually: false,
+        Bundle: "403001x1",
+        ...overrides,
+    });
 }
 
 test("builds a Steam schema item from a valid permanent receipt", () => {
@@ -221,33 +248,18 @@ test("rejects a LinkTree bundle with the wrong fixed item reward", () => {
     assert.ok(result.errors.some(error => error.includes("必须为 401001x1;101002x1")));
 });
 
-test("validates a blind box LinkTree bundle using the box open-cost ItemDef", () => {
-    const voucher = receipt({
-        Id: 402001,
-        Key: "DecorationBlindBoxVoucher",
-        PromoRule: "",
-        GrantedManually: false,
-    });
+test("rejects LinkTree blind box rewards until the direct-reward design exists", () => {
     const result = buildArtifacts(
         [
             receipt(),
-            voucher,
-            receipt({
-                Id: 403001,
-                Key: "DecorationBlindBoxGenerator",
-                Type: 3,
-                PromoRule: "",
-                GrantedManually: false,
-                Bundle: "101002x1",
-            }),
-            claimBundle({ Bundle: "401001x1;402001x1" }),
+            claimBundle({ Bundle: "401001x1" }),
         ],
         [linkTree({ RewardType: 4, RewardItemId: 0, RewardBlindBoxId: 4001 })],
         [gameItem()],
         [blindBox()],
     );
 
-    assert.deepEqual(result.errors, []);
+    assert.ok(result.errors.some(error => error.includes("尚未迁移到直接奖励架构")));
 });
 
 test("requires bundle content for bundle and generator definitions", () => {
@@ -259,34 +271,22 @@ test("requires bundle content for bundle and generator definitions", () => {
     assert.ok(result.errors.some(error => error.includes("必须填写 Bundle")));
 });
 
-test("merges game items and derives a blind box exchange", () => {
-    const voucher = receipt({
-        Id: 402001,
-        Key: "DecorationBlindBoxVoucher",
-        Name: "Decoration Blind Box Voucher",
-        AutoStack: true,
-    });
-    const generator = receipt({
-        Id: 403001,
-        Key: "DecorationBlindBoxTestV1Generator",
-        Type: 3,
-        Name: "Decoration Blind Box Test V1 Generator",
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "101002x1;101003x1",
-    });
+test("maps a blind box reward pool through its direct-reward PlaytimeGenerator", () => {
     const result = buildArtifacts(
-        [voucher, generator],
+        [rewardGenerator({ Bundle: "101002x1;101003x1" }), playtimeGenerator()],
         [],
         [gameItem(), gameItem({ Id: 1003, Name: "Cream Shiba Inu", SteamItemDefId: 101003 })],
         [blindBox()],
+        [schedule()],
+        [],
+        [config()],
     );
 
     assert.deepEqual(result.errors, []);
     assert.equal(result.items.length, 4);
     assert.equal(result.checkedBlindBoxReferenceCount, 1);
-    assert.equal(result.items.find(item => item.itemdefid === 402001).container_contents_generator, 403001);
-    assert.equal(result.items.find(item => item.itemdefid === 403001).exchange, "402001x1");
+    assert.equal(result.items.find(item => item.itemdefid === 404001).bundle, "403001x1");
+    assert.equal(Object.hasOwn(result.items.find(item => item.itemdefid === 403001), "exchange"), false);
     assert.equal(result.items.find(item => item.itemdefid === 101002).name, "Black and Tan Shiba Inu");
 });
 
@@ -296,39 +296,34 @@ test("rejects duplicate ItemDef ids across SteamItemDef and Item", () => {
     assert.ok(result.errors.some(error => error.includes("与 SteamItemDef") && error.includes("重复")));
 });
 
-test("rejects an incomplete blind box Steam mapping", () => {
-    const result = buildArtifacts([], [], [], [blindBox({ SteamExchangeTargetItemDefId: 0 })]);
+test("rejects a direct-reward PlaytimeGenerator that does not target a Generator", () => {
+    const result = buildArtifacts(
+        [playtimeGenerator({ Bundle: "401001x1" }), receipt()],
+        [],
+        [],
+        [blindBox()],
+        [schedule()],
+        [],
+        [config()],
+    );
 
-    assert.ok(result.errors.some(error => error.includes("必须同时填写")));
+    assert.ok(result.errors.some(error => error.includes("必须是 Type=Generator")));
 });
 
-test("warns when a platform blind box has no Steam mapping yet", () => {
+test("rejects a non-integer CostChipsOverride", () => {
     const result = buildArtifacts(
         [],
         [],
         [],
-        [blindBox({ SteamOpenCostItemDefId: 0, SteamExchangeTargetItemDefId: 0 })],
+        [blindBox()],
+        [schedule({ SteamPlaytimeGeneratorItemDefId: 0, CostChipsOverride: null })],
     );
 
-    assert.deepEqual(result.errors, []);
-    assert.ok(result.warnings.some(warning => warning.includes("本次跳过")));
+    assert.ok(result.errors.some(error => error.includes("CostChipsOverride 必须是整数")));
 });
 
 test("generates an AUTO blind box bundle with equivalent two-stage probabilities", () => {
-    const voucher = receipt({
-        Id: 402001,
-        Key: "DecorationBlindBoxVoucher",
-        PromoRule: "",
-        GrantedManually: false,
-    });
-    const generator = receipt({
-        Id: 403001,
-        Key: "DecorationBlindBoxGenerator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "@AUTO",
-    });
+    const generator = rewardGenerator({ Bundle: "@AUTO" });
     const items = [
         gameItem({ Id: 1001, SteamItemDefId: 101001, ItemRarity: 4, StandardBoxWeight: 1 }),
         gameItem({ Id: 1002, SteamItemDefId: 101002, ItemRarity: 4, StandardBoxWeight: 3 }),
@@ -339,12 +334,13 @@ test("generates an AUTO blind box bundle with equivalent two-stage probabilities
         rarityRate({ Id: 400103, Rarity: 3, Weight: 25 }),
     ];
     const result = buildArtifacts(
-        [voucher, generator],
+        [generator, playtimeGenerator()],
         [],
         items,
         [blindBox()],
-        [],
+        [schedule()],
         rates,
+        [config()],
     );
 
     assert.deepEqual(result.errors, []);
@@ -359,47 +355,23 @@ test("adds the rarity tag and merges custom Steam tags", () => {
 });
 
 test("rejects an AUTO blind box candidate without a Steam ItemDef mapping", () => {
-    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
-    const generator = receipt({
-        Id: 403001,
-        Key: "Generator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "@AUTO",
-    });
+    const generator = rewardGenerator({ Bundle: "@AUTO" });
     const result = buildArtifacts(
-        [voucher, generator],
+        [generator, playtimeGenerator()],
         [],
         [gameItem({ SteamItemDefId: 0 })],
         [blindBox()],
-        [],
+        [schedule()],
         [rarityRate()],
+        [config()],
     );
 
     assert.ok(result.errors.some(error => error.includes("没有配置 SteamItemDefId")));
 });
 
 test("derives playtime drop timing and limits from schedule and config", () => {
-    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
-    const generator = receipt({
-        Id: 403001,
-        Key: "Generator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "101002x1",
-    });
-    const playtime = receipt({
-        Id: 404001,
-        Key: "Schedule1001PlaytimeDrop",
-        Type: 4,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "402001x1",
-    });
     const result = buildArtifacts(
-        [voucher, generator, playtime],
+        [rewardGenerator(), playtimeGenerator()],
         [],
         [gameItem()],
         [blindBox()],
@@ -416,25 +388,8 @@ test("derives playtime drop timing and limits from schedule and config", () => {
 });
 
 test("derives recurring playtime interval and drop window without a total drop limit", () => {
-    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
-    const generator = receipt({
-        Id: 403001,
-        Key: "Generator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "101002x1",
-    });
-    const playtime = receipt({
-        Id: 404001,
-        Key: "RecurringDrop",
-        Type: 4,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "402001x1",
-    });
     const result = buildArtifacts(
-        [voucher, generator, playtime],
+        [rewardGenerator(), playtimeGenerator({ Key: "RecurringDrop" })],
         [],
         [gameItem()],
         [blindBox()],
@@ -482,17 +437,16 @@ test("keeps a retired playtime generator and disables future drops", () => {
 });
 
 test("rejects an invalid recurring drop window", () => {
-    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
-    const generator = receipt({
+    const playtime = receipt({
         Id: 405001,
         Key: "RecurringDrop",
         Type: 4,
         PromoRule: "",
         GrantedManually: false,
-        Bundle: "402001x1",
+        Bundle: "403001x1",
     });
     const result = buildArtifacts(
-        [voucher, generator],
+        [rewardGenerator(), playtime],
         [],
         [gameItem()],
         [blindBox()],
@@ -512,27 +466,9 @@ test("rejects an invalid recurring drop window", () => {
     assert.ok(result.errors.some(error => error.includes("SteamDropMaxPerWindow 必须大于 0")));
 });
 
-test("rejects a playtime generator that grants the wrong blind box item", () => {
-    const voucher = receipt({ Id: 402001, Key: "Voucher", PromoRule: "", GrantedManually: false });
-    const wrongVoucher = receipt({ Id: 402002, Key: "WrongVoucher", PromoRule: "", GrantedManually: false });
-    const generator = receipt({
-        Id: 403001,
-        Key: "Generator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "101002x1",
-    });
-    const playtime = receipt({
-        Id: 404001,
-        Key: "Schedule1001PlaytimeDrop",
-        Type: 4,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "402002x1",
-    });
+test("rejects a playtime generator that grants a concrete item directly", () => {
     const result = buildArtifacts(
-        [voucher, wrongVoucher, generator, playtime],
+        [rewardGenerator(), playtimeGenerator({ Bundle: "101002x1" })],
         [],
         [gameItem()],
         [blindBox()],
@@ -541,39 +477,40 @@ test("rejects a playtime generator that grants the wrong blind box item", () => 
         [config()],
     );
 
-    assert.ok(result.errors.some(error => error.includes("应当发放 402001x1")));
+    assert.ok(result.errors.some(error => error.includes("必须是 Type=Generator")));
 });
 
 test("allows blind boxes to share an AUTO generator when their generated pools match", () => {
-    const vouchers = [
-        receipt({ Id: 402001, Key: "VoucherA", PromoRule: "", GrantedManually: false }),
-        receipt({ Id: 402002, Key: "VoucherB", PromoRule: "", GrantedManually: false }),
-    ];
-    const generator = receipt({
-        Id: 403001,
-        Key: "SharedGenerator",
-        Type: 3,
-        PromoRule: "",
-        GrantedManually: false,
-        Bundle: "@AUTO",
-    });
+    const generator = rewardGenerator({ Key: "SharedGenerator", Bundle: "@AUTO" });
     const result = buildArtifacts(
-        [...vouchers, generator],
+        [
+            generator,
+            playtimeGenerator(),
+            playtimeGenerator({ Id: 404002, Key: "Schedule1002DirectReward" }),
+        ],
         [],
         [gameItem()],
         [
             blindBox(),
-            blindBox({ Id: 1001, SteamOpenCostItemDefId: 402002 }),
+            blindBox({ Id: 1001 }),
         ],
-        [],
+        [
+            schedule(),
+            schedule({
+                Id: 1002,
+                BlindBoxId: 1001,
+                SteamPlaytimeGeneratorItemDefId: 404002,
+            }),
+        ],
         [
             rarityRate(),
             rarityRate({ Id: 100104, BlindBoxId: 1001 }),
         ],
+        [config()],
     );
 
     assert.deepEqual(result.errors, []);
-    assert.equal(result.items.find(item => item.itemdefid === 403001).exchange, "402001x1;402002x1");
+    assert.equal(result.items.find(item => item.itemdefid === 403001).bundle, "101002x1");
 });
 
 test("filters the Playtest-only range from Release output", () => {

@@ -9,17 +9,17 @@
     "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json",
     "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
-  "sourceItemDefCount": 50,
+  "sourceItemDefCount": 59,
   "sourceGameItemCount": 102,
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
   "exportedItemDefCountByChannel": {
-    "playtest": 149,
-    "release": 123
+    "playtest": 158,
+    "release": 132
   },
   "checkedLinkTreeReferenceCount": 8,
-  "checkedBlindBoxReferenceCount": 3,
+  "checkedBlindBoxReferenceCount": 2,
   "checkedPlaytimeReferenceCount": 9,
   "channels": [
     {
@@ -34,7 +34,6 @@
   "errors": [],
   "warnings": [
     "StandardBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
-    "NewbieBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
-    "BlindBox 3001 测试活动盲盒：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。"
+    "NewbieBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。"
   ]
 }

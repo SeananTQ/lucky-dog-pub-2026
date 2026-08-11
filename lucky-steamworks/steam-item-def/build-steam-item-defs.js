@@ -109,6 +109,8 @@ const ID_RANGE_ROWS = Object.freeze({
     newbiePlaytimeGenerator: 1023,
     recurringPlaytimeGenerator: 1024,
     reservedLow: 1028,
+    newbieDirectRewardPlaytimeGenerator: 1030,
+    recurringDirectRewardPlaytimeGenerator: 1032,
 });
 
 function parseArguments(argv) {
@@ -305,22 +307,6 @@ function validateIdPlanning(
         }
     }
 
-    for (const box of blindBoxRecords.filter(record => record.IsEnabled === true)) {
-        const inputId = box.SteamOpenCostItemDefId;
-        const targetId = box.SteamExchangeTargetItemDefId;
-        if (inputId <= 0 && targetId <= 0) continue;
-        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, inputId)) {
-            const expected = 200000 + box.Id;
-            if (!idInRange(plan, ID_RANGE_ROWS.blindBoxCost, inputId) || inputId !== expected) {
-                errors.push(`BlindBox ${box.Id}：正式 SteamOpenCostItemDefId 必须为 200000 + BlindBox.Id = ${expected}。`);
-            }
-        }
-        if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, targetId)
-            && !idInRange(plan, ID_RANGE_ROWS.blindBoxGenerator, targetId)) {
-            errors.push(`BlindBox ${box.Id}：SteamExchangeTargetItemDefId ${targetId} 不在盲盒 Generator 正式段内。`);
-        }
-    }
-
     for (const entry of linkTreeRecords.filter(record => record.IsEnabled === true)) {
         if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, entry.SteamReceiptItemDefId)
             && !idInRange(plan, ID_RANGE_ROWS.linkTreeReceipt, entry.SteamReceiptItemDefId)) {
@@ -337,8 +323,8 @@ function validateIdPlanning(
         const itemDefId = schedule.SteamPlaytimeGeneratorItemDefId;
         if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, itemDefId)) continue;
         const expectedRange = schedule.IsLoopTrack === true
-            ? ID_RANGE_ROWS.recurringPlaytimeGenerator
-            : ID_RANGE_ROWS.newbiePlaytimeGenerator;
+            ? ID_RANGE_ROWS.recurringDirectRewardPlaytimeGenerator
+            : ID_RANGE_ROWS.newbieDirectRewardPlaytimeGenerator;
         if (!idInRange(plan, expectedRange, itemDefId)) {
             errors.push(`BlindBoxSchedule ${schedule.Id}：PlaytimeGenerator ${itemDefId} 不在对应的正式投放段内。`);
         }
@@ -659,13 +645,12 @@ function formatExpectedBundle(entries) {
     return entries.map(([itemDefId, quantity]) => `${itemDefId}x${quantity}`).join(";");
 }
 
-function validateLinkTree(records, itemDefs, itemRecords, blindBoxRecords) {
+function validateLinkTree(records, itemDefs, itemRecords) {
     const errors = [];
     const warnings = [];
     const claimedByReceipt = new Map();
     const claimedByBundle = new Map();
     const itemsById = new Map(itemRecords.map(record => [record.Id, record]));
-    const blindBoxesById = new Map(blindBoxRecords.map(record => [record.Id, record]));
     let checkedReferenceCount = 0;
 
     for (const record of records) {
@@ -772,14 +757,10 @@ function validateLinkTree(records, itemDefs, itemRecords, blindBoxRecords) {
                 errors.push(`${key}：FixedChips 必须配置大于 0 的 RewardChips。`);
             }
         } else if (record.RewardType === 4) {
-            const box = blindBoxesById.get(record.RewardBlindBoxId);
-            if (!box) {
-                errors.push(`${key}：RewardBlindBoxId ${record.RewardBlindBoxId} 不存在。`);
-            } else if (!Number.isInteger(box.SteamOpenCostItemDefId) || box.SteamOpenCostItemDefId <= 0) {
-                errors.push(`${key}：奖励 BlindBox ${record.RewardBlindBoxId} 没有配置 SteamOpenCostItemDefId。`);
-            } else {
-                expected.set(box.SteamOpenCostItemDefId, (expected.get(box.SteamOpenCostItemDefId) ?? 0) + 1);
-            }
+            errors.push(
+                `${key}：LinkTree BlindBox 奖励尚未迁移到直接奖励架构；请改用固定物品/筹码，或先完成独立的数据设计。`,
+            );
+            continue;
         } else if (record.RewardType === 3) {
             errors.push(`${key}：SequentialPack 尚未定义可信的 Steam Bundle 配方。`);
         } else if (record.RewardType !== 0) {
@@ -917,62 +898,70 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, e
     return weights.map(entry => `${entry.itemDefId}x${entry.weight}`).join(";");
 }
 
-function applyBlindBoxMappings(records, merged, itemRecords = [], rarityRateRecords = []) {
+function applyBlindBoxMappings(
+    records,
+    scheduleRecords,
+    merged,
+    itemRecords = [],
+    rarityRateRecords = [],
+) {
     const errors = [];
     const warnings = [];
     const references = [];
-    const targetRecipes = new Map();
-    const containerTargets = new Map();
+    const boxesById = new Map(records.map(record => [record.Id, record]));
     const autoGeneratorIds = new Set(
         merged.definitions
             .filter(definition => definition.schemaItem.bundle === AUTO_BUNDLE_MARKER)
             .map(definition => definition.id),
     );
     const autoGeneratorRecipes = new Map();
-    let checkedReferenceCount = 0;
+    const checkedMappings = new Set();
 
-    for (const record of records) {
-        const label = `BlindBox ${record.Id ?? "<未知>"} ${typeof record.Name === "string" ? record.Name : ""}`.trim();
-        const isEnabled = requiredBoolean(record, "IsEnabled", label, errors);
-        const requiresPlatform = requiredBoolean(record, "IsPlatformInventoryRequired", label, errors);
-        const inputId = record.SteamOpenCostItemDefId;
-        const targetId = record.SteamExchangeTargetItemDefId;
+    for (const schedule of scheduleRecords.filter(record => record.IsEnabled === true)) {
+        const scheduleLabel = `BlindBoxSchedule ${schedule.Id ?? "<未知>"}`;
+        if (!Number.isInteger(schedule.CostChipsOverride)) {
+            errors.push(`${scheduleLabel}：CostChipsOverride 必须是整数。`);
+        }
 
-        if (!Number.isInteger(inputId) || inputId < 0 || inputId >= 1000000) {
-            errors.push(`${label}：SteamOpenCostItemDefId 必须是 0 到 999999 之间的整数。`);
+        const playtimeGeneratorId = schedule.SteamPlaytimeGeneratorItemDefId;
+        if (!Number.isInteger(playtimeGeneratorId)
+            || playtimeGeneratorId < 0
+            || playtimeGeneratorId >= 1000000) {
+            errors.push(`${scheduleLabel}：SteamPlaytimeGeneratorItemDefId 必须是 0 到 999999 之间的整数。`);
             continue;
         }
-        if (!Number.isInteger(targetId) || targetId < 0 || targetId >= 1000000) {
-            errors.push(`${label}：SteamExchangeTargetItemDefId 必须是 0 到 999999 之间的整数。`);
-            continue;
-        }
-        if (!isEnabled) continue;
+        if (playtimeGeneratorId === 0) continue;
 
-        if (inputId === 0 && targetId === 0) {
-            if (requiresPlatform) {
-                warnings.push(`${label}：需要平台库存，但尚未配置 Steam 开箱映射，本次跳过。`);
-            }
-            continue;
-        }
-        if (inputId === 0 || targetId === 0) {
-            errors.push(`${label}：SteamOpenCostItemDefId 与 SteamExchangeTargetItemDefId 必须同时填写或同时为 0。`);
+        const record = boxesById.get(schedule.BlindBoxId);
+        if (!record || record.IsEnabled !== true) continue;
+        const label = `BlindBox ${record.Id} ${typeof record.Name === "string" ? record.Name : ""}`.trim();
+        if (record.IsPlatformInventoryRequired !== true) {
+            errors.push(`${scheduleLabel}：配置了 Steam PlaytimeGenerator，但 BlindBox ${record.Id} 不需要平台库存。`);
             continue;
         }
 
-        checkedReferenceCount += 1;
-        const input = merged.enabledById.get(inputId);
+        const playtimeGenerator = merged.enabledById.get(playtimeGeneratorId);
+        if (!playtimeGenerator || playtimeGenerator.schemaItem.type !== "playtimegenerator") continue;
+        const recipe = parseFixedBundleRecipe(playtimeGenerator.schemaItem.bundle);
+        if (!recipe || recipe.size !== 1) {
+            errors.push(`${scheduleLabel}：PlaytimeGenerator ${playtimeGeneratorId} 必须只引用一个盲盒奖励池 Generator。`);
+            continue;
+        }
+        const [[targetId, quantity]] = [...recipe.entries()];
+        if (quantity !== 1) {
+            errors.push(`${scheduleLabel}：PlaytimeGenerator ${playtimeGeneratorId} 必须以数量 1 引用奖励池 ${targetId}。`);
+            continue;
+        }
+
         const target = merged.enabledById.get(targetId);
-        if (!input) {
-            errors.push(`${label}：开箱消耗的 Steam ItemDef ${inputId} 不存在或未导出。`);
-        } else if (input.schemaItem.type !== "item") {
-            errors.push(`${label}：开箱消耗的 Steam ItemDef ${inputId} 必须是 Type=Item。`);
-        }
         if (!target) {
-            errors.push(`${label}：Steam 交换目标 ${targetId} 不存在或未导出。`);
-        } else if (!["generator", "bundle"].includes(target.schemaItem.type)) {
-            errors.push(`${label}：Steam 交换目标 ${targetId} 必须是 Generator 或 Bundle。`);
+            errors.push(`${scheduleLabel}：奖励池 Generator ${targetId} 不存在或未导出。`);
+            continue;
         }
-        if (!input || !target) continue;
+        if (target.schemaItem.type !== "generator") {
+            errors.push(`${scheduleLabel}：PlaytimeGenerator ${playtimeGeneratorId} 的目标 ${targetId} 必须是 Type=Generator。`);
+            continue;
+        }
 
         if (autoGeneratorIds.has(targetId)) {
             const generatedBundle = buildAutoGeneratorBundle(
@@ -993,35 +982,18 @@ function applyBlindBoxMappings(records, merged, itemRecords = [], rarityRateReco
             }
         }
 
-        const recipes = targetRecipes.get(targetId) || new Set();
-        recipes.add(`${inputId}x1`);
-        targetRecipes.set(targetId, recipes);
-
-        if (target.schemaItem.type === "generator") {
-            const previousTarget = containerTargets.get(inputId);
-            if (previousTarget && previousTarget !== targetId) {
-                errors.push(`${label}：Steam 容器 ${inputId} 已关联 Generator ${previousTarget}，不能再关联 ${targetId}。`);
-            } else {
-                containerTargets.set(inputId, targetId);
-            }
+        const mappingKey = `${record.Id}:${targetId}`;
+        if (!checkedMappings.has(mappingKey)) {
+            checkedMappings.add(mappingKey);
+            references.push({
+                blindBoxId: record.Id,
+                name: record.Name,
+                targetItemDefId: targetId,
+            });
         }
-
-        references.push({
-            blindBoxId: record.Id,
-            name: record.Name,
-            inputItemDefId: inputId,
-            targetItemDefId: targetId,
-        });
     }
 
-    for (const [targetId, recipes] of targetRecipes) {
-        merged.enabledById.get(targetId).schemaItem.exchange = [...recipes].join(";");
-    }
-    for (const [inputId, targetId] of containerTargets) {
-        merged.enabledById.get(inputId).schemaItem.container_contents_generator = targetId;
-    }
-
-    return { checkedReferenceCount, references, errors, warnings };
+    return { checkedReferenceCount: references.length, references, errors, warnings };
 }
 
 function getScheduleDropLimit(schedule, label, errors) {
@@ -1061,12 +1033,12 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
     }
     const configuration = configRecords[0];
     const durationMultiplier = configuration.BlindBoxWaitDurationMultiplier;
-    const leadSeconds = configuration.SteamPlaytimeDropLeadSeconds;
+    const leadSeconds = configuration.SteamPlaytimeEligibilityLeadSeconds;
     if (typeof durationMultiplier !== "number" || !Number.isFinite(durationMultiplier) || durationMultiplier <= 0) {
         errors.push("GameDevelopConfig：BlindBoxWaitDurationMultiplier 必须是大于 0 的数字。");
     }
     if (!Number.isInteger(leadSeconds) || leadSeconds < 0) {
-        errors.push("GameDevelopConfig：SteamPlaytimeDropLeadSeconds 必须是非负整数。");
+        errors.push("GameDevelopConfig：SteamPlaytimeEligibilityLeadSeconds 必须是非负整数。");
     }
     if (errors.length > 0) {
         return { checkedReferenceCount: 0, references, errors, warnings };
@@ -1086,8 +1058,8 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             continue;
         }
         if (generatorId === 0) {
-            if (box.IsPlatformInventoryRequired === true && box.SteamOpenCostItemDefId > 0) {
-                warnings.push(`${label}：平台库存盲盒 ${box.Id} 没有配置 SteamPlaytimeGeneratorItemDefId。`);
+            if (box.IsPlatformInventoryRequired === true) {
+                warnings.push(`${label}：平台库存盲盒 ${box.Id} 没有配置 SteamPlaytimeGeneratorItemDefId；该展示点只能使用本地 Fallback。`);
             }
             continue;
         }
@@ -1112,14 +1084,25 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             errors.push(`${label}：PlaytimeGenerator ${generatorId} 已在 SteamItemDef 中配置显式投放上限，不能再被启用 Schedule 引用。`);
             continue;
         }
-        if (!Number.isInteger(box.SteamOpenCostItemDefId) || box.SteamOpenCostItemDefId <= 0) {
-            errors.push(`${label}：BlindBox ${box.Id} 没有配置有效的 SteamOpenCostItemDefId。`);
+        if (box.IsPlatformInventoryRequired !== true) {
+            errors.push(`${label}：配置了 PlaytimeGenerator，但 BlindBox ${box.Id} 的 IsPlatformInventoryRequired 不是 true。`);
             continue;
         }
 
-        const expectedBundle = `${box.SteamOpenCostItemDefId}x1`;
-        if (definition.schemaItem.bundle !== expectedBundle) {
-            errors.push(`${label}：PlaytimeGenerator ${generatorId} 应当发放 ${expectedBundle}，实际为 ${definition.schemaItem.bundle || "<空>"}。`);
+        const rewardPoolRecipe = parseFixedBundleRecipe(definition.schemaItem.bundle);
+        if (!rewardPoolRecipe || rewardPoolRecipe.size !== 1) {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 必须只引用一个盲盒奖励池 Generator。`);
+            continue;
+        }
+        const [[rewardPoolItemDefId, rewardPoolQuantity]] = [...rewardPoolRecipe.entries()];
+        if (rewardPoolQuantity !== 1) {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 必须以数量 1 引用奖励池 ${rewardPoolItemDefId}。`);
+            continue;
+        }
+        const rewardPool = merged.enabledById.get(rewardPoolItemDefId);
+        if (!rewardPool || rewardPool.schemaItem.type !== "generator") {
+            errors.push(`${label}：PlaytimeGenerator ${generatorId} 的目标 ${rewardPoolItemDefId} 必须是已启用的 Generator。`);
+            continue;
         }
         if (!Number.isInteger(schedule.StartSeconds) || schedule.StartSeconds < 0) {
             errors.push(`${label}：StartSeconds 必须是非负整数。`);
@@ -1170,7 +1153,7 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             scheduleId: schedule.Id,
             blindBoxId: box.Id,
             playtimeGeneratorItemDefId: generatorId,
-            outputItemDefId: box.SteamOpenCostItemDefId,
+            outputItemDefId: rewardPoolItemDefId,
             dropIntervalMinutes: definition.schemaItem.drop_interval,
             dropWindowMinutes: definition.schemaItem.drop_window ?? null,
             dropMaxPerWindow: definition.schemaItem.drop_max_per_window ?? null,
@@ -1204,6 +1187,7 @@ function buildArtifacts(
     const merged = mergeDefinitions(itemDefs, gameItems);
     const blindBoxes = applyBlindBoxMappings(
         blindBoxRecords,
+        blindBoxScheduleRecords,
         merged,
         itemRecords,
         blindBoxRarityRateRecords,
@@ -1215,7 +1199,7 @@ function buildArtifacts(
         merged,
     );
     const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
-    const linkTree = validateLinkTree(linkTreeRecords, itemDefs, itemRecords, blindBoxRecords);
+    const linkTree = validateLinkTree(linkTreeRecords, itemDefs, itemRecords);
     const idPlanningErrors = validateIdPlanning(
         idRangePlan,
         itemDefRecords,
@@ -1239,8 +1223,7 @@ function buildArtifacts(
                 { label: `LinkTree ${record.Id} 领奖 Bundle`, itemDefId: record.SteamClaimBundleItemDefId },
             ]),
             ...blindBoxes.references.flatMap(reference => [
-                { label: `BlindBox ${reference.blindBoxId} 开箱成本`, itemDefId: reference.inputItemDefId },
-                { label: `BlindBox ${reference.blindBoxId} 交换目标`, itemDefId: reference.targetItemDefId },
+                { label: `BlindBox ${reference.blindBoxId} 奖励池`, itemDefId: reference.targetItemDefId },
             ]),
             ...playtime.references.map(reference => ({
                 label: `BlindBoxSchedule ${reference.scheduleId} PlaytimeGenerator`,
