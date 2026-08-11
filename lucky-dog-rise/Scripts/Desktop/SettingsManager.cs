@@ -10,6 +10,12 @@ public static class SettingsManager
     private const string SectionDisplay = "display";
     private const string SectionLocalization = "localization";
     private const string SectionTutorialProgress = "tutorial_progress";
+#if DEBUG
+    private const string SectionDebug = "debug";
+    // Use a new key because older builds consumed the one-shot value by writing
+    // false. Debug now defaults to showing the launcher until explicitly disabled.
+    private const string KeyShowDeveloperLauncherOnStartup = "show_developer_launcher_on_startup";
+#endif
     private const string KeyAudioEnabled = "enabled";
     private const string KeySfxVolume = "sfx_volume";
     private const string KeyBgmVolume = "bgm_volume";
@@ -416,6 +422,22 @@ public static class SettingsManager
         config.SetValue(SectionTutorialProgress, GetTutorialStateKey(tutorialId), (int)state);
         config.Save(Path);
     }
+
+#if DEBUG
+    public static bool LoadShowDeveloperLauncherOnStartup()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDebug, KeyShowDeveloperLauncherOnStartup, true);
+    }
+
+    public static void SaveShowDeveloperLauncherOnStartup(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyShowDeveloperLauncherOnStartup, enabled);
+        config.Save(Path);
+    }
+
+#endif
 
     /// <summary>
     /// 在设置页创建默认配置前判定初次见面状态。

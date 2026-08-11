@@ -1,0 +1,111 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/DeveloperLauncherController.cs" id="1_script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[node name="DeveloperLauncher" type="CanvasLayer" node_paths=PackedStringArray("_environmentOption", "_mockScenarioSection", "_scenarioOption", "_environmentHint", "_launchButton", "_quitButton")]
+layer = 200
+script = ExtResource("1_script")
+_environmentOption = NodePath("Backdrop/Center/Panel/Margin/Content/EnvironmentOption")
+_mockScenarioSection = NodePath("Backdrop/Center/Panel/Margin/Content/MockScenarioSection")
+_scenarioOption = NodePath("Backdrop/Center/Panel/Margin/Content/MockScenarioSection/ScenarioOption")
+_environmentHint = NodePath("Backdrop/Center/Panel/Margin/Content/EnvironmentHint")
+_launchButton = NodePath("Backdrop/Center/Panel/Margin/Content/Actions/LaunchButton")
+_quitButton = NodePath("Backdrop/Center/Panel/Margin/Content/Actions/QuitButton")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.105882, 0.156863, 0.168627, 1)
+mouse_filter = 0
+
+[node name="Center" type="CenterContainer" parent="Backdrop"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Backdrop/Center"]
+custom_minimum_size = Vector2(560, 380)
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="Margin" type="MarginContainer" parent="Backdrop/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="Backdrop/Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Lucky Dog Rise 开发启动器"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "请选择本次进程使用的运行环境。Steam 模拟环境不会创建真实 Steam 库存会话。"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Separator" type="HSeparator" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="EnvironmentLabel" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+text = "运行环境"
+
+[node name="EnvironmentOption" type="OptionButton" parent="Backdrop/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="EnvironmentHint" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.82, 1)
+theme_override_font_sizes/font_size = 13
+text = "综合调试环境使用当前真实 Steam 与本地存档，并保留完整 Debug 工具。"
+autowrap_mode = 3
+
+[node name="MockScenarioSection" type="VBoxContainer" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ScenarioLabel" type="Label" parent="Backdrop/Center/Panel/Margin/Content/MockScenarioSection"]
+layout_mode = 2
+text = "初始 Steam 网络场景"
+
+[node name="ScenarioOption" type="OptionButton" parent="Backdrop/Center/Panel/Margin/Content/MockScenarioSection"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Backdrop/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Actions" type="HBoxContainer" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="QuitButton" type="Button" parent="Backdrop/Center/Panel/Margin/Content/Actions"]
+custom_minimum_size = Vector2(130, 48)
+layout_mode = 2
+text = "退出"
+
+[node name="LaunchButton" type="Button" parent="Backdrop/Center/Panel/Margin/Content/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "启动游戏"

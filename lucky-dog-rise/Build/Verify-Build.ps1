@@ -27,8 +27,8 @@ $steamworksManaged = $files | Where-Object Name -eq 'Steamworks.NET.dll' | Selec
 if (!$steamworksManaged) { throw 'Steamworks.NET.dll is missing from the exported build.' }
 $steamworksNative = $files | Where-Object Name -eq 'steam_api64.dll' | Select-Object -First 1
 if (!$steamworksNative) { throw 'steam_api64.dll is missing from the exported build.' }
-$developmentAppId = $files | Where-Object Name -eq 'steam_appid.txt' | Select-Object -First 1
-if ($developmentAppId) { throw 'steam_appid.txt must not be included in a Steam Depot build.' }
+$developmentAppId = $files | Where-Object Name -in 'steam_appid.txt', 'steam_appid.dev.txt' | Select-Object -First 1
+if ($developmentAppId) { throw 'Development Steam AppID files must not be included in a Steam Depot build.' }
 $versionInfo = $gameExecutable.VersionInfo
 if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
     ($versionInfo.ProductName -ne 'Lucky Dog Rise') -or
@@ -60,7 +60,7 @@ $report = @"
 - PCK directory encryption expected: yes
 - C# assembly obfuscated: yes
 - Steamworks.NET runtime present: yes
-- Development steam_appid.txt present: no
+- Development Steam AppID file present: no
 - Authenticode signed: no
 "@
 [System.IO.File]::WriteAllText((Join-Path $staging 'build-verification.txt'), $report, [System.Text.UTF8Encoding]::new($false))

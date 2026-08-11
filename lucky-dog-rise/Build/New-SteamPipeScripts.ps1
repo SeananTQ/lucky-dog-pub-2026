@@ -41,8 +41,8 @@ foreach ($requiredName in 'LuckyDogRise.exe', 'steam_api64.dll', 'Steamworks.NET
         throw "Required $Channel build file is missing: $requiredName"
     }
 }
-if ($files | Where-Object Name -eq 'steam_appid.txt' | Select-Object -First 1) {
-    throw 'steam_appid.txt must not be uploaded to the Steam depot.'
+if ($files | Where-Object Name -in 'steam_appid.txt', 'steam_appid.dev.txt' | Select-Object -First 1) {
+    throw 'Development Steam AppID files must not be uploaded to the Steam depot.'
 }
 if ($files | Where-Object { $_.Extension -in '.pdb', '.cs', '.psd1' } | Select-Object -First 1) {
     throw 'Debug source, symbols, or local configuration remain in the SteamPipe content root.'
@@ -71,6 +71,7 @@ $depotVdf = @"
         "Recursive" "1"
     }
     "FileExclusion" "steam_appid.txt"
+    "FileExclusion" "steam_appid.dev.txt"
     "FileExclusion" "*.pdb"
 }
 "@

@@ -111,7 +111,10 @@ public sealed class SteamworksRuntime : IDisposable
 
     private static uint ApplyDevelopmentAppId()
     {
-        var appIdPath = ProjectSettings.GlobalizePath("res://steam_appid.txt");
+        // Deliberately avoid Steam's reserved steam_appid.txt filename. Steam may
+        // inject its overlay as soon as that file is visible beside a process,
+        // before the Debug launcher has selected a real or mocked environment.
+        var appIdPath = ProjectSettings.GlobalizePath("res://steam_appid.dev.txt");
         if (!File.Exists(appIdPath))
             return 0;
 
@@ -123,7 +126,8 @@ public sealed class SteamworksRuntime : IDisposable
         }
 
         // Godot games launched from the editor may inherit the editor executable's
-        // working directory, so Steam cannot reliably discover res://steam_appid.txt.
+        // working directory, so the game applies the selected development AppID
+        // explicitly only when the real Steam runtime is initialized.
         // Steam-launched builds do not ship this file and receive these variables
         // from the Steam client instead.
         System.Environment.SetEnvironmentVariable("SteamAppId", appId.ToString());

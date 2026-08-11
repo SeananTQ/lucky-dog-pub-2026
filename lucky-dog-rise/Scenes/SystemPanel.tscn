@@ -706,6 +706,19 @@ text = "显示 Steam Mock 面板"
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="DeveloperLauncherRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+tooltip_text = "仅 Dev。开启后，每次启动都会在创建 Steam 服务和加载游戏数据前显示开发启动器，直到手动关闭此开关。"
+
+[node name="DeveloperLauncherLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "启动时显示开发启动器"
+
+[node name="DeveloperLauncherToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="DisableGlobalMouseListeningRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
 tooltip_text = "仅用于诊断 Raw Input 全局点击监听。开启后暂停跨应用鼠标筹码、外部点击自动收起面板和 LinkTree 外部返回判定；键盘统计与游戏内鼠标交互不受影响。"

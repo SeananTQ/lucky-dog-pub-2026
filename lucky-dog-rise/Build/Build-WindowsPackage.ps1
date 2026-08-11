@@ -127,7 +127,7 @@ $assembly = Get-Item -LiteralPath $assemblyPath
 Write-Host "[Build] Game assembly found: $assemblyPath"
 Copy-Item -LiteralPath $steamworksManaged -Destination $assembly.DirectoryName -Force
 Copy-Item -LiteralPath $steamworksNative -Destination $staging -Force
-Write-Host '[Build] Steamworks.NET runtime installed (steam_appid.txt intentionally omitted).'
+Write-Host '[Build] Steamworks.NET runtime installed (development Steam AppID files intentionally omitted).'
 $obfuscationRoot = Join-Path $localBuild "obfuscation\$channelSlug"
 $obfuscated = Join-Path $obfuscationRoot 'output'
 $obfuscarConfig = Join-Path $obfuscationRoot 'obfuscar.xml'

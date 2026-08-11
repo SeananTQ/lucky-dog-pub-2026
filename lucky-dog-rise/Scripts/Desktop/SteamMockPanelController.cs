@@ -14,6 +14,7 @@ public partial class SteamMockPanelController : CanvasLayer
     [Export] private OptionButton _scenarioOption = null!;
     [Export] private Button _resetButton = null!;
     [Export] private Button _advanceButton = null!;
+    [Export] private Button _platformModeButton = null!;
     [Export] private Button _closeButton = null!;
     [Export] private Label _connectionValue = null!;
     [Export] private Label _phaseValue = null!;
@@ -32,7 +33,7 @@ public partial class SteamMockPanelController : CanvasLayer
 
     public override void _Ready()
     {
-        _scenarioOption.AddItem("正常：使用真实 Steam，不进行模拟", (int)DebugSteamScenario.RealSteam);
+        _scenarioOption.AddItem("正常响应：请求快速成功", (int)DebugSteamScenario.NormalSuccess);
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
@@ -42,6 +43,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _scenarioOption.ItemSelected += OnScenarioSelected;
         _resetButton.Pressed += ResetScenario;
         _advanceButton.Pressed += AdvancePhase;
+        _platformModeButton.Pressed += TogglePlatformMode;
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         Visible = false;
         SetProcess(false);
@@ -118,9 +120,13 @@ public partial class SteamMockPanelController : CanvasLayer
         if (_updatingSelection || _controller == null)
             return;
         var scenario = (DebugSteamScenario)_scenarioOption.GetItemId((int)index);
+        ActivateScenario(scenario);
+    }
+
+    private void ActivateScenario(DebugSteamScenario scenario)
+    {
         var sandboxWasActive = _gameData.IsSteamMockSimulationActive;
-        if (scenario != DebugSteamScenario.RealSteam
-            && !sandboxWasActive
+        if (!sandboxWasActive
             && !_gameData.SetSteamMockSimulationActive(true))
         {
             GD.PushWarning("[Steam Mock] 无法进入调试沙箱；请先结束当前盲盒、本地测试或平台交易。");
@@ -137,14 +143,37 @@ public partial class SteamMockPanelController : CanvasLayer
             return;
         }
 
-        var sandboxReady = scenario == DebugSteamScenario.RealSteam
-            ? _gameData.SetSteamMockSimulationActive(false)
-            : _gameData.ResetSteamMockSimulation();
+        var sandboxReady = _gameData.ResetSteamMockSimulation();
         if (!sandboxReady)
         {
             GD.PushWarning("[Steam Mock] 无法切换调试沙箱；请先结束当前盲盒、本地测试或平台交易。");
-            _controller.TrySelectScenario(DebugSteamScenario.RealSteam, out _);
-            RestoreScenarioSelection(DebugSteamScenario.RealSteam);
+            if (_controller.TryUseRealSteam(out _))
+                _gameData.SetSteamMockSimulationActive(false);
+            RestoreScenarioSelection(_controller.Snapshot.Scenario);
+        }
+        EmitSignal(SignalName.SimulationReset);
+        Refresh(_controller.Snapshot);
+    }
+
+    private void TogglePlatformMode()
+    {
+        if (_controller == null)
+            return;
+        if (!_controller.IsMockActive)
+        {
+            ActivateScenario((DebugSteamScenario)_scenarioOption.GetSelectedId());
+            return;
+        }
+
+        if (!_controller.TryUseRealSteam(out var message))
+        {
+            GD.PushWarning($"[Steam Mock] {message}");
+            return;
+        }
+        if (!_gameData.SetSteamMockSimulationActive(false))
+        {
+            GD.PushWarning("[Steam Mock] 无法退出调试沙箱；请先结束当前盲盒表演。");
+            return;
         }
         EmitSignal(SignalName.SimulationReset);
         Refresh(_controller.Snapshot);
@@ -170,6 +199,11 @@ public partial class SteamMockPanelController : CanvasLayer
                                    || _gameData?.PendingBlindBoxReward != null
                                    || _gameData?.PendingLinkTreeClaim != null;
         _advanceButton.Disabled = !snapshot.HasPendingTransaction;
+        _platformModeButton.Visible = _controller.CanUseRealSteam;
+        _platformModeButton.Disabled = snapshot.HasPendingTransaction
+                                       || _gameData?.PendingBlindBoxReward != null
+                                       || _gameData?.PendingLinkTreeClaim != null;
+        _platformModeButton.Text = _controller.IsMockActive ? "恢复真实 Steam" : "启用 Mock";
     }
 
     private void RestoreScenarioSelection(DebugSteamScenario scenario)

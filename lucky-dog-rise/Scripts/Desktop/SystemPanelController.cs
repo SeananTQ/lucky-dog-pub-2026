@@ -124,6 +124,7 @@ public partial class SystemPanelController : CanvasLayer
     private double _debugTimeRefreshTimer;
     private bool _resetPlayerProgressPending;
     private bool _steamMockActive;
+    private CheckButton _showDeveloperLauncherNextStartupToggle = null!;
 #endif
 
     // Wardrobe 页
@@ -443,6 +444,7 @@ public partial class SystemPanelController : CanvasLayer
         var grantChipsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantChipsBtn");
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
+        _showDeveloperLauncherNextStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow/DeveloperLauncherToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
@@ -463,6 +465,8 @@ public partial class SystemPanelController : CanvasLayer
         steamMockPanelToggle.SetPressedNoSignal(false);
         steamMockPanelToggle.Toggled += visible =>
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
+        _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
+        _showDeveloperLauncherNextStartupToggle.Toggled += SettingsManager.SaveShowDeveloperLauncherOnStartup;
         _disableGlobalMouseListeningToggle.SetPressedNoSignal(false);
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
@@ -552,6 +556,10 @@ public partial class SystemPanelController : CanvasLayer
     public void SetSteamMockActive(bool active)
     {
         _steamMockActive = active;
+        _saveDataModeOption.Disabled = active;
+        _saveDataModeOption.Select(active
+            ? (int)SettingsManager.SaveDataMode.LocalSave
+            : (int)SettingsManager.LoadSaveDataMode());
         foreach (var entry in _linkTreeRewardEntries)
             entry.DebugIdLabel.Visible = active;
         if (active)
@@ -2194,6 +2202,8 @@ public partial class SystemPanelController : CanvasLayer
         BuildDisplayOptions();
 #if DEBUG
         _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+        _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(
+            SettingsManager.LoadShowDeveloperLauncherOnStartup());
 #endif
         RefreshLocalizedOptionText();
     }

@@ -20,13 +20,14 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_resetButton", "_advanceButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
 _scenarioOption = NodePath("Panel/Root/SteamPage/ScenarioRow/ScenarioOption")
 _resetButton = NodePath("Panel/Root/SteamPage/ActionRow/ResetButton")
 _advanceButton = NodePath("Panel/Root/SteamPage/ActionRow/AdvanceButton")
+_platformModeButton = NodePath("Panel/Root/SteamPage/ActionRow/PlatformModeButton")
 _closeButton = NodePath("Panel/Root/TabRow/CloseButton")
 _connectionValue = NodePath("Panel/Root/SteamPage/StateGrid/ConnectionValue")
 _phaseValue = NodePath("Panel/Root/SteamPage/StateGrid/PhaseValue")
@@ -107,6 +108,11 @@ custom_minimum_size = Vector2(200, 36)
 layout_mode = 2
 tooltip_text = "仅在奖励准备或 LinkTree 请求已提交、当前网络阶段仍在等待时可用。"
 text = "推进到下一阶段"
+
+[node name="PlatformModeButton" type="Button" parent="Panel/Root/SteamPage/ActionRow"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 2
+text = "启用 Mock"
 
 [node name="StateGrid" type="GridContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2

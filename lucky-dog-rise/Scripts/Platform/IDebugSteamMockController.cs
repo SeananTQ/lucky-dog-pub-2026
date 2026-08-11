@@ -6,7 +6,7 @@ namespace LuckyDogRise;
 
 public enum DebugSteamScenario
 {
-    RealSteam,
+    NormalSuccess,
     UnavailableBeforeOpen,
     SlowSuccess,
     TimeoutVerifiedSuccess,
@@ -49,7 +49,9 @@ public interface IDebugSteamMockController
 
     DebugSteamMockSnapshot Snapshot { get; }
     bool IsMockActive { get; }
+    bool CanUseRealSteam { get; }
     bool TrySelectScenario(DebugSteamScenario scenario, out string message);
+    bool TryUseRealSteam(out string message);
     void ConfigureBlindBox(int blindBoxId, int rewardItemDefId);
     void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants);
     void ResetScenario();

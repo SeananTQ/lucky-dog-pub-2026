@@ -9,6 +9,9 @@ namespace LuckyDogRise;
 
 public partial class GameData : Node
 {
+#if DEBUG
+    public bool StartInSteamMockSimulation { get; set; }
+#endif
     public const int StartingChips = 500;
 #if DEBUG
     public const int DebugAllItemsStartingChips = 36500;
@@ -97,13 +100,23 @@ public partial class GameData : Node
     {
         ValidateRefreshmentConfigs();
         _blindBoxService = new BlindBoxService(this);
+#if DEBUG
+        _saveDataMode = StartInSteamMockSimulation
+            ? SettingsManager.SaveDataMode.LocalSave
+            : SettingsManager.LoadSaveDataMode();
+#else
         _saveDataMode = SettingsManager.LoadSaveDataMode();
+#endif
         PlayerProgress = new PlayerProgress();
         _profileAutosaveTimer = ProfileAutosaveSeconds;
         _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
         Inventory.InventoryChanged += OnInventoryChanged;
+#if DEBUG
+        if (StartInSteamMockSimulation && !SetSteamMockSimulationActive(true))
+            GD.PushError("[Steam Mock] Failed to enter the startup Debug sandbox.");
+#endif
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
@@ -181,6 +194,10 @@ public partial class GameData : Node
 
         _platformInventoryService.InventorySnapshotChanged += OnPlatformInventorySnapshotChanged;
         _platformInventoryService.PlaytimeDropCompleted += OnPlatformPlaytimeDropCompleted;
+#if DEBUG
+        if (_steamMockSimulationActive)
+            ConfigureSteamMockBlindBox();
+#endif
         _platformInventoryService.StartInventorySynchronization();
 
         if (_platformInventoryService.IsInventoryReady)
@@ -426,13 +443,17 @@ public partial class GameData : Node
             return false;
         }
 
+        // A dormant production preparation (for example RetryWaiting or
+        // RevalidationRequired) remains in _blindBoxRuntimeState while the Debug
+        // sandbox uses its separate runtime state. It is safe to preserve and resume
+        // that preparation after leaving Mock. Only an operation that is actually in
+        // flight must prevent the platform decorator from changing scenarios.
         if (PendingBlindBoxReward != null
             || PendingLinkTreeClaim != null
-            || _blindBoxRuntimeState.PendingPreparation != null
             || _platformInventoryService?.IsPlaytimeDropPending == true
             || _platformInventoryService?.IsPromoGrantPending == true)
         {
-            GD.PushWarning("[BlindBox] Cannot enter local test mode while a blind-box reward or Steam inventory write is pending.");
+            GD.PushWarning("[BlindBox] Cannot enter local test mode while a reveal, LinkTree claim, or Steam inventory write is active.");
             return false;
         }
 
@@ -1466,6 +1487,12 @@ public partial class GameData : Node
     {
 #if !DEBUG
         mode = SettingsManager.SaveDataMode.LocalSave;
+#else
+        if (_steamMockSimulationActive)
+        {
+            GD.PushWarning("[Steam Mock] Inventory source cannot change while the Mock sandbox is active.");
+            return;
+        }
 #endif
         if (_saveDataMode == mode)
             return;

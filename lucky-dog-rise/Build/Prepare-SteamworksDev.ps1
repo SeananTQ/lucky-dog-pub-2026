@@ -17,7 +17,7 @@ if (!(Test-Path -LiteralPath $nativeLibrary)) {
     throw "steam_api64.dll is missing: $nativeLibrary"
 }
 
-$appIdPath = Join-Path $projectRoot 'steam_appid.txt'
+$appIdPath = Join-Path $projectRoot 'steam_appid.dev.txt'
 [System.IO.File]::WriteAllText($appIdPath, $AppId.ToString(), [System.Text.UTF8Encoding]::new($false))
 Write-Host "Steam development AppID prepared: $AppId"
-Write-Host 'steam_appid.txt is local-only and must not be included in a Steam Depot.'
+Write-Host 'steam_appid.dev.txt is local-only and must not be included in a Steam Depot.'

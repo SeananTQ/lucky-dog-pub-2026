@@ -23,11 +23,13 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private readonly IPlatformInventoryService _innerInventory;
     private readonly IRecoverablePlatformService _innerRecoverable;
     private readonly IPlatformAchievementTestOperations _innerAchievementTest;
+    private readonly bool _canUseRealSteam;
     private readonly List<string> _events = [];
     private readonly List<PlatformInventoryItem> _mockItems = [];
     private readonly Dictionary<(int Bundle, int Receipt), DebugSteamLinkTreeGrant> _linkTreeGrants = [];
 
-    private DebugSteamScenario _scenario;
+    private DebugSteamScenario _scenario = DebugSteamScenario.NormalSuccess;
+    private bool _mockActive;
     private DebugSteamPhase _phase = DebugSteamPhase.Ready;
     private PlatformConnectionState _connectionState = PlatformConnectionState.Ready;
     private PlatformInventoryTrustState _inventoryTrustState = PlatformInventoryTrustState.Unknown;
@@ -43,9 +45,16 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private int _pendingReceiptItemDefId;
     private bool _disposed;
 
-    public DebugSteamMockPlatformService(IGamePlatformService inner)
+    public DebugSteamMockPlatformService(
+        IGamePlatformService inner,
+        bool startInMock = false,
+        bool canUseRealSteam = true,
+        DebugSteamScenario initialScenario = DebugSteamScenario.NormalSuccess)
     {
         _inner = inner;
+        _mockActive = startInMock;
+        _canUseRealSteam = canUseRealSteam;
+        _scenario = initialScenario;
         _innerInventory = inner as IPlatformInventoryService;
         _innerRecoverable = inner as IRecoverablePlatformService;
         _innerAchievementTest = inner as IPlatformAchievementTestOperations;
@@ -64,7 +73,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged += OnInnerStoreStatusChanged;
         _phaseStartedAt = NowSeconds();
-        PublishSnapshot();
+        if (startInMock)
+            ResetScenario();
+        else
+            PublishSnapshot();
     }
 
     public event Action UserStatsReady = delegate { };
@@ -76,7 +88,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged = delegate { };
     public event Action<DebugSteamMockSnapshot> SnapshotChanged = delegate { };
 
-    public bool IsMockActive => _scenario != DebugSteamScenario.RealSteam;
+    public bool IsMockActive => _mockActive;
+    public bool CanUseRealSteam => _canUseRealSteam;
     public string ProviderName => IsMockActive ? "Steam Debug Mock" : _inner.ProviderName;
     public string StatusMessage => IsMockActive ? _lastEvent : _inner.StatusMessage;
     public bool IsAvailable => IsMockActive ? _connectionState != PlatformConnectionState.Unavailable : _inner.IsAvailable;
@@ -124,6 +137,11 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         var elapsed = NowSeconds() - _phaseStartedAt;
         switch (_scenario)
         {
+            case DebugSteamScenario.NormalSuccess
+                when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 0.1:
+                CompletePendingOperationSuccess("正常响应成功返回。");
+                break;
             case DebugSteamScenario.SlowSuccess
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                      && elapsed >= 3.0:
@@ -163,16 +181,36 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public bool TrySelectScenario(DebugSteamScenario scenario, out string message)
     {
         if (_playtimeDropPending || _promoGrantPending
-            || (!IsMockActive && scenario != DebugSteamScenario.RealSteam
+            || (!IsMockActive
                 && (_innerInventory?.IsPromoGrantPending == true
                     || _innerInventory?.IsPlaytimeDropPending == true)))
         {
             message = "当前真实或模拟 Steam 事务仍在处理中，不能切换场景。";
             return false;
         }
+        _mockActive = true;
         _scenario = scenario;
         ResetScenario();
-        message = scenario == DebugSteamScenario.RealSteam ? "已恢复真实 Steam。" : "已进入 Steam Mock 沙箱。";
+        message = "已进入 Steam Mock 沙箱。";
+        return true;
+    }
+
+    public bool TryUseRealSteam(out string message)
+    {
+        if (!_canUseRealSteam)
+        {
+            message = "当前进程从 Steam 模拟环境启动，不能切换到真实 Steam。";
+            return false;
+        }
+        if (_playtimeDropPending || _promoGrantPending)
+        {
+            message = "当前模拟 Steam 事务仍在处理中，不能恢复真实 Steam。";
+            return false;
+        }
+
+        _mockActive = false;
+        ResetScenario();
+        message = "已恢复真实 Steam。";
         return true;
     }
 
@@ -200,7 +238,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _pendingReceiptItemDefId = 0;
         _mockItems.Clear();
         _events.Clear();
-        if (_scenario == DebugSteamScenario.RealSteam)
+        if (!IsMockActive)
         {
             _phase = DebugSteamPhase.Ready;
             _phaseStartedAt = NowSeconds();
@@ -233,6 +271,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             return;
         switch (_phase)
         {
+            case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario == DebugSteamScenario.NormalSuccess:
+                CompletePendingOperationSuccess("手动推进：模拟正常请求成功。");
+                break;
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario == DebugSteamScenario.SlowSuccess:
                 CompletePendingOperationSuccess("手动推进：模拟请求成功。");

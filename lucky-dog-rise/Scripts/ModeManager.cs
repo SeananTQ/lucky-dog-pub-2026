@@ -77,6 +77,7 @@ public partial class ModeManager : Control
 #if DEBUG
     private SteamMockPanelController _steamMockPanel = null!;
     private IDebugSteamMockController _steamMockController = null!;
+    private DeveloperLauncherController _developerLauncher = null!;
     private bool _steamMockPanelRequestedVisible;
     private bool _lastSteamMockActive;
 #endif
@@ -87,6 +88,7 @@ public partial class ModeManager : Control
     private bool _shutdownRequested;
     private bool _platformDisposed;
     private bool _duplicateLaunch;
+    private bool _startupInitialized;
     private StartupState _startupState = StartupState.HiddenBootstrap;
     private double _startupPlatformWaitRemaining;
     private bool _startupFocusRequested;
@@ -167,18 +169,6 @@ public partial class ModeManager : Control
         DiagnosticLog.Initialize();
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested += OnExternalActivationRequested;
-        _platformService = GamePlatformServiceFactory.Create();
-        GD.Print(_platformService.IsAvailable
-            ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
-            : _platformService is IRecoverablePlatformService
-                ? $"[Platform] Steam recovery active. {_platformService.StatusMessage}"
-                : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
-        DiagnosticLog.Record("platform_service_created", new Dictionary<string, object>
-        {
-            ["provider"] = _platformService.ProviderName,
-            ["available"] = _platformService.IsAvailable,
-            ["state"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
-        });
     }
 
     public override void _Ready()
@@ -199,10 +189,93 @@ public partial class ModeManager : Control
         SettingsManager.PokerFrameRateChanged += OnPokerFrameRateChanged;
 
         L10n.ApplySavedOrSystemLocale();
+#if DEBUG
+        var forceLauncher = OS.GetCmdlineUserArgs().Any(argument =>
+            string.Equals(argument, "--dev-launcher", StringComparison.OrdinalIgnoreCase));
+        var launcherRequestedBySetting = SettingsManager.LoadShowDeveloperLauncherOnStartup();
+        if (forceLauncher || launcherRequestedBySetting)
+        {
+            ShowDeveloperLauncher();
+            return;
+        }
+
+        ContinueStartup(new DebugLaunchSelection(
+            DebugRuntimeEnvironment.IntegratedDebug,
+            DebugSteamScenario.NormalSuccess));
+#else
+        ContinueStartup();
+#endif
+    }
+
+#if DEBUG
+    private void ShowDeveloperLauncher()
+    {
+        _developerLauncher = GD.Load<PackedScene>("res://Scenes/Debug/DeveloperLauncher.tscn")
+            .Instantiate<DeveloperLauncherController>();
+        _developerLauncher.Name = "DeveloperLauncher";
+        _developerLauncher.LaunchRequested += OnDeveloperLaunchRequested;
+        AddChild(_developerLauncher);
+
+        var launcherSize = new Vector2I(620, 430);
+        DisplayServer.WindowSetSize(launcherSize);
+        var screen = DisplayServer.WindowGetCurrentScreen();
+        var usable = DisplayServer.ScreenGetUsableRect(screen);
+        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - launcherSize) / 2);
+        SetClickThrough(false);
+        SetNativeMainWindowVisible(true);
+        _startupState = StartupState.HiddenBootstrap;
+        GD.Print("[Startup] Developer launcher is waiting for a runtime environment selection.");
+    }
+
+    private void OnDeveloperLaunchRequested(int environment, int scenario)
+    {
+        var selection = new DebugLaunchSelection(
+            (DebugRuntimeEnvironment)environment,
+            (DebugSteamScenario)scenario);
+        _developerLauncher.LaunchRequested -= OnDeveloperLaunchRequested;
+        _developerLauncher.QueueFree();
+        _developerLauncher = null!;
+        SetNativeMainWindowVisible(false);
+        ContinueStartup(selection);
+    }
+
+    private void ContinueStartup(DebugLaunchSelection selection)
+    {
+        _platformService = GamePlatformServiceFactory.Create(selection);
+        CompleteStartup(selection.Environment == DebugRuntimeEnvironment.SteamMock);
+    }
+#else
+    private void ContinueStartup()
+    {
+        _platformService = GamePlatformServiceFactory.Create();
+        CompleteStartup(startInSteamMock: false);
+    }
+#endif
+
+    private void CompleteStartup(bool startInSteamMock)
+    {
+        GD.Print(_platformService.IsAvailable
+            ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
+            : _platformService is IRecoverablePlatformService
+                ? $"[Platform] Steam recovery active. {_platformService.StatusMessage}"
+                : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
+        DiagnosticLog.Record("platform_service_created", new Dictionary<string, object>
+        {
+            ["provider"] = _platformService.ProviderName,
+            ["available"] = _platformService.IsAvailable,
+            ["state"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
+#if DEBUG
+            ["debugEnvironment"] = startInSteamMock ? "SteamMock" : "IntegratedDebug",
+#endif
+        });
+
         var initialMeetingState = SettingsManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
         _gameData.Name = "GameData";
+#if DEBUG
+        _gameData.StartInSteamMockSimulation = startInSteamMock;
+#endif
         AddChild(_gameData);
         _gameData.BindPlatformInventoryService(_platformService);
         _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
@@ -253,6 +326,8 @@ public partial class ModeManager : Control
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
         _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
         _settingsPanel.SteamMockPanelVisibilityChanged += OnSteamMockPanelVisibilityChanged;
+        _steamMockPanelRequestedVisible = startInSteamMock;
+        _settingsPanel.SetSteamMockPanelToggle(_steamMockPanelRequestedVisible);
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
@@ -347,6 +422,7 @@ public partial class ModeManager : Control
             && recoverable.ConnectionState != PlatformConnectionState.Ready
                 ? StartupState.PlatformWaiting
                 : StartupState.ReadyToReveal;
+        _startupInitialized = true;
     }
 
     private double _displayTimer;
@@ -354,6 +430,8 @@ public partial class ModeManager : Control
 
     public override void _Process(double _)
     {
+        if (!_startupInitialized)
+            return;
         _platformService?.RunCallbacks();
         _achievementSynchronizer?.Tick(_);
         UpdateStartup(_);
@@ -414,7 +492,7 @@ public partial class ModeManager : Control
         if (what == NotificationApplicationFocusIn)
             (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
-        if (what == NotificationWMWindowFocusOut && _settingsPanel.IsOpen
+        if (what == NotificationWMWindowFocusOut && _settingsPanel != null && _settingsPanel.IsOpen
             && SettingsManager.LoadAutoHidePanel())
         {
             var mouse = DisplayServer.MouseGetPosition();
@@ -2109,6 +2187,8 @@ public partial class ModeManager : Control
 
     public override void _Input(InputEvent @event)
     {
+        if (!_startupInitialized)
+            return;
 #if DEBUG
         if (@event is InputEventKey { Pressed: true, Echo: false } key
             && !_settingsPanel.IsOpen)
