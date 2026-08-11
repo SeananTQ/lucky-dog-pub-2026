@@ -71,6 +71,7 @@ public partial class GameData : Node
     private RefreshmentRuntimeState _blindBoxLocalTestSavedRefreshmentRuntimeState = new();
     private HashSet<int> _blindBoxLocalTestSavedLinkTreeRewardIds = [];
     private bool _blindBoxLocalTestSavedLinkTreeLedgerInitialized;
+    private double _blindBoxLocalTestSavedNextPlatformPlaytimeDropAttemptAtSeconds;
 #endif
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -333,6 +334,7 @@ public partial class GameData : Node
         _steamMockSimulationActive = true;
         _blindBoxLocalTestPreparedRewardCount = 0;
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
+        ResetPlaytimeDropTransientState();
         ConfigureSteamMockBlindBox();
         MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -364,6 +366,7 @@ public partial class GameData : Node
         _refreshmentRuntimeState = CloneRefreshmentRuntimeState(_blindBoxLocalTestSavedRefreshmentRuntimeState);
         _blindBoxLocalTestPreparedRewardCount = 0;
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
+        ResetPlaytimeDropTransientState();
         ConfigureSteamMockBlindBox();
         MaintainLoopPresentation();
         EmitSignal(SignalName.ChipsChanged, Chips);
@@ -480,6 +483,8 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedRefreshmentRuntimeState = CloneRefreshmentRuntimeState(_refreshmentRuntimeState);
         _blindBoxLocalTestSavedLinkTreeRewardIds = _appliedLinkTreeRewardIds.ToHashSet();
         _blindBoxLocalTestSavedLinkTreeLedgerInitialized = LinkTreeRewardLedgerInitialized;
+        _blindBoxLocalTestSavedNextPlatformPlaytimeDropAttemptAtSeconds =
+            _nextPlatformPlaytimeDropAttemptAtSeconds;
         _appliedLinkTreeRewardIds.Clear();
         LinkTreeRewardLedgerInitialized = true;
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
@@ -524,6 +529,8 @@ public partial class GameData : Node
         _appliedLinkTreeRewardIds.Clear();
         _appliedLinkTreeRewardIds.UnionWith(_blindBoxLocalTestSavedLinkTreeRewardIds);
         LinkTreeRewardLedgerInitialized = _blindBoxLocalTestSavedLinkTreeLedgerInitialized;
+        _nextPlatformPlaytimeDropAttemptAtSeconds =
+            _blindBoxLocalTestSavedNextPlatformPlaytimeDropAttemptAtSeconds;
         PendingLinkTreeClaim = null;
         PlayerProgress.EndDebugSimulation();
 
@@ -538,6 +545,7 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedRefreshmentRuntimeState = new RefreshmentRuntimeState();
         _blindBoxLocalTestSavedLinkTreeRewardIds = [];
         _blindBoxLocalTestSavedLinkTreeLedgerInitialized = false;
+        _blindBoxLocalTestSavedNextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
         _saveDirty = false;
         _saveTimer = 0.0;
         EmitSignal(SignalName.ChipsChanged, Chips);
