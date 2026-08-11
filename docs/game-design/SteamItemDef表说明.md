@@ -6,19 +6,17 @@ status: draft
 
 # SteamItemDef 表说明
 
-本文当前记录 2026-08-11 之前已经发布的旧券 schema，用于审查和迁移，不能继续作为目标盲盒架构的实现依据。目标架构已经改为 PlaytimeGenerator 直接生成具体装扮，常规标准券、新手券和盲盒招待券将退出运行时流程；具体表结构、ItemDef ID、新增/复用/归档清单和转换器规则将在正式实施开始时完成数据映射审查后更新本文。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
+本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，但在完成客户端与 Mock 回归前不得上传发布。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
-现有两个提前量都只服务旧券架构中的非循环 Schedule。`SteamPlaytimeDropLeadSeconds=60` 由转换器读取，用于从前 12 条 Schedule 的缩放后 `StartSeconds` 中扣除 60 秒并生成分钟级 Steam 资格；`SteamPlaytimeRequestLeadSeconds=90` 由客户端读取，用于让同一批非循环 Schedule 提前进入 `TriggerItemDrop` 候选。循环 Schedule 使用独立心跳，不读取这两个提前量。客户端另有所有 PlaytimeGenerator 共用的 65 秒最小尝试间隔；最早请求与展示点相隔 90 秒时，即使首次请求没有获得物品，展示点到达时也不会再被 65 秒节流阻塞。若只提前 60 秒，则展示点到达后仍需等待约 5 秒。该用途是根据当前实现推断，原始策划原因未单独留档。
+非循环 Schedule 的 Steam 资格提前量统一为 `SteamPlaytimeEligibilityLeadSeconds=60`。转换器和客户端使用同一公式与分钟向上取整结果；旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
 
-目标架构不新增独立的 25 秒参数，并移除 `SteamPlaytimeRequestLeadSeconds`。`SteamPlaytimeDropLeadSeconds` 所代表的服务器资格提前量继续保留，建议改名为 `SteamPlaytimeEligibilityLeadSeconds`；最终字段名在数据映射审查中确认。转换器生成分钟级 `drop_interval` 后，客户端使用相同公式和取整结果推导预计资格时刻，在资格到达后请求，不再维护一份可能早于服务器资格的独立请求提前量。请求失败、超时或结果未知时遵守 65 秒节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
+完整库存同步不再把所有服务器新增数量标记为 New。客户端在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过可信完整库存差量定位合法候选；只有能够归因到当前盲盒准备事务的实例才进入待揭晓状态。首次同步和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
 
-目标架构的完整库存同步也不再把所有服务器新增数量直接标记为 New。客户端必须在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过完整库存差量定位合法候选；只有能够归因到当前盲盒事务的实例才进入待揭晓状态。首次同步、旧存档迁移和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
-
-目标数据方向由 `BlindBox` 保留默认支付规则，`BlindBoxSchedule` 仅为特殊投放机会提供支付覆盖。Schedule 1001 以有效成本 `0` 和有效提示模式 `Free` 表达首盒免费，不再依赖 `BlindBox.4001` 或招待券。展示点没有可信待揭晓装扮时必须进入本地 Refreshment Fallback；该分支继承本次 Schedule 已解析的有效支付规则，不再提供可关闭 Fallback 的调试开关。
+`BlindBox` 保留默认支付规则，`BlindBoxSchedule.CostChipsOverride` 只覆盖特殊展示机会：正数覆盖成本，`0` 继承，负数表示免费并以绝对值作为删除线参考价格。Schedule 1001 配置为 `-1000`，其正常装扮和本地 Refreshment Fallback 均免费显示删除线 1000；迟到装扮使用 BlindBox 默认价格。
 
 ## 功能定位
 
-`SteamItemDef` 表是 Lucky Dog Rise 的 Steam Inventory 平台规则源。它主要描述没有对应本地 `Item` 行的回执、盲盒券、Bundle 和 Generator。
+`SteamItemDef` 表是 Lucky Dog Rise 的 Steam Inventory 平台规则源。它主要描述没有对应本地 `Item` 行的回执、Bundle、Generator、PlaytimeGenerator，以及必须保留的历史定义。
 
 本表不是玩家实际库存，也不直接描述游戏本地背包。Steam 为每一位玩家实际生成的物品称为库存实例；本表中的每一行只是生成该类实例时使用的定义。
 
@@ -28,7 +26,7 @@ status: draft
 
 `Item` 表描述游戏里的实际内容道具，并通过 `SteamItemDefId` 等字段生成对应的 Steam `item` 定义。实际道具不应在 `SteamItemDef` 表里再复制一行。
 
-`SteamItemDef` 表管理 LinkTree 回执、盲盒券、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBox` 表通过 `SteamOpenCostItemDefId` 和 `SteamExchangeTargetItemDefId` 表达开箱关系，由转换器派生 Steam `exchange` 与 `container_contents_generator`；`BlindBoxSchedule` 通过 `SteamPlaytimeGeneratorItemDefId` 表达按游玩时间生成盲盒券的关系。
+`SteamItemDef` 表管理 LinkTree 回执、Bundle、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向直接奖励 PlaytimeGenerator；该定义以数量 1 引用一个盲盒奖励池 Generator，转换器再沿 Schedule 的 `BlindBoxId` 生成或校验奖池。客户端调用 `TriggerItemDrop` 后，Steam 在同一次操作中递归展开并把最终具体装扮写入库存。
 
 当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。每条可领奖入口同时引用一个永久回执和一个领取 Bundle：`SteamReceiptItemDefId` 用于判断是否已经领取，`SteamClaimBundleItemDefId` 是客户端调用 `AddPromoItem` 的目标。
 
@@ -39,7 +37,6 @@ flowchart LR
     LinkTree -->|SteamClaimBundleItemDefId| ClaimBundle[SteamItemDef: 领取 Bundle]
     ClaimBundle -->|Bundle 内容| Receipt
     ClaimBundle -->|FixedItem 时包含| SteamItem[Item.SteamItemDefId]
-    ClaimBundle -->|BlindBox 时包含| BoxTicket[BlindBox.SteamOpenCostItemDefId]
     ClaimBundle -->|调用 AddPromoItem| SteamInventory[Steam Inventory]
     SteamInventory -->|完整库存包含回执| Complete[确认首次领取]
     SteamInventory -->|不包含回执| RefuseReward[不完成领奖]
@@ -76,7 +73,7 @@ flowchart LR
 2. `RewardType=FixedItem`
    - 包含永久回执和 `RewardItemId` 对应的 `Item.SteamItemDefId`。
 3. `RewardType=BlindBox`
-   - 包含永久回执和 `RewardBlindBoxId` 对应的 `BlindBox.SteamOpenCostItemDefId`。
+   - 尚未迁移到直接奖励架构；转换器拒绝启用的真实领奖入口，不能用旧券配方继续导出。
 4. `RewardType=SequentialPack`
    - 当前未实现，不允许配置为启用的真实领奖入口。
 
@@ -193,14 +190,14 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
    - 填 `@AUTO` 时，转换器会根据引用它的 `BlindBox`、`BlindBoxRarityRate` 和 `Item` 权重列生成完整奖池。
 
 3. `PlaytimeGenerator`
-   - 当前项目用于生成盲盒券，必须显式填写固定产物，例如 `402002x1`。
-   - 客户端在合适时机调用 `TriggerItemDrop`，Steam 再根据游玩时间、冷却和投放上限决定是否发放。
+   - 当前项目用于直接准备盲盒装扮，必须以数量 1 引用一个 Generator 奖励池，例如 `301001x1`。
+   - 客户端在合适时机调用 `TriggerItemDrop`，Steam 根据游玩时间、冷却和投放上限决定是否发放，并递归展开 Generator 返回最终具体物品。
 
 普通 `Item` 和本来就没有内容配方的定义留空。不要使用“留空表示自动生成”的隐含约定。
 
 ## Generator 自动奖池
 
-`@AUTO` 只允许用于 `Type=Generator`。转换器会通过 `BlindBox.SteamExchangeTargetItemDefId` 找到对应盲盒，再按与游戏本地盲盒相同的两阶段逻辑生成 Steam 的单层权重：
+`@AUTO` 只允许用于 `Type=Generator`。转换器沿 `BlindBoxSchedule → PlaytimeGenerator.Bundle → Generator` 找到对应盲盒，再按与游戏本地盲盒相同的两阶段逻辑生成 Steam 的单层权重：
 
 ```text
 物品最终概率 = 该品质概率 * 物品在该品质内的权重 / 该品质候选物品总权重
@@ -217,14 +214,14 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 `Item.ItemRarity` 会自动生成 Steam 的小写 `rarity:` 标签。`Item.SteamTags` 只填写其它标签；手工填写 `rarity:` 会被转换器拒绝，避免品质字段与标签不一致。
 
-## PlaytimeGenerator 投放（旧券架构）
+## PlaytimeGenerator 直接奖励投放
 
-`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须显式产出该行盲盒的 `SteamOpenCostItemDefId`，关系如下：
+`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须以数量 1 引用一个 Generator 奖励池，关系如下：
 
 ```text
 BlindBoxSchedule.BlindBoxId = <BlindBoxId>
-BlindBox <BlindBoxId>.SteamOpenCostItemDefId = <OpenCostItemDefId>
-PlaytimeGenerator.Bundle = <OpenCostItemDefId>x1
+PlaytimeGenerator.Bundle = <RewardGeneratorItemDefId>x1
+RewardGenerator.Bundle = @AUTO 或显式最终物品权重
 ```
 
 转换器依据本地投放时间、等待倍率、Steam 提前量和掉落窗口生成分钟级参数。
@@ -233,7 +230,7 @@ PlaytimeGenerator.Bundle = <OpenCostItemDefId>x1
 
 ```text
 实际投放秒数 = 本地基础秒数 * GameDevelopConfig.BlindBoxWaitDurationMultiplier
-Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytimeDropLeadSeconds)
+Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytimeEligibilityLeadSeconds)
 drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 ```
 
@@ -245,29 +242,29 @@ drop_window = max(1, ceil(SteamDropWindowSeconds × BlindBoxWaitDurationMultipli
 drop_max_per_window = SteamDropMaxPerWindow
 ```
 
-`SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
+`SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。启用 Schedule 的 `MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
 
-客户端不会等待 Steam 自动发放。旧券客户端使用 `SteamPlaytimeRequestLeadSeconds` 在本地展示时间前进入请求窗口并通过共享平台服务调用 `TriggerItemDrop`；`SteamPlaytimeDropLeadSeconds` 用于上方公式中的 Steam 资格时间。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到倒计时归零才请求。
+客户端不会等待 Steam 自动发放。非循环新手阶段根据与转换器相同的分钟级资格结果进入请求窗口，并通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间即可准备具体装扮，不等到倒计时归零才请求。
 
-第 12 个新手奖励入账后，客户端立即请求一次长期循环 Generator，此后每个 `BlindBoxLoopIntervalSeconds` 心跳继续请求，不受当前气球影响。回执为空表示本次没有发放，不形成本地装扮债务；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。Steam 实际库存中的盲盒券数量是唯一可信的循环装扮积压。
+第 12 个新手奖励入账后，客户端立即尝试一次长期循环 Generator，首个玩家可见展示点仍等待完整 `BlindBoxLoopIntervalSeconds`。回执为空表示本次没有发放；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。客户端最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件待揭晓奖励。
 
 Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
 
-一次性 Schedule 已处理到第几次 Steam 投放会保存在 `BlindBoxRuntimeState.SteamPlaytimeDropStates`。循环 Generator 不保存本地发放次数，只保存下一心跳和是否存在待验证请求。Steam 连接中断或请求超过 10 秒时，平台恢复层会先读取完整库存，再决定是否重试。
+未决投放保存在 `PendingBlindBoxPreparation`，包括 Schedule、BlindBox、Generator、提交时间、阶段、重试时间和实例级库存基线；确认后的唯一物品保存在 `PreparedBlindBoxReward`。循环 Generator 不保存本地发放次数，只保存下一心跳和单槽位状态。Steam 连接中断或请求超过 10 秒时，平台恢复层先读取完整库存，再决定是否重试。
 
-当前 Playtest 的新版循环 Generator 使用稳定机器名 `RecurringDecorationBlindBoxDropV2`，并由 `BlindBoxSchedule` 中唯一启用的循环行引用。已经发布并被旧版本调用过的旧版循环 Generator 仍保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放；已发布的 ItemDef ID 不能删除、复用或改作其他定义。
+新版新手直接奖励 PlaytimeGenerator 使用 `700101..700111` 中与装扮 Schedule 对应的 ID，循环直接奖励使用 `701101`。已经发布并被旧版本调用过的 `700001..700011` 与 `701001` 仍保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放；已发布的 ItemDef ID 不能删除、复用或改作其他定义。
 
-独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator。该操作会修改当前 Steam 账号的投放记录；消耗产出的盲盒券或重置本地存档，都不会重置 Steam 的 `drop_limit` 和冷却状态。
+独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator，直接显示回调返回的最终装扮实例及本地映射。该操作会修改当前 Steam 账号的投放记录；重置本地存档不会重置 Steam 的 `drop_limit` 和冷却状态。
 
-Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端 `GetItemDefinitionIDs` 返回的定义列表中。客户端定义完整性检查只校验可枚举的普通物品、盲盒券、Bundle 和 Generator，不得因为 PlaytimeGenerator 未被枚举而把整套 Steam 库存判为不可用。PlaytimeGenerator 是否可用以实际 `TriggerItemDrop` 请求及其 Steam 回执为准；独立测试场景也采用同一规则。
+Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端 `GetItemDefinitionIDs` 返回的定义列表中。客户端定义完整性检查只校验可枚举的普通物品、Bundle 和 Generator，不得因为 PlaytimeGenerator 未被枚举而把整套 Steam 库存判为不可用。PlaytimeGenerator 是否可用以实际 `TriggerItemDrop` 请求及其 Steam 回执为准；独立测试场景也采用同一规则。
 
-独立测试场景的完整内容位于纵向滚动容器内，库存实例增加后仍可访问下方的发放、投放、维护、兑换和日志区域。
+独立测试场景的完整内容位于纵向滚动容器内，库存实例增加后仍可访问下方的发放、投放、维护和日志区域；旧盲盒 Exchange 测试区已经移除。
 
 ## 当前 Playtest 验证结果
 
 Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerator 可能不在定义枚举结果中，但仍可提交真实 `TriggerItemDrop` 请求。定义总数会随内容配置继续变化，测试场景应比较当前本地可枚举定义与服务器返回结果，不把某次测试数量写成长期规则。
 
-主人已在主游戏中验证：PlaytimeGenerator 能自动产出标准盲盒券和新手盲盒券；两种券都能被 `ExchangeItems` 原子消耗；Steam Generator 返回的装扮可以完成本地表演、背包同步和重启恢复。堆叠券数量能够逐次减少，归零后对应库存行消失，符合 Steam 堆叠语义。
+主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励 schema 尚未发布，`700101..700111` 与 `701101` 的真实 Steam 投放、最终实例回调、空回执和掉落窗口仍需重新验证。
 
 主人已在独立测试场景验证 LinkTree 领取 Bundle：Steam 回调会同时返回永久回执和固定物品，固定筹码入口只新增永久回执；主客户端能够以回执恢复已领取状态，并由库存同步获得固定物品。测试还保留了一条未领取入口作为负向对照。上述验证使用测试 ItemDef，正式数据更换 ID 后需要重新执行同样的开发者账号与普通玩家账号验收。
 
@@ -301,7 +298,7 @@ Luban 导出和 Steamworks 发布是两步独立流程。前者只生成项目�
 
 1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox`、`BlindBoxSchedule`、`BlindBoxRarityRate`、`GameDevelopConfig` 和 `LinkTree` Sheet 维护业务数据。
 2. Luban 导出本地数据和 C# 类型。
-3. 转换脚本合并各张表的导出数据，生成 LinkTree 领取 Bundle 校验、自动奖池、游玩投放参数和盲盒交换关系，校验引用后输出 Steam schema JSON。
+3. 转换脚本合并各张表的导出数据，生成 LinkTree 领取 Bundle 校验、自动奖池和直接奖励游玩投放参数，校验引用后输出 Steam schema JSON。
 4. 主人在 Steamworks 后台分别为 Playtest AppID `4972240` 和正式 AppID `2583700` 上传并发布 ItemDef。
 5. 客户端调用 `LoadItemDefinitions` 与对应的 Inventory API，同步 Steam 服务器已发布的定义和玩家库存。
 
@@ -309,8 +306,8 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、盲盒券、盲盒交换关系、`@AUTO` Generator 奖池、Item 品质标签，以及由 `BlindBoxSchedule` 派生的 PlaytimeGenerator 投放参数。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
+当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、`@AUTO` Generator 奖池、Item 品质标签、直接奖励 PlaytimeGenerator 映射、ID 分段校验、资格时间与掉落窗口派生，以及旧 PlaytimeGenerator 的显式停发。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
 
-LinkTree `RewardType=BlindBox` 的表结构与转换器校验已经具备，但主客户端尚未在领取 Bundle 返回盲盒券后自动执行兑换和开盒表演。该流程应复用现有 Steam 盲盒 `ExchangeItems`、事务复查和奖励展示，不新增第二套开奖实现。
+LinkTree `RewardType=BlindBox` 尚未迁移到直接奖励架构；转换器会拒绝启用该类型，避免重新引入券或第二套 Exchange 开奖流程。后续若启用活动盲盒，应单独定义其服务器所有权、待揭晓实例归因和玩家可见展示点。
 
 当前数据中仍保留部分 `4` 开头的测试 ItemDef。正式数据可继续使用新的 ID 段，但已经发布或产生过库存实例的测试定义仍需保留，不得删除或复用其 ID。
