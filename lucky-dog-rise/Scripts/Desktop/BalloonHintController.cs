@@ -22,6 +22,7 @@ public partial class BalloonHintController : PanelContainer
 
     [Export] private TextureRect _iconRect = null!;
     [Export] private RichTextLabel _textLabel = null!;
+    [Export] private ColorRect _strikeLine = null!;
     [Export] private LoadingIndicatorController _loadingIndicator = null!;
     [Export] private Polygon2D _tail = null!;
     [Export] public TailSide TailPlacement { get; set; } = TailSide.Left;
@@ -35,12 +36,14 @@ public partial class BalloonHintController : PanelContainer
     private bool _isDisplayVisible = true;
     private bool _interactionEnabled = true;
     private bool _showingLoading;
+    private string _strikeText = string.Empty;
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
         _loadingIndicator.SetLoading(false);
+        HideStrikeLine();
         SetTextContent(string.Empty);
         UpdateTail();
         PivotOffset = Size * 0.5f;
@@ -51,6 +54,7 @@ public partial class BalloonHintController : PanelContainer
         if (what == NotificationResized)
         {
             UpdateTail();
+            UpdateStrikeLine();
             PivotOffset = Size * 0.5f;
         }
     }
@@ -65,6 +69,7 @@ public partial class BalloonHintController : PanelContainer
     public void ShowCountdown(TimeSpan remaining)
     {
         StopLoading();
+        HideStrikeLine();
         _iconRect.Visible = false;
         _textLabel.Visible = true;
         SetTextContent($"[font_size=20]{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}[/font_size]");
@@ -73,6 +78,7 @@ public partial class BalloonHintController : PanelContainer
     public void ShowCost(Texture2D? icon, int cost, int currentChips = -1)
     {
         StopLoading();
+        HideStrikeLine();
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = true;
@@ -101,7 +107,8 @@ public partial class BalloonHintController : PanelContainer
                 _iconRect.Texture = icon;
                 _iconRect.Visible = icon != null;
                 _textLabel.Visible = true;
-                SetTextContent($"[font_size=20][s]{cost}[/s][/font_size]");
+                SetTextContent($"[font_size=20]{cost}[/font_size]");
+                ShowStrikeLine(cost.ToString());
             }
             else
             {
@@ -116,6 +123,7 @@ public partial class BalloonHintController : PanelContainer
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = true;
+        HideStrikeLine();
         SetTextContent(valueMode switch
         {
             EBlindBoxValueMode.Count => "[font_size=20]×1[/font_size]",
@@ -150,6 +158,7 @@ public partial class BalloonHintController : PanelContainer
     public void ShowIconOnly(Texture2D? icon)
     {
         StopLoading();
+        HideStrikeLine();
         _iconRect.Texture = icon;
         _iconRect.Visible = icon != null;
         _textLabel.Visible = false;
@@ -165,11 +174,42 @@ public partial class BalloonHintController : PanelContainer
         }
 
         _showingLoading = true;
+        HideStrikeLine();
         _iconRect.Visible = false;
         _textLabel.Visible = false;
         SetTextContent(string.Empty);
         _loadingIndicator.SetLoading(true);
         _interactionEnabled = false;
+    }
+
+    private void ShowStrikeLine(string text)
+    {
+        _strikeText = text;
+        _strikeLine.Visible = true;
+        CallDeferred(MethodName.UpdateStrikeLine);
+    }
+
+    private void HideStrikeLine()
+    {
+        _strikeText = string.Empty;
+        _strikeLine.Visible = false;
+    }
+
+    private void UpdateStrikeLine()
+    {
+        if (_strikeLine == null || !_strikeLine.Visible || string.IsNullOrEmpty(_strikeText))
+            return;
+
+        const int fontSize = 20;
+        var font = _textLabel.GetThemeFont("normal_font");
+        var textWidth = Math.Max(1f, font.GetStringSize(_strikeText, fontSize: fontSize).X);
+        var labelPosition = _textLabel.Position;
+        if (_textLabel.GetParent() is Control labelParent)
+            labelPosition += labelParent.Position;
+        var x = labelPosition.X + Math.Max(0f, (_textLabel.Size.X - textWidth) * 0.5f);
+        var y = labelPosition.Y + Math.Max(0f, _textLabel.Size.Y - fontSize * 0.55f) - 2f;
+        _strikeLine.Position = new Vector2(x, y);
+        _strikeLine.Size = new Vector2(textWidth, 2f);
     }
 
     public void SetInteractionEnabled(bool enabled)

@@ -21,7 +21,7 @@ corner_radius_bottom_left = 5
 fallbacks = Array[Font]([ExtResource("4_misans_bold")])
 base_font = ExtResource("3_inter_bold")
 
-[node name="BalloonHint" type="PanelContainer" unique_id=182074822 node_paths=PackedStringArray("_iconRect", "_textLabel", "_loadingIndicator", "_tail")]
+[node name="BalloonHint" type="PanelContainer" unique_id=182074822 node_paths=PackedStringArray("_iconRect", "_textLabel", "_strikeLine", "_loadingIndicator", "_tail")]
 custom_minimum_size = Vector2(120, 54)
 offset_right = 120.0
 offset_bottom = 54.0
@@ -29,6 +29,7 @@ theme_override_styles/panel = SubResource("bubble_style")
 script = ExtResource("1_script")
 _iconRect = NodePath("Root/Icon")
 _textLabel = NodePath("Root/Text")
+_strikeLine = NodePath("StrikeLine")
 _loadingIndicator = NodePath("LoadingIndicator")
 _tail = NodePath("Tail")
 
@@ -59,6 +60,14 @@ text = "[font_size=20]1000[/font_size]"
 fit_content = true
 autowrap_mode = 0
 horizontal_alignment = 1
+
+[node name="StrikeLine" type="ColorRect" parent="."]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 2.0
+mouse_filter = 2
+color = Color(0.40784314, 0.22745098, 0.19607843, 1)
 
 [node name="LoadingIndicator" parent="." instance=ExtResource("5_loading_indicator")]
 visible = false

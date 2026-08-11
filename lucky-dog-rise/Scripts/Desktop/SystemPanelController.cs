@@ -1575,7 +1575,11 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxLocalTestPreparedRewardDecrease.Disabled = mockActive || !enabled;
         _blindBoxLocalTestPreparedRewardIncrease.Disabled = mockActive || !enabled;
         var sandboxActive = mockActive || enabled;
-        _blindBoxLocalTestAdvance.Disabled = !sandboxActive;
+        _blindBoxLocalTestAdvance.Disabled = !sandboxActive
+                                             || _gameData.SteamMockPresentationAdvancePending;
+        _blindBoxLocalTestAdvance.TooltipText = _gameData.SteamMockPresentationAdvancePending
+            ? "正在等待当前 Schedule 的 Steam Mock 奖励准备完成。"
+            : string.Empty;
         _blindBoxLocalTestClear.Disabled = !sandboxActive;
     }
 #endif

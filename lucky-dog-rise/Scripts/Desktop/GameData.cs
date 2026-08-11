@@ -61,6 +61,7 @@ public partial class GameData : Node
     private bool _blindBoxLocalTestMode;
     private bool _steamMockSimulationActive;
     private DebugBlindBoxProgressMode _steamMockProgressMode = DebugBlindBoxProgressMode.Loop;
+    private bool _steamMockPresentationAdvancePending;
     private BlindBoxRuntimeState _blindBoxLocalTestRuntimeState = new();
     private int _blindBoxLocalTestPreparedRewardCount;
     private int _blindBoxLocalTestSavedChips;
@@ -143,6 +144,14 @@ public partial class GameData : Node
         if (_blindBoxTickTimer <= 0.0)
         {
             _blindBoxTickTimer = BlindBoxTickSeconds;
+#if DEBUG
+            if (_steamMockPresentationAdvancePending
+                && _steamMockSimulationActive
+                && _recoverablePlatformService?.ConnectionState == PlatformConnectionState.Unavailable)
+            {
+                CompleteDeferredSteamMockPresentationAdvance();
+            }
+#endif
             MaintainLoopPresentation();
             MaintainSteamPlaytimeDrops();
             EmitSignal(SignalName.BlindBoxStateChanged);
@@ -306,6 +315,7 @@ public partial class GameData : Node
     public bool SteamMockBlindBoxRewardIsLate =>
         ActiveBlindBoxRuntimeState.PendingPreparation?.IsLate == true
         || ActiveBlindBoxRuntimeState.PreparedReward?.IsLate == true;
+    public bool SteamMockPresentationAdvancePending => _steamMockPresentationAdvancePending;
 
     public bool SetBlindBoxLocalTestMode(bool enabled)
     {
@@ -334,6 +344,7 @@ public partial class GameData : Node
         if (_blindBoxLocalTestMode || !BeginBlindBoxLocalTestMode())
             return false;
         _steamMockSimulationActive = true;
+        _steamMockPresentationAdvancePending = false;
         _blindBoxLocalTestPreparedRewardCount = 0;
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ResetPlaytimeDropTransientState();
@@ -369,6 +380,7 @@ public partial class GameData : Node
         };
         _refreshmentRuntimeState = CloneRefreshmentRuntimeState(_blindBoxLocalTestSavedRefreshmentRuntimeState);
         _blindBoxLocalTestPreparedRewardCount = 0;
+        _steamMockPresentationAdvancePending = false;
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ResetPlaytimeDropTransientState();
         ConfigureSteamMockBlindBox();
@@ -466,11 +478,57 @@ public partial class GameData : Node
 
     public bool AdvanceBlindBoxLocalTestPresentation()
     {
-        if (!_blindBoxLocalTestMode || PendingBlindBoxReward != null)
+        if (!_blindBoxLocalTestMode
+            || PendingBlindBoxReward != null
+            || _steamMockPresentationAdvancePending)
             return false;
 
         MaintainLoopPresentation();
         var state = _blindBoxLocalTestRuntimeState;
+        if (state.LockedPresentation != null)
+            return false;
+
+        var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
+        if (_steamMockSimulationActive
+            && state.PreparedReward == null
+            && sequence?.SteamPlaytimeGeneratorItemDefId > 0)
+        {
+            TotalPlaySeconds = Math.Max(
+                TotalPlaySeconds,
+                _blindBoxService.GetSteamEligibilityRealSecondsForDebug(sequence));
+            _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+            if (state.PendingPreparation == null)
+                MaintainSteamPlaytimeDrops();
+            if (state.PendingPreparation != null)
+            {
+                _steamMockPresentationAdvancePending = true;
+                EmitSignal(SignalName.BlindBoxStateChanged);
+                return true;
+            }
+        }
+        else if (_steamMockSimulationActive
+                 && sequence == null
+                 && state.PreparedReward == null)
+        {
+            _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+            if (state.PendingPreparation == null)
+                MaintainSteamPlaytimeDrops();
+            if (state.PendingPreparation != null)
+            {
+                _steamMockPresentationAdvancePending = true;
+                EmitSignal(SignalName.BlindBoxStateChanged);
+                return true;
+            }
+        }
+
+        AdvanceSteamMockPresentationClock(state);
+        MaintainLoopPresentation();
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        return true;
+    }
+
+    private static void AdvanceSteamMockPresentationClock(BlindBoxRuntimeState state)
+    {
         var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
         if (sequence != null)
         {
@@ -478,35 +536,20 @@ public partial class GameData : Node
                 ? Math.Max(sequence.StartSeconds, sequence.IntervalSeconds)
                 : Math.Max(sequence.StartSeconds, state.LastClaimSeconds + Math.Max(0, sequence.IntervalSeconds));
             state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, presentationSeconds);
-            if (_steamMockSimulationActive && sequence.SteamPlaytimeGeneratorItemDefId > 0)
-            {
-                TotalPlaySeconds = Math.Max(TotalPlaySeconds, _blindBoxService.GetSteamEligibilityRealSecondsForDebug(sequence));
-                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
-                MaintainSteamPlaytimeDrops();
-                if (state.PendingPreparation != null || state.PreparedReward != null)
-                {
-                    EmitSignal(SignalName.BlindBoxStateChanged);
-                    return true;
-                }
-            }
+            return;
         }
-        else
-        {
-            state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, state.NextLoopPresentationSeconds);
-            if (_steamMockSimulationActive && state.PreparedReward == null)
-            {
-                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
-                MaintainSteamPlaytimeDrops();
-                if (state.PendingPreparation != null)
-                {
-                    EmitSignal(SignalName.BlindBoxStateChanged);
-                    return true;
-                }
-            }
-        }
+
+        state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, state.NextLoopPresentationSeconds);
+    }
+
+    private void CompleteDeferredSteamMockPresentationAdvance()
+    {
+        if (!_steamMockPresentationAdvancePending || !_steamMockSimulationActive)
+            return;
+        _steamMockPresentationAdvancePending = false;
+        AdvanceSteamMockPresentationClock(_blindBoxLocalTestRuntimeState);
         MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
-        return true;
     }
 
     public bool ClearBlindBoxLocalTestPresentation()
@@ -612,6 +655,7 @@ public partial class GameData : Node
 
         _blindBoxLocalTestMode = false;
         _steamMockSimulationActive = false;
+        _steamMockPresentationAdvancePending = false;
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState();
         _blindBoxLocalTestPreparedRewardCount = 0;
         _blindBoxLocalTestSavedInventoryCounts = new Dictionary<int, int>();
@@ -1034,6 +1078,10 @@ public partial class GameData : Node
             ["reason"] = reason,
             ["retryAt"] = pending.RetryNotBeforeTotalPlaySeconds,
         });
+#if DEBUG
+        if (_steamMockPresentationAdvancePending && _steamMockSimulationActive)
+            CompleteDeferredSteamMockPresentationAdvance();
+#endif
         SaveImmediatelyIfUsingLocalSave();
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
@@ -1101,6 +1149,10 @@ public partial class GameData : Node
             IsLate = pending.IsLate,
         };
         runtimeState.PendingPreparation = null;
+#if DEBUG
+        if (_steamMockPresentationAdvancePending && _steamMockSimulationActive)
+            CompleteDeferredSteamMockPresentationAdvance();
+#endif
         DiagnosticLog.Record("blindbox_preparation_confirmed", new Dictionary<string, object>
         {
             ["scheduleId"] = pending.ScheduleId,
