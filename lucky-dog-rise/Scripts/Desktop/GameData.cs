@@ -138,9 +138,6 @@ public partial class GameData : Node
         {
             _blindBoxTickTimer = BlindBoxTickSeconds;
             MaintainLoopPresentation();
-#if DEBUG
-            if (!_blindBoxLocalTestMode)
-#endif
             MaintainSteamPlaytimeDrops();
             EmitSignal(SignalName.BlindBoxStateChanged);
         }
@@ -330,7 +327,8 @@ public partial class GameData : Node
         if (_blindBoxLocalTestMode || !BeginBlindBoxLocalTestMode())
             return false;
         _steamMockSimulationActive = true;
-        _blindBoxLocalTestRuntimeState.LockedPresentation = null;
+        _blindBoxLocalTestPreparedRewardCount = 0;
+        _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ConfigureSteamMockBlindBox();
         MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -360,11 +358,8 @@ public partial class GameData : Node
             LuckyDealMode = _blindBoxLocalTestSavedLuckyDealBuffState.LuckyDealMode,
         };
         _refreshmentRuntimeState = CloneRefreshmentRuntimeState(_blindBoxLocalTestSavedRefreshmentRuntimeState);
-        _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
-        {
-            SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
-                schedule.IsEnabled && !schedule.IsLoopTrack),
-        };
+        _blindBoxLocalTestPreparedRewardCount = 0;
+        _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ConfigureSteamMockBlindBox();
         MaintainLoopPresentation();
         EmitSignal(SignalName.ChipsChanged, Chips);
@@ -373,6 +368,12 @@ public partial class GameData : Node
         DiagnosticLog.Record("steam_mock_sandbox_reset");
         return true;
     }
+
+    private static BlindBoxRuntimeState CreateSteamMockRuntimeState() => new()
+    {
+        SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
+            schedule.IsEnabled && !schedule.IsLoopTrack),
+    };
 
     private void ConfigureSteamMockBlindBox()
     {
@@ -749,13 +750,14 @@ public partial class GameData : Node
             || _platformInventoryService.IsPromoGrantPending)
             return;
 
-        var pending = _blindBoxRuntimeState.PendingPreparation;
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var pending = runtimeState.PendingPreparation;
         if (pending != null)
         {
             if (pending.Phase == BlindBoxPreparationPhase.RetryWaiting
                 && TotalPlaySeconds >= pending.RetryNotBeforeTotalPlaySeconds)
             {
-                _blindBoxRuntimeState.PendingPreparation = null;
+                runtimeState.PendingPreparation = null;
                 SaveImmediatelyIfUsingLocalSave();
             }
             else
@@ -767,7 +769,7 @@ public partial class GameData : Node
         }
 
         if (!_blindBoxService.TryGetPreparationCandidate(
-                _blindBoxRuntimeState,
+                runtimeState,
                 TotalPlaySeconds,
                 out var schedule,
                 out var box)
@@ -789,7 +791,7 @@ public partial class GameData : Node
         }
 
         _nextPlatformPlaytimeDropAttemptAtSeconds = now + SteamPlaytimeDropMinimumAttemptIntervalSeconds;
-        _blindBoxRuntimeState.PendingPreparation = new PendingBlindBoxPreparation
+        runtimeState.PendingPreparation = new PendingBlindBoxPreparation
         {
             ScheduleId = schedule.Id,
             BlindBoxId = box.Id,
@@ -798,7 +800,7 @@ public partial class GameData : Node
             SubmittedAtTotalPlaySeconds = TotalPlaySeconds,
             InventoryQuantitiesBeforeRequest = baseline,
         };
-        _blindBoxService.MarkPreparationRequestAccepted(_blindBoxRuntimeState, schedule);
+        _blindBoxService.MarkPreparationRequestAccepted(runtimeState, schedule);
         SaveImmediatelyIfUsingLocalSave();
         DiagnosticLog.Record("blindbox_preparation_submitted", new Dictionary<string, object>
         {
@@ -813,7 +815,8 @@ public partial class GameData : Node
 
     private void OnPlatformPlaytimeDropCompleted(PlatformPlaytimeDropResult result)
     {
-        var pending = _blindBoxRuntimeState.PendingPreparation;
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var pending = runtimeState.PendingPreparation;
         if (pending == null
             || pending.GeneratorItemDefId != result.GeneratorItemDefId)
             return;
@@ -823,7 +826,7 @@ public partial class GameData : Node
         if (result.Succeeded
             && TryResolvePreparedReward(pending, result.ChangedItems, out var prepared, out resolveReason))
         {
-            CompletePreparedReward(pending, prepared);
+            CompletePreparedReward(runtimeState, pending, prepared);
             return;
         }
 
@@ -866,13 +869,14 @@ public partial class GameData : Node
 
     private void ReconcilePreparedRewardPresence(IReadOnlyList<PlatformInventoryItem> platformItems)
     {
-        var prepared = _blindBoxRuntimeState.PreparedReward;
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var prepared = runtimeState.PreparedReward;
         if (prepared == null)
             return;
 
         // A visible or already-running reveal is immutable. Before that boundary, a trusted
         // full snapshot may revoke a stale prepared slot when its exact Steam instance vanished.
-        if (_blindBoxRuntimeState.LockedPresentation?.PreparedPlatformInstanceId
+        if (runtimeState.LockedPresentation?.PreparedPlatformInstanceId
                 == prepared.PlatformInstanceId
             || PendingBlindBoxReward is
             {
@@ -895,7 +899,7 @@ public partial class GameData : Node
             ["platformInstanceId"] = prepared.PlatformInstanceId,
             ["steamItemDefId"] = prepared.SteamItemDefId,
         });
-        _blindBoxRuntimeState.PreparedReward = null;
+        runtimeState.PreparedReward = null;
         SaveImmediatelyIfUsingLocalSave();
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
@@ -913,13 +917,14 @@ public partial class GameData : Node
 
     private void ReconcilePendingPreparation(IReadOnlyList<PlatformInventoryItem> platformItems)
     {
-        var pending = _blindBoxRuntimeState.PendingPreparation;
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var pending = runtimeState.PendingPreparation;
         if (pending == null)
             return;
 
         if (TryResolvePreparedReward(pending, platformItems, out var prepared, out var reason))
         {
-            CompletePreparedReward(pending, prepared);
+            CompletePreparedReward(runtimeState, pending, prepared);
             return;
         }
 
@@ -986,6 +991,7 @@ public partial class GameData : Node
     }
 
     private void CompletePreparedReward(
+        BlindBoxRuntimeState runtimeState,
         PendingBlindBoxPreparation pending,
         PlatformInventoryItem reward)
     {
@@ -993,7 +999,7 @@ public partial class GameData : Node
         if (item == null)
             return;
 
-        _blindBoxRuntimeState.PreparedReward = new PreparedBlindBoxReward
+        runtimeState.PreparedReward = new PreparedBlindBoxReward
         {
             ScheduleId = pending.ScheduleId,
             BlindBoxId = pending.BlindBoxId,
@@ -1002,7 +1008,7 @@ public partial class GameData : Node
             ItemId = item.Id,
             IsLate = pending.IsLate,
         };
-        _blindBoxRuntimeState.PendingPreparation = null;
+        runtimeState.PendingPreparation = null;
         DiagnosticLog.Record("blindbox_preparation_confirmed", new Dictionary<string, object>
         {
             ["scheduleId"] = pending.ScheduleId,
@@ -1057,7 +1063,7 @@ public partial class GameData : Node
                 group => group.Key,
                 group => checked((int)group.Sum(item => (long)item.Quantity)));
         var withheldInstanceIds = new HashSet<ulong>();
-        if (_blindBoxRuntimeState.PreparedReward is { PlatformInstanceId: > 0 } preparedReward)
+        if (ActiveBlindBoxRuntimeState.PreparedReward is { PlatformInstanceId: > 0 } preparedReward)
             withheldInstanceIds.Add(preparedReward.PlatformInstanceId);
         if (PendingBlindBoxReward is
             {
@@ -1170,7 +1176,7 @@ public partial class GameData : Node
 #endif
         if (linkTreeId <= 0 || steamClaimBundleItemDefId <= 0 || steamReceiptItemDefId <= 0)
             return false;
-        if (_blindBoxRuntimeState.PendingPreparation != null
+        if (ActiveBlindBoxRuntimeState.PendingPreparation != null
             || _platformInventoryService?.IsPlaytimeDropPending == true)
         {
             GD.PushWarning("[LinkTree] A blind-box or playtime inventory transaction is pending.");

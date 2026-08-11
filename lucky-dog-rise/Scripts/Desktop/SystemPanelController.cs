@@ -1165,7 +1165,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             entry.ClaimPending = false;
             RefreshLinkTreeInteractionPresentation();
-            GD.PushWarning($"[LinkTree] Another LinkTree claim transaction is pending; refusing {entry.Data.Key}.");
+            GD.PushWarning($"[LinkTree] Shared Steam inventory transaction is busy; refusing {entry.Data.Key}.");
             return;
         }
         if (!_inventoryService.TryGrantPromoItem(bundleItemDefId, receiptItemDefId, out var message))
