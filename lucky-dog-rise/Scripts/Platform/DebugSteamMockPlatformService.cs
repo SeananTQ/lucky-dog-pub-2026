@@ -288,7 +288,9 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 SetPhase(DebugSteamPhase.Unavailable, PlatformConnectionState.Unavailable,
                     "手动推进：连接中断，结果未知。");
                 break;
-            case DebugSteamPhase.Unavailable when _scenario == DebugSteamScenario.DisconnectRecoverSuccess:
+            case DebugSteamPhase.Unavailable
+                when _scenario is DebugSteamScenario.DisconnectAfterSubmit
+                    or DebugSteamScenario.DisconnectRecoverSuccess:
                 BeginInventoryVerification("手动推进：恢复连接并开始库存复查。");
                 break;
             case DebugSteamPhase.InventoryVerification:

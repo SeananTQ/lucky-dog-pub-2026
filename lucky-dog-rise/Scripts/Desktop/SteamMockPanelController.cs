@@ -38,7 +38,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
         _scenarioOption.AddItem("请求无回执：复查库存后未发现新奖励；展示点使用 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
-        _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
+        _scenarioOption.AddItem("提交后持续断联：1 秒后断线，等待手动恢复", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;
         _resetButton.Pressed += ResetScenario;
@@ -199,11 +199,32 @@ public partial class SteamMockPanelController : CanvasLayer
                                    || _gameData?.PendingBlindBoxReward != null
                                    || _gameData?.PendingLinkTreeClaim != null;
         _advanceButton.Disabled = !snapshot.HasPendingTransaction;
+        _advanceButton.Text = GetAdvanceButtonText(snapshot);
         _platformModeButton.Visible = _controller.CanUseRealSteam;
         _platformModeButton.Disabled = snapshot.HasPendingTransaction
                                        || _gameData?.PendingBlindBoxReward != null
                                        || _gameData?.PendingLinkTreeClaim != null;
         _platformModeButton.Text = _controller.IsMockActive ? "恢复真实 Steam" : "启用 Mock";
+    }
+
+    private static string GetAdvanceButtonText(DebugSteamMockSnapshot snapshot)
+    {
+        if (!snapshot.HasPendingTransaction)
+            return "推进到下一阶段";
+
+        return snapshot.Phase switch
+        {
+            DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                when snapshot.Scenario is DebugSteamScenario.DisconnectAfterSubmit
+                    or DebugSteamScenario.DisconnectRecoverSuccess => "模拟连接中断",
+            DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                when snapshot.Scenario is DebugSteamScenario.TimeoutVerifiedSuccess
+                    or DebugSteamScenario.TimeoutVerifiedFallback => "进入库存复查",
+            DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting => "立即完成请求",
+            DebugSteamPhase.Unavailable => "模拟恢复连接",
+            DebugSteamPhase.InventoryVerification => "完成库存复查",
+            _ => "推进到下一阶段",
+        };
     }
 
     private void RestoreScenarioSelection(DebugSteamScenario scenario)
