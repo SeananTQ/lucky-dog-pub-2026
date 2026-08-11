@@ -12,7 +12,7 @@
     "StartItemDefId": 200000,
     "EndItemDefId": 299999,
     "Description": "可消耗库存物品总段；具体用途继续使用子段划分。",
-    "Purpose": "通常保存在玩家 Steam 库存中、等待被消耗的可堆叠物品，游戏内玩家不可见",
+    "Purpose": "通常保存在玩家 Steam 库存中、等待被消耗的可堆叠物品",
     "Example": "熔炼材料"
   },
   {
@@ -36,15 +36,15 @@
     "StartItemDefId": 300000,
     "EndItemDefId": 399999,
     "Description": "随机奖励 Generator 总段；同一个权重随机池可以被多种途径使用，不要求与 BlindBox 一一对应。",
-    "Purpose": "权重随机物品生成器和交换目标",
+    "Purpose": "为多种发奖流程提供随机奖励池",
     "Example": "301xxx 盲盒 Generator、302xxx 熔炼 Generator"
   },
   {
     "Id": 1006,
     "StartItemDefId": 301000,
     "EndItemDefId": 301999,
-    "Description": "盲盒奖励池 Generatorz 。可以被 PlaytimeGenerator 直接引用，也兼容历史 Exchange。",
-    "Purpose": "盲盒 ExchangeItems 的交换目标",
+    "Description": "盲盒奖励池 Generator 。可以被 PlaytimeGenerator 直接引用，也兼容历史 Exchange。",
+    "Purpose": "盲盒装扮奖励池",
     "Example": "标准盲盒、新手盲盒等 Generator"
   },
   {
@@ -141,7 +141,7 @@
     "EndItemDefId": 602999,
     "Description": "补偿中心领取 Bundle 子段。",
     "Purpose": "发放补偿回执及补偿内容",
-    "Example": "补偿回执加盲盒券或固定物品"
+    "Example": "补偿回执加固定物品或材料"
   },
   {
     "Id": 1019,
@@ -149,7 +149,7 @@
     "EndItemDefId": 603999,
     "Description": "新手礼包 Bundle 子段。",
     "Purpose": "发放新玩家的一次性固定礼包",
-    "Example": "新玩家盲盒招待券礼包"
+    "Example": "新玩家一次性固定物品礼包"
   },
   {
     "Id": 1020,
@@ -180,16 +180,16 @@
     "StartItemDefId": 700000,
     "EndItemDefId": 700999,
     "Description": "新手一次性 PlaytimeGenerator 总段，同时包含历史券版与新版直接奖励。",
-    "Purpose": "精细控制新手前期能接触到的奖励范围，保证前期体验的稳定性",
-    "Example": ""
+    "Purpose": "管理前 12 个新手 Schedule 的一次性 Steam 投放定义。精细控制新手前期能接触到的奖励范围，保证前期体验的稳定性",
+    "Example": "7000xx 历史券版、7001xx 新版直接奖励"
   },
   {
     "Id": 1029,
     "StartItemDefId": 700000,
     "EndItemDefId": 700099,
     "Description": "历史新手券 PlaytimeGenerator 子段，永久冻结。",
-    "Purpose": "兼容",
-    "Example": "旧的新手12个奖励"
+    "Purpose": "保存旧版新手券投放定义",
+    "Example": "700001、700002、700004 等历史定义"
   },
   {
     "Id": 1030,
@@ -204,16 +204,16 @@
     "StartItemDefId": 701000,
     "EndItemDefId": 701999,
     "Description": "长期循环 PlaytimeGenerator 总段",
-    "Purpose": "同时包含历史券版与新版直接奖励。",
-    "Example": ""
+    "Purpose": "管理游戏正常阶段持续运行的循环投放定义",
+    "Example": "建议填写“7010xx 历史券版、7011xx 新版直接奖励"
   },
   {
     "Id": 1031,
     "StartItemDefId": 701000,
     "EndItemDefId": 701099,
     "Description": "历史循环券 PlaytimeGenerator 子段，永久冻结。",
-    "Purpose": "兼容",
-    "Example": ""
+    "Purpose": "保存旧版循环券投放定义",
+    "Example": "701001 历史循环券投放"
   },
   {
     "Id": 1032,
@@ -221,7 +221,7 @@
     "EndItemDefId": 701999,
     "Description": "新版循环直接奖励 PlaytimeGenerator 子段",
     "Purpose": "游戏正常阶段持续运行的循环投放",
-    "Example": "长期循环装扮盲盒券，受掉落窗口控制"
+    "Example": "长期循环直接生成装扮，受掉落窗口控制”，删除“盲盒券"
   },
   {
     "Id": 1025,
