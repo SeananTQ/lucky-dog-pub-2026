@@ -1,12 +1,12 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-11
+last_edit: 2026-08-12
 status: draft
 ---
 
 # SteamItemDef 表说明
 
-本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，但在完成客户端与 Mock 回归前不得上传发布。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
+本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，客户端与 Mock 回归已经完成；但新手阶段配置仍可能调整，主人确认最终参数并安排真实 Steam 回归前不得上传发布。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
 非循环 Schedule 的 Steam 资格提前量统一为 `SteamPlaytimeEligibilityLeadSeconds=60`。转换器和客户端使用同一公式与分钟向上取整结果；旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
 
@@ -264,7 +264,7 @@ Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端
 
 Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerator 可能不在定义枚举结果中，但仍可提交真实 `TriggerItemDrop` 请求。定义总数会随内容配置继续变化，测试场景应比较当前本地可枚举定义与服务器返回结果，不把某次测试数量写成长期规则。
 
-主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励 schema 尚未发布，`700101..700111` 与 `701101` 的真实 Steam 投放、最终实例回调、空回执和掉落窗口仍需重新验证。
+主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励客户端已经完成七种 Mock 网络场景、新手 12 条 Schedule 和普通循环交接回归，但 schema 尚未发布；`700101..700111` 与 `701101` 的真实 Steam 投放、最终实例回调、空回执和掉落窗口仍需重新验证。
 
 主人已在独立测试场景验证 LinkTree 领取 Bundle：Steam 回调会同时返回永久回执和固定物品，固定筹码入口只新增永久回执；主客户端能够以回执恢复已领取状态，并由库存同步获得固定物品。测试还保留了一条未领取入口作为负向对照。上述验证使用测试 ItemDef，正式数据更换 ID 后需要重新执行同样的开发者账号与普通玩家账号验收。
 

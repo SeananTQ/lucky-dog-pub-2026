@@ -393,7 +393,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     {
         if (!IsMockActive)
             _innerRecoverable?.RequestReconnect();
-        else
+        else if (_connectionState != PlatformConnectionState.Ready
+                 || _inventoryTrustState != PlatformInventoryTrustState.Trusted)
             AddEvent("业务请求恢复连接；Mock 将遵循当前场景阶段。", publish: true);
     }
 
