@@ -8,6 +8,14 @@ status: draft
 
 本文当前记录 2026-08-11 之前已经发布的旧券 schema，用于审查和迁移，不能继续作为目标盲盒架构的实现依据。目标架构已经改为 PlaytimeGenerator 直接生成具体装扮，常规标准券、新手券和盲盒招待券将退出运行时流程；具体表结构、ItemDef ID、新增/复用/归档清单和转换器规则将在正式实施开始时完成数据映射审查后更新本文。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
+现有两个提前量都只服务旧券架构中的非循环 Schedule。`SteamPlaytimeDropLeadSeconds=60` 由转换器读取，用于从前 12 条 Schedule 的缩放后 `StartSeconds` 中扣除 60 秒并生成分钟级 Steam 资格；`SteamPlaytimeRequestLeadSeconds=90` 由客户端读取，用于让同一批非循环 Schedule 提前进入 `TriggerItemDrop` 候选。循环 Schedule 使用独立心跳，不读取这两个提前量。客户端另有所有 PlaytimeGenerator 共用的 65 秒最小尝试间隔；最早请求与展示点相隔 90 秒时，即使首次请求没有获得物品，展示点到达时也不会再被 65 秒节流阻塞。若只提前 60 秒，则展示点到达后仍需等待约 5 秒。该用途是根据当前实现推断，原始策划原因未单独留档。
+
+目标架构不新增独立的 25 秒参数，并移除 `SteamPlaytimeRequestLeadSeconds`。`SteamPlaytimeDropLeadSeconds` 所代表的服务器资格提前量继续保留，建议改名为 `SteamPlaytimeEligibilityLeadSeconds`；最终字段名在数据映射审查中确认。转换器生成分钟级 `drop_interval` 后，客户端使用相同公式和取整结果推导预计资格时刻，在资格到达后请求，不再维护一份可能早于服务器资格的独立请求提前量。请求失败、超时或结果未知时遵守 65 秒节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
+
+目标架构的完整库存同步也不再把所有服务器新增数量直接标记为 New。客户端必须在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过完整库存差量定位合法候选；只有能够归因到当前盲盒事务的实例才进入待揭晓状态。首次同步、旧存档迁移和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
+
+目标数据方向由 `BlindBox` 保留默认支付规则，`BlindBoxSchedule` 仅为特殊投放机会提供支付覆盖。Schedule 1001 以有效成本 `0` 和有效提示模式 `Free` 表达首盒免费，不再依赖 `BlindBox.4001` 或招待券。展示点没有可信待揭晓装扮时必须进入本地 Refreshment Fallback；该分支继承本次 Schedule 已解析的有效支付规则，不再提供可关闭 Fallback 的调试开关。
+
 ## 功能定位
 
 `SteamItemDef` 表是 Lucky Dog Rise 的 Steam Inventory 平台规则源。它主要描述没有对应本地 `Item` 行的回执、盲盒券、Bundle 和 Generator。
@@ -209,7 +217,7 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 
 `Item.ItemRarity` 会自动生成 Steam 的小写 `rarity:` 标签。`Item.SteamTags` 只填写其它标签；手工填写 `rarity:` 会被转换器拒绝，避免品质字段与标签不一致。
 
-## PlaytimeGenerator 投放
+## PlaytimeGenerator 投放（旧券架构）
 
 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向负责该行投放资格的 PlaytimeGenerator。每个 PlaytimeGenerator 只能对应一条 Schedule，其 `Bundle` 必须显式产出该行盲盒的 `SteamOpenCostItemDefId`，关系如下：
 
@@ -239,7 +247,7 @@ drop_max_per_window = SteamDropMaxPerWindow
 
 `SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。`MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
 
-客户端不会等待 Steam 自动发放。前 12 个一次性 Schedule 在本地展示时间前 `SteamPlaytimeDropLeadSeconds` 秒通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到倒计时归零才请求。
+客户端不会等待 Steam 自动发放。旧券客户端使用 `SteamPlaytimeRequestLeadSeconds` 在本地展示时间前进入请求窗口并通过共享平台服务调用 `TriggerItemDrop`；`SteamPlaytimeDropLeadSeconds` 用于上方公式中的 Steam 资格时间。下一条新手 Schedule 在本地倒计时期间就参与缺券恢复，不能等到倒计时归零才请求。
 
 第 12 个新手奖励入账后，客户端立即请求一次长期循环 Generator，此后每个 `BlindBoxLoopIntervalSeconds` 心跳继续请求，不受当前气球影响。回执为空表示本次没有发放，不形成本地装扮债务；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。Steam 实际库存中的盲盒券数量是唯一可信的循环装扮积压。
 
