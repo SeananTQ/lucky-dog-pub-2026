@@ -20,7 +20,6 @@ public partial class SteamInventoryTestController : Control
         TriggerPlaytimeDrop,
         ConsumeItem,
         GenerateItem,
-        ExchangeBlindBox,
     }
 
     private sealed record PlaytimeGeneratorTestOption(
@@ -35,19 +34,15 @@ public partial class SteamInventoryTestController : Control
     [Export] private Label _promoItemStatusLabel = null!;
     [Export] private OptionButton _playtimeGeneratorOption = null!;
     [Export] private OptionButton _maintenanceItemOption = null!;
-    [Export] private OptionButton _exchangeBlindBoxOption = null!;
     [Export] private CheckButton _enableGrantCheck = null!;
     [Export] private CheckButton _enablePlaytimeDropCheck = null!;
     [Export] private CheckButton _enableMaintenanceCheck = null!;
-    [Export] private CheckButton _enableExchangeCheck = null!;
     [Export] private Button _loadDefinitionsButton = null!;
     [Export] private Button _refreshInventoryButton = null!;
     [Export] private Button _addPromoItemButton = null!;
     [Export] private Button _triggerPlaytimeDropButton = null!;
     [Export] private Button _consumeItemButton = null!;
     [Export] private Button _generateItemButton = null!;
-    [Export] private Button _exchangeBlindBoxButton = null!;
-    [Export] private Label _exchangeStatusLabel = null!;
     [Export] private Label _playtimeDropStatusLabel = null!;
     [Export] private Button _retryButton = null!;
     [Export] private Button _quitButton = null!;
@@ -76,11 +71,9 @@ public partial class SteamInventoryTestController : Control
         _triggerPlaytimeDropButton.Pressed += TriggerSelectedPlaytimeDrop;
         _consumeItemButton.Pressed += ConsumeSelectedItem;
         _generateItemButton.Pressed += GenerateSelectedItem;
-        _exchangeBlindBoxButton.Pressed += ExchangeTestBlindBox;
         _enableGrantCheck.Toggled += _ => UpdateControls();
         _enablePlaytimeDropCheck.Toggled += _ => UpdateControls();
         _enableMaintenanceCheck.Toggled += _ => UpdateControls();
-        _enableExchangeCheck.Toggled += _ => UpdateControls();
         _promoItemOption.ItemSelected += _ =>
         {
             _enableGrantCheck.ButtonPressed = false;
@@ -98,18 +91,12 @@ public partial class SteamInventoryTestController : Control
             _enableMaintenanceCheck.ButtonPressed = false;
             UpdateControls();
         };
-        _exchangeBlindBoxOption.ItemSelected += _ =>
-        {
-            _enableExchangeCheck.ButtonPressed = false;
-            UpdateControls();
-        };
         _retryButton.Pressed += InitializeSteamworks;
         _quitButton.Pressed += () => GetTree().Quit();
 
         PopulatePromoItemOptions();
         PopulatePlaytimeGeneratorOptions();
         PopulateMaintenanceItemOptions();
-        PopulateExchangeBlindBoxOptions();
         InitializeSteamworks();
     }
 
@@ -134,10 +121,8 @@ public partial class SteamInventoryTestController : Control
         _enableGrantCheck.ButtonPressed = false;
         _enablePlaytimeDropCheck.ButtonPressed = false;
         _enableMaintenanceCheck.ButtonPressed = false;
-        _enableExchangeCheck.ButtonPressed = false;
         _definitionStatusLabel.Text = "Steam ItemDef：尚未加载";
         _inventoryStatusLabel.Text = "玩家库存：尚未读取";
-        _exchangeStatusLabel.Text = "盲盒兑换：等待读取玩家库存";
         UpdatePlaytimeDropStatus();
         ClearLog();
 
@@ -280,9 +265,9 @@ public partial class SteamInventoryTestController : Control
     {
         _maintenanceItemOption.Clear();
 
-        var costItemDefIds = LubanData.Tables.TbBlindBox.DataList
-            .Where(blindBox => blindBox.IsEnabled && blindBox.SteamOpenCostItemDefId > 0)
-            .Select(blindBox => blindBox.SteamOpenCostItemDefId)
+        var costItemDefIds = LubanData.Tables.TbItem.DataList
+            .Where(item => item.SteamItemDefId > 0)
+            .Select(item => item.SteamItemDefId)
             .Distinct()
             .OrderBy(itemDefId => itemDefId);
         foreach (var itemDefId in costItemDefIds)
@@ -296,27 +281,6 @@ public partial class SteamInventoryTestController : Control
 
         if (_maintenanceItemOption.ItemCount > 0)
             _maintenanceItemOption.Selected = 0;
-    }
-
-    private void PopulateExchangeBlindBoxOptions()
-    {
-        _exchangeBlindBoxOption.Clear();
-
-        var blindBoxes = LubanData.Tables.TbBlindBox.DataList
-            .Where(blindBox => blindBox.IsEnabled
-                               && blindBox.SteamOpenCostItemDefId > 0
-                               && blindBox.SteamExchangeTargetItemDefId > 0)
-            .OrderBy(blindBox => blindBox.Id);
-        foreach (var blindBox in blindBoxes)
-        {
-            var index = _exchangeBlindBoxOption.ItemCount;
-            _exchangeBlindBoxOption.AddItem(
-                $"{blindBox.Id} - {blindBox.Name} ({blindBox.SteamOpenCostItemDefId} -> {blindBox.SteamExchangeTargetItemDefId})");
-            _exchangeBlindBoxOption.SetItemMetadata(index, blindBox.Id);
-        }
-
-        if (_exchangeBlindBoxOption.ItemCount > 0)
-            _exchangeBlindBoxOption.Selected = 0;
     }
 
     private void LoadDefinitions()
@@ -484,60 +448,6 @@ public partial class SteamInventoryTestController : Control
         UpdateControls();
     }
 
-    private void ExchangeTestBlindBox()
-    {
-        if (_runtime?.IsInitialized != true || !_enableExchangeCheck.ButtonPressed)
-            return;
-
-        var blindBox = GetSelectedExchangeBlindBox();
-        if (blindBox == null || blindBox.SteamOpenCostItemDefId <= 0 || blindBox.SteamExchangeTargetItemDefId <= 0)
-        {
-            AppendLog("ExchangeItems：没有可用的盲盒 Steam 映射");
-            UpdateControls();
-            return;
-        }
-
-        if (HasPendingRequest(InventoryRequestKind.ExchangeBlindBox))
-        {
-            AppendLog("ExchangeItems：已有盲盒兑换请求正在等待回调");
-            return;
-        }
-
-        var input = _lastInventoryItems.FirstOrDefault(item =>
-            (int)item.m_iDefinition == blindBox.SteamOpenCostItemDefId && item.m_unQuantity > 0);
-        if ((ulong)input.m_itemId == 0)
-        {
-            AppendLog($"ExchangeItems：库存中没有可消耗的 ItemDef {blindBox.SteamOpenCostItemDefId}");
-            UpdateControls();
-            return;
-        }
-
-        SteamItemDef_t[] outputItemDefs = [(SteamItemDef_t)blindBox.SteamExchangeTargetItemDefId];
-        uint[] outputQuantities = [1];
-        SteamItemInstanceID_t[] inputItemIds = [input.m_itemId];
-        uint[] inputQuantities = [1];
-        var accepted = SteamInventory.ExchangeItems(
-            out var handle,
-            outputItemDefs,
-            outputQuantities,
-            (uint)outputItemDefs.Length,
-            inputItemIds,
-            inputQuantities,
-            (uint)inputItemIds.Length);
-        AppendLog(
-            $"ExchangeItems：消耗 ItemDef={blindBox.SteamOpenCostItemDefId}, Instance={(ulong)input.m_itemId}, Qty=1；" +
-            $"目标 ItemDef={blindBox.SteamExchangeTargetItemDefId}；" +
-            (accepted ? $"请求已接受，Handle={HandleValue(handle)}" : "请求被拒绝"));
-        if (!accepted)
-            return;
-
-        TrackRequest(handle, InventoryRequestKind.ExchangeBlindBox);
-        _enableGrantCheck.ButtonPressed = false;
-        _enableMaintenanceCheck.ButtonPressed = false;
-        _enableExchangeCheck.ButtonPressed = false;
-        UpdateControls();
-    }
-
     private void OnDefinitionUpdated(SteamInventoryDefinitionUpdate_t callback)
     {
         AppendLog("SteamInventoryDefinitionUpdate_t：收到定义更新回调");
@@ -642,8 +552,6 @@ public partial class SteamInventoryTestController : Control
                 AppendLog($"{requestKind}：Steam 返回 {callback.m_result}");
                 if (requestKind == InventoryRequestKind.FullInventory)
                     _inventoryStatusLabel.Text = $"玩家库存：读取失败（{callback.m_result}）";
-                else if (requestKind == InventoryRequestKind.ExchangeBlindBox)
-                    _exchangeStatusLabel.Text = $"盲盒兑换：失败（{callback.m_result}）";
                 return;
             }
 
@@ -660,8 +568,6 @@ public partial class SteamInventoryTestController : Control
                 ShowPromoGrantResult(items);
             else if (requestKind == InventoryRequestKind.TriggerPlaytimeDrop)
                 ShowPlaytimeDropResult(items);
-            else if (requestKind == InventoryRequestKind.ExchangeBlindBox)
-                ShowBlindBoxExchangeResult(items);
             else
                 ShowInventoryMutationResult(requestKind, items);
         }
@@ -734,11 +640,6 @@ public partial class SteamInventoryTestController : Control
         if (localItem != null)
             return $"本地 Item={localItem.Id} {localItem.Name}";
 
-        var blindBox = LubanData.Tables.TbBlindBox.DataList.FirstOrDefault(box =>
-            box.SteamOpenCostItemDefId == itemDefId);
-        if (blindBox != null)
-            return $"盲盒券（BlindBox={blindBox.Id} {blindBox.Name}）";
-
         return "未映射的 Steam 库存物品";
     }
 
@@ -754,39 +655,15 @@ public partial class SteamInventoryTestController : Control
 
         foreach (var item in items)
         {
-            AppendLog(
-                $"TriggerItemDrop 发放：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, " +
-                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}");
-        }
-        RefreshInventory();
-    }
-
-    private void ShowBlindBoxExchangeResult(IReadOnlyCollection<SteamItemDetails_t> items)
-    {
-        AppendLog($"ExchangeItems 成功：Steam 返回 {items.Count} 条库存变更");
-        if (items.Count == 0)
-            AppendLog("ExchangeItems：结果为空，将通过完整库存复查服务器状态");
-
-        foreach (var item in items)
-        {
-            if (item.m_unQuantity == 0)
-            {
-                AppendLog(
-                    $"ExchangeItems 消耗确认：ItemDef={(int)item.m_iDefinition}, " +
-                    $"Instance={(ulong)item.m_itemId}, Qty=0, Flags={item.m_unFlags}");
-                continue;
-            }
-
             var localItem = LubanData.Tables.TbItem.DataList.FirstOrDefault(candidate =>
                 candidate.SteamItemDefId == (int)item.m_iDefinition);
-            var localDescription = localItem == null
+            var localText = localItem == null
                 ? "未映射到本地 Item"
-                : $"本地 Item={localItem.Id} {localItem.Name}, Rarity={localItem.ItemRarity}";
+                : $"最终装扮 Item={localItem.Id} {localItem.Name}, Rarity={localItem.ItemRarity}";
             AppendLog(
-                $"ExchangeItems 奖励：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, " +
-                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}；{localDescription}");
+                $"TriggerItemDrop 发放：ItemDef={(int)item.m_iDefinition}, Instance={(ulong)item.m_itemId}, " +
+                $"Qty={item.m_unQuantity}, Flags={item.m_unFlags}；{localText}");
         }
-
         RefreshInventory();
     }
 
@@ -816,29 +693,18 @@ public partial class SteamInventoryTestController : Control
         var hasPromoOptions = _promoItemOption.ItemCount > 0;
         var hasPlaytimeOptions = _playtimeGeneratorOption.ItemCount > 0;
         var hasMaintenanceOptions = _maintenanceItemOption.ItemCount > 0;
-        var hasExchangeOptions = _exchangeBlindBoxOption.ItemCount > 0;
         var grantPending = HasPendingRequest(InventoryRequestKind.AddPromoItem);
         var playtimeDropPending = HasPendingRequest(InventoryRequestKind.TriggerPlaytimeDrop);
         var anyRequestPending = _pendingRequests.Count > 0;
         var selectedItemDefId = GetSelectedMaintenanceItemDefId();
         var selectedItemOwned = selectedItemDefId > 0 && _lastInventoryItems.Any(item =>
             (int)item.m_iDefinition == selectedItemDefId && item.m_unQuantity > 0);
-        var blindBox = GetSelectedExchangeBlindBox();
-        var exchangeMappingValid = blindBox != null
-            && blindBox.SteamOpenCostItemDefId > 0
-            && blindBox.SteamExchangeTargetItemDefId > 0;
-        var voucherQuantity = exchangeMappingValid
-            ? _lastInventoryItems
-                .Where(item => (int)item.m_iDefinition == blindBox!.SteamOpenCostItemDefId)
-                .Sum(item => (int)item.m_unQuantity)
-            : 0;
 
         _loadDefinitionsButton.Disabled = !available;
         _refreshInventoryButton.Disabled = !available || HasPendingRequest(InventoryRequestKind.FullInventory);
         _promoItemOption.Disabled = !available || !hasPromoOptions || grantPending;
         _playtimeGeneratorOption.Disabled = !available || !hasPlaytimeOptions || playtimeDropPending;
         _maintenanceItemOption.Disabled = !available || !hasMaintenanceOptions || anyRequestPending;
-        _exchangeBlindBoxOption.Disabled = !available || !hasExchangeOptions || anyRequestPending;
         _enableGrantCheck.Disabled = !available || !_definitionsLoaded || !hasPromoOptions || grantPending;
         _enablePlaytimeDropCheck.Disabled = !available
             || !_definitionsLoaded
@@ -864,23 +730,6 @@ public partial class SteamInventoryTestController : Control
             || !selectedItemOwned;
         _generateItemButton.Disabled = !_enableMaintenanceCheck.ButtonPressed
             || anyRequestPending;
-        _enableExchangeCheck.Disabled = !available
-            || !_definitionsLoaded
-            || !_inventoryLoaded
-            || !hasExchangeOptions
-            || !exchangeMappingValid
-            || voucherQuantity <= 0
-            || anyRequestPending;
-        _exchangeBlindBoxButton.Disabled = !_enableExchangeCheck.ButtonPressed
-            || anyRequestPending
-            || voucherQuantity <= 0;
-
-        _exchangeStatusLabel.Text = !exchangeMappingValid
-            ? "盲盒兑换：没有可用的 Steam 映射"
-            : !_inventoryLoaded
-                ? $"盲盒兑换：等待读取库存（BlindBox {blindBox!.Id}，{blindBox.SteamOpenCostItemDefId} → {blindBox.SteamExchangeTargetItemDefId}）"
-                : $"盲盒兑换：BlindBox {blindBox!.Id}；持有 ItemDef {blindBox.SteamOpenCostItemDefId} ×{voucherQuantity}；" +
-                  $"交换目标 ItemDef {blindBox.SteamExchangeTargetItemDefId}";
         UpdatePlaytimeDropStatus();
         UpdatePromoItemStatus();
     }
@@ -932,15 +781,6 @@ public partial class SteamInventoryTestController : Control
         return _maintenanceItemOption.ItemCount > 0 && _maintenanceItemOption.Selected >= 0
             ? (int)_maintenanceItemOption.GetItemMetadata(_maintenanceItemOption.Selected)
             : 0;
-    }
-
-    private DataTables.BlindBox GetSelectedExchangeBlindBox()
-    {
-        if (_exchangeBlindBoxOption.ItemCount == 0 || _exchangeBlindBoxOption.Selected < 0)
-            return null;
-
-        var blindBoxId = (int)_exchangeBlindBoxOption.GetItemMetadata(_exchangeBlindBoxOption.Selected);
-        return LubanData.Tables.TbBlindBox.GetOrDefault(blindBoxId);
     }
 
     private void TrackRequest(SteamInventoryResult_t handle, InventoryRequestKind requestKind)

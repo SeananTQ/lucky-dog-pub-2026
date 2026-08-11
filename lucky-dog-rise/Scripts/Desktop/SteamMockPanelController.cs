@@ -18,7 +18,7 @@ public partial class SteamMockPanelController : CanvasLayer
     [Export] private Label _connectionValue = null!;
     [Export] private Label _phaseValue = null!;
     [Export] private Label _phaseTimerValue = null!;
-    [Export] private Label _voucherValue = null!;
+    [Export] private Label _rewardValue = null!;
     [Export] private Label _transactionValue = null!;
     [Export] private Label _lastEventValue = null!;
     [Export] private RichTextLabel _eventLog = null!;
@@ -36,7 +36,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
-        _scenarioOption.AddItem("请求超时：复查确认未发生；盲盒 Fallback / LinkTree 可重试", (int)DebugSteamScenario.TimeoutVerifiedFallback);
+        _scenarioOption.AddItem("请求超时：复查确认未生成奖励；展示点使用 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
         _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;
@@ -158,8 +158,12 @@ public partial class SteamMockPanelController : CanvasLayer
         _connectionValue.Text = FormatConnectionState(snapshot);
         _phaseValue.Text = FormatPhase(snapshot.Phase);
         _phaseTimerValue.Text = $"{snapshot.PhaseElapsedSeconds:0.0} 秒";
-        _voucherValue.Text = snapshot.VoucherQuantity.ToString();
-        _transactionValue.Text = CompactText(snapshot.PendingOperation, 20);
+        var lateSuffix = _gameData?.SteamMockBlindBoxRewardIsLate == true ? "（迟到）" : string.Empty;
+        _rewardValue.Text = snapshot.RewardInstanceId == 0
+            ? $"Generator {snapshot.GeneratorItemDefId}"
+            : $"实例 {snapshot.RewardInstanceId}{lateSuffix}";
+        var businessPhase = _gameData?.SteamMockBlindBoxBusinessPhase ?? "Idle";
+        _transactionValue.Text = CompactText($"{snapshot.PendingOperation} / {businessPhase}", 24);
         _lastEventValue.Text = CompactText(snapshot.LastEvent, 72);
         _eventLog.Text = string.Join('\n', snapshot.Events.Select(BbcodeEscape));
         _scenarioOption.Disabled = snapshot.HasPendingTransaction
@@ -211,7 +215,7 @@ public partial class SteamMockPanelController : CanvasLayer
     private static string FormatPhase(DebugSteamPhase phase) => phase switch
     {
         DebugSteamPhase.Ready => "就绪",
-        DebugSteamPhase.ExchangeWaiting => "盲盒兑换",
+        DebugSteamPhase.PlaytimeDropWaiting => "奖励准备",
         DebugSteamPhase.PromoGrantWaiting => "奖励发放",
         DebugSteamPhase.Unavailable => "不可用",
         DebugSteamPhase.InventoryVerification => "库存复查",

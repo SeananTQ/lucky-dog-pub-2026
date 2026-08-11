@@ -12,7 +12,7 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 13;
+    public const int CurrentVersion = 15;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -30,7 +30,7 @@ internal static class SaveIntegrity
 
     public static bool Verify(SaveProfile profile)
     {
-        if (profile.IntegrityVersion < 1 || profile.IntegrityVersion > CurrentVersion
+        if (profile.IntegrityVersion != CurrentVersion
             || string.IsNullOrWhiteSpace(profile.IntegrityTag)
             || !BuildInfo.TryGetSaveHmacKey(out var key))
             return false;
@@ -46,12 +46,12 @@ internal static class SaveIntegrity
         }
 
         using var hmac = new HMACSHA256(key);
-        var actual = hmac.ComputeHash(GetCanonicalBytes(profile, profile.IntegrityVersion));
+        var actual = hmac.ComputeHash(GetCanonicalBytes(profile));
         return expected.Length == actual.Length
             && CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 
-    private static byte[] GetCanonicalBytes(SaveProfile profile, int integrityVersion = CurrentVersion)
+    private static byte[] GetCanonicalBytes(SaveProfile profile)
     {
         var canonical = new SaveProfile
         {
@@ -66,28 +66,13 @@ internal static class SaveIntegrity
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             NewItemIds = (profile.NewItemIds ?? []).OrderBy(id => id).ToList(),
-            AppliedLinkTreeRewardIds = integrityVersion >= 12
-                ? (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList()
-                : null,
-            LinkTreeRewardLedgerInitialized = integrityVersion >= 13
-                ? profile.LinkTreeRewardLedgerInitialized ?? false
-                : null,
-            BlindBoxClaimedCountsBySchedule = SortDictionary(profile.BlindBoxClaimedCountsBySchedule),
-            BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState, integrityVersion),
+            AppliedLinkTreeRewardIds = (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList(),
+            LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? false,
+            BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
-            PendingPlatformBlindBoxOpen = integrityVersion >= 6
-                ? CanonicalizePendingPlatformOpen(profile.PendingPlatformBlindBoxOpen)
-                : null,
-            PendingLinkTreeClaim = integrityVersion >= 5
-                ? CanonicalizePendingLinkTreeClaim(profile.PendingLinkTreeClaim)
-                : null,
-            // v1 存档的签名没有这个字段；保持 null 并由 JsonIgnore 省略，兼容旧 HMAC。
-            LuckyDealBuffState = integrityVersion >= 2
-                ? CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState, includeLuckyDealMode: integrityVersion >= 11)
-                : null,
-            RefreshmentRuntimeState = integrityVersion >= 10
-                ? CanonicalizeRefreshmentRuntimeState(profile.RefreshmentRuntimeState)
-                : null,
+            PendingLinkTreeClaim = CanonicalizePendingLinkTreeClaim(profile.PendingLinkTreeClaim),
+            LuckyDealBuffState = CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState, includeLuckyDealMode: true),
+            RefreshmentRuntimeState = CanonicalizeRefreshmentRuntimeState(profile.RefreshmentRuntimeState),
             CreatedAt = profile.CreatedAt ?? string.Empty,
             UpdatedAt = profile.UpdatedAt ?? string.Empty,
         };
@@ -132,61 +117,57 @@ internal static class SaveIntegrity
             .ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
-    private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state, int integrityVersion)
+    private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state)
     {
         state ??= new BlindBoxRuntimeState();
-        var canonical = new BlindBoxRuntimeState
+        return new BlindBoxRuntimeState
         {
             SequenceIndex = state.SequenceIndex,
-            // v1-v3 存档没有连续调度时钟，验签时保持省略。
-            ScheduleSeconds = integrityVersion >= 4
-                ? state.ScheduleSeconds
-                : 0.0,
+            ScheduleSeconds = state.ScheduleSeconds,
             LastClaimSeconds = state.LastClaimSeconds,
-            // v1/v2 存档没有本地展示门槛；默认值会由 JsonIgnore 省略，保持旧签名兼容。
-            NextLoopPresentationSeconds = integrityVersion >= 3
-                ? state.NextLoopPresentationSeconds
-                : 0.0,
-            NextLoopTriggerSeconds = integrityVersion >= 8
-                ? state.NextLoopTriggerSeconds
-                : 0.0,
-            LockedLoopScheduleId = integrityVersion >= 8
-                ? state.LockedLoopScheduleId
-                : 0,
-            LockedLoopBlindBoxId = integrityVersion >= 8
-                ? state.LockedLoopBlindBoxId
-                : 0,
-            LoopStageStarted = integrityVersion >= 8 && state.LoopStageStarted,
-            LoopDropVerificationPending = integrityVersion >= 8 && state.LoopDropVerificationPending,
-            LoopTrackStates = (state.LoopTrackStates ?? new Dictionary<int, BlindBoxScheduleState>())
+            NextLoopPresentationSeconds = state.NextLoopPresentationSeconds,
+            NextLoopTriggerSeconds = state.NextLoopTriggerSeconds,
+            LoopStageStarted = state.LoopStageStarted,
+            PendingPreparation = CanonicalizePreparation(state.PendingPreparation),
+            PreparedReward = CanonicalizePreparedReward(state.PreparedReward),
+            LockedPresentation = CanonicalizeLockedPresentation(state.LockedPresentation),
+        };
+    }
+
+    private static PendingBlindBoxPreparation? CanonicalizePreparation(PendingBlindBoxPreparation? pending) =>
+        pending == null ? null : new PendingBlindBoxPreparation
+        {
+            ScheduleId = pending.ScheduleId,
+            BlindBoxId = pending.BlindBoxId,
+            GeneratorItemDefId = pending.GeneratorItemDefId,
+            Phase = pending.Phase,
+            IsLate = pending.IsLate,
+            SubmittedAtTotalPlaySeconds = pending.SubmittedAtTotalPlaySeconds,
+            RetryNotBeforeTotalPlaySeconds = pending.RetryNotBeforeTotalPlaySeconds,
+            InventoryQuantitiesBeforeRequest = (pending.InventoryQuantitiesBeforeRequest ?? new Dictionary<ulong, uint>())
                 .OrderBy(pair => pair.Key)
-                .ToDictionary(
-                    pair => pair.Key,
-                    pair => new BlindBoxScheduleState
-                    {
-                        PendingCount = pair.Value?.PendingCount ?? 0,
-                        ProcessedGrantCount = pair.Value?.ProcessedGrantCount ?? 0,
-                    }),
-            SteamPlaytimeDropStates = integrityVersion >= 7
-                ? (state.SteamPlaytimeDropStates ?? new Dictionary<int, BlindBoxSteamPlaytimeDropState>())
-                    .OrderBy(pair => pair.Key)
-                    .ToDictionary(
-                        pair => pair.Key,
-                        pair => new BlindBoxSteamPlaytimeDropState
-                        {
-                            ProcessedGrantCount = pair.Value?.ProcessedGrantCount ?? 0,
-                        })
-                : new Dictionary<int, BlindBoxSteamPlaytimeDropState>(),
-            DeferredPlatformScheduleCounts = integrityVersion >= 7
-                ? SortDictionary(state.DeferredPlatformScheduleCounts)
-                : null!,
-            NextDeferredPlatformPresentationSeconds = integrityVersion >= 7
-                ? state.NextDeferredPlatformPresentationSeconds
-                : 0.0,
+                .ToDictionary(pair => pair.Key, pair => pair.Value),
         };
 
-        return canonical;
-    }
+    private static PreparedBlindBoxReward? CanonicalizePreparedReward(PreparedBlindBoxReward? reward) =>
+        reward == null ? null : new PreparedBlindBoxReward
+        {
+            ScheduleId = reward.ScheduleId,
+            BlindBoxId = reward.BlindBoxId,
+            PlatformInstanceId = reward.PlatformInstanceId,
+            SteamItemDefId = reward.SteamItemDefId,
+            ItemId = reward.ItemId,
+            IsLate = reward.IsLate,
+        };
+
+    private static LockedBlindBoxPresentation? CanonicalizeLockedPresentation(LockedBlindBoxPresentation? value) =>
+        value == null ? null : new LockedBlindBoxPresentation
+        {
+            ScheduleId = value.ScheduleId,
+            BlindBoxId = value.BlindBoxId,
+            Kind = value.Kind,
+            PreparedPlatformInstanceId = value.PreparedPlatformInstanceId,
+        };
 
     private static PendingBlindBoxReward? CanonicalizePendingReward(PendingBlindBoxReward? pending)
     {
@@ -202,6 +183,8 @@ internal static class SaveIntegrity
             RevealStep = pending.RevealStep,
             RewardShown = pending.RewardShown,
             IsPlatformInventoryReward = pending.IsPlatformInventoryReward,
+            PlatformInstanceId = pending.PlatformInstanceId,
+            CompletesSchedule = pending.CompletesSchedule,
             TotalPlaySeconds = pending.TotalPlaySeconds,
             DebugText = pending.DebugText ?? string.Empty,
         };
@@ -221,26 +204,4 @@ internal static class SaveIntegrity
         };
     }
 
-    private static PendingPlatformBlindBoxOpen? CanonicalizePendingPlatformOpen(
-        PendingPlatformBlindBoxOpen? pending)
-    {
-        if (pending == null)
-            return null;
-
-        return new PendingPlatformBlindBoxOpen
-        {
-            BlindBoxId = pending.BlindBoxId,
-            ScheduleId = pending.ScheduleId,
-            InputItemDefId = pending.InputItemDefId,
-            InputInstanceId = pending.InputInstanceId,
-            ExchangeTargetItemDefId = pending.ExchangeTargetItemDefId,
-            ReservedChipCost = pending.ReservedChipCost,
-            InventoryQuantitiesBeforeExchange = (pending.InventoryQuantitiesBeforeExchange
-                                                  ?? new Dictionary<ulong, uint>())
-                .OrderBy(pair => pair.Key)
-                .ToDictionary(pair => pair.Key, pair => pair.Value),
-            TotalPlaySeconds = pending.TotalPlaySeconds,
-            IsDeferredBacklog = pending.IsDeferredBacklog,
-        };
-    }
 }

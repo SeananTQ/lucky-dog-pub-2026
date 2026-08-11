@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Steam/SteamInventoryTestController.cs" id="1_inventory"]
 
@@ -35,18 +35,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_exchange"]
-content_margin_left = 10.0
-content_margin_right = 10.0
-bg_color = Color(0.302, 0.118, 0.216, 1)
-border_width_left = 4
-border_color = Color(0.851, 0.42, 0.604, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_promoItemStatusLabel", "_playtimeGeneratorOption", "_maintenanceItemOption", "_exchangeBlindBoxOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_enableExchangeCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_exchangeBlindBoxButton", "_exchangeStatusLabel", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
+[node name="TestSteamInventory" type="Control" node_paths=PackedStringArray("_statusLabel", "_identityLabel", "_definitionStatusLabel", "_inventoryStatusLabel", "_promoItemOption", "_promoItemStatusLabel", "_playtimeGeneratorOption", "_maintenanceItemOption", "_enableGrantCheck", "_enablePlaytimeDropCheck", "_enableMaintenanceCheck", "_loadDefinitionsButton", "_refreshInventoryButton", "_addPromoItemButton", "_triggerPlaytimeDropButton", "_consumeItemButton", "_generateItemButton", "_playtimeDropStatusLabel", "_retryButton", "_quitButton", "_operationLog")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -62,19 +51,15 @@ _promoItemOption = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemOpti
 _promoItemStatusLabel = NodePath("Center/Panel/Margin/Content/GrantTest/PromoItemStatus")
 _playtimeGeneratorOption = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/PlaytimeGeneratorOption")
 _maintenanceItemOption = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MaintenanceItemOption")
-_exchangeBlindBoxOption = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeBlindBoxOption")
 _enableGrantCheck = NodePath("Center/Panel/Margin/Content/GrantTest/EnableGrant")
 _enablePlaytimeDropCheck = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/EnablePlaytimeDrop")
 _enableMaintenanceCheck = NodePath("Center/Panel/Margin/Content/MaintenanceTest/EnableMaintenance")
-_enableExchangeCheck = NodePath("Center/Panel/Margin/Content/ExchangeTest/EnableExchange")
 _loadDefinitionsButton = NodePath("Center/Panel/Margin/Content/ReadButtons/LoadDefinitions")
 _refreshInventoryButton = NodePath("Center/Panel/Margin/Content/ReadButtons/RefreshInventory")
 _addPromoItemButton = NodePath("Center/Panel/Margin/Content/GrantTest/AddPromoItem")
 _triggerPlaytimeDropButton = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/TriggerPlaytimeDrop")
 _consumeItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/ConsumeItem")
 _generateItemButton = NodePath("Center/Panel/Margin/Content/MaintenanceTest/MutationButtons/GenerateItem")
-_exchangeBlindBoxButton = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeBlindBox")
-_exchangeStatusLabel = NodePath("Center/Panel/Margin/Content/ExchangeTest/ExchangeStatus")
 _playtimeDropStatusLabel = NodePath("Center/Panel/Margin/Content/PlaytimeDropTest/PlaytimeDropStatus")
 _retryButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Retry")
 _quitButton = NodePath("Center/Panel/Margin/Content/FooterButtons/Quit")
@@ -273,40 +258,6 @@ custom_minimum_size = Vector2(350, 44)
 layout_mode = 2
 disabled = true
 text = "5. 生成所选 ItemDef 的 1 个实例"
-
-[node name="ExchangeTest" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Title" type="Label" parent="Center/Panel/Margin/Content/ExchangeTest"]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBox_exchange")
-text = "真实盲盒兑换测试"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ExchangeBlindBoxOption" type="OptionButton" parent="Center/Panel/Margin/Content/ExchangeTest"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-fit_to_longest_item = false
-
-[node name="ExchangeStatus" type="Label" parent="Center/Panel/Margin/Content/ExchangeTest"]
-layout_mode = 2
-text = "盲盒兑换：等待读取玩家库存"
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="EnableExchange" type="CheckButton" parent="Center/Panel/Margin/Content/ExchangeTest"]
-layout_mode = 2
-disabled = true
-text = "我确认：ExchangeItems 会真实消耗 1 张券，并将最终奖励写入当前 Steam 账号"
-
-[node name="ExchangeBlindBox" type="Button" parent="Center/Panel/Margin/Content/ExchangeTest"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-disabled = true
-text = "6. 用 1 张盲盒券兑换随机装扮"
 
 [node name="OperationLogTitle" type="Label" parent="Center/Panel/Margin/Content"]
 layout_mode = 2

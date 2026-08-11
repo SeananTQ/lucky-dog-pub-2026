@@ -89,13 +89,24 @@ public partial class BalloonHintController : PanelContainer
         EBlindBoxValueMode valueMode,
         int cost,
         int currentChips = -1,
-        BlindBoxPaymentSource paymentSource = BlindBoxPaymentSource.Unknown)
+        BlindBoxPaymentSource paymentSource = BlindBoxPaymentSource.Unknown,
+        bool strikeThrough = false)
     {
         StopLoading();
         var icon = LoadAssetTexture(iconPath) ?? fallbackIcon;
         if (valueMode == EBlindBoxValueMode.Chips)
         {
-            ShowCost(icon, cost, currentChips);
+            if (strikeThrough)
+            {
+                _iconRect.Texture = icon;
+                _iconRect.Visible = icon != null;
+                _textLabel.Visible = true;
+                SetTextContent($"[font_size=20][s]{cost}[/s][/font_size]");
+            }
+            else
+            {
+                ShowCost(icon, cost, currentChips);
+            }
 #if DEBUG
             AddPaymentSourceLabel(paymentSource);
 #endif
@@ -126,7 +137,8 @@ public partial class BalloonHintController : PanelContainer
         {
             BlindBoxPaymentSource.Chips => "CHIPS",
             BlindBoxPaymentSource.LocalRefreshment => "LOCAL",
-            BlindBoxPaymentSource.SteamVoucher => "STEAM",
+            BlindBoxPaymentSource.SteamPrepared => "STEAM",
+            BlindBoxPaymentSource.SteamLate => "STEAM",
             BlindBoxPaymentSource.SteamFallback => "FALLBACK",
             _ => string.Empty,
         };
@@ -157,18 +169,6 @@ public partial class BalloonHintController : PanelContainer
         _textLabel.Visible = false;
         SetTextContent(string.Empty);
         _loadingIndicator.SetLoading(true);
-        _interactionEnabled = false;
-    }
-
-    public void ShowPendingConfirmation()
-    {
-        _showingLoading = false;
-        _loadingIndicator.SetLoading(false);
-        _iconRect.Visible = false;
-        _textLabel.Visible = true;
-        _textLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        CustomMinimumSize = new Vector2(220, 64);
-        SetTextContent($"[font_size=10]{L10n.Tr(L10nKey.BlindBox_SteamResultPending)}[/font_size]");
         _interactionEnabled = false;
     }
 

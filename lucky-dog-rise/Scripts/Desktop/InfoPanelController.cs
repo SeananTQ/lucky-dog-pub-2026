@@ -48,7 +48,6 @@ public partial class InfoPanelController : CanvasLayer
     private int _currentPayout;
     private bool _hasResolvedHand;
     private bool _blindBoxOpeningLoading;
-    private bool _blindBoxOpeningPendingConfirmation;
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
@@ -322,17 +321,12 @@ public partial class InfoPanelController : CanvasLayer
         {
             _blindBoxBtn.Disabled = true;
             SetBlindBoxHintDisplayVisible(true);
-            if (_blindBoxOpeningPendingConfirmation)
-                _blindBoxHint.ShowPendingConfirmation();
-            else
-                _blindBoxHint.ShowLoading();
+            _blindBoxHint.ShowLoading();
             return;
         }
 
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
-            or BlindBoxHintStatus.PlatformSyncing
-            or BlindBoxHintStatus.PlatformUnavailable
             or BlindBoxHintStatus.Opening
             or BlindBoxHintStatus.PendingReward;
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
@@ -348,15 +342,14 @@ public partial class InfoPanelController : CanvasLayer
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-            case BlindBoxHintStatus.PlatformSyncing:
-            case BlindBoxHintStatus.PlatformUnavailable:
                 _blindBoxHint.ShowValueFromAssetPath(
                     state.Box?.HintIconPath,
                     _blindBoxIcon,
-                    state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
-                    state.Cost,
+                    state.ValueMode,
+                    state.DisplayValue,
                     _gameData.Chips,
-                    state.PaymentSource);
+                    state.PaymentSource,
+                    state.StrikeThrough);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
@@ -370,14 +363,6 @@ public partial class InfoPanelController : CanvasLayer
             return;
 
         _blindBoxOpeningLoading = loading;
-        if (!loading)
-            _blindBoxOpeningPendingConfirmation = false;
-        RefreshBlindBoxButton();
-    }
-
-    public void SetBlindBoxOpeningPendingConfirmation(bool pending)
-    {
-        _blindBoxOpeningPendingConfirmation = pending;
         RefreshBlindBoxButton();
     }
 

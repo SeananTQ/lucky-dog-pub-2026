@@ -18,7 +18,7 @@ public enum DebugSteamScenario
 public enum DebugSteamPhase
 {
     Ready,
-    ExchangeWaiting,
+    PlaytimeDropWaiting,
     PromoGrantWaiting,
     Unavailable,
     InventoryVerification,
@@ -36,7 +36,8 @@ public sealed record DebugSteamMockSnapshot(
     double PhaseElapsedSeconds,
     PlatformConnectionState ConnectionState,
     PlatformInventoryTrustState InventoryTrustState,
-    uint VoucherQuantity,
+    int GeneratorItemDefId,
+    ulong RewardInstanceId,
     bool HasPendingTransaction,
     string PendingOperation,
     string LastEvent,
@@ -49,7 +50,7 @@ public interface IDebugSteamMockController
     DebugSteamMockSnapshot Snapshot { get; }
     bool IsMockActive { get; }
     bool TrySelectScenario(DebugSteamScenario scenario, out string message);
-    void ConfigureBlindBox(int voucherItemDefId, int rewardItemDefId);
+    void ConfigureBlindBox(int blindBoxId, int rewardItemDefId);
     void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants);
     void ResetScenario();
     void AdvancePhase();

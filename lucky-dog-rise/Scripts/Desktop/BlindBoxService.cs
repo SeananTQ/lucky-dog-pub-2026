@@ -20,22 +20,56 @@ public sealed class PendingBlindBoxReward
     public bool RewardShown { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsPlatformInventoryReward { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ulong PlatformInstanceId { get; set; }
+    public bool CompletesSchedule { get; set; } = true;
     public double TotalPlaySeconds { get; set; }
     public string DebugText { get; set; } = "";
 }
 
-public sealed class PendingPlatformBlindBoxOpen
+public enum BlindBoxPreparationPhase
 {
-    public int BlindBoxId { get; set; }
+    Submitted,
+    RevalidationRequired,
+    RetryWaiting,
+}
+
+public sealed class PendingBlindBoxPreparation
+{
     public int ScheduleId { get; set; }
-    public int InputItemDefId { get; set; }
-    public ulong InputInstanceId { get; set; }
-    public int ExchangeTargetItemDefId { get; set; }
-    public int ReservedChipCost { get; set; }
-    public Dictionary<ulong, uint> InventoryQuantitiesBeforeExchange { get; set; } = new();
-    public double TotalPlaySeconds { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool IsDeferredBacklog { get; set; }
+    public int BlindBoxId { get; set; }
+    public int GeneratorItemDefId { get; set; }
+    public BlindBoxPreparationPhase Phase { get; set; }
+    public bool IsLate { get; set; }
+    public double SubmittedAtTotalPlaySeconds { get; set; }
+    public double RetryNotBeforeTotalPlaySeconds { get; set; }
+    public Dictionary<ulong, uint> InventoryQuantitiesBeforeRequest { get; set; } = new();
+}
+
+public sealed class PreparedBlindBoxReward
+{
+    public int ScheduleId { get; set; }
+    public int BlindBoxId { get; set; }
+    public ulong PlatformInstanceId { get; set; }
+    public int SteamItemDefId { get; set; }
+    public int ItemId { get; set; }
+    public bool IsLate { get; set; }
+}
+
+public enum LockedBlindBoxPresentationKind
+{
+    ScheduledLocal,
+    PreparedSteam,
+    Fallback,
+    LateSteam,
+}
+
+public sealed class LockedBlindBoxPresentation
+{
+    public int ScheduleId { get; set; }
+    public int BlindBoxId { get; set; }
+    public LockedBlindBoxPresentationKind Kind { get; set; }
+    public ulong PreparedPlatformInstanceId { get; set; }
 }
 
 public sealed class BlindBoxOpenResult
@@ -44,17 +78,6 @@ public sealed class BlindBoxOpenResult
     public required BlindBoxSchedule Schedule { get; init; }
     public required Item Item { get; init; }
     public required PendingBlindBoxReward PendingReward { get; init; }
-}
-
-public sealed class BlindBoxScheduleState
-{
-    public int PendingCount { get; set; }
-    public int ProcessedGrantCount { get; set; }
-}
-
-public sealed class BlindBoxSteamPlaytimeDropState
-{
-    public int ProcessedGrantCount { get; set; }
 }
 
 public sealed class BlindBoxRuntimeState
@@ -74,21 +97,10 @@ public sealed class BlindBoxRuntimeState
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double NextLoopTriggerSeconds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public int LockedLoopScheduleId { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public int LockedLoopBlindBoxId { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool LoopStageStarted { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool LoopDropVerificationPending { get; set; }
-
-    // Kept for v7 save signature verification. Version 9 migration clears these fields.
-    public Dictionary<int, BlindBoxScheduleState> LoopTrackStates { get; set; } = new();
-    public Dictionary<int, BlindBoxSteamPlaytimeDropState> SteamPlaytimeDropStates { get; set; } = new();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public Dictionary<int, int> DeferredPlatformScheduleCounts { get; set; } = new();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public double NextDeferredPlatformPresentationSeconds { get; set; }
+    public PendingBlindBoxPreparation? PendingPreparation { get; set; }
+    public PreparedBlindBoxReward? PreparedReward { get; set; }
+    public LockedBlindBoxPresentation? LockedPresentation { get; set; }
 }
 
 public enum BlindBoxHintStatus
@@ -97,8 +109,6 @@ public enum BlindBoxHintStatus
     Ready,
     NotEnoughChips,
     PendingReward,
-    PlatformSyncing,
-    PlatformUnavailable,
     Opening,
 }
 
@@ -107,15 +117,25 @@ public enum BlindBoxPaymentSource
     Unknown,
     Chips,
     LocalRefreshment,
-    SteamVoucher,
+    SteamPrepared,
+    SteamLate,
     SteamFallback,
 }
+
+public readonly record struct BlindBoxPrice(
+    int ActualCost,
+    int DisplayValue,
+    EBlindBoxValueMode ValueMode,
+    bool StrikeThrough);
 
 public sealed class BlindBoxHintState
 {
     public BlindBoxHintStatus Status { get; init; }
     public BlindBox? Box { get; init; }
     public int Cost { get; init; }
+    public int DisplayValue { get; init; }
+    public EBlindBoxValueMode ValueMode { get; init; } = EBlindBoxValueMode.Chips;
+    public bool StrikeThrough { get; init; }
     public double RemainingSeconds { get; init; }
     public BlindBoxPaymentSource PaymentSource { get; init; }
 }
@@ -139,202 +159,119 @@ public sealed class BlindBoxService
         runtimeState.ScheduleSeconds += realDeltaSeconds * GetScheduleClockRate();
     }
 
-    public bool TryGetNextSteamPlaytimeDrop(
+    public bool TryGetPreparationCandidate(
         BlindBoxRuntimeState runtimeState,
+        double totalPlaySeconds,
         out BlindBoxSchedule? schedule,
-        out BlindBox? box,
-        out int grantCount)
+        out BlindBox? box)
     {
-        NormalizeSteamPlaytimeDropProgress(runtimeState);
-        var leadScheduleSeconds = GetSteamPlaytimeRequestLeadSeconds() * GetScheduleClockRate();
-        var eligibilitySeconds = runtimeState.ScheduleSeconds + leadScheduleSeconds;
+        schedule = null;
+        box = null;
+        if (runtimeState.PendingPreparation != null || runtimeState.PreparedReward != null)
+            return false;
 
-        var candidate = LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(entry => entry.IsEnabled
-                            && !entry.IsLoopTrack
-                            && entry.SteamPlaytimeGeneratorItemDefId > 0)
-            .Select(entry =>
-            {
-                var progress = GetSteamPlaytimeDropState(runtimeState, entry.Id);
-                var nextGrantCount = progress.ProcessedGrantCount + 1;
-                return new
-                {
-                    Schedule = entry,
-                    Box = LubanData.Tables.TbBlindBox.GetOrDefault(entry.BlindBoxId),
-                    NextGrantCount = nextGrantCount,
-                    DueSeconds = GetGrantDueScheduleSeconds(entry, nextGrantCount),
-                    EligibleGrantCount = GetDueGrantCount(entry, eligibilitySeconds),
-                };
-            })
-            .Where(entry => entry.Box != null
-                            && entry.Box.IsEnabled
-                            && entry.Box.SteamOpenCostItemDefId > 0
-                            && entry.EligibleGrantCount >= entry.NextGrantCount)
-            .OrderBy(entry => entry.DueSeconds)
-            .ThenBy(entry => entry.Schedule.Id)
-            .FirstOrDefault();
-
-        if (candidate != null)
+        var sequence = GetCurrentSequenceSchedule(runtimeState);
+        if (sequence != null)
         {
-            schedule = candidate.Schedule;
-            box = candidate.Box;
-            grantCount = candidate.NextGrantCount;
-            return true;
+            if (sequence.SteamPlaytimeGeneratorItemDefId <= 0
+                || totalPlaySeconds < GetSteamEligibilityRealSeconds(sequence))
+                return false;
+
+            schedule = sequence;
+            box = LubanData.Tables.TbBlindBox.GetOrDefault(sequence.BlindBoxId);
+            return box is { IsEnabled: true, IsPlatformInventoryRequired: true };
         }
 
         EnsureLoopStageInitialized(runtimeState);
         var loopSchedule = GetLoopSchedule();
-        var loopBox = loopSchedule == null
-            ? null
-            : LubanData.Tables.TbBlindBox.GetOrDefault(loopSchedule.BlindBoxId);
         if (!runtimeState.LoopStageStarted
-            || runtimeState.LoopDropVerificationPending
             || runtimeState.ScheduleSeconds < runtimeState.NextLoopTriggerSeconds
-            || loopSchedule == null
-            || loopBox is not { IsEnabled: true }
-            || loopSchedule.SteamPlaytimeGeneratorItemDefId <= 0)
-        {
-            schedule = null;
-            box = null;
-            grantCount = 0;
+            || loopSchedule?.SteamPlaytimeGeneratorItemDefId <= 0)
             return false;
-        }
 
         schedule = loopSchedule;
-        box = loopBox;
-        grantCount = 1;
-        return true;
+        box = LubanData.Tables.TbBlindBox.GetOrDefault(loopSchedule!.BlindBoxId);
+        return box is { IsEnabled: true, IsPlatformInventoryRequired: true };
     }
 
-    public bool IsSteamPlaytimeDropDue(
+    public void MarkPreparationRequestAccepted(
         BlindBoxRuntimeState runtimeState,
-        BlindBoxSchedule schedule,
-        int grantCount) => schedule.IsLoopTrack
-        ? runtimeState.LoopStageStarted
-          && runtimeState.ScheduleSeconds >= runtimeState.NextLoopTriggerSeconds
-        : GetDueGrantCount(schedule, runtimeState.ScheduleSeconds) >= grantCount;
-
-    public double GetSteamPlaytimeDropRetryDelaySeconds(
-        BlindBoxRuntimeState runtimeState,
-        BlindBoxSchedule schedule,
-        int grantCount)
+        BlindBoxSchedule schedule)
     {
         if (schedule.IsLoopTrack)
-        {
-            var remaining = Math.Max(
-                0.0,
-                runtimeState.NextLoopTriggerSeconds - runtimeState.ScheduleSeconds);
-            return Math.Max(5.0, ToRealSeconds(remaining));
-        }
-
-        var remainingScheduleSeconds = Math.Max(
-            0.0,
-            GetGrantDueScheduleSeconds(schedule, grantCount) - runtimeState.ScheduleSeconds);
-        return Math.Max(5.0, ToRealSeconds(remainingScheduleSeconds));
-    }
-
-    public void CompleteSteamPlaytimeDrop(
-        BlindBoxRuntimeState runtimeState,
-        int scheduleId,
-        int grantCount)
-    {
-        var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
-        if (schedule == null || grantCount <= 0)
-            return;
-
-        if (schedule.IsLoopTrack)
-        {
-            runtimeState.LoopDropVerificationPending = false;
             AdvanceLoopTriggerHeartbeat(runtimeState);
-            return;
-        }
-
-        var progress = GetSteamPlaytimeDropState(runtimeState, scheduleId);
-        progress.ProcessedGrantCount = Math.Max(progress.ProcessedGrantCount, grantCount);
     }
 
-    public void BeginSteamPlaytimeDrop(
-        BlindBoxRuntimeState runtimeState,
-        BlindBoxSchedule schedule)
-    {
-        if (schedule.IsLoopTrack)
-            runtimeState.LoopDropVerificationPending = true;
-    }
-
-    public bool PrepareLoopDropRetryAfterInventoryVerification(BlindBoxRuntimeState runtimeState)
-    {
-        if (!runtimeState.LoopDropVerificationPending)
-            return false;
-
-        runtimeState.LoopDropVerificationPending = false;
-        return true;
-    }
-
-    public bool ReopenCurrentSteamPlaytimeDrop(
-        BlindBoxRuntimeState runtimeState,
-        BlindBoxSchedule schedule)
-    {
-        if (schedule.IsLoopTrack)
-            return false;
-
-        var progress = GetSteamPlaytimeDropState(runtimeState, schedule.Id);
-        var reopenedGrantCount = Math.Min(progress.ProcessedGrantCount, 0);
-        if (progress.ProcessedGrantCount == reopenedGrantCount)
-            return false;
-
-        progress.ProcessedGrantCount = reopenedGrantCount;
-        return true;
-    }
-
-    public bool CompleteCurrentSteamPlaytimeDropFromInventory(
-        BlindBoxRuntimeState runtimeState,
-        BlindBoxSchedule schedule)
-    {
-        if (schedule.IsLoopTrack)
-            return false;
-
-        var progress = GetSteamPlaytimeDropState(runtimeState, schedule.Id);
-        if (progress.ProcessedGrantCount >= 1)
-            return false;
-
-        progress.ProcessedGrantCount = 1;
-        return true;
-    }
-
-    public bool MaintainLoopPresentation(
-        BlindBoxRuntimeState runtimeState,
-        bool canLockPresentation,
-        int selectedBlindBoxId)
+    public bool MaintainPresentation(BlindBoxRuntimeState runtimeState)
     {
         var changed = EnsureLoopStageInitialized(runtimeState);
-        if (!runtimeState.LoopStageStarted)
+        if (runtimeState.LockedPresentation != null)
             return changed;
 
-        var interval = GetLoopIntervalScheduleSeconds();
-        if (runtimeState.NextLoopPresentationSeconds <= 0.0)
+        var schedule = GetCurrentSequenceSchedule(runtimeState);
+        if (schedule != null)
         {
-            runtimeState.NextLoopPresentationSeconds = runtimeState.ScheduleSeconds + interval;
-            changed = true;
+            if (!IsSequenceAvailable(schedule, runtimeState.ScheduleSeconds, runtimeState))
+                return changed;
+        }
+        else
+        {
+            schedule = GetLoopSchedule();
+            if (schedule == null
+                || !runtimeState.LoopStageStarted
+                || runtimeState.ScheduleSeconds < runtimeState.NextLoopPresentationSeconds)
+                return changed;
         }
 
-        if (runtimeState.ScheduleSeconds < runtimeState.NextLoopPresentationSeconds)
+        var configuredBox = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+        if (configuredBox is not { IsEnabled: true })
             return changed;
 
-        var elapsedIntervals = Math.Floor(
-            (runtimeState.ScheduleSeconds - runtimeState.NextLoopPresentationSeconds) / interval) + 1.0;
-        runtimeState.NextLoopPresentationSeconds += elapsedIntervals * interval;
-        changed = true;
+        if (runtimeState.PreparedReward is { } prepared)
+        {
+            runtimeState.LockedPresentation = new LockedBlindBoxPresentation
+            {
+                ScheduleId = schedule.Id,
+                BlindBoxId = prepared.BlindBoxId,
+                Kind = prepared.IsLate
+                    ? LockedBlindBoxPresentationKind.LateSteam
+                    : LockedBlindBoxPresentationKind.PreparedSteam,
+                PreparedPlatformInstanceId = prepared.PlatformInstanceId,
+            };
+        }
+        else if (!configuredBox.IsPlatformInventoryRequired
+                 || schedule.SteamPlaytimeGeneratorItemDefId <= 0)
+        {
+            runtimeState.LockedPresentation = new LockedBlindBoxPresentation
+            {
+                ScheduleId = schedule.Id,
+                BlindBoxId = configuredBox.Id,
+                Kind = LockedBlindBoxPresentationKind.ScheduledLocal,
+            };
+        }
+        else if (GetFallbackRefreshmentBox() is { } fallback)
+        {
+            runtimeState.LockedPresentation = new LockedBlindBoxPresentation
+            {
+                ScheduleId = schedule.Id,
+                BlindBoxId = fallback.Id,
+                Kind = LockedBlindBoxPresentationKind.Fallback,
+            };
+            if (runtimeState.PendingPreparation != null)
+                runtimeState.PendingPreparation.IsLate = true;
+        }
 
-        if (!canLockPresentation || runtimeState.LockedLoopBlindBoxId > 0)
+        if (runtimeState.LockedPresentation == null)
             return changed;
 
-        var schedule = GetLoopSchedule();
-        var box = LubanData.Tables.TbBlindBox.GetOrDefault(selectedBlindBoxId);
-        if (schedule == null || box is not { IsEnabled: true })
-            return changed;
-
-        runtimeState.LockedLoopScheduleId = schedule.Id;
-        runtimeState.LockedLoopBlindBoxId = box.Id;
+        if (schedule.IsLoopTrack)
+        {
+            var interval = GetLoopIntervalScheduleSeconds();
+            do
+            {
+                runtimeState.NextLoopPresentationSeconds += interval;
+            } while (runtimeState.NextLoopPresentationSeconds <= runtimeState.ScheduleSeconds);
+        }
         return true;
     }
 
@@ -345,9 +282,9 @@ public sealed class BlindBoxService
         if (pendingReward != null)
             return LubanData.Tables.TbBlindBox.GetOrDefault(pendingReward.BlindBoxId);
 
-        return GetAvailableSchedules(runtimeState)
-            .Select(entry => entry.Box)
-            .FirstOrDefault();
+        return runtimeState.LockedPresentation == null
+            ? null
+            : LubanData.Tables.TbBlindBox.GetOrDefault(runtimeState.LockedPresentation.BlindBoxId);
     }
 
     public BlindBox? GetFallbackRefreshmentBox() =>
@@ -367,21 +304,30 @@ public sealed class BlindBoxService
         return schedule != null && box is { IsEnabled: true };
     }
 
-    public BlindBoxHintState CreateReadyHintState(BlindBox box)
+    public BlindBoxHintState CreateReadyHintState(
+        BlindBoxSchedule schedule,
+        BlindBox box,
+        LockedBlindBoxPresentationKind kind)
     {
-        var cost = GetDisplayCost(box);
+        var price = ResolvePrice(schedule, box, kind != LockedBlindBoxPresentationKind.LateSteam);
         return new BlindBoxHintState
         {
-            Status = _gameData.Chips >= cost
+            Status = _gameData.Chips >= price.ActualCost
                 ? BlindBoxHintStatus.Ready
                 : BlindBoxHintStatus.NotEnoughChips,
             Box = box,
-            Cost = cost,
-            PaymentSource = box.IsPlatformInventoryRequired && box.SteamOpenCostItemDefId > 0
-                ? BlindBoxPaymentSource.SteamVoucher
-                : box.BoxType == EBlindBoxType.Refreshment
-                    ? BlindBoxPaymentSource.LocalRefreshment
-                    : BlindBoxPaymentSource.Chips,
+            Cost = price.ActualCost,
+            DisplayValue = price.DisplayValue,
+            ValueMode = price.ValueMode,
+            StrikeThrough = price.StrikeThrough,
+            PaymentSource = kind switch
+            {
+                LockedBlindBoxPresentationKind.PreparedSteam => BlindBoxPaymentSource.SteamPrepared,
+                LockedBlindBoxPresentationKind.LateSteam => BlindBoxPaymentSource.SteamLate,
+                LockedBlindBoxPresentationKind.Fallback => BlindBoxPaymentSource.SteamFallback,
+                _ when box.BoxType == EBlindBoxType.Refreshment => BlindBoxPaymentSource.LocalRefreshment,
+                _ => BlindBoxPaymentSource.Chips,
+            },
         };
     }
 
@@ -390,6 +336,34 @@ public sealed class BlindBoxService
         var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
         var scale = config == null || config.BlindBoxCostScale <= 0 ? 1f : config.BlindBoxCostScale;
         return Mathf.Max(0, Mathf.RoundToInt(box.CostChips * scale));
+    }
+
+    public BlindBoxPrice ResolvePrice(
+        BlindBoxSchedule schedule,
+        BlindBox box,
+        bool useScheduleOverride)
+    {
+        var scale = GetCostScale();
+        if (useScheduleOverride && schedule.CostChipsOverride < 0)
+        {
+            return new BlindBoxPrice(
+                0,
+                Mathf.Max(0, Mathf.RoundToInt(Math.Abs(schedule.CostChipsOverride) * scale)),
+                EBlindBoxValueMode.Chips,
+                true);
+        }
+
+        var configuredCost = useScheduleOverride && schedule.CostChipsOverride > 0
+            ? schedule.CostChipsOverride
+            : box.CostChips;
+        var cost = Mathf.Max(0, Mathf.RoundToInt(configuredCost * scale));
+        return new BlindBoxPrice(cost, cost, box.HintValueMode, false);
+    }
+
+    private static float GetCostScale()
+    {
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        return config == null || config.BlindBoxCostScale <= 0 ? 1f : config.BlindBoxCostScale;
     }
 
     public string BuildDebugStatus(
@@ -417,14 +391,13 @@ public sealed class BlindBoxService
             return builder.ToString().TrimEnd();
         }
 
-        var available = GetAvailableSchedules(runtimeState).FirstOrDefault();
-        if (available.Schedule != null && available.Box != null)
+        if (TryGetLockedPresentation(runtimeState, out var availableSchedule, out var availableBox, out var locked))
         {
-            var cost = GetDisplayCost(available.Box);
-            builder.AppendLine(_gameData.Chips >= cost ? "状态: 可领取" : "状态: 筹码不足");
-            builder.AppendLine($"下个: {available.Box.Name} ({available.Box.Id})");
-            builder.AppendLine($"调度: {available.Schedule.Id}, 循环={available.Schedule.IsLoopTrack}");
-            builder.AppendLine($"消耗: {cost}, 筹码: {_gameData.Chips}");
+            var price = ResolvePrice(availableSchedule!, availableBox!, locked!.Kind != LockedBlindBoxPresentationKind.LateSteam);
+            builder.AppendLine(_gameData.Chips >= price.ActualCost ? "状态: 可领取" : "状态: 筹码不足");
+            builder.AppendLine($"下个: {availableBox!.Name} ({availableBox.Id})");
+            builder.AppendLine($"调度: {availableSchedule!.Id}, 类型={locked.Kind}");
+            builder.AppendLine($"消耗: {price.ActualCost}, 筹码: {_gameData.Chips}");
         }
         else
         {
@@ -447,13 +420,16 @@ public sealed class BlindBoxService
         }
 
         var loopSchedule = GetLoopSchedule();
-        var lockedBox = LubanData.Tables.TbBlindBox.GetOrDefault(runtimeState.LockedLoopBlindBoxId);
+        var lockedBox = runtimeState.LockedPresentation == null
+            ? null
+            : LubanData.Tables.TbBlindBox.GetOrDefault(runtimeState.LockedPresentation.BlindBoxId);
         builder.AppendLine($"正常阶段: {(runtimeState.LoopStageStarted ? "已启动" : "未启动")}");
         builder.AppendLine($"循环调度: {loopSchedule?.Id.ToString() ?? "缺失"}");
-        builder.AppendLine($"锁定气球: {lockedBox?.Name ?? "无"} ({runtimeState.LockedLoopBlindBoxId})");
+        builder.AppendLine($"锁定气球: {lockedBox?.Name ?? "无"} ({runtimeState.LockedPresentation?.Kind.ToString() ?? "None"})");
         builder.AppendLine($"下个展示点: {FormatSeconds(ToRealSeconds(Math.Max(0, runtimeState.NextLoopPresentationSeconds - scheduleSeconds)))} 后");
         builder.AppendLine($"下个Steam心跳: {FormatSeconds(ToRealSeconds(Math.Max(0, runtimeState.NextLoopTriggerSeconds - scheduleSeconds)))} 后");
-        builder.AppendLine($"循环请求待验证: {(runtimeState.LoopDropVerificationPending ? "是" : "否")}");
+        builder.AppendLine($"准备请求: {runtimeState.PendingPreparation?.Phase.ToString() ?? "无"}");
+        builder.AppendLine($"待揭晓实例: {runtimeState.PreparedReward?.PlatformInstanceId.ToString() ?? "无"}");
 
         return builder.ToString().TrimEnd();
     }
@@ -471,23 +447,8 @@ public sealed class BlindBoxService
             };
         }
 
-        var available = GetAvailableSchedules(runtimeState).FirstOrDefault();
-        if (available.Schedule != null && available.Box != null)
-        {
-            var cost = GetDisplayCost(available.Box);
-            return new BlindBoxHintState
-            {
-                Status = _gameData.Chips >= cost ? BlindBoxHintStatus.Ready : BlindBoxHintStatus.NotEnoughChips,
-                Box = available.Box,
-                Cost = cost,
-                PaymentSource = available.Box.IsPlatformInventoryRequired
-                    && available.Box.SteamOpenCostItemDefId > 0
-                        ? BlindBoxPaymentSource.SteamVoucher
-                        : available.Box.BoxType == EBlindBoxType.Refreshment
-                            ? BlindBoxPaymentSource.LocalRefreshment
-                            : BlindBoxPaymentSource.Chips,
-            };
-        }
+        if (TryGetLockedPresentation(runtimeState, out var schedule, out var box, out var locked))
+            return CreateReadyHintState(schedule!, box!, locked!.Kind);
 
         return new BlindBoxHintState
         {
@@ -500,50 +461,26 @@ public sealed class BlindBoxService
         double totalPlaySeconds,
         BlindBoxRuntimeState runtimeState)
     {
-        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
-        if (candidate.Schedule == null || candidate.Box == null)
+        if (!TryGetLockedPresentation(runtimeState, out var schedule, out var box, out var locked)
+            || schedule == null || box == null || locked == null)
             return null;
 
-        var cost = GetDisplayCost(candidate.Box);
-        if (_gameData.Chips < cost)
+        var price = ResolvePrice(schedule, box, locked.Kind != LockedBlindBoxPresentationKind.LateSteam);
+        if (_gameData.Chips < price.ActualCost)
         {
-            GD.PushWarning($"[BlindBox] Not enough chips. Need {cost}, current {_gameData.Chips}.");
+            GD.PushWarning($"[BlindBox] Not enough chips. Need {price.ActualCost}, current {_gameData.Chips}.");
             return null;
         }
 
-        var item = RollReward(candidate.Box);
+        var item = RollReward(box);
         if (item == null)
         {
-            GD.PushError($"[BlindBox] No reward candidate for box {candidate.Box.Id} ({candidate.Box.Name}).");
+            GD.PushError($"[BlindBox] No reward candidate for box {box.Id} ({box.Name}).");
             return null;
         }
 
-        _gameData.ModifyChips(-cost);
-        return CreateOpenResult(totalPlaySeconds, candidate.Schedule, candidate.Box, item, cost);
-    }
-
-    public BlindBoxOpenResult? TryOpenFallback(
-        double totalPlaySeconds,
-        BlindBoxSchedule originalSchedule,
-        BlindBox fallbackBox)
-    {
-        var cost = GetDisplayCost(fallbackBox);
-        if (_gameData.Chips < cost)
-        {
-            GD.PushWarning($"[BlindBox] Not enough chips. Need {cost}, current {_gameData.Chips}.");
-            return null;
-        }
-
-        var item = RollReward(fallbackBox);
-        if (item == null)
-        {
-            GD.PushError(
-                $"[BlindBox] No reward candidate for fallback box {fallbackBox.Id} ({fallbackBox.Name}).");
-            return null;
-        }
-
-        _gameData.ModifyChips(-cost);
-        return CreateOpenResult(totalPlaySeconds, originalSchedule, fallbackBox, item, cost);
+        _gameData.ModifyChips(-price.ActualCost);
+        return CreateOpenResult(totalPlaySeconds, schedule, box, item, price.ActualCost);
     }
 
     public bool TryGetNextAvailable(
@@ -551,10 +488,7 @@ public sealed class BlindBoxService
         out BlindBoxSchedule? schedule,
         out BlindBox? box)
     {
-        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
-        schedule = candidate.Schedule;
-        box = candidate.Box;
-        return schedule != null && box != null;
+        return TryGetLockedPresentation(runtimeState, out schedule, out box, out _);
     }
 
     public bool TryGetNextPresentationCandidate(
@@ -562,17 +496,7 @@ public sealed class BlindBoxService
         out BlindBoxSchedule? schedule,
         out BlindBox? box)
     {
-        schedule = GetCurrentSequenceSchedule(runtimeState);
-        if (schedule != null)
-        {
-            box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
-            return box is { IsEnabled: true };
-        }
-
-        var candidate = GetAvailableSchedules(runtimeState).FirstOrDefault();
-        schedule = candidate.Schedule;
-        box = candidate.Box;
-        return schedule != null && box != null;
+        return TryGetLockedPresentation(runtimeState, out schedule, out box, out _);
     }
 
     public BlindBoxOpenResult? CreateOpenResult(
@@ -580,7 +504,9 @@ public sealed class BlindBoxService
         BlindBoxSchedule schedule,
         BlindBox box,
         Item item,
-        int cost)
+        int cost,
+        ulong platformInstanceId = 0,
+        bool completesSchedule = true)
     {
         var revealPath = RollRevealPath(item.ItemRarity);
         if (revealPath == null)
@@ -597,6 +523,9 @@ public sealed class BlindBoxService
             RevealPathId = revealPath.Id,
             RevealStep = 0,
             RewardShown = box.DisplayMode == EBlindBoxDisplayMode.DirectReward,
+            IsPlatformInventoryReward = platformInstanceId > 0,
+            PlatformInstanceId = platformInstanceId,
+            CompletesSchedule = completesSchedule,
             TotalPlaySeconds = totalPlaySeconds,
             DebugText = BuildDebugText(box, schedule, item, revealPath, totalPlaySeconds, cost),
         };
@@ -616,52 +545,48 @@ public sealed class BlindBoxService
             .SelectMany(rate => GetRewardCandidates(box, rate.Rarity))
             .Any(candidate => candidate.Item.Id == item.Id);
 
-    private IEnumerable<(BlindBoxSchedule Schedule, BlindBox Box)> GetAvailableSchedules(
-        BlindBoxRuntimeState runtimeState)
+    public bool TryGetLockedPresentation(
+        BlindBoxRuntimeState runtimeState,
+        out BlindBoxSchedule? schedule,
+        out BlindBox? box,
+        out LockedBlindBoxPresentation? presentation)
     {
-        var scheduleSeconds = runtimeState.ScheduleSeconds;
-
-        var sequenceSchedule = GetCurrentSequenceSchedule(runtimeState);
-        if (sequenceSchedule != null && IsSequenceAvailable(sequenceSchedule, scheduleSeconds, runtimeState))
-        {
-            var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequenceSchedule.BlindBoxId);
-            if (box != null && box.IsEnabled)
-                return [(sequenceSchedule, box)];
-        }
-
-        if (sequenceSchedule != null)
-            return [];
-
-        if (runtimeState.LockedLoopScheduleId <= 0 || runtimeState.LockedLoopBlindBoxId <= 0)
-            return [];
-
-        var lockedSchedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(runtimeState.LockedLoopScheduleId);
-        var lockedBox = LubanData.Tables.TbBlindBox.GetOrDefault(runtimeState.LockedLoopBlindBoxId);
-        return lockedSchedule is { IsEnabled: true, IsLoopTrack: true }
-               && lockedBox is { IsEnabled: true }
-            ? [(lockedSchedule, lockedBox)]
-            : [];
+        presentation = runtimeState.LockedPresentation;
+        schedule = presentation == null
+            ? null
+            : LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(presentation.ScheduleId);
+        box = presentation == null
+            ? null
+            : LubanData.Tables.TbBlindBox.GetOrDefault(presentation.BlindBoxId);
+        return presentation != null
+               && schedule is { IsEnabled: true }
+               && box is { IsEnabled: true };
     }
 
-    public void ConsumeOpenedSchedule(BlindBoxRuntimeState runtimeState, BlindBoxSchedule schedule)
+    public bool ConsumeOpenedPresentation(BlindBoxRuntimeState runtimeState)
     {
-        if (schedule.IsLoopTrack)
-        {
-            runtimeState.LockedLoopScheduleId = 0;
-            runtimeState.LockedLoopBlindBoxId = 0;
-            return;
-        }
+        var presentation = runtimeState.LockedPresentation;
+        if (presentation == null)
+            return false;
+
+        var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(presentation.ScheduleId);
+        var completesSchedule = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam;
+        runtimeState.LockedPresentation = null;
+        if (!completesSchedule || schedule == null || schedule.IsLoopTrack)
+            return completesSchedule;
 
         var sequenceSchedules = GetSequenceSchedules();
         if (runtimeState.SequenceIndex < sequenceSchedules.Count
             && sequenceSchedules[runtimeState.SequenceIndex].Id == schedule.Id)
-        {
             runtimeState.SequenceIndex++;
-        }
+        return true;
     }
 
     /// <summary>奖励真正进入玩家背包后，再从此刻开始计算下一段新手间隔。</summary>
-    public void CompleteClaimedSchedule(BlindBoxRuntimeState runtimeState, int scheduleId)
+    public void CompleteClaimedPresentation(
+        BlindBoxRuntimeState runtimeState,
+        int scheduleId,
+        bool completedSchedule)
     {
         var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
         if (schedule == null)
@@ -672,7 +597,7 @@ public sealed class BlindBoxService
 
         var scheduleSeconds = runtimeState.ScheduleSeconds;
         runtimeState.LastClaimSeconds = scheduleSeconds;
-        if (!schedule.IsLoopTrack)
+        if (completedSchedule && !schedule.IsLoopTrack)
         {
             if (GetCurrentSequenceSchedule(runtimeState) == null)
                 StartLoopStage(runtimeState);
@@ -727,7 +652,7 @@ public sealed class BlindBoxService
             return ToRealSeconds(waitScaledSeconds);
         }
 
-        if (runtimeState.LockedLoopBlindBoxId > 0)
+        if (runtimeState.LockedPresentation != null)
             return 0.0;
 
         return ToRealSeconds(Math.Max(
@@ -748,11 +673,9 @@ public sealed class BlindBoxService
     {
         var now = runtimeState.ScheduleSeconds;
         runtimeState.LoopStageStarted = true;
-        runtimeState.LockedLoopScheduleId = 0;
-        runtimeState.LockedLoopBlindBoxId = 0;
+        runtimeState.LockedPresentation = null;
         runtimeState.NextLoopPresentationSeconds = now + GetLoopIntervalScheduleSeconds();
         runtimeState.NextLoopTriggerSeconds = now;
-        runtimeState.LoopDropVerificationPending = false;
     }
 
     private static void AdvanceLoopTriggerHeartbeat(BlindBoxRuntimeState runtimeState)
@@ -782,52 +705,13 @@ public sealed class BlindBoxService
         return Math.Max(1.0, config?.BlindBoxLoopIntervalSeconds ?? 1.0);
     }
 
-    private static int GetDueGrantCount(BlindBoxSchedule schedule, double scheduleSeconds)
+    private static double GetSteamEligibilityRealSeconds(BlindBoxSchedule schedule)
     {
-        if (scheduleSeconds < schedule.StartSeconds)
-            return 0;
-
-        var effectiveEnd = schedule.EndSeconds < 0
-            ? scheduleSeconds
-            : Math.Min(scheduleSeconds, schedule.EndSeconds);
-        if (effectiveEnd < schedule.StartSeconds)
-            return 0;
-
-        var due = schedule.IntervalSeconds <= 0
-            ? 1
-            : 1 + (int)Math.Floor((effectiveEnd - schedule.StartSeconds) / schedule.IntervalSeconds);
-        if (schedule.MaxGrantCount >= 0)
-            due = Math.Min(due, schedule.MaxGrantCount);
-        return Math.Max(0, due);
-    }
-
-    private static double GetGrantDueScheduleSeconds(BlindBoxSchedule schedule, int grantCount)
-    {
-        if (grantCount <= 1 || schedule.IntervalSeconds <= 0)
-            return schedule.StartSeconds;
-        return schedule.StartSeconds + (grantCount - 1) * (double)schedule.IntervalSeconds;
-    }
-
-    private static BlindBoxSteamPlaytimeDropState GetSteamPlaytimeDropState(
-        BlindBoxRuntimeState runtimeState,
-        int scheduleId)
-    {
-        if (runtimeState.SteamPlaytimeDropStates.TryGetValue(scheduleId, out var state))
-            return state;
-
-        state = new BlindBoxSteamPlaytimeDropState();
-        runtimeState.SteamPlaytimeDropStates[scheduleId] = state;
-        return state;
-    }
-
-    private static void NormalizeSteamPlaytimeDropProgress(BlindBoxRuntimeState runtimeState)
-    {
-        var sequenceSchedules = GetSequenceSchedules();
-        for (var index = 0; index < Math.Min(runtimeState.SequenceIndex, sequenceSchedules.Count); index++)
-        {
-            var schedule = sequenceSchedules[index];
-            GetSteamPlaytimeDropState(runtimeState, schedule.Id).ProcessedGrantCount = 1;
-        }
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        var multiplier = GetWaitDurationMultiplier();
+        var leadSeconds = Math.Max(0, config?.SteamPlaytimeEligibilityLeadSeconds ?? 0);
+        var rawSeconds = Math.Max(0.0, schedule.StartSeconds * multiplier - leadSeconds);
+        return Math.Max(60.0, Math.Ceiling(rawSeconds / 60.0) * 60.0);
     }
 
     private static double GetScheduleClockRate()
@@ -841,12 +725,6 @@ public sealed class BlindBoxService
         return config == null || config.BlindBoxWaitDurationMultiplier <= 0
             ? 1f
             : config.BlindBoxWaitDurationMultiplier;
-    }
-
-    private static double GetSteamPlaytimeRequestLeadSeconds()
-    {
-        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        return config == null ? 0.0 : Math.Max(0.0, config.SteamPlaytimeRequestLeadSeconds);
     }
 
     private static double ToRealSeconds(double scheduleSeconds) =>
@@ -866,18 +744,8 @@ public sealed class BlindBoxService
                 GD.PushError("[BlindBox] BlindBoxWaitDurationMultiplier must be positive.");
             if (config.BlindBoxLoopIntervalSeconds <= 0)
                 GD.PushError("[BlindBox] BlindBoxLoopIntervalSeconds must be positive.");
-            if (config.SteamPlaytimeDropLeadSeconds < 0)
-                GD.PushError("[BlindBox] SteamPlaytimeDropLeadSeconds cannot be negative.");
-            if (config.SteamPlaytimeRequestLeadSeconds < 0)
-                GD.PushError("[BlindBox] SteamPlaytimeRequestLeadSeconds cannot be negative.");
-            if (config.BlindBoxLoopSteamVoucherInventoryLimit < 0)
-                GD.PushError("[BlindBox] BlindBoxLoopSteamVoucherInventoryLimit cannot be negative.");
-            if (config.SteamPlaytimeRequestLeadSeconds < config.SteamPlaytimeDropLeadSeconds)
-            {
-                GD.PushError(
-                    "[BlindBox] SteamPlaytimeRequestLeadSeconds must be greater than or equal to " +
-                    "SteamPlaytimeDropLeadSeconds.");
-            }
+            if (config.SteamPlaytimeEligibilityLeadSeconds < 0)
+                GD.PushError("[BlindBox] SteamPlaytimeEligibilityLeadSeconds cannot be negative.");
         }
 
         var enabledSchedules = LubanData.Tables.TbBlindBoxSchedule.DataList
@@ -899,33 +767,10 @@ public sealed class BlindBoxService
                 continue;
             }
 
-            var upgradeIds = new HashSet<int>();
-            foreach (var upgradeBoxId in schedule.VoucherUpgradeBlindBoxIds)
-            {
-                if (!upgradeIds.Add(upgradeBoxId))
-                {
-                    GD.PushError(
-                        $"[BlindBox] Schedule {schedule.Id} contains duplicate voucher upgrade box {upgradeBoxId}.");
-                    continue;
-                }
-
-                var upgradeBox = LubanData.Tables.TbBlindBox.GetOrDefault(upgradeBoxId);
-                if (upgradeBox is not { IsEnabled: true })
-                {
-                    GD.PushError(
-                        $"[BlindBox] Schedule {schedule.Id} references missing or disabled voucher upgrade box {upgradeBoxId}.");
-                    continue;
-                }
-
-                if (!upgradeBox.IsPlatformInventoryRequired
-                    || upgradeBox.SteamOpenCostItemDefId <= 0
-                    || upgradeBox.SteamExchangeTargetItemDefId <= 0)
-                {
-                    GD.PushError(
-                        $"[BlindBox] Schedule {schedule.Id} voucher upgrade box {upgradeBoxId} " +
-                        "must configure a platform inventory cost and exchange target.");
-                }
-            }
+            if (box.IsPlatformInventoryRequired && schedule.SteamPlaytimeGeneratorItemDefId <= 0)
+                GD.PushError($"[BlindBox] Platform box Schedule {schedule.Id} requires a PlaytimeGenerator.");
+            if (!box.IsPlatformInventoryRequired && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+                GD.PushError($"[BlindBox] Local box Schedule {schedule.Id} cannot request a PlaytimeGenerator.");
 
             var rates = LubanData.Tables.TbBlindBoxRarityRate.DataList
                 .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
@@ -952,176 +797,39 @@ public sealed class BlindBoxService
     }
 
 #if DEBUG
-    /// <summary>使用当前表数据回归检查固定展示点、气球锁定与跳过规则。</summary>
     private void ValidatePresentationScheduling()
     {
-        var clockState = new BlindBoxRuntimeState();
-        AdvanceScheduleClock(clockState, GetWaitDurationMultiplier() * 10.0);
-        if (Math.Abs(clockState.ScheduleSeconds - 10.0) > 0.001)
-            GD.PushError("[BlindBox] Regression check failed: schedule clock rate does not match the wait-duration multiplier.");
-
         var sequenceSchedules = GetSequenceSchedules();
         var loopSchedule = GetLoopSchedule();
-        var fallbackBox = GetFallbackRefreshmentBox();
-        if (sequenceSchedules.Count == 0 || loopSchedule == null || fallbackBox == null)
+        if (sequenceSchedules.Count == 0 || loopSchedule == null)
             return;
 
         var state = new BlindBoxRuntimeState
         {
-            SequenceIndex = sequenceSchedules.Count - 1,
-            ScheduleSeconds = sequenceSchedules[^1].StartSeconds,
-        };
-        var finalNewbieSchedule = sequenceSchedules[^1];
-        ConsumeOpenedSchedule(state, finalNewbieSchedule);
-        CompleteClaimedSchedule(state, finalNewbieSchedule.Id);
-        var expectedFirstPoint = state.ScheduleSeconds + GetLoopIntervalScheduleSeconds();
-        if (!state.LoopStageStarted
-            || Math.Abs(state.NextLoopPresentationSeconds - expectedFirstPoint) > 0.001
-            || Math.Abs(state.NextLoopTriggerSeconds - state.ScheduleSeconds) > 0.001
-            || GetAvailableSchedules(state).Any())
-            GD.PushError("[BlindBox] Regression check failed: loop stage initialization is incorrect.");
-
-        var restoredCountdownState = new BlindBoxRuntimeState
-        {
             SequenceIndex = sequenceSchedules.Count,
-            ScheduleSeconds = state.ScheduleSeconds + GetLoopIntervalScheduleSeconds() * 0.25,
-            LoopStageStarted = true,
-            NextLoopPresentationSeconds = state.NextLoopPresentationSeconds,
-            NextLoopTriggerSeconds = state.NextLoopTriggerSeconds,
+            ScheduleSeconds = 100.0,
         };
-        MaintainLoopPresentation(
-            restoredCountdownState,
-            canLockPresentation: true,
-            fallbackBox.Id);
-        if (restoredCountdownState.LockedLoopBlindBoxId != 0
-            || Math.Abs(
-                restoredCountdownState.NextLoopPresentationSeconds
-                - state.NextLoopPresentationSeconds) > 0.001)
-        {
-            GD.PushError(
-                "[BlindBox] Regression check failed: restoring a running loop countdown " +
-                "locked or advanced its display point before it was due.");
-        }
-
-        state.ScheduleSeconds = expectedFirstPoint;
-        MaintainLoopPresentation(state, canLockPresentation: true, loopSchedule.BlindBoxId);
-        var firstLoop = GetAvailableSchedules(state).FirstOrDefault();
-        if (firstLoop.Schedule?.Id != loopSchedule.Id || firstLoop.Box?.Id != loopSchedule.BlindBoxId)
-        {
-            GD.PushError("[BlindBox] Regression check failed: due loop presentation was not locked.");
-            return;
-        }
-
-        var nextPoint = state.NextLoopPresentationSeconds;
-        state.ScheduleSeconds = nextPoint;
-        MaintainLoopPresentation(state, canLockPresentation: true, fallbackBox.Id);
-        if (state.LockedLoopBlindBoxId != loopSchedule.BlindBoxId
-            || state.NextLoopPresentationSeconds <= nextPoint)
-            GD.PushError("[BlindBox] Regression check failed: an existing balloon did not skip the next display point.");
-
-        ConsumeOpenedSchedule(state, loopSchedule);
-        state.ScheduleSeconds = state.NextLoopPresentationSeconds;
-        MaintainLoopPresentation(state, canLockPresentation: true, fallbackBox.Id);
-        if (state.LockedLoopBlindBoxId != fallbackBox.Id)
-            GD.PushError("[BlindBox] Regression check failed: fallback presentation was not locked at a later point.");
+        EnsureLoopStageInitialized(state);
+        if (!state.LoopStageStarted
+            || state.NextLoopPresentationSeconds <= state.ScheduleSeconds
+            || state.NextLoopTriggerSeconds != state.ScheduleSeconds)
+            GD.PushError("[BlindBox] Regression check failed: direct-reward loop initialization is incorrect.");
     }
 
     private void ValidateSteamPlaytimeScheduling()
     {
-        var firstSchedule = LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
-            .OrderBy(schedule => schedule.StartSeconds)
-            .ThenBy(schedule => schedule.Id)
-            .FirstOrDefault();
+        var firstSchedule = GetSequenceSchedules()
+            .FirstOrDefault(schedule => schedule.SteamPlaytimeGeneratorItemDefId > 0);
         if (firstSchedule == null)
             return;
 
-        var leadScheduleSeconds = GetSteamPlaytimeRequestLeadSeconds() * GetScheduleClockRate();
-        var triggerSeconds = Math.Max(0.0, firstSchedule.StartSeconds - leadScheduleSeconds);
-        if (triggerSeconds > 0.01)
-        {
-            var beforeState = new BlindBoxRuntimeState { ScheduleSeconds = triggerSeconds - 0.01 };
-            if (TryGetNextSteamPlaytimeDrop(beforeState, out _, out _, out _))
-                GD.PushError("[BlindBox] Regression check failed: Steam playtime drop became eligible too early.");
-        }
-
-        var eligibleState = new BlindBoxRuntimeState { ScheduleSeconds = triggerSeconds };
-        if (!TryGetNextSteamPlaytimeDrop(
-                eligibleState,
-                out var selectedSchedule,
-                out _,
-                out var grantCount)
-            || selectedSchedule?.Id != firstSchedule.Id
-            || grantCount != 1)
-        {
-            GD.PushError("[BlindBox] Regression check failed: Steam playtime drop lead timing is incorrect.");
-            return;
-        }
-
-        CompleteSteamPlaytimeDrop(eligibleState, firstSchedule.Id, grantCount);
-        if (eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
-            GD.PushError("[BlindBox] Regression check failed: Steam playtime drop progress was not recorded.");
-
-        if (!ReopenCurrentSteamPlaytimeDrop(eligibleState, firstSchedule)
-            || eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 0)
-        {
-            GD.PushError("[BlindBox] Regression check failed: missing current Steam voucher was not reopened.");
-        }
-        if (!CompleteCurrentSteamPlaytimeDropFromInventory(eligibleState, firstSchedule)
-            || eligibleState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
-        {
-            GD.PushError("[BlindBox] Regression check failed: an owned current Steam voucher did not satisfy its drop.");
-        }
-
-        var sequenceSchedules = GetSequenceSchedules();
-        var sequenceIndex = sequenceSchedules.FindIndex(schedule => schedule.Id == firstSchedule.Id);
-        if (sequenceIndex >= 0)
-        {
-            var legacyState = new BlindBoxRuntimeState
-            {
-                SequenceIndex = sequenceIndex + 1,
-                ScheduleSeconds = firstSchedule.StartSeconds,
-            };
-            NormalizeSteamPlaytimeDropProgress(legacyState);
-            if (legacyState.SteamPlaytimeDropStates[firstSchedule.Id].ProcessedGrantCount != 1)
-                GD.PushError("[BlindBox] Regression check failed: completed legacy schedules would be triggered again.");
-        }
-
-        var loopSchedule = GetLoopSchedule();
-        if (loopSchedule == null)
-            return;
-
-        var loopState = new BlindBoxRuntimeState
-        {
-            SequenceIndex = sequenceSchedules.Count,
-            ScheduleSeconds = sequenceSchedules[^1].StartSeconds,
-        };
-        EnsureLoopStageInitialized(loopState);
-        if (!TryGetNextSteamPlaytimeDrop(
-                loopState,
-                out var selectedLoopSchedule,
-                out _,
-                out var loopGrantCount)
-            || selectedLoopSchedule?.Id != loopSchedule.Id
-            || loopGrantCount != 1)
-        {
-            GD.PushError("[BlindBox] Regression check failed: initial loop Trigger heartbeat is incorrect.");
-            return;
-        }
-
-        BeginSteamPlaytimeDrop(loopState, loopSchedule);
-        if (!loopState.LoopDropVerificationPending
-            || TryGetNextSteamPlaytimeDrop(loopState, out _, out _, out _))
-        {
-            GD.PushError("[BlindBox] Regression check failed: loop Trigger verification did not block duplicate requests.");
-            return;
-        }
-
-        var previousTrigger = loopState.NextLoopTriggerSeconds;
-        CompleteSteamPlaytimeDrop(loopState, loopSchedule.Id, loopGrantCount);
-        if (loopState.LoopDropVerificationPending
-            || loopState.NextLoopTriggerSeconds <= previousTrigger)
-            GD.PushError("[BlindBox] Regression check failed: loop Trigger completion did not advance its heartbeat.");
+        var before = new BlindBoxRuntimeState();
+        var eligibility = GetSteamEligibilityRealSeconds(firstSchedule);
+        if (TryGetPreparationCandidate(before, Math.Max(0.0, eligibility - 0.01), out _, out _))
+            GD.PushError("[BlindBox] Regression check failed: direct reward became eligible too early.");
+        if (!TryGetPreparationCandidate(before, eligibility, out var schedule, out _)
+            || schedule?.Id != firstSchedule.Id)
+            GD.PushError("[BlindBox] Regression check failed: direct reward eligibility timing is incorrect.");
     }
 #endif
 

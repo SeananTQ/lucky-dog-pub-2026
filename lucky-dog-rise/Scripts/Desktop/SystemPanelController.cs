@@ -109,12 +109,11 @@ public partial class SystemPanelController : CanvasLayer
     private Button _blindBoxDebugToggle = null!;
     private Control _blindBoxDebugContent = null!;
     private Label _blindBoxDebugLabel = null!;
-    private CheckButton _blindBoxFallbackToggle = null!;
     private CheckButton _blindBoxPaymentSourceLabelsToggle = null!;
     private CheckButton _blindBoxLocalTestModeToggle = null!;
-    private Label _blindBoxLocalTestVoucherCount = null!;
-    private Button _blindBoxLocalTestVoucherDecrease = null!;
-    private Button _blindBoxLocalTestVoucherIncrease = null!;
+    private Label _blindBoxLocalTestPreparedRewardCount = null!;
+    private Button _blindBoxLocalTestPreparedRewardDecrease = null!;
+    private Button _blindBoxLocalTestPreparedRewardIncrease = null!;
     private Button _blindBoxLocalTestAdvance = null!;
     private Button _blindBoxLocalTestClear = null!;
     private Label _playerProgressDebugLabel = null!;
@@ -171,7 +170,6 @@ public partial class SystemPanelController : CanvasLayer
                 BuildArmAppearanceOptions();
                 RefreshProgressionHighScoreLabel();
 #if DEBUG
-                RefreshBlindBoxFallbackToggle();
                 RefreshBlindBoxLocalTestControls();
 #endif
             }
@@ -431,12 +429,11 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxDebugToggle = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugToggle");
         _blindBoxDebugContent = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent");
         _blindBoxDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxDebugLabel");
-        _blindBoxFallbackToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow/BlindBoxFallbackToggle");
         _blindBoxPaymentSourceLabelsToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxPaymentSourceLabelsRow/BlindBoxPaymentSourceLabelsToggle");
         _blindBoxLocalTestModeToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestModeRow/BlindBoxLocalTestModeToggle");
-        _blindBoxLocalTestVoucherCount = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow/BlindBoxLocalTestVoucherCount");
-        _blindBoxLocalTestVoucherDecrease = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow/BlindBoxLocalTestVoucherDecrease");
-        _blindBoxLocalTestVoucherIncrease = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow/BlindBoxLocalTestVoucherIncrease");
+        _blindBoxLocalTestPreparedRewardCount = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow/BlindBoxLocalTestPreparedRewardCount");
+        _blindBoxLocalTestPreparedRewardDecrease = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow/BlindBoxLocalTestPreparedRewardDecrease");
+        _blindBoxLocalTestPreparedRewardIncrease = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow/BlindBoxLocalTestPreparedRewardIncrease");
         _blindBoxLocalTestAdvance = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestActionRow/BlindBoxLocalTestAdvance");
         _blindBoxLocalTestClear = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestActionRow/BlindBoxLocalTestClear");
         _playerProgressDebugLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PlayerProgressDebugLabel");
@@ -482,7 +479,6 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.SetPlayerProgressDebugMultiplier(_playerProgressMultiplierOption.GetSelectedId());
         resetPlayerProgressBtn.Pressed += ConfirmResetPlayerProgress;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
-        RefreshBlindBoxFallbackToggle();
         RefreshBlindBoxLocalTestControls();
         _blindBoxLocalTestModeToggle.Toggled += enabled =>
         {
@@ -494,15 +490,15 @@ public partial class SystemPanelController : CanvasLayer
             RefreshBlindBoxLocalTestControls();
             RefreshBlindBoxDebugStatus();
         };
-        _blindBoxLocalTestVoucherDecrease.Pressed += () =>
+        _blindBoxLocalTestPreparedRewardDecrease.Pressed += () =>
         {
-            _gameData?.AdjustBlindBoxLocalTestVoucherCount(-1);
+            _gameData?.AdjustBlindBoxLocalTestPreparedRewardCount(-1);
             RefreshBlindBoxLocalTestControls();
             RefreshBlindBoxDebugStatus();
         };
-        _blindBoxLocalTestVoucherIncrease.Pressed += () =>
+        _blindBoxLocalTestPreparedRewardIncrease.Pressed += () =>
         {
-            _gameData?.AdjustBlindBoxLocalTestVoucherCount(1);
+            _gameData?.AdjustBlindBoxLocalTestPreparedRewardCount(1);
             RefreshBlindBoxLocalTestControls();
             RefreshBlindBoxDebugStatus();
         };
@@ -514,14 +510,6 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxLocalTestClear.Pressed += () =>
         {
             _gameData?.ClearBlindBoxLocalTestPresentation();
-            RefreshBlindBoxDebugStatus();
-        };
-        _blindBoxFallbackToggle.Toggled += enabled =>
-        {
-            if (_gameData == null)
-                return;
-
-            _gameData.SetBlindBoxFallbackEnabled(enabled);
             RefreshBlindBoxDebugStatus();
         };
         BalloonHintController.ShowPaymentSourceLabels = false;
@@ -1062,9 +1050,8 @@ public partial class SystemPanelController : CanvasLayer
     private bool IsSharedInventoryWritePending()
     {
         return _linkTreeRewardEntries.Any(entry => entry.ClaimPending)
-               || _gameData?.PendingPlatformBlindBoxOpen != null
+               || _gameData?.ActiveBlindBoxPreparationPending == true
                || _gameData?.PendingLinkTreeClaim != null
-               || _inventoryService?.IsExchangePending == true
                || _inventoryService?.IsPromoGrantPending == true
                || _inventoryService?.IsPlaytimeDropPending == true;
     }
@@ -1562,14 +1549,6 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxDebugLabel.Text = _gameData.GetBlindBoxDebugStatus();
     }
 
-    private void RefreshBlindBoxFallbackToggle()
-    {
-        if (_blindBoxFallbackToggle == null || _gameData == null)
-            return;
-
-        _blindBoxFallbackToggle.SetPressedNoSignal(_gameData.IsBlindBoxFallbackEnabled);
-    }
-
     private void RefreshBlindBoxLocalTestControls()
     {
         if (_blindBoxLocalTestModeToggle == null || _gameData == null)
@@ -1580,13 +1559,13 @@ public partial class SystemPanelController : CanvasLayer
         _blindBoxLocalTestModeToggle.SetPressedNoSignal(enabled);
         _blindBoxLocalTestModeToggle.Disabled = mockActive;
         _blindBoxLocalTestModeToggle.TooltipText = mockActive
-            ? "Steam Mock 已启用；模拟券和阶段请使用上方面板。"
+            ? "Steam Mock 已启用；准备奖励和网络阶段请使用上方面板。"
             : string.Empty;
-        _blindBoxLocalTestVoucherCount.Text = mockActive
+        _blindBoxLocalTestPreparedRewardCount.Text = mockActive
             ? "—"
-            : _gameData.BlindBoxLocalTestVoucherCount.ToString();
-        _blindBoxLocalTestVoucherDecrease.Disabled = mockActive || !enabled;
-        _blindBoxLocalTestVoucherIncrease.Disabled = mockActive || !enabled;
+            : _gameData.BlindBoxLocalTestPreparedRewardCount.ToString();
+        _blindBoxLocalTestPreparedRewardDecrease.Disabled = mockActive || !enabled;
+        _blindBoxLocalTestPreparedRewardIncrease.Disabled = mockActive || !enabled;
         var sandboxActive = mockActive || enabled;
         _blindBoxLocalTestAdvance.Disabled = !sandboxActive;
         _blindBoxLocalTestClear.Disabled = !sandboxActive;

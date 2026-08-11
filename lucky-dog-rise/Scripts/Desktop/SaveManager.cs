@@ -25,11 +25,8 @@ public sealed class SaveProfile
     public List<int>? AppliedLinkTreeRewardIds { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
-    public Dictionary<int, int> BlindBoxClaimedCountsBySchedule { get; set; } = new();
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public PendingPlatformBlindBoxOpen? PendingPlatformBlindBoxOpen { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PendingLinkTreeClaim? PendingLinkTreeClaim { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -64,8 +61,8 @@ public sealed record SaveLoadResult(SaveProfile Profile, SaveLoadDisposition Dis
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 14;
-    public const int MinimumSupportedVersion = 10;
+    public const int CurrentVersion = 15;
+    public const int MinimumSupportedVersion = 15;
 
     private const string SaveDir = "user://saves";
     private const string SavePath = "user://saves/profile_0.json";
@@ -90,9 +87,27 @@ public static class SaveManager
 
         if (!FileAccess.FileExists(SavePath))
         {
+            if (TryReadProfileVersion(BackupPath, out var backupOnlyVersion)
+                && backupOnlyVersion < MinimumSupportedVersion)
+            {
+                return ReportLoad(
+                    ReplaceLegacySave(new SaveProfile { Version = backupOnlyVersion }, "backup-only"),
+                    SaveLoadDisposition.ReplacedLegacy,
+                    $"Archived unsupported backup-only V{backupOnlyVersion} save.");
+            }
+
             var fresh = CreateDefaultProfile();
             Save(fresh);
             return ReportLoad(fresh, SaveLoadDisposition.Created, "No save existed; created a new profile.");
+        }
+
+        if (TryReadProfileVersion(SavePath, out var storedVersion)
+            && storedVersion < MinimumSupportedVersion)
+        {
+            return ReportLoad(
+                ReplaceLegacySave(new SaveProfile { Version = storedVersion }, "primary"),
+                SaveLoadDisposition.ReplacedLegacy,
+                $"Archived unsupported V{storedVersion} save before signature verification.");
         }
 
         if (TryLoadVerified(SavePath, out var profile, out var failure))
@@ -106,6 +121,15 @@ public static class SaveManager
         }
 
         GD.PushError($"[Save] Primary save rejected: {failure}.");
+        if (TryReadProfileVersion(BackupPath, out var backupVersion)
+            && backupVersion < MinimumSupportedVersion)
+        {
+            return ReportLoad(
+                ReplaceLegacySave(new SaveProfile { Version = backupVersion }, "backup"),
+                SaveLoadDisposition.ReplacedLegacy,
+                $"Primary was rejected ({failure}); archived unsupported V{backupVersion} backup and created V{CurrentVersion}.");
+        }
+
         if (TryLoadVerified(BackupPath, out profile, out _))
         {
             if (profile!.Version < MinimumSupportedVersion)
@@ -158,6 +182,23 @@ public static class SaveManager
             : Normalize(profile);
     }
 
+    private static bool TryReadProfileVersion(string path, out int version)
+    {
+        version = 0;
+        try
+        {
+            using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+            using var document = JsonDocument.Parse(file.GetAsText());
+            return document.RootElement.TryGetProperty(nameof(SaveProfile.Version), out var value)
+                   && value.TryGetInt32(out version)
+                   && version > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static SaveProfile ReplaceLegacySave(SaveProfile profile, string source)
     {
         var legacyVersion = Math.Max(1, profile.Version);
@@ -165,8 +206,10 @@ public static class SaveManager
         {
             GD.PushError(
                 $"[Save] Failed to archive unsupported {source} save V{legacyVersion}. " +
-                "Continuing with the legacy migration path to avoid losing player data.");
-            return Normalize(profile);
+                "Creating a fresh V15 profile; the normal atomic backup path will preserve the previous primary when possible.");
+            var fallbackReplacement = CreateDefaultProfile();
+            SaveInternal(fallbackReplacement, backupExisting: true);
+            return fallbackReplacement;
         }
 
         var replacement = CreateDefaultProfile();
@@ -264,6 +307,35 @@ public static class SaveManager
         return profile;
     }
 
+    private static void NormalizeBlindBoxPreparationState(
+        BlindBoxRuntimeState state,
+        IReadOnlySet<int> validScheduleIds,
+        IReadOnlySet<int> validItemIds)
+    {
+        if (state.PendingPreparation is { } pending)
+        {
+            pending.InventoryQuantitiesBeforeRequest ??= new Dictionary<ulong, uint>();
+            pending.SubmittedAtTotalPlaySeconds = Math.Max(0.0, pending.SubmittedAtTotalPlaySeconds);
+            pending.RetryNotBeforeTotalPlaySeconds = Math.Max(0.0, pending.RetryNotBeforeTotalPlaySeconds);
+            if (!validScheduleIds.Contains(pending.ScheduleId)
+                || pending.BlindBoxId <= 0
+                || pending.GeneratorItemDefId <= 0
+                || !Enum.IsDefined(pending.Phase))
+                state.PendingPreparation = null;
+        }
+
+        if (state.PreparedReward is { } prepared
+            && (!validScheduleIds.Contains(prepared.ScheduleId)
+                || !validItemIds.Contains(prepared.ItemId)
+                || prepared.BlindBoxId <= 0
+                || prepared.PlatformInstanceId == 0
+                || prepared.SteamItemDefId <= 0))
+            state.PreparedReward = null;
+
+        if (state.PendingPreparation != null && state.PreparedReward != null)
+            state.PendingPreparation = null;
+    }
+
 #if DEBUG
     public static SaveProfile ResetLocalSave()
     {
@@ -278,8 +350,6 @@ public static class SaveManager
         if (profile.Version <= 0)
             profile.Version = 1;
 
-        var loadedVersion = profile.Version;
-
         profile.Chips = Math.Max(0, profile.Chips);
         profile.OwnedItemIds ??= new List<int>();
         profile.OwnedItemCounts ??= new Dictionary<int, int>();
@@ -291,31 +361,7 @@ public static class SaveManager
             .Distinct()
             .OrderBy(id => id)
             .ToList();
-        if (loadedVersion < 14)
-        {
-            // Older builds had no durable local-reward ledger. Existing Steam receipts
-            // become the first baseline and must not trigger historical chip grants.
-            profile.LinkTreeRewardLedgerInitialized = false;
-        }
-        profile.BlindBoxClaimedCountsBySchedule ??= new Dictionary<int, int>();
         profile.BlindBoxRuntimeState ??= new BlindBoxRuntimeState();
-        if (profile.PendingPlatformBlindBoxOpen is { } pendingPlatformOpen)
-        {
-            pendingPlatformOpen.InventoryQuantitiesBeforeExchange ??= new Dictionary<ulong, uint>();
-            pendingPlatformOpen.ReservedChipCost = Math.Max(0, pendingPlatformOpen.ReservedChipCost);
-            var validPlatformOpen = pendingPlatformOpen.BlindBoxId > 0
-                && pendingPlatformOpen.ScheduleId > 0
-                && pendingPlatformOpen.InputItemDefId > 0
-                && pendingPlatformOpen.InputInstanceId > 0
-                && pendingPlatformOpen.ExchangeTargetItemDefId > 0
-                && LubanData.Tables.TbBlindBox.GetOrDefault(pendingPlatformOpen.BlindBoxId) != null
-                && LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(pendingPlatformOpen.ScheduleId) != null;
-            if (!validPlatformOpen)
-            {
-                profile.Chips = checked(profile.Chips + pendingPlatformOpen.ReservedChipCost);
-                profile.PendingPlatformBlindBoxOpen = null;
-            }
-        }
         if (profile.PendingLinkTreeClaim is { } pendingLinkTreeClaim
             && (pendingLinkTreeClaim.LinkTreeId <= 0
                 || pendingLinkTreeClaim.SteamClaimBundleItemDefId <= 0
@@ -332,10 +378,8 @@ public static class SaveManager
             profile.LuckyDealBuffState.LuckyDealMode = DataTables.ELuckyDealMode.GuidedDraw;
         }
         profile.RefreshmentRuntimeState ??= new RefreshmentRuntimeState();
-        profile.BlindBoxRuntimeState.LoopTrackStates ??= new Dictionary<int, BlindBoxScheduleState>();
-        profile.BlindBoxRuntimeState.SteamPlaytimeDropStates ??=
-            new Dictionary<int, BlindBoxSteamPlaytimeDropState>();
-        profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts ??= new Dictionary<int, int>();
+        if (profile.BlindBoxRuntimeState.PendingPreparation != null)
+            profile.BlindBoxRuntimeState.PendingPreparation.InventoryQuantitiesBeforeRequest ??= new Dictionary<ulong, uint>();
         profile.TotalPlaySeconds = Math.Max(0, profile.TotalPlaySeconds);
 
         var validIds = LubanData.Tables.TbItem.DataList
@@ -357,11 +401,6 @@ public static class SaveManager
         foreach (var itemId in initialItemIds)
             profile.OwnedItemCounts.TryAdd(itemId, 1);
 
-        if (loadedVersion < 4)
-        {
-            profile.Version = 4;
-        }
-
         profile.OwnedItemCounts = profile.OwnedItemCounts
             .Where(pair => validIds.Contains(pair.Key) && pair.Value > 0)
             .OrderBy(pair => pair.Key)
@@ -379,83 +418,13 @@ public static class SaveManager
         var validScheduleIds = LubanData.Tables.TbBlindBoxSchedule.DataList
             .Select(schedule => schedule.Id)
             .ToHashSet();
-        profile.BlindBoxClaimedCountsBySchedule = profile.BlindBoxClaimedCountsBySchedule
-            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value > 0)
-            .OrderBy(pair => pair.Key)
-            .ToDictionary(pair => pair.Key, pair => pair.Value);
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
         profile.BlindBoxRuntimeState.LastClaimSeconds = Math.Max(0, profile.BlindBoxRuntimeState.LastClaimSeconds);
         profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = Math.Max(0, profile.BlindBoxRuntimeState.NextLoopPresentationSeconds);
         profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = Math.Max(
             0,
             profile.BlindBoxRuntimeState.NextLoopTriggerSeconds);
-        profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds = Math.Max(
-            0,
-            profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds);
-        profile.BlindBoxRuntimeState.LoopTrackStates = profile.BlindBoxRuntimeState.LoopTrackStates
-            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
-            .OrderBy(pair => pair.Key)
-            .ToDictionary(
-                pair => pair.Key,
-                pair => new BlindBoxScheduleState
-                {
-                    PendingCount = Math.Max(0, pair.Value.PendingCount),
-                    ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
-                });
-        profile.BlindBoxRuntimeState.SteamPlaytimeDropStates = profile.BlindBoxRuntimeState.SteamPlaytimeDropStates
-            .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value != null)
-            .OrderBy(pair => pair.Key)
-            .ToDictionary(
-                pair => pair.Key,
-                pair => new BlindBoxSteamPlaytimeDropState
-                {
-                    ProcessedGrantCount = Math.Max(0, pair.Value.ProcessedGrantCount),
-                });
-        profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts =
-            profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts
-                .Where(pair => validScheduleIds.Contains(pair.Key) && pair.Value > 0)
-                .OrderBy(pair => pair.Key)
-                .ToDictionary(pair => pair.Key, pair => pair.Value);
-
-        if (loadedVersion < 5)
-        {
-            profile.BlindBoxRuntimeState.ScheduleSeconds = InferLegacyBlindBoxScheduleSeconds(profile);
-            profile.Version = 5;
-            GD.Print($"[Save] Migrated blind-box schedule clock to {profile.BlindBoxRuntimeState.ScheduleSeconds:0.0}s.");
-        }
-        else
-        {
-            profile.BlindBoxRuntimeState.ScheduleSeconds = Math.Max(
-                0.0,
-                profile.BlindBoxRuntimeState.ScheduleSeconds);
-        }
-
-        if (loadedVersion < 9)
-        {
-            profile.BlindBoxRuntimeState.LoopTrackStates.Clear();
-            profile.BlindBoxRuntimeState.DeferredPlatformScheduleCounts.Clear();
-            profile.BlindBoxRuntimeState.NextDeferredPlatformPresentationSeconds = 0.0;
-            profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = 0.0;
-            profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = 0.0;
-            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
-            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
-            profile.BlindBoxRuntimeState.LoopStageStarted = false;
-            profile.BlindBoxRuntimeState.LoopDropVerificationPending = false;
-            if (profile.PendingPlatformBlindBoxOpen != null)
-                profile.PendingPlatformBlindBoxOpen.IsDeferredBacklog = false;
-            profile.Version = 9;
-            GD.Print("[Save] Migrated blind-box loop state to fixed display points and Steam voucher backlog.");
-        }
-
-        if (loadedVersion < 10)
-        {
-            // The old field represented a directly granted receipt. New claims target a Bundle
-            // and verify a separate permanent receipt, so an old in-flight transaction is unsafe
-            // to reinterpret after an update.
-            profile.PendingLinkTreeClaim = null;
-            profile.Version = 10;
-            GD.Print("[Save] Cleared legacy LinkTree claim transaction for Bundle-based rewards.");
-        }
+        profile.BlindBoxRuntimeState.ScheduleSeconds = Math.Max(0.0, profile.BlindBoxRuntimeState.ScheduleSeconds);
 
         var newPlayerScheduleCount = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(
             schedule => schedule.IsEnabled && !schedule.IsLoopTrack);
@@ -464,36 +433,36 @@ public static class SaveManager
             profile.BlindBoxRuntimeState.LoopStageStarted = false;
             profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = 0.0;
             profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = 0.0;
-            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
-            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
-            profile.BlindBoxRuntimeState.LoopDropVerificationPending = false;
-        }
-        else if (!profile.BlindBoxRuntimeState.LoopStageStarted)
-        {
-            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
-            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+            profile.BlindBoxRuntimeState.LockedPresentation = null;
         }
 
-        var lockedLoopSchedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(
-            profile.BlindBoxRuntimeState.LockedLoopScheduleId);
-        var lockedLoopBox = LubanData.Tables.TbBlindBox.GetOrDefault(
-            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId);
-        if (lockedLoopSchedule is not { IsEnabled: true, IsLoopTrack: true }
-            || lockedLoopBox is not { IsEnabled: true })
+        if (profile.BlindBoxRuntimeState.LockedPresentation is { } locked
+            && (!validScheduleIds.Contains(locked.ScheduleId)
+                || LubanData.Tables.TbBlindBox.GetOrDefault(locked.BlindBoxId) is not { IsEnabled: true }))
         {
-            profile.BlindBoxRuntimeState.LockedLoopScheduleId = 0;
-            profile.BlindBoxRuntimeState.LockedLoopBlindBoxId = 0;
+            profile.BlindBoxRuntimeState.LockedPresentation = null;
         }
 
-        if (loadedVersion < CurrentVersion)
-            profile.Version = CurrentVersion;
+        NormalizeBlindBoxPreparationState(profile.BlindBoxRuntimeState, validScheduleIds, validIds);
+        if (profile.BlindBoxRuntimeState.LockedPresentation is { } normalizedLock
+            && normalizedLock.Kind is LockedBlindBoxPresentationKind.PreparedSteam
+                or LockedBlindBoxPresentationKind.LateSteam)
+        {
+            var prepared = profile.BlindBoxRuntimeState.PreparedReward;
+            if (prepared == null
+                || prepared.PlatformInstanceId != normalizedLock.PreparedPlatformInstanceId
+                || prepared.BlindBoxId != normalizedLock.BlindBoxId)
+                profile.BlindBoxRuntimeState.LockedPresentation = null;
+        }
+        profile.Version = CurrentVersion;
 
         if (profile.PendingBlindBoxReward != null)
         {
             var pending = profile.PendingBlindBoxReward;
             var validPending = validIds.Contains(pending.ItemId)
                 && LubanData.Tables.TbBlindBox.GetOrDefault(pending.BlindBoxId) != null
-                && validScheduleIds.Contains(pending.ScheduleId);
+                && validScheduleIds.Contains(pending.ScheduleId)
+                && (!pending.IsPlatformInventoryReward || pending.PlatformInstanceId > 0);
             if (!validPending)
                 profile.PendingBlindBoxReward = null;
         }
@@ -597,35 +566,6 @@ public static class SaveManager
             .Select(pair => pair.Key)
             .OrderBy(id => id)
             .FirstOrDefault();
-    }
-
-    private static double InferLegacyBlindBoxScheduleSeconds(SaveProfile profile)
-    {
-        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        var durationMultiplier = config == null || config.BlindBoxWaitDurationMultiplier <= 0
-            ? 1.0
-            : config.BlindBoxWaitDurationMultiplier;
-        var scheduleSeconds = profile.TotalPlaySeconds / durationMultiplier;
-        scheduleSeconds = Math.Max(scheduleSeconds, profile.BlindBoxRuntimeState.LastClaimSeconds);
-
-        foreach (var (scheduleId, state) in profile.BlindBoxRuntimeState.LoopTrackStates)
-        {
-            if (state.ProcessedGrantCount <= 0)
-                continue;
-
-            var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
-            if (schedule == null)
-                continue;
-
-            var lastProcessedDue = schedule.IntervalSeconds <= 0
-                ? schedule.StartSeconds
-                : schedule.StartSeconds + (state.ProcessedGrantCount - 1) * schedule.IntervalSeconds;
-            if (schedule.EndSeconds >= 0)
-                lastProcessedDue = Math.Min(lastProcessedDue, schedule.EndSeconds);
-            scheduleSeconds = Math.Max(scheduleSeconds, lastProcessedDue);
-        }
-
-        return Math.Max(0.0, scheduleSeconds);
     }
 
     private static void EnsureSaveDir()

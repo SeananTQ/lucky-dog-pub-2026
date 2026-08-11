@@ -795,23 +795,23 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="BlindBoxLocalTestVoucherRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+[node name="BlindBoxLocalTestPreparedRewardRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BlindBoxLocalTestVoucherLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+[node name="BlindBoxLocalTestPreparedRewardLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
-text = "虚拟装扮券"
+text = "虚拟待揭晓奖励"
 
-[node name="BlindBoxLocalTestVoucherDecrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+[node name="BlindBoxLocalTestPreparedRewardDecrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow"]
 custom_minimum_size = Vector2(36, 28)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "-"
 
-[node name="BlindBoxLocalTestVoucherCount" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+[node name="BlindBoxLocalTestPreparedRewardCount" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow"]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -819,7 +819,7 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BlindBoxLocalTestVoucherIncrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestVoucherRow"]
+[node name="BlindBoxLocalTestPreparedRewardIncrease" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxLocalTestPreparedRewardRow"]
 custom_minimum_size = Vector2(36, 28)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
@@ -840,22 +840,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
 text = "清除当前气球"
-
-[node name="BlindBoxFallbackRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
-layout_mode = 2
-
-[node name="BlindBoxFallbackLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow"]
-custom_minimum_size = Vector2(260, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
-text = "启用消耗品盲盒兜底"
-autowrap_mode = 3
-
-[node name="BlindBoxFallbackToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/BlindBoxFallbackRow"]
-layout_mode = 2
-size_flags_vertical = 4
-button_pressed = true
 
 [node name="BlindBoxPaymentSourceLabelsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 layout_mode = 2

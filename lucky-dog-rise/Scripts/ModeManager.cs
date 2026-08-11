@@ -22,7 +22,6 @@ public partial class ModeManager : Control
 
     private const double StartupPlatformWaitSeconds = 10.0;
     private const double BlindBoxLoadingMinimumSeconds = 0.5;
-    private const double BlindBoxPendingConfirmationSeconds = 20.0;
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
@@ -75,7 +74,6 @@ public partial class ModeManager : Control
     private double _blindBoxOpeningUiElapsedSeconds;
     private double _blindBoxOpeningUiMinimumSeconds;
     private PendingBlindBoxReward _blindBoxOpeningResolvedReward = null!;
-    private bool _blindBoxOpeningPendingConfirmation;
 #if DEBUG
     private SteamMockPanelController _steamMockPanel = null!;
     private IDebugSteamMockController _steamMockController = null!;
@@ -207,7 +205,6 @@ public partial class ModeManager : Control
         _gameData.Name = "GameData";
         AddChild(_gameData);
         _gameData.BindPlatformInventoryService(_platformService);
-        _gameData.BlindBoxRewardReady += OnPlatformBlindBoxRewardReady;
         _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
@@ -235,8 +232,6 @@ public partial class ModeManager : Control
         _bossSystemButton.Pressed += OnBossSystemButtonPressed;
         _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
         RefreshBossBlindBoxHint();
-        if (_gameData.PendingPlatformBlindBoxOpen != null)
-            StartBlindBoxOpeningUi(BlindBoxPaymentSource.SteamVoucher);
 
         // 先实例化面板以读取实际尺寸
         _settingsPanel = GD.Load<PackedScene>("res://Scenes/SystemPanel.tscn").Instantiate<SystemPanelController>();
@@ -1002,10 +997,7 @@ public partial class ModeManager : Control
         if (_blindBoxOpeningUiActive)
         {
             SetBossBlindBoxHintDisplayVisible(true);
-            if (_blindBoxOpeningPendingConfirmation)
-                _bossBlindBoxHint.ShowPendingConfirmation();
-            else
-                _bossBlindBoxHint.ShowLoading();
+            _bossBlindBoxHint.ShowLoading();
             return;
         }
 
@@ -1022,15 +1014,14 @@ public partial class ModeManager : Control
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:
-            case BlindBoxHintStatus.PlatformSyncing:
-            case BlindBoxHintStatus.PlatformUnavailable:
                 _bossBlindBoxHint.ShowValueFromAssetPath(
                     state.Box?.HintIconPath,
                     _blindBoxIcon,
-                    state.Box?.HintValueMode ?? EBlindBoxValueMode.Chips,
-                    state.Cost,
+                    state.ValueMode,
+                    state.DisplayValue,
                     _gameData.Chips,
-                    state.PaymentSource);
+                    state.PaymentSource,
+                    state.StrikeThrough);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));
@@ -1286,15 +1277,6 @@ public partial class ModeManager : Control
         _settingsPanel.CloseImmediate();
     }
 
-    private void OnPlatformBlindBoxRewardReady()
-    {
-        var pending = _gameData.PendingBlindBoxReward;
-        if (pending == null)
-            return;
-
-        ResolveBlindBoxOpeningUi(pending);
-    }
-
     private void BeginBlindBoxOpen(BlindBoxHintState state)
     {
         if (_blindBoxOpeningUiActive)
@@ -1308,8 +1290,7 @@ public partial class ModeManager : Control
             return;
         }
 
-        if (_gameData.PendingPlatformBlindBoxOpen == null)
-            CancelBlindBoxOpeningUi();
+        CancelBlindBoxOpeningUi();
     }
 
     private void StartBlindBoxOpeningUi(BlindBoxPaymentSource paymentSource)
@@ -1318,7 +1299,6 @@ public partial class ModeManager : Control
         _blindBoxOpeningUiElapsedSeconds = 0.0;
         _blindBoxOpeningUiMinimumSeconds = BlindBoxLoadingMinimumSeconds;
         _blindBoxOpeningResolvedReward = null!;
-        _blindBoxOpeningPendingConfirmation = false;
         _infoPanel?.SetBlindBoxOpeningLoading(true);
         RefreshBossBlindBoxHint();
         DiagnosticLog.Record("blindbox_loading_started", new Dictionary<string, object>
@@ -1346,19 +1326,6 @@ public partial class ModeManager : Control
             return;
 
         _blindBoxOpeningUiElapsedSeconds += delta;
-        if (!_blindBoxOpeningPendingConfirmation
-            && _blindBoxOpeningResolvedReward == null
-            && _blindBoxOpeningUiElapsedSeconds >= BlindBoxPendingConfirmationSeconds)
-        {
-            _blindBoxOpeningPendingConfirmation = true;
-            _infoPanel?.SetBlindBoxOpeningPendingConfirmation(true);
-            RefreshBossBlindBoxHint();
-            DiagnosticLog.Record("blindbox_result_pending_confirmation", new Dictionary<string, object>
-            {
-                ["elapsedSeconds"] = _blindBoxOpeningUiElapsedSeconds,
-                ["platformState"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
-            });
-        }
         TryPresentResolvedBlindBoxReward();
     }
 
@@ -1374,7 +1341,6 @@ public partial class ModeManager : Control
         var pending = _blindBoxOpeningResolvedReward;
         var elapsedSeconds = _blindBoxOpeningUiElapsedSeconds;
         _blindBoxOpeningUiActive = false;
-        _blindBoxOpeningPendingConfirmation = false;
         _blindBoxOpeningResolvedReward = null!;
         _infoPanel?.SetBlindBoxOpeningLoading(false);
         RefreshBossBlindBoxHint();
@@ -1398,7 +1364,6 @@ public partial class ModeManager : Control
     private void CancelBlindBoxOpeningUi()
     {
         _blindBoxOpeningUiActive = false;
-        _blindBoxOpeningPendingConfirmation = false;
         _blindBoxOpeningResolvedReward = null!;
         _infoPanel?.SetBlindBoxOpeningLoading(false);
         RefreshBossBlindBoxHint();
