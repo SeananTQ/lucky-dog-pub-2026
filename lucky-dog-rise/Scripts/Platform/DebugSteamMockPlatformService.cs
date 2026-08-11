@@ -495,8 +495,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready,
             success
                 ? $"库存复查确认：{operation}已成功。"
-                : $"库存复查确认：{operation}未产生新物品。");
-        PublishInventorySnapshot(_lastEvent, true);
+                : $"库存复查完成：未发现本次{operation}请求产生的新物品。");
+        PublishInventorySnapshot(_lastEvent, true, recordEvent: false);
     }
 
     private IReadOnlyList<PlatformInventoryItem> ApplySuccessfulPlaytimeDrop()
@@ -533,12 +533,13 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         return changedItems;
     }
 
-    private void PublishInventorySnapshot(string message, bool succeeded)
+    private void PublishInventorySnapshot(string message, bool succeeded, bool recordEvent = true)
     {
         SetInventoryTrustState(
             succeeded ? PlatformInventoryTrustState.Trusted : PlatformInventoryTrustState.RevalidationRequired,
             message);
-        AddEvent(message);
+        if (recordEvent)
+            AddEvent(message);
         DiagnosticLog.Record("steam_mock_inventory_snapshot", new Dictionary<string, object>
         {
             ["scenario"] = _scenario.ToString(),

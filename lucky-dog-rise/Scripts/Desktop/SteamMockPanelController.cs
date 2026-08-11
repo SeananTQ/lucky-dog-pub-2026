@@ -37,7 +37,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
-        _scenarioOption.AddItem("请求超时：复查确认未生成奖励；展示点使用 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
+        _scenarioOption.AddItem("请求无回执：复查库存后未发现新奖励；展示点使用 Fallback", (int)DebugSteamScenario.TimeoutVerifiedFallback);
         _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;

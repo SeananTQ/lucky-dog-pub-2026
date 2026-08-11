@@ -34,7 +34,7 @@ public partial class DeveloperLauncherController : CanvasLayer
         _scenarioOption.AddItem("请求前不可用：不提交 Steam 请求", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，复查 10 秒后确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
-        _scenarioOption.AddItem("请求超时：复查确认没有生成奖励", (int)DebugSteamScenario.TimeoutVerifiedFallback);
+        _scenarioOption.AddItem("请求无回执：复查库存后未发现新奖励", (int)DebugSteamScenario.TimeoutVerifiedFallback);
         _scenarioOption.AddItem("提交后断联：1 秒后断线，结果保持未知", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，复查 10 秒后成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
 

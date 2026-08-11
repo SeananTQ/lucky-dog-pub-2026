@@ -41,7 +41,7 @@ public partial class GameData : Node
     public double TotalPlaySeconds { get; private set; }
     public PendingBlindBoxReward PendingBlindBoxReward { get; private set; }
     public bool ActiveBlindBoxPreparationPending =>
-        ActiveBlindBoxRuntimeState.PendingPreparation != null
+        IsBlindBoxPreparationBlockingInventoryWrites(ActiveBlindBoxRuntimeState.PendingPreparation)
         || _platformInventoryService?.IsPlaytimeDropPending == true;
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
@@ -95,6 +95,10 @@ public partial class GameData : Node
             return _blindBoxRuntimeState;
         }
     }
+
+    private static bool IsBlindBoxPreparationBlockingInventoryWrites(
+        PendingBlindBoxPreparation pending) =>
+        pending != null && pending.Phase != BlindBoxPreparationPhase.RetryWaiting;
 
     public override void _Ready()
     {
@@ -1176,7 +1180,7 @@ public partial class GameData : Node
 #endif
         if (linkTreeId <= 0 || steamClaimBundleItemDefId <= 0 || steamReceiptItemDefId <= 0)
             return false;
-        if (ActiveBlindBoxRuntimeState.PendingPreparation != null
+        if (IsBlindBoxPreparationBlockingInventoryWrites(ActiveBlindBoxRuntimeState.PendingPreparation)
             || _platformInventoryService?.IsPlaytimeDropPending == true)
         {
             GD.PushWarning("[LinkTree] A blind-box or playtime inventory transaction is pending.");
