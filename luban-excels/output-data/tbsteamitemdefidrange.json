@@ -43,7 +43,7 @@
     "Id": 1006,
     "StartItemDefId": 301000,
     "EndItemDefId": 301999,
-    "Description": "盲盒奖励池 Generator 。可以被 PlaytimeGenerator 直接引用，也兼容历史 Exchange。",
+    "Description": "盲盒奖励池 Generator。可以被 PlaytimeGenerator 直接引用，也兼容历史 Exchange。",
     "Purpose": "盲盒装扮奖励池",
     "Example": "标准盲盒、新手盲盒等 Generator"
   },
@@ -180,7 +180,7 @@
     "StartItemDefId": 700000,
     "EndItemDefId": 700999,
     "Description": "新手一次性 PlaytimeGenerator 总段，同时包含历史券版与新版直接奖励。",
-    "Purpose": "管理前 12 个新手 Schedule 的一次性 Steam 投放定义。精细控制新手前期能接触到的奖励范围，保证前期体验的稳定性",
+    "Purpose": "管理前 12 个新手 Schedule 的一次性 Steam 投放定义",
     "Example": "7000xx 历史券版、7001xx 新版直接奖励"
   },
   {
@@ -205,7 +205,7 @@
     "EndItemDefId": 701999,
     "Description": "长期循环 PlaytimeGenerator 总段",
     "Purpose": "管理游戏正常阶段持续运行的循环投放定义",
-    "Example": "建议填写“7010xx 历史券版、7011xx 新版直接奖励"
+    "Example": "7010xx 历史券版、7011xx 新版直接奖励"
   },
   {
     "Id": 1031,
@@ -221,7 +221,7 @@
     "EndItemDefId": 701999,
     "Description": "新版循环直接奖励 PlaytimeGenerator 子段",
     "Purpose": "游戏正常阶段持续运行的循环投放",
-    "Example": "长期循环直接生成装扮，受掉落窗口控制”，删除“盲盒券"
+    "Example": "长期循环直接生成装扮，受掉落窗口控制"
   },
   {
     "Id": 1025,
