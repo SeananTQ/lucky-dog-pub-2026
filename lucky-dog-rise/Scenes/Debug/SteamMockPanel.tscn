@@ -20,11 +20,12 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_progressOption", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
 _scenarioOption = NodePath("Panel/Root/SteamPage/ScenarioRow/ScenarioOption")
+_progressOption = NodePath("Panel/Root/SteamPage/ProgressRow/ProgressOption")
 _resetButton = NodePath("Panel/Root/SteamPage/ActionRow/ResetButton")
 _advanceButton = NodePath("Panel/Root/SteamPage/ActionRow/AdvanceButton")
 _platformModeButton = NodePath("Panel/Root/SteamPage/ActionRow/PlatformModeButton")
@@ -93,6 +94,19 @@ text = "Steam 网络场景"
 [node name="ScenarioOption" type="OptionButton" parent="Panel/Root/SteamPage/ScenarioRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="ProgressRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
+layout_mode = 2
+
+[node name="ProgressLabel" type="Label" parent="Panel/Root/SteamPage/ProgressRow"]
+custom_minimum_size = Vector2(145, 0)
+layout_mode = 2
+text = "盲盒测试进度"
+
+[node name="ProgressOption" type="OptionButton" parent="Panel/Root/SteamPage/ProgressRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "选择后不会立刻清空当前测试；点击“重置场景”后生效。"
 
 [node name="ActionRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2

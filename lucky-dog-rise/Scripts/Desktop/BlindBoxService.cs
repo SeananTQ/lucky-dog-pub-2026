@@ -714,6 +714,11 @@ public sealed class BlindBoxService
         return Math.Max(60.0, Math.Ceiling(rawSeconds / 60.0) * 60.0);
     }
 
+#if DEBUG
+    public double GetSteamEligibilityRealSecondsForDebug(BlindBoxSchedule schedule) =>
+        GetSteamEligibilityRealSeconds(schedule);
+#endif
+
     private static double GetScheduleClockRate()
     {
         return 1.0 / GetWaitDurationMultiplier();

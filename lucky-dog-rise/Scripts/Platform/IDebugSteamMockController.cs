@@ -25,6 +25,12 @@ public enum DebugSteamPhase
     Completed,
 }
 
+public enum DebugBlindBoxProgressMode
+{
+    BeginnerSequence,
+    Loop,
+}
+
 public sealed record DebugSteamLinkTreeGrant(
     int BundleItemDefId,
     int ReceiptItemDefId,

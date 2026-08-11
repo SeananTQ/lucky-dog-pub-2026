@@ -14,7 +14,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
     IDebugSteamMockController
 {
-    private const ulong RewardInstanceId = 9_100_000_000_000_002;
+    private const ulong RewardInstanceBase = 9_100_000_000_000_000;
     private const ulong LinkTreeReceiptInstanceBase = 9_100_100_000_000_000;
     private const ulong LinkTreeRewardInstanceBase = 9_100_200_000_000_000;
     private const int EventLimit = 50;
@@ -43,6 +43,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private bool _promoGrantPending;
     private int _pendingPromoItemDefId;
     private int _pendingReceiptItemDefId;
+    private ulong _nextRewardInstanceOffset;
+    private ulong _lastRewardInstanceId;
     private bool _disposed;
 
     public DebugSteamMockPlatformService(
@@ -120,7 +122,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         ConnectionState,
         InventoryTrustState,
         _pendingGeneratorItemDefId,
-        _mockItems.Any(item => item.InstanceId == RewardInstanceId) ? RewardInstanceId : 0,
+        _lastRewardInstanceId,
         _playtimeDropPending || _promoGrantPending,
         _playtimeDropPending ? "盲盒奖励准备" : _promoGrantPending ? "LinkTree 领奖" : "无",
         _lastEvent,
@@ -216,10 +218,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
     public void ConfigureBlindBox(int blindBoxId, int rewardItemDefId)
     {
+        if (_blindBoxId == blindBoxId && _rewardItemDefId == rewardItemDefId)
+            return;
         _blindBoxId = blindBoxId;
         _rewardItemDefId = rewardItemDefId;
         if (IsMockActive)
-            ResetScenario();
+            AddEvent($"Mock 奖励配置已切换：BlindBox {blindBoxId} / ItemDef {rewardItemDefId}。", publish: true);
     }
 
     public void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants)
@@ -236,6 +240,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _promoGrantPending = false;
         _pendingPromoItemDefId = 0;
         _pendingReceiptItemDefId = 0;
+        _nextRewardInstanceOffset = 0;
+        _lastRewardInstanceId = 0;
         _mockItems.Clear();
         _events.Clear();
         if (!IsMockActive)
@@ -503,9 +509,11 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
     private IReadOnlyList<PlatformInventoryItem> ApplySuccessfulPlaytimeDrop()
     {
-        if (_rewardItemDefId <= 0 || _mockItems.Any(item => item.InstanceId == RewardInstanceId))
+        if (_rewardItemDefId <= 0)
             return [];
-        var reward = new PlatformInventoryItem(RewardInstanceId, _rewardItemDefId, 1);
+        _nextRewardInstanceOffset++;
+        _lastRewardInstanceId = RewardInstanceBase + _nextRewardInstanceOffset;
+        var reward = new PlatformInventoryItem(_lastRewardInstanceId, _rewardItemDefId, 1);
         _mockItems.Add(reward);
         return [reward];
     }

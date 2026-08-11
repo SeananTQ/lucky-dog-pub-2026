@@ -60,6 +60,7 @@ public partial class GameData : Node
 #if DEBUG
     private bool _blindBoxLocalTestMode;
     private bool _steamMockSimulationActive;
+    private DebugBlindBoxProgressMode _steamMockProgressMode = DebugBlindBoxProgressMode.Loop;
     private BlindBoxRuntimeState _blindBoxLocalTestRuntimeState = new();
     private int _blindBoxLocalTestPreparedRewardCount;
     private int _blindBoxLocalTestSavedChips;
@@ -296,6 +297,7 @@ public partial class GameData : Node
 
     public bool IsBlindBoxLocalTestMode => _blindBoxLocalTestMode && !_steamMockSimulationActive;
     public bool IsSteamMockSimulationActive => _steamMockSimulationActive;
+    public DebugBlindBoxProgressMode SteamMockProgressMode => _steamMockProgressMode;
     public int BlindBoxLocalTestPreparedRewardCount =>
         _steamMockSimulationActive ? 0 : _blindBoxLocalTestPreparedRewardCount;
     public string SteamMockBlindBoxBusinessPhase =>
@@ -336,6 +338,8 @@ public partial class GameData : Node
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ResetPlaytimeDropTransientState();
         ConfigureSteamMockBlindBox();
+        if (_platformInventoryService is IDebugSteamMockController startupController)
+            startupController.ResetScenario();
         MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
         DiagnosticLog.Record("steam_mock_sandbox_entered");
@@ -368,6 +372,8 @@ public partial class GameData : Node
         _blindBoxLocalTestRuntimeState = CreateSteamMockRuntimeState();
         ResetPlaytimeDropTransientState();
         ConfigureSteamMockBlindBox();
+        if (_platformInventoryService is IDebugSteamMockController controller)
+            controller.ResetScenario();
         MaintainLoopPresentation();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -376,32 +382,71 @@ public partial class GameData : Node
         return true;
     }
 
-    private static BlindBoxRuntimeState CreateSteamMockRuntimeState() => new()
+    public void SetSteamMockProgressMode(DebugBlindBoxProgressMode mode)
     {
-        SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
-            schedule.IsEnabled && !schedule.IsLoopTrack),
+        if (!Enum.IsDefined(mode) || _steamMockProgressMode == mode)
+            return;
+        _steamMockProgressMode = mode;
+        DiagnosticLog.Record("steam_mock_progress_mode_selected", new Dictionary<string, object>
+        {
+            ["mode"] = mode.ToString(),
+            ["appliesAfterReset"] = true,
+        });
+    }
+
+    private BlindBoxRuntimeState CreateSteamMockRuntimeState() => new()
+    {
+        SequenceIndex = _steamMockProgressMode == DebugBlindBoxProgressMode.Loop
+            ? GetEnabledSequenceSchedules().Count
+            : 0,
     };
 
     private void ConfigureSteamMockBlindBox()
     {
-        if (_platformInventoryService is not IDebugSteamMockController controller
-            || !_blindBoxService.TryGetLoopSchedule(out _, out var decorationBox)
-            || decorationBox == null)
+        BlindBox box = null;
+        if (_steamMockProgressMode == DebugBlindBoxProgressMode.BeginnerSequence)
+        {
+            var schedule = GetEnabledSequenceSchedules().ElementAtOrDefault(
+                Math.Max(0, _blindBoxLocalTestRuntimeState.SequenceIndex));
+            box = schedule == null
+                ? null
+                : LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+        }
+        else if (_blindBoxService.TryGetLoopSchedule(out _, out var loopBox))
+        {
+            box = loopBox;
+        }
+
+        if (box != null)
+            ConfigureSteamMockBlindBox(box);
+    }
+
+    private void ConfigureSteamMockBlindBox(BlindBox box)
+    {
+        if (_platformInventoryService is not IDebugSteamMockController controller)
         {
             return;
         }
 
         var reward = LubanData.Tables.TbItem.DataList
-            .Where(item => item.SteamItemDefId > 0 && _blindBoxService.IsRewardCandidate(decorationBox, item))
+            .Where(item => item.SteamItemDefId > 0 && _blindBoxService.IsRewardCandidate(box, item))
             .OrderBy(item => item.Id)
             .FirstOrDefault();
         if (reward == null)
         {
-            GD.PushError($"[Steam Mock] Blind box {decorationBox.Id} has no valid Steam reward candidate.");
+            if (box.IsPlatformInventoryRequired)
+                GD.PushError($"[Steam Mock] Blind box {box.Id} has no valid Steam reward candidate.");
             return;
         }
-        controller.ConfigureBlindBox(decorationBox.Id, reward.SteamItemDefId);
+        controller.ConfigureBlindBox(box.Id, reward.SteamItemDefId);
     }
+
+    private static List<BlindBoxSchedule> GetEnabledSequenceSchedules() =>
+        LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.IsEnabled && !schedule.IsLoopTrack)
+            .OrderBy(schedule => schedule.StartSeconds)
+            .ThenBy(schedule => schedule.Id)
+            .ToList();
 
     public void AdjustBlindBoxLocalTestPreparedRewardCount(int delta)
     {
@@ -425,9 +470,40 @@ public partial class GameData : Node
             return false;
 
         MaintainLoopPresentation();
-        _blindBoxLocalTestRuntimeState.ScheduleSeconds = Math.Max(
-            _blindBoxLocalTestRuntimeState.ScheduleSeconds,
-            _blindBoxLocalTestRuntimeState.NextLoopPresentationSeconds);
+        var state = _blindBoxLocalTestRuntimeState;
+        var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
+        if (sequence != null)
+        {
+            var presentationSeconds = state.SequenceIndex == 0
+                ? Math.Max(sequence.StartSeconds, sequence.IntervalSeconds)
+                : Math.Max(sequence.StartSeconds, state.LastClaimSeconds + Math.Max(0, sequence.IntervalSeconds));
+            state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, presentationSeconds);
+            if (_steamMockSimulationActive && sequence.SteamPlaytimeGeneratorItemDefId > 0)
+            {
+                TotalPlaySeconds = Math.Max(TotalPlaySeconds, _blindBoxService.GetSteamEligibilityRealSecondsForDebug(sequence));
+                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+                MaintainSteamPlaytimeDrops();
+                if (state.PendingPreparation != null || state.PreparedReward != null)
+                {
+                    EmitSignal(SignalName.BlindBoxStateChanged);
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, state.NextLoopPresentationSeconds);
+            if (_steamMockSimulationActive && state.PreparedReward == null)
+            {
+                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+                MaintainSteamPlaytimeDrops();
+                if (state.PendingPreparation != null)
+                {
+                    EmitSignal(SignalName.BlindBoxStateChanged);
+                    return true;
+                }
+            }
+        }
         MaintainLoopPresentation();
         EmitSignal(SignalName.BlindBoxStateChanged);
         return true;
@@ -795,6 +871,10 @@ public partial class GameData : Node
             return;
 
         var baseline = BuildInstanceQuantityMap(_platformInventoryService.InventoryItems);
+#if DEBUG
+        if (_steamMockSimulationActive)
+            ConfigureSteamMockBlindBox(box);
+#endif
         if (!_platformInventoryService.TryTriggerPlaytimeDrop(schedule.SteamPlaytimeGeneratorItemDefId, out var message))
         {
             _nextPlatformPlaytimeDropAttemptAtSeconds = now + 5.0;

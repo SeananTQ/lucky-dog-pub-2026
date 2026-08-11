@@ -12,6 +12,7 @@ public partial class SteamMockPanelController : CanvasLayer
 
     [Export] private PanelContainer _panel = null!;
     [Export] private OptionButton _scenarioOption = null!;
+    [Export] private OptionButton _progressOption = null!;
     [Export] private Button _resetButton = null!;
     [Export] private Button _advanceButton = null!;
     [Export] private Button _platformModeButton = null!;
@@ -41,6 +42,10 @@ public partial class SteamMockPanelController : CanvasLayer
         _scenarioOption.AddItem("提交后持续断联：1 秒后断线，等待手动恢复", (int)DebugSteamScenario.DisconnectAfterSubmit);
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，再复查 10 秒并成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
         _scenarioOption.ItemSelected += OnScenarioSelected;
+        _progressOption.AddItem("新手流程：从第 1 个盲盒开始", (int)DebugBlindBoxProgressMode.BeginnerSequence);
+        _progressOption.AddItem("普通循环：跳过新手 12 个盲盒", (int)DebugBlindBoxProgressMode.Loop);
+        _progressOption.Select(1);
+        _progressOption.ItemSelected += OnProgressSelected;
         _resetButton.Pressed += ResetScenario;
         _advanceButton.Pressed += AdvancePhase;
         _platformModeButton.Pressed += TogglePlatformMode;
@@ -68,6 +73,7 @@ public partial class SteamMockPanelController : CanvasLayer
             return;
         }
         _controller.SnapshotChanged += Refresh;
+        RestoreProgressSelection(_gameData.SteamMockProgressMode);
         Refresh(_controller.Snapshot);
     }
 
@@ -121,6 +127,14 @@ public partial class SteamMockPanelController : CanvasLayer
             return;
         var scenario = (DebugSteamScenario)_scenarioOption.GetItemId((int)index);
         ActivateScenario(scenario);
+    }
+
+    private void OnProgressSelected(long index)
+    {
+        if (_updatingSelection || _gameData == null)
+            return;
+        var mode = (DebugBlindBoxProgressMode)_progressOption.GetItemId((int)index);
+        _gameData.SetSteamMockProgressMode(mode);
     }
 
     private void ActivateScenario(DebugSteamScenario scenario)
@@ -184,6 +198,7 @@ public partial class SteamMockPanelController : CanvasLayer
         if (_scenarioOption == null)
             return;
         RestoreScenarioSelection(snapshot.Scenario);
+        RestoreProgressSelection(_gameData?.SteamMockProgressMode ?? DebugBlindBoxProgressMode.Loop);
         _connectionValue.Text = FormatConnectionState(snapshot);
         _phaseValue.Text = FormatPhase(snapshot.Phase);
         _phaseTimerValue.Text = $"{snapshot.PhaseElapsedSeconds:0.0} 秒";
@@ -235,6 +250,20 @@ public partial class SteamMockPanelController : CanvasLayer
             if (_scenarioOption.GetItemId(i) == (int)scenario)
             {
                 _scenarioOption.Select(i);
+                break;
+            }
+        }
+        _updatingSelection = false;
+    }
+
+    private void RestoreProgressSelection(DebugBlindBoxProgressMode mode)
+    {
+        _updatingSelection = true;
+        for (var i = 0; i < _progressOption.ItemCount; i++)
+        {
+            if (_progressOption.GetItemId(i) == (int)mode)
+            {
+                _progressOption.Select(i);
                 break;
             }
         }
