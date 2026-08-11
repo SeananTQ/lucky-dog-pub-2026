@@ -28,8 +28,6 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["HintIconPath"].IsString) { throw new SerializationException(); }  HintIconPath = _buf["HintIconPath"]; }
         { if(!_buf["IsPlatformInventoryRequired"].IsBoolean) { throw new SerializationException(); }  IsPlatformInventoryRequired = _buf["IsPlatformInventoryRequired"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
-        { if(!_buf["SteamOpenCostItemDefId"].IsNumber) { throw new SerializationException(); }  SteamOpenCostItemDefId = _buf["SteamOpenCostItemDefId"]; }
-        { if(!_buf["SteamExchangeTargetItemDefId"].IsNumber) { throw new SerializationException(); }  SteamExchangeTargetItemDefId = _buf["SteamExchangeTargetItemDefId"]; }
     }
 
     public static BlindBox DeserializeBlindBox(JSONNode _buf)
@@ -78,14 +76,6 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// 临时开关
     /// </summary>
     public readonly bool IsEnabled;
-    /// <summary>
-    /// 调用 Steam ExchangeItems 开启该盲盒时，作为交换材料消耗的 Steam ItemDef ID；填 0 表示不使用 Steam 库存物品作为开箱成本。
-    /// </summary>
-    public readonly int SteamOpenCostItemDefId;
-    /// <summary>
-    /// 调用 Steam ExchangeItems 开启该盲盒时，请求生成的目标 Steam ItemDef ID。通常指向 Generator；Steam 完成交换后会展开 Generator 并返回最终奖励物品。
-    /// </summary>
-    public readonly int SteamExchangeTargetItemDefId;
    
     public const int __ID__ = -761790890;
     public override int GetTypeId() => __ID__;
@@ -108,8 +98,6 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "HintIconPath:" + HintIconPath + ","
         + "IsPlatformInventoryRequired:" + IsPlatformInventoryRequired + ","
         + "IsEnabled:" + IsEnabled + ","
-        + "SteamOpenCostItemDefId:" + SteamOpenCostItemDefId + ","
-        + "SteamExchangeTargetItemDefId:" + SteamExchangeTargetItemDefId + ","
         + "}";
     }
 }

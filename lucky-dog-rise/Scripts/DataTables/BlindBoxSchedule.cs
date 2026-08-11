@@ -19,7 +19,6 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
-        { var __json0 = _buf["VoucherUpgradeBlindBoxIds"]; if(!__json0.IsArray) { throw new SerializationException(); } VoucherUpgradeBlindBoxIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  VoucherUpgradeBlindBoxIds.Add(__v0); }   }
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
         { if(!_buf["StartSeconds"].IsNumber) { throw new SerializationException(); }  StartSeconds = _buf["StartSeconds"]; }
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
@@ -29,6 +28,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         { if(!_buf["SteamPlaytimeGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeGeneratorItemDefId = _buf["SteamPlaytimeGeneratorItemDefId"]; }
         { if(!_buf["SteamDropWindowSeconds"].IsNumber) { throw new SerializationException(); }  SteamDropWindowSeconds = _buf["SteamDropWindowSeconds"]; }
         { if(!_buf["SteamDropMaxPerWindow"].IsNumber) { throw new SerializationException(); }  SteamDropMaxPerWindow = _buf["SteamDropMaxPerWindow"]; }
+        { if(!_buf["CostChipsOverride"].IsNumber) { throw new SerializationException(); }  CostChipsOverride = _buf["CostChipsOverride"]; }
     }
 
     public static BlindBoxSchedule DeserializeBlindBoxSchedule(JSONNode _buf)
@@ -42,11 +42,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int BlindBoxId;
     /// <summary>
-    /// 按优先级填写可使用票券升级为的 BlindBox.Id。展示本行盲盒时，客户端按列表顺序检查对应盲盒的开箱票券，首个票券充足的盲盒将替代本行配置的 BlindBoxId；均不可用时仍展示原盲盒。留空表示不允许升级。
-    /// </summary>
-    public readonly System.Collections.Generic.List<int> VoucherUpgradeBlindBoxIds;
-    /// <summary>
-    /// TRUE 表示正常阶段循环装扮券生产行
+    /// TRUE 表示正常阶段循环装扮奖励准备行
     /// </summary>
     public readonly bool IsLoopTrack;
     /// <summary>
@@ -54,7 +50,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int StartSeconds;
     /// <summary>
-    /// 非循环行为相对上次领取间隔；循环行为 Steam 装扮券掉落间隔
+    /// 非循环行为相对上次领取间隔；循环行为 Steam 直接奖励掉落间隔
     /// </summary>
     public readonly int IntervalSeconds;
     /// <summary>
@@ -70,7 +66,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly bool IsEnabled;
     /// <summary>
-    /// 通过 TriggerItemDrop 请求的 Steam PlaytimeGenerator ItemDef ID；本地消耗品填 0
+    /// 通过 TriggerItemDrop 请求的 Steam PlaytimeGenerator ItemDef ID；该定义直接生成最终装扮；本地消耗品填 0
     /// </summary>
     public readonly int SteamPlaytimeGeneratorItemDefId;
     /// <summary>
@@ -81,6 +77,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// Steam 掉落窗口内最多发放次数；未启用窗口时填 0
     /// </summary>
     public readonly int SteamDropMaxPerWindow;
+    /// <summary>
+    /// &gt;0 本次展示覆盖 BlindBox 默认筹码成本；=0 表示继承，&lt;0 表示免费并显示其绝对值的字符串并添加删除线，注意配置中的倍率
+    /// </summary>
+    public readonly int CostChipsOverride;
    
     public const int __ID__ = -621265139;
     public override int GetTypeId() => __ID__;
@@ -94,7 +94,6 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "BlindBoxId:" + BlindBoxId + ","
-        + "VoucherUpgradeBlindBoxIds:" + Luban.StringUtil.CollectionToString(VoucherUpgradeBlindBoxIds) + ","
         + "IsLoopTrack:" + IsLoopTrack + ","
         + "StartSeconds:" + StartSeconds + ","
         + "IntervalSeconds:" + IntervalSeconds + ","
@@ -104,6 +103,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         + "SteamPlaytimeGeneratorItemDefId:" + SteamPlaytimeGeneratorItemDefId + ","
         + "SteamDropWindowSeconds:" + SteamDropWindowSeconds + ","
         + "SteamDropMaxPerWindow:" + SteamDropMaxPerWindow + ","
+        + "CostChipsOverride:" + CostChipsOverride + ","
         + "}";
     }
 }

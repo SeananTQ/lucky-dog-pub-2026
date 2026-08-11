@@ -22,9 +22,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
         { if(!_buf["BlindBoxLoopIntervalSeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxLoopIntervalSeconds = _buf["BlindBoxLoopIntervalSeconds"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
-        { if(!_buf["SteamPlaytimeDropLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeDropLeadSeconds = _buf["SteamPlaytimeDropLeadSeconds"]; }
-        { if(!_buf["SteamPlaytimeRequestLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeRequestLeadSeconds = _buf["SteamPlaytimeRequestLeadSeconds"]; }
-        { if(!_buf["BlindBoxLoopSteamVoucherInventoryLimit"].IsNumber) { throw new SerializationException(); }  BlindBoxLoopSteamVoucherInventoryLimit = _buf["BlindBoxLoopSteamVoucherInventoryLimit"]; }
+        { if(!_buf["SteamPlaytimeEligibilityLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeEligibilityLeadSeconds = _buf["SteamPlaytimeEligibilityLeadSeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -53,17 +51,9 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// </summary>
     public readonly int LinkTreeVisibleBannerCount;
     /// <summary>
-    /// Steam提前准备盲盒的秒数
+    /// Steam资格提前秒数
     /// </summary>
-    public readonly int SteamPlaytimeDropLeadSeconds;
-    /// <summary>
-    /// Steam掉落请求提前秒数
-    /// </summary>
-    public readonly int SteamPlaytimeRequestLeadSeconds;
-    /// <summary>
-    /// 循环Steam盲盒券库存上限
-    /// </summary>
-    public readonly int BlindBoxLoopSteamVoucherInventoryLimit;
+    public readonly int SteamPlaytimeEligibilityLeadSeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -80,9 +70,7 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "BlindBoxLoopIntervalSeconds:" + BlindBoxLoopIntervalSeconds + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
-        + "SteamPlaytimeDropLeadSeconds:" + SteamPlaytimeDropLeadSeconds + ","
-        + "SteamPlaytimeRequestLeadSeconds:" + SteamPlaytimeRequestLeadSeconds + ","
-        + "BlindBoxLoopSteamVoucherInventoryLimit:" + BlindBoxLoopSteamVoucherInventoryLimit + ","
+        + "SteamPlaytimeEligibilityLeadSeconds:" + SteamPlaytimeEligibilityLeadSeconds + ","
         + "}";
     }
 }

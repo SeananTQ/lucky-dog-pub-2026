@@ -1,38 +1,35 @@
 [
   {
     "Id": 1001,
-    "BlindBoxId": 4001,
-    "VoucherUpgradeBlindBoxIds": [],
+    "BlindBoxId": 1001,
     "IsLoopTrack": false,
     "StartSeconds": 30,
     "IntervalSeconds": 30,
     "EndSeconds": 30,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700001,
+    "SteamPlaytimeGeneratorItemDefId": 700101,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": -1000
   },
   {
     "Id": 1002,
     "BlindBoxId": 1002,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 90,
     "IntervalSeconds": 60,
     "EndSeconds": 90,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700002,
+    "SteamPlaytimeGeneratorItemDefId": 700102,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1003,
     "BlindBoxId": 2001,
-    "VoucherUpgradeBlindBoxIds": [
-      4001
-    ],
     "IsLoopTrack": false,
     "StartSeconds": 150,
     "IntervalSeconds": 60,
@@ -41,42 +38,40 @@
     "IsEnabled": true,
     "SteamPlaytimeGeneratorItemDefId": 0,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1004,
     "BlindBoxId": 1001,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 210,
     "IntervalSeconds": 60,
     "EndSeconds": 210,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700004,
+    "SteamPlaytimeGeneratorItemDefId": 700104,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1005,
     "BlindBoxId": 1002,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 270,
     "IntervalSeconds": 60,
     "EndSeconds": 270,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700005,
+    "SteamPlaytimeGeneratorItemDefId": 700105,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1006,
     "BlindBoxId": 2001,
-    "VoucherUpgradeBlindBoxIds": [
-      4001
-    ],
     "IsLoopTrack": false,
     "StartSeconds": 330,
     "IntervalSeconds": 60,
@@ -85,42 +80,40 @@
     "IsEnabled": true,
     "SteamPlaytimeGeneratorItemDefId": 0,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1007,
     "BlindBoxId": 1001,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 390,
     "IntervalSeconds": 60,
     "EndSeconds": 390,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700007,
+    "SteamPlaytimeGeneratorItemDefId": 700107,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1008,
     "BlindBoxId": 1002,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 450,
     "IntervalSeconds": 60,
     "EndSeconds": 450,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700008,
+    "SteamPlaytimeGeneratorItemDefId": 700108,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1009,
     "BlindBoxId": 2001,
-    "VoucherUpgradeBlindBoxIds": [
-      4001
-    ],
     "IsLoopTrack": false,
     "StartSeconds": 510,
     "IntervalSeconds": 60,
@@ -129,42 +122,40 @@
     "IsEnabled": true,
     "SteamPlaytimeGeneratorItemDefId": 0,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1010,
     "BlindBoxId": 1001,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 570,
     "IntervalSeconds": 60,
     "EndSeconds": 570,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700010,
+    "SteamPlaytimeGeneratorItemDefId": 700110,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1011,
     "BlindBoxId": 1002,
-    "VoucherUpgradeBlindBoxIds": [],
     "IsLoopTrack": false,
     "StartSeconds": 630,
     "IntervalSeconds": 60,
     "EndSeconds": 630,
     "MaxGrantCount": 1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 700011,
+    "SteamPlaytimeGeneratorItemDefId": 700111,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 1012,
     "BlindBoxId": 2001,
-    "VoucherUpgradeBlindBoxIds": [
-      4001
-    ],
     "IsLoopTrack": false,
     "StartSeconds": 690,
     "IntervalSeconds": 60,
@@ -173,22 +164,21 @@
     "IsEnabled": true,
     "SteamPlaytimeGeneratorItemDefId": 0,
     "SteamDropWindowSeconds": 0,
-    "SteamDropMaxPerWindow": 0
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 0
   },
   {
     "Id": 2001,
     "BlindBoxId": 1001,
-    "VoucherUpgradeBlindBoxIds": [
-      4001
-    ],
     "IsLoopTrack": true,
     "StartSeconds": 780,
     "IntervalSeconds": 180,
     "EndSeconds": -1,
     "MaxGrantCount": -1,
     "IsEnabled": true,
-    "SteamPlaytimeGeneratorItemDefId": 701001,
+    "SteamPlaytimeGeneratorItemDefId": 701101,
     "SteamDropWindowSeconds": 360,
-    "SteamDropMaxPerWindow": 2
+    "SteamDropMaxPerWindow": 2,
+    "CostChipsOverride": 0
   }
 ]
