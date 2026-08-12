@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "documents": [
+    {
+      "slug": "inventory-schema",
+      "title": "Steam 库存架构",
+      "source": "https://partner.steamgames.com/doc/features/inventory/schema",
+      "retrievedAt": "2026-08-12T19:16:41.967Z",
+      "htmlSha256": "53f2f2d14d018e78d06c239547b7896f7dc92c9a571028fed69a7980b496ebbc",
+      "markdownSha256": "d1bd34a898b3009c646aa9a76488d567a3f3c17511e1f746d8e44a562bb2c9e9"
+    },
+    {
+      "slug": "ISteamInventory",
+      "title": "ISteamInventory 接口",
+      "source": "https://partner.steamgames.com/doc/api/ISteamInventory#TriggerItemDrop",
+      "retrievedAt": "2026-08-12T19:16:41.967Z",
+      "htmlSha256": "6bdb74d90d73c36c5fb870cf3f3ecc4f9897e92c747656194cf0ed8b5bee09d9",
+      "markdownSha256": "b40cdc639b70bfd212f7e0ff1586bc4f5f491ac579a554c63ad0fedbd65021a0"
+    }
+  ]
+}
