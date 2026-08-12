@@ -12,6 +12,7 @@ function idRanges() {
         1006: [301000, 301999],
         1009: [400000, 499999],
         1013: [501000, 501999],
+        1033: [500001, 500999],
         1016: [600000, 699999],
         1017: [601000, 601999],
         1021: [700000, 799999],
@@ -138,6 +139,7 @@ function schedule(overrides = {}) {
         MaxGrantCount: 1,
         IsEnabled: true,
         SteamPlaytimeGeneratorItemDefId: 404001,
+        SteamCompletionReceiptItemDefId: 0,
         SteamDropWindowSeconds: 0,
         SteamDropMaxPerWindow: 0,
         CostChipsOverride: 0,
@@ -464,6 +466,81 @@ test("rejects an invalid recurring drop window", () => {
     );
 
     assert.ok(result.errors.some(error => error.includes("SteamDropMaxPerWindow 必须大于 0")));
+});
+
+test("validates a blind-box Schedule completion receipt", () => {
+    const completionReceipt = receipt({
+        Id: 500005,
+        Key: "NewbieBlindBoxCheckpoint05ReceiptOfficial",
+        Name: "Newbie Blind Box Checkpoint 5 Receipt",
+    });
+    const result = buildArtifacts(
+        [completionReceipt],
+        [],
+        [],
+        [],
+        [schedule({
+            SteamPlaytimeGeneratorItemDefId: 0,
+            SteamCompletionReceiptItemDefId: 500005,
+        })],
+        [],
+        [],
+        idRanges(),
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.deepEqual(result.completionReceiptReferences, [{
+        scheduleId: 1001,
+        receiptItemDefId: 500005,
+    }]);
+    assert.ok(buildChannelArtifact(result, "release").items.some(item =>
+        item.itemdefid === 500005));
+});
+
+test("rejects an unsafe blind-box Schedule completion receipt", () => {
+    const completionReceipt = receipt({
+        Id: 500005,
+        Key: "UnsafeNewbieReceipt",
+        AutoStack: true,
+    });
+    const result = buildArtifacts(
+        [completionReceipt],
+        [],
+        [],
+        [],
+        [schedule({
+            SteamPlaytimeGeneratorItemDefId: 0,
+            SteamCompletionReceiptItemDefId: 500005,
+        })],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("AutoStack=false")));
+});
+
+test("rejects one blind-box completion receipt shared by multiple Schedules", () => {
+    const completionReceipt = receipt({
+        Id: 500005,
+        Key: "NewbieCheckpointReceipt",
+    });
+    const result = buildArtifacts(
+        [completionReceipt],
+        [],
+        [],
+        [],
+        [
+            schedule({
+                SteamPlaytimeGeneratorItemDefId: 0,
+                SteamCompletionReceiptItemDefId: 500005,
+            }),
+            schedule({
+                Id: 1005,
+                SteamPlaytimeGeneratorItemDefId: 0,
+                SteamCompletionReceiptItemDefId: 500005,
+            }),
+        ],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("已被 BlindBoxSchedule 1001 使用")));
 });
 
 test("rejects a playtime generator that grants a concrete item directly", () => {

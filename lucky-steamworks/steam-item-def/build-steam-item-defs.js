@@ -103,6 +103,7 @@ const ID_RANGE_ROWS = Object.freeze({
     blindBoxGenerator: 1006,
     playtestOnly: 1009,
     linkTreeReceipt: 1013,
+    newbieProgressReceipt: 1033,
     claimBundle: 1016,
     linkTreeBundle: 1017,
     playtimeGenerator: 1021,
@@ -294,6 +295,7 @@ function validateIdPlanning(
         if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, definition.Id)) continue;
         const valid = definition.Type === 1
             ? idInRange(plan, ID_RANGE_ROWS.blindBoxCost, definition.Id)
+                || idInRange(plan, ID_RANGE_ROWS.newbieProgressReceipt, definition.Id)
                 || idInRange(plan, ID_RANGE_ROWS.linkTreeReceipt, definition.Id)
             : definition.Type === 2
                 ? idInRange(plan, ID_RANGE_ROWS.claimBundle, definition.Id)
@@ -327,6 +329,14 @@ function validateIdPlanning(
             : ID_RANGE_ROWS.newbieDirectRewardPlaytimeGenerator;
         if (!idInRange(plan, expectedRange, itemDefId)) {
             errors.push(`BlindBoxSchedule ${schedule.Id}：PlaytimeGenerator ${itemDefId} 不在对应的正式投放段内。`);
+        }
+    }
+    for (const schedule of scheduleRecords.filter(record =>
+        record.IsEnabled === true && record.SteamCompletionReceiptItemDefId > 0)) {
+        const itemDefId = schedule.SteamCompletionReceiptItemDefId;
+        if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, itemDefId)) continue;
+        if (!idInRange(plan, ID_RANGE_ROWS.newbieProgressReceipt, itemDefId)) {
+            errors.push(`BlindBoxSchedule ${schedule.Id}：完成回执 ${itemDefId} 不在新手状态永久回执正式段内。`);
         }
     }
     return errors;
@@ -778,6 +788,67 @@ function validateLinkTree(records, itemDefs, itemRecords) {
     return { checkedReferenceCount, errors, warnings };
 }
 
+function validateBlindBoxCompletionReceipts(scheduleRecords, itemDefs) {
+    const errors = [];
+    const references = [];
+    const claimedByReceipt = new Map();
+
+    for (const schedule of scheduleRecords) {
+        const label = `BlindBoxSchedule ${schedule.Id ?? "<未知>"}`;
+        const receiptItemDefId = schedule.SteamCompletionReceiptItemDefId;
+        if (!Number.isInteger(receiptItemDefId)
+            || receiptItemDefId < 0
+            || receiptItemDefId >= 1000000) {
+            errors.push(`${label}：SteamCompletionReceiptItemDefId 必须是 0 到 999999 之间的整数。`);
+            continue;
+        }
+        if (receiptItemDefId === 0) continue;
+        if (schedule.IsLoopTrack === true) {
+            errors.push(`${label}：循环 Schedule 不得配置一次性完成回执。`);
+        }
+
+        const previousScheduleId = claimedByReceipt.get(receiptItemDefId);
+        if (previousScheduleId) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 已被 BlindBoxSchedule ${previousScheduleId} 使用。`);
+        } else {
+            claimedByReceipt.set(receiptItemDefId, schedule.Id);
+        }
+
+        const receipt = itemDefs.allById.get(receiptItemDefId);
+        if (!receipt) {
+            errors.push(`${label}：引用的完成回执 Steam ItemDef ${receiptItemDefId} 不存在。`);
+            continue;
+        }
+        if (!itemDefs.enabledById.has(receiptItemDefId)) {
+            errors.push(`${label}：引用的完成回执 Steam ItemDef ${receiptItemDefId} 已禁用。`);
+        }
+        if (receipt.Type !== 1) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 必须是 Type=Item。`);
+        }
+        if (receipt.PromoRule !== "manual" || receipt.GrantedManually !== true) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 必须配置 PromoRule=manual 且 GrantedManually=true。`);
+        }
+        if (receipt.Tradable !== false || receipt.Marketable !== false) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 必须不可交易且不可出售。`);
+        }
+        if (receipt.GameOnly !== true || receipt.StoreHidden !== true) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 必须配置 GameOnly=true 且 StoreHidden=true。`);
+        }
+        if (receipt.AutoStack !== false) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 必须配置 AutoStack=false。`);
+        }
+        if (receipt.Bundle) {
+            errors.push(`${label}：完成回执 ${receiptItemDefId} 的 Bundle 必须留空。`);
+        }
+
+        if (schedule.IsEnabled === true) {
+            references.push({ scheduleId: schedule.Id, receiptItemDefId });
+        }
+    }
+
+    return { references, errors };
+}
+
 function mergeDefinitions(itemDefs, gameItems) {
     const errors = [];
     const items = [...itemDefs.items];
@@ -1002,17 +1073,7 @@ function getScheduleDropLimit(schedule, label, errors) {
         return null;
     }
     if (schedule.MaxGrantCount >= 0) return schedule.MaxGrantCount;
-    if (!Number.isInteger(schedule.EndSeconds)) {
-        errors.push(`${label}：EndSeconds 必须是整数。`);
-        return null;
-    }
-    if (schedule.EndSeconds < 0) return null;
-    if (schedule.EndSeconds < schedule.StartSeconds) {
-        errors.push(`${label}：EndSeconds 不能早于 StartSeconds。`);
-        return null;
-    }
-    if (schedule.IntervalSeconds <= 0) return 1;
-    return 1 + Math.floor((schedule.EndSeconds - schedule.StartSeconds) / schedule.IntervalSeconds);
+    return null;
 }
 
 function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, merged) {
@@ -1200,6 +1261,10 @@ function buildArtifacts(
     );
     const bundleErrors = validateBundleReferences(merged.definitions, merged.enabledById);
     const linkTree = validateLinkTree(linkTreeRecords, itemDefs, itemRecords);
+    const completionReceipts = validateBlindBoxCompletionReceipts(
+        blindBoxScheduleRecords,
+        itemDefs,
+    );
     const idPlanningErrors = validateIdPlanning(
         idRangePlan,
         itemDefRecords,
@@ -1213,9 +1278,11 @@ function buildArtifacts(
         definitions: merged.definitions,
         blindBoxReferences: blindBoxes.references,
         playtimeReferences: playtime.references,
+        completionReceiptReferences: completionReceipts.references,
         checkedReferenceCount: linkTree.checkedReferenceCount,
         checkedBlindBoxReferenceCount: blindBoxes.checkedReferenceCount,
         checkedPlaytimeReferenceCount: playtime.checkedReferenceCount,
+        checkedCompletionReceiptReferenceCount: completionReceipts.references.length,
         idRangePlan,
         channelReferences: [
             ...linkTreeRecords.filter(record => record.IsEnabled === true).flatMap(record => [
@@ -1229,6 +1296,10 @@ function buildArtifacts(
                 label: `BlindBoxSchedule ${reference.scheduleId} PlaytimeGenerator`,
                 itemDefId: reference.playtimeGeneratorItemDefId,
             })),
+            ...completionReceipts.references.map(reference => ({
+                label: `BlindBoxSchedule ${reference.scheduleId} 完成回执`,
+                itemDefId: reference.receiptItemDefId,
+            })),
         ],
         errors: [
             ...itemDefs.errors,
@@ -1238,6 +1309,7 @@ function buildArtifacts(
             ...playtime.errors,
             ...bundleErrors,
             ...linkTree.errors,
+            ...completionReceipts.errors,
             ...idPlanningErrors,
         ],
         warnings: [
@@ -1338,6 +1410,7 @@ function main(argv = process.argv.slice(2)) {
         checkedLinkTreeReferenceCount: result.checkedReferenceCount,
         checkedBlindBoxReferenceCount: result.checkedBlindBoxReferenceCount,
         checkedPlaytimeReferenceCount: result.checkedPlaytimeReferenceCount,
+        checkedCompletionReceiptReferenceCount: result.checkedCompletionReceiptReferenceCount,
         channels: options.channels.map(channel => ({
             name: channel,
             appid: CHANNELS[channel].appId,
@@ -1358,7 +1431,8 @@ function main(argv = process.argv.slice(2)) {
         + `Release ${channelResults.get("release")?.items.length ?? "未生成"} 条 Steam ItemDef，`
         + `${result.checkedReferenceCount} 条 LinkTree 引用，`
         + `${result.checkedBlindBoxReferenceCount} 条 BlindBox 映射，`
-        + `${result.checkedPlaytimeReferenceCount} 条 PlaytimeGenerator 调度。`,
+        + `${result.checkedPlaytimeReferenceCount} 条 PlaytimeGenerator 调度，`
+        + `${result.checkedCompletionReceiptReferenceCount} 条新手进度回执引用。`,
     );
     for (const channel of options.channels) {
         const configuration = CHANNELS[channel];

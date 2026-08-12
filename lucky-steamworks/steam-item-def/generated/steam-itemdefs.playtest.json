@@ -1635,6 +1635,32 @@
       "bundle": "401008x1;191012x1"
     },
     {
+      "itemdefid": 500005,
+      "type": "item",
+      "name": "Newbie Blind Box Checkpoint 5 Receipt",
+      "description": "Permanent receipt confirming completion of the first five newbie blind boxes.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 500012,
+      "type": "item",
+      "name": "Newbie Blind Box Sequence Completed Receipt",
+      "description": "Permanent receipt confirming completion of the full newbie blind box sequence.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
       "itemdefid": 501001,
       "type": "item",
       "name": "LinkTree Claim - Twitter Follow",
@@ -1890,7 +1916,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301002x1",
-      "drop_interval": 5,
+      "drop_interval": 3,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1906,7 +1932,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301001x1",
-      "drop_interval": 13,
+      "drop_interval": 11,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1922,7 +1948,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301002x1",
-      "drop_interval": 17,
+      "drop_interval": 16,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1938,7 +1964,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301001x1",
-      "drop_interval": 25,
+      "drop_interval": 27,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1954,7 +1980,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301002x1",
-      "drop_interval": 29,
+      "drop_interval": 33,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1970,7 +1996,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301001x1",
-      "drop_interval": 37,
+      "drop_interval": 48,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -1986,7 +2012,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301002x1",
-      "drop_interval": 41,
+      "drop_interval": 56,
       "use_drop_limit": true,
       "drop_limit": 1
     },
@@ -2017,9 +2043,9 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301001x1",
-      "drop_interval": 12,
+      "drop_interval": 15,
       "use_drop_window": true,
-      "drop_window": 24,
+      "drop_window": 30,
       "drop_max_per_window": 2,
       "use_drop_limit": false
     }

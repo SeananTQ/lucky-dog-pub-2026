@@ -72,6 +72,7 @@ function loadPreview() {
     const linkTreesByItemDef = new Map();
     const blindBoxesByItemDef = new Map();
     const schedulesByItemDef = new Map();
+    const completionSchedulesByItemDef = new Map();
 
     for (const entry of linkTreeRecords) {
         for (const [itemDefId, role] of [
@@ -107,6 +108,12 @@ function loadPreview() {
         schedulesByItemDef.set(reference.playtimeGeneratorItemDefId, references);
     }
 
+    for (const reference of result.completionReceiptReferences) {
+        const references = completionSchedulesByItemDef.get(reference.receiptItemDefId) || [];
+        references.push(reference);
+        completionSchedulesByItemDef.set(reference.receiptItemDefId, references);
+    }
+
     const rows = result.definitions.map(definition => {
         const item = definition.schemaItem;
         return {
@@ -133,6 +140,7 @@ function loadPreview() {
             linkTrees: linkTreesByItemDef.get(definition.id) || [],
             blindBoxes: blindBoxesByItemDef.get(definition.id) || [],
             playtimeSchedules: schedulesByItemDef.get(definition.id) || [],
+            completionSchedules: completionSchedulesByItemDef.get(definition.id) || [],
         };
     });
 
@@ -184,6 +192,7 @@ function loadPreview() {
             linkTreeReferences: result.checkedReferenceCount,
             blindBoxReferences: result.checkedBlindBoxReferenceCount,
             playtimeReferences: result.checkedPlaytimeReferenceCount,
+            completionReceiptReferences: result.checkedCompletionReceiptReferenceCount,
             errors: errors.length,
             warnings: result.warnings.length,
         },
