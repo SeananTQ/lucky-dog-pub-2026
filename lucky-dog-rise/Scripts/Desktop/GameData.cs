@@ -992,31 +992,53 @@ public partial class GameData : Node
 
         var runtimeState = ActiveBlindBoxRuntimeState;
         var pending = runtimeState.PendingPreparation;
+        BlindBoxSchedule schedule;
+        BlindBox box;
+        var isRetry = false;
         if (pending != null)
         {
-            if (pending.Phase == BlindBoxPreparationPhase.RetryWaiting
-                && TotalPlaySeconds >= pending.RetryNotBeforeTotalPlaySeconds)
+            if (pending.Phase != BlindBoxPreparationPhase.RetryWaiting)
             {
-                runtimeState.PendingPreparation = null;
-                SaveImmediatelyIfUsingLocalSave();
-            }
-            else
-            {
-                if (pending.Phase != BlindBoxPreparationPhase.RetryWaiting)
-                    _platformInventoryService.StartInventorySynchronization();
+                _platformInventoryService.StartInventorySynchronization();
                 return;
             }
-        }
 
-        if (!_blindBoxService.TryGetPreparationCandidate(
-                runtimeState,
-                TotalPlaySeconds,
-                out var schedule,
-                out var box)
-            || schedule == null
-            || box == null
-            || schedule.SteamPlaytimeGeneratorItemDefId <= 0)
-            return;
+            if (TotalPlaySeconds < pending.RetryNotBeforeTotalPlaySeconds)
+                return;
+
+            schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(pending.ScheduleId);
+            box = LubanData.Tables.TbBlindBox.GetOrDefault(pending.BlindBoxId);
+            if (schedule == null
+                || box == null
+                || schedule.SteamPlaytimeGeneratorItemDefId != pending.GeneratorItemDefId)
+            {
+                GD.PushError(
+                    $"[BlindBox] Cannot retry pending preparation Schedule={pending.ScheduleId}, "
+                    + $"BlindBox={pending.BlindBoxId}, Generator={pending.GeneratorItemDefId}: definition mismatch.");
+                return;
+            }
+
+            // A Fallback advances the visible schedule, but it must not abandon the Steam
+            // request that was already submitted for that presentation. Keep retrying the
+            // original Generator until Steam either confirms its reward (which then becomes
+            // a late reward) or the persisted transaction is explicitly reset.
+            isRetry = true;
+        }
+        else
+        {
+            if (!_blindBoxService.TryGetPreparationCandidate(
+                    runtimeState,
+                    TotalPlaySeconds,
+                    out var candidateSchedule,
+                    out var candidateBox)
+                || candidateSchedule == null
+                || candidateBox == null
+                || candidateSchedule.SteamPlaytimeGeneratorItemDefId <= 0)
+                return;
+
+            schedule = candidateSchedule;
+            box = candidateBox;
+        }
 
         var now = Time.GetTicksMsec() / 1000.0;
         if (now < _nextPlatformPlaytimeDropAttemptAtSeconds)
@@ -1030,21 +1052,38 @@ public partial class GameData : Node
         if (!_platformInventoryService.TryTriggerPlaytimeDrop(schedule.SteamPlaytimeGeneratorItemDefId, out var message))
         {
             _nextPlatformPlaytimeDropAttemptAtSeconds = now + 5.0;
+            if (isRetry)
+            {
+                pending!.RetryNotBeforeTotalPlaySeconds = Math.Max(
+                    pending.RetryNotBeforeTotalPlaySeconds,
+                    TotalPlaySeconds + 5.0);
+                SaveImmediatelyIfUsingLocalSave();
+            }
             _recoverablePlatformService?.RequestReconnect();
             return;
         }
 
         _nextPlatformPlaytimeDropAttemptAtSeconds = now + SteamPlaytimeDropMinimumAttemptIntervalSeconds;
-        runtimeState.PendingPreparation = new PendingBlindBoxPreparation
+        if (isRetry)
         {
-            ScheduleId = schedule.Id,
-            BlindBoxId = box.Id,
-            GeneratorItemDefId = schedule.SteamPlaytimeGeneratorItemDefId,
-            Phase = BlindBoxPreparationPhase.Submitted,
-            SubmittedAtTotalPlaySeconds = TotalPlaySeconds,
-            InventoryQuantitiesBeforeRequest = baseline,
-        };
-        _blindBoxService.MarkPreparationRequestAccepted(runtimeState, schedule);
+            pending!.Phase = BlindBoxPreparationPhase.Submitted;
+            pending.SubmittedAtTotalPlaySeconds = TotalPlaySeconds;
+            pending.RetryNotBeforeTotalPlaySeconds = 0.0;
+            pending.InventoryQuantitiesBeforeRequest = baseline;
+        }
+        else
+        {
+            runtimeState.PendingPreparation = new PendingBlindBoxPreparation
+            {
+                ScheduleId = schedule.Id,
+                BlindBoxId = box.Id,
+                GeneratorItemDefId = schedule.SteamPlaytimeGeneratorItemDefId,
+                Phase = BlindBoxPreparationPhase.Submitted,
+                SubmittedAtTotalPlaySeconds = TotalPlaySeconds,
+                InventoryQuantitiesBeforeRequest = baseline,
+            };
+            _blindBoxService.MarkPreparationRequestAccepted(runtimeState, schedule);
+        }
         SaveImmediatelyIfUsingLocalSave();
         DiagnosticLog.Record("blindbox_preparation_submitted", new Dictionary<string, object>
         {
@@ -1052,8 +1091,14 @@ public partial class GameData : Node
             ["blindBoxId"] = box.Id,
             ["generatorItemDefId"] = schedule.SteamPlaytimeGeneratorItemDefId,
             ["baselineInstances"] = baseline.Count,
+            ["totalPlaySeconds"] = TotalPlaySeconds,
+            ["scheduleSeconds"] = runtimeState.ScheduleSeconds,
+            ["isRetry"] = isRetry,
+            ["isLate"] = runtimeState.PendingPreparation?.IsLate == true,
         });
-        GD.Print($"[BlindBox] Preparation Schedule={schedule.Id}: {message}");
+        GD.Print(
+            $"[BlindBox] Preparation{(isRetry ? " retry" : "")} Schedule={schedule.Id}"
+            + $"{(runtimeState.PendingPreparation?.IsLate == true ? " (late)" : "")}: {message}");
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
 

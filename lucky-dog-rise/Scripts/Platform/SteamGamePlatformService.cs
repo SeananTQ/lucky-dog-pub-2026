@@ -29,6 +29,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private readonly Callback<SteamInventoryResultReady_t> _inventoryResultReadyCallback;
     private readonly Dictionary<int, InventoryRequest> _inventoryRequests = new();
     private readonly HashSet<int> _ownedInventoryItemDefIds = new();
+    private readonly HashSet<int> _loggedPlaytimeGeneratorItemDefIds = new();
     private PlatformInventoryItem[] _inventoryItems = [];
     private bool _hasPendingAchievementStore;
     private bool _inventorySynchronizationStarted;
@@ -186,6 +187,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return false;
         }
 
+        LogPlaytimeGeneratorDefinitionOnce(generatorItemDefId);
+
         if (!SteamInventory.TriggerItemDrop(out var handle, (SteamItemDef_t)generatorItemDefId))
         {
             message = $"Steam 拒绝 TriggerItemDrop({generatorItemDefId}) 请求。";
@@ -197,6 +200,48 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             generatorItemDefId);
         message = $"已提交 TriggerItemDrop({generatorItemDefId})，等待 Steam 回执。";
         return true;
+    }
+
+    private void LogPlaytimeGeneratorDefinitionOnce(int generatorItemDefId)
+    {
+        if (!_loggedPlaytimeGeneratorItemDefIds.Add(generatorItemDefId))
+            return;
+
+        var properties = new[]
+        {
+            "type",
+            "bundle",
+            "drop_interval",
+            "use_drop_limit",
+            "drop_limit",
+            "use_drop_window",
+            "drop_window",
+            "drop_max_per_window",
+        };
+        var values = new List<string>();
+        foreach (var property in properties)
+        {
+            var bufferSize = 4096u;
+            if (SteamInventory.GetItemDefinitionProperty(
+                    (SteamItemDef_t)generatorItemDefId,
+                    property,
+                    out var value,
+                    ref bufferSize)
+                && !string.IsNullOrWhiteSpace(value))
+            {
+                values.Add($"{property}={value}");
+            }
+        }
+
+        var definitionSummary = values.Count > 0
+            ? string.Join(", ", values)
+            : "properties unavailable from Steam cache";
+        Godot.GD.Print($"[SteamInventory] Active ItemDef {generatorItemDefId}: {definitionSummary}.");
+        DiagnosticLog.Record("steam_playtime_generator_definition", new Dictionary<string, object>
+        {
+            ["generatorItemDefId"] = generatorItemDefId,
+            ["properties"] = definitionSummary,
+        });
     }
 
     public bool RecoverTimedOutPlaytimeDrop()
