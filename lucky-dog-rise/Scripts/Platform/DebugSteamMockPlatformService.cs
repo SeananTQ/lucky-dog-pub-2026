@@ -342,9 +342,14 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "Steam Mock 已有库存写事务正在处理。";
             return false;
         }
-        if (!_linkTreeGrants.ContainsKey((promoItemDefId, receiptItemDefId)))
+        var isSelfReceiptGrant = promoItemDefId == receiptItemDefId
+            && LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
+                schedule.IsEnabled
+                && schedule.SteamCompletionReceiptItemDefId == receiptItemDefId);
+        if (!isSelfReceiptGrant
+            && !_linkTreeGrants.ContainsKey((promoItemDefId, receiptItemDefId)))
         {
-            message = $"Steam Mock 未配置 LinkTree Bundle/回执：{promoItemDefId}/{receiptItemDefId}。";
+            message = $"Steam Mock 未配置 Promo/回执：{promoItemDefId}/{receiptItemDefId}。";
             AddEvent(message);
             return false;
         }
@@ -353,8 +358,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _pendingPromoItemDefId = promoItemDefId;
         _pendingReceiptItemDefId = receiptItemDefId;
         SetPhase(DebugSteamPhase.PromoGrantWaiting, PlatformConnectionState.Ready,
-            "已提交模拟 LinkTree AddPromoItem 请求。");
-        message = "Steam Mock 已接收 LinkTree 领奖请求。";
+            isSelfReceiptGrant
+                ? "已提交模拟新手进度回执 AddPromoItem 请求。"
+                : "已提交模拟 LinkTree AddPromoItem 请求。");
+        message = isSelfReceiptGrant
+            ? "Steam Mock 已接收新手进度回执请求。"
+            : "Steam Mock 已接收 LinkTree 领奖请求。";
         PublishSnapshot();
         return true;
     }
@@ -521,6 +530,20 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
     private IReadOnlyList<PlatformInventoryItem> ApplySuccessfulPromoGrant()
     {
+        if (_pendingPromoItemDefId == _pendingReceiptItemDefId)
+        {
+            var selfReceipt = new PlatformInventoryItem(
+                LinkTreeReceiptInstanceBase + checked((ulong)_pendingReceiptItemDefId),
+                _pendingReceiptItemDefId,
+                1);
+            if (_mockItems.All(item => item.InstanceId != selfReceipt.InstanceId))
+            {
+                _mockItems.Add(selfReceipt);
+                return [selfReceipt];
+            }
+            return [];
+        }
+
         if (!_linkTreeGrants.TryGetValue((_pendingPromoItemDefId, _pendingReceiptItemDefId), out var grant))
             return [];
         var changedItems = new List<PlatformInventoryItem>();

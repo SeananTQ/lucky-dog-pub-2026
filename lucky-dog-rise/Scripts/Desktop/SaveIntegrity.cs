@@ -71,6 +71,9 @@ internal static class SaveIntegrity
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
             PendingLinkTreeClaim = CanonicalizePendingLinkTreeClaim(profile.PendingLinkTreeClaim),
+            PendingBlindBoxCompletionReceiptItemDefId = Math.Max(
+                0,
+                profile.PendingBlindBoxCompletionReceiptItemDefId),
             LuckyDealBuffState = CanonicalizeLuckyDealBuff(profile.LuckyDealBuffState, includeLuckyDealMode: true),
             RefreshmentRuntimeState = CanonicalizeRefreshmentRuntimeState(profile.RefreshmentRuntimeState),
             CreatedAt = profile.CreatedAt ?? string.Empty,

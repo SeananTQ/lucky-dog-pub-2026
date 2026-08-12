@@ -605,6 +605,47 @@ public sealed class BlindBoxService
         }
     }
 
+    /// <summary>
+    /// 将 Steam 永久回执证明的新手进度合并到本地。只允许向前推进；调用方需保证当前没有
+    /// 已锁定气球、待揭晓奖励或正在播放的表演，避免远端进度替换玩家已经看见的内容。
+    /// </summary>
+    public bool MergeSequenceCompletionCount(
+        BlindBoxRuntimeState runtimeState,
+        int completedScheduleCount)
+    {
+        var sequenceSchedules = GetSequenceSchedules();
+        var target = Math.Clamp(completedScheduleCount, 0, sequenceSchedules.Count);
+        if (target <= runtimeState.SequenceIndex)
+            return false;
+
+        runtimeState.SequenceIndex = target;
+        runtimeState.LastClaimSeconds = runtimeState.ScheduleSeconds;
+        runtimeState.PendingPreparation = null;
+        runtimeState.PreparedReward = null;
+        runtimeState.LockedPresentation = null;
+        if (target >= sequenceSchedules.Count)
+        {
+            StartLoopStage(runtimeState);
+        }
+        else
+        {
+            runtimeState.LoopStageStarted = false;
+            runtimeState.NextLoopPresentationSeconds = 0.0;
+            runtimeState.NextLoopTriggerSeconds = 0.0;
+        }
+        return true;
+    }
+
+    public double GetMinimumRealPlaySecondsForSequenceCompletion(int completedScheduleCount)
+    {
+        var sequenceSchedules = GetSequenceSchedules();
+        var completed = Math.Clamp(completedScheduleCount, 0, sequenceSchedules.Count);
+        if (completed == 0)
+            return 0.0;
+
+        return Math.Max(0.0, sequenceSchedules[completed - 1].StartSeconds * GetWaitDurationMultiplier());
+    }
+
     private static BlindBoxSchedule? GetCurrentSequenceSchedule(BlindBoxRuntimeState runtimeState)
     {
         var sequenceSchedules = GetSequenceSchedules();
@@ -777,6 +818,31 @@ public sealed class BlindBoxService
             if (!box.IsPlatformInventoryRequired && schedule.SteamPlaytimeGeneratorItemDefId > 0)
                 GD.PushError($"[BlindBox] Local box Schedule {schedule.Id} cannot request a PlaytimeGenerator.");
 
+            if (schedule.SteamCompletionReceiptItemDefId > 0)
+            {
+                var receipt = LubanData.Tables.TbSteamItemDef.GetOrDefault(
+                    schedule.SteamCompletionReceiptItemDefId);
+                if (schedule.IsLoopTrack)
+                    GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} cannot grant a completion receipt.");
+                if (receipt is not
+                    {
+                        IsEnabled: true,
+                        Type: ESteamItemDefType.Item,
+                        PromoRule: "manual",
+                        GrantedManually: true,
+                        Tradable: false,
+                        Marketable: false,
+                        GameOnly: true,
+                        StoreHidden: true,
+                        AutoStack: false,
+                    })
+                {
+                    GD.PushError(
+                        $"[BlindBox] Schedule {schedule.Id} references an invalid completion receipt "
+                        + $"{schedule.SteamCompletionReceiptItemDefId}.");
+                }
+            }
+
             var rates = LubanData.Tables.TbBlindBoxRarityRate.DataList
                 .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
                 .ToList();
@@ -794,6 +860,16 @@ public sealed class BlindBoxService
                         path.IsEnabled && path.ActualRarity == rarity && path.Weight > 0))
                     GD.PushError($"[BlindBox] Box {box.Id} can roll {rarity}, but has no reveal path.");
             }
+        }
+
+        foreach (var duplicate in enabledSchedules
+                     .Where(schedule => schedule.SteamCompletionReceiptItemDefId > 0)
+                     .GroupBy(schedule => schedule.SteamCompletionReceiptItemDefId)
+                     .Where(group => group.Count() > 1))
+        {
+            GD.PushError(
+                $"[BlindBox] Completion receipt {duplicate.Key} is shared by Schedules "
+                + $"{string.Join(",", duplicate.Select(schedule => schedule.Id))}.");
         }
 
         ValidatePresentationScheduling();

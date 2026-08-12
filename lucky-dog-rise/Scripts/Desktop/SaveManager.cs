@@ -29,6 +29,8 @@ public sealed class SaveProfile
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PendingLinkTreeClaim? PendingLinkTreeClaim { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int PendingBlindBoxCompletionReceiptItemDefId { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public LuckyDealBuffState? LuckyDealBuffState { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -369,6 +371,15 @@ public static class SaveManager
         {
             profile.PendingLinkTreeClaim = null;
         }
+        var validCompletionReceiptIds = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.SteamCompletionReceiptItemDefId > 0)
+            .Select(schedule => schedule.SteamCompletionReceiptItemDefId)
+            .ToHashSet();
+        if (profile.PendingBlindBoxCompletionReceiptItemDefId < 0
+            || profile.PendingBlindBoxCompletionReceiptItemDefId > 0
+            && !validCompletionReceiptIds.Contains(
+                profile.PendingBlindBoxCompletionReceiptItemDefId))
+            profile.PendingBlindBoxCompletionReceiptItemDefId = 0;
         profile.LuckyDealBuffState ??= new LuckyDealBuffState();
         profile.LuckyDealBuffState.RemainingHands = Math.Max(0, profile.LuckyDealBuffState.RemainingHands);
         profile.LuckyDealBuffState.TriggerChance = Math.Clamp(profile.LuckyDealBuffState.TriggerChance, 0f, 1f);

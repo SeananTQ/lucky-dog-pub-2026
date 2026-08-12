@@ -147,6 +147,8 @@ public static class DiagnosticLog
                     ["linkTreeRewardLedgerInitialized"] = gameData?.LinkTreeRewardLedgerInitialized,
                     ["pendingBlindBoxReward"] = gameData?.PendingBlindBoxReward != null,
                     ["pendingBlindBoxPreparation"] = gameData?.ActiveBlindBoxPreparationPending == true,
+                    ["pendingBlindBoxCompletionReceiptItemDefId"] =
+                        gameData?.PendingBlindBoxCompletionReceiptItemDefId ?? 0,
                     ["skippedLogFiles"] = skippedLogs,
                 };
                 var summaryEntry = archive.CreateEntry("diagnostic-summary.json");
