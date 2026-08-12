@@ -27,19 +27,28 @@ offset_right = 120.0
 offset_bottom = 54.0
 theme_override_styles/panel = SubResource("bubble_style")
 script = ExtResource("1_script")
-_iconRect = NodePath("Root/Icon")
-_textLabel = NodePath("Root/Text")
-_strikeLine = NodePath("StrikeLine")
-_loadingIndicator = NodePath("LoadingIndicator")
+_iconRect = NodePath("Overlay/Root/Icon")
+_textLabel = NodePath("Overlay/Root/Text")
+_strikeLine = NodePath("Overlay/StrikeLine")
+_loadingIndicator = NodePath("Overlay/LoadingIndicator")
 _tail = NodePath("Tail")
 
-[node name="Root" type="HBoxContainer" parent="." unique_id=957169719]
+[node name="Overlay" type="Control" parent="." unique_id=1064814237]
 layout_mode = 2
+mouse_filter = 2
+
+[node name="Root" type="HBoxContainer" parent="Overlay" unique_id=957169719]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Root" unique_id=2109359432]
+[node name="Icon" type="TextureRect" parent="Overlay/Root" unique_id=2109359432]
 custom_minimum_size = Vector2(34, 28)
 layout_mode = 2
 mouse_filter = 2
@@ -47,7 +56,7 @@ texture = ExtResource("2_box")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="Text" type="RichTextLabel" parent="Root" unique_id=423815409]
+[node name="Text" type="RichTextLabel" parent="Overlay/Root" unique_id=423815409]
 custom_minimum_size = Vector2(58, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -61,7 +70,7 @@ fit_content = true
 autowrap_mode = 0
 horizontal_alignment = 1
 
-[node name="StrikeLine" type="ColorRect" parent="."]
+[node name="StrikeLine" type="ColorRect" parent="Overlay"]
 visible = false
 layout_mode = 0
 offset_right = 40.0
@@ -69,7 +78,7 @@ offset_bottom = 2.0
 mouse_filter = 2
 color = Color(0.40784314, 0.22745098, 0.19607843, 1)
 
-[node name="LoadingIndicator" parent="." instance=ExtResource("5_loading_indicator")]
+[node name="LoadingIndicator" parent="Overlay" instance=ExtResource("5_loading_indicator")]
 visible = false
 layout_mode = 1
 anchors_preset = 8
