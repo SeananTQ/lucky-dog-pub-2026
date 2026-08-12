@@ -96,6 +96,14 @@
     "Example": "501xxx LinkTree、502xxx 补偿中心"
   },
   {
+    "Id": 1033,
+    "StartItemDefId": 500001,
+    "EndItemDefId": 500999,
+    "Description": "新手状态永久回执字段",
+    "Purpose": "记录一些可获得奖励的新手状态，避免玩家重复走领奖流程",
+    "Example": "500001，新手盲盒阶段开始，500012，新手盲盒阶段走完"
+  },
+  {
     "Id": 1013,
     "StartItemDefId": 501000,
     "EndItemDefId": 501999,

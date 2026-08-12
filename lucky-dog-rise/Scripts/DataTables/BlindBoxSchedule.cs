@@ -22,13 +22,13 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
         { if(!_buf["StartSeconds"].IsNumber) { throw new SerializationException(); }  StartSeconds = _buf["StartSeconds"]; }
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
-        { if(!_buf["EndSeconds"].IsNumber) { throw new SerializationException(); }  EndSeconds = _buf["EndSeconds"]; }
         { if(!_buf["MaxGrantCount"].IsNumber) { throw new SerializationException(); }  MaxGrantCount = _buf["MaxGrantCount"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["SteamPlaytimeGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeGeneratorItemDefId = _buf["SteamPlaytimeGeneratorItemDefId"]; }
         { if(!_buf["SteamDropWindowSeconds"].IsNumber) { throw new SerializationException(); }  SteamDropWindowSeconds = _buf["SteamDropWindowSeconds"]; }
         { if(!_buf["SteamDropMaxPerWindow"].IsNumber) { throw new SerializationException(); }  SteamDropMaxPerWindow = _buf["SteamDropMaxPerWindow"]; }
         { if(!_buf["CostChipsOverride"].IsNumber) { throw new SerializationException(); }  CostChipsOverride = _buf["CostChipsOverride"]; }
+        { if(!_buf["SteamCompletionReceiptItemDefId"].IsNumber) { throw new SerializationException(); }  SteamCompletionReceiptItemDefId = _buf["SteamCompletionReceiptItemDefId"]; }
     }
 
     public static BlindBoxSchedule DeserializeBlindBoxSchedule(JSONNode _buf)
@@ -54,10 +54,6 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int IntervalSeconds;
     /// <summary>
-    /// 结束时间；无限循环填 -1
-    /// </summary>
-    public readonly int EndSeconds;
-    /// <summary>
     /// 最多发放次数；不限填 -1
     /// </summary>
     public readonly int MaxGrantCount;
@@ -81,6 +77,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// &gt;0 本次展示覆盖 BlindBox 默认筹码成本；=0 表示继承，&lt;0 表示免费并显示其绝对值的字符串并添加删除线，注意配置中的倍率
     /// </summary>
     public readonly int CostChipsOverride;
+    /// <summary>
+    /// 玩家正式完成并结算该 Schedule 后，由客户端手动授予的 Steam 永久进度回执 ItemDef ID；0 表示不授予
+    /// </summary>
+    public readonly int SteamCompletionReceiptItemDefId;
    
     public const int __ID__ = -621265139;
     public override int GetTypeId() => __ID__;
@@ -97,13 +97,13 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         + "IsLoopTrack:" + IsLoopTrack + ","
         + "StartSeconds:" + StartSeconds + ","
         + "IntervalSeconds:" + IntervalSeconds + ","
-        + "EndSeconds:" + EndSeconds + ","
         + "MaxGrantCount:" + MaxGrantCount + ","
         + "IsEnabled:" + IsEnabled + ","
         + "SteamPlaytimeGeneratorItemDefId:" + SteamPlaytimeGeneratorItemDefId + ","
         + "SteamDropWindowSeconds:" + SteamDropWindowSeconds + ","
         + "SteamDropMaxPerWindow:" + SteamDropMaxPerWindow + ","
         + "CostChipsOverride:" + CostChipsOverride + ","
+        + "SteamCompletionReceiptItemDefId:" + SteamCompletionReceiptItemDefId + ","
         + "}";
     }
 }
