@@ -88,9 +88,12 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - PlaytimeGenerator 没有以数量 1 引用且只引用一个 Generator 奖励池。
 - 多个盲盒共用同一个 `@AUTO` Generator 但生成结果不同，或自动奖池缺少有效品质概率/候选物品。生成结果完全一致时允许复用同一 Generator。
 - BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或没有落入新手/循环直接奖励 ID 子段。
+- BlindBoxSchedule 的新手进度回执不存在、被多条计划共用、落入错误 ID 分段，或不是安全的永久隐藏手动回执；循环 Schedule 不得配置进度回执。
 - `CostChipsOverride` 不是整数。`0` 表示继承，正数表示覆盖成本，负数表示免费并以绝对值作为删除线参考价格。
 
 历史盲盒券和 Exchange ItemDef 继续保留在 schema 中，但不再由 BlindBox 或 Schedule 引用；已经发布的旧 PlaytimeGenerator 使用 `use_drop_limit=true`、`drop_limit=0` 永久停发。
+
+新手流程可以通过 `BlindBoxSchedule.SteamCompletionReceiptItemDefId` 在少量里程碑配置永久进度回执。当前 Schedule 1005 / 1012 分别使用 `500005` / `500012`。这些回执通过 `AddPromoItem` 独立补交，不得嵌入 PlaytimeGenerator 的奖励池；它们只用于客户端换机后把本地新手进度向前恢复。
 
 ## 自动生成规则
 

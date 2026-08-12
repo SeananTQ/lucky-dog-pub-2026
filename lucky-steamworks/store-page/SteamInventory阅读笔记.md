@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-29
+last_edit: 2026-08-12
 status: draft
 ---
 
@@ -11,6 +11,8 @@ status: draft
 本文不是 Steamworks 官方文档的全文复制，而是项目内部阅读索引。
 
 Steamworks 官方文档内容可能更新，后续做正式接入前应重新打开原文核对。
+
+本文保留 `ExchangeItems`、箱子和券等 Steam 能力说明作为历史研究资料，但这些能力不代表 Lucky Dog Rise 当前盲盒架构。当前方案已经迁移为 PlaytimeGenerator 直接生成具体装扮，玩家点击盲盒时不再消耗券或调用 `ExchangeItems`；正式设计以 [盲盒系统设计](../../docs/game-design/盲盒系统设计.md) 和 [SteamItemDef 表说明](../../docs/game-design/SteamItemDef表说明.md) 为准。
 
 ## 相关官方页面
 
@@ -171,7 +173,9 @@ https://partner.steamgames.com/doc/features/inventory/schema
 5. 本地 Item 表作为资源显示、UI 排序、装备类型、皮肤资源映射。
 6. 调试模式本地背包。
 
-### 需要新增的兼容概念
+### 历史兼容方案（已废弃）
+
+以下字段是旧券与 `ExchangeItems` 方案的设计记录，不得重新加入当前 Luban 表或客户端。保留本节仅用于解释历史代码、旧 Playtest 库存和已经发布过的 Steam ItemDef。
 
 Item 表建议补充 Steam 对齐字段：
 
@@ -180,7 +184,7 @@ Item 表建议补充 Steam 对齐字段：
 3. `SteamTradable`
 4. `SteamMarketable`
 
-BlindBox 表建议补充 Steam 对齐字段：
+旧方案曾建议为 BlindBox 表补充：
 
 1. `IsPlatformInventoryRequired`：平台无关的业务规则，表示该盲盒是否需要当前平台的可信库存服务。
 2. `SteamOpenCostItemDefId`：调用 Steam `ExchangeItems` 开盒时作为交换材料消耗的 ItemDef ID。

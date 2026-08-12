@@ -6,9 +6,9 @@ status: draft
 
 # SteamItemDef 表说明
 
-本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，客户端与 Mock 回归已经完成；但新手阶段配置仍可能调整，主人确认最终参数并安排真实 Steam 回归前不得上传发布。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
+本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，新手阶段配置、直接奖励客户端、进度回执和 Mock 回归已经完成；正式上传与真实 Steam 帐号回归尚未执行。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
-非循环 Schedule 的 Steam 资格提前量统一为 `SteamPlaytimeEligibilityLeadSeconds=60`。转换器和客户端使用同一公式与分钟向上取整结果；旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
+非循环 Schedule 的 Steam 资格提前量统一读取 `SteamPlaytimeEligibilityLeadSeconds`，当前导出配置为 `180` 秒。转换器和客户端使用同一公式与分钟向上取整结果；旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
 
 完整库存同步不再把所有服务器新增数量标记为 New。客户端在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过可信完整库存差量定位合法候选；只有能够归因到当前盲盒准备事务的实例才进入待揭晓状态。首次同步和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
 
@@ -26,7 +26,7 @@ status: draft
 
 `Item` 表描述游戏里的实际内容道具，并通过 `SteamItemDefId` 等字段生成对应的 Steam `item` 定义。实际道具不应在 `SteamItemDef` 表里再复制一行。
 
-`SteamItemDef` 表管理 LinkTree 回执、Bundle、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向直接奖励 PlaytimeGenerator；该定义以数量 1 引用一个盲盒奖励池 Generator，转换器再沿 Schedule 的 `BlindBoxId` 生成或校验奖池。客户端调用 `TriggerItemDrop` 后，Steam 在同一次操作中递归展开并把最终具体装扮写入库存。
+`SteamItemDef` 表管理 LinkTree 回执、新手进度回执、Bundle、Generator 和 PlaytimeGenerator 等平台规则定义。`BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 指向直接奖励 PlaytimeGenerator；该定义以数量 1 引用一个盲盒奖励池 Generator，转换器再沿 Schedule 的 `BlindBoxId` 生成或校验奖池。客户端调用 `TriggerItemDrop` 后，Steam 在同一次操作中递归展开并把最终具体装扮写入库存。
 
 当 LinkTree 奖励已有道具时，`LinkTree.RewardItemId` 直接填写原有 `Item.Id`，不复制一行新的本地道具数据。每条可领奖入口同时引用一个永久回执和一个领取 Bundle：`SteamReceiptItemDefId` 用于判断是否已经领取，`SteamClaimBundleItemDefId` 是客户端调用 `AddPromoItem` 的目标。
 
@@ -90,6 +90,26 @@ flowchart LR
 `GenerateItems` 可以为发行商组内的开发者账号生成测试实例，但它不会重置一次性 Promo 的发放记录。该接口只适合恢复测试账号中被误删的实例或验证库存读取，不适合验证完整的首次 `AddPromoItem` 领奖流程。
 
 完整重测首次领奖流程时，应使用该 Steam 账号从未领取过的新领取 Bundle 与永久回执组合，或使用另一个测试账号。独立 Steam Inventory 测试场景中的消耗和生成功能均会真实修改当前开发者账号的库存。
+
+## 新手进度回执
+
+`BlindBoxSchedule.SteamCompletionReceiptItemDefId` 用于配置粗粒度的新手流程完成凭证。字段为 `0` 时该 Schedule 不写进度回执；正数必须指向一条启用、安全且永久的 `SteamItemDef`。当前配置为：
+
+1. Schedule 1005 → ItemDef `500005`，表示前 5 个新手展示机会已经完成。
+2. Schedule 1012 → ItemDef `500012`，表示全部 12 个新手展示机会已经完成。
+
+进度回执必须满足以下规则：
+
+1. `Type=Item`、`PromoRule=manual`、`GrantedManually=TRUE`。
+2. `Tradable=FALSE`、`Marketable=FALSE`、`AutoStack=FALSE`。
+3. `GameOnly=TRUE`、`StoreHidden=TRUE`，不向玩家展示为可使用物品。
+4. `Bundle` 留空；回执通过对自身 ItemDef 调用 `AddPromoItem` 发放，不嵌入 PlaytimeGenerator 或装扮 Generator。
+5. 一条回执只能映射一个非循环 Schedule；循环 Schedule 不得配置。
+6. Release 业务配置不得引用 Playtest 专用 ID 段。
+
+回执在对应前台奖励真正领取后发放，与 Steam 是否为本次展示提供装扮无关，因此本地 Schedule 奖励和 Fallback 同样能够推进检查点。客户端只保存一个最高待补交回执；可信库存中已经存在较高检查点时，只向前恢复本地新手进度，不回退现有进度，也不替换已锁定气球或进行中的表演。
+
+这套回执不是逐条云存档。它只降低换机后的最大重跑长度，不恢复本地筹码、消耗品、装备、New、统计或精确倒计时。
 
 相关 Steam 官方说明：[ISteamInventory::AddPromoItem、ConsumeItem 与 GenerateItems](https://partner.steamgames.com/doc/api/isteaminventory)。
 
@@ -306,7 +326,7 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、`@AUTO` Generator 奖池、Item 品质标签、直接奖励 PlaytimeGenerator 映射、ID 分段校验、资格时间与掉落窗口派生，以及旧 PlaytimeGenerator 的显式停发。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
+当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、新手进度回执安全性与唯一映射校验、`@AUTO` Generator 奖池、Item 品质标签、直接奖励 PlaytimeGenerator 映射、ID 分段校验、资格时间与掉落窗口派生，以及旧 PlaytimeGenerator 的显式停发。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
 
 LinkTree `RewardType=BlindBox` 尚未迁移到直接奖励架构；转换器会拒绝启用该类型，避免重新引入券或第二套 Exchange 开奖流程。后续若启用活动盲盒，应单独定义其服务器所有权、待揭晓实例归因和玩家可见展示点。
 

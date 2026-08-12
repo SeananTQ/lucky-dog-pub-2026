@@ -17,10 +17,10 @@
 - 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
 - 存档：本地 JSON 存档当前为 V15；V14 及更早存档归档为 `legacy` 后创建新档，并保留损坏备份、重置存档确认和开盒表演中断恢复。
 - 调试：Dev 启动器支持综合调试环境与启动级 Steam 模拟环境；Debug 页和顶部 Steam Mock 面板支持盲盒/LinkTree 网络场景、展示点推进、新手 12 个盲盒或普通循环起点，以及独立内存沙箱。
-- 盲盒：已迁移为 PlaytimeGenerator 直接生成具体 Steam 装扮；支持实例级库存基线与复查、单槽位待揭晓奖励、12 个新手 Schedule、普通循环、Refreshment Fallback、迟到奖励、价格覆盖、桌宠/扑克开盒表演及中断恢复。玩家点击开盒时不访问 Steam。
+- 盲盒：已迁移为 PlaytimeGenerator 直接生成具体 Steam 装扮；支持实例级库存基线与复查、单槽位待揭晓奖励、12 个新手 Schedule、第 5 / 第 12 个新手进度回执、普通循环、Refreshment Fallback、迟到奖励、价格覆盖、桌宠/扑克开盒表演及中断恢复。玩家点击开盒时不访问 Steam。
 - LinkTree：已支持数据驱动入口、四阶段领取状态、外部操作等待、Steam Inventory 永久领取回执和奖励反馈动画。
 - Steam 平台：已接入 Steamworks.NET，并支持运行期重连、库存同步超时、退避重试和待处理事务恢复。
-- 待开发：调整并最终确认新手阶段参数、发布新版 Steam schema、真实 Steam 帐号回归，以及重复装扮补偿/分解等后续系统。
+- 待完成：复核并发布新版 Steam schema、执行真实 Steam 帐号回归，以及重复装扮补偿/分解等后续系统。
 
 ## 技术栈
 
@@ -178,7 +178,7 @@ lucky-dog-rise/
 
 **盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
 
-盲盒奖励准备和本地展示节奏是两层逻辑。前 12 个非循环 `BlindBoxSchedule` 按顺序展示；需要装扮的 Schedule 在后台调用对应 PlaytimeGenerator，Steam 直接生成具体物品实例。第 12 个奖励入账后进入普通循环，立即检查循环 Generator，并按 `GameDevelopConfig.BlindBoxLoopIntervalSeconds` 产生展示点和独立 Trigger 心跳。运行时最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件奖励。展示点有可信待揭晓装扮时锁定装扮盲盒，否则锁定本地 Refreshment Fallback；锁定后不被后续库存变化替换。所有本地调度基础秒数受 `BlindBoxWaitDurationMultiplier` 缩放，玩家真实游玩时间与调度时钟分离。
+盲盒奖励准备和本地展示节奏是两层逻辑。前 12 个非循环 `BlindBoxSchedule` 按顺序展示；需要装扮的 Schedule 在后台调用对应 PlaytimeGenerator，Steam 直接生成具体物品实例。第 12 个奖励入账后进入普通循环，立即检查循环 Generator，并按 `GameDevelopConfig.BlindBoxLoopIntervalSeconds` 产生展示点和独立 Trigger 心跳。运行时最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件奖励。展示点有可信待揭晓装扮时锁定装扮盲盒，否则锁定本地 Refreshment Fallback；锁定后不被后续库存变化替换。所有本地调度基础秒数受 `BlindBoxWaitDurationMultiplier` 缩放，玩家真实游玩时间与调度时钟分离。Schedule 1005 / 1012 通过 `SteamCompletionReceiptItemDefId` 分别写入第 5 / 第 12 个新手进度回执；可信库存同步只允许把本地新手进度向前恢复，不能覆盖已锁定气球或进行中的表演。
 
 ## 背包与存档
 
@@ -191,7 +191,7 @@ lucky-dog-rise/
 - 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
 - 相同道具可以重复获得并累计数量。`AcquisitionType=Initial` 的道具是永久基础物品，不进入盲盒奖池；未来的回收系统也不得消耗这类物品。
 - 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
-- V15 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`CreatedAt`、`UpdatedAt`；盲盒运行态包含未决准备、已确认待揭晓奖励和已锁定展示来源。
+- V15 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`PendingBlindBoxCompletionReceiptItemDefId`、`CreatedAt`、`UpdatedAt`；盲盒运行态包含未决准备、已确认待揭晓奖励和已锁定展示来源。
 - 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆等）。盲盒开盒中断状态会保存并恢复，包括当前盲盒、奖励、RevealStep 与奖励是否已展示。
 - 盲盒倒计时每秒刷新 UI，但不应因此每秒写存档。普通存档变化使用 0.75 秒防抖，持续游玩时间每 60 秒保存一次快照；开盒资格消耗、奖励入账和待揭晓状态变化等关键节点立即保存。
 
@@ -274,6 +274,7 @@ lucky-dog-rise/
 - LinkTree 对 `SteamClaimBundleItemDefId` 调用 `AddPromoItem`，Bundle 中必须包含独立、永久且不销毁的 `SteamReceiptItemDefId` 作为一次性领取回执。启动同步时以回执恢复 `Claimed`；待处理事务同时保存 LinkTree、Bundle 和回执 ID，并在回调丢失或断线后通过完整库存复查。固定物品由 Bundle 直接写入 Steam 库存并同步到本地背包，客户端不得根据 `RewardItemId` 凭空发放；固定筹码只在回执确认后本地增加。单纯删除本地存档不得再次领取。
 - Steam 盲盒与 LinkTree 共用平台服务、同步状态、重连机制和库存写入单飞保护。盲盒后台准备、LinkTree Promo 发放与完整库存复查不得交叉提交，避免库存差分串单。
 - Steam 游玩投放由 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 驱动，通过共享平台服务调用 `TriggerItemDrop`。PlaytimeGenerator 在 Steam 端递归展开装扮 Generator 并直接写入最终具体物品；客户端不生成、显示或消费盲盒券，也不在玩家点击时调用 Exchange。
+- `BlindBoxSchedule.SteamCompletionReceiptItemDefId` 是粗粒度新手换机恢复检查点，不是盲盒奖励。当前 Schedule 1005 / 1012 分别映射永久隐藏回执 `500005` / `500012`；奖励真正领取后才通过 `AddPromoItem` 补交，待补交 ID 写入 V15 存档。回执事务与盲盒准备、LinkTree 领奖共用库存写入单飞保护。
 - 提交 PlaytimeGenerator 前把 Generator、Schedule、BlindBox、提交时间和实例数量基线保存到 `PendingBlindBoxPreparation`。正常回调优先使用实际变化实例；回调丢失、超时或断联时通过可信完整库存差分复查。只有唯一且属于当前盲盒合法候选的增量才能进入 `PreparedBlindBoxReward`。
 - `TriggerItemDrop` 成功但没有合法增量只表示本次没有确认奖励。系统遵守 65 秒公共节流重试；展示点没有可信准备奖励时立即锁定本地 Refreshment Fallback。未决请求在 Fallback 后确认的奖励标记为迟到，只能占用后续展示点。
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。

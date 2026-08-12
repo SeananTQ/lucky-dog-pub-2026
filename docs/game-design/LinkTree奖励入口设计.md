@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-11
+last_edit: 2026-08-12
 status: draft
 ---
 
@@ -118,9 +118,9 @@ Steam Inventory 写操作在盲盒与 LinkTree 之间共用事务保护。客户
    - 当前版本只预留表字段，不实现该功能。
 
 5. `BlindBox`
-   - 奖励一张指定盲盒的 Steam 开箱成本券，并在领奖后自动进入开盒表演。
-   - `RewardBlindBoxId` 填本地 `BlindBox.Id`；领取 Bundle 的实际内容必须包含该盲盒的 `SteamOpenCostItemDefId`。
-   - 当前已完成表字段、枚举和转换器配方校验；客户端自动兑换并进入开盒表演尚未实现。
+   - 当前不支持启用。
+   - 旧设计曾计划发放 Steam 开箱成本券并自动进入开盒表演，但盲盒系统已经移除券与 `ExchangeItems`，该配方不再成立。
+   - 转换器会拒绝启用的 LinkTree `BlindBox` 奖励，避免重新引入第二套开奖路径。后续若需要活动盲盒，应另行设计直接奖励实例的归因、待揭晓暂扣和玩家可见展示点。
 
 当前客户端已实现 `None`、`FixedItem` 和 `FixedChips`。`SequentialPack` 与 `BlindBox` 仍属于后续工作。
 
