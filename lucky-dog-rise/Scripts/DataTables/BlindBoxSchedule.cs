@@ -19,12 +19,14 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
+        { if(!_buf["FallbackBlindBoxId"].IsNumber) { throw new SerializationException(); }  FallbackBlindBoxId = _buf["FallbackBlindBoxId"]; }
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
         { if(!_buf["StartSeconds"].IsNumber) { throw new SerializationException(); }  StartSeconds = _buf["StartSeconds"]; }
         { if(!_buf["IntervalSeconds"].IsNumber) { throw new SerializationException(); }  IntervalSeconds = _buf["IntervalSeconds"]; }
         { if(!_buf["MaxGrantCount"].IsNumber) { throw new SerializationException(); }  MaxGrantCount = _buf["MaxGrantCount"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["SteamPlaytimeGeneratorItemDefId"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeGeneratorItemDefId = _buf["SteamPlaytimeGeneratorItemDefId"]; }
+        { if(!_buf["SteamDropIntervalSeconds"].IsNumber) { throw new SerializationException(); }  SteamDropIntervalSeconds = _buf["SteamDropIntervalSeconds"]; }
         { if(!_buf["SteamDropWindowSeconds"].IsNumber) { throw new SerializationException(); }  SteamDropWindowSeconds = _buf["SteamDropWindowSeconds"]; }
         { if(!_buf["SteamDropMaxPerWindow"].IsNumber) { throw new SerializationException(); }  SteamDropMaxPerWindow = _buf["SteamDropMaxPerWindow"]; }
         { if(!_buf["CostChipsOverride"].IsNumber) { throw new SerializationException(); }  CostChipsOverride = _buf["CostChipsOverride"]; }
@@ -41,6 +43,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 对应 BlindBox.Id
     /// </summary>
     public readonly int BlindBoxId;
+    /// <summary>
+    /// FallbackBlindBoxId
+    /// </summary>
+    public readonly int FallbackBlindBoxId;
     /// <summary>
     /// TRUE 表示正常阶段循环装扮奖励准备行
     /// </summary>
@@ -65,6 +71,10 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 通过 TriggerItemDrop 请求的 Steam PlaytimeGenerator ItemDef ID；该定义直接生成最终装扮；本地消耗品填 0
     /// </summary>
     public readonly int SteamPlaytimeGeneratorItemDefId;
+    /// <summary>
+    /// Steam每件奖励所需的游玩间隔
+    /// </summary>
+    public readonly int SteamDropIntervalSeconds;
     /// <summary>
     /// Steam 掉落窗口基础秒数；乘等待倍率后转为分钟；0 表示不启用
     /// </summary>
@@ -94,12 +104,14 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "BlindBoxId:" + BlindBoxId + ","
+        + "FallbackBlindBoxId:" + FallbackBlindBoxId + ","
         + "IsLoopTrack:" + IsLoopTrack + ","
         + "StartSeconds:" + StartSeconds + ","
         + "IntervalSeconds:" + IntervalSeconds + ","
         + "MaxGrantCount:" + MaxGrantCount + ","
         + "IsEnabled:" + IsEnabled + ","
         + "SteamPlaytimeGeneratorItemDefId:" + SteamPlaytimeGeneratorItemDefId + ","
+        + "SteamDropIntervalSeconds:" + SteamDropIntervalSeconds + ","
         + "SteamDropWindowSeconds:" + SteamDropWindowSeconds + ","
         + "SteamDropMaxPerWindow:" + SteamDropMaxPerWindow + ","
         + "CostChipsOverride:" + CostChipsOverride + ","

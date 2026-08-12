@@ -20,7 +20,6 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxWaitDurationMultiplier"].IsNumber) { throw new SerializationException(); }  BlindBoxWaitDurationMultiplier = _buf["BlindBoxWaitDurationMultiplier"]; }
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
-        { if(!_buf["BlindBoxLoopIntervalSeconds"].IsNumber) { throw new SerializationException(); }  BlindBoxLoopIntervalSeconds = _buf["BlindBoxLoopIntervalSeconds"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
         { if(!_buf["SteamPlaytimeEligibilityLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeEligibilityLeadSeconds = _buf["SteamPlaytimeEligibilityLeadSeconds"]; }
     }
@@ -43,15 +42,11 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// </summary>
     public readonly float PlayerStatisticScale;
     /// <summary>
-    /// 正常阶段盲盒展示间隔
-    /// </summary>
-    public readonly float BlindBoxLoopIntervalSeconds;
-    /// <summary>
     /// LinkTree最佳显示条目数量
     /// </summary>
     public readonly int LinkTreeVisibleBannerCount;
     /// <summary>
-    /// Steam资格提前秒数
+    /// Steam资格提前真实秒数
     /// </summary>
     public readonly int SteamPlaytimeEligibilityLeadSeconds;
    
@@ -68,7 +63,6 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxWaitDurationMultiplier:" + BlindBoxWaitDurationMultiplier + ","
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
-        + "BlindBoxLoopIntervalSeconds:" + BlindBoxLoopIntervalSeconds + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
         + "SteamPlaytimeEligibilityLeadSeconds:" + SteamPlaytimeEligibilityLeadSeconds + ","
         + "}";
