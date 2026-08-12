@@ -30,7 +30,8 @@ public partial class DeveloperLauncherController : CanvasLayer
         _environmentOption.AddItem("综合调试环境", (int)DebugRuntimeEnvironment.IntegratedDebug);
         _environmentOption.AddItem("Steam 模拟环境", (int)DebugRuntimeEnvironment.SteamMock);
 
-        _scenarioOption.AddItem("正常响应：请求快速成功", (int)DebugSteamScenario.NormalSuccess);
+        _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
+        _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
         _scenarioOption.AddItem("请求前不可用：不提交 Steam 请求", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，复查 10 秒后确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);

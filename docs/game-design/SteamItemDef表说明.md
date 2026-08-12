@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-12
+last_edit: 2026-08-13
 status: draft
 ---
 
@@ -8,7 +8,7 @@ status: draft
 
 本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 文件已经由转换器生成，新手阶段配置、直接奖励客户端、进度回执和 Mock 回归已经完成；正式上传与真实 Steam 帐号回归尚未执行。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
-非循环 Schedule 的 Steam 资格提前量统一读取 `SteamPlaytimeEligibilityLeadSeconds`，当前导出配置为 `180` 秒。转换器和客户端使用同一公式与分钟向上取整结果；旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则直接进入 Fallback。循环 Schedule 继续使用独立心跳。
+非循环 Schedule 的累计资格和循环 Schedule 的单件资格都统一扣除 `SteamPlaytimeEligibilityLeadSeconds`，当前导出配置为 `180` 个真实秒。非循环资格基于 `StartSeconds`，循环资格基于 `SteamDropIntervalSeconds`；转换器使用分钟向上取整结果。旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则按当前 Schedule 的 `FallbackBlindBoxId` 进入本地 Fallback。
 
 完整库存同步不再把所有服务器新增数量标记为 New。客户端在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过可信完整库存差量定位合法候选；只有能够归因到当前盲盒准备事务的实例才进入待揭晓状态。首次同步和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
 
@@ -254,10 +254,10 @@ Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytime
 drop_interval = max(1, ceil(Steam 资格秒数 / 60))
 ```
 
-循环 Schedule 不使用提前量：
+循环 Schedule 使用独立的 Steam 单件资格间隔，并同样扣除提前量：
 
 ```text
-drop_interval = max(1, ceil(IntervalSeconds × BlindBoxWaitDurationMultiplier / 60))
+drop_interval = max(1, ceil((SteamDropIntervalSeconds × BlindBoxWaitDurationMultiplier - SteamPlaytimeEligibilityLeadSeconds) / 60))
 drop_window = max(1, ceil(SteamDropWindowSeconds × BlindBoxWaitDurationMultiplier / 60))
 drop_max_per_window = SteamDropMaxPerWindow
 ```
@@ -266,7 +266,7 @@ drop_max_per_window = SteamDropMaxPerWindow
 
 客户端不会等待 Steam 自动发放。非循环新手阶段根据与转换器相同的分钟级资格结果进入请求窗口，并通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间即可准备具体装扮，不等到倒计时归零才请求。
 
-第 12 个新手奖励入账后，客户端立即尝试一次长期循环 Generator，首个玩家可见展示点仍等待完整 `BlindBoxLoopIntervalSeconds`。回执为空表示本次没有发放；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。客户端最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件待揭晓奖励。
+第 12 个新手奖励入账后，客户端立即尝试一次长期循环 Generator，首个玩家可见展示点仍等待循环 Schedule 的完整 `IntervalSeconds`。回执为空表示本次没有发放；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。客户端最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件待揭晓奖励。
 
 Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
 

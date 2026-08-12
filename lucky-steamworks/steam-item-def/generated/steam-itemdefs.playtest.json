@@ -2043,7 +2043,7 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "301001x1",
-      "drop_interval": 15,
+      "drop_interval": 12,
       "use_drop_window": true,
       "drop_window": 30,
       "drop_max_per_window": 2,

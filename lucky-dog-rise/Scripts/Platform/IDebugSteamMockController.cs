@@ -13,6 +13,7 @@ public enum DebugSteamScenario
     TimeoutVerifiedFallback,
     DisconnectAfterSubmit,
     DisconnectRecoverSuccess,
+    ForcedSuccess,
 }
 
 public enum DebugSteamPhase
@@ -36,6 +37,12 @@ public sealed record DebugSteamLinkTreeGrant(
     int ReceiptItemDefId,
     int RewardItemDefId);
 
+public sealed record DebugSteamPlaytimeDropRule(
+    int GeneratorItemDefId,
+    double DropIntervalSeconds,
+    double DropWindowSeconds,
+    int DropMaxPerWindow);
+
 public sealed record DebugSteamMockSnapshot(
     DebugSteamScenario Scenario,
     DebugSteamPhase Phase,
@@ -44,6 +51,10 @@ public sealed record DebugSteamMockSnapshot(
     PlatformInventoryTrustState InventoryTrustState,
     int GeneratorItemDefId,
     ulong RewardInstanceId,
+    double SimulatedPlaytimeSeconds,
+    double DropIntervalSeconds,
+    int GrantsInWindow,
+    int DropMaxPerWindow,
     bool HasPendingTransaction,
     string PendingOperation,
     string LastEvent,
@@ -58,7 +69,11 @@ public interface IDebugSteamMockController
     bool CanUseRealSteam { get; }
     bool TrySelectScenario(DebugSteamScenario scenario, out string message);
     bool TryUseRealSteam(out string message);
-    void ConfigureBlindBox(int blindBoxId, int rewardItemDefId);
+    void ConfigureBlindBox(
+        int blindBoxId,
+        int rewardItemDefId,
+        DebugSteamPlaytimeDropRule dropRule);
+    void AdvanceSimulatedPlaytime(double seconds);
     void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants);
     void ResetScenario();
     void AdvancePhase();

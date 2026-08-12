@@ -1004,7 +1004,27 @@ function applyBlindBoxMappings(
         if (playtimeGeneratorId === 0) continue;
 
         const record = boxesById.get(schedule.BlindBoxId);
-        if (!record || record.IsEnabled !== true) continue;
+        if (!record || record.IsEnabled !== true) {
+            errors.push(`${scheduleLabel}：引用的 BlindBox ${schedule.BlindBoxId} 不存在或未启用。`);
+            continue;
+        }
+
+        const fallbackBlindBoxId = schedule.FallbackBlindBoxId ?? 0;
+        if (!Number.isInteger(fallbackBlindBoxId) || fallbackBlindBoxId < 0) {
+            errors.push(`${scheduleLabel}：FallbackBlindBoxId 必须是非负整数。`);
+        } else if (record.IsPlatformInventoryRequired === true) {
+            const fallbackBox = boxesById.get(fallbackBlindBoxId);
+            if (fallbackBlindBoxId === 0) {
+                errors.push(`${scheduleLabel}：平台库存盲盒必须配置 FallbackBlindBoxId。`);
+            } else if (!fallbackBox || fallbackBox.IsEnabled !== true) {
+                errors.push(`${scheduleLabel}：Fallback BlindBox ${fallbackBlindBoxId} 不存在或未启用。`);
+            } else if (fallbackBox.IsPlatformInventoryRequired === true || fallbackBox.BoxType !== 3) {
+                errors.push(`${scheduleLabel}：Fallback BlindBox ${fallbackBlindBoxId} 必须是本地 Refreshment 盲盒。`);
+            }
+        } else if (fallbackBlindBoxId !== 0) {
+            errors.push(`${scheduleLabel}：本地盲盒不应配置 FallbackBlindBoxId。`);
+        }
+
         const label = `BlindBox ${record.Id} ${typeof record.Name === "string" ? record.Name : ""}`.trim();
         if (record.IsPlatformInventoryRequired !== true) {
             errors.push(`${scheduleLabel}：配置了 Steam PlaytimeGenerator，但 BlindBox ${record.Id} 不需要平台库存。`);
@@ -1169,16 +1189,35 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             errors.push(`${label}：StartSeconds 必须是非负整数。`);
             continue;
         }
-        if (!Number.isInteger(schedule.IntervalSeconds)) {
-            errors.push(`${label}：IntervalSeconds 必须是整数。`);
+        if (!Number.isInteger(schedule.IntervalSeconds) || schedule.IntervalSeconds <= 0) {
+            errors.push(`${label}：IntervalSeconds 必须是正整数。`);
             continue;
         }
 
         const isLoop = schedule.IsLoopTrack === true;
-        const baseSeconds = isLoop ? Math.max(0, schedule.IntervalSeconds) : schedule.StartSeconds;
-        const steamEligibilitySeconds = isLoop
-            ? baseSeconds * durationMultiplier
-            : Math.max(0, baseSeconds * durationMultiplier - leadSeconds);
+        if (isLoop && schedule.StartSeconds !== 0) {
+            errors.push(`${label}：循环 Schedule 的 StartSeconds 必须为 0。`);
+            continue;
+        }
+        const steamDropIntervalSeconds = schedule.SteamDropIntervalSeconds ?? 0;
+        if (!Number.isInteger(steamDropIntervalSeconds) || steamDropIntervalSeconds < 0) {
+            errors.push(`${label}：SteamDropIntervalSeconds 必须是非负整数。`);
+            continue;
+        }
+        if (isLoop && steamDropIntervalSeconds <= 0) {
+            errors.push(`${label}：循环 Schedule 必须配置正数 SteamDropIntervalSeconds。`);
+            continue;
+        }
+        if (!isLoop && steamDropIntervalSeconds !== 0) {
+            errors.push(`${label}：非循环 Schedule 的 SteamDropIntervalSeconds 必须为 0。`);
+            continue;
+        }
+
+        const baseSeconds = isLoop ? steamDropIntervalSeconds : schedule.StartSeconds;
+        const steamEligibilitySeconds = Math.max(
+            0,
+            baseSeconds * durationMultiplier - leadSeconds,
+        );
         definition.schemaItem.drop_interval = Math.max(1, Math.ceil(steamEligibilitySeconds / 60));
 
         const dropWindowSeconds = schedule.SteamDropWindowSeconds ?? 0;

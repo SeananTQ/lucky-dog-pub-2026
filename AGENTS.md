@@ -16,7 +16,7 @@
 - 小狗视觉：已迁移到 v1 资源和 `DogReaction` 数据驱动，旧硬编码入口仅保留 TODO 待清理。
 - 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
 - 存档：本地 JSON 存档当前为 V15；V14 及更早存档归档为 `legacy` 后创建新档，并保留损坏备份、重置存档确认和开盒表演中断恢复。
-- 调试：Dev 启动器支持综合调试环境与启动级 Steam 模拟环境；Debug 页和顶部 Steam Mock 面板支持盲盒/LinkTree 网络场景、展示点推进、新手 12 个盲盒或普通循环起点，以及独立内存沙箱。
+- 调试：Dev 启动器支持综合调试环境与启动级 Steam 模拟环境；Debug 页和顶部 Steam Mock 面板支持盲盒/LinkTree 网络场景、展示点推进、新手 12 个盲盒或普通循环起点，以及独立内存沙箱。Mock 的“正常掉落规则”会按循环 Schedule 的资格间隔与窗口上限返回奖励或空结果；“强制快速成功”才会让每次请求都生成装扮。
 - 盲盒：已迁移为 PlaytimeGenerator 直接生成具体 Steam 装扮；支持实例级库存基线与复查、单槽位待揭晓奖励、12 个新手 Schedule、第 5 / 第 12 个新手进度回执、普通循环、Refreshment Fallback、迟到奖励、价格覆盖、桌宠/扑克开盒表演及中断恢复。玩家点击开盒时不访问 Steam。
 - LinkTree：已支持数据驱动入口、四阶段领取状态、外部操作等待、Steam Inventory 永久领取回执和奖励反馈动画。
 - Steam 平台：已接入 Steamworks.NET，并支持运行期重连、库存同步超时、退避重试和待处理事务恢复。
@@ -178,7 +178,7 @@ lucky-dog-rise/
 
 **盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
 
-盲盒奖励准备和本地展示节奏是两层逻辑。前 12 个非循环 `BlindBoxSchedule` 按顺序展示；需要装扮的 Schedule 在后台调用对应 PlaytimeGenerator，Steam 直接生成具体物品实例。第 12 个奖励入账后进入普通循环，立即检查循环 Generator，并按 `GameDevelopConfig.BlindBoxLoopIntervalSeconds` 产生展示点和独立 Trigger 心跳。运行时最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件奖励。展示点有可信待揭晓装扮时锁定装扮盲盒，否则锁定本地 Refreshment Fallback；锁定后不被后续库存变化替换。所有本地调度基础秒数受 `BlindBoxWaitDurationMultiplier` 缩放，玩家真实游玩时间与调度时钟分离。Schedule 1005 / 1012 通过 `SteamCompletionReceiptItemDefId` 分别写入第 5 / 第 12 个新手进度回执；可信库存同步只允许把本地新手进度向前恢复，不能覆盖已锁定气球或进行中的表演。
+盲盒奖励准备和本地展示节奏是两层逻辑。前 12 个非循环 `BlindBoxSchedule` 按顺序展示；需要装扮的 Schedule 在后台调用对应 PlaytimeGenerator，Steam 直接生成具体物品实例。第 12 个奖励入账后进入普通循环，立即检查循环 Generator，并按循环 Schedule 的 `IntervalSeconds` 产生展示点和独立 Trigger 心跳。循环 Steam 资格间隔由 `SteamDropIntervalSeconds` 独立配置；转换器与非循环资格一样扣除 `SteamPlaytimeEligibilityLeadSeconds`。运行时最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件奖励。展示点有可信待揭晓装扮时锁定装扮盲盒，否则按当前 Schedule 的 `FallbackBlindBoxId` 锁定本地 Refreshment Fallback；锁定后不被后续库存变化替换。所有本地调度基础秒数受 `BlindBoxWaitDurationMultiplier` 缩放，玩家真实游玩时间与调度时钟分离。Schedule 1005 / 1012 通过 `SteamCompletionReceiptItemDefId` 分别写入第 5 / 第 12 个新手进度回执；可信库存同步只允许把本地新手进度向前恢复，不能覆盖已锁定气球或进行中的表演。
 
 ## 背包与存档
 
@@ -280,7 +280,7 @@ lucky-dog-rise/
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。
 - Steam 获得的非 Initial 装扮物品以平台库存数量为准同步到本地背包。`AcquisitionType=RefreshmentBlindBox` 的消耗品属于本地奖励，即使表中暂时存在 `SteamItemDefId` 也不参与 Steam 数量对账。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
 - 展示点一旦锁定装扮、Schedule 本地盲盒或 Fallback，后续 Steam 状态变化不得替换当前气球。玩家点击只执行本地扣款、至少 500 毫秒反馈和既有表演，不发起 Steam 网络调用；Fallback 是正式必选分支，不提供关闭开关。
-- Dev 启动器在平台服务与 `GameData` 初始化前选择“综合调试环境”或“Steam 模拟环境”。Steam 模拟环境不创建真实 Steam 会话，并从业务第一帧进入独立内存沙箱；顶部 Mock 面板可选择网络场景和“新手第 1 个盲盒/普通循环”测试起点。
+- Dev 启动器在平台服务与 `GameData` 初始化前选择“综合调试环境”或“Steam 模拟环境”。Steam 模拟环境不创建真实 Steam 会话，并从业务第一帧进入独立内存沙箱；顶部 Mock 面板可选择网络场景和“新手第 1 个盲盒/普通循环”测试起点。普通循环下，“推进到下一展示点”同时推进等量的模拟 Steam 游玩时间，使“正常掉落规则”可复现正式的资格间隔和窗口限额；需要只验证成功链时改选“强制快速成功”。
 - Dev 的本地测试模式与启动级 Steam Mock 都必须隔离真实存档、Steam 库存、成就和玩家统计。沙箱复用正式开盒与奖励入账流程，退出或关闭游戏时恢复进入前的筹码、游玩时间、背包、装备、New、Buff 和统计。Debug 入口不持久化业务状态，Playtest/Release 不包含 Mock 场景、控制接口或模拟字符串。
 - `Item.AcquisitionType=Initial` 的基础物品是永久本地权益，不参与 Steam 数量对账。存档加载时始终静默补齐 Initial 物品；即使这些行配置了 `SteamItemDefId`，Steam 缺少对应实例也不得删除基础物品、清空必选装备位或添加 New 标记。
 - `--disable-steam` 是显式离线开发模式，不参与自动恢复。Dev 渠道可保留表现层模拟；Playtest/Release 在 Steam 库存不可用时采用失败关闭，避免回退为可重复领取的内存实现。

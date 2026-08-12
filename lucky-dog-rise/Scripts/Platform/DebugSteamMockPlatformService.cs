@@ -45,6 +45,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private int _pendingReceiptItemDefId;
     private ulong _nextRewardInstanceOffset;
     private ulong _lastRewardInstanceId;
+    private DebugSteamPlaytimeDropRule _playtimeDropRule;
+    private readonly Queue<double> _dropWindowGrantTimes = new();
+    private double _simulatedPlaytimeSeconds;
+    private double _simulatedElapsedSeconds;
+    private double _playtimeAtLastGrantSeconds;
+    private double _simulationClockUpdatedAt;
     private bool _disposed;
 
     public DebugSteamMockPlatformService(
@@ -75,6 +81,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged += OnInnerStoreStatusChanged;
         _phaseStartedAt = NowSeconds();
+        _simulationClockUpdatedAt = _phaseStartedAt;
         if (startInMock)
             ResetScenario();
         else
@@ -123,6 +130,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         InventoryTrustState,
         _pendingGeneratorItemDefId,
         _lastRewardInstanceId,
+        _simulatedPlaytimeSeconds,
+        _playtimeDropRule?.DropIntervalSeconds ?? 0.0,
+        _dropWindowGrantTimes.Count,
+        _playtimeDropRule?.DropMaxPerWindow ?? 0,
         _playtimeDropPending || _promoGrantPending,
         _playtimeDropPending ? "盲盒奖励准备" : _promoGrantPending ? "LinkTree 领奖" : "无",
         _lastEvent,
@@ -133,6 +144,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         if (_disposed)
             return;
         _inner.RunCallbacks();
+        UpdateSimulationClock();
         if (!IsMockActive || (!_playtimeDropPending && !_promoGrantPending))
             return;
 
@@ -142,7 +154,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             case DebugSteamScenario.NormalSuccess
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                      && elapsed >= 0.1:
-                CompletePendingOperationSuccess("正常响应成功返回。");
+                CompleteNormalPendingOperation();
+                break;
+            case DebugSteamScenario.ForcedSuccess
+                when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 0.1:
+                CompletePendingOperationSuccess("强制快速成功返回。", enforcePlaytimeRule: false);
                 break;
             case DebugSteamScenario.SlowSuccess
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
@@ -216,14 +233,46 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         return true;
     }
 
-    public void ConfigureBlindBox(int blindBoxId, int rewardItemDefId)
+    public void ConfigureBlindBox(
+        int blindBoxId,
+        int rewardItemDefId,
+        DebugSteamPlaytimeDropRule dropRule)
     {
-        if (_blindBoxId == blindBoxId && _rewardItemDefId == rewardItemDefId)
+        var generatorChanged = _playtimeDropRule?.GeneratorItemDefId != dropRule?.GeneratorItemDefId;
+        if (_blindBoxId == blindBoxId
+            && _rewardItemDefId == rewardItemDefId
+            && _playtimeDropRule == dropRule)
             return;
         _blindBoxId = blindBoxId;
         _rewardItemDefId = rewardItemDefId;
+        _playtimeDropRule = dropRule;
+        if (generatorChanged)
+        {
+            _playtimeAtLastGrantSeconds = _simulatedPlaytimeSeconds;
+            _dropWindowGrantTimes.Clear();
+        }
         if (IsMockActive)
-            AddEvent($"Mock 奖励配置已切换：BlindBox {blindBoxId} / ItemDef {rewardItemDefId}。", publish: true);
+        {
+            var ruleText = dropRule == null
+                ? "强制回执"
+                : $"资格 {dropRule.DropIntervalSeconds:0} 秒 / 窗口 {dropRule.DropWindowSeconds:0} 秒 x{dropRule.DropMaxPerWindow}";
+            AddEvent(
+                $"Mock 奖励配置已切换：BlindBox {blindBoxId} / ItemDef {rewardItemDefId} / {ruleText}。",
+                publish: true);
+        }
+    }
+
+    public void AdvanceSimulatedPlaytime(double seconds)
+    {
+        if (!IsMockActive || !double.IsFinite(seconds) || seconds <= 0.0)
+            return;
+        UpdateSimulationClock();
+        _simulatedPlaytimeSeconds += seconds;
+        _simulatedElapsedSeconds += seconds;
+        PruneDropWindow();
+        AddEvent(
+            $"手动推进模拟 Steam 游玩时间 {seconds:0} 秒；累计 {_simulatedPlaytimeSeconds:0} 秒。",
+            publish: true);
     }
 
     public void ConfigureLinkTreeGrants(IReadOnlyList<DebugSteamLinkTreeGrant> grants)
@@ -242,6 +291,11 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _pendingReceiptItemDefId = 0;
         _nextRewardInstanceOffset = 0;
         _lastRewardInstanceId = 0;
+        _simulatedPlaytimeSeconds = 0.0;
+        _simulatedElapsedSeconds = 0.0;
+        _playtimeAtLastGrantSeconds = 0.0;
+        _simulationClockUpdatedAt = NowSeconds();
+        _dropWindowGrantTimes.Clear();
         _mockItems.Clear();
         _events.Clear();
         if (!IsMockActive)
@@ -279,7 +333,11 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         {
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario == DebugSteamScenario.NormalSuccess:
-                CompletePendingOperationSuccess("手动推进：模拟正常请求成功。");
+                CompleteNormalPendingOperation();
+                break;
+            case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario == DebugSteamScenario.ForcedSuccess:
+                CompletePendingOperationSuccess("手动推进：强制请求成功。", enforcePlaytimeRule: false);
                 break;
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario == DebugSteamScenario.SlowSuccess:
@@ -465,16 +523,43 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void BeginInventoryVerification(string message) =>
         SetPhase(DebugSteamPhase.InventoryVerification, PlatformConnectionState.InventorySyncing, message);
 
-    private void CompletePendingOperationSuccess(string message)
+    private void CompleteNormalPendingOperation()
     {
         if (_playtimeDropPending)
-            CompletePlaytimeDropSuccess(message);
+        {
+            CompletePlaytimeDropSuccess("正常响应完成。", enforcePlaytimeRule: true);
+            return;
+        }
+        CompletePendingOperationSuccess("正常响应成功返回。", enforcePlaytimeRule: false);
+    }
+
+    private void CompletePendingOperationSuccess(string message, bool enforcePlaytimeRule = false)
+    {
+        if (_playtimeDropPending)
+            CompletePlaytimeDropSuccess(message, enforcePlaytimeRule);
         else if (_promoGrantPending)
             CompletePromoGrantSuccess(message);
     }
 
-    private void CompletePlaytimeDropSuccess(string message)
+    private void CompletePlaytimeDropSuccess(string message, bool enforcePlaytimeRule = false)
     {
+        var eligibilityMessage = message;
+        if (enforcePlaytimeRule && !TryConsumePlaytimeDropEligibility(out eligibilityMessage))
+        {
+            _playtimeDropPending = false;
+            SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, eligibilityMessage);
+            PlaytimeDropCompleted(new PlatformPlaytimeDropResult(
+                _pendingGeneratorItemDefId,
+                true,
+                eligibilityMessage,
+                []));
+            PublishInventorySnapshot("盲盒奖励准备返回空回执后的完整模拟库存。", true);
+            return;
+        }
+
+        if (enforcePlaytimeRule)
+            message = eligibilityMessage;
+
         var changedItems = ApplySuccessfulPlaytimeDrop();
         _playtimeDropPending = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, message);
@@ -484,6 +569,66 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message,
             changedItems));
         PublishInventorySnapshot("盲盒奖励准备回调后的完整模拟库存。", true);
+    }
+
+    private bool TryConsumePlaytimeDropEligibility(out string reason)
+    {
+        var rule = _playtimeDropRule;
+        if (rule == null || rule.GeneratorItemDefId != _pendingGeneratorItemDefId)
+        {
+            reason = "正常响应成功返回。";
+            return true;
+        }
+
+        PruneDropWindow();
+        var accumulated = Math.Max(0.0, _simulatedPlaytimeSeconds - _playtimeAtLastGrantSeconds);
+        if (accumulated + 0.001 < rule.DropIntervalSeconds)
+        {
+            reason = $"正常响应返回空结果：模拟游玩时间尚差 {rule.DropIntervalSeconds - accumulated:0} 秒。";
+            return false;
+        }
+        if (rule.DropWindowSeconds > 0.0
+            && rule.DropMaxPerWindow > 0
+            && _dropWindowGrantTimes.Count >= rule.DropMaxPerWindow)
+        {
+            var wait = Math.Max(
+                0.0,
+                rule.DropWindowSeconds - (_simulatedElapsedSeconds - _dropWindowGrantTimes.Peek()));
+            reason = $"正常响应返回空结果：模拟掉落窗口已达 {rule.DropMaxPerWindow} 件，约 {wait:0} 秒后恢复。";
+            return false;
+        }
+
+        _playtimeAtLastGrantSeconds = _simulatedPlaytimeSeconds;
+        _dropWindowGrantTimes.Enqueue(_simulatedElapsedSeconds);
+        reason = "正常响应满足模拟 Steam 掉落资格。";
+        return true;
+    }
+
+    private void UpdateSimulationClock()
+    {
+        var now = NowSeconds();
+        var delta = Math.Max(0.0, now - _simulationClockUpdatedAt);
+        _simulationClockUpdatedAt = now;
+        if (!IsMockActive || delta <= 0.0)
+            return;
+        _simulatedPlaytimeSeconds += delta;
+        _simulatedElapsedSeconds += delta;
+        PruneDropWindow();
+    }
+
+    private void PruneDropWindow()
+    {
+        var windowSeconds = _playtimeDropRule?.DropWindowSeconds ?? 0.0;
+        if (windowSeconds <= 0.0)
+        {
+            _dropWindowGrantTimes.Clear();
+            return;
+        }
+        while (_dropWindowGrantTimes.Count > 0
+               && _simulatedElapsedSeconds - _dropWindowGrantTimes.Peek() >= windowSeconds)
+        {
+            _dropWindowGrantTimes.Dequeue();
+        }
     }
 
     private void CompletePromoGrantSuccess(string message)

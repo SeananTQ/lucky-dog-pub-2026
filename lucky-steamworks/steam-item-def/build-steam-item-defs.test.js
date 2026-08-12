@@ -117,6 +117,16 @@ function blindBox(overrides = {}) {
     };
 }
 
+function fallbackBlindBox(overrides = {}) {
+    return blindBox({
+        Id: 4002,
+        Name: "消耗品盲盒",
+        BoxType: 3,
+        IsPlatformInventoryRequired: false,
+        ...overrides,
+    });
+}
+
 function rarityRate(overrides = {}) {
     return {
         Id: 400104,
@@ -132,6 +142,7 @@ function schedule(overrides = {}) {
     return {
         Id: 1001,
         BlindBoxId: 4001,
+        FallbackBlindBoxId: 4002,
         IsLoopTrack: false,
         StartSeconds: 30,
         IntervalSeconds: 30,
@@ -139,6 +150,7 @@ function schedule(overrides = {}) {
         MaxGrantCount: 1,
         IsEnabled: true,
         SteamPlaytimeGeneratorItemDefId: 404001,
+        SteamDropIntervalSeconds: 0,
         SteamCompletionReceiptItemDefId: 0,
         SteamDropWindowSeconds: 0,
         SteamDropMaxPerWindow: 0,
@@ -258,7 +270,7 @@ test("rejects LinkTree blind box rewards until the direct-reward design exists",
         ],
         [linkTree({ RewardType: 4, RewardItemId: 0, RewardBlindBoxId: 4001 })],
         [gameItem()],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
     );
 
     assert.ok(result.errors.some(error => error.includes("尚未迁移到直接奖励架构")));
@@ -278,7 +290,7 @@ test("maps a blind box reward pool through its direct-reward PlaytimeGenerator",
         [rewardGenerator({ Bundle: "101002x1;101003x1" }), playtimeGenerator()],
         [],
         [gameItem(), gameItem({ Id: 1003, Name: "Cream Shiba Inu", SteamItemDefId: 101003 })],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule()],
         [],
         [config()],
@@ -303,7 +315,7 @@ test("rejects a direct-reward PlaytimeGenerator that does not target a Generator
         [playtimeGenerator({ Bundle: "401001x1" }), receipt()],
         [],
         [],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule()],
         [],
         [config()],
@@ -317,7 +329,7 @@ test("rejects a non-integer CostChipsOverride", () => {
         [],
         [],
         [],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule({ SteamPlaytimeGeneratorItemDefId: 0, CostChipsOverride: null })],
     );
 
@@ -339,7 +351,7 @@ test("generates an AUTO blind box bundle with equivalent two-stage probabilities
         [generator, playtimeGenerator()],
         [],
         items,
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule()],
         rates,
         [config()],
@@ -376,7 +388,7 @@ test("derives playtime drop timing and limits from schedule and config", () => {
         [rewardGenerator(), playtimeGenerator()],
         [],
         [gameItem()],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule()],
         [],
         [config()],
@@ -394,28 +406,67 @@ test("derives recurring playtime interval and drop window without a total drop l
         [rewardGenerator(), playtimeGenerator({ Key: "RecurringDrop" })],
         [],
         [gameItem()],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule({
             IsLoopTrack: true,
-            StartSeconds: 780,
-            IntervalSeconds: 180,
-            EndSeconds: -1,
+            StartSeconds: 0,
+            IntervalSeconds: 90,
             MaxGrantCount: -1,
+            SteamDropIntervalSeconds: 180,
             SteamDropWindowSeconds: 360,
             SteamDropMaxPerWindow: 2,
         })],
         [],
-        [config({ BlindBoxWaitDurationMultiplier: 10 })],
+        [config({
+            BlindBoxWaitDurationMultiplier: 5,
+            SteamPlaytimeEligibilityLeadSeconds: 180,
+        })],
     );
 
     assert.deepEqual(result.errors, []);
     const output = result.items.find(item => item.itemdefid === 404001);
-    assert.equal(output.drop_interval, 30);
+    assert.equal(output.drop_interval, 12);
     assert.equal(output.use_drop_window, true);
-    assert.equal(output.drop_window, 60);
+    assert.equal(output.drop_window, 30);
     assert.equal(output.drop_max_per_window, 2);
     assert.equal(output.use_drop_limit, false);
     assert.equal(Object.hasOwn(output, "drop_limit"), false);
+});
+
+test("rejects a recurring schedule without a Steam-specific drop interval", () => {
+    const result = buildArtifacts(
+        [rewardGenerator(), playtimeGenerator()],
+        [],
+        [gameItem()],
+        [blindBox(), fallbackBlindBox()],
+        [schedule({
+            IsLoopTrack: true,
+            StartSeconds: 0,
+            IntervalSeconds: 90,
+            MaxGrantCount: -1,
+            SteamDropIntervalSeconds: 0,
+            SteamDropWindowSeconds: 360,
+            SteamDropMaxPerWindow: 2,
+        })],
+        [],
+        [config()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("SteamDropIntervalSeconds")));
+});
+
+test("rejects a platform schedule without an explicit local Refreshment fallback", () => {
+    const result = buildArtifacts(
+        [rewardGenerator(), playtimeGenerator()],
+        [],
+        [gameItem()],
+        [blindBox()],
+        [schedule({ FallbackBlindBoxId: 0 })],
+        [],
+        [config()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("必须配置 FallbackBlindBoxId")));
 });
 
 test("keeps a retired playtime generator and disables future drops", () => {
@@ -451,13 +502,15 @@ test("rejects an invalid recurring drop window", () => {
         [rewardGenerator(), playtime],
         [],
         [gameItem()],
-        [blindBox()],
+        [blindBox(), fallbackBlindBox()],
         [schedule({
             Id: 2001,
             IsLoopTrack: true,
-            EndSeconds: -1,
+            StartSeconds: 0,
+            IntervalSeconds: 90,
             MaxGrantCount: -1,
             SteamPlaytimeGeneratorItemDefId: 405001,
+            SteamDropIntervalSeconds: 180,
             SteamDropWindowSeconds: 360,
             SteamDropMaxPerWindow: 0,
         })],
@@ -570,6 +623,7 @@ test("allows blind boxes to share an AUTO generator when their generated pools m
         [
             blindBox(),
             blindBox({ Id: 1001 }),
+            fallbackBlindBox(),
         ],
         [
             schedule(),

@@ -474,25 +474,27 @@ public partial class GameData : Node
 
     private void ConfigureSteamMockBlindBox()
     {
+        BlindBoxSchedule schedule = null;
         BlindBox box = null;
         if (_steamMockProgressMode == DebugBlindBoxProgressMode.BeginnerSequence)
         {
-            var schedule = GetEnabledSequenceSchedules().ElementAtOrDefault(
+            schedule = GetEnabledSequenceSchedules().ElementAtOrDefault(
                 Math.Max(0, _blindBoxLocalTestRuntimeState.SequenceIndex));
             box = schedule == null
                 ? null
                 : LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
         }
-        else if (_blindBoxService.TryGetLoopSchedule(out _, out var loopBox))
+        else if (_blindBoxService.TryGetLoopSchedule(out var loopSchedule, out var loopBox))
         {
+            schedule = loopSchedule;
             box = loopBox;
         }
 
-        if (box != null)
-            ConfigureSteamMockBlindBox(box);
+        if (schedule != null && box != null)
+            ConfigureSteamMockBlindBox(schedule, box);
     }
 
-    private void ConfigureSteamMockBlindBox(BlindBox box)
+    private void ConfigureSteamMockBlindBox(BlindBoxSchedule schedule, BlindBox box)
     {
         if (_platformInventoryService is not IDebugSteamMockController controller)
         {
@@ -509,7 +511,29 @@ public partial class GameData : Node
                 GD.PushError($"[Steam Mock] Blind box {box.Id} has no valid Steam reward candidate.");
             return;
         }
-        controller.ConfigureBlindBox(box.Id, reward.SteamItemDefId);
+
+        DebugSteamPlaytimeDropRule dropRule = null;
+        if (schedule.IsLoopTrack && schedule.SteamDropIntervalSeconds > 0)
+        {
+            var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+            var multiplier = Math.Max(1.0, config?.BlindBoxWaitDurationMultiplier ?? 1.0);
+            var leadSeconds = Math.Max(0.0, config?.SteamPlaytimeEligibilityLeadSeconds ?? 0.0);
+            var rawIntervalSeconds = Math.Max(
+                0.0,
+                schedule.SteamDropIntervalSeconds * multiplier - leadSeconds);
+            var intervalSeconds = Math.Max(60.0, Math.Ceiling(rawIntervalSeconds / 60.0) * 60.0);
+            var windowSeconds = schedule.SteamDropWindowSeconds <= 0
+                ? 0.0
+                : Math.Max(
+                    60.0,
+                    Math.Ceiling(schedule.SteamDropWindowSeconds * multiplier / 60.0) * 60.0);
+            dropRule = new DebugSteamPlaytimeDropRule(
+                schedule.SteamPlaytimeGeneratorItemDefId,
+                intervalSeconds,
+                windowSeconds,
+                schedule.SteamDropMaxPerWindow);
+        }
+        controller.ConfigureBlindBox(box.Id, reward.SteamItemDefId, dropRule);
     }
 
     private static List<BlindBoxSchedule> GetEnabledSequenceSchedules() =>
@@ -546,6 +570,9 @@ public partial class GameData : Node
         var state = _blindBoxLocalTestRuntimeState;
         if (state.LockedPresentation != null)
             return false;
+
+        if (_steamMockSimulationActive)
+            AdvanceSteamMockPlaytimeToNextPresentation(state);
 
         var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
         if (_steamMockSimulationActive
@@ -599,6 +626,28 @@ public partial class GameData : Node
         }
 
         state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, state.NextLoopPresentationSeconds);
+    }
+
+    private void AdvanceSteamMockPlaytimeToNextPresentation(BlindBoxRuntimeState state)
+    {
+        if (_platformInventoryService is not IDebugSteamMockController controller)
+            return;
+
+        var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
+        var targetScheduleSeconds = sequence != null
+            ? state.SequenceIndex == 0
+                ? Math.Max(sequence.StartSeconds, sequence.IntervalSeconds)
+                : Math.Max(sequence.StartSeconds, state.LastClaimSeconds + Math.Max(0, sequence.IntervalSeconds))
+            : state.NextLoopPresentationSeconds;
+        var deltaScheduleSeconds = Math.Max(0.0, targetScheduleSeconds - state.ScheduleSeconds);
+        if (deltaScheduleSeconds <= 0.0)
+            return;
+
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        var multiplier = Math.Max(1.0, config?.BlindBoxWaitDurationMultiplier ?? 1.0);
+        var realSeconds = deltaScheduleSeconds * multiplier;
+        TotalPlaySeconds += realSeconds;
+        controller.AdvanceSimulatedPlaytime(realSeconds);
     }
 
     private void CompleteDeferredSteamMockPresentationAdvance()
@@ -1047,7 +1096,7 @@ public partial class GameData : Node
         var baseline = BuildInstanceQuantityMap(_platformInventoryService.InventoryItems);
 #if DEBUG
         if (_steamMockSimulationActive)
-            ConfigureSteamMockBlindBox(box);
+            ConfigureSteamMockBlindBox(schedule, box);
 #endif
         if (!_platformInventoryService.TryTriggerPlaytimeDrop(schedule.SteamPlaytimeGeneratorItemDefId, out var message))
         {

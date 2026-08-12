@@ -34,7 +34,8 @@ public partial class SteamMockPanelController : CanvasLayer
 
     public override void _Ready()
     {
-        _scenarioOption.AddItem("正常响应：请求快速成功", (int)DebugSteamScenario.NormalSuccess);
+        _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
+        _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
         _scenarioOption.AddItem("慢响应：提交后等待 3 秒，随后成功", (int)DebugSteamScenario.SlowSuccess);
         _scenarioOption.AddItem("请求超时：等待 10 秒，再复查 10 秒并确认成功", (int)DebugSteamScenario.TimeoutVerifiedSuccess);
@@ -203,9 +204,14 @@ public partial class SteamMockPanelController : CanvasLayer
         _phaseValue.Text = FormatPhase(snapshot.Phase);
         _phaseTimerValue.Text = $"{snapshot.PhaseElapsedSeconds:0.0} 秒";
         var lateSuffix = _gameData?.SteamMockBlindBoxRewardIsLate == true ? "（迟到）" : string.Empty;
-        _rewardValue.Text = snapshot.RewardInstanceId == 0
+        var dropRuleSuffix = snapshot.DropIntervalSeconds > 0.0
+            ? $" | 模拟 {snapshot.SimulatedPlaytimeSeconds / 60.0:0.0} 分"
+              + $" | 资格 {snapshot.DropIntervalSeconds / 60.0:0.0} 分"
+              + $" | 窗口 {snapshot.GrantsInWindow}/{snapshot.DropMaxPerWindow}"
+            : string.Empty;
+        _rewardValue.Text = (snapshot.RewardInstanceId == 0
             ? $"Generator {snapshot.GeneratorItemDefId}"
-            : $"实例 {snapshot.RewardInstanceId}{lateSuffix}";
+            : $"实例 {snapshot.RewardInstanceId}{lateSuffix}") + dropRuleSuffix;
         var businessPhase = _gameData?.SteamMockBlindBoxBusinessPhase ?? "Idle";
         _transactionValue.Text = CompactText($"{snapshot.PendingOperation} / {businessPhase}", 24);
         _lastEventValue.Text = CompactText(snapshot.LastEvent, 72);

@@ -249,7 +249,7 @@ public sealed class BlindBoxService
                 Kind = LockedBlindBoxPresentationKind.ScheduledLocal,
             };
         }
-        else if (GetFallbackRefreshmentBox() is { } fallback)
+        else if (GetFallbackRefreshmentBox(schedule) is { } fallback)
         {
             runtimeState.LockedPresentation = new LockedBlindBoxPresentation
             {
@@ -287,13 +287,21 @@ public sealed class BlindBoxService
             : LubanData.Tables.TbBlindBox.GetOrDefault(runtimeState.LockedPresentation.BlindBoxId);
     }
 
-    public BlindBox? GetFallbackRefreshmentBox() =>
-        LubanData.Tables.TbBlindBox.DataList
-            .Where(box => box.IsEnabled
-                          && box.BoxType == EBlindBoxType.Refreshment
-                          && !box.IsPlatformInventoryRequired)
-            .OrderBy(box => box.Id)
-            .FirstOrDefault();
+    private static BlindBox? GetFallbackRefreshmentBox(BlindBoxSchedule schedule)
+    {
+        if (schedule.FallbackBlindBoxId <= 0)
+            return null;
+
+        var fallback = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.FallbackBlindBoxId);
+        return fallback is
+        {
+            IsEnabled: true,
+            BoxType: EBlindBoxType.Refreshment,
+            IsPlatformInventoryRequired: false,
+        }
+            ? fallback
+            : null;
+    }
 
     public bool TryGetLoopSchedule(out BlindBoxSchedule? schedule, out BlindBox? box)
     {
@@ -742,8 +750,8 @@ public sealed class BlindBoxService
 
     private static double GetLoopIntervalScheduleSeconds()
     {
-        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        return Math.Max(1.0, config?.BlindBoxLoopIntervalSeconds ?? 1.0);
+        var loopSchedule = GetLoopSchedule();
+        return Math.Max(1.0, loopSchedule?.IntervalSeconds ?? 1.0);
     }
 
     private static double GetSteamEligibilityRealSeconds(BlindBoxSchedule schedule)
@@ -788,8 +796,6 @@ public sealed class BlindBoxService
         {
             if (config.BlindBoxWaitDurationMultiplier <= 0)
                 GD.PushError("[BlindBox] BlindBoxWaitDurationMultiplier must be positive.");
-            if (config.BlindBoxLoopIntervalSeconds <= 0)
-                GD.PushError("[BlindBox] BlindBoxLoopIntervalSeconds must be positive.");
             if (config.SteamPlaytimeEligibilityLeadSeconds < 0)
                 GD.PushError("[BlindBox] SteamPlaytimeEligibilityLeadSeconds cannot be negative.");
         }
@@ -801,9 +807,6 @@ public sealed class BlindBoxService
             GD.PushError("[BlindBox] No enabled newbie schedules.");
         if (enabledSchedules.Count(schedule => schedule.IsLoopTrack) != 1)
             GD.PushError("[BlindBox] Exactly one enabled loop schedule is required.");
-        if (GetFallbackRefreshmentBox() == null)
-            GD.PushError("[BlindBox] No enabled local Refreshment box is available for Steam fallback.");
-
         foreach (var schedule in enabledSchedules)
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
@@ -817,6 +820,34 @@ public sealed class BlindBoxService
                 GD.PushError($"[BlindBox] Platform box Schedule {schedule.Id} requires a PlaytimeGenerator.");
             if (!box.IsPlatformInventoryRequired && schedule.SteamPlaytimeGeneratorItemDefId > 0)
                 GD.PushError($"[BlindBox] Local box Schedule {schedule.Id} cannot request a PlaytimeGenerator.");
+
+            if (schedule.IntervalSeconds <= 0)
+                GD.PushError($"[BlindBox] Schedule {schedule.Id} IntervalSeconds must be positive.");
+            if (schedule.IsLoopTrack)
+            {
+                if (schedule.StartSeconds != 0)
+                    GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} StartSeconds must be 0.");
+                if (schedule.SteamDropIntervalSeconds <= 0)
+                    GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} SteamDropIntervalSeconds must be positive.");
+            }
+            else if (schedule.SteamDropIntervalSeconds != 0)
+            {
+                GD.PushError($"[BlindBox] Non-loop Schedule {schedule.Id} SteamDropIntervalSeconds must be 0.");
+            }
+
+            if (box.IsPlatformInventoryRequired)
+            {
+                if (GetFallbackRefreshmentBox(schedule) == null)
+                {
+                    GD.PushError(
+                        $"[BlindBox] Schedule {schedule.Id} references an invalid local Refreshment fallback "
+                        + $"{schedule.FallbackBlindBoxId}.");
+                }
+            }
+            else if (schedule.FallbackBlindBoxId != 0)
+            {
+                GD.PushError($"[BlindBox] Local box Schedule {schedule.Id} cannot configure a fallback.");
+            }
 
             if (schedule.SteamCompletionReceiptItemDefId > 0)
             {
