@@ -1,6 +1,5 @@
 [
   {
-    "BlindBoxWaitDurationMultiplier": 5,
     "BlindBoxCostScale": 1,
     "PlayerStatisticScale": 10,
     "LinkTreeVisibleBannerCount": 5,

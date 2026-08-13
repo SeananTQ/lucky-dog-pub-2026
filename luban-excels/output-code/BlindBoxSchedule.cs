@@ -52,7 +52,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly bool IsLoopTrack;
     /// <summary>
-    /// 按玩家调度时钟计算的最早生效时间
+    /// 客户端用时间，负责展示气球，以及后台提前准备奖励
     /// </summary>
     public readonly int StartSeconds;
     /// <summary>
@@ -72,7 +72,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int SteamPlaytimeGeneratorItemDefId;
     /// <summary>
-    /// Steam每件奖励所需的游玩间隔
+    /// 当前 PlaytimeGenerator 被预热激活后，正式获得一件奖励所需的 Steam 有效游玩秒数。
     /// </summary>
     public readonly int SteamDropIntervalSeconds;
     /// <summary>
