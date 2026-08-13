@@ -209,8 +209,11 @@ public partial class SteamMockPanelController : CanvasLayer
               + $" | 资格 {snapshot.DropIntervalSeconds / 60.0:0.0} 分"
               + $" | 窗口 {snapshot.GrantsInWindow}/{snapshot.DropMaxPerWindow}"
             : string.Empty;
+        var activationSuffix = snapshot.PendingRequestIsActivation
+            ? "（预热请求）"
+            : snapshot.GeneratorActivated ? "（已激活）" : string.Empty;
         _rewardValue.Text = (snapshot.RewardInstanceId == 0
-            ? $"Generator {snapshot.GeneratorItemDefId}"
+            ? $"Generator {snapshot.GeneratorItemDefId}{activationSuffix}"
             : $"实例 {snapshot.RewardInstanceId}{lateSuffix}") + dropRuleSuffix;
         var businessPhase = _gameData?.SteamMockBlindBoxBusinessPhase ?? "Idle";
         _transactionValue.Text = CompactText($"{snapshot.PendingOperation} / {businessPhase}", 24);

@@ -47,11 +47,13 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private ulong _lastRewardInstanceId;
     private DebugSteamPlaytimeDropRule _playtimeDropRule;
     private readonly Queue<double> _dropWindowGrantTimes = new();
+    private readonly HashSet<int> _activatedGeneratorItemDefIds = [];
     private double _simulatedPlaytimeSeconds;
     private double _simulatedElapsedSeconds;
     private double _playtimeAtLastGrantSeconds;
     private double _simulationClockUpdatedAt;
     private bool _disposed;
+    private bool _pendingGeneratorWasActivation;
 
     public DebugSteamMockPlatformService(
         IGamePlatformService inner,
@@ -129,13 +131,17 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         ConnectionState,
         InventoryTrustState,
         _pendingGeneratorItemDefId,
+        _pendingGeneratorItemDefId > 0 && _activatedGeneratorItemDefIds.Contains(_pendingGeneratorItemDefId),
+        _playtimeDropPending && _pendingGeneratorWasActivation,
         _lastRewardInstanceId,
         _simulatedPlaytimeSeconds,
         _playtimeDropRule?.DropIntervalSeconds ?? 0.0,
         _dropWindowGrantTimes.Count,
         _playtimeDropRule?.DropMaxPerWindow ?? 0,
         _playtimeDropPending || _promoGrantPending,
-        _playtimeDropPending ? "盲盒奖励准备" : _promoGrantPending ? "LinkTree 领奖" : "无",
+        _playtimeDropPending
+            ? _pendingGeneratorWasActivation ? "Generator 预热" : "盲盒奖励准备"
+            : _promoGrantPending ? "LinkTree 领奖" : "无",
         _lastEvent,
         _events.ToArray());
 
@@ -164,7 +170,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             case DebugSteamScenario.SlowSuccess
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                      && elapsed >= 3.0:
-                CompletePendingOperationSuccess("慢响应在 3 秒后返回成功结果。");
+                CompletePendingOperationSuccess("慢响应在 3 秒后返回成功结果。", enforcePlaytimeRule: true);
                 break;
             case DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
@@ -286,6 +292,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     {
         _playtimeDropPending = false;
         _pendingGeneratorItemDefId = 0;
+        _pendingGeneratorWasActivation = false;
         _promoGrantPending = false;
         _pendingPromoItemDefId = 0;
         _pendingReceiptItemDefId = 0;
@@ -296,6 +303,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _playtimeAtLastGrantSeconds = 0.0;
         _simulationClockUpdatedAt = NowSeconds();
         _dropWindowGrantTimes.Clear();
+        _activatedGeneratorItemDefIds.Clear();
         _mockItems.Clear();
         _events.Clear();
         if (!IsMockActive)
@@ -341,7 +349,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 break;
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario == DebugSteamScenario.SlowSuccess:
-                CompletePendingOperationSuccess("手动推进：模拟请求成功。");
+                CompletePendingOperationSuccess("手动推进：模拟请求成功。", enforcePlaytimeRule: true);
                 break;
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario is DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback:
@@ -449,8 +457,13 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
         _playtimeDropPending = true;
         _pendingGeneratorItemDefId = generatorItemDefId;
+        _pendingGeneratorWasActivation = _activatedGeneratorItemDefIds.Add(generatorItemDefId);
+        if (_pendingGeneratorWasActivation)
+            _playtimeAtLastGrantSeconds = _simulatedPlaytimeSeconds;
         SetPhase(DebugSteamPhase.PlaytimeDropWaiting, PlatformConnectionState.Ready,
-            $"已提交模拟 TriggerItemDrop({generatorItemDefId}) 奖励准备请求。");
+            _pendingGeneratorWasActivation
+                ? $"已提交模拟 TriggerItemDrop({generatorItemDefId}) 首次预热请求。"
+                : $"已提交模拟 TriggerItemDrop({generatorItemDefId}) 奖励准备请求。");
         message = "Steam Mock 已接收盲盒奖励准备请求。";
         PublishSnapshot();
         return true;
@@ -544,9 +557,24 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void CompletePlaytimeDropSuccess(string message, bool enforcePlaytimeRule = false)
     {
         var eligibilityMessage = message;
+        if (enforcePlaytimeRule && _pendingGeneratorWasActivation)
+        {
+            eligibilityMessage = "正常响应返回空结果：首次预热已登记 Generator 资格起点。";
+            _playtimeDropPending = false;
+            _pendingGeneratorWasActivation = false;
+            SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, eligibilityMessage);
+            PlaytimeDropCompleted(new PlatformPlaytimeDropResult(
+                _pendingGeneratorItemDefId,
+                true,
+                eligibilityMessage,
+                []));
+            PublishInventorySnapshot("Generator 首次预热空回执后的完整模拟库存。", true);
+            return;
+        }
         if (enforcePlaytimeRule && !TryConsumePlaytimeDropEligibility(out eligibilityMessage))
         {
             _playtimeDropPending = false;
+            _pendingGeneratorWasActivation = false;
             SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, eligibilityMessage);
             PlaytimeDropCompleted(new PlatformPlaytimeDropResult(
                 _pendingGeneratorItemDefId,
@@ -562,6 +590,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
         var changedItems = ApplySuccessfulPlaytimeDrop();
         _playtimeDropPending = false;
+        _pendingGeneratorWasActivation = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, message);
         PlaytimeDropCompleted(new PlatformPlaytimeDropResult(
             _pendingGeneratorItemDefId,
@@ -654,6 +683,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         else if (success && _promoGrantPending)
             ApplySuccessfulPromoGrant();
         _playtimeDropPending = false;
+        _pendingGeneratorWasActivation = false;
         _promoGrantPending = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready,
             success

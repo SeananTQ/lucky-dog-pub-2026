@@ -1,12 +1,12 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-13
+last_edit: 2026-08-14
 status: draft
 ---
 
 # SteamItemDef 表说明
 
-本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 已上传到 Playtest AppID，直接奖励客户端、进度回执和 Mock 回归已经完成，真实 Steam 帐号回归正在进行。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
+本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 已上传到 Playtest AppID，直接奖励客户端、进度回执、Mock 回归和开发者帐号真实 Steam 核心回归已经完成。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
 所有 Schedule 时间字段均填写真实秒，不再经过全局等待倍率。Steam 资格由每条平台 Schedule 的 `SteamDropIntervalSeconds` 明确配置，转换器只负责按分钟向上取整；`StartSeconds` 和 `IntervalSeconds` 只控制客户端展示节奏，不再参与 Steam 资格推导。旧的资格提前量和整队列激活预算不再参与转换。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则按当前 Schedule 的 `FallbackBlindBoxId` 进入本地 Fallback。
 
@@ -322,7 +322,7 @@ Steam 官方文档明确说明：
 7. 如果预热请求意外直接返回了装扮，客户端按实例归因并暂扣该物品，直到对应 Schedule 成为当前展示机会；不得把它提前同步进背包，也不得丢弃或重复发放。
 8. 激活记录、在途请求、实例级库存基线和意外返回的待揭晓奖励写入 V15 存档。重启后先做可信库存复查，不盲目重发同一预热请求。
 
-Steam Mock 当前继续直接模拟正式奖励准备，不模拟“首次调用激活”这一平台细节；Mock 用于验收 Fallback、迟到奖励和恢复状态机，真实 Steam 预热必须用综合调试环境或 Playtest 客户端验证。
+Steam Mock 需要复用正式的“首次调用激活”状态机：正常掉落规则下，首次预热请求返回空结果并登记 Generator 资格起点；后续正式准备根据模拟游玩时间、资格间隔和掉落窗口决定返回奖励或空结果。网络异常场景仍可在首次请求阶段模拟超时、断联、复查成功或复查无奖励。Mock 用于可重复验收客户端状态机，真实 Steam 仍是平台实际计时和 ItemDef 生效结果的最终证据。
 
 ### 明确配置的资格时长
 
@@ -346,7 +346,7 @@ Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端
 
 Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerator 可能不在定义枚举结果中，但仍可提交真实 `TriggerItemDrop` 请求。定义总数会随内容配置继续变化，测试场景应比较当前本地可枚举定义与服务器返回结果，不把某次测试数量写成长期规则。
 
-主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励客户端已经完成七种 Mock 网络场景、新手 12 条 Schedule 和普通循环交接回归。真实 Steam 已验证 PlaytimeGenerator 可以直接返回最终装扮实例，同时通过全新测试定义 `410001` 与 `410002` 确认了本文件“PlaytimeGenerator 独立资格激活规则”记录的起算行为。客户端按需预热和显式资格时长转换已经实现；生成的新 schema 尚需重新上传，并在真实 Steam 环境验证预热时序与最终奖励。
+主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励客户端已经完成七种 Mock 网络场景、新手 12 条 Schedule 和普通循环交接回归。真实 Steam 已验证 PlaytimeGenerator 可以直接返回最终装扮实例，同时通过全新测试定义 `410001` 与 `410002` 确认了本文件“PlaytimeGenerator 独立资格激活规则”记录的起算行为。生成的新 schema 已上传；开发者帐号进一步验证了按需预热、一次性 Generator 揭晓、Schedule 1012 完成回执、循环 Generator、窗口空结果 Fallback 和迟到奖励。正式候选包与普通玩家帐号外部回归仍属于发布阶段任务。
 
 主人已在独立测试场景验证 LinkTree 领取 Bundle：Steam 回调会同时返回永久回执和固定物品，固定筹码入口只新增永久回执；主客户端能够以回执恢复已领取状态，并由库存同步获得固定物品。测试还保留了一条未领取入口作为负向对照。上述验证使用测试 ItemDef，正式数据更换 ID 后需要重新执行同样的开发者账号与普通玩家账号验收。
 

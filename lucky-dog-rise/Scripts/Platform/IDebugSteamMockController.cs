@@ -50,6 +50,8 @@ public sealed record DebugSteamMockSnapshot(
     PlatformConnectionState ConnectionState,
     PlatformInventoryTrustState InventoryTrustState,
     int GeneratorItemDefId,
+    bool GeneratorActivated,
+    bool PendingRequestIsActivation,
     ulong RewardInstanceId,
     double SimulatedPlaytimeSeconds,
     double DropIntervalSeconds,
