@@ -894,6 +894,10 @@ public partial class GameData : Node
             ["rewardItemId"] = result.Item.Id,
             ["completesSchedule"] = PendingBlindBoxReward.CompletesSchedule,
         });
+        GD.Print(
+            $"[BlindBox] 开盒确认 Schedule={result.Schedule.Id}, 来源={presentationKind}, "
+            + $"BlindBox={result.Box.Id}, Item={result.Item.Id}, Steam实例=无, "
+            + $"推进调度={PendingBlindBoxReward.CompletesSchedule}。");
         EmitSignal(SignalName.BlindBoxStateChanged);
         SaveImmediatelyIfUsingLocalSave();
         return PendingBlindBoxReward;
@@ -957,6 +961,10 @@ public partial class GameData : Node
             ["rewardItemId"] = item.Id,
             ["platformInstanceId"] = prepared.PlatformInstanceId,
         });
+        GD.Print(
+            $"[BlindBox] 开盒确认 Schedule={schedule.Id}, 来源={presentation.Kind}, "
+            + $"BlindBox={box.Id}, Item={item.Id}, Steam实例={prepared.PlatformInstanceId}, "
+            + $"推进调度={PendingBlindBoxReward.CompletesSchedule}。");
         EmitSignal(SignalName.BlindBoxStateChanged);
         SaveImmediatelyIfUsingLocalSave();
         return PendingBlindBoxReward;
@@ -986,6 +994,10 @@ public partial class GameData : Node
                     ["preparedPlatformInstanceId"] = locked.PreparedPlatformInstanceId,
                     ["preparationPhase"] = ActiveBlindBoxRuntimeState.PendingPreparation?.Phase.ToString(),
                 });
+                GD.Print(
+                    $"[BlindBox] 展示锁定 Schedule={locked.ScheduleId}, 来源={locked.Kind}, "
+                    + $"BlindBox={locked.BlindBoxId}, "
+                    + $"Steam实例={(locked.PreparedPlatformInstanceId > 0 ? locked.PreparedPlatformInstanceId.ToString() : "无")}。");
             }
             QueueSaveIfUsingLocalSave();
         }
@@ -1941,7 +1953,14 @@ public partial class GameData : Node
         var itemId = PendingBlindBoxReward.ItemId;
         var scheduleId = PendingBlindBoxReward.ScheduleId;
         var completedSchedule = PendingBlindBoxReward.CompletesSchedule;
+        var platformInstanceId = PendingBlindBoxReward.PlatformInstanceId;
+        var isPlatformReward = PendingBlindBoxReward.IsPlatformInventoryReward;
         var completedScheduleDefinition = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(scheduleId);
+        var claimSource = isPlatformReward
+            ? "Steam"
+            : completedScheduleDefinition?.SteamPlaytimeGeneratorItemDefId > 0
+                ? "Fallback"
+                : "ScheduledLocal";
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
         _blindBoxService.CompleteClaimedPresentation(
@@ -1955,6 +1974,18 @@ public partial class GameData : Node
         if (completedScheduleDefinition != null)
             QueueBlindBoxCompletionReceipt(completedScheduleDefinition, completedSchedule);
         TryApplyObservedPlatformSequenceProgress();
+        DiagnosticLog.Record("blindbox_reward_claimed", new Dictionary<string, object>
+        {
+            ["scheduleId"] = scheduleId,
+            ["rewardItemId"] = itemId,
+            ["source"] = claimSource,
+            ["platformInstanceId"] = platformInstanceId,
+            ["completesSchedule"] = completedSchedule,
+        });
+        GD.Print(
+            $"[BlindBox] 奖励入账 Schedule={scheduleId}, 来源={claimSource}, Item={itemId}, "
+            + $"Steam实例={(platformInstanceId > 0 ? platformInstanceId.ToString() : "无")}, "
+            + $"推进调度={completedSchedule}。");
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
         EmitSignal(SignalName.BlindBoxStateChanged);
