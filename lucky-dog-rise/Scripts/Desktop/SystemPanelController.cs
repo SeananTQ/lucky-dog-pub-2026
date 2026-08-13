@@ -2142,7 +2142,7 @@ public partial class SystemPanelController : CanvasLayer
         _resetPlayerProgressPending = true;
         _resetSaveConfirm.ShowConfirm(
             "重置本地成就与统计？",
-            "仅清空 player_progress_0.json。不会影响筹码、背包、装备或游戏存档。",
+            "仅清空当前帐号目录中的 player_progress_0.json。不会影响筹码、背包、装备或游戏存档。",
             "重置",
             "取消");
     }

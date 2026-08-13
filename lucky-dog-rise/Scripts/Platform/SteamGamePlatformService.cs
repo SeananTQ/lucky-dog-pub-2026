@@ -58,6 +58,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public bool IsAvailable => _runtime.IsInitialized;
     public uint AppId => _runtime.AppId;
     public string PersonaName => _runtime.PersonaName;
+    public string AccountProvider => "steam";
+    public string AccountId => _runtime.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
     public bool IsReadyForWrites { get; private set; }
     public bool IsInventoryReady { get; private set; }
     public bool IsPromoGrantPending => _inventoryRequests.Values.Any(request =>
@@ -68,6 +70,14 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _inventoryItems;
 
     public void RunCallbacks() => _runtime.RunCallbacks();
+    public bool TryGetLiveAccountId(out string accountId)
+    {
+        accountId = string.Empty;
+        if (!_runtime.TryGetCurrentSteamId(out var steamId))
+            return false;
+        accountId = steamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return true;
+    }
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
 
     public void StartInventorySynchronization()

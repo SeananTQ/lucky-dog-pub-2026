@@ -24,6 +24,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private readonly IRecoverablePlatformService _innerRecoverable;
     private readonly IPlatformAchievementTestOperations _innerAchievementTest;
     private readonly bool _canUseRealSteam;
+    private readonly string _fallbackAccountId;
     private readonly List<string> _events = [];
     private readonly List<PlatformInventoryItem> _mockItems = [];
     private readonly Dictionary<(int Bundle, int Receipt), DebugSteamLinkTreeGrant> _linkTreeGrants = [];
@@ -64,6 +65,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _inner = inner;
         _mockActive = startInMock;
         _canUseRealSteam = canUseRealSteam;
+        _fallbackAccountId = startInMock ? "steam_mock" : string.Empty;
         _scenario = initialScenario;
         _innerInventory = inner as IPlatformInventoryService;
         _innerRecoverable = inner as IRecoverablePlatformService;
@@ -79,6 +81,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         {
             _innerRecoverable.ConnectionStateChanged += OnInnerConnectionStateChanged;
             _innerRecoverable.InventoryTrustStateChanged += OnInnerInventoryTrustStateChanged;
+            _innerRecoverable.AccountIdentityConflictDetected += OnInnerAccountIdentityConflictDetected;
         }
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged += OnInnerStoreStatusChanged;
@@ -97,6 +100,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted = delegate { };
     public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
     public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged = delegate { };
+    public event Action<string, string> AccountIdentityConflictDetected = delegate { };
     public event Action<DebugSteamMockSnapshot> SnapshotChanged = delegate { };
 
     public bool IsMockActive => _mockActive;
@@ -106,6 +110,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public bool IsAvailable => IsMockActive ? _connectionState != PlatformConnectionState.Unavailable : _inner.IsAvailable;
     public uint AppId => _inner.AppId;
     public string PersonaName => IsMockActive ? "Debug Mock" : _inner.PersonaName;
+    public string AccountProvider => _fallbackAccountId.Length > 0 ? "dev" : _inner.AccountProvider;
+    public string AccountId => _fallbackAccountId.Length > 0 ? _fallbackAccountId : _inner.AccountId;
     public bool IsReadyForWrites => !IsMockActive && _innerAchievementTest?.IsReadyForWrites == true;
     public bool IsInventoryReady => IsMockActive
         ? _connectionState == PlatformConnectionState.Ready
@@ -124,6 +130,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public string InventoryTrustMessage => IsMockActive
         ? _inventoryTrustMessage
         : _innerRecoverable?.InventoryTrustMessage ?? "Steam 库存状态未知。";
+    public bool HasAccountIdentityConflict => _innerRecoverable?.HasAccountIdentityConflict == true;
     public DebugSteamMockSnapshot Snapshot => new(
         _scenario,
         _phase,
@@ -527,6 +534,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         {
             _innerRecoverable.ConnectionStateChanged -= OnInnerConnectionStateChanged;
             _innerRecoverable.InventoryTrustStateChanged -= OnInnerInventoryTrustStateChanged;
+            _innerRecoverable.AccountIdentityConflictDetected -= OnInnerAccountIdentityConflictDetected;
         }
         if (_innerAchievementTest != null)
             _innerAchievementTest.StoreStatusChanged -= OnInnerStoreStatusChanged;
@@ -811,6 +819,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void OnInnerPlaytimeDropCompleted(PlatformPlaytimeDropResult value) { if (!IsMockActive) PlaytimeDropCompleted(value); }
     private void OnInnerConnectionStateChanged(PlatformConnectionState value) { if (!IsMockActive) ConnectionStateChanged(value); }
     private void OnInnerInventoryTrustStateChanged(PlatformInventoryTrustState value) { if (!IsMockActive) InventoryTrustStateChanged(value); }
+    private void OnInnerAccountIdentityConflictDetected(string expected, string actual) =>
+        AccountIdentityConflictDetected(expected, actual);
     private void OnInnerStoreStatusChanged(string value) { if (!IsMockActive) StoreStatusChanged(value); }
 }
 #endif

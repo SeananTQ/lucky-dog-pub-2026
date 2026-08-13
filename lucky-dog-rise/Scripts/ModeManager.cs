@@ -9,9 +9,14 @@ namespace LuckyDogRise;
 
 public partial class ModeManager : Control
 {
+#if DEBUG
+    private const string AccountIdentityProbeArgument = "--account-identity-probe";
+    private const string SingleInstanceSmokeArgument = "--single-instance-smoke";
+#endif
     private enum StartupState
     {
         HiddenBootstrap,
+        AccountIdentityWaiting,
         LocalInitializing,
         PlatformWaiting,
         ReadyToReveal,
@@ -85,6 +90,9 @@ public partial class ModeManager : Control
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
+    private AccountStorageContext _storageContext = null!;
+    private StartupAccountGateController _startupAccountGate = null!;
+    private bool _startInSteamMock;
     private bool _shutdownRequested;
     private bool _platformDisposed;
     private bool _duplicateLaunch;
@@ -174,7 +182,10 @@ public partial class ModeManager : Control
     public override void _Ready()
     {
         if (_duplicateLaunch)
+        {
+            HandleDuplicateLaunch();
             return;
+        }
 
         SettingsManager.ApplyDisplayPerformanceSettings();
 
@@ -192,8 +203,13 @@ public partial class ModeManager : Control
 #if DEBUG
         var forceLauncher = OS.GetCmdlineUserArgs().Any(argument =>
             string.Equals(argument, "--dev-launcher", StringComparison.OrdinalIgnoreCase));
+        var automatedSmoke = OS.GetCmdlineUserArgs().Any(argument =>
+            string.Equals(argument, "--diagnostics-export-smoke", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(argument, AccountIdentityProbeArgument, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(argument, SingleInstanceSmokeArgument, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(argument, "--identity-unavailable-smoke", StringComparison.OrdinalIgnoreCase));
         var launcherRequestedBySetting = SettingsManager.LoadShowDeveloperLauncherOnStartup();
-        if (forceLauncher || launcherRequestedBySetting)
+        if (!automatedSmoke && (forceLauncher || launcherRequestedBySetting))
         {
             ShowDeveloperLauncher();
             return;
@@ -242,21 +258,57 @@ public partial class ModeManager : Control
     private void ContinueStartup(DebugLaunchSelection selection)
     {
         _platformService = GamePlatformServiceFactory.Create(selection);
-        CompleteStartup(selection.Environment == DebugRuntimeEnvironment.SteamMock);
+        StartAccountAwareStartup(selection.Environment == DebugRuntimeEnvironment.SteamMock);
     }
 #else
     private void ContinueStartup()
     {
         _platformService = GamePlatformServiceFactory.Create();
-        CompleteStartup(startInSteamMock: false);
+        StartAccountAwareStartup(startInSteamMock: false);
     }
 #endif
 
-    private void CompleteStartup(bool startInSteamMock)
+    private void StartAccountAwareStartup(bool startInSteamMock)
     {
+        _startInSteamMock = startInSteamMock;
+        if (_platformService is IRecoverablePlatformService recoverable)
+            recoverable.AccountIdentityConflictDetected += OnAccountIdentityConflictDetected;
+
+        if (TryResolveAccountStorage(out var storageContext))
+        {
+#if DEBUG
+            if (TryCompleteAccountIdentityProbe(storageContext))
+                return;
+#endif
+            CompleteStartup(startInSteamMock, storageContext);
+            return;
+        }
+
+        ShowAccountIdentityGate();
+    }
+
+    private void CompleteStartup(bool startInSteamMock, AccountStorageContext storageContext)
+    {
+        _storageContext = storageContext;
+        _singleInstanceGuard?.PublishAccountIdentity(storageContext.Provider, storageContext.AccountId);
+        if (!LegacyAccountStorageMigration.Prepare(storageContext))
+        {
+            OS.Alert(
+                "The explicit local account migration did not complete. No player data will be loaded in this launch. " +
+                "Review the AccountMigration log and retry after resolving the cause.",
+                "Account Migration Failed");
+            QuitBeforeAccountStartup();
+            return;
+        }
+        if (_startupAccountGate != null)
+        {
+            _startupAccountGate.QueueFree();
+            _startupAccountGate = null!;
+            SetNativeMainWindowVisible(false);
+        }
         GD.Print(_platformService.IsAvailable
-            ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}"
-            : _platformService is IRecoverablePlatformService
+            ? $"[Platform] {_platformService.ProviderName} ready. AppID={_platformService.AppId}, Persona={_platformService.PersonaName}, Account={storageContext}"
+            : string.Equals(storageContext.Provider, "steam", StringComparison.Ordinal)
                 ? $"[Platform] Steam recovery active. {_platformService.StatusMessage}"
                 : $"[Platform] Offline fallback. {_platformService.StatusMessage}");
         DiagnosticLog.Record("platform_service_created", new Dictionary<string, object>
@@ -264,6 +316,8 @@ public partial class ModeManager : Control
             ["provider"] = _platformService.ProviderName,
             ["available"] = _platformService.IsAvailable,
             ["state"] = (_platformService as IRecoverablePlatformService)?.ConnectionState.ToString(),
+            ["accountProvider"] = storageContext.Provider,
+            ["accountId"] = storageContext.AccountId,
 #if DEBUG
             ["debugEnvironment"] = startInSteamMock ? "SteamMock" : "IntegratedDebug",
 #endif
@@ -273,6 +327,7 @@ public partial class ModeManager : Control
 
         _gameData = new GameData();
         _gameData.Name = "GameData";
+        _gameData.ConfigureStorage(storageContext);
 #if DEBUG
         _gameData.StartInSteamMockSimulation = startInSteamMock;
 #endif
@@ -423,6 +478,82 @@ public partial class ModeManager : Control
                 ? StartupState.PlatformWaiting
                 : StartupState.ReadyToReveal;
         _startupInitialized = true;
+    }
+
+    private bool TryResolveAccountStorage(out AccountStorageContext storageContext)
+    {
+        storageContext = null!;
+        if (_platformService == null
+            || string.IsNullOrWhiteSpace(_platformService.AccountProvider)
+            || string.IsNullOrWhiteSpace(_platformService.AccountId))
+            return false;
+
+        try
+        {
+            storageContext = string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal)
+                ? AccountStorageContext.ForSteam(_platformService.AccountId)
+                : BuildInfo.IsDevelopment && string.Equals(_platformService.AccountProvider, "dev", StringComparison.Ordinal)
+                    ? AccountStorageContext.ForDevelopment(_platformService.AccountId)
+                    : null!;
+            return storageContext != null;
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[AccountStorage] Invalid platform identity: {exception.Message}");
+            return false;
+        }
+    }
+
+#if DEBUG
+    private bool TryCompleteAccountIdentityProbe(AccountStorageContext storageContext)
+    {
+        if (!OS.GetCmdlineUserArgs().Any(argument =>
+                string.Equals(argument, AccountIdentityProbeArgument, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        GD.Print($"[AccountIdentityProbe] Provider={storageContext.Provider}, AccountId={storageContext.AccountId}");
+        _singleInstanceGuard?.PublishAccountIdentity(storageContext.Provider, storageContext.AccountId);
+        DisposePlatformService();
+        GetTree().Quit();
+        return true;
+    }
+#endif
+
+    private void ShowAccountIdentityGate()
+    {
+        _startupAccountGate = GD.Load<PackedScene>("res://Scenes/StartupAccountGate.tscn")
+            .Instantiate<StartupAccountGateController>();
+        _startupAccountGate.Name = "StartupAccountGate";
+        _startupAccountGate.RetryRequested += OnAccountIdentityRetryRequested;
+        _startupAccountGate.QuitRequested += QuitBeforeAccountStartup;
+        AddChild(_startupAccountGate);
+        var windowSize = new Vector2I(560, 320);
+        DisplayServer.WindowSetSize(windowSize);
+        var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
+        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - windowSize) / 2);
+        SetClickThrough(false);
+        SetNativeMainWindowVisible(true);
+        _startupAccountGate.SetStatus(
+            $"尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。\n\n{_platformService.StatusMessage}",
+            retryEnabled: true);
+        _startupState = StartupState.AccountIdentityWaiting;
+        _startupInitialized = true;
+    }
+
+    private void OnAccountIdentityRetryRequested()
+    {
+        (_platformService as IRecoverablePlatformService)?.RequestReconnect();
+        _startupAccountGate?.SetStatus(
+            $"正在重新连接 Steam。身份确认前不会读取玩家存档。\n\n{_platformService.StatusMessage}",
+            retryEnabled: false);
+    }
+
+    private void QuitBeforeAccountStartup()
+    {
+        _shutdownRequested = true;
+        _singleInstanceGuard?.BeginShutdown();
+        DisposePlatformService();
+        GetTree().Quit();
     }
 
     private double _displayTimer;
@@ -629,6 +760,92 @@ public partial class ModeManager : Control
         DisposePlatformService();
     }
 
+    private void HandleDuplicateLaunch()
+    {
+#if DEBUG
+        _platformService = GamePlatformServiceFactory.Create(new DebugLaunchSelection(
+            DebugRuntimeEnvironment.IntegratedDebug,
+            DebugSteamScenario.NormalSuccess));
+#else
+        _platformService = GamePlatformServiceFactory.Create();
+#endif
+        var existingAccountId = string.Empty;
+        var result = _singleInstanceGuard == null
+            ? SingleInstanceGuard.DuplicateLaunchResult.ExistingUnresponsive
+            : _singleInstanceGuard.ResolveDuplicateLaunch(
+                _platformService.AccountProvider,
+                _platformService.AccountId,
+                out existingAccountId);
+
+        switch (result)
+        {
+            case SingleInstanceGuard.DuplicateLaunchResult.ExistingActivated:
+                GD.Print("[SingleInstance] Existing game instance for the same account was activated; closing duplicate launch.");
+                break;
+            case SingleInstanceGuard.DuplicateLaunchResult.AccountConflict:
+#if DEBUG
+                if (IsSingleInstanceSmoke())
+                {
+                    GD.Print($"[SingleInstanceSmoke] Account conflict. Existing={existingAccountId}, Current={_platformService.AccountId}");
+                    break;
+                }
+#endif
+                OS.Alert(
+                    $"Lucky Dog Rise is already running for Steam account {existingAccountId}.\n\n" +
+                    $"The current Steam account is {_platformService.AccountId}. Close the existing game completely, then launch again.",
+                    "Steam Account Conflict");
+                break;
+            case SingleInstanceGuard.DuplicateLaunchResult.IdentityUnavailable:
+#if DEBUG
+                if (IsSingleInstanceSmoke())
+                {
+                    GD.Print("[SingleInstanceSmoke] Current account identity is unavailable.");
+                    break;
+                }
+#endif
+                OS.Alert(
+                    "Lucky Dog Rise is already running, and the current Steam account could not be verified. " +
+                    "Close the existing game completely, confirm Steam is online, then launch again.",
+                    "Steam Account Verification Required");
+                break;
+            default:
+#if DEBUG
+                if (IsSingleInstanceSmoke())
+                {
+                    GD.Print("[SingleInstanceSmoke] Existing instance was unresponsive.");
+                    break;
+                }
+#endif
+                OS.Alert(
+                    "Lucky Dog Rise is already running, but its account identity or window did not respond.\n\n" +
+                    "Stop the game from Steam. If Steam cannot stop it, end LuckyDogRise from Windows Task Manager.",
+                    "Lucky Dog Rise");
+                break;
+        }
+
+        DisposePlatformService();
+        GetTree().Quit(result == SingleInstanceGuard.DuplicateLaunchResult.ExistingActivated ? 0 : 3);
+    }
+
+#if DEBUG
+    private static bool IsSingleInstanceSmoke() => OS.GetCmdlineUserArgs().Any(argument =>
+        string.Equals(argument, SingleInstanceSmokeArgument, StringComparison.OrdinalIgnoreCase));
+#endif
+
+    private void OnAccountIdentityConflictDetected(string expectedAccountId, string actualAccountId)
+    {
+        if (_shutdownRequested)
+            return;
+        var reason = $"Steam account changed from {expectedAccountId} to {actualAccountId} while the game was running.";
+        _gameData?.FreezeAccountStorage(reason);
+        _achievementSynchronizer = null!;
+        OS.Alert(
+            "The active Steam account changed while Lucky Dog Rise was running. " +
+            "Local saves and platform writes have been stopped. The game will now exit; launch it again from the intended Steam account.",
+            "Steam Account Changed");
+        RequestGracefulQuit();
+    }
+
     private bool OnExternalActivationRequested()
     {
         if (_shutdownRequested)
@@ -778,6 +995,8 @@ public partial class ModeManager : Control
         if (_platformDisposed)
             return;
 
+        if (_platformService is IRecoverablePlatformService recoverable)
+            recoverable.AccountIdentityConflictDetected -= OnAccountIdentityConflictDetected;
         _platformService?.Dispose();
         _platformDisposed = true;
     }
@@ -810,6 +1029,23 @@ public partial class ModeManager : Control
 
     private void UpdateStartup(double delta)
     {
+        if (_startupState == StartupState.AccountIdentityWaiting)
+        {
+            if (TryResolveAccountStorage(out var storageContext))
+            {
+#if DEBUG
+                if (TryCompleteAccountIdentityProbe(storageContext))
+                    return;
+#endif
+                CompleteStartup(_startInSteamMock, storageContext);
+            }
+            else if (_startupAccountGate != null)
+                _startupAccountGate.SetStatus(
+                    $"尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。\n\n{_platformService.StatusMessage}",
+                    retryEnabled: true);
+            return;
+        }
+
         if (_startupState == StartupState.PlatformWaiting)
         {
             _startupPlatformWaitRemaining -= delta;
@@ -2187,7 +2423,7 @@ public partial class ModeManager : Control
 
     public override void _Input(InputEvent @event)
     {
-        if (!_startupInitialized)
+        if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
 #if DEBUG
         if (@event is InputEventKey { Pressed: true, Echo: false } key

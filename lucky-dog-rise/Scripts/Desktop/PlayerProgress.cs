@@ -20,7 +20,10 @@ public enum PlayerProgressSource
 
 public sealed class PlayerProgressProfile
 {
-    public int Version { get; set; } = 2;
+    public const int CurrentVersion = 3;
+    public int Version { get; set; } = CurrentVersion;
+    public string OwnerProvider { get; set; } = "";
+    public string OwnerAccountId { get; set; } = "";
     public Dictionary<string, long> Statistics { get; set; } = new();
     public HashSet<string> OccurredEventKeys { get; set; } = new();
     public HashSet<string> UnlockedAchievementApiNames { get; set; } = new();
@@ -35,11 +38,12 @@ public sealed class PlayerProgressProfile
 /// </summary>
 public sealed class PlayerProgress
 {
-    private const string SavePath = "user://player_progress_0.json";
-    private const string BackupPath = "user://player_progress_0.backup.json";
-    private const string TempPath = "user://player_progress_0.temp.json";
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    private readonly AccountStorageContext _storageContext;
+    private string SavePath => _storageContext.PlayerProgressPath;
+    private string BackupPath => _storageContext.PlayerProgressBackupPath;
+    private string TempPath => _storageContext.PlayerProgressTempPath;
     private readonly Dictionary<string, PlayerStatistic> _statisticsByKey;
     private readonly Dictionary<EItemType, string> _externalItemStatisticKeys = new()
     {
@@ -84,6 +88,7 @@ public sealed class PlayerProgress
     private bool _immediateSaveRequested;
     private DateTime _inputBucketStart;
     private long _inputBucketChips;
+    private bool _writesFrozen;
 
 #if DEBUG
     private long _debugMultiplier = 1;
@@ -93,11 +98,15 @@ public sealed class PlayerProgress
     private long _debugSimulationInputBucketChips;
 #endif
 
-    public PlayerProgress()
+    public PlayerProgress(AccountStorageContext storageContext)
     {
+        _storageContext = storageContext ?? throw new ArgumentNullException(nameof(storageContext));
+        EnsureStorageDirectory();
         _statisticsByKey = LubanData.Tables.TbPlayerStatistic.DataList
             .ToDictionary(stat => stat.StatisticKey, StringComparer.Ordinal);
         _profile = LoadOrCreate();
+        GD.Print(
+            $"[PlayerProgress] Loaded account={_storageContext}, Version={_profile.Version}, Path={AbsoluteSavePath}");
         ValidateDefinitions();
         EvaluateHistoricalAchievements();
     }
@@ -113,9 +122,9 @@ public sealed class PlayerProgress
         get
         {
 #if DEBUG
-            return _debugSimulationProfileSnapshot == null && _debugMultiplier == 1;
+            return !_writesFrozen && _debugSimulationProfileSnapshot == null && _debugMultiplier == 1;
 #else
-            return true;
+            return !_writesFrozen;
 #endif
         }
     }
@@ -273,7 +282,7 @@ public sealed class PlayerProgress
 
     public void SaveIfDirty()
     {
-        if (!_dirty)
+        if (!_dirty || _writesFrozen)
             return;
 
 #if DEBUG
@@ -287,6 +296,9 @@ public sealed class PlayerProgress
 
         try
         {
+            _profile.Version = PlayerProgressProfile.CurrentVersion;
+            _profile.OwnerProvider = _storageContext.Provider;
+            _profile.OwnerAccountId = _storageContext.AccountId;
             _profile.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
             var json = JsonSerializer.Serialize(_profile, JsonOptions);
             var absoluteSavePath = ProjectSettings.GlobalizePath(SavePath);
@@ -310,13 +322,19 @@ public sealed class PlayerProgress
 
     public void Reset()
     {
-        _profile = new PlayerProgressProfile();
+        _profile = CreateEmptyProfile();
         _durationRemainders.Clear();
         _inputBucketStart = default;
         _inputBucketChips = 0;
         _dirty = true;
         SaveIfDirty();
         GD.Print($"[PlayerProgress] Reset local progress: {AbsoluteSavePath}");
+    }
+
+    public void FreezeWrites(string reason)
+    {
+        _writesFrozen = true;
+        GD.PushError($"[PlayerProgress] Account storage writes frozen: {reason}");
     }
 
 #if DEBUG
@@ -332,7 +350,7 @@ public sealed class PlayerProgress
         _debugSimulationDurationRemaindersSnapshot = new Dictionary<string, double>(_durationRemainders);
         _debugSimulationInputBucketStart = _inputBucketStart;
         _debugSimulationInputBucketChips = _inputBucketChips;
-        _profile = new PlayerProgressProfile();
+        _profile = CreateEmptyProfile();
         _durationRemainders.Clear();
         _inputBucketStart = default;
         _inputBucketChips = 0;
@@ -543,10 +561,10 @@ public sealed class PlayerProgress
 
         if (FileAccess.FileExists(SavePath) || FileAccess.FileExists(BackupPath))
             GD.PushWarning("[PlayerProgress] Could not load progress or its backup, using a new profile.");
-        return new PlayerProgressProfile();
+        return CreateEmptyProfile();
     }
 
-    private static bool TryLoad(string path, out PlayerProgressProfile profile)
+    private bool TryLoad(string path, out PlayerProgressProfile profile)
     {
         profile = null!;
         if (!FileAccess.FileExists(path))
@@ -554,17 +572,65 @@ public sealed class PlayerProgress
 
         try
         {
-            using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-            profile = JsonSerializer.Deserialize<PlayerProgressProfile>(file.GetAsText(), JsonOptions) ?? new PlayerProgressProfile();
+            string json;
+            using (var file = FileAccess.Open(path, FileAccess.ModeFlags.Read))
+                json = file.GetAsText();
+            profile = JsonSerializer.Deserialize<PlayerProgressProfile>(json, JsonOptions) ?? new PlayerProgressProfile();
+            if (profile.Version != PlayerProgressProfile.CurrentVersion)
+            {
+                ArchiveRejectedProfile(path, "unsupported");
+                profile = null!;
+                return false;
+            }
+            if (!_storageContext.Owns(profile.OwnerProvider, profile.OwnerAccountId))
+            {
+                ArchiveRejectedProfile(path, "owner_mismatch");
+                profile = null!;
+                return false;
+            }
             profile.Statistics ??= new Dictionary<string, long>();
             profile.OccurredEventKeys ??= new HashSet<string>();
             profile.UnlockedAchievementApiNames ??= new HashSet<string>();
             profile.PlatformSuppressedAchievementApiNames ??= new HashSet<string>();
             return true;
         }
-        catch
+        catch (Exception exception)
         {
+            ArchiveRejectedProfile(path, "corrupt");
+            GD.PushWarning($"[PlayerProgress] Progress file was unreadable and was archived: {exception.Message}");
             return false;
+        }
+    }
+
+    private PlayerProgressProfile CreateEmptyProfile() => new()
+    {
+        Version = PlayerProgressProfile.CurrentVersion,
+        OwnerProvider = _storageContext.Provider,
+        OwnerAccountId = _storageContext.AccountId,
+    };
+
+    private void EnsureStorageDirectory()
+    {
+        if (!DirAccess.DirExistsAbsolute(_storageContext.RootPath))
+            DirAccess.MakeDirRecursiveAbsolute(_storageContext.RootPath);
+    }
+
+    private void ArchiveRejectedProfile(string path, string reason)
+    {
+        try
+        {
+            var absolutePath = ProjectSettings.GlobalizePath(path);
+            var archivePath = reason == "corrupt" && string.Equals(path, SavePath, StringComparison.Ordinal)
+                ? ProjectSettings.GlobalizePath(_storageContext.PlayerProgressCorruptPath)
+                : $"{absolutePath}.{reason}_{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffZ}";
+            if (IOFile.Exists(archivePath))
+                archivePath = $"{archivePath}.{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffZ}";
+            IOFile.Move(absolutePath, archivePath, overwrite: false);
+            GD.PushWarning($"[PlayerProgress] Rejected {reason} progress was archived: {archivePath}");
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[PlayerProgress] Failed to archive rejected progress: {exception.Message}");
         }
     }
 

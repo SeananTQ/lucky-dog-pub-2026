@@ -15,6 +15,10 @@ public sealed class SaveProfile
     public int Version { get; set; } = SaveManager.CurrentVersion;
     public int IntegrityVersion { get; set; }
     public string IntegrityTag { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? OwnerProvider { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? OwnerAccountId { get; set; }
     public int Chips { get; set; } = GameData.StartingChips;
     public double TotalPlaySeconds { get; set; }
     public List<int> OwnedItemIds { get; set; } = new();
@@ -63,15 +67,60 @@ public sealed record SaveLoadResult(SaveProfile Profile, SaveLoadDisposition Dis
 
 public static class SaveManager
 {
-    public const int CurrentVersion = 15;
-    public const int MinimumSupportedVersion = 15;
+    public const int CurrentVersion = 16;
+    public const int MinimumSupportedVersion = 16;
 
-    private const string SaveDir = "user://saves";
-    private const string SavePath = "user://saves/profile_0.json";
-    private const string BackupPath = "user://saves/profile_0.backup.json";
-    private const string CorruptBackupPath = "user://saves/profile_0.corrupt.json";
-    private const string InvalidSignaturePath = "user://saves/profile_0.invalid_signature.json";
-    private const string TempPath = "user://saves/profile_0.tmp.json";
+    private static AccountStorageContext? _storageContext;
+    private static AccountStorageContext StorageContext => _storageContext
+        ?? throw new InvalidOperationException("SaveManager account storage was not configured.");
+    private static string SaveDir => StorageContext.SaveDirectoryPath;
+    private static string SavePath => StorageContext.SavePath;
+    private static string BackupPath => StorageContext.SaveBackupPath;
+    private static string CorruptBackupPath => StorageContext.SaveCorruptPath;
+    private static string InvalidSignaturePath => StorageContext.SaveInvalidSignaturePath;
+    private static string TempPath => StorageContext.SaveTempPath;
+
+    public static string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);
+
+    public static void Configure(AccountStorageContext storageContext)
+    {
+        ArgumentNullException.ThrowIfNull(storageContext);
+        if (_storageContext != null
+            && (!_storageContext.Owns(storageContext.Provider, storageContext.AccountId)))
+            throw new InvalidOperationException(
+                $"SaveManager is already bound to {_storageContext}; cannot switch to {storageContext} in-process.");
+        _storageContext = storageContext;
+    }
+
+    internal static bool TryImportUnscopedV15(
+        AccountStorageContext storageContext,
+        out string message)
+    {
+        Configure(storageContext);
+        const string unscopedPath = "user://saves/profile_0.json";
+        if (FileAccess.FileExists(SavePath))
+        {
+            message = $"Account save already exists at {AbsoluteSavePath}; shared Dev import was skipped.";
+            return false;
+        }
+        if (!TryLoadVerified(unscopedPath, out var profile, out var failure)
+            || profile?.Version != 15)
+        {
+            message = $"Shared Dev save is not a verified V15 profile ({failure}).";
+            return false;
+        }
+        if (profile.IntegrityVersion != 15 || !SaveIntegrity.Verify(profile))
+        {
+            message = "Shared Dev save does not have a valid V15 HMAC and was not imported.";
+            return false;
+        }
+
+        profile.OwnerProvider = storageContext.Provider;
+        profile.OwnerAccountId = storageContext.AccountId;
+        SaveInternal(profile, backupExisting: false);
+        message = $"Imported verified shared V15 save into {AbsoluteSavePath}.";
+        return true;
+    }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -140,6 +189,8 @@ public static class SaveManager
                     SaveLoadDisposition.ReplacedLegacy,
                     "The verified backup was from an unsupported version and was replaced.");
 
+            if (failure == "account owner mismatch")
+                BackupRejectedSave($"{SaveDir}/profile_0.owner_mismatch_{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffZ}.json");
             RestoreVerifiedBackupAtomically();
             return ReportLoad(
                 Normalize(profile),
@@ -147,7 +198,13 @@ public static class SaveManager
                 $"Primary was rejected ({failure}); restored the verified backup.");
         }
 
-        BackupRejectedSave(failure == "invalid signature" ? InvalidSignaturePath : CorruptBackupPath);
+        var rejectedPath = failure switch
+        {
+            "invalid signature" => InvalidSignaturePath,
+            "account owner mismatch" => $"{SaveDir}/profile_0.owner_mismatch_{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffZ}.json",
+            _ => CorruptBackupPath,
+        };
+        BackupRejectedSave(rejectedPath);
         var replacement = CreateDefaultProfile();
         SaveInternal(replacement, backupExisting: false);
         return ReportLoad(
@@ -162,9 +219,9 @@ public static class SaveManager
         string detail)
     {
         if (disposition != SaveLoadDisposition.Primary)
-            GD.PushWarning($"[SaveRecovery] {disposition}: {detail}");
+            GD.PushWarning($"[SaveRecovery] {disposition}: {detail} Path={AbsoluteSavePath}, Owner={StorageContext}");
         else
-            GD.Print($"[SaveRecovery] {disposition}: {detail}");
+            GD.Print($"[SaveRecovery] {disposition}: {detail} Path={AbsoluteSavePath}, Owner={StorageContext}");
         DiagnosticLog.Record("save_loaded", new Dictionary<string, object?>
         {
             ["disposition"] = disposition.ToString(),
@@ -172,6 +229,9 @@ public static class SaveManager
             ["integrityVersion"] = profile.IntegrityVersion,
             ["chips"] = profile.Chips,
             ["updatedAt"] = profile.UpdatedAt,
+            ["path"] = AbsoluteSavePath,
+            ["ownerProvider"] = profile.OwnerProvider,
+            ["ownerAccountId"] = profile.OwnerAccountId,
             ["detail"] = detail,
         });
         return new SaveLoadResult(profile, disposition, detail);
@@ -208,7 +268,7 @@ public static class SaveManager
         {
             GD.PushError(
                 $"[Save] Failed to archive unsupported {source} save V{legacyVersion}. " +
-                "Creating a fresh V15 profile; the normal atomic backup path will preserve the previous primary when possible.");
+                $"Creating a fresh V{CurrentVersion} profile; the normal atomic backup path will preserve the previous primary when possible.");
             var fallbackReplacement = CreateDefaultProfile();
             SaveInternal(fallbackReplacement, backupExisting: true);
             return fallbackReplacement;
@@ -272,6 +332,8 @@ public static class SaveManager
         EnsureSaveDir();
         var existing = TryLoadExistingWithoutRecovery();
         profile.Version = CurrentVersion;
+        profile.OwnerProvider = StorageContext.Provider;
+        profile.OwnerAccountId = StorageContext.AccountId;
         if (string.IsNullOrWhiteSpace(profile.CreatedAt))
             profile.CreatedAt = string.IsNullOrWhiteSpace(existing?.CreatedAt)
                 ? DateTimeOffset.UtcNow.ToString("O")
@@ -290,6 +352,8 @@ public static class SaveManager
         var profile = new SaveProfile
         {
             Version = CurrentVersion,
+            OwnerProvider = StorageContext.Provider,
+            OwnerAccountId = StorageContext.AccountId,
             Chips = GameData.StartingChips,
             LinkTreeRewardLedgerInitialized = true,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
@@ -748,6 +812,13 @@ public static class SaveManager
             if (profile == null)
             {
                 failure = "empty profile";
+                return false;
+            }
+
+            if (profile.Version >= CurrentVersion
+                && !StorageContext.Owns(profile.OwnerProvider, profile.OwnerAccountId))
+            {
+                failure = "account owner mismatch";
                 return false;
             }
 

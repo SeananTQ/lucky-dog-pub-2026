@@ -16,6 +16,8 @@ public interface IGamePlatformService : IDisposable
     bool IsAvailable { get; }
     uint AppId { get; }
     string PersonaName { get; }
+    string AccountProvider { get; }
+    string AccountId { get; }
 
     void RunCallbacks();
     bool OpenFriendsOverlay();

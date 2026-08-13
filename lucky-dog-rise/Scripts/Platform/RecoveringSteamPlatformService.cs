@@ -19,6 +19,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private int _retryIndex;
     private bool _inventorySynchronizationRequested;
     private bool _disposed;
+    private string _accountId = string.Empty;
 
     public RecoveringSteamPlatformService()
     {
@@ -32,12 +33,16 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted = delegate { };
     public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
     public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged = delegate { };
+    public event Action<string, string> AccountIdentityConflictDetected = delegate { };
 
     public string ProviderName => "Steam";
     public string StatusMessage => _statusMessage;
     public bool IsAvailable => _session?.IsAvailable == true;
     public uint AppId => _session?.AppId ?? 0;
     public string PersonaName => _session?.PersonaName ?? string.Empty;
+    public string AccountProvider => "steam";
+    public string AccountId => _accountId;
+    public bool HasAccountIdentityConflict { get; private set; }
     public bool IsReadyForWrites => _session?.IsReadyForWrites == true;
     public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
         && InventoryTrustState == PlatformInventoryTrustState.Trusted
@@ -51,10 +56,17 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     public void RunCallbacks()
     {
-        if (_disposed)
+        if (_disposed || HasAccountIdentityConflict)
             return;
 
         _session?.RunCallbacks();
+        if (_session?.TryGetLiveAccountId(out var liveAccountId) == true
+            && _accountId.Length > 0
+            && !string.Equals(_accountId, liveAccountId, StringComparison.Ordinal))
+        {
+            HandleAccountIdentityConflict(liveAccountId);
+            return;
+        }
         var now = NowSeconds();
         if (_session != null && !_session.IsAvailable)
         {
@@ -107,7 +119,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     public void RequestReconnect()
     {
-        if (_disposed)
+        if (_disposed || HasAccountIdentityConflict)
             return;
         if (_session?.IsAvailable == true)
         {
@@ -215,6 +227,16 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             return;
         }
 
+        var connectedAccountId = runtime.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_accountId.Length > 0 && !string.Equals(_accountId, connectedAccountId, StringComparison.Ordinal))
+        {
+            runtime.Dispose();
+            HandleAccountIdentityConflict(connectedAccountId);
+            return;
+        }
+
+        _accountId = connectedAccountId;
+
         _session = new SteamGamePlatformService(runtime);
         _session.UserStatsReady += OnUserStatsReady;
         _session.StoreStatusChanged += OnStoreStatusChanged;
@@ -226,6 +248,18 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         if (_inventorySynchronizationRequested)
             BeginInventorySynchronization();
+    }
+
+    private void HandleAccountIdentityConflict(string actualAccountId)
+    {
+        if (HasAccountIdentityConflict)
+            return;
+        HasAccountIdentityConflict = true;
+        _statusMessage = $"Steam account changed from {_accountId} to {actualAccountId}; restart is required.";
+        _nextRetryAtSeconds = double.PositiveInfinity;
+        DisposeSession();
+        SetConnectionState(PlatformConnectionState.Unavailable);
+        AccountIdentityConflictDetected(_accountId, actualAccountId);
     }
 
     private void BeginInventorySynchronization()

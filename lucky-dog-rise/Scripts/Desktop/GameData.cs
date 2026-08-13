@@ -47,7 +47,7 @@ public partial class GameData : Node
         || GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation != null
         || _platformInventoryService?.IsPlaytimeDropPending == true;
     public int BetAmount => 50;
-    public ProgressionManager Progression { get; } = new();
+    public ProgressionManager Progression { get; private set; } = null!;
     public PlayerProgress PlayerProgress { get; private set; } = null!;
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
@@ -89,6 +89,8 @@ public partial class GameData : Node
     private double _profileAutosaveTimer;
     private double _playerProgressSaveTimer;
     private bool _shutdownFlushCompleted;
+    private AccountStorageContext _storageContext = null!;
+    private bool _accountStorageFrozen;
     private const double SaveDebounceSeconds = 0.75;
     private const double ProfileAutosaveSeconds = 60.0;
     private const double PlayerProgressAutosaveSeconds = 60.0;
@@ -159,8 +161,30 @@ public partial class GameData : Node
         PendingBlindBoxPreparation pending) =>
         pending != null && pending.Phase != BlindBoxPreparationPhase.RetryWaiting;
 
+    public void ConfigureStorage(AccountStorageContext storageContext)
+    {
+        if (IsInsideTree())
+            throw new InvalidOperationException("Account storage must be configured before GameData enters the scene tree.");
+        _storageContext = storageContext ?? throw new ArgumentNullException(nameof(storageContext));
+        SaveManager.Configure(storageContext);
+        Progression = new ProgressionManager(storageContext);
+    }
+
+    public void FreezeAccountStorage(string reason)
+    {
+        if (_accountStorageFrozen)
+            return;
+        _accountStorageFrozen = true;
+        _saveDirty = false;
+        PlayerProgress?.FreezeWrites(reason);
+        Progression?.FreezeWrites();
+        GD.PushError($"[AccountStorage] Writes frozen for {_storageContext}: {reason}");
+    }
+
     public override void _Ready()
     {
+        if (_storageContext == null)
+            throw new InvalidOperationException("GameData account storage was not configured.");
         ValidateRefreshmentConfigs();
         _blindBoxService = new BlindBoxService(this);
 #if DEBUG
@@ -170,7 +194,7 @@ public partial class GameData : Node
 #else
         _saveDataMode = SettingsManager.LoadSaveDataMode();
 #endif
-        PlayerProgress = new PlayerProgress();
+        PlayerProgress = new PlayerProgress(_storageContext);
         _profileAutosaveTimer = ProfileAutosaveSeconds;
         _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
@@ -2492,7 +2516,7 @@ public partial class GameData : Node
         if (_blindBoxLocalTestMode)
             return;
 #endif
-        if (!_saveDirty || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
+        if (_accountStorageFrozen || !_saveDirty || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
             return;
 
         SaveManager.Save(new SaveProfile

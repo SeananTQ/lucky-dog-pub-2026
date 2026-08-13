@@ -1,5 +1,9 @@
+#nullable enable
+
 using Godot;
 using System;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 
 namespace LuckyDogRise;
@@ -7,7 +11,6 @@ namespace LuckyDogRise;
 public partial class SingleInstanceGuard : Node
 {
     private const int ActivationAcknowledgementTimeoutMilliseconds = 1500;
-    private const int ShutdownHandoffTimeoutMilliseconds = 8500;
 
     public enum InstanceState
     {
@@ -16,14 +19,32 @@ public partial class SingleInstanceGuard : Node
         ShuttingDown,
     }
 
-    private static SingleInstanceGuard _instance;
+    public enum DuplicateLaunchResult
+    {
+        ExistingActivated,
+        AccountConflict,
+        IdentityUnavailable,
+        ExistingUnresponsive,
+    }
 
-    private System.Threading.Mutex _instanceMutex;
-    private EventWaitHandle _activationRequest;
-    private EventWaitHandle _activationAcknowledgement;
+    private sealed class PublishedInstanceIdentity
+    {
+        public int ProcessId { get; set; }
+        public string Provider { get; set; } = string.Empty;
+        public string AccountId { get; set; } = string.Empty;
+    }
+
+    private static SingleInstanceGuard? _instance;
+
+    private System.Threading.Mutex? _instanceMutex;
+    private EventWaitHandle? _activationRequest;
+    private EventWaitHandle? _activationAcknowledgement;
     private bool _ownsMutex;
+    private string _identityStatePath = string.Empty;
+    private string _publishedProvider = string.Empty;
+    private string _publishedAccountId = string.Empty;
 
-    public Func<bool> ActivationRequested;
+    public Func<bool>? ActivationRequested;
     public InstanceState State { get; private set; } = InstanceState.Starting;
     public bool IsPrimaryInstance => !OperatingSystem.IsWindows() || _ownsMutex;
 
@@ -37,6 +58,7 @@ public partial class SingleInstanceGuard : Node
         var mutexName = $@"Local\LuckyDogRise.{channel}.Instance";
         var requestName = $@"Local\LuckyDogRise.{channel}.Activate";
         var acknowledgementName = $@"Local\LuckyDogRise.{channel}.Activated";
+        _identityStatePath = ProjectSettings.GlobalizePath($"user://instance/{channel.ToLowerInvariant()}.json");
 
         _instanceMutex = new System.Threading.Mutex(false, mutexName);
         _activationRequest = new EventWaitHandle(false, EventResetMode.AutoReset, requestName);
@@ -47,31 +69,53 @@ public partial class SingleInstanceGuard : Node
 
         _ownsMutex = TryAcquireMutex(0);
         if (_ownsMutex)
-            return;
-
-        _activationAcknowledgement.Reset();
-        _activationRequest.Set();
-        if (_activationAcknowledgement.WaitOne(ActivationAcknowledgementTimeoutMilliseconds))
         {
-            GD.Print("[SingleInstance] Existing game instance was activated; closing duplicate launch.");
-            GetTree().Quit();
+            PublishIdentity(string.Empty, string.Empty);
             return;
         }
+    }
 
-        // The previous process may be in its shutdown handoff and unable to acknowledge.
-        _ownsMutex = TryAcquireMutex(ShutdownHandoffTimeoutMilliseconds);
+    public void PublishAccountIdentity(string provider, string accountId)
+    {
+        _publishedProvider = provider ?? string.Empty;
+        _publishedAccountId = accountId ?? string.Empty;
         if (_ownsMutex)
+            PublishIdentity(_publishedProvider, _publishedAccountId);
+    }
+
+    public DuplicateLaunchResult ResolveDuplicateLaunch(
+        string provider,
+        string accountId,
+        out string existingAccountId)
+    {
+        existingAccountId = string.Empty;
+        if (_ownsMutex)
+            throw new InvalidOperationException("The primary instance cannot resolve itself as a duplicate.");
+        if (string.IsNullOrWhiteSpace(provider) || string.IsNullOrWhiteSpace(accountId))
+            return DuplicateLaunchResult.IdentityUnavailable;
+
+        PublishedInstanceIdentity? existing = null;
+        for (var attempt = 0; attempt < 40; attempt++)
         {
-            GD.Print("[SingleInstance] Previous instance exited during handoff; continuing startup.");
-            return;
+            existing = ReadPublishedIdentity();
+            if (existing != null && existing.AccountId.Length > 0)
+                break;
+            Thread.Sleep(50);
         }
 
-        OS.Alert(
-            "Lucky Dog Rise is already running, but its window did not respond.\n\n" +
-            "Please stop the game from Steam and launch it again. If Steam cannot stop it, " +
-            "end LuckyDogRise from Windows Task Manager.",
-            "Lucky Dog Rise");
-        GetTree().Quit(3);
+        if (existing == null || existing.AccountId.Length == 0)
+            return DuplicateLaunchResult.ExistingUnresponsive;
+
+        existingAccountId = existing.AccountId;
+        if (!string.Equals(existing.Provider, provider, StringComparison.Ordinal)
+            || !string.Equals(existing.AccountId, accountId, StringComparison.Ordinal))
+            return DuplicateLaunchResult.AccountConflict;
+
+        _activationAcknowledgement!.Reset();
+        _activationRequest!.Set();
+        return _activationAcknowledgement.WaitOne(ActivationAcknowledgementTimeoutMilliseconds)
+            ? DuplicateLaunchResult.ExistingActivated
+            : DuplicateLaunchResult.ExistingUnresponsive;
     }
 
     public override void _Process(double delta)
@@ -96,6 +140,8 @@ public partial class SingleInstanceGuard : Node
 
     public override void _ExitTree()
     {
+        if (_ownsMutex)
+            DeletePublishedIdentity();
         ReleaseOwnership();
         _activationRequest?.Dispose();
         _activationAcknowledgement?.Dispose();
@@ -120,7 +166,12 @@ public partial class SingleInstanceGuard : Node
 
         _instance._ownsMutex = _instance.TryAcquireMutex(0);
         if (_instance._ownsMutex)
+        {
             _instance.State = InstanceState.Interactive;
+            _instance.PublishIdentity(
+                _instance._publishedProvider,
+                _instance._publishedAccountId);
+        }
         return _instance._ownsMutex;
     }
 
@@ -139,7 +190,7 @@ public partial class SingleInstanceGuard : Node
     {
         try
         {
-            return _instanceMutex.WaitOne(timeoutMilliseconds);
+            return _instanceMutex!.WaitOne(timeoutMilliseconds);
         }
         catch (AbandonedMutexException)
         {
@@ -154,5 +205,54 @@ public partial class SingleInstanceGuard : Node
 
         _instanceMutex.ReleaseMutex();
         _ownsMutex = false;
+    }
+
+    private void PublishIdentity(string provider, string accountId)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_identityStatePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+            var tempPath = $"{_identityStatePath}.tmp.{System.Environment.ProcessId}";
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(new PublishedInstanceIdentity
+            {
+                ProcessId = System.Environment.ProcessId,
+                Provider = provider ?? string.Empty,
+                AccountId = accountId ?? string.Empty,
+            }));
+            File.Move(tempPath, _identityStatePath, overwrite: true);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"[SingleInstance] Failed to publish account identity: {exception.Message}");
+        }
+    }
+
+    private PublishedInstanceIdentity? ReadPublishedIdentity()
+    {
+        try
+        {
+            return File.Exists(_identityStatePath)
+                ? JsonSerializer.Deserialize<PublishedInstanceIdentity>(File.ReadAllText(_identityStatePath))
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void DeletePublishedIdentity()
+    {
+        try
+        {
+            if (File.Exists(_identityStatePath))
+                File.Delete(_identityStatePath);
+        }
+        catch (Exception exception)
+        {
+            GD.PushWarning($"[SingleInstance] Failed to remove account identity state: {exception.Message}");
+        }
     }
 }

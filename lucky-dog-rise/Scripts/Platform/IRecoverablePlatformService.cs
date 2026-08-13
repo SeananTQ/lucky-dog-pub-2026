@@ -27,10 +27,12 @@ public interface IRecoverablePlatformService
 {
     event Action<PlatformConnectionState> ConnectionStateChanged;
     event Action<PlatformInventoryTrustState> InventoryTrustStateChanged;
+    event Action<string, string> AccountIdentityConflictDetected;
 
     PlatformConnectionState ConnectionState { get; }
     PlatformInventoryTrustState InventoryTrustState { get; }
     string InventoryTrustMessage { get; }
+    bool HasAccountIdentityConflict { get; }
     void RequestReconnect();
     void RequireInventoryRevalidation(string reason);
 }

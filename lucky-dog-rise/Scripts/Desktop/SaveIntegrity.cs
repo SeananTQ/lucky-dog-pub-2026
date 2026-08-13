@@ -12,7 +12,8 @@ namespace LuckyDogRise;
 
 internal static class SaveIntegrity
 {
-    public const int CurrentVersion = 15;
+    public const int CurrentVersion = 16;
+    private const int LegacyUnscopedVersion = 15;
 
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new()
     {
@@ -25,12 +26,12 @@ internal static class SaveIntegrity
             throw new InvalidOperationException("Save HMAC key is unavailable.");
 
         using var hmac = new HMACSHA256(key);
-        return Convert.ToHexString(hmac.ComputeHash(GetCanonicalBytes(profile)));
+        return Convert.ToHexString(hmac.ComputeHash(GetCanonicalBytes(profile, includeOwner: true)));
     }
 
     public static bool Verify(SaveProfile profile)
     {
-        if (profile.IntegrityVersion != CurrentVersion
+        if (profile.IntegrityVersion is not (LegacyUnscopedVersion or CurrentVersion)
             || string.IsNullOrWhiteSpace(profile.IntegrityTag)
             || !BuildInfo.TryGetSaveHmacKey(out var key))
             return false;
@@ -46,18 +47,22 @@ internal static class SaveIntegrity
         }
 
         using var hmac = new HMACSHA256(key);
-        var actual = hmac.ComputeHash(GetCanonicalBytes(profile));
+        var actual = hmac.ComputeHash(GetCanonicalBytes(
+            profile,
+            includeOwner: profile.IntegrityVersion >= CurrentVersion));
         return expected.Length == actual.Length
             && CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 
-    private static byte[] GetCanonicalBytes(SaveProfile profile)
+    private static byte[] GetCanonicalBytes(SaveProfile profile, bool includeOwner)
     {
         var canonical = new SaveProfile
         {
             Version = profile.Version,
             IntegrityVersion = profile.IntegrityVersion,
             IntegrityTag = string.Empty,
+            OwnerProvider = includeOwner ? profile.OwnerProvider ?? string.Empty : null,
+            OwnerAccountId = includeOwner ? profile.OwnerAccountId ?? string.Empty : null,
             Chips = profile.Chips,
             TotalPlaySeconds = profile.TotalPlaySeconds,
             OwnedItemIds = (profile.OwnedItemIds ?? []).OrderBy(id => id).ToList(),

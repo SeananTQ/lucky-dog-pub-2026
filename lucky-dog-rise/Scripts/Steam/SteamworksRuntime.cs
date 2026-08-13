@@ -82,6 +82,23 @@ public sealed class SteamworksRuntime : IDisposable
         }
     }
 
+    public bool TryGetCurrentSteamId(out ulong steamId)
+    {
+        steamId = 0;
+        if (!_initialized || _disposed)
+            return false;
+        try
+        {
+            steamId = SteamUser.GetSteamID().m_SteamID;
+            return steamId > 0;
+        }
+        catch (Exception exception)
+        {
+            GD.PushWarning($"[Steamworks] Failed to re-check Steam account identity: {exception.Message}");
+            return false;
+        }
+    }
+
     public bool OpenFriendsOverlay()
     {
         if (!_initialized || _disposed)

@@ -1,0 +1,81 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/StartupAccountGateController.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="2_loading"]
+
+[node name="StartupAccountGate" type="Control" node_paths=PackedStringArray("_statusLabel", "_retryButton", "_quitButton", "_loadingIndicator")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+_statusLabel = NodePath("Center/Panel/Margin/Content/Status")
+_retryButton = NodePath("Center/Panel/Margin/Content/Buttons/Retry")
+_quitButton = NodePath("Center/Panel/Margin/Content/Buttons/Quit")
+_loadingIndicator = NodePath("Center/Panel/Margin/Content/LoadingIndicator")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.025, 0.035, 0.055, 0.98)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(480, 250)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "正在确认 Steam 帐号"
+horizontal_alignment = 1
+
+[node name="LoadingIndicator" parent="Center/Panel/Margin/Content" instance=ExtResource("2_loading")]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Status" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+text = "尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Retry" type="Button" parent="Center/Panel/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(120, 38)
+layout_mode = 2
+text = "重试"
+
+[node name="Quit" type="Button" parent="Center/Panel/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(120, 38)
+layout_mode = 2
+text = "退出游戏"
