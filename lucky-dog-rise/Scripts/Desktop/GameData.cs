@@ -630,9 +630,7 @@ public partial class GameData : Node
         var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
         if (sequence != null)
         {
-            var presentationSeconds = state.SequenceIndex == 0
-                ? Math.Max(sequence.StartSeconds, sequence.IntervalSeconds)
-                : Math.Max(sequence.StartSeconds, state.LastClaimSeconds + Math.Max(0, sequence.IntervalSeconds));
+            var presentationSeconds = BlindBoxService.GetSequencePresentationReadyAtSeconds(state, sequence);
             state.ScheduleSeconds = Math.Max(state.ScheduleSeconds, presentationSeconds);
             return;
         }
@@ -647,9 +645,7 @@ public partial class GameData : Node
 
         var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
         var targetScheduleSeconds = sequence != null
-            ? state.SequenceIndex == 0
-                ? Math.Max(sequence.StartSeconds, sequence.IntervalSeconds)
-                : Math.Max(sequence.StartSeconds, state.LastClaimSeconds + Math.Max(0, sequence.IntervalSeconds))
+            ? BlindBoxService.GetSequencePresentationReadyAtSeconds(state, sequence)
             : state.NextLoopPresentationSeconds;
         var deltaScheduleSeconds = Math.Max(0.0, targetScheduleSeconds - state.ScheduleSeconds);
         if (deltaScheduleSeconds <= 0.0)

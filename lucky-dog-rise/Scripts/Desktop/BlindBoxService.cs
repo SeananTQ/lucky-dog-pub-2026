@@ -236,7 +236,7 @@ public sealed class BlindBoxService
         var schedule = GetCurrentSequenceSchedule(runtimeState);
         if (schedule != null)
         {
-            if (!IsSequenceAvailable(schedule, runtimeState.ScheduleSeconds, runtimeState))
+            if (GetSequencePresentationRemainingSeconds(runtimeState, schedule) > 0.001)
                 return changed;
         }
         else
@@ -481,11 +481,9 @@ public sealed class BlindBoxService
         if (sequence != null)
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(sequence.BlindBoxId);
-            var waitScaledSeconds = runtimeState.SequenceIndex == 0
-                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scheduleSeconds)
-                : Math.Max(0, sequence.IntervalSeconds - (scheduleSeconds - runtimeState.LastClaimSeconds));
             builder.AppendLine($"新手: #{runtimeState.SequenceIndex}, 调度={sequence.Id}, {box?.Name ?? "缺失"}");
-            builder.AppendLine($"新手等待: {FormatSeconds(waitScaledSeconds)}");
+            builder.AppendLine(
+                $"新手等待: {FormatSeconds(GetSequencePresentationRemainingSeconds(runtimeState, sequence))}");
         }
         else
         {
@@ -748,19 +746,24 @@ public sealed class BlindBoxService
             .ToList();
     }
 
-    private static bool IsSequenceAvailable(
-        BlindBoxSchedule schedule,
-        double scheduleSeconds,
-        BlindBoxRuntimeState runtimeState)
+    public static double GetSequencePresentationReadyAtSeconds(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule)
     {
-        if (scheduleSeconds < schedule.StartSeconds)
-            return false;
-
-        var waitSeconds = Mathf.Max(0, schedule.IntervalSeconds);
         if (runtimeState.SequenceIndex == 0)
-            return scheduleSeconds >= waitSeconds;
+            return Math.Max(schedule.StartSeconds, Math.Max(0, schedule.IntervalSeconds));
 
-        return scheduleSeconds - runtimeState.LastClaimSeconds >= waitSeconds;
+        return runtimeState.LastClaimSeconds + Math.Max(0, schedule.IntervalSeconds);
+    }
+
+    private static double GetSequencePresentationRemainingSeconds(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule)
+    {
+        return Math.Max(
+            0.0,
+            GetSequencePresentationReadyAtSeconds(runtimeState, schedule)
+            - runtimeState.ScheduleSeconds);
     }
 
     private static double GetNextReadyRemainingSeconds(BlindBoxRuntimeState runtimeState)
@@ -769,12 +772,7 @@ public sealed class BlindBoxService
 
         var sequence = GetCurrentSequenceSchedule(runtimeState);
         if (sequence != null)
-        {
-            var waitScaledSeconds = runtimeState.SequenceIndex == 0
-                ? Math.Max(0, Math.Max(sequence.StartSeconds, sequence.IntervalSeconds) - scheduleSeconds)
-                : Math.Max(0, sequence.IntervalSeconds - (scheduleSeconds - runtimeState.LastClaimSeconds));
-            return waitScaledSeconds;
-        }
+            return GetSequencePresentationRemainingSeconds(runtimeState, sequence);
 
         if (runtimeState.LockedPresentation != null)
             return 0.0;
@@ -978,6 +976,23 @@ public sealed class BlindBoxService
             || state.NextLoopPresentationSeconds <= state.ScheduleSeconds
             || state.NextLoopTriggerSeconds != state.ScheduleSeconds)
             GD.PushError("[BlindBox] Regression check failed: direct-reward loop initialization is incorrect.");
+
+        if (sequenceSchedules.Count > 1)
+        {
+            var secondSchedule = sequenceSchedules[1];
+            var sequentialState = new BlindBoxRuntimeState
+            {
+                SequenceIndex = 1,
+                LastClaimSeconds = 100.0,
+                ScheduleSeconds = 100.0 + secondSchedule.IntervalSeconds,
+            };
+            if (GetSequencePresentationRemainingSeconds(sequentialState, secondSchedule) > 0.001
+                || sequentialState.ScheduleSeconds >= secondSchedule.StartSeconds)
+            {
+                GD.PushError(
+                    "[BlindBox] Regression check setup is invalid or a later newcomer Schedule still depends on absolute StartSeconds.");
+            }
+        }
     }
 
     private void ValidateSteamPlaytimeScheduling()
