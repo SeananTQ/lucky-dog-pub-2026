@@ -3,6 +3,7 @@
 using Godot;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
@@ -55,10 +56,14 @@ public partial class SingleInstanceGuard : Node
             return;
 
         var channel = BuildInfo.Channel.ToString();
-        var mutexName = $@"Local\LuckyDogRise.{channel}.Instance";
-        var requestName = $@"Local\LuckyDogRise.{channel}.Activate";
-        var acknowledgementName = $@"Local\LuckyDogRise.{channel}.Activated";
-        _identityStatePath = ProjectSettings.GlobalizePath($"user://instance/{channel.ToLowerInvariant()}.json");
+        var instanceScope = OS.GetCmdlineUserArgs().Any(argument =>
+                string.Equals(argument, "--diagnostics-export-smoke", StringComparison.OrdinalIgnoreCase))
+            ? $"{channel}.DiagnosticsSmoke.{System.Environment.ProcessId}"
+            : channel;
+        var mutexName = $@"Local\LuckyDogRise.{instanceScope}.Instance";
+        var requestName = $@"Local\LuckyDogRise.{instanceScope}.Activate";
+        var acknowledgementName = $@"Local\LuckyDogRise.{instanceScope}.Activated";
+        _identityStatePath = ProjectSettings.GlobalizePath($"user://instance/{instanceScope.ToLowerInvariant()}.json");
 
         _instanceMutex = new System.Threading.Mutex(false, mutexName);
         _activationRequest = new EventWaitHandle(false, EventResetMode.AutoReset, requestName);

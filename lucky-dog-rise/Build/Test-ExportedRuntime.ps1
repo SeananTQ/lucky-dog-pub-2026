@@ -17,7 +17,7 @@ $isolatedLocalAppData = Join-Path $logDirectory ("localappdata-" + [Guid]::NewGu
 $diagnosticExportDirectory = Join-Path $logDirectory ("diagnostic-exports-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $isolatedAppData, $isolatedLocalAppData, $diagnosticExportDirectory | Out-Null
 
-$process = Start-Process -FilePath $executable.Path -ArgumentList @('--headless', '--', '--diagnostics-export-smoke') -WindowStyle Hidden -PassThru `
+$process = Start-Process -FilePath $executable.Path -ArgumentList @('--headless', '--', '--disable-steam', '--diagnostics-export-smoke') -WindowStyle Hidden -PassThru `
     -Environment @{ APPDATA = $isolatedAppData; LOCALAPPDATA = $isolatedLocalAppData; LUCKYDOG_DIAGNOSTICS_SMOKE_DIR = $diagnosticExportDirectory } `
     -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 try {

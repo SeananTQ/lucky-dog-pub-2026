@@ -45,14 +45,16 @@ public sealed class OfflineGamePlatformService : IGamePlatformService
 
     private static string ResolveDevelopmentAccountId()
     {
-#if DEBUG
         var args = OS.GetCmdlineUserArgs();
+        if (args.Any(argument =>
+                string.Equals(argument, "--diagnostics-export-smoke", StringComparison.OrdinalIgnoreCase)))
+            return "diagnostics-smoke";
+#if DEBUG
         if (args.Any(argument =>
                 string.Equals(argument, "--identity-unavailable-smoke", StringComparison.OrdinalIgnoreCase)))
             return string.Empty;
         if (args.Any(argument =>
-                string.Equals(argument, "--diagnostics-export-smoke", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(argument, "--single-instance-smoke", StringComparison.OrdinalIgnoreCase)))
+                string.Equals(argument, "--single-instance-smoke", StringComparison.OrdinalIgnoreCase)))
         {
             var requested = args.FirstOrDefault(argument =>
                 argument.StartsWith(StorageTestAccountPrefix, StringComparison.OrdinalIgnoreCase));

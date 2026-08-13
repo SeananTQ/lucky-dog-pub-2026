@@ -492,7 +492,8 @@ public partial class ModeManager : Control
         {
             storageContext = string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal)
                 ? AccountStorageContext.ForSteam(_platformService.AccountId)
-                : BuildInfo.IsDevelopment && string.Equals(_platformService.AccountProvider, "dev", StringComparison.Ordinal)
+                : (BuildInfo.IsDevelopment || OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
+                  && string.Equals(_platformService.AccountProvider, "dev", StringComparison.Ordinal)
                     ? AccountStorageContext.ForDevelopment(_platformService.AccountId)
                     : null!;
             return storageContext != null;
