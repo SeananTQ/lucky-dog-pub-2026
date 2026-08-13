@@ -852,7 +852,8 @@ public partial class GameData : Node
             return null;
 
         if (presentation.Kind is LockedBlindBoxPresentationKind.PreparedSteam
-            or LockedBlindBoxPresentationKind.LateSteam)
+            or LockedBlindBoxPresentationKind.LateSteam
+            or LockedBlindBoxPresentationKind.DeferredSequenceSteam)
         {
             return FinalizePreparedBlindBoxOpen(schedule, box, presentation);
         }
@@ -885,6 +886,7 @@ public partial class GameData : Node
             ["scheduleId"] = result.Schedule.Id,
             ["boxId"] = result.Box.Id,
             ["rewardItemId"] = result.Item.Id,
+            ["completesSchedule"] = PendingBlindBoxReward.CompletesSchedule,
         });
         EmitSignal(SignalName.BlindBoxStateChanged);
         SaveImmediatelyIfUsingLocalSave();
@@ -906,7 +908,7 @@ public partial class GameData : Node
         if (item == null || !_blindBoxService.IsRewardCandidate(box, item))
             return null;
 
-        var useScheduleOverride = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam;
+        var useScheduleOverride = BlindBoxService.UsesSchedulePriceOverride(presentation.Kind);
         var price = _blindBoxService.ResolvePrice(schedule, box, useScheduleOverride);
         if (Chips < price.ActualCost)
             return null;
@@ -1587,6 +1589,8 @@ public partial class GameData : Node
         var targetCompletionCount = ActiveObservedPlatformSequenceCompletionCount;
         if (targetCompletionCount <= runtimeState.SequenceIndex
             || PendingBlindBoxReward != null
+            || runtimeState.PendingPreparation != null
+            || runtimeState.PreparedReward != null
             || runtimeState.LockedPresentation != null)
             return;
 

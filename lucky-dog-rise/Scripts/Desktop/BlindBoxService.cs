@@ -62,6 +62,12 @@ public enum LockedBlindBoxPresentationKind
     PreparedSteam,
     Fallback,
     LateSteam,
+    /// <summary>
+    /// Steam reward arrived after one or more Fallback presentations, but the newcomer
+    /// Schedule deliberately stayed at the same entry. Uses late-reward pricing while
+    /// completing that Schedule when claimed.
+    /// </summary>
+    DeferredSequenceSteam,
 }
 
 public sealed class LockedBlindBoxPresentation
@@ -229,13 +235,16 @@ public sealed class BlindBoxService
 
         if (runtimeState.PreparedReward is { } prepared)
         {
+            var kind = prepared.IsLate
+                ? !schedule.IsLoopTrack && prepared.ScheduleId == schedule.Id
+                    ? LockedBlindBoxPresentationKind.DeferredSequenceSteam
+                    : LockedBlindBoxPresentationKind.LateSteam
+                : LockedBlindBoxPresentationKind.PreparedSteam;
             runtimeState.LockedPresentation = new LockedBlindBoxPresentation
             {
                 ScheduleId = schedule.Id,
                 BlindBoxId = prepared.BlindBoxId,
-                Kind = prepared.IsLate
-                    ? LockedBlindBoxPresentationKind.LateSteam
-                    : LockedBlindBoxPresentationKind.PreparedSteam,
+                Kind = kind,
                 PreparedPlatformInstanceId = prepared.PlatformInstanceId,
             };
         }
@@ -317,7 +326,7 @@ public sealed class BlindBoxService
         BlindBox box,
         LockedBlindBoxPresentationKind kind)
     {
-        var price = ResolvePrice(schedule, box, kind != LockedBlindBoxPresentationKind.LateSteam);
+        var price = ResolvePrice(schedule, box, UsesSchedulePriceOverride(kind));
         return new BlindBoxHintState
         {
             Status = _gameData.Chips >= price.ActualCost
@@ -331,6 +340,7 @@ public sealed class BlindBoxService
             PaymentSource = kind switch
             {
                 LockedBlindBoxPresentationKind.PreparedSteam => BlindBoxPaymentSource.SteamPrepared,
+                LockedBlindBoxPresentationKind.DeferredSequenceSteam => BlindBoxPaymentSource.SteamLate,
                 LockedBlindBoxPresentationKind.LateSteam => BlindBoxPaymentSource.SteamLate,
                 LockedBlindBoxPresentationKind.Fallback => BlindBoxPaymentSource.SteamFallback,
                 _ when box.BoxType == EBlindBoxType.Refreshment => BlindBoxPaymentSource.LocalRefreshment,
@@ -401,7 +411,7 @@ public sealed class BlindBoxService
 
         if (TryGetLockedPresentation(runtimeState, out var availableSchedule, out var availableBox, out var locked))
         {
-            var price = ResolvePrice(availableSchedule!, availableBox!, locked!.Kind != LockedBlindBoxPresentationKind.LateSteam);
+            var price = ResolvePrice(availableSchedule!, availableBox!, UsesSchedulePriceOverride(locked!.Kind));
             builder.AppendLine(_gameData.Chips >= price.ActualCost ? "状态: 可领取" : "状态: 筹码不足");
             builder.AppendLine($"下个: {availableBox!.Name} ({availableBox.Id})");
             builder.AppendLine($"调度: {availableSchedule!.Id}, 类型={locked.Kind}");
@@ -473,7 +483,7 @@ public sealed class BlindBoxService
             || schedule == null || box == null || locked == null)
             return null;
 
-        var price = ResolvePrice(schedule, box, locked.Kind != LockedBlindBoxPresentationKind.LateSteam);
+        var price = ResolvePrice(schedule, box, UsesSchedulePriceOverride(locked.Kind));
         if (_gameData.Chips < price.ActualCost)
         {
             GD.PushWarning($"[BlindBox] Not enough chips. Need {price.ActualCost}, current {_gameData.Chips}.");
@@ -578,7 +588,13 @@ public sealed class BlindBoxService
             return false;
 
         var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(presentation.ScheduleId);
-        var completesSchedule = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam;
+        var completesSchedule = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam
+                                && !(presentation.Kind == LockedBlindBoxPresentationKind.Fallback
+                                     && schedule is
+                                     {
+                                         IsLoopTrack: false,
+                                         SteamPlaytimeGeneratorItemDefId: > 0,
+                                     });
         runtimeState.LockedPresentation = null;
         if (!completesSchedule || schedule == null || schedule.IsLoopTrack)
             return completesSchedule;
@@ -589,6 +605,10 @@ public sealed class BlindBoxService
             runtimeState.SequenceIndex++;
         return true;
     }
+
+    public static bool UsesSchedulePriceOverride(LockedBlindBoxPresentationKind kind) =>
+        kind is not LockedBlindBoxPresentationKind.LateSteam
+            and not LockedBlindBoxPresentationKind.DeferredSequenceSteam;
 
     /// <summary>奖励真正进入玩家背包后，再从此刻开始计算下一段新手间隔。</summary>
     public void CompleteClaimedPresentation(

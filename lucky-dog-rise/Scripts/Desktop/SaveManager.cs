@@ -457,7 +457,8 @@ public static class SaveManager
         NormalizeBlindBoxPreparationState(profile.BlindBoxRuntimeState, validScheduleIds, validIds);
         if (profile.BlindBoxRuntimeState.LockedPresentation is { } normalizedLock
             && normalizedLock.Kind is LockedBlindBoxPresentationKind.PreparedSteam
-                or LockedBlindBoxPresentationKind.LateSteam)
+                or LockedBlindBoxPresentationKind.LateSteam
+                or LockedBlindBoxPresentationKind.DeferredSequenceSteam)
         {
             var prepared = profile.BlindBoxRuntimeState.PreparedReward;
             if (prepared == null
