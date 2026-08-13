@@ -114,12 +114,11 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 `BlindBoxSchedule.SteamPlaytimeGeneratorItemDefId` 把一条本地投放计划映射到一个 Steam PlaytimeGenerator。该 PlaytimeGenerator 必须以数量 1 引用一个 `Generator` 奖励池；Steam 在同一次发放中递归展开，最终只把具体物品写入玩家库存。转换器同时自动生成 Steam 的分钟级投放参数。
 
 ```text
-一次性 Steam 资格秒数 = max(0, StartSeconds * BlindBoxWaitDurationMultiplier - SteamPlaytimeEligibilityLeadSeconds)
-循环 Steam 资格秒数 = max(0, SteamDropIntervalSeconds * BlindBoxWaitDurationMultiplier - SteamPlaytimeEligibilityLeadSeconds)
-drop_interval = max(1, ceil(Steam 资格秒数 / 60))
+Steam 资格秒数 = SteamDropIntervalSeconds
+drop_interval = max(1, ceil(SteamDropIntervalSeconds / 60))
 ```
 
-非循环计划使用累计 `StartSeconds`，循环计划使用独立的 `SteamDropIntervalSeconds`；两者都扣除真实秒提前量，使后台有时间在玩家可见展示点前准备奖励。循环行的本地展示节奏继续由 `IntervalSeconds` 控制，并可通过 `SteamDropWindowSeconds` 和 `SteamDropMaxPerWindow` 生成 `use_drop_window`、`drop_window` 和 `drop_max_per_window`。`MaxGrantCount >= 0` 时生成对应的发放上限；无上限循环计划生成 `use_drop_limit=false`。
+一次性与循环计划都必须显式填写正数 `SteamDropIntervalSeconds`；转换器不再从 `StartSeconds`、全局倍率、提前量或队列长度推导资格。`StartSeconds` 与 `IntervalSeconds` 只控制客户端展示节奏。循环行可通过 `SteamDropWindowSeconds` 和 `SteamDropMaxPerWindow` 生成 `use_drop_window`、`drop_window` 和 `drop_max_per_window`。`MaxGrantCount >= 0` 时生成对应的发放上限；无上限循环计划生成 `use_drop_limit=false`。
 
 已经发布但需要永久停止投放的 PlaytimeGenerator 应继续保留在 `SteamItemDef` 中，并填写 `SteamUseDropLimit=true`、`SteamDropLimit=0`。显式上限只允许用于没有被启用 Schedule 引用的 PlaytimeGenerator，避免与 Schedule 自动派生规则冲突。
 

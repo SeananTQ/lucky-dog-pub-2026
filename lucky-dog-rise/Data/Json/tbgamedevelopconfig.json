@@ -2,7 +2,6 @@
   {
     "BlindBoxCostScale": 1,
     "PlayerStatisticScale": 10,
-    "LinkTreeVisibleBannerCount": 5,
-    "SteamPlaytimeEligibilityLeadSeconds": 180
+    "LinkTreeVisibleBannerCount": 5
   }
 ]

@@ -36,7 +36,7 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.ok(preview.rows.find(row => row.id === 301001).bundle.length > 0);
     assert.equal(preview.rows.find(row => row.id === 700001).dropLimit, 0);
     assert.equal(preview.rows.find(row => row.id === 700001).playtimeSchedules.length, 0);
-    assert.equal(preview.rows.find(row => row.id === 700101).dropInterval, 1);
+    assert.equal(preview.rows.find(row => row.id === 700101).dropInterval, 2);
     assert.equal(preview.rows.find(row => row.id === 700101).dropLimit, 1);
     assert.equal(preview.rows.find(row => row.id === 700101).playtimeSchedules.length, 1);
 });

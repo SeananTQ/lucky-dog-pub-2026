@@ -150,7 +150,7 @@ function schedule(overrides = {}) {
         MaxGrantCount: 1,
         IsEnabled: true,
         SteamPlaytimeGeneratorItemDefId: 404001,
-        SteamDropIntervalSeconds: 0,
+        SteamDropIntervalSeconds: 120,
         SteamCompletionReceiptItemDefId: 0,
         SteamDropWindowSeconds: 0,
         SteamDropMaxPerWindow: 0,
@@ -161,7 +161,6 @@ function schedule(overrides = {}) {
 
 function config(overrides = {}) {
     return {
-        BlindBoxWaitDurationMultiplier: 4,
         SteamPlaytimeEligibilityLeadSeconds: 60,
         ...overrides,
     };
@@ -383,7 +382,7 @@ test("rejects an AUTO blind box candidate without a Steam ItemDef mapping", () =
     assert.ok(result.errors.some(error => error.includes("没有配置 SteamItemDefId")));
 });
 
-test("derives playtime drop timing and limits from schedule and config", () => {
+test("uses the schedule's explicit real-second playtime interval", () => {
     const result = buildArtifacts(
         [rewardGenerator(), playtimeGenerator()],
         [],
@@ -396,9 +395,40 @@ test("derives playtime drop timing and limits from schedule and config", () => {
 
     assert.deepEqual(result.errors, []);
     const output = result.items.find(item => item.itemdefid === 404001);
-    assert.equal(output.drop_interval, 1);
+    assert.equal(output.drop_interval, 2);
     assert.equal(output.use_drop_limit, true);
     assert.equal(output.drop_limit, 1);
+});
+
+test("keeps one-time generator intervals independent of schedule position", () => {
+    const result = buildArtifacts(
+        [
+            rewardGenerator(),
+            playtimeGenerator(),
+            playtimeGenerator({ Id: 404002, Key: "Schedule1002DirectReward" }),
+        ],
+        [],
+        [gameItem()],
+        [blindBox(), fallbackBlindBox()],
+        [
+            schedule({ StartSeconds: 600, IntervalSeconds: 600, SteamDropIntervalSeconds: 120 }),
+            schedule({
+                Id: 1002,
+                StartSeconds: 1200,
+                IntervalSeconds: 600,
+                SteamPlaytimeGeneratorItemDefId: 404002,
+                SteamDropIntervalSeconds: 300,
+            }),
+        ],
+        [],
+        [config()],
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.items.find(item => item.itemdefid === 404001).drop_interval, 2);
+    assert.equal(result.items.find(item => item.itemdefid === 404002).drop_interval, 5);
+    assert.equal(Object.hasOwn(result.playtimeReferences[0], "activationBudgetSeconds"), false);
+    assert.equal(Object.hasOwn(result.playtimeReferences[1], "activationBudgetSeconds"), false);
 });
 
 test("derives recurring playtime interval and drop window without a total drop limit", () => {
@@ -410,22 +440,19 @@ test("derives recurring playtime interval and drop window without a total drop l
         [schedule({
             IsLoopTrack: true,
             StartSeconds: 0,
-            IntervalSeconds: 90,
+            IntervalSeconds: 450,
             MaxGrantCount: -1,
-            SteamDropIntervalSeconds: 180,
-            SteamDropWindowSeconds: 360,
+            SteamDropIntervalSeconds: 900,
+            SteamDropWindowSeconds: 1800,
             SteamDropMaxPerWindow: 2,
         })],
         [],
-        [config({
-            BlindBoxWaitDurationMultiplier: 5,
-            SteamPlaytimeEligibilityLeadSeconds: 180,
-        })],
+        [config()],
     );
 
     assert.deepEqual(result.errors, []);
     const output = result.items.find(item => item.itemdefid === 404001);
-    assert.equal(output.drop_interval, 12);
+    assert.equal(output.drop_interval, 15);
     assert.equal(output.use_drop_window, true);
     assert.equal(output.drop_window, 30);
     assert.equal(output.drop_max_per_window, 2);

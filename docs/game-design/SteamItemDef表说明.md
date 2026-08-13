@@ -8,7 +8,7 @@ status: draft
 
 本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 已上传到 Playtest AppID，直接奖励客户端、进度回执和 Mock 回归已经完成，真实 Steam 帐号回归正在进行。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
-非循环 Schedule 的累计资格和循环 Schedule 的单件资格都统一扣除 `SteamPlaytimeEligibilityLeadSeconds`，当前导出配置为 `180` 个真实秒。非循环资格基于 `StartSeconds`，循环资格基于 `SteamDropIntervalSeconds`；转换器使用分钟向上取整结果。旧字段 `SteamPlaytimeDropLeadSeconds`、`SteamPlaytimeRequestLeadSeconds` 已移除，不新增独立的 25 秒参数。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则按当前 Schedule 的 `FallbackBlindBoxId` 进入本地 Fallback。
+所有 Schedule 时间字段均填写真实秒，不再经过全局等待倍率。Steam 资格由每条平台 Schedule 的 `SteamDropIntervalSeconds` 明确配置，转换器只负责按分钟向上取整；`StartSeconds` 和 `IntervalSeconds` 只控制客户端展示节奏，不再参与 Steam 资格推导。旧的资格提前量和整队列激活预算不再参与转换。请求失败、超时或结果未知时遵守 65 秒公共节流继续复查或重试；展示点没有可信奖励则按当前 Schedule 的 `FallbackBlindBoxId` 进入本地 Fallback。
 
 完整库存同步不再把所有服务器新增数量标记为 New。客户端在请求前保存实例级库存基线，优先读取本次回调实例，并在结果未知时通过可信完整库存差量定位合法候选；只有能够归因到当前盲盒准备事务的实例才进入待揭晓状态。首次同步和无法归因的普通对账只静默修正拥有数量，不批量添加 New、不自动装备，也不触发获得型反馈。
 
@@ -246,25 +246,15 @@ PlaytimeGenerator.Bundle = <RewardGeneratorItemDefId>x1
 RewardGenerator.Bundle = @AUTO 或显式最终物品权重
 ```
 
-转换器依据本地投放时间、等待倍率、Steam 提前量和掉落窗口生成分钟级参数。
-
-一次性新手 Schedule 使用：
+转换器直接依据 Schedule 中的真实秒字段生成分钟级参数。一次性和循环 Schedule 使用相同公式：
 
 ```text
-实际投放秒数 = 本地基础秒数 * GameDevelopConfig.BlindBoxWaitDurationMultiplier
-Steam 资格秒数 = max(0, 实际投放秒数 - GameDevelopConfig.SteamPlaytimeEligibilityLeadSeconds)
-drop_interval = max(1, ceil(Steam 资格秒数 / 60))
-```
-
-循环 Schedule 使用独立的 Steam 单件资格间隔，并同样扣除提前量：
-
-```text
-drop_interval = max(1, ceil((SteamDropIntervalSeconds × BlindBoxWaitDurationMultiplier - SteamPlaytimeEligibilityLeadSeconds) / 60))
-drop_window = max(1, ceil(SteamDropWindowSeconds × BlindBoxWaitDurationMultiplier / 60))
+drop_interval = max(1, ceil(SteamDropIntervalSeconds / 60))
+drop_window = max(1, ceil(SteamDropWindowSeconds / 60))
 drop_max_per_window = SteamDropMaxPerWindow
 ```
 
-`SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。启用 Schedule 的 `MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
+配置了 PlaytimeGenerator 的 Schedule 必须显式填写正数 `SteamDropIntervalSeconds`。`SteamDropWindowSeconds=0` 时不输出窗口属性，并要求 `SteamDropMaxPerWindow=0`；启用窗口时最大次数必须为 `1..10`。启用 Schedule 的 `MaxGrantCount >= 0` 时生成 `use_drop_limit=true` 和相应 `drop_limit`；无限循环生成 `use_drop_limit=false`。
 
 ## PlaytimeGenerator 独立资格激活规则
 
@@ -314,22 +304,37 @@ Steam 官方文档明确说明：
 ### 业务含义
 
 1. `drop_interval` 描述的是该 Generator 激活后的独立资格时长，不是账号总游戏时长门槛，也不是从 schema 发布时间开始计算的绝对时间点。
-2. 新手 Generator 即使使用累计 `StartSeconds` 换算出不同的 `drop_interval`，这些时长也不会因为账号已经游玩很久而自动完成；每个 Generator 必须先形成自己的有效激活记录。
+2. 新手 Generator 的 `drop_interval` 即使配置得很短，也不会因为账号已经游玩很久而自动完成；每个 Generator 必须先形成自己的有效激活记录。
 3. `TriggerItemDrop` 返回 `true` 只说明请求被客户端接受。必须等待结果回调，并以实际返回物品或可信库存变化判断是否发奖。
 4. 空结果首先表示“该 Generator 本次没有授予物品”，可能涉及资格时长、掉落上限、窗口或冷却。对于从未请求过的新 Generator，首次空结果符合本节实测到的激活行为，不能直接判断为网络故障。
 5. 独立测试场景直接请求某个 Generator，会真实建立或改变当前 Steam 账号对该 Generator 的状态；此后该 ID 不再适合作为“从未激活”的对照样本。
 
-本节只定义 Steam PlaytimeGenerator 的平台语义与项目采用的实测规则。客户端如何安排多个新手 Generator 的激活顺序、限流和奖励归因，属于后续预热方案，不在本节规定。
+### 客户端按需预热
 
-客户端不会等待 Steam 自动发放。非循环新手阶段根据与转换器相同的分钟级资格结果进入请求窗口，并通过共享平台服务调用 `TriggerItemDrop`。下一条新手 Schedule 在本地倒计时期间即可准备具体装扮，不等到倒计时归零才请求。
+客户端在可信 Steam 库存同步完成后，只激活当前流程需要的一条 PlaytimeGenerator：
 
-第 12 个新手奖励入账后，客户端立即尝试一次长期循环 Generator，首个玩家可见展示点仍等待循环 Schedule 的完整 `IntervalSeconds`。回执为空表示本次没有发放；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。客户端最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件待揭晓奖励。
+1. 当前新手 Schedule 是 Steam 装扮行时，预热当前行。
+2. 当前新手 Schedule 是本地消耗品行时，预热后面最近的一条 Steam 装扮行。
+3. 当前为最后一条本地新手 Schedule 1012 时，预热长期循环 Generator。
+4. 当前 Steam Schedule 的奖励尚未成功揭晓时，不因为 Fallback 而跳到后续 Generator，也不整队列预热其余新手奖励。
+5. 预热、正式准备、LinkTree Promo 和库存复查共用写操作单飞保护及至少 65 秒的全局请求间隔；任何时刻只允许一个请求在途。
+6. 首次预热请求的空回执经可信库存复查确认后，只登记该 Generator 的本地激活时刻，不生成 Fallback，也不改变前台 Schedule。
+7. 如果预热请求意外直接返回了装扮，客户端按实例归因并暂扣该物品，直到对应 Schedule 成为当前展示机会；不得把它提前同步进背包，也不得丢弃或重复发放。
+8. 激活记录、在途请求、实例级库存基线和意外返回的待揭晓奖励写入 V15 存档。重启后先做可信库存复查，不盲目重发同一预热请求。
+
+Steam Mock 当前继续直接模拟正式奖励准备，不模拟“首次调用激活”这一平台细节；Mock 用于验收 Fallback、迟到奖励和恢复状态机，真实 Steam 预热必须用综合调试环境或 Playtest 客户端验证。
+
+### 明确配置的资格时长
+
+转换器不再根据 `StartSeconds`、全局倍率、提前量或 Generator 数量猜测 Steam 资格。每条 Steam Schedule 自己声明 `SteamDropIntervalSeconds`，客户端从该 Generator 首次成功预热的有效游玩时刻开始等待同一份分钟取整结果。当前 8 条一次性新手装扮 Schedule 均配置 120 秒，对应 Steam `drop_interval=2`；循环 Schedule 配置 900 秒，对应 `drop_interval=15`，并以 1800 秒窗口生成 `drop_window=30`、每窗口最多 2 次。
+
+客户端不会等待 Steam 自动发放。预热完成并累计了明确资格时长后，通过共享平台服务调用 `TriggerItemDrop` 正式准备装扮。第 12 个新手奖励入账后，首个玩家可见循环展示点仍等待循环 Schedule 的完整 `IntervalSeconds`；循环 Generator 已在 1012 期间预热，1012 的 450 秒加首个循环展示点的 450 秒共同提供 900 秒有效游玩时间。回执为空表示本次没有发放；断线、超时或结果未知时只保存一笔待验证请求，恢复后先同步完整库存再重试。客户端最多保留一笔未决准备请求或一件已确认待揭晓装扮，不积累券或多件待揭晓奖励。
 
 Steam 以分钟为粒度评估游玩投放，并会限制更频繁的 `TriggerItemDrop` 调用。客户端在所有 Schedule 之间共享至少 65 秒的请求间隔；不能在一批资格同时到期时连续触发多个 Generator。独立测试场景采用相同间隔，并在过早操作时直接显示剩余等待时间。
 
 未决投放保存在 `PendingBlindBoxPreparation`，包括 Schedule、BlindBox、Generator、提交时间、阶段、重试时间和实例级库存基线；确认后的唯一物品保存在 `PreparedBlindBoxReward`。循环 Generator 不保存本地发放次数，只保存下一心跳和单槽位状态。Steam 连接中断或请求超过 10 秒时，平台恢复层先读取完整库存，再决定是否重试。
 
-新版新手直接奖励 PlaytimeGenerator 使用 `700101..700111` 中与装扮 Schedule 对应的 ID，循环直接奖励使用 `701101`。已经发布并被旧版本调用过的 `700001..700011` 与 `701001` 仍保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放；已发布的 ItemDef ID 不能删除、复用或改作其他定义。
+新版新手直接奖励 PlaytimeGenerator 使用 `700101..700111` 中与装扮 Schedule 对应的 ID，循环直接奖励使用 `701101`。已经发布并被旧版本调用过的 `700001..700011` 与 `701001` 仍保留在完整 schema 中，通过 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 显式停止后续发放；已发布的 ItemDef ID 不能删除、复用或改作其他定义。当前生成结果为 8 条一次性 Generator 各 `drop_interval=2` 分钟；循环 `701101` 为 15 分钟，并保留 30 分钟窗口最多 2 次的限制。
 
 独立测试场景 `TestSteamInventory.tscn` 可以选择任意已配置 Schedule 并真实调用对应 PlaytimeGenerator，直接显示回调返回的最终装扮实例及本地映射。该操作会修改当前 Steam 账号的投放记录；重置本地存档不会重置 Steam 的 `drop_limit` 和冷却状态。
 
@@ -341,7 +346,7 @@ Steamworks 后台已发布的 `playtimegenerator` 可能不会出现在客户端
 
 Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerator 可能不在定义枚举结果中，但仍可提交真实 `TriggerItemDrop` 请求。定义总数会随内容配置继续变化，测试场景应比较当前本地可枚举定义与服务器返回结果，不把某次测试数量写成长期规则。
 
-主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励客户端已经完成七种 Mock 网络场景、新手 12 条 Schedule 和普通循环交接回归，新版 schema 也已上传到 Playtest AppID。真实 Steam 已验证 PlaytimeGenerator 可以直接返回最终装扮实例，同时通过全新测试定义 `410001` 与 `410002` 确认了本文件“PlaytimeGenerator 独立资格激活规则”记录的起算行为。新手多 Generator 的客户端激活流程尚待单独设计和实现。
+主人此前已验证旧券架构能够投放、Exchange、表演和重启恢复；该结论仅作为历史记录。新版直接奖励客户端已经完成七种 Mock 网络场景、新手 12 条 Schedule 和普通循环交接回归。真实 Steam 已验证 PlaytimeGenerator 可以直接返回最终装扮实例，同时通过全新测试定义 `410001` 与 `410002` 确认了本文件“PlaytimeGenerator 独立资格激活规则”记录的起算行为。客户端按需预热和显式资格时长转换已经实现；生成的新 schema 尚需重新上传，并在真实 Steam 环境验证预热时序与最终奖励。
 
 主人已在独立测试场景验证 LinkTree 领取 Bundle：Steam 回调会同时返回永久回执和固定物品，固定筹码入口只新增永久回执；主客户端能够以回执恢复已领取状态，并由库存同步获得固定物品。测试还保留了一条未领取入口作为负向对照。上述验证使用测试 ItemDef，正式数据更换 ID 后需要重新执行同样的开发者账号与普通玩家账号验收。
 

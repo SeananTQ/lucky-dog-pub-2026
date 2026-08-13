@@ -44,6 +44,7 @@ public partial class GameData : Node
         ActivePendingBlindBoxCompletionReceiptItemDefId;
     public bool ActiveBlindBoxPreparationPending =>
         IsBlindBoxPreparationBlockingInventoryWrites(ActiveBlindBoxRuntimeState.PendingPreparation)
+        || GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation != null
         || _platformInventoryService?.IsPlaytimeDropPending == true;
     public int BetAmount => 50;
     public ProgressionManager Progression { get; } = new();
@@ -92,7 +93,6 @@ public partial class GameData : Node
     private const double ProfileAutosaveSeconds = 60.0;
     private const double PlayerProgressAutosaveSeconds = 60.0;
     private const double BlindBoxTickSeconds = 1.0;
-    private const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
     private BlindBoxRuntimeState ActiveBlindBoxRuntimeState
     {
         get
@@ -104,6 +104,10 @@ public partial class GameData : Node
             return _blindBoxRuntimeState;
         }
     }
+
+    private static PlaytimeGeneratorActivationState GetGeneratorActivationState(
+        BlindBoxRuntimeState state) =>
+        state.GeneratorActivation ??= new PlaytimeGeneratorActivationState();
 
     private int ActivePendingBlindBoxCompletionReceiptItemDefId
     {
@@ -346,6 +350,14 @@ public partial class GameData : Node
     public string GetBlindBoxDebugStatus()
     {
         MaintainLoopPresentation();
+        var activation = GetGeneratorActivationState(ActiveBlindBoxRuntimeState);
+        var activatedGeneratorIds = activation.ActivatedAtTotalPlaySecondsByGenerator.Keys
+            .OrderBy(id => id)
+            .ToArray();
+        var nextActivation = _blindBoxService.GetGeneratorActivationOrder(ActiveBlindBoxRuntimeState)
+            .FirstOrDefault(schedule =>
+                !activation.ActivatedAtTotalPlaySecondsByGenerator.ContainsKey(
+                    schedule.SteamPlaytimeGeneratorItemDefId));
         var debugStatus = _blindBoxService.BuildDebugStatus(
             TotalPlaySeconds,
             ActiveBlindBoxRuntimeState,
@@ -358,6 +370,10 @@ public partial class GameData : Node
         return $"{simulationText}\n{debugStatus}\n待补交进度回执: "
                + $"{ActivePendingBlindBoxCompletionReceiptItemDefId}\n"
                + $"平台确认的新手进度: {ActiveObservedPlatformSequenceCompletionCount}\n"
+               + $"Generator已激活: {(activatedGeneratorIds.Length == 0 ? "无" : string.Join(",", activatedGeneratorIds))}\n"
+               + $"下一预热: {nextActivation?.SteamPlaytimeGeneratorItemDefId.ToString() ?? "无"}\n"
+               + $"激活事务: {activation.PendingActivation?.GeneratorItemDefId.ToString() ?? "无"}\n"
+               + $"激活意外奖励: {activation.DeferredReward?.ScheduleId.ToString() ?? "无"}\n"
                + $"入口最终状态: {GetBlindBoxHintState().Status}";
     }
 
@@ -515,18 +531,14 @@ public partial class GameData : Node
         DebugSteamPlaytimeDropRule dropRule = null;
         if (schedule.IsLoopTrack && schedule.SteamDropIntervalSeconds > 0)
         {
-            var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-            var multiplier = Math.Max(1.0, config?.BlindBoxWaitDurationMultiplier ?? 1.0);
-            var leadSeconds = Math.Max(0.0, config?.SteamPlaytimeEligibilityLeadSeconds ?? 0.0);
-            var rawIntervalSeconds = Math.Max(
-                0.0,
-                schedule.SteamDropIntervalSeconds * multiplier - leadSeconds);
-            var intervalSeconds = Math.Max(60.0, Math.Ceiling(rawIntervalSeconds / 60.0) * 60.0);
+            var intervalSeconds = Math.Max(
+                60.0,
+                Math.Ceiling(schedule.SteamDropIntervalSeconds / 60.0) * 60.0);
             var windowSeconds = schedule.SteamDropWindowSeconds <= 0
                 ? 0.0
                 : Math.Max(
                     60.0,
-                    Math.Ceiling(schedule.SteamDropWindowSeconds * multiplier / 60.0) * 60.0);
+                    Math.Ceiling(schedule.SteamDropWindowSeconds / 60.0) * 60.0);
             dropRule = new DebugSteamPlaytimeDropRule(
                 schedule.SteamPlaytimeGeneratorItemDefId,
                 intervalSeconds,
@@ -643,9 +655,7 @@ public partial class GameData : Node
         if (deltaScheduleSeconds <= 0.0)
             return;
 
-        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
-        var multiplier = Math.Max(1.0, config?.BlindBoxWaitDurationMultiplier ?? 1.0);
-        var realSeconds = deltaScheduleSeconds * multiplier;
+        var realSeconds = deltaScheduleSeconds;
         TotalPlaySeconds += realSeconds;
         controller.AdvanceSimulatedPlaytime(realSeconds);
     }
@@ -965,6 +975,7 @@ public partial class GameData : Node
             return;
         }
 #endif
+        PromoteDeferredActivationRewardIfCurrent();
         if (PendingBlindBoxReward != null)
             return;
         if (_blindBoxService.MaintainPresentation(ActiveBlindBoxRuntimeState))
@@ -982,6 +993,29 @@ public partial class GameData : Node
             }
             QueueSaveIfUsingLocalSave();
         }
+    }
+
+    private void PromoteDeferredActivationRewardIfCurrent()
+    {
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var activation = GetGeneratorActivationState(runtimeState);
+        var deferred = activation.DeferredReward;
+        if (deferred == null
+            || runtimeState.PreparedReward != null
+            || !_blindBoxService.TryGetCurrentSchedule(runtimeState, out var currentSchedule)
+            || currentSchedule?.Id != deferred.ScheduleId)
+            return;
+
+        runtimeState.PreparedReward = deferred;
+        activation.DeferredReward = null;
+        DiagnosticLog.Record("playtime_generator_activation_reward_promoted", new Dictionary<string, object>
+        {
+            ["scheduleId"] = deferred.ScheduleId,
+            ["blindBoxId"] = deferred.BlindBoxId,
+            ["platformInstanceId"] = deferred.PlatformInstanceId,
+            ["steamItemDefId"] = deferred.SteamItemDefId,
+        });
+        SaveImmediatelyIfUsingLocalSave();
     }
 
     private void MaintainBlindBoxCompletionReceiptGrant()
@@ -1007,6 +1041,7 @@ public partial class GameData : Node
 
         if (PendingLinkTreeClaim != null
             || IsBlindBoxPreparationBlockingInventoryWrites(ActiveBlindBoxRuntimeState.PendingPreparation)
+            || GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation != null
             || _platformInventoryService.IsPlaytimeDropPending
             || _platformInventoryService.IsPromoGrantPending)
             return;
@@ -1042,9 +1077,15 @@ public partial class GameData : Node
             return;
 
         var runtimeState = ActiveBlindBoxRuntimeState;
+        if (GetGeneratorActivationState(runtimeState).PendingActivation != null)
+        {
+            _platformInventoryService.StartInventorySynchronization();
+            return;
+        }
+
         var pending = runtimeState.PendingPreparation;
-        BlindBoxSchedule schedule;
-        BlindBox box;
+        BlindBoxSchedule schedule = null;
+        BlindBox box = null;
         var isRetry = false;
         if (pending != null)
         {
@@ -1077,23 +1118,29 @@ public partial class GameData : Node
         }
         else
         {
-            if (!_blindBoxService.TryGetPreparationCandidate(
+            if (_blindBoxService.TryGetPreparationCandidate(
                     runtimeState,
-                    TotalPlaySeconds,
                     out var candidateSchedule,
                     out var candidateBox)
-                || candidateSchedule == null
-                || candidateBox == null
-                || candidateSchedule.SteamPlaytimeGeneratorItemDefId <= 0)
-                return;
-
-            schedule = candidateSchedule;
-            box = candidateBox;
+                && candidateSchedule != null
+                && candidateBox != null
+                && candidateSchedule.SteamPlaytimeGeneratorItemDefId > 0
+                && IsActivatedGeneratorReadyForPreparation(runtimeState, candidateSchedule))
+            {
+                schedule = candidateSchedule;
+                box = candidateBox;
+            }
         }
 
         var now = Time.GetTicksMsec() / 1000.0;
         if (now < _nextPlatformPlaytimeDropAttemptAtSeconds)
             return;
+
+        if (schedule == null || box == null)
+        {
+            TryStartNextPlaytimeGeneratorActivation(runtimeState, now);
+            return;
+        }
 
         var baseline = BuildInstanceQuantityMap(_platformInventoryService.InventoryItems);
 #if DEBUG
@@ -1114,7 +1161,8 @@ public partial class GameData : Node
             return;
         }
 
-        _nextPlatformPlaytimeDropAttemptAtSeconds = now + SteamPlaytimeDropMinimumAttemptIntervalSeconds;
+        _nextPlatformPlaytimeDropAttemptAtSeconds = now
+            + BlindBoxService.SteamPlaytimeDropMinimumAttemptIntervalSeconds;
         if (isRetry)
         {
             pending!.Phase = BlindBoxPreparationPhase.Submitted;
@@ -1153,9 +1201,94 @@ public partial class GameData : Node
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
+    private bool IsActivatedGeneratorReadyForPreparation(
+        BlindBoxRuntimeState runtimeState,
+        BlindBoxSchedule schedule)
+    {
+#if DEBUG
+        if (_steamMockSimulationActive)
+            return true;
+#endif
+        if (!GetGeneratorActivationState(runtimeState).ActivatedAtTotalPlaySecondsByGenerator.TryGetValue(
+                schedule.SteamPlaytimeGeneratorItemDefId,
+                out var activatedAtTotalPlaySeconds))
+            return false;
+
+        var requiredPlaySeconds = _blindBoxService.GetSteamEligibilityRealSeconds(schedule);
+        return TotalPlaySeconds + 0.001 >= activatedAtTotalPlaySeconds + requiredPlaySeconds;
+    }
+
+    private bool TryStartNextPlaytimeGeneratorActivation(
+        BlindBoxRuntimeState runtimeState,
+        double now)
+    {
+#if DEBUG
+        // The current Steam Mock models reward preparation, not the newly discovered
+        // first-call activation rule. Keep it isolated until its scenarios explicitly
+        // model activation requests and their empty first result.
+        if (_steamMockSimulationActive)
+            return false;
+#endif
+        var activation = GetGeneratorActivationState(runtimeState);
+        if (activation.PendingActivation != null || activation.DeferredReward != null)
+            return false;
+
+        var schedule = _blindBoxService.GetGeneratorActivationOrder(runtimeState)
+            .FirstOrDefault(candidate =>
+                !activation.ActivatedAtTotalPlaySecondsByGenerator.ContainsKey(
+                    candidate.SteamPlaytimeGeneratorItemDefId));
+        if (schedule == null)
+            return false;
+
+        var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
+        if (box is not { IsEnabled: true, IsPlatformInventoryRequired: true })
+            return false;
+
+        var baseline = BuildInstanceQuantityMap(_platformInventoryService!.InventoryItems);
+        if (!_platformInventoryService.TryTriggerPlaytimeDrop(
+                schedule.SteamPlaytimeGeneratorItemDefId,
+                out var message))
+        {
+            _nextPlatformPlaytimeDropAttemptAtSeconds = now + 5.0;
+            _recoverablePlatformService?.RequestReconnect();
+            return false;
+        }
+
+        activation.PendingActivation = new PendingPlaytimeGeneratorActivation
+        {
+            ScheduleId = schedule.Id,
+            BlindBoxId = box.Id,
+            GeneratorItemDefId = schedule.SteamPlaytimeGeneratorItemDefId,
+            SubmittedAtTotalPlaySeconds = TotalPlaySeconds,
+            InventoryQuantitiesBeforeRequest = baseline,
+        };
+        _nextPlatformPlaytimeDropAttemptAtSeconds = now
+            + BlindBoxService.SteamPlaytimeDropMinimumAttemptIntervalSeconds;
+        SaveImmediatelyIfUsingLocalSave();
+        DiagnosticLog.Record("playtime_generator_activation_submitted", new Dictionary<string, object>
+        {
+            ["scheduleId"] = schedule.Id,
+            ["blindBoxId"] = box.Id,
+            ["generatorItemDefId"] = schedule.SteamPlaytimeGeneratorItemDefId,
+            ["baselineInstances"] = baseline.Count,
+            ["totalPlaySeconds"] = TotalPlaySeconds,
+        });
+        GD.Print(
+            $"[BlindBox] Generator activation Schedule={schedule.Id}, "
+            + $"Generator={schedule.SteamPlaytimeGeneratorItemDefId}: {message}");
+        return true;
+    }
+
     private void OnPlatformPlaytimeDropCompleted(PlatformPlaytimeDropResult result)
     {
         var runtimeState = ActiveBlindBoxRuntimeState;
+        if (GetGeneratorActivationState(runtimeState).PendingActivation is { } activationPending
+            && activationPending.GeneratorItemDefId == result.GeneratorItemDefId)
+        {
+            HandlePlaytimeGeneratorActivationResult(runtimeState, activationPending, result);
+            return;
+        }
+
         var pending = runtimeState.PendingPreparation;
         if (pending == null
             || pending.GeneratorItemDefId != result.GeneratorItemDefId)
@@ -1184,7 +1317,8 @@ public partial class GameData : Node
             ? BlindBoxPreparationPhase.RetryWaiting
             : BlindBoxPreparationPhase.RevalidationRequired;
         pending.RetryNotBeforeTotalPlaySeconds = Math.Max(
-            pending.SubmittedAtTotalPlaySeconds + SteamPlaytimeDropMinimumAttemptIntervalSeconds,
+            pending.SubmittedAtTotalPlaySeconds
+            + BlindBoxService.SteamPlaytimeDropMinimumAttemptIntervalSeconds,
             TotalPlaySeconds + (result.Succeeded ? 0.0 : 5.0));
         SaveImmediatelyIfUsingLocalSave();
         if (!result.Succeeded)
@@ -1203,9 +1337,120 @@ public partial class GameData : Node
             return;
 #endif
         ReconcileBlindBoxCompletionReceipts(snapshot.OwnedItemDefIds);
+        ReconcilePendingPlaytimeGeneratorActivation(snapshot.Items);
         ReconcilePendingPreparation(snapshot.Items);
         ReconcilePreparedRewardPresence(snapshot.Items);
+        ReconcileDeferredActivationRewardPresence(snapshot.Items);
         ReconcilePlatformInventory(snapshot.Items);
+    }
+
+    private void ReconcilePendingPlaytimeGeneratorActivation(
+        IReadOnlyList<PlatformInventoryItem> platformItems)
+    {
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var activation = GetGeneratorActivationState(runtimeState);
+        var pending = activation.PendingActivation;
+        if (pending == null)
+            return;
+
+        if (!pending.CallbackCompleted)
+        {
+            if (_platformInventoryService?.IsPlaytimeDropPending == true)
+                return;
+
+            // The process may have exited after Steam accepted the activation request but
+            // before its callback was persisted. A trusted restart snapshot can still
+            // attribute an emitted reward; an empty snapshot treats the accepted request as
+            // the activation point rather than submitting a potentially awarding duplicate.
+            pending.CallbackCompleted = true;
+            pending.CallbackSucceeded = true;
+        }
+
+        if (TryResolvePreparedReward(
+                CreateActivationAttribution(pending),
+                platformItems,
+                out var reward,
+                out _))
+        {
+            CompletePlaytimeGeneratorActivation(runtimeState, pending, reward);
+            return;
+        }
+
+        if (pending.CallbackSucceeded)
+        {
+            activation.ActivatedAtTotalPlaySecondsByGenerator[
+                pending.GeneratorItemDefId] = pending.SubmittedAtTotalPlaySeconds;
+            DiagnosticLog.Record("playtime_generator_activation_confirmed", new Dictionary<string, object>
+            {
+                ["scheduleId"] = pending.ScheduleId,
+                ["generatorItemDefId"] = pending.GeneratorItemDefId,
+                ["activatedAtTotalPlaySeconds"] = pending.SubmittedAtTotalPlaySeconds,
+                ["result"] = "empty_inventory_confirmed",
+            });
+            GD.Print(
+                $"[BlindBox] Generator {pending.GeneratorItemDefId} activation confirmed; "
+                + "the first request produced no reward.");
+        }
+        else
+        {
+            DiagnosticLog.Record("playtime_generator_activation_unconfirmed", new Dictionary<string, object>
+            {
+                ["scheduleId"] = pending.ScheduleId,
+                ["generatorItemDefId"] = pending.GeneratorItemDefId,
+            });
+        }
+
+        activation.PendingActivation = null;
+        SaveImmediatelyIfUsingLocalSave();
+        EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    private static PendingBlindBoxPreparation CreateActivationAttribution(
+        PendingPlaytimeGeneratorActivation pending) => new()
+    {
+        ScheduleId = pending.ScheduleId,
+        BlindBoxId = pending.BlindBoxId,
+        GeneratorItemDefId = pending.GeneratorItemDefId,
+        SubmittedAtTotalPlaySeconds = pending.SubmittedAtTotalPlaySeconds,
+        InventoryQuantitiesBeforeRequest = pending.InventoryQuantitiesBeforeRequest,
+    };
+
+    private void CompletePlaytimeGeneratorActivation(
+        BlindBoxRuntimeState runtimeState,
+        PendingPlaytimeGeneratorActivation pending,
+        PlatformInventoryItem reward)
+    {
+        var item = FindLocalItem(reward.ItemDefId);
+        if (item == null)
+            return;
+
+        var activation = GetGeneratorActivationState(runtimeState);
+        activation.ActivatedAtTotalPlaySecondsByGenerator[
+            pending.GeneratorItemDefId] = pending.SubmittedAtTotalPlaySeconds;
+        activation.DeferredReward = new PreparedBlindBoxReward
+        {
+            ScheduleId = pending.ScheduleId,
+            BlindBoxId = pending.BlindBoxId,
+            PlatformInstanceId = reward.InstanceId,
+            SteamItemDefId = reward.ItemDefId,
+            ItemId = item.Id,
+            IsLate = false,
+        };
+        activation.PendingActivation = null;
+        DiagnosticLog.Record("playtime_generator_activation_reward_deferred", new Dictionary<string, object>
+        {
+            ["scheduleId"] = pending.ScheduleId,
+            ["blindBoxId"] = pending.BlindBoxId,
+            ["generatorItemDefId"] = pending.GeneratorItemDefId,
+            ["platformInstanceId"] = reward.InstanceId,
+            ["steamItemDefId"] = reward.ItemDefId,
+            ["itemId"] = item.Id,
+        });
+        GD.Print(
+            $"[BlindBox] Generator activation unexpectedly returned a reward for Schedule "
+            + $"{pending.ScheduleId}; the exact instance is withheld until that Schedule.");
+        SaveImmediatelyIfUsingLocalSave();
+        EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
     private void ReconcileBlindBoxCompletionReceipts(IReadOnlySet<int> ownedItemDefIds)
@@ -1286,6 +1531,34 @@ public partial class GameData : Node
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
 
+    private void ReconcileDeferredActivationRewardPresence(
+        IReadOnlyList<PlatformInventoryItem> platformItems)
+    {
+        var runtimeState = ActiveBlindBoxRuntimeState;
+        var activation = GetGeneratorActivationState(runtimeState);
+        var deferred = activation.DeferredReward;
+        if (deferred == null)
+            return;
+
+        var stillExists = platformItems.Any(item =>
+            item.InstanceId == deferred.PlatformInstanceId
+            && item.ItemDefId == deferred.SteamItemDefId
+            && item.Quantity > 0);
+        if (stillExists)
+            return;
+
+        DiagnosticLog.Record("playtime_generator_activation_reward_missing", new Dictionary<string, object>
+        {
+            ["scheduleId"] = deferred.ScheduleId,
+            ["blindBoxId"] = deferred.BlindBoxId,
+            ["platformInstanceId"] = deferred.PlatformInstanceId,
+            ["steamItemDefId"] = deferred.SteamItemDefId,
+        });
+        activation.DeferredReward = null;
+        SaveImmediatelyIfUsingLocalSave();
+        EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
     private void UnbindPlatformInventoryService()
     {
         if (_platformInventoryService != null)
@@ -1316,7 +1589,8 @@ public partial class GameData : Node
 
         pending.Phase = BlindBoxPreparationPhase.RetryWaiting;
         pending.RetryNotBeforeTotalPlaySeconds = Math.Max(
-            pending.SubmittedAtTotalPlaySeconds + SteamPlaytimeDropMinimumAttemptIntervalSeconds,
+            pending.SubmittedAtTotalPlaySeconds
+            + BlindBoxService.SteamPlaytimeDropMinimumAttemptIntervalSeconds,
             TotalPlaySeconds);
         DiagnosticLog.Record("blindbox_preparation_revalidation_empty", new Dictionary<string, object>
         {
@@ -1456,6 +1730,9 @@ public partial class GameData : Node
         var withheldInstanceIds = new HashSet<ulong>();
         if (ActiveBlindBoxRuntimeState.PreparedReward is { PlatformInstanceId: > 0 } preparedReward)
             withheldInstanceIds.Add(preparedReward.PlatformInstanceId);
+        if (GetGeneratorActivationState(ActiveBlindBoxRuntimeState).DeferredReward is
+            { PlatformInstanceId: > 0 } deferredActivationReward)
+            withheldInstanceIds.Add(deferredActivationReward.PlatformInstanceId);
         if (PendingBlindBoxReward is
             {
                 IsPlatformInventoryReward: true,
@@ -1586,11 +1863,14 @@ public partial class GameData : Node
     private void TryApplyObservedPlatformSequenceProgress()
     {
         var runtimeState = ActiveBlindBoxRuntimeState;
+        var activation = GetGeneratorActivationState(runtimeState);
         var targetCompletionCount = ActiveObservedPlatformSequenceCompletionCount;
         if (targetCompletionCount <= runtimeState.SequenceIndex
             || PendingBlindBoxReward != null
             || runtimeState.PendingPreparation != null
             || runtimeState.PreparedReward != null
+            || activation.PendingActivation != null
+            || activation.DeferredReward != null
             || runtimeState.LockedPresentation != null)
             return;
 
@@ -1609,6 +1889,40 @@ public partial class GameData : Node
         });
         SaveImmediatelyIfUsingLocalSave();
         EmitSignal(SignalName.BlindBoxStateChanged);
+    }
+
+    private void HandlePlaytimeGeneratorActivationResult(
+        BlindBoxRuntimeState runtimeState,
+        PendingPlaytimeGeneratorActivation pending,
+        PlatformPlaytimeDropResult result)
+    {
+        GD.Print($"[BlindBox] Generator activation: {result.Message}");
+        var attribution = CreateActivationAttribution(pending);
+        if (result.Succeeded
+            && TryResolvePreparedReward(
+                attribution,
+                result.ChangedItems,
+                out var reward,
+                out _))
+        {
+            CompletePlaytimeGeneratorActivation(runtimeState, pending, reward);
+            return;
+        }
+
+        pending.CallbackCompleted = true;
+        pending.CallbackSucceeded = result.Succeeded;
+        DiagnosticLog.Record("playtime_generator_activation_callback", new Dictionary<string, object>
+        {
+            ["scheduleId"] = pending.ScheduleId,
+            ["generatorItemDefId"] = pending.GeneratorItemDefId,
+            ["succeeded"] = result.Succeeded,
+            ["changedItems"] = string.Join(",", result.ChangedItems.Select(item =>
+                $"{item.InstanceId}:{item.ItemDefId}x{item.Quantity}")),
+        });
+        SaveImmediatelyIfUsingLocalSave();
+        if (!result.Succeeded)
+            _recoverablePlatformService?.RequestReconnect();
+        _platformInventoryService?.StartInventorySynchronization();
     }
 
     public void ClaimPendingBlindBoxReward()
@@ -1680,6 +1994,7 @@ public partial class GameData : Node
         if (linkTreeId <= 0 || steamClaimBundleItemDefId <= 0 || steamReceiptItemDefId <= 0)
             return false;
         if (IsBlindBoxPreparationBlockingInventoryWrites(ActiveBlindBoxRuntimeState.PendingPreparation)
+            || GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation != null
             || _platformInventoryService?.IsPlaytimeDropPending == true
             || ActivePendingBlindBoxCompletionReceiptItemDefId > 0)
         {

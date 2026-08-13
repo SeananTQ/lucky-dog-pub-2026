@@ -20,7 +20,6 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
-        { if(!_buf["SteamPlaytimeEligibilityLeadSeconds"].IsNumber) { throw new SerializationException(); }  SteamPlaytimeEligibilityLeadSeconds = _buf["SteamPlaytimeEligibilityLeadSeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -40,10 +39,6 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// LinkTree最佳显示条目数量
     /// </summary>
     public readonly int LinkTreeVisibleBannerCount;
-    /// <summary>
-    /// Steam资格提前真实秒数
-    /// </summary>
-    public readonly int SteamPlaytimeEligibilityLeadSeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -58,7 +53,6 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
-        + "SteamPlaytimeEligibilityLeadSeconds:" + SteamPlaytimeEligibilityLeadSeconds + ","
         + "}";
     }
 }

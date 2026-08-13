@@ -314,6 +314,40 @@ public static class SaveManager
         IReadOnlySet<int> validScheduleIds,
         IReadOnlySet<int> validItemIds)
     {
+        state.GeneratorActivation ??= new PlaytimeGeneratorActivationState();
+        state.GeneratorActivation.ActivatedAtTotalPlaySecondsByGenerator ??=
+            new Dictionary<int, double>();
+        var enabledSchedulesByGenerator = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+            .GroupBy(schedule => schedule.SteamPlaytimeGeneratorItemDefId)
+            .ToDictionary(group => group.Key, group => group.First());
+        state.GeneratorActivation.ActivatedAtTotalPlaySecondsByGenerator =
+            state.GeneratorActivation.ActivatedAtTotalPlaySecondsByGenerator
+                .Where(pair => enabledSchedulesByGenerator.ContainsKey(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => Math.Max(0.0, pair.Value));
+
+        if (state.GeneratorActivation.PendingActivation is { } activationPending)
+        {
+            activationPending.InventoryQuantitiesBeforeRequest ??= new Dictionary<ulong, uint>();
+            activationPending.SubmittedAtTotalPlaySeconds = Math.Max(
+                0.0,
+                activationPending.SubmittedAtTotalPlaySeconds);
+            if (!enabledSchedulesByGenerator.TryGetValue(
+                    activationPending.GeneratorItemDefId,
+                    out var activationSchedule)
+                || activationSchedule.Id != activationPending.ScheduleId
+                || activationSchedule.BlindBoxId != activationPending.BlindBoxId)
+                state.GeneratorActivation.PendingActivation = null;
+        }
+
+        if (state.GeneratorActivation.DeferredReward is { } deferred
+            && (!validScheduleIds.Contains(deferred.ScheduleId)
+                || !validItemIds.Contains(deferred.ItemId)
+                || deferred.BlindBoxId <= 0
+                || deferred.PlatformInstanceId == 0
+                || deferred.SteamItemDefId <= 0))
+            state.GeneratorActivation.DeferredReward = null;
+
         if (state.PendingPreparation is { } pending)
         {
             pending.InventoryQuantitiesBeforeRequest ??= new Dictionary<ulong, uint>();
@@ -336,6 +370,13 @@ public static class SaveManager
 
         if (state.PendingPreparation != null && state.PreparedReward != null)
             state.PendingPreparation = null;
+        if (state.PendingPreparation != null
+            && state.GeneratorActivation.PendingActivation != null)
+            state.GeneratorActivation.PendingActivation = null;
+        if (state.PreparedReward != null
+            && state.GeneratorActivation.DeferredReward?.PlatformInstanceId
+                == state.PreparedReward.PlatformInstanceId)
+            state.GeneratorActivation.DeferredReward = null;
     }
 
 #if DEBUG

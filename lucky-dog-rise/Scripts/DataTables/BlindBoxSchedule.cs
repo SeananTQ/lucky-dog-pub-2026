@@ -76,7 +76,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// </summary>
     public readonly int SteamDropIntervalSeconds;
     /// <summary>
-    /// Steam 掉落窗口基础秒数；乘等待倍率后转为分钟；0 表示不启用
+    /// Steam 掉落窗口真实秒数；转换器向上取整为分钟；0 表示不启用
     /// </summary>
     public readonly int SteamDropWindowSeconds;
     /// <summary>

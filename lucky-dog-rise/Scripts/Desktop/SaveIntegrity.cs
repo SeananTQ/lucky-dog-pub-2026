@@ -134,8 +134,37 @@ internal static class SaveIntegrity
             PendingPreparation = CanonicalizePreparation(state.PendingPreparation),
             PreparedReward = CanonicalizePreparedReward(state.PreparedReward),
             LockedPresentation = CanonicalizeLockedPresentation(state.LockedPresentation),
+            GeneratorActivation = CanonicalizeGeneratorActivation(state.GeneratorActivation),
         };
     }
+
+    private static PlaytimeGeneratorActivationState? CanonicalizeGeneratorActivation(
+        PlaytimeGeneratorActivationState? state) =>
+        state == null ? null : new PlaytimeGeneratorActivationState
+        {
+            ActivatedAtTotalPlaySecondsByGenerator =
+                (state.ActivatedAtTotalPlaySecondsByGenerator ?? new Dictionary<int, double>())
+                    .OrderBy(pair => pair.Key)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value),
+            PendingActivation = CanonicalizeGeneratorActivationPending(state.PendingActivation),
+            DeferredReward = CanonicalizePreparedReward(state.DeferredReward),
+        };
+
+    private static PendingPlaytimeGeneratorActivation? CanonicalizeGeneratorActivationPending(
+        PendingPlaytimeGeneratorActivation? pending) =>
+        pending == null ? null : new PendingPlaytimeGeneratorActivation
+        {
+            ScheduleId = pending.ScheduleId,
+            BlindBoxId = pending.BlindBoxId,
+            GeneratorItemDefId = pending.GeneratorItemDefId,
+            SubmittedAtTotalPlaySeconds = pending.SubmittedAtTotalPlaySeconds,
+            CallbackCompleted = pending.CallbackCompleted,
+            CallbackSucceeded = pending.CallbackSucceeded,
+            InventoryQuantitiesBeforeRequest =
+                (pending.InventoryQuantitiesBeforeRequest ?? new Dictionary<ulong, uint>())
+                    .OrderBy(pair => pair.Key)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value),
+        };
 
     private static PendingBlindBoxPreparation? CanonicalizePreparation(PendingBlindBoxPreparation? pending) =>
         pending == null ? null : new PendingBlindBoxPreparation

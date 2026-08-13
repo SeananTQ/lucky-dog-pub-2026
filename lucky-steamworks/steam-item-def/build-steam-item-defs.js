@@ -1096,7 +1096,7 @@ function getScheduleDropLimit(schedule, label, errors) {
     return null;
 }
 
-function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, merged) {
+function applyPlaytimeMappings(scheduleRecords, _configRecords, blindBoxRecords, merged) {
     const errors = [];
     const warnings = [];
     const references = [];
@@ -1105,23 +1105,6 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
     const enabledSteamSchedules = scheduleRecords.filter(schedule =>
         schedule.IsEnabled === true && schedule.SteamPlaytimeGeneratorItemDefId > 0);
     if (enabledSteamSchedules.length === 0) {
-        return { checkedReferenceCount: 0, references, errors, warnings };
-    }
-
-    if (configRecords.length !== 1) {
-        errors.push(`GameDevelopConfig：生成 Steam 游玩时间掉落时必须且只能有 1 行配置，实际为 ${configRecords.length} 行。`);
-        return { checkedReferenceCount: 0, references, errors, warnings };
-    }
-    const configuration = configRecords[0];
-    const durationMultiplier = configuration.BlindBoxWaitDurationMultiplier;
-    const leadSeconds = configuration.SteamPlaytimeEligibilityLeadSeconds;
-    if (typeof durationMultiplier !== "number" || !Number.isFinite(durationMultiplier) || durationMultiplier <= 0) {
-        errors.push("GameDevelopConfig：BlindBoxWaitDurationMultiplier 必须是大于 0 的数字。");
-    }
-    if (!Number.isInteger(leadSeconds) || leadSeconds < 0) {
-        errors.push("GameDevelopConfig：SteamPlaytimeEligibilityLeadSeconds 必须是非负整数。");
-    }
-    if (errors.length > 0) {
         return { checkedReferenceCount: 0, references, errors, warnings };
     }
 
@@ -1204,21 +1187,12 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             errors.push(`${label}：SteamDropIntervalSeconds 必须是非负整数。`);
             continue;
         }
-        if (isLoop && steamDropIntervalSeconds <= 0) {
-            errors.push(`${label}：循环 Schedule 必须配置正数 SteamDropIntervalSeconds。`);
-            continue;
-        }
-        if (!isLoop && steamDropIntervalSeconds !== 0) {
-            errors.push(`${label}：非循环 Schedule 的 SteamDropIntervalSeconds 必须为 0。`);
+        if (steamDropIntervalSeconds <= 0) {
+            errors.push(`${label}：配置了 PlaytimeGenerator 时必须配置正数 SteamDropIntervalSeconds。`);
             continue;
         }
 
-        const baseSeconds = isLoop ? steamDropIntervalSeconds : schedule.StartSeconds;
-        const steamEligibilitySeconds = Math.max(
-            0,
-            baseSeconds * durationMultiplier - leadSeconds,
-        );
-        definition.schemaItem.drop_interval = Math.max(1, Math.ceil(steamEligibilitySeconds / 60));
+        definition.schemaItem.drop_interval = Math.max(1, Math.ceil(steamDropIntervalSeconds / 60));
 
         const dropWindowSeconds = schedule.SteamDropWindowSeconds ?? 0;
         const dropMaxPerWindow = schedule.SteamDropMaxPerWindow ?? 0;
@@ -1236,7 +1210,7 @@ function applyPlaytimeMappings(scheduleRecords, configRecords, blindBoxRecords, 
             definition.schemaItem.use_drop_window = true;
             definition.schemaItem.drop_window = Math.max(
                 1,
-                Math.ceil(dropWindowSeconds * durationMultiplier / 60),
+                Math.ceil(dropWindowSeconds / 60),
             );
             definition.schemaItem.drop_max_per_window = dropMaxPerWindow;
         } else {
