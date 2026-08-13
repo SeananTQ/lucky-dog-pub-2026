@@ -355,7 +355,9 @@ public static class SaveManager
             OwnerProvider = StorageContext.Provider,
             OwnerAccountId = StorageContext.AccountId,
             Chips = GameData.StartingChips,
-            LinkTreeRewardLedgerInitialized = true,
+            // A fresh local profile must baseline receipts already present in the first
+            // trusted Steam snapshot without re-granting historical local chip rewards.
+            LinkTreeRewardLedgerInitialized = false,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
         };
 
