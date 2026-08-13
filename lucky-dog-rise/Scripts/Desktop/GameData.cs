@@ -1073,11 +1073,15 @@ public partial class GameData : Node
             return;
 
         var runtimeState = ActiveBlindBoxRuntimeState;
-        if (GetGeneratorActivationState(runtimeState).PendingActivation != null)
+        PromoteDeferredActivationRewardIfCurrent();
+        var activation = GetGeneratorActivationState(runtimeState);
+        if (activation.PendingActivation != null)
         {
             _platformInventoryService.StartInventorySynchronization();
             return;
         }
+        if (activation.DeferredReward != null)
+            return;
 
         var pending = runtimeState.PendingPreparation;
         BlindBoxSchedule schedule = null;
@@ -1270,8 +1274,8 @@ public partial class GameData : Node
             ["totalPlaySeconds"] = TotalPlaySeconds,
         });
         GD.Print(
-            $"[BlindBox] Generator activation Schedule={schedule.Id}, "
-            + $"Generator={schedule.SteamPlaytimeGeneratorItemDefId}: {message}");
+            $"[BlindBox] 预热提交 Schedule={schedule.Id}, "
+            + $"Generator={schedule.SteamPlaytimeGeneratorItemDefId}：{message}");
         return true;
     }
 
@@ -1384,8 +1388,8 @@ public partial class GameData : Node
                 ["result"] = "empty_inventory_confirmed",
             });
             GD.Print(
-                $"[BlindBox] Generator {pending.GeneratorItemDefId} activation confirmed; "
-                + "the first request produced no reward.");
+                $"[BlindBox] 预热确认 Schedule={pending.ScheduleId}, "
+                + $"Generator={pending.GeneratorItemDefId}：库存复查确认无新增奖励，已登记资格起点。");
         }
         else
         {
@@ -1443,8 +1447,9 @@ public partial class GameData : Node
             ["itemId"] = item.Id,
         });
         GD.Print(
-            $"[BlindBox] Generator activation unexpectedly returned a reward for Schedule "
-            + $"{pending.ScheduleId}; the exact instance is withheld until that Schedule.");
+            $"[BlindBox] 预热奖励暂存 Schedule={pending.ScheduleId}, "
+            + $"Generator={pending.GeneratorItemDefId}：Steam 提前返回装扮奖励，"
+            + "已暂存该实例，待该调度展示时揭晓。");
         SaveImmediatelyIfUsingLocalSave();
         EmitSignal(SignalName.BlindBoxStateChanged);
     }
@@ -1892,7 +1897,14 @@ public partial class GameData : Node
         PendingPlaytimeGeneratorActivation pending,
         PlatformPlaytimeDropResult result)
     {
-        GD.Print($"[BlindBox] Generator activation: {result.Message}");
+        var callbackSummary = !result.Succeeded
+            ? $"请求未成功（{result.Message}），等待重连或复查。"
+            : result.ChangedItems.Count > 0
+                ? $"Steam 返回 {result.ChangedItems.Count} 个库存变化，开始确认奖励归属。"
+                : "Steam 返回空结果，开始库存复查。";
+        GD.Print(
+            $"[BlindBox] 预热回执 Schedule={pending.ScheduleId}, "
+            + $"Generator={pending.GeneratorItemDefId}：{callbackSummary}");
         var attribution = CreateActivationAttribution(pending);
         if (result.Succeeded
             && TryResolvePreparedReward(
@@ -1936,6 +1948,10 @@ public partial class GameData : Node
             ActiveBlindBoxRuntimeState,
             scheduleId,
             completedSchedule);
+        // Completing the final newcomer presentation can start the loop stage. Promote an
+        // activation reward synchronously so the platform-write tick cannot submit another
+        // request for the same loop Schedule first.
+        PromoteDeferredActivationRewardIfCurrent();
         if (completedScheduleDefinition != null)
             QueueBlindBoxCompletionReceipt(completedScheduleDefinition, completedSchedule);
         TryApplyObservedPlatformSequenceProgress();

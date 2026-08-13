@@ -193,7 +193,9 @@ public sealed class BlindBoxService
     {
         schedule = null;
         box = null;
-        if (runtimeState.PendingPreparation != null || runtimeState.PreparedReward != null)
+        if (runtimeState.PendingPreparation != null
+            || runtimeState.PreparedReward != null
+            || runtimeState.GeneratorActivation?.DeferredReward != null)
             return false;
 
         var sequence = GetCurrentSequenceSchedule(runtimeState);
@@ -1007,6 +1009,24 @@ public sealed class BlindBoxService
         if (!TryGetPreparationCandidate(before, out var schedule, out _)
             || schedule?.Id != firstSchedule.Id)
             GD.PushError("[BlindBox] Regression check failed: current direct reward candidate is unavailable.");
+
+        var deferredRewardState = new BlindBoxRuntimeState
+        {
+            SequenceIndex = sequenceSchedules.Count,
+            GeneratorActivation = new PlaytimeGeneratorActivationState
+            {
+                DeferredReward = new PreparedBlindBoxReward
+                {
+                    ScheduleId = GetLoopSchedule()?.Id ?? 0,
+                    PlatformInstanceId = 1,
+                },
+            },
+        };
+        if (TryGetPreparationCandidate(deferredRewardState, out _, out _))
+        {
+            GD.PushError(
+                "[BlindBox] Regression check failed: a deferred activation reward must block another preparation request.");
+        }
 
         for (var index = 0; index < sequenceSchedules.Count; index++)
         {
