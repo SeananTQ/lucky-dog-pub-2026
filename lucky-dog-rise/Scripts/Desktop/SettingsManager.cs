@@ -37,6 +37,7 @@ public static class SettingsManager
     private const string KeyVsyncEnabled = "vsync_enabled";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
+    private const string KeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
     private const string KeyLocale = "locale";
@@ -359,6 +360,22 @@ public static class SettingsManager
 
     public static event System.Action<bool> ProactiveInteractionHintsChanged;
 
+    public static bool LoadAvoidObscuringDogEyes()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyAvoidObscuringDogEyes, false);
+    }
+
+    public static void SaveAvoidObscuringDogEyes(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyAvoidObscuringDogEyes, enabled);
+        config.Save(Path);
+        AvoidObscuringDogEyesChanged?.Invoke(enabled);
+    }
+
+    public static event System.Action<bool> AvoidObscuringDogEyesChanged;
+
     public static bool LoadRightClickQuickModeSwitch()
     {
         var config = Load();
@@ -474,6 +491,7 @@ public static class SettingsManager
         ApplyDisplayPerformanceSettings();
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
+        AvoidObscuringDogEyesChanged?.Invoke(false);
     }
 
     private static string GetTutorialStateKey(int tutorialId) => $"tutorial_{tutorialId}";

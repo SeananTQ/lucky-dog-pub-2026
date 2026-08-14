@@ -73,6 +73,7 @@ public partial class GameManager : Node2D
         _hud = GetNode<HUDController>("HUD");
         _cardTable = GetNode<CardTableController>("CardArea");
         _dogVisual = GetNode<DogVisual>("DogArea");
+        _dogVisual.ShowEquippedEyewearByDefault = !SettingsManager.LoadAvoidObscuringDogEyes();
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
         _itemArea = GetNode<ItemAreaController>("ItemArea");
@@ -89,6 +90,7 @@ public partial class GameManager : Node2D
         _itemArea.HintContextChanged += RefreshInteractionHintTargets;
         _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
         SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
+        SettingsManager.AvoidObscuringDogEyesChanged += OnAvoidObscuringDogEyesChanged;
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
         _blindBoxOverlay = BlindBoxRevealOverlayScene.Instantiate<BlindBoxRevealOverlayController>();
@@ -114,6 +116,7 @@ public partial class GameManager : Node2D
     public override void _ExitTree()
     {
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
+        SettingsManager.AvoidObscuringDogEyesChanged -= OnAvoidObscuringDogEyesChanged;
         if (_itemArea != null && _interactionHints != null)
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
@@ -605,5 +608,11 @@ public partial class GameManager : Node2D
     {
         _dogVisual.PlayTemporaryReaction(EDogReactionTrigger.RefuseRefreshment);
         _hud.SetMessage("");
+    }
+
+    private void OnAvoidObscuringDogEyesChanged(bool enabled)
+    {
+        _dogVisual.ShowEquippedEyewearByDefault = !enabled;
+        _dogVisual.RefreshEquippedVisuals();
     }
 }

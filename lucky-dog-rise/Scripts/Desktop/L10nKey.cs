@@ -31,6 +31,7 @@ public static class L10nKey
     public const string Settings_ShowOverFullscreenApps = nameof(Settings_ShowOverFullscreenApps);
     public const string Settings_EnhancedAlwaysOnTop = nameof(Settings_EnhancedAlwaysOnTop);
     public const string Settings_ProactiveInteractionHints = nameof(Settings_ProactiveInteractionHints);
+    public const string Settings_AvoidObscuringDogEyes = nameof(Settings_AvoidObscuringDogEyes);
     public const string Settings_RightClickQuickModeSwitch = nameof(Settings_RightClickQuickModeSwitch);
     public const string Settings_PreventAccidentalDrag = nameof(Settings_PreventAccidentalDrag);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);

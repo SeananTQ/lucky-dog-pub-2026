@@ -369,6 +369,10 @@ public partial class SystemPanelController : CanvasLayer
         proactiveInteractionHintsToggle.ButtonPressed = SettingsManager.LoadProactiveInteractionHints();
         proactiveInteractionHintsToggle.Toggled += enabled => SettingsManager.SaveProactiveInteractionHints(enabled);
 
+        var avoidObscuringDogEyesToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle");
+        avoidObscuringDogEyesToggle.ButtonPressed = SettingsManager.LoadAvoidObscuringDogEyes();
+        avoidObscuringDogEyesToggle.Toggled += enabled => SettingsManager.SaveAvoidObscuringDogEyes(enabled);
+
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
         _autoEquipToggle.Toggled += enabled => SettingsManager.SaveAutoEquipNewOutfits(enabled);
@@ -2192,6 +2196,8 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle")
+            .SetPressedNoSignal(SettingsManager.LoadAvoidObscuringDogEyes());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
