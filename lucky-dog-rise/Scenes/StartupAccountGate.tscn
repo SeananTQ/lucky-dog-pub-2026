@@ -126,7 +126,7 @@ theme_override_constants/separation = 20
 layout_mode = 2
 theme_override_colors/font_color = Color(0.10588235, 0.10588235, 0.11764706, 1)
 theme_override_font_sizes/font_size = 26
-text = "Unable to Verify Steam Account"
+text = "Steam Account Verification Required"
 horizontal_alignment = 1
 
 [node name="LoadingIndicator" parent="Center/Panel/Margin/Content" unique_id=807672326 instance=ExtResource("2_loading")]
@@ -139,7 +139,7 @@ custom_minimum_size = Vector2(720, 128)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.25882354, 0.25882354, 0.28235295, 1)
 theme_override_font_sizes/font_size = 16
-text = "Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\"."
+text = "Steam account verification is required before loading player data.\nStart Steam and sign in, then click \"Retry\". The game may close and relaunch through Steam.\nNo player save has been loaded or modified."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2

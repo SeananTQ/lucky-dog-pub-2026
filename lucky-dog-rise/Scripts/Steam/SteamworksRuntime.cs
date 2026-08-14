@@ -8,6 +8,14 @@ using Steamworks;
 
 namespace LuckyDogRise;
 
+internal enum SteamInitializationFailureKind
+{
+    None,
+    ClientNotRunning,
+    AppIdRejected,
+    Exception,
+}
+
 /// <summary>
 /// Owns the low-level Steamworks.NET lifecycle. Game systems access it through
 /// IGamePlatformService; the smoke scene may use it directly for diagnostics.
@@ -23,6 +31,7 @@ public sealed class SteamworksRuntime : IDisposable
     public string PersonaName { get; private set; } = string.Empty;
     public ulong SteamId { get; private set; }
     public uint RequestedAppId { get; private set; }
+    internal SteamInitializationFailureKind InitializationFailure { get; private set; }
 
     public bool TryInitialize()
     {
@@ -34,17 +43,20 @@ public sealed class SteamworksRuntime : IDisposable
 
         try
         {
+            InitializationFailure = SteamInitializationFailureKind.None;
             SteamNativeLibraryResolver.Install();
             RequestedAppId = ApplyDevelopmentAppId();
 
             if (!SteamAPI.IsSteamRunning())
             {
+                InitializationFailure = SteamInitializationFailureKind.ClientNotRunning;
                 StatusMessage = "Steam 客户端未运行，未执行 SteamAPI.Init()。";
                 return false;
             }
 
             if (!SteamAPI.Init())
             {
+                InitializationFailure = SteamInitializationFailureKind.AppIdRejected;
                 StatusMessage = "SteamAPI.Init() 返回 false。Steam 已运行，但当前 AppID 尚未被客户端接受。";
                 return false;
             }
@@ -58,6 +70,7 @@ public sealed class SteamworksRuntime : IDisposable
         }
         catch (Exception exception)
         {
+            InitializationFailure = SteamInitializationFailureKind.Exception;
             StatusMessage = $"Steamworks 初始化异常：{exception.GetType().Name}: {exception.Message}";
             GD.PushWarning($"[Steamworks] {exception}");
             Shutdown();
@@ -124,6 +137,40 @@ public sealed class SteamworksRuntime : IDisposable
 
         Shutdown();
         _disposed = true;
+    }
+
+    internal static bool TryRequestSteamClientRelaunch(uint appId, out string message)
+    {
+        if (appId == 0)
+        {
+            message = "No Steam AppID is configured for this build.";
+            return false;
+        }
+
+        try
+        {
+            SteamNativeLibraryResolver.Install();
+            if (!SteamAPI.IsSteamRunning())
+            {
+                message = "The Steam client is not running.";
+                return false;
+            }
+
+            if (!SteamAPI.RestartAppIfNecessary(new AppId_t(appId)))
+            {
+                message = "Steam did not request a relaunch for this process.";
+                return false;
+            }
+
+            message = $"Steam is relaunching the game for AppID {appId}.";
+            return true;
+        }
+        catch (Exception exception)
+        {
+            message = $"Steam relaunch failed: {exception.GetType().Name}: {exception.Message}";
+            GD.PushWarning($"[Steamworks] {message}");
+            return false;
+        }
     }
 
     private static uint ApplyDevelopmentAppId()

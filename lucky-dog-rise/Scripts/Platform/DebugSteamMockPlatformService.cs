@@ -124,6 +124,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public PlatformConnectionState ConnectionState => IsMockActive
         ? _connectionState
         : _innerRecoverable?.ConnectionState ?? PlatformConnectionState.Offline;
+    public bool CanRequestClientRelaunch => !IsMockActive
+        && _innerRecoverable?.CanRequestClientRelaunch == true;
     public PlatformInventoryTrustState InventoryTrustState => IsMockActive
         ? _inventoryTrustState
         : _innerRecoverable?.InventoryTrustState ?? PlatformInventoryTrustState.Unknown;
@@ -483,6 +485,15 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         else if (_connectionState != PlatformConnectionState.Ready
                  || _inventoryTrustState != PlatformInventoryTrustState.Trusted)
             AddEvent("业务请求恢复连接；Mock 将遵循当前场景阶段。", publish: true);
+    }
+
+    public bool TryRequestClientRelaunch(out string message)
+    {
+        if (!IsMockActive && _innerRecoverable != null)
+            return _innerRecoverable.TryRequestClientRelaunch(out message);
+
+        message = "Steam Mock does not relaunch the Steam client.";
+        return false;
     }
 
     public void RequireInventoryRevalidation(string reason)

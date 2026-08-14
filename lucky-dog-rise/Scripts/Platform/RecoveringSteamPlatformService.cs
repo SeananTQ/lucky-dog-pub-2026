@@ -20,6 +20,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private bool _inventorySynchronizationRequested;
     private bool _disposed;
     private string _accountId = string.Empty;
+    private SteamInitializationFailureKind _lastInitializationFailure;
 
     public RecoveringSteamPlatformService()
     {
@@ -53,6 +54,10 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public PlatformConnectionState ConnectionState { get; private set; } = PlatformConnectionState.Offline;
     public PlatformInventoryTrustState InventoryTrustState { get; private set; } = PlatformInventoryTrustState.Unknown;
     public string InventoryTrustMessage { get; private set; } = "Steam 库存尚未完成可信同步。";
+    public bool CanRequestClientRelaunch => !_disposed
+        && !HasAccountIdentityConflict
+        && _lastInitializationFailure == SteamInitializationFailureKind.AppIdRejected
+        && BuildInfo.ExpectedSteamAppId > 0;
 
     public void RunCallbacks()
     {
@@ -132,6 +137,19 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         _nextRetryAtSeconds = 0.0;
         TryConnect();
+    }
+
+    public bool TryRequestClientRelaunch(out string message)
+    {
+        if (!CanRequestClientRelaunch)
+        {
+            message = "Steam recovery is no longer available for this process.";
+            return false;
+        }
+
+        return SteamworksRuntime.TryRequestSteamClientRelaunch(
+            BuildInfo.ExpectedSteamAppId,
+            out message);
     }
 
     public void StartInventorySynchronization()
@@ -221,11 +239,14 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         var runtime = new SteamworksRuntime();
         if (!runtime.TryInitialize())
         {
+            _lastInitializationFailure = runtime.InitializationFailure;
             _statusMessage = runtime.StatusMessage;
             runtime.Dispose();
             ScheduleRetry(_statusMessage);
             return;
         }
+
+        _lastInitializationFailure = SteamInitializationFailureKind.None;
 
         var connectedAccountId = runtime.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_accountId.Length > 0 && !string.Equals(_accountId, connectedAccountId, StringComparison.Ordinal))

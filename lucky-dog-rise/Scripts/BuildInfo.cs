@@ -17,6 +17,8 @@ public static class BuildInfo
 {
     private const string PlaytestFeature = "lucky_playtest";
     private const string ReleaseFeature = "lucky_release";
+    public const uint PlaytestSteamAppId = 4972240;
+    public const uint ReleaseSteamAppId = 2583700;
 
     public static BuildChannel Channel
     {
@@ -38,6 +40,12 @@ public static class BuildInfo
 
     public static string BuildCommit { get; } = ReadAssemblyMetadata("BuildCommit", "unknown");
     public static string ValidationError { get; private set; } = string.Empty;
+    public static uint ExpectedSteamAppId => Channel switch
+    {
+        BuildChannel.Playtest => PlaytestSteamAppId,
+        BuildChannel.Release => ReleaseSteamAppId,
+        _ => 0,
+    };
 
     public static string DisplayVersion
     {

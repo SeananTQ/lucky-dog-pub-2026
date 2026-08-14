@@ -33,6 +33,8 @@ public interface IRecoverablePlatformService
     PlatformInventoryTrustState InventoryTrustState { get; }
     string InventoryTrustMessage { get; }
     bool HasAccountIdentityConflict { get; }
+    bool CanRequestClientRelaunch { get; }
     void RequestReconnect();
+    bool TryRequestClientRelaunch(out string message);
     void RequireInventoryRevalidation(string reason);
 }

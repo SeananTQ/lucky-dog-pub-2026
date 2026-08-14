@@ -164,7 +164,7 @@ public partial class SingleInstanceGuard : Node
         _instance.ReleaseOwnership();
     }
 
-    public static bool ReacquireAfterFailedRestart()
+    public static bool ReacquireAfterFailedRestart(bool markInteractive = true)
     {
         if (_instance == null || !OperatingSystem.IsWindows())
             return true;
@@ -172,7 +172,9 @@ public partial class SingleInstanceGuard : Node
         _instance._ownsMutex = _instance.TryAcquireMutex(0);
         if (_instance._ownsMutex)
         {
-            _instance.State = InstanceState.Interactive;
+            _instance.State = markInteractive
+                ? InstanceState.Interactive
+                : InstanceState.Starting;
             _instance.PublishIdentity(
                 _instance._publishedProvider,
                 _instance._publishedAccountId);

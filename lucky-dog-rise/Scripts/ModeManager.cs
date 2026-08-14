@@ -28,6 +28,7 @@ public partial class ModeManager : Control
 
     private const double StartupPlatformWaitSeconds = 10.0;
     private const double BlindBoxLoadingMinimumSeconds = 0.5;
+    private static readonly Vector2I StartupAccountGateWindowSize = new(900, 560);
     public enum Mode { BossKey, Play, Immersive }
     public Mode CurrentMode { get; private set; } = Mode.BossKey;
 
@@ -550,25 +551,86 @@ public partial class ModeManager : Control
         _startupAccountGate.RetryRequested += OnAccountIdentityRetryRequested;
         _startupAccountGate.QuitRequested += QuitBeforeAccountStartup;
         AddChild(_startupAccountGate);
-        var windowSize = new Vector2I(900, 560);
-        DisplayServer.WindowSetSize(windowSize);
-        var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
-        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - windowSize) / 2);
+        SetNativeMainWindowVisible(false);
+        ApplyStartupAccountGateWindowLayout();
         SetClickThrough(false);
-        SetNativeMainWindowVisible(true);
         _startupAccountGate.SetStatus(
-            $"Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\".\n\n{GetStartupPlatformStatusMessage()}",
+            $"Steam account verification is required before loading player data.\nStart Steam and sign in, then click \"Retry\". The game may close and relaunch through Steam.\nNo player save has been loaded or modified.\n\nStatus: {GetStartupPlatformStatusMessage()}",
             retryEnabled: true);
         _startupState = StartupState.AccountIdentityWaiting;
         _startupInitialized = true;
+        RevealStartupAccountGateAfterLayout();
     }
 
     private void OnAccountIdentityRetryRequested()
     {
-        (_platformService as IRecoverablePlatformService)?.RequestReconnect();
         _startupAccountGate?.SetStatus(
-            $"Reconnecting to Steam...\nIf your Steam ID still cannot be retrieved, restart Steam, check your network connection, and try again.\n\n{GetStartupPlatformStatusMessage()}",
+            $"Checking your Steam account...\nIf necessary, the game will close and relaunch through Steam.\nNo player save has been loaded or modified.\n\nStatus: {GetStartupPlatformStatusMessage()}",
             retryEnabled: false);
+
+        if (_platformService is not IRecoverablePlatformService recoverable)
+            return;
+
+        recoverable.RequestReconnect();
+        if (TryResolveAccountStorage(out var storageContext))
+        {
+#if DEBUG
+            if (TryCompleteAccountIdentityProbe(storageContext))
+                return;
+#endif
+            CompleteStartup(_startInSteamMock, storageContext);
+            return;
+        }
+
+        if (recoverable.CanRequestClientRelaunch)
+        {
+            SingleInstanceGuard.ReleaseForRestart();
+            if (recoverable.TryRequestClientRelaunch(out var relaunchMessage))
+            {
+                GD.Print($"[Startup] {relaunchMessage}");
+                DiagnosticLog.Record("startup_steam_client_relaunch_requested", new Dictionary<string, object>
+                {
+                    ["appId"] = BuildInfo.ExpectedSteamAppId,
+                });
+                _startupAccountGate?.SetStatus(
+                    "Steam is relaunching Lucky Dog Rise. This window will close automatically.\nNo player save has been loaded or modified.",
+                    retryEnabled: false);
+                QuitBeforeAccountStartup();
+                return;
+            }
+
+            GD.PushWarning($"[Startup] {relaunchMessage}");
+
+            if (!SingleInstanceGuard.ReacquireAfterFailedRestart(markInteractive: false))
+            {
+                GD.PushError("[Startup] Failed to reacquire the single-instance guard after Steam declined the relaunch request.");
+                QuitBeforeAccountStartup();
+                return;
+            }
+        }
+
+        _startupAccountGate?.SetStatus(
+            $"Steam account verification is still unavailable.\nMake sure Steam is fully running and signed in, then click \"Retry\" again.\nNo player save has been loaded or modified.\n\nStatus: {GetStartupPlatformStatusMessage()}",
+            retryEnabled: true);
+    }
+
+    private void ApplyStartupAccountGateWindowLayout()
+    {
+        DisplayServer.WindowSetSize(StartupAccountGateWindowSize);
+        var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
+        DisplayServer.WindowSetPosition(
+            usable.Position + (usable.Size - StartupAccountGateWindowSize) / 2);
+        _startupAccountGate?.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+    }
+
+    private async void RevealStartupAccountGateAfterLayout()
+    {
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (_startupState != StartupState.AccountIdentityWaiting || _startupAccountGate == null)
+            return;
+
+        ApplyStartupAccountGateWindowLayout();
+        SetNativeMainWindowVisible(true);
     }
 
     private string GetStartupPlatformStatusMessage()
@@ -1087,7 +1149,7 @@ public partial class ModeManager : Control
             }
             else if (_startupAccountGate != null)
                 _startupAccountGate.SetStatus(
-                    $"Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\".\n\n{GetStartupPlatformStatusMessage()}",
+                    $"Steam account verification is required before loading player data.\nStart Steam and sign in, then click \"Retry\". The game may close and relaunch through Steam.\nNo player save has been loaded or modified.\n\nStatus: {GetStartupPlatformStatusMessage()}",
                     retryEnabled: true);
             return;
         }
