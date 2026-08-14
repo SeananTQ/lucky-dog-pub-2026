@@ -364,6 +364,11 @@ ModeManager 持有设置面板实例，负责连接信号：
 ## 构建与发布
 
 - 构建渠道固定为 `Dev / Playtest / Release`。Dev 用于编辑器日常开发；Playtest/Release 使用渠道隔离、加密 PCK、存档 HMAC 和 C# 混淆。
+- Codex 隔离终端构建时，先指定 Godot SDK 的 NuGet 缓存目录：
+  ```powershell
+  $env:NUGET_PACKAGES = "C:\Users\carlo\.nuget\packages"
+  dotnet build .\lucky-dog-rise\LuckyDogRise.csproj --no-restore
+  ```
 - 可外发的 Playtest/Release 包必须使用 `lucky-dog-rise/Build/Build-WindowsPackage.ps1` 生成，不能把 Godot“项目 > 导出”的手工产物发给测试者或玩家。
 - 当前本机 Godot 4.6.3 源码、自定义 Windows .NET Release 模板和密钥位于被忽略的 `.local-build/`；日常 Playtest 打包不重新编译模板。
 - `.local-build/secrets.psd1` 不得提交、打印或发送。换电脑时恢复原密钥；不要随意重新生成，否则旧 HMAC 存档会失效。
