@@ -550,14 +550,14 @@ public partial class ModeManager : Control
         _startupAccountGate.RetryRequested += OnAccountIdentityRetryRequested;
         _startupAccountGate.QuitRequested += QuitBeforeAccountStartup;
         AddChild(_startupAccountGate);
-        var windowSize = new Vector2I(560, 320);
+        var windowSize = new Vector2I(900, 560);
         DisplayServer.WindowSetSize(windowSize);
         var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
         DisplayServer.WindowSetPosition(usable.Position + (usable.Size - windowSize) / 2);
         SetClickThrough(false);
         SetNativeMainWindowVisible(true);
         _startupAccountGate.SetStatus(
-            $"尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。\n\n{_platformService.StatusMessage}",
+            $"Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\".\n\n{GetStartupPlatformStatusMessage()}",
             retryEnabled: true);
         _startupState = StartupState.AccountIdentityWaiting;
         _startupInitialized = true;
@@ -567,8 +567,29 @@ public partial class ModeManager : Control
     {
         (_platformService as IRecoverablePlatformService)?.RequestReconnect();
         _startupAccountGate?.SetStatus(
-            $"正在重新连接 Steam。身份确认前不会读取玩家存档。\n\n{_platformService.StatusMessage}",
+            $"Reconnecting to Steam...\nIf your Steam ID still cannot be retrieved, restart Steam, check your network connection, and try again.\n\n{GetStartupPlatformStatusMessage()}",
             retryEnabled: false);
+    }
+
+    private string GetStartupPlatformStatusMessage()
+    {
+        var status = _platformService?.StatusMessage ?? string.Empty;
+        return status switch
+        {
+            "Steam 尚未连接。" => "Steam is not connected.",
+            "Steam 客户端未运行，未执行 SteamAPI.Init()。" => "The Steam client is not running.",
+            "SteamAPI.Init() 返回 false。Steam 已运行，但当前 AppID 尚未被客户端接受。" =>
+                "SteamAPI.Init() failed. Steam is running, but the current AppID was not accepted by the client.",
+            "Steamworks 初始化成功。" => "Steamworks initialized successfully.",
+            _ when status.StartsWith("Steamworks 初始化异常：", StringComparison.Ordinal) =>
+                $"Steamworks initialization error: {status["Steamworks 初始化异常：".Length..]}",
+            _ when status.StartsWith("Steam 回调异常：", StringComparison.Ordinal) =>
+                $"Steam callback error: {status["Steam 回调异常：".Length..]}",
+            _ when status.StartsWith("Steam 连接已中断", StringComparison.Ordinal) => "The Steam connection was interrupted.",
+            _ when string.IsNullOrWhiteSpace(status) => "No additional status information is available.",
+            _ when status.Contains('：', StringComparison.Ordinal) => "Steam reported a connection error.",
+            _ => status
+        };
     }
 
     private void QuitBeforeAccountStartup()
@@ -1066,7 +1087,7 @@ public partial class ModeManager : Control
             }
             else if (_startupAccountGate != null)
                 _startupAccountGate.SetStatus(
-                    $"尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。\n\n{_platformService.StatusMessage}",
+                    $"Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\".\n\n{GetStartupPlatformStatusMessage()}",
                     retryEnabled: true);
             return;
         }

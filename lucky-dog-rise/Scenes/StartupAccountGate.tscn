@@ -1,9 +1,81 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://c6731mv22h44n"]
 
-[ext_resource type="Script" path="res://Scripts/Desktop/StartupAccountGateController.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://iquf3i2240p8" path="res://Scripts/Desktop/StartupAccountGateController.cs" id="1_script"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="2_loading"]
 
-[node name="StartupAccountGate" type="Control" node_paths=PackedStringArray("_statusLabel", "_retryButton", "_quitButton", "_loadingIndicator")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_panel"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.86, 0.88, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.16)
+shadow_size = 12
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_retry_normal"]
+bg_color = Color(0.00784314, 0.40784314, 0.7529412, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_retry_pressed"]
+bg_color = Color(0, 0.27450982, 0.5254902, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_retry_hover"]
+bg_color = Color(0, 0.3372549, 0.64705884, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_secondary_normal"]
+bg_color = Color(0.92156863, 0.92156863, 0.92941177, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.8, 0.82, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_secondary_pressed"]
+bg_color = Color(0.8, 0.8, 0.82, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.68, 0.68, 0.71, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gate_secondary_hover"]
+bg_color = Color(0.8666667, 0.8666667, 0.88235295, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.74, 0.74, 0.77, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="StartupAccountGate" type="Control" unique_id=442031250 node_paths=PackedStringArray("_statusLabel", "_retryButton", "_quitButton", "_loadingIndicator")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,16 +88,17 @@ _retryButton = NodePath("Center/Panel/Margin/Content/Buttons/Retry")
 _quitButton = NodePath("Center/Panel/Margin/Content/Buttons/Quit")
 _loadingIndicator = NodePath("Center/Panel/Margin/Content/LoadingIndicator")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=307066450]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.025, 0.035, 0.055, 0.98)
+color = Color(0.9490196, 0.9490196, 0.9607843, 1)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="." unique_id=3001222]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,49 +106,68 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(480, 250)
+[node name="Panel" type="PanelContainer" parent="Center" unique_id=1392624105]
+custom_minimum_size = Vector2(800, 460)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gate_panel")
 
-[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="Center/Panel" unique_id=1006611755]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
 
-[node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
+[node name="Content" type="VBoxContainer" parent="Center/Panel/Margin" unique_id=982345403]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content" unique_id=1745519060]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "正在确认 Steam 帐号"
+theme_override_colors/font_color = Color(0.10588235, 0.10588235, 0.11764706, 1)
+theme_override_font_sizes/font_size = 26
+text = "Unable to Verify Steam Account"
 horizontal_alignment = 1
 
-[node name="LoadingIndicator" parent="Center/Panel/Margin/Content" instance=ExtResource("2_loading")]
-custom_minimum_size = Vector2(64, 64)
+[node name="LoadingIndicator" parent="Center/Panel/Margin/Content" unique_id=807672326 instance=ExtResource("2_loading")]
+custom_minimum_size = Vector2(76, 76)
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="Status" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="Status" type="Label" parent="Center/Panel/Margin/Content" unique_id=1203184894]
+custom_minimum_size = Vector2(720, 128)
 layout_mode = 2
-text = "尚未取得稳定的 SteamID。不会加载或写入任何玩家存档。"
+theme_override_colors/font_color = Color(0.25882354, 0.25882354, 0.28235295, 1)
+theme_override_font_sizes/font_size = 16
+text = "Unable to retrieve your Steam ID.\nPlease make sure the Steam client is running and you are signed in, then check your network connection. If Steam is already running, restart it and click \"Retry\"."
 horizontal_alignment = 1
+vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Content" unique_id=966810886]
 layout_mode = 2
+theme_override_constants/separation = 20
 alignment = 1
-theme_override_constants/separation = 12
 
-[node name="Retry" type="Button" parent="Center/Panel/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(120, 38)
+[node name="Retry" type="Button" parent="Center/Panel/Margin/Content/Buttons" unique_id=1673823095]
+custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
-text = "重试"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.55, 0.55, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_gate_retry_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_gate_retry_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_gate_retry_hover")
+text = "Retry"
 
-[node name="Quit" type="Button" parent="Center/Panel/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(120, 38)
+[node name="Quit" type="Button" parent="Center/Panel/Margin/Content/Buttons" unique_id=409821675]
+custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
-text = "退出游戏"
+theme_override_colors/font_color = Color(0.10588235, 0.10588235, 0.11764706, 1)
+theme_override_colors/font_pressed_color = Color(0.10588235, 0.10588235, 0.11764706, 1)
+theme_override_colors/font_hover_color = Color(0.10588235, 0.10588235, 0.11764706, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_gate_secondary_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_gate_secondary_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_gate_secondary_hover")
+text = "Exit Game"
