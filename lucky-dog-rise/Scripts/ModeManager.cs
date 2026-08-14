@@ -18,6 +18,7 @@ public partial class ModeManager : Control
     {
         HiddenBootstrap,
         AccountIdentityWaiting,
+        DeveloperAccountDenied,
         LocalInitializing,
         PlatformWaiting,
         ReadyToReveal,
@@ -303,11 +304,33 @@ public partial class ModeManager : Control
             if (TryCompleteAccountIdentityProbe(storageContext))
                 return;
 #endif
-            CompleteStartup(startInSteamMock, storageContext);
+            AuthorizeDeveloperAccountAndCompleteStartup(startInSteamMock, storageContext);
             return;
         }
 
         ShowAccountIdentityGate();
+    }
+
+    private void AuthorizeDeveloperAccountAndCompleteStartup(
+        bool startInSteamMock,
+        AccountStorageContext storageContext)
+    {
+#if DEBUG
+        if (!startInSteamMock
+            && string.Equals(storageContext.Provider, "steam", StringComparison.Ordinal))
+        {
+            var access = DeveloperSteamAccountAllowlist.Check(storageContext.AccountId);
+            if (!access.Allowed)
+            {
+                ShowDeveloperAccountDenied(storageContext, access);
+                return;
+            }
+
+            GD.Print(
+                $"[DeveloperAccountAllowlist] Authorized SteamID64={storageContext.AccountId}, Note={access.Note}");
+        }
+#endif
+        CompleteStartup(startInSteamMock, storageContext);
     }
 
     private void CompleteStartup(bool startInSteamMock, AccountStorageContext storageContext)
@@ -562,6 +585,52 @@ public partial class ModeManager : Control
         RevealStartupAccountGateAfterLayout();
     }
 
+#if DEBUG
+    private void ShowDeveloperAccountDenied(
+        AccountStorageContext storageContext,
+        DeveloperSteamAccountAccessResult access)
+    {
+        if (_startupAccountGate == null)
+        {
+            _startupAccountGate = GD.Load<PackedScene>("res://Scenes/StartupAccountGate.tscn")
+                .Instantiate<StartupAccountGateController>();
+            _startupAccountGate.Name = "StartupAccountGate";
+            _startupAccountGate.QuitRequested += QuitBeforeAccountStartup;
+            AddChild(_startupAccountGate);
+        }
+
+        SetNativeMainWindowVisible(false);
+        ApplyStartupAccountGateWindowLayout();
+        SetClickThrough(false);
+
+        var persona = string.IsNullOrWhiteSpace(_platformService.PersonaName)
+            ? "Unknown"
+            : _platformService.PersonaName;
+        var message = access.ConfigurationValid
+            ? $"This Steam account is not authorized for editor development builds.\n\n" +
+              $"Persona: {persona}\nSteamID64: {storageContext.AccountId}\n\n" +
+              $"Add the SteamID64 to Build/Developer/steam-account-allowlist.json if this is an approved developer account.\n" +
+              $"No player save has been loaded or modified."
+            : $"The developer Steam account allowlist is invalid.\n\n" +
+              $"{access.ErrorMessage}\n\n" +
+              $"Persona: {persona}\nSteamID64: {storageContext.AccountId}\n\n" +
+              $"No player save has been loaded or modified.";
+
+        GD.PushError($"[DeveloperAccountAllowlist] Access denied. Persona={persona}, SteamID64={storageContext.AccountId}, ConfigurationValid={access.ConfigurationValid}, Error={access.ErrorMessage}");
+        DiagnosticLog.Record("developer_steam_account_access_denied", new Dictionary<string, object>
+        {
+            ["persona"] = persona,
+            ["steamId64"] = storageContext.AccountId,
+            ["configurationValid"] = access.ConfigurationValid,
+            ["configurationError"] = access.ErrorMessage,
+        });
+        _startupAccountGate.SetAccessDenied(message);
+        _startupState = StartupState.DeveloperAccountDenied;
+        _startupInitialized = true;
+        RevealStartupAccountGateAfterLayout();
+    }
+#endif
+
     private void OnAccountIdentityRetryRequested()
     {
         _startupAccountGate?.SetStatus(
@@ -578,7 +647,7 @@ public partial class ModeManager : Control
             if (TryCompleteAccountIdentityProbe(storageContext))
                 return;
 #endif
-            CompleteStartup(_startInSteamMock, storageContext);
+            AuthorizeDeveloperAccountAndCompleteStartup(_startInSteamMock, storageContext);
             return;
         }
 
@@ -1145,7 +1214,7 @@ public partial class ModeManager : Control
                 if (TryCompleteAccountIdentityProbe(storageContext))
                     return;
 #endif
-                CompleteStartup(_startInSteamMock, storageContext);
+                AuthorizeDeveloperAccountAndCompleteStartup(_startInSteamMock, storageContext);
             }
             else if (_startupAccountGate != null)
                 _startupAccountGate.SetStatus(

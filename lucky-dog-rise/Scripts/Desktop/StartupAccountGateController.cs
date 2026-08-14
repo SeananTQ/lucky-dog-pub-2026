@@ -22,7 +22,18 @@ public partial class StartupAccountGateController : Control
     public void SetStatus(string status, bool retryEnabled)
     {
         _statusLabel.Text = status;
+        _retryButton.Visible = true;
         _retryButton.Disabled = !retryEnabled;
+        _loadingIndicator.Visible = true;
         _loadingIndicator.SetLoading(true);
+    }
+
+    public void SetAccessDenied(string status)
+    {
+        _statusLabel.Text = status;
+        _retryButton.Visible = false;
+        _loadingIndicator.SetLoading(false);
+        _loadingIndicator.Visible = false;
+        _quitButton.GrabFocus();
     }
 }

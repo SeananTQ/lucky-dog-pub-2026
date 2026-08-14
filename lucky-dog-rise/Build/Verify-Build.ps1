@@ -29,6 +29,8 @@ $steamworksNative = $files | Where-Object Name -eq 'steam_api64.dll' | Select-Ob
 if (!$steamworksNative) { throw 'steam_api64.dll is missing from the exported build.' }
 $developmentAppId = $files | Where-Object Name -in 'steam_appid.txt', 'steam_appid.dev.txt' | Select-Object -First 1
 if ($developmentAppId) { throw 'Development Steam AppID files must not be included in a Steam Depot build.' }
+$developerAllowlist = $files | Where-Object Name -eq 'steam-account-allowlist.json' | Select-Object -First 1
+if ($developerAllowlist) { throw 'The developer Steam account allowlist must not be included in a Steam Depot build.' }
 $versionInfo = $gameExecutable.VersionInfo
 if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
     ($versionInfo.ProductName -ne 'Lucky Dog Rise') -or
@@ -40,6 +42,11 @@ $bytes = [System.IO.File]::ReadAllBytes($gameAssembly.FullName)
 $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
 foreach ($debugSymbol in 'RandomAcquireItemRequested', 'DebugGrantChipsRequested', 'ResetToDebugAllItems') {
     if ($ascii.Contains($debugSymbol)) { throw "Debug symbol remains in release assembly: $debugSymbol" }
+}
+foreach ($developerAllowlistSymbol in 'DeveloperSteamAccountAllowlist', 'steam-account-allowlist.json') {
+    if ($ascii.Contains($developerAllowlistSymbol)) {
+        throw "Developer Steam account allowlist symbol remains in release assembly: $developerAllowlistSymbol"
+    }
 }
 if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-24T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
@@ -61,6 +68,7 @@ $report = @"
 - C# assembly obfuscated: yes
 - Steamworks.NET runtime present: yes
 - Development Steam AppID file present: no
+- Developer Steam account allowlist present: no
 - Authenticode signed: no
 "@
 [System.IO.File]::WriteAllText((Join-Path $staging 'build-verification.txt'), $report, [System.Text.UTF8Encoding]::new($false))
