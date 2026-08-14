@@ -375,6 +375,21 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="AutoHideCounterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000133]
+layout_mode = 2
+
+[node name="AutoHideCounterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000134]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AutoHideCounter"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="AutoHideCounterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000135]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
 layout_mode = 2
 

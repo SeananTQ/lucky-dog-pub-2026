@@ -50,6 +50,9 @@ public partial class ModeManager : Control
     private float _bossStatusPanelBaseMarginTop;
     private float _bossStatusPanelBaseMarginBottom;
     private bool _bossStatusBarInteractable = true;
+    private bool _bossStatusPanelBaseVisible = true;
+    private bool _bossCounterAutoHidden;
+    private double _bossCounterAutoHideRemainingSeconds;
     private bool _bossRiseIntroSuppressesBlindBoxHint;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
@@ -160,6 +163,7 @@ public partial class ModeManager : Control
     private double _settingsPanelOpenedAtSeconds;
     private const double RecoverTopmostOnNextMousePressSeconds = 5.0;
     private const double SettingsPanelAutoHideOpenGraceSeconds = 0.2;
+    private const double BossCounterAutoHideDelaySeconds = 1.0;
     private const float BossCounterTongueClearance = 2f;
     private const float BossCounterMinimumHeight = 22f;
 
@@ -199,6 +203,7 @@ public partial class ModeManager : Control
 
         _pokerFrameRate = SettingsManager.LoadPokerFrameRate();
         SettingsManager.PokerFrameRateChanged += OnPokerFrameRateChanged;
+        SettingsManager.AutoHideCounterChanged += OnAutoHideCounterChanged;
 
         L10n.ApplySavedOrSystemLocale();
 #if DEBUG
@@ -621,6 +626,7 @@ public partial class ModeManager : Control
         else if (mode == SettingsManager.DisplayMode.Chips)
             _mainText.Text = _gameData.Chips.ToString();
 
+        UpdateBossCounterAutoHide(_);
         bool over = IsScreenPointOverInteractiveContent(DisplayServer.MouseGetPosition());
 
         if (_isClickThrough && over) SetClickThrough(false);
@@ -775,6 +781,7 @@ public partial class ModeManager : Control
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
+        SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
         DisposePlatformService();
     }
 
@@ -1125,8 +1132,7 @@ public partial class ModeManager : Control
         _bossRiseIntroSuppressesBlindBoxHint = false;
         if (_bossDogVisual != null)
             _bossDogVisual.Visible = true;
-        if (_bossStatusPanel != null)
-            _bossStatusPanel.Visible = true;
+        SetBossStatusPanelBaseVisible(true);
         SetBossStatusBarInteractable(true);
         _bossKeyContent.Visible = false;
         // CanvasLayer 不继承 Node2D 的 Visible，需单独隐藏
@@ -1140,6 +1146,7 @@ public partial class ModeManager : Control
         _bossKeyContent.Visible = true;
         _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Visible = true;
         ApplyBossCounterLayout();
+        RefreshBossCounterVisibilityAfterContentShown();
         UpdateBossBlindBoxOverlayPosition();
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
@@ -1168,7 +1175,7 @@ public partial class ModeManager : Control
 
         ConfigureBossRiseIntro();
         _bossDogVisual.Visible = false;
-        _bossStatusPanel.Visible = false;
+        SetBossStatusPanelBaseVisible(false);
         SetBossStatusBarInteractable(false);
         _bossRiseIntroSuppressesBlindBoxHint = true;
         RefreshBossBlindBoxHint();
@@ -1180,7 +1187,7 @@ public partial class ModeManager : Control
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
             return;
 
-        _bossStatusPanel.Visible = true;
+        SetBossStatusPanelBaseVisible(true);
         SetBossStatusBarInteractable(false);
     }
 
@@ -1193,8 +1200,9 @@ public partial class ModeManager : Control
             return;
 
         _bossDogVisual.Visible = true;
-        _bossStatusPanel.Visible = true;
+        SetBossStatusPanelBaseVisible(true);
         SetBossStatusBarInteractable(true);
+        RefreshBossCounterVisibilityAfterContentShown();
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
     }
@@ -1209,6 +1217,88 @@ public partial class ModeManager : Control
         _bossSystemButton.Disabled = false;
         _bossModeButton.MouseFilter = Control.MouseFilterEnum.Stop;
         _bossSystemButton.MouseFilter = Control.MouseFilterEnum.Stop;
+    }
+
+    private void SetBossStatusPanelBaseVisible(bool visible)
+    {
+        _bossStatusPanelBaseVisible = visible;
+        ApplyBossStatusPanelVisibility();
+    }
+
+    private void ApplyBossStatusPanelVisibility()
+    {
+        if (_bossStatusPanel == null)
+            return;
+
+        _bossStatusPanel.Visible = _bossStatusPanelBaseVisible && !_bossCounterAutoHidden;
+    }
+
+    private void OnAutoHideCounterChanged(bool enabled)
+    {
+        _bossCounterAutoHideRemainingSeconds = 0.0;
+        _bossCounterAutoHidden = enabled
+            && !IsMouseOverBossCounterAutoHideRegion(DisplayServer.MouseGetPosition());
+        ApplyBossStatusPanelVisibility();
+    }
+
+    private void RefreshBossCounterVisibilityAfterContentShown()
+    {
+        if (!SettingsManager.LoadAutoHideCounter())
+        {
+            _bossCounterAutoHidden = false;
+            _bossCounterAutoHideRemainingSeconds = 0.0;
+            ApplyBossStatusPanelVisibility();
+            return;
+        }
+
+        _bossCounterAutoHidden = !IsMouseOverBossCounterAutoHideRegion(DisplayServer.MouseGetPosition());
+        _bossCounterAutoHideRemainingSeconds = _bossCounterAutoHidden
+            ? 0.0
+            : BossCounterAutoHideDelaySeconds;
+        ApplyBossStatusPanelVisibility();
+    }
+
+    private void UpdateBossCounterAutoHide(double delta)
+    {
+        if (_bossStatusPanel == null
+            || CurrentMode != Mode.BossKey
+            || _hiddenByFullscreenApp
+            || _startupState != StartupState.Interactive
+            || !_bossStatusPanelBaseVisible
+            || !SettingsManager.LoadAutoHideCounter())
+            return;
+
+        if (IsMouseOverBossCounterAutoHideRegion(DisplayServer.MouseGetPosition()))
+        {
+            _bossCounterAutoHideRemainingSeconds = BossCounterAutoHideDelaySeconds;
+            if (_bossCounterAutoHidden)
+            {
+                _bossCounterAutoHidden = false;
+                ApplyBossStatusPanelVisibility();
+            }
+            return;
+        }
+
+        if (_bossCounterAutoHidden)
+            return;
+
+        _bossCounterAutoHideRemainingSeconds -= delta;
+        if (_bossCounterAutoHideRemainingSeconds > 0.0)
+            return;
+
+        _bossCounterAutoHideRemainingSeconds = 0.0;
+        _bossCounterAutoHidden = true;
+        ApplyBossStatusPanelVisibility();
+    }
+
+    private bool IsMouseOverBossCounterAutoHideRegion(Vector2I screenPosition)
+    {
+        if (_bossStatusPanel == null)
+            return false;
+
+        var localPos = screenPosition - DisplayServer.WindowGetPosition();
+        return _dogHitRect.HasPoint(localPos)
+            || GetBossStatusPanelRect().HasPoint(localPos);
     }
 
     private void ApplyBossCounterLayout()
@@ -1755,6 +1845,7 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey)
         {
             over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            // Keep the counter geometry as a hover target even when the panel is hidden by auto-hide.
             over |= GetBossStatusPanelRect().HasPoint(localPos);
             if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
                 over |= GetBossBlindBoxHintRect().HasPoint(localPos);

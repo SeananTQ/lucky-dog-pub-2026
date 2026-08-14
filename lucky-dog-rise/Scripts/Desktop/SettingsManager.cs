@@ -36,6 +36,7 @@ public static class SettingsManager
     private const string LegacyKeyFrameRateLimit = "frame_rate_limit";
     private const string KeyVsyncEnabled = "vsync_enabled";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
+    private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
@@ -343,6 +344,22 @@ public static class SettingsManager
         return (bool)config.GetValue(SectionDisplay, KeyCenterCounterOnTaskbar, true);
     }
 
+    public static bool LoadAutoHideCounter()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyAutoHideCounter, false);
+    }
+
+    public static void SaveAutoHideCounter(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyAutoHideCounter, enabled);
+        config.Save(Path);
+        AutoHideCounterChanged?.Invoke(enabled);
+    }
+
+    public static event System.Action<bool> AutoHideCounterChanged;
+
     // === 扑克 ===
     public static bool LoadProactiveInteractionHints()
     {
@@ -492,6 +509,7 @@ public static class SettingsManager
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
         AvoidObscuringDogEyesChanged?.Invoke(false);
+        AutoHideCounterChanged?.Invoke(false);
     }
 
     private static string GetTutorialStateKey(int tutorialId) => $"tutorial_{tutorialId}";

@@ -398,6 +398,10 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.CounterLayoutChanged);
         };
 
+        var autoHideCounterToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow/AutoHideCounterToggle");
+        autoHideCounterToggle.ButtonPressed = SettingsManager.LoadAutoHideCounter();
+        autoHideCounterToggle.Toggled += enabled => SettingsManager.SaveAutoHideCounter(enabled);
+
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => EmitSignal(SignalName.QuitRequested);
         restartBtn.Pressed += RestartGame;
@@ -2205,6 +2209,8 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadStreamerSafeMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow/CounterCenterToggle")
             .SetPressedNoSignal(SettingsManager.LoadCenterCounterOnTaskbar());
+        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow/AutoHideCounterToggle")
+            .SetPressedNoSignal(SettingsManager.LoadAutoHideCounter());
         BuildPokerFrameRateOptions();
         _vsyncToggle.SetPressedNoSignal(SettingsManager.LoadVsyncEnabled());
 
