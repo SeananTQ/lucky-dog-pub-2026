@@ -195,6 +195,9 @@ internal static class SaveIntegrity
             SteamItemDefId = reward.SteamItemDefId,
             ItemId = reward.ItemId,
             IsLate = reward.IsLate,
+            ConfirmedAtTotalPlaySeconds = reward.ConfirmedAtTotalPlaySeconds,
+            FirstMissingAtTotalPlaySeconds = reward.FirstMissingAtTotalPlaySeconds,
+            ConsecutiveMissingInventorySnapshots = reward.ConsecutiveMissingInventorySnapshots,
         };
 
     private static LockedBlindBoxPresentation? CanonicalizeLockedPresentation(LockedBlindBoxPresentation? value) =>

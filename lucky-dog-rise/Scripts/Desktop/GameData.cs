@@ -1461,6 +1461,7 @@ public partial class GameData : Node
             SteamItemDefId = reward.ItemDefId,
             ItemId = item.Id,
             IsLate = false,
+            ConfirmedAtTotalPlaySeconds = TotalPlaySeconds,
         };
         activation.PendingActivation = null;
         DiagnosticLog.Record("playtime_generator_activation_reward_deferred", new Dictionary<string, object>
@@ -1544,7 +1545,27 @@ public partial class GameData : Node
             && item.ItemDefId == prepared.SteamItemDefId
             && item.Quantity > 0);
         if (stillExists)
+        {
+            if (prepared.MarkPresent())
+                SaveImmediatelyIfUsingLocalSave();
             return;
+        }
+
+        if (!prepared.MarkMissingAndShouldDiscard(TotalPlaySeconds))
+        {
+            DiagnosticLog.Record("blindbox_prepared_reward_missing_deferred", new Dictionary<string, object>
+            {
+                ["scheduleId"] = prepared.ScheduleId,
+                ["blindBoxId"] = prepared.BlindBoxId,
+                ["platformInstanceId"] = prepared.PlatformInstanceId,
+                ["steamItemDefId"] = prepared.SteamItemDefId,
+                ["missingSnapshotCount"] = prepared.ConsecutiveMissingInventorySnapshots,
+                ["firstMissingAtTotalPlaySeconds"] = prepared.FirstMissingAtTotalPlaySeconds ?? TotalPlaySeconds,
+                ["graceSeconds"] = PreparedBlindBoxReward.InventoryVisibilityGraceSeconds,
+            });
+            SaveImmediatelyIfUsingLocalSave();
+            return;
+        }
 
         DiagnosticLog.Record("blindbox_prepared_reward_missing", new Dictionary<string, object>
         {
@@ -1572,7 +1593,27 @@ public partial class GameData : Node
             && item.ItemDefId == deferred.SteamItemDefId
             && item.Quantity > 0);
         if (stillExists)
+        {
+            if (deferred.MarkPresent())
+                SaveImmediatelyIfUsingLocalSave();
             return;
+        }
+
+        if (!deferred.MarkMissingAndShouldDiscard(TotalPlaySeconds))
+        {
+            DiagnosticLog.Record("playtime_generator_activation_reward_missing_deferred", new Dictionary<string, object>
+            {
+                ["scheduleId"] = deferred.ScheduleId,
+                ["blindBoxId"] = deferred.BlindBoxId,
+                ["platformInstanceId"] = deferred.PlatformInstanceId,
+                ["steamItemDefId"] = deferred.SteamItemDefId,
+                ["missingSnapshotCount"] = deferred.ConsecutiveMissingInventorySnapshots,
+                ["firstMissingAtTotalPlaySeconds"] = deferred.FirstMissingAtTotalPlaySeconds ?? TotalPlaySeconds,
+                ["graceSeconds"] = PreparedBlindBoxReward.InventoryVisibilityGraceSeconds,
+            });
+            SaveImmediatelyIfUsingLocalSave();
+            return;
+        }
 
         DiagnosticLog.Record("playtime_generator_activation_reward_missing", new Dictionary<string, object>
         {
@@ -1695,6 +1736,7 @@ public partial class GameData : Node
             SteamItemDefId = reward.ItemDefId,
             ItemId = item.Id,
             IsLate = pending.IsLate,
+            ConfirmedAtTotalPlaySeconds = TotalPlaySeconds,
         };
         runtimeState.PendingPreparation = null;
 #if DEBUG

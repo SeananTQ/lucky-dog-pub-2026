@@ -48,12 +48,48 @@ public sealed class PendingBlindBoxPreparation
 
 public sealed class PreparedBlindBoxReward
 {
+    public const double InventoryVisibilityGraceSeconds = 30.0;
+    public const int MinimumMissingInventorySnapshots = 2;
+
     public int ScheduleId { get; set; }
     public int BlindBoxId { get; set; }
     public ulong PlatformInstanceId { get; set; }
     public int SteamItemDefId { get; set; }
     public int ItemId { get; set; }
     public bool IsLate { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ConfirmedAtTotalPlaySeconds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? FirstMissingAtTotalPlaySeconds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int ConsecutiveMissingInventorySnapshots { get; set; }
+
+    public void MarkConfirmed(double totalPlaySeconds)
+    {
+        ConfirmedAtTotalPlaySeconds ??= totalPlaySeconds;
+        MarkPresent();
+    }
+
+    public bool MarkMissingAndShouldDiscard(double totalPlaySeconds)
+    {
+        ConfirmedAtTotalPlaySeconds ??= totalPlaySeconds;
+        FirstMissingAtTotalPlaySeconds ??= totalPlaySeconds;
+        ConsecutiveMissingInventorySnapshots++;
+        return ConsecutiveMissingInventorySnapshots >= MinimumMissingInventorySnapshots
+               && totalPlaySeconds - FirstMissingAtTotalPlaySeconds.Value
+               >= InventoryVisibilityGraceSeconds;
+    }
+
+    public bool MarkPresent()
+    {
+        if (FirstMissingAtTotalPlaySeconds == null
+            && ConsecutiveMissingInventorySnapshots == 0)
+            return false;
+
+        FirstMissingAtTotalPlaySeconds = null;
+        ConsecutiveMissingInventorySnapshots = 0;
+        return true;
+    }
 }
 
 public sealed class PendingPlaytimeGeneratorActivation
