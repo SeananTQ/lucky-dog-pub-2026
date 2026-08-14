@@ -1144,10 +1144,9 @@ public partial class GameData : Node
                 return;
             }
 
-            // A Fallback advances the visible schedule, but it must not abandon the Steam
-            // request that was already submitted for that presentation. Keep retrying the
-            // original Generator until Steam either confirms its reward (which then becomes
-            // a late reward) or the persisted transaction is explicitly reset.
+            // A Fallback consumes one presentation point without completing the newcomer
+            // Schedule. Keep retrying the original Generator; a confirmed late reward stays
+            // prepared until the next normal presentation point for this same Schedule.
             isRetry = true;
         }
         else

@@ -12,6 +12,7 @@ public partial class ModeManager : Control
 #if DEBUG
     private const string AccountIdentityProbeArgument = "--account-identity-probe";
     private const string SingleInstanceSmokeArgument = "--single-instance-smoke";
+    private const string BlindBoxRegressionSmokeArgument = "--blindbox-regression-smoke";
 #endif
     private enum StartupState
     {
@@ -201,6 +202,22 @@ public partial class ModeManager : Control
 
         L10n.ApplySavedOrSystemLocale();
 #if DEBUG
+        if (OS.GetCmdlineUserArgs().Any(argument =>
+                string.Equals(argument, BlindBoxRegressionSmokeArgument, StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                BlindBoxRegressionSmoke.Run();
+                GetTree().Quit();
+            }
+            catch (Exception exception)
+            {
+                GD.PushError($"[BlindBoxRegressionSmoke] Failed: {exception}");
+                GetTree().Quit(1);
+            }
+            return;
+        }
+
         var forceLauncher = OS.GetCmdlineUserArgs().Any(argument =>
             string.Equals(argument, "--dev-launcher", StringComparison.OrdinalIgnoreCase));
         var automatedSmoke = OS.GetCmdlineUserArgs().Any(argument =>

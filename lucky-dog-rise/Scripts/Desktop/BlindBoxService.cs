@@ -752,7 +752,11 @@ public sealed class BlindBoxService
         BlindBoxRuntimeState runtimeState,
         BlindBoxSchedule schedule)
     {
-        if (runtimeState.SequenceIndex == 0)
+        // The first presentation uses the absolute onboarding start time. Once the player
+        // has claimed a Fallback, that same Steam Schedule remains current, but its next
+        // presentation must wait a full interval from the claim instead of becoming ready
+        // again immediately.
+        if (runtimeState.SequenceIndex == 0 && runtimeState.LastClaimSeconds <= 0.0)
             return Math.Max(schedule.StartSeconds, Math.Max(0, schedule.IntervalSeconds));
 
         return runtimeState.LastClaimSeconds + Math.Max(0, schedule.IntervalSeconds);

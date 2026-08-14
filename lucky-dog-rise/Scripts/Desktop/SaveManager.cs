@@ -329,6 +329,10 @@ public static class SaveManager
 
     private static void SaveInternal(SaveProfile profile, bool backupExisting)
     {
+        // Normalize and sign a detached persistence snapshot. SaveProfile contains mutable
+        // runtime objects owned by GameData; mutating those objects while preparing JSON can
+        // otherwise change live gameplay state (for example, clearing a locked presentation).
+        profile = CreateDetachedSnapshot(profile);
         EnsureSaveDir();
         var existing = TryLoadExistingWithoutRecovery();
         profile.Version = CurrentVersion;
@@ -346,6 +350,19 @@ public static class SaveManager
         var json = JsonSerializer.Serialize(profile, JsonOptions);
         WriteProfileAtomically(json, backupExisting);
     }
+
+    private static SaveProfile CreateDetachedSnapshot(SaveProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        var json = JsonSerializer.Serialize(profile, JsonOptions);
+        return JsonSerializer.Deserialize<SaveProfile>(json, JsonOptions)
+            ?? throw new InvalidOperationException("Failed to create a detached save snapshot.");
+    }
+
+#if DEBUG
+    internal static SaveProfile CreateNormalizedDetachedSnapshotForTesting(SaveProfile profile) =>
+        Normalize(CreateDetachedSnapshot(profile));
+#endif
 
     public static SaveProfile CreateDefaultProfile()
     {
@@ -551,7 +568,6 @@ public static class SaveManager
             profile.BlindBoxRuntimeState.LoopStageStarted = false;
             profile.BlindBoxRuntimeState.NextLoopPresentationSeconds = 0.0;
             profile.BlindBoxRuntimeState.NextLoopTriggerSeconds = 0.0;
-            profile.BlindBoxRuntimeState.LockedPresentation = null;
         }
 
         if (profile.BlindBoxRuntimeState.LockedPresentation is { } locked
