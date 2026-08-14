@@ -18,7 +18,6 @@ public partial class ModeManager : Control
     {
         HiddenBootstrap,
         AccountIdentityWaiting,
-        DeveloperAccountDenied,
         LocalInitializing,
         PlatformWaiting,
         ReadyToReveal,
@@ -590,33 +589,20 @@ public partial class ModeManager : Control
         AccountStorageContext storageContext,
         DeveloperSteamAccountAccessResult access)
     {
-        if (_startupAccountGate == null)
-        {
-            _startupAccountGate = GD.Load<PackedScene>("res://Scenes/StartupAccountGate.tscn")
-                .Instantiate<StartupAccountGateController>();
-            _startupAccountGate.Name = "StartupAccountGate";
-            _startupAccountGate.QuitRequested += QuitBeforeAccountStartup;
-            AddChild(_startupAccountGate);
-        }
-
-        SetNativeMainWindowVisible(false);
-        ApplyStartupAccountGateWindowLayout();
-        SetClickThrough(false);
-
         var persona = string.IsNullOrWhiteSpace(_platformService.PersonaName)
             ? "Unknown"
             : _platformService.PersonaName;
         var message = access.ConfigurationValid
-            ? $"This Steam account is not authorized for editor development builds.\n\n" +
-              $"Persona: {persona}\nSteamID64: {storageContext.AccountId}\n\n" +
-              $"Add the SteamID64 to Build/Developer/steam-account-allowlist.json if this is an approved developer account.\n" +
-              $"No player save has been loaded or modified."
-            : $"The developer Steam account allowlist is invalid.\n\n" +
+            ? $"当前 Steam 帐号未获准用于编辑器开发版本。\n\n" +
+              $"帐号昵称：{persona}\nSteamID64：{storageContext.AccountId}\n\n" +
+              $"如果这是获准的开发帐号，请将该 SteamID64 添加到 Build/Developer/steam-account-allowlist.json。\n" +
+              $"本次启动未读取或修改玩家存档。"
+            : $"开发用 Steam 帐号白名单配置无效。\n\n" +
               $"{access.ErrorMessage}\n\n" +
-              $"Persona: {persona}\nSteamID64: {storageContext.AccountId}\n\n" +
-              $"No player save has been loaded or modified.";
+              $"帐号昵称：{persona}\nSteamID64：{storageContext.AccountId}\n\n" +
+              $"本次启动未读取或修改玩家存档。";
 
-        GD.PushError($"[DeveloperAccountAllowlist] Access denied. Persona={persona}, SteamID64={storageContext.AccountId}, ConfigurationValid={access.ConfigurationValid}, Error={access.ErrorMessage}");
+        GD.PushWarning($"[DeveloperAccountAllowlist] Access denied. Persona={persona}, SteamID64={storageContext.AccountId}, ConfigurationValid={access.ConfigurationValid}, Error={access.ErrorMessage}");
         DiagnosticLog.Record("developer_steam_account_access_denied", new Dictionary<string, object>
         {
             ["persona"] = persona,
@@ -624,10 +610,12 @@ public partial class ModeManager : Control
             ["configurationValid"] = access.ConfigurationValid,
             ["configurationError"] = access.ErrorMessage,
         });
-        _startupAccountGate.SetAccessDenied(message);
-        _startupState = StartupState.DeveloperAccountDenied;
-        _startupInitialized = true;
-        RevealStartupAccountGateAfterLayout();
+        OS.Alert(
+            message,
+            access.ConfigurationValid
+                ? "Steam 帐号未获准"
+                : "Steam 帐号白名单配置错误");
+        QuitBeforeAccountStartup();
     }
 #endif
 
