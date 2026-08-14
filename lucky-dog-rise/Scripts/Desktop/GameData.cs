@@ -2146,6 +2146,10 @@ public partial class GameData : Node
     {
         if (_refreshmentRuntimeState.Status == TableRefreshmentStatus.BuffActive)
         {
+            // The click still acknowledges the item even when selecting it is
+            // refused while another refreshment buff is active.
+            Inventory.ClearNew(itemId);
+            QueueSaveIfUsingLocalSave();
             EmitSignal(SignalName.RefreshmentSelectionRefused);
             return false;
         }
