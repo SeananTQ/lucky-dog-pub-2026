@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -19,6 +17,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _searchText = string.Empty;
     private string _statusText = "尚未加载数据";
     private ImageSource? _randomResultIcon;
+    private ItemRow? _randomResultItem;
     private string _randomResultText = "点击“随机一次”体验当前奖池。";
     private bool _isDirty;
 
@@ -27,8 +26,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ItemsView = CollectionViewSource.GetDefaultView(Items);
         ItemsView.Filter = FilterItem;
 
-        RarityOptions = Enum.GetValues<ERarity>()
-            .Select(value => new EnumChoice<ERarity>(value, GetRarityLabel(value)))
+        RarityOptions = new[] { (ERarity)0 }
+            .Concat(Enum.GetValues<ERarity>())
+            .Distinct()
+            .Select(value => new EnumChoice<ERarity>(value, GetRarityLabel(value))
+            {
+                Background = GetRarityColor(value),
+                Foreground = GetRarityForeground(value),
+            })
             .ToList();
         AcquisitionOptions = Enum.GetValues<EAcquisitionType>()
             .Select(value => new EnumChoice<EAcquisitionType>(value, GetAcquisitionLabel(value)))
@@ -101,6 +106,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _randomResultIcon, value);
     }
 
+    public ItemRow? RandomResultItem
+    {
+        get => _randomResultItem;
+        private set => SetField(ref _randomResultItem, value);
+    }
+
     public string RandomResultText
     {
         get => _randomResultText;
@@ -145,36 +156,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StatusText = $"已保存 tbItem.json；可使用 Git 查看差异。";
     }
 
-    public string GetGitDiff()
-    {
-        if (_store is null)
-            return string.Empty;
-
-        var relativePath = Path.GetRelativePath(_store.ProjectRoot, _store.ItemPath);
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "git",
-            WorkingDirectory = _store.ProjectRoot,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        startInfo.ArgumentList.Add("diff");
-        startInfo.ArgumentList.Add("--");
-        startInfo.ArgumentList.Add(relativePath);
-
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("无法启动 git。");
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return string.IsNullOrWhiteSpace(error) ? output : output + Environment.NewLine + error;
-    }
-
     public void RollRandom()
     {
         if (_store is null || SelectedBlindBox is null)
         {
+            RandomResultItem = null;
             RandomResultText = "请先加载并选择盲盒。";
             return;
         }
@@ -185,6 +171,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var rarity = PickWeighted(rates, rate => rate.Weight)?.Rarity;
         if (rarity is null)
         {
+            RandomResultItem = null;
             RandomResultIcon = null;
             RandomResultText = "当前盲盒没有可用的稀有度概率。";
             return;
@@ -199,11 +186,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var item = PickWeighted(candidates, candidate => candidate.CurrentWeight);
         if (item is null)
         {
+            RandomResultItem = null;
             RandomResultIcon = null;
             RandomResultText = $"抽中了 {GetRarityLabel(rarity.Value)}，但该稀有度没有可用物品。";
             return;
         }
 
+        RandomResultItem = item;
         RandomResultIcon = item.Icon;
         RandomResultText = $"{item.Name}（ID {item.Id}）\n{GetRarityLabel(item.Rarity)} · 权重 {item.CurrentWeight:N0}";
     }
@@ -250,8 +239,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             var isCandidate = candidates.Contains(item);
             var within = isCandidate && totalItemWeight > 0 ? item.CurrentWeight / (double)totalItemWeight : 0;
             var expected = rarityProbability * within;
-            var status = !rarityProbabilities.ContainsKey(item.Rarity)
-                ? "无稀有度概率"
+            var status = (int)item.Rarity == 0
+                ? "稀有度为 0"
+                : !rarityProbabilities.ContainsKey(item.Rarity)
+                    ? "无稀有度概率"
                 : isCandidate
                     ? candidates.Any(candidate => candidate.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType)
                         ? "正式候选"
@@ -289,6 +280,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private static string GetRarityLabel(ERarity rarity) => rarity switch
     {
+        (ERarity)0 => "无稀有度（0）",
         ERarity.Common => "普通",
         ERarity.Uncommon => "优秀",
         ERarity.Rare => "稀有",
@@ -298,6 +290,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ERarity.Special1 => "特殊 1",
         ERarity.Special2 => "特殊 2",
         _ => rarity.ToString(),
+    };
+
+    private static string GetRarityColor(ERarity rarity) => rarity switch
+    {
+        (ERarity)0 => "#9CA3AF",
+        ERarity.Common => "#D7D7D7",
+        ERarity.Uncommon => "#8ED9AE",
+        ERarity.Rare => "#78B8FF",
+        ERarity.Epic => "#B28CFF",
+        ERarity.Legendary => "#FFC15C",
+        ERarity.Mythic => "#C85D64",
+        ERarity.Special1 => "#F28C8C",
+        ERarity.Special2 => "#9CA9B6",
+        _ => "#FFFFFF",
+    };
+
+    private static string GetRarityForeground(ERarity rarity) => rarity switch
+    {
+        (ERarity)0 or ERarity.Common or ERarity.Uncommon => "#222222",
+        _ => "#FFFFFF",
     };
 
     private static string GetAcquisitionLabel(EAcquisitionType type) => type switch

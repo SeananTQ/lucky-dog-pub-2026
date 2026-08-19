@@ -34,7 +34,6 @@
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
         <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="ReloadButton_Click">重新加载</Button>
         <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="SaveButton_Click">保存 JSON</Button>
-        <Button Width="100" Margin="6,0,0,0" Padding="8,5" Click="DiffButton_Click">查看 Git Diff</Button>
       </StackPanel>
     </DockPanel>
 
@@ -72,7 +71,11 @@
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <Border Width="48" Height="48" Background="#F2F2F2" CornerRadius="4">
-                  <Image Source="{Binding Icon}" Width="44" Height="44" Stretch="Uniform" />
+                  <Grid Width="48" Height="48">
+                    <Image Source="{Binding RarityPlate}" Width="48" Height="48" Stretch="Uniform" />
+                    <Image Source="{Binding Icon}" Width="42" Height="42" Stretch="Uniform" />
+                    <Image Source="{Binding RarityFrame}" Width="48" Height="48" Stretch="Uniform" />
+                  </Grid>
                 </Border>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
@@ -84,7 +87,15 @@
               <DataTemplate>
                 <ComboBox ItemsSource="{Binding DataContext.RarityOptions, RelativeSource={RelativeSource AncestorType=Window}}"
                           DisplayMemberPath="Label" SelectedValuePath="Value"
-                          SelectedValue="{Binding Rarity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                          SelectedValue="{Binding Rarity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <Border Background="{Binding Background}" Padding="5,2" CornerRadius="3">
+                        <TextBlock Text="{Binding Label}" Foreground="{Binding Foreground}" />
+                      </Border>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
@@ -97,11 +108,42 @@
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
-          <DataGridTextColumn Header="当前权重" Binding="{Binding CurrentWeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100" />
+          <DataGridTextColumn Header="当前权重" Binding="{Binding CurrentWeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="105">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+            <DataGridTextColumn.EditingElementStyle>
+              <Style TargetType="TextBox">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+              </Style>
+            </DataGridTextColumn.EditingElementStyle>
+          </DataGridTextColumn>
           <DataGridTextColumn Header="稀有度概率" Binding="{Binding RarityProbability, StringFormat={}{0:P2}}" Width="105" IsReadOnly="True" />
           <DataGridTextColumn Header="同稀有度" Binding="{Binding WithinRarityProbability, StringFormat={}{0:P2}}" Width="105" IsReadOnly="True" />
-          <DataGridTextColumn Header="预期概率" Binding="{Binding ExpectedProbability, StringFormat={}{0:P2}}" Width="100" IsReadOnly="True" />
-          <DataGridTextColumn Header="候选状态" Binding="{Binding CandidateStatus}" Width="110" IsReadOnly="True" />
+          <DataGridTextColumn Header="预期概率" Binding="{Binding ExpectedProbability, StringFormat={}{0:P2}}" Width="100" IsReadOnly="True">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTemplateColumn Header="候选状态" Width="120" IsReadOnly="True">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Border Background="{Binding CandidateStatusBackground}" CornerRadius="3" Padding="5,2">
+                  <TextBlock Text="{Binding CandidateStatus}" Foreground="{Binding CandidateStatusForeground}" />
+                </Border>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
         </DataGrid.Columns>
       </DataGrid>
 
@@ -110,7 +152,11 @@
           <Border Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="6">
             <StackPanel>
               <TextBlock FontSize="16" FontWeight="SemiBold">选中物品</TextBlock>
-              <Image Source="{Binding SelectedItem.Icon}" Width="150" Height="150" Margin="0,12" Stretch="Uniform" />
+              <Grid Width="150" Height="150" Margin="0,12">
+                <Image Source="{Binding SelectedItem.RarityPlate}" Width="150" Height="150" Stretch="Uniform" />
+                <Image Source="{Binding SelectedItem.Icon}" Width="132" Height="132" Stretch="Uniform" />
+                <Image Source="{Binding SelectedItem.RarityFrame}" Width="150" Height="150" Stretch="Uniform" />
+              </Grid>
               <TextBlock Text="{Binding SelectedItem.Name}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
               <TextBlock Margin="0,5,0,0" Style="{StaticResource MutedText}"
                          Text="{Binding SelectedItem.IconPath}" TextWrapping="Wrap" />
@@ -118,14 +164,21 @@
               <TextBlock Text="{Binding SelectedItem.RarityProbability, StringFormat=稀有度概率：{0:P2}}" />
               <TextBlock Margin="0,5,0,0" Text="{Binding SelectedItem.WithinRarityProbability, StringFormat=同稀有度概率：{0:P2}}" />
               <TextBlock Margin="0,5,0,0" Text="{Binding SelectedItem.ExpectedProbability, StringFormat=最终预期概率：{0:P2}}" />
-              <TextBlock Margin="0,5,0,0" Text="{Binding SelectedItem.CandidateStatus, StringFormat=状态：{0}}" />
+              <Border Margin="0,8,0,0" Background="{Binding SelectedItem.CandidateStatusBackground}" CornerRadius="3" Padding="6,3">
+                <TextBlock Text="{Binding SelectedItem.CandidateStatus, StringFormat=状态：{0}}"
+                           Foreground="{Binding SelectedItem.CandidateStatusForeground}" />
+              </Border>
             </StackPanel>
           </Border>
 
           <Border Margin="0,12,0,0" Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="6">
             <StackPanel>
               <TextBlock FontSize="16" FontWeight="SemiBold">随机结果</TextBlock>
-              <Image Source="{Binding RandomResultIcon}" Width="150" Height="150" Margin="0,12" Stretch="Uniform" />
+              <Grid Width="150" Height="150" Margin="0,12">
+                <Image Source="{Binding RandomResultItem.RarityPlate}" Width="150" Height="150" Stretch="Uniform" />
+                <Image Source="{Binding RandomResultItem.Icon}" Width="132" Height="132" Stretch="Uniform" />
+                <Image Source="{Binding RandomResultItem.RarityFrame}" Width="150" Height="150" Stretch="Uniform" />
+              </Grid>
               <TextBlock Text="{Binding RandomResultText}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>

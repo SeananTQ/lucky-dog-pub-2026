@@ -18,10 +18,14 @@ public sealed class ItemRow : INotifyPropertyChanged
     private int _newbieBoxWeight;
     private int _refreshmentBoxWeight;
     private int _eventBoxWeight;
+    private ImageSource? _rarityPlate;
+    private ImageSource? _rarityFrame;
     private double _rarityProbability;
     private double _withinRarityProbability;
     private double _expectedProbability;
     private string _candidateStatus = "未计算";
+    private Brush _candidateStatusBackground = Brushes.Transparent;
+    private Brush _candidateStatusForeground = Brushes.Black;
 
     private ItemRow(JsonObject source)
     {
@@ -36,6 +40,7 @@ public sealed class ItemRow : INotifyPropertyChanged
         _refreshmentBoxWeight = GetInt(source, "RefreshmentBoxWeight");
         _eventBoxWeight = GetInt(source, "EventBoxWeight");
         Icon = LoadIcon(IconPath);
+        UpdateRarityAssets();
     }
 
     public static ItemRow FromJson(JsonObject source) => new(source);
@@ -46,11 +51,18 @@ public sealed class ItemRow : INotifyPropertyChanged
     public string Name { get; }
     public string IconPath { get; }
     public ImageSource? Icon { get; }
+    public ImageSource? RarityPlate => _rarityPlate;
+    public ImageSource? RarityFrame => _rarityFrame;
 
     public ERarity Rarity
     {
         get => _rarity;
-        set => SetField(ref _rarity, value);
+        set
+        {
+            if (!SetField(ref _rarity, value))
+                return;
+            UpdateRarityAssets();
+        }
     }
 
     public EAcquisitionType AcquisitionType
@@ -139,6 +151,18 @@ public sealed class ItemRow : INotifyPropertyChanged
         private set => SetField(ref _candidateStatus, value);
     }
 
+    public Brush CandidateStatusBackground
+    {
+        get => _candidateStatusBackground;
+        private set => SetField(ref _candidateStatusBackground, value);
+    }
+
+    public Brush CandidateStatusForeground
+    {
+        get => _candidateStatusForeground;
+        private set => SetField(ref _candidateStatusForeground, value);
+    }
+
     public int GetWeight(WeightField field) => field switch
     {
         WeightField.StandardBoxWeight => StandardBoxWeight,
@@ -173,6 +197,7 @@ public sealed class ItemRow : INotifyPropertyChanged
         WithinRarityProbability = withinRarityProbability;
         ExpectedProbability = expectedProbability;
         CandidateStatus = candidateStatus;
+        UpdateCandidateStatusAppearance();
     }
 
     public void ApplyToJson()
@@ -188,6 +213,42 @@ public sealed class ItemRow : INotifyPropertyChanged
     private static int GetInt(JsonObject source, string key) => source[key]?.GetValue<int>() ?? 0;
     private static string GetString(JsonObject source, string key) => source[key]?.GetValue<string>() ?? string.Empty;
 
+    private void UpdateCandidateStatusAppearance()
+    {
+        var noRarityRate = CandidateStatus == "无稀有度概率";
+        var zeroRarity = (int)Rarity == 0;
+        var zeroWeight = CandidateStatus == "权重为 0";
+        var isInitial = AcquisitionType == EAcquisitionType.Initial;
+
+        if (isInitial && (noRarityRate || zeroRarity || zeroWeight))
+        {
+            CandidateStatusBackground = CreateBrush(140, 93, 60);
+            CandidateStatusForeground = Brushes.White;
+        }
+        else if (zeroRarity || zeroWeight)
+        {
+            CandidateStatusBackground = CreateBrush(105, 105, 105);
+            CandidateStatusForeground = Brushes.White;
+        }
+        else if (noRarityRate)
+        {
+            CandidateStatusBackground = CreateBrush(229, 231, 235);
+            CandidateStatusForeground = CreateBrush(55, 65, 81);
+        }
+        else
+        {
+            CandidateStatusBackground = Brushes.Transparent;
+            CandidateStatusForeground = Brushes.Black;
+        }
+    }
+
+    private static SolidColorBrush CreateBrush(byte red, byte green, byte blue)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(red, green, blue));
+        brush.Freeze();
+        return brush;
+    }
+
     private static ImageSource? LoadIcon(string relativePath)
     {
         var projectRoot = ProjectPaths.TryFindProjectRoot();
@@ -195,6 +256,41 @@ public sealed class ItemRow : INotifyPropertyChanged
             return null;
 
         var path = Path.Combine(projectRoot, "lucky-dog-rise", "Assets", relativePath.Replace('\\', Path.DirectorySeparatorChar));
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void UpdateRarityAssets()
+    {
+        _rarityPlate = LoadRarityAsset($"Plate_{_rarity}.png");
+        _rarityFrame = LoadRarityAsset($"Frame_{_rarity}.png");
+        OnPropertyChanged(nameof(RarityPlate));
+        OnPropertyChanged(nameof(RarityFrame));
+    }
+
+    private static ImageSource? LoadRarityAsset(string fileName)
+    {
+        var projectRoot = ProjectPaths.TryFindProjectRoot();
+        if (projectRoot is null)
+            return null;
+
+        var path = Path.Combine(projectRoot, "lucky-dog-rise", "Assets", "UI", "ItemUI", fileName);
         if (!File.Exists(path))
             return null;
 

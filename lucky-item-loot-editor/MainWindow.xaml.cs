@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Diagnostics;
 using LuckyItemLootEditor.ViewModels;
 
 namespace LuckyItemLootEditor;
@@ -39,20 +38,6 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel viewModel && sender is System.Windows.Controls.TextBox textBox)
             viewModel.SearchText = textBox.Text;
-    }
-
-    private void DiffButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var diff = _viewModel.GetGitDiff();
-            var window = new DiffWindow(diff) { Owner = this };
-            window.ShowDialog();
-        }
-        catch (Exception exception)
-        {
-            MessageBox.Show(this, exception.Message, "Git Diff 失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
     }
 
     private void TryRun(Action action)

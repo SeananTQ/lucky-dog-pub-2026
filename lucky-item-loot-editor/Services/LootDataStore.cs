@@ -82,7 +82,12 @@ public sealed class LootDataStore
         foreach (var item in Items)
             item.ApplyToJson();
 
-        var json = ItemJson.ToJsonString(JsonOptions).Replace("\n", NewLine, StringComparison.Ordinal);
+        // JsonNode uses the platform serializer's newline. Normalize first so
+        // CRLF input does not become CRCRLF and turn the whole file into a diff.
+        var json = ItemJson.ToJsonString(JsonOptions)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal)
+            .Replace("\n", NewLine, StringComparison.Ordinal);
         if (!json.EndsWith(NewLine, StringComparison.Ordinal))
             json += NewLine;
 
