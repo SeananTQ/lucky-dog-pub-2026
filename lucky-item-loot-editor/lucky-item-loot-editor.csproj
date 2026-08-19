@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LuckyItemLootEditor</AssemblyName>
+    <RootNamespace>LuckyItemLootEditor</RootNamespace>
+
+    <!-- The editor folder sits beside luban-excels and lucky-dog-rise. -->
+    <LubanOutputCodeDir>$(MSBuildProjectDirectory)\..\luban-excels\output-code</LubanOutputCodeDir>
+    <LubanRuntimeDir>$(MSBuildProjectDirectory)\..\lucky-dog-rise\Scripts\Luban</LubanRuntimeDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Generated Luban table beans, table wrappers, and enums. -->
+    <Compile Include="$(LubanOutputCodeDir)\**\*.cs"
+             Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <!-- The generated files depend on Luban.BeanBase and SimpleJSON. -->
+    <Compile Include="$(LubanRuntimeDir)\**\*.cs"
+             Link="LubanRuntime\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
