@@ -152,13 +152,152 @@ class App(QMainWindow):
         self.signals.progress.connect(self.progress_set)
         self.signals.finished.connect(self._finish_run)
 
+        self._apply_visual_theme()
         self._build_ui()
         self._restore_state()
 
     # UI
 
+    def _apply_visual_theme(self) -> None:
+        """Use muted contrast to separate panels, fields, and actions.
+
+        This deliberately keeps the native, square Qt widget shape. The color
+        hierarchy is the visual focus mechanism, not rounded decoration.
+        """
+        self.setStyleSheet("""
+            QMainWindow {
+                background: #edf1f4;
+                color: #26333d;
+            }
+            QWidget#root {
+                background: #edf1f4;
+            }
+            QWidget#tabPage {
+                background: #f8fafb;
+            }
+            QFrame#outputPanel {
+                background: #f8fafb;
+                border: 1px solid #c5cfd8;
+            }
+            QLabel {
+                color: #26333d;
+                background: transparent;
+            }
+            QLineEdit,
+            QPlainTextEdit {
+                background: #ffffff;
+                color: #202a32;
+                border: 1px solid #aebac5;
+                selection-background-color: #b9d2e7;
+                selection-color: #17232c;
+            }
+            QLineEdit {
+                min-height: 24px;
+                padding: 1px 5px;
+            }
+            QPlainTextEdit {
+                padding: 4px;
+            }
+            QLineEdit:focus,
+            QPlainTextEdit:focus {
+                background: #fbfdff;
+                border: 2px solid #5d8eaf;
+            }
+            QTabWidget::pane {
+                background: #f8fafb;
+                border: 1px solid #c5cfd8;
+                top: -1px;
+            }
+            QTabBar::tab {
+                background: #e1e7ec;
+                color: #3d4b56;
+                border: 1px solid #c5cfd8;
+                padding: 6px 13px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:hover {
+                background: #d7e3ec;
+                color: #274e69;
+            }
+            QTabBar::tab:selected {
+                background: #d5e5f1;
+                color: #245777;
+                border-bottom-color: #d5e5f1;
+            }
+            QPushButton {
+                background: #e3e8ed;
+                color: #26333d;
+                border: 1px solid #aebac5;
+                padding: 5px 12px;
+                min-height: 24px;
+            }
+            QPushButton:hover {
+                background: #d4e2ed;
+                border-color: #7d9db5;
+            }
+            QPushButton:pressed {
+                background: #c4d7e5;
+            }
+            QPushButton#primaryButton {
+                background: #5d8eaf;
+                color: #ffffff;
+                border-color: #4f7f9f;
+            }
+            QPushButton#primaryButton:hover {
+                background: #6b9abb;
+            }
+            QPushButton#primaryButton:pressed {
+                background: #4f7f9f;
+            }
+            QPushButton:disabled {
+                background: #d9dee2;
+                color: #8a959d;
+                border-color: #c6cdd2;
+            }
+            QCheckBox {
+                color: #26333d;
+                spacing: 6px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border: 1px solid #9eabb5;
+                background: #ffffff;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #5d8eaf;
+            }
+            QCheckBox::indicator:checked {
+                background: #5d8eaf;
+                border-color: #4f7f9f;
+            }
+            QProgressBar {
+                background: #dfe5ea;
+                color: #26333d;
+                border: 1px solid #b5c0c9;
+                text-align: center;
+                min-height: 20px;
+            }
+            QProgressBar::chunk {
+                background: #5d8eaf;
+            }
+            QScrollBar:vertical {
+                background: #e5eaee;
+                width: 12px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #aebdca;
+                min-height: 24px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #8fa8ba;
+            }
+        """)
+
     def _build_ui(self):
         root = QWidget(self)
+        root.setObjectName("root")
         self.setCentralWidget(root)
         root_layout = QVBoxLayout(root)
         root_layout.setContentsMargins(12, 12, 12, 12)
@@ -181,6 +320,7 @@ class App(QMainWindow):
         root_layout.addWidget(self.tabs, 1)
 
         bottom = QFrame()
+        bottom.setObjectName("outputPanel")
         bottom.setFrameShape(QFrame.Shape.StyledPanel)
         bottom_layout = QVBoxLayout(bottom)
         bottom_layout.setContentsMargins(10, 10, 10, 10)
@@ -192,10 +332,12 @@ class App(QMainWindow):
         self.progress.setValue(0)
         run_row.addWidget(self.progress, 1)
         self.run_button = QPushButton("运行当前页签")
+        self.run_button.setObjectName("primaryButton")
         self.run_button.setMinimumWidth(130)
         self.run_button.clicked.connect(self._start_current_tab)
         run_row.addWidget(self.run_button)
         clear_button = QPushButton("清空日志")
+        clear_button.setObjectName("secondaryButton")
         clear_button.setMinimumWidth(90)
         clear_button.clicked.connect(self._clear_log)
         run_row.addWidget(clear_button)
@@ -209,6 +351,7 @@ class App(QMainWindow):
 
     def _page(self) -> tuple[QWidget, QVBoxLayout]:
         page = QWidget()
+        page.setObjectName("tabPage")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(4)

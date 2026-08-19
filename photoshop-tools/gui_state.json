@@ -3,8 +3,8 @@
   "generic": {
     "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/ItemBoderV1.psd",
     "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
-    "crop": false,
-    "composite": true,
+    "crop": true,
+    "composite": false,
     "excluded_groups": []
   },
   "lucky": {
@@ -67,5 +67,5 @@
     "margin": "16",
     "short_groups": "Background,Table"
   },
-  "updated_at": "2026-08-19T18:27:15"
+  "updated_at": "2026-08-19T18:34:27"
 }
