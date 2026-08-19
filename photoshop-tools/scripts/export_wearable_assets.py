@@ -5,6 +5,7 @@ LuckyDogPub 装扮资源一体化导出工具。
 - 非辅助、非狗皮肤的装扮 PNG；
 - layer_index_<版本号>.json；
 - tbitem_asset_manifest.json；
+- Items_Item.csv（Luban CSV 格式的装扮资源草稿）；
 - 普通装扮道具图标 PNG。
 
 JSON 清单中的 AssetPathList / IconPath 使用 tbitem.json 的字段名，
@@ -12,6 +13,7 @@ JSON 清单中的 AssetPathList / IconPath 使用 tbitem.json 的字段名，
 """
 
 import argparse
+import csv
 import json
 import os
 import re
@@ -38,6 +40,12 @@ ITEM_TYPE_BY_ICON_PREFIX = {
     "CardFace": 11,
     "BodyDecoration": 12,
 }
+ITEM_TYPE_NAME_BY_VALUE = {value: key for key, value in ITEM_TYPE_BY_ICON_PREFIX.items()}
+
+TOOL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ITEMS_CSV_TEMPLATE = os.path.normpath(
+    os.path.join(TOOL_DIR, "..", "luban-excels", "csv", "Items_Item.csv")
+)
 
 
 def clean_component(value: str, fallback: str = "Layer") -> str:
@@ -124,6 +132,51 @@ def unique_filename(used: set[str], base_name: str) -> str:
 
 def windows_path(*parts: str) -> str:
     return "\\".join(str(part).strip("\\/") for part in parts if str(part).strip("\\/"))
+
+
+def display_name_from_layer(layer_name: str) -> str:
+    """Convert a PSD layer name into a readable Luban display name."""
+    text = str(layer_name or "").replace("_", " ").strip()
+    # Split normal Pascal/camel-case boundaries, e.g. MagicHat -> Magic Hat.
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", text)
+    # Keep acronym blocks readable, e.g. HTTPHat -> HTTP Hat.
+    text = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
+    # Separate a trailing/leading number from words, e.g. Type1 -> Type 1.
+    text = re.sub(r"(?<=[A-Za-z])(?=\d)|(?<=\d)(?=[A-Za-z])", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def write_items_csv(output_path: str, manifest_items: list[dict]) -> int:
+    """Write a Luban Items_Item.csv-shaped asset draft.
+
+    The exporter knows the source layer, item type, art path, and icon path.
+    IDs, rarity, and loot configuration remain empty for later completion.
+    """
+    if not os.path.exists(ITEMS_CSV_TEMPLATE):
+        raise FileNotFoundError(f"找不到 Luban CSV 模板: {ITEMS_CSV_TEMPLATE}")
+
+    with open(ITEMS_CSV_TEMPLATE, "r", encoding="utf-8-sig", newline="") as handle:
+        template_rows = list(csv.reader(handle))
+    if len(template_rows) < 4 or not template_rows[0]:
+        raise ValueError(f"Luban CSV 模板格式不完整: {ITEMS_CSV_TEMPLATE}")
+
+    width = len(template_rows[0])
+    rows = [row[:width] + [""] * max(0, width - len(row)) for row in template_rows[:4]]
+    for item in manifest_items:
+        row = [""] * width
+        row[2] = display_name_from_layer(item.get("SourceLayer", ""))
+        row[3] = str(item.get("SourceLayer", ""))
+        row[4] = ITEM_TYPE_NAME_BY_VALUE.get(item.get("ItemType"), "")
+        asset_paths = item.get("AssetPathList") or []
+        row[19] = str(asset_paths[0]) if asset_paths else ""
+        row[20] = str(item.get("IconPath", ""))
+        rows.append(row)
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerows(rows)
+    return len(manifest_items)
 
 
 def render_layer(layer):
@@ -285,6 +338,9 @@ def export_wearable_assets(
     with open(manifest_path, "w", encoding="utf-8") as handle:
         json.dump(manifest_data, handle, ensure_ascii=False, indent=2)
 
+    csv_path = os.path.join(version_dir, "Items_Item.csv")
+    csv_count = write_items_csv(csv_path, manifest_items)
+
     print("\n完成!")
     print(f"  装扮 PNG: {exported_count}")
     print(f"  道具图标: {icon_count}")
@@ -292,6 +348,7 @@ def export_wearable_assets(
     print(f"  警告数量: {warning_count}")
     print(f"  坐标文件: {index_path}")
     print(f"  填表清单: {manifest_path}")
+    print(f"  Luban CSV: {csv_path} ({csv_count} 行)")
 
 
 def load_config(path: str) -> dict:
