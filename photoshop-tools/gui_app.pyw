@@ -1,9 +1,10 @@
 """
 PSD 导出工具 GUI
 
-三个独立页签对应三种常用工作流：
+多个独立页签对应常用工作流：
 - 通用 PSD 导出
 - LuckyDogPub 总 PSD 导出
+- LuckyDogPub 装扮资源一体化导出
 - 普通道具图标生成
 - 狗皮肤图标生成
 
@@ -112,6 +113,7 @@ class App(ctk.CTk):
 
         self.app_state = load_state()
         self.vars: dict[str, ctk.Variable] = {}
+        self.textboxes: dict[str, ctk.CTkTextbox] = {}
         self.excluded_groups: dict[str, list[str]] = {
             "generic": self.app_state.get("generic", {}).get("excluded_groups", []),
             "lucky": self.app_state.get("lucky", {}).get("excluded_groups", []),
@@ -131,24 +133,27 @@ class App(ctk.CTk):
 
         version_frame = ctk.CTkFrame(self, fg_color="transparent")
         version_frame.grid(row=0, column=0, padx=12, pady=(12, 0), sticky="ew")
-        version_frame.grid_columnconfigure(1, weight=1)
+        version_frame.grid_columnconfigure(2, weight=1)
         ctk.CTkLabel(version_frame, text="美术资源版本号", width=110, anchor="w").grid(
             row=0, column=0, padx=(0, 8), sticky="w")
         ctk.CTkEntry(
             version_frame,
             textvariable=self._var("asset_version", ""),
+            width=180,
             placeholder_text="例如 v1、v2 或 2026-08",
-        ).grid(row=0, column=1, sticky="ew")
+        ).grid(row=0, column=1, sticky="w")
 
         self.tabs = ctk.CTkTabview(self)
         self.tabs.grid(row=1, column=0, padx=12, pady=(8, 8), sticky="nsew")
         self.tabs.add("通用 PSD 导出")
         self.tabs.add("LuckyDogPub 总 PSD")
+        self.tabs.add("LuckyDogPub 装扮一体化")
         self.tabs.add("普通道具图标")
         self.tabs.add("狗皮肤图标")
 
         self._build_generic_tab(self.tabs.tab("通用 PSD 导出"))
         self._build_lucky_tab(self.tabs.tab("LuckyDogPub 总 PSD"))
+        self._build_wearable_tab(self.tabs.tab("LuckyDogPub 装扮一体化"))
         self._build_item_icons_tab(self.tabs.tab("普通道具图标"))
         self._build_dog_icons_tab(self.tabs.tab("狗皮肤图标"))
 
@@ -198,6 +203,63 @@ class App(ctk.CTk):
             text_color=("gray30", "gray75"),
         )
         note.grid(row=row, column=0, padx=12, pady=(8, 0), sticky="ew")
+
+    def _build_wearable_tab(self, tab):
+        tab.grid_columnconfigure(0, weight=1)
+        row = 0
+        self._section(tab, "装扮资源、坐标与图标一体化导出", row); row += 1
+        row = self._file_row(tab, row, "wearable.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        row = self._file_row(tab, row, "wearable.out", "输出根目录", "选择资源输出根目录", directory=True)
+
+        folder_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        folder_frame.grid(row=row, column=0, padx=12, pady=4, sticky="ew")
+        ctk.CTkLabel(folder_frame, text="图标文件夹", width=86, anchor="w").grid(
+            row=0, column=0, padx=(0, 8), sticky="w")
+        ctk.CTkEntry(
+            folder_frame,
+            textvariable=self._var("wearable.icon_folder", "ItemIcon"),
+            width=110,
+        ).grid(row=0, column=1, sticky="w")
+        ctk.CTkLabel(
+            folder_frame,
+            text="版本号\\图标文件夹\\图标名.png；此页签不导出狗皮肤",
+            text_color=("gray30", "gray75"),
+            anchor="w",
+        ).grid(row=0, column=2, padx=(10, 0), sticky="w")
+        row += 1
+
+        row = self._option_row(tab, row, "wearable.crop", "裁剪装扮图层空白区域", True)
+        row = self._wearable_settings_grid(tab, row)
+
+        ctk.CTkLabel(tab, text="短边规则名单", anchor="w").grid(
+            row=row, column=0, padx=12, pady=(8, 2), sticky="w")
+        short_box = ctk.CTkTextbox(tab, height=78)
+        short_box.grid(row=row + 1, column=0, padx=12, pady=(0, 4), sticky="ew")
+        short_box.insert("1.0", "Background\nTable")
+        self.textboxes["wearable.short_rules"] = short_box
+        short_box.bind("<FocusOut>", lambda _event: self._save_current_state())
+        ctk.CTkLabel(
+            tab,
+            text="每行一个组名、图层名或路径；支持 # 注释，也兼容逗号分隔。命中后按短边缩放。",
+            text_color=("gray30", "gray75"),
+            anchor="w",
+        ).grid(row=row + 2, column=0, padx=12, pady=(0, 0), sticky="ew")
+
+    def _wearable_settings_grid(self, parent, row):
+        settings = ctk.CTkFrame(parent)
+        settings.grid(row=row, column=0, padx=12, pady=(10, 4), sticky="ew")
+        settings.grid_columnconfigure((0, 1, 2), weight=1)
+        fields = [
+            ("wearable.canvas", "画布尺寸", "256"),
+            ("wearable.content", "内容尺寸", "240"),
+            ("wearable.margin", "边框留白", "16"),
+        ]
+        for col, (key, label, default) in enumerate(fields):
+            ctk.CTkLabel(settings, text=label, anchor="w").grid(
+                row=0, column=col, padx=8, pady=(8, 2), sticky="ew")
+            ctk.CTkEntry(settings, textvariable=self._var(key, default)).grid(
+                row=1, column=col, padx=8, pady=(0, 8), sticky="ew")
+        return row + 1
 
     def _build_item_icons_tab(self, tab):
         tab.grid_columnconfigure(0, weight=1)
@@ -304,6 +366,15 @@ class App(ctk.CTk):
                 "crop": True,
                 "composite": False,
             },
+            "wearable": {
+                "psd": DEFAULT_MAIN_PSD,
+                "out": DEFAULT_OUTPUT,
+                "icon_folder": "ItemIcon",
+                "crop": True,
+                "canvas": "256",
+                "content": "240",
+                "margin": "16",
+            },
             "item_icons": {
                 "psd": DEFAULT_MAIN_PSD,
                 "item_json": DEFAULT_ITEM_JSON,
@@ -344,6 +415,9 @@ class App(ctk.CTk):
         version = self.app_state.get("asset_version", self.app_state.get("version", ""))
         self.vars["asset_version"].set("" if version is None else str(version))
 
+        short_rules = self.app_state.get("wearable", {}).get("short_rules", "Background\nTable")
+        self._set_textbox("wearable.short_rules", short_rules)
+
         for mode, label in self.group_labels.items():
             label.set(self._group_label_text(mode))
         self.restoring_state = False
@@ -365,6 +439,16 @@ class App(ctk.CTk):
                 "crop": self._get_bool("lucky.crop"),
                 "composite": self._get_bool("lucky.composite"),
                 "excluded_groups": self.excluded_groups["lucky"],
+            },
+            "wearable": {
+                "psd": self._get("wearable.psd"),
+                "out": self._get("wearable.out"),
+                "icon_folder": self._get("wearable.icon_folder"),
+                "crop": self._get_bool("wearable.crop"),
+                "canvas": self._get("wearable.canvas"),
+                "content": self._get("wearable.content"),
+                "margin": self._get("wearable.margin"),
+                "short_rules": self._get_textbox("wearable.short_rules"),
             },
             "item_icons": {
                 "psd": self._get("item_icons.psd"),
@@ -402,6 +486,14 @@ class App(ctk.CTk):
 
     def _get_bool(self, key: str) -> bool:
         return bool(self.vars[key].get())
+
+    def _get_textbox(self, key: str) -> str:
+        return self.textboxes[key].get("1.0", "end-1c")
+
+    def _set_textbox(self, key: str, value: str):
+        textbox = self.textboxes[key]
+        textbox.delete("1.0", "end")
+        textbox.insert("1.0", str(value or ""))
 
     # Group picker
 
@@ -501,6 +593,8 @@ class App(ctk.CTk):
             job = "generic"
         elif tab_name == "LuckyDogPub 总 PSD":
             job = "lucky"
+        elif tab_name == "LuckyDogPub 装扮一体化":
+            job = "wearable"
         elif tab_name == "普通道具图标":
             job = "item_icons"
         else:
@@ -516,6 +610,8 @@ class App(ctk.CTk):
         try:
             if job in ("generic", "lucky"):
                 self._run_layer_export(job)
+            elif job == "wearable":
+                self._run_wearable_export()
             else:
                 self._run_icon_export(job)
             self._after_progress(1)
@@ -545,6 +641,35 @@ class App(ctk.CTk):
         self._after_log(f"\n--- {title} ---")
         try:
             self._run_script("export_all_layers.py", ["--config", tmp_cfg])
+            self._after_progress(0.85)
+        finally:
+            self._remove_tmp(tmp_cfg)
+
+    def _run_wearable_export(self):
+        psd = self._get("wearable.psd")
+        if not os.path.exists(psd):
+            raise FileNotFoundError(f"PSD 文件不存在: {psd}")
+        version = self._get("asset_version").strip()
+        if not version:
+            raise ValueError("请先填写美术资源版本号")
+
+        tmp_cfg = os.path.join(SCRIPT_DIR, "_tmp_wearable_export.json")
+        with open(tmp_cfg, "w", encoding="utf-8") as f:
+            json.dump({
+                "psd路径": psd,
+                "输出根目录": self._get("wearable.out"),
+                "美术资源版本号": version,
+                "道具图标文件夹": self._get("wearable.icon_folder").strip(),
+                "裁剪空白": self._get_bool("wearable.crop"),
+                "画布尺寸": parse_int(self._get("wearable.canvas"), 256),
+                "内容尺寸": parse_int(self._get("wearable.content"), 240),
+                "边框留白": parse_int(self._get("wearable.margin"), 16),
+                "短边规则名单": self._get_textbox("wearable.short_rules"),
+            }, f, ensure_ascii=False)
+
+        self._after_log("\n--- LuckyDogPub 装扮资源一体化 ---")
+        try:
+            self._run_script("export_wearable_assets.py", ["--config", tmp_cfg])
             self._after_progress(0.85)
         finally:
             self._remove_tmp(tmp_cfg)
