@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ceue0aif8ckww"
+
+[deps]
+
+files=["res://Assets/v2/Items_Item.Id.translation", "res://Assets/v2/Items_Item.Name.translation", "res://Assets/v2/Items_Item.ItemType.translation", "res://Assets/v2/Items_Item.HiddenRegionFlag.translation", "res://Assets/v2/Items_Item.SafeResourceId.translation", "res://Assets/v2/Items_Item.ItemRarity.translation", "res://Assets/v2/Items_Item.SortOrder.translation", "res://Assets/v2/Items_Item.IsHiddenInBag.translation", "res://Assets/v2/Items_Item.AcquisitionType.translation", "res://Assets/v2/Items_Item.StandardBoxWeight.translation", "res://Assets/v2/Items_Item.NewbieBoxWeight.translation", "res://Assets/v2/Items_Item.RefreshmentBoxWeight.translation", "res://Assets/v2/Items_Item.EventBoxWeight.translation", "res://Assets/v2/Items_Item.*AssetPathList.translation", "res://Assets/v2/Items_Item.IconPath.translation", "res://Assets/v2/Items_Item.SkinId.translation", "res://Assets/v2/Items_Item.SteamItemDefId.translation", "res://Assets/v2/Items_Item.SteamItemDefType.translation", "res://Assets/v2/Items_Item.SteamDescription.translation", "res://Assets/v2/Items_Item.SteamGameOnly.translation", "res://Assets/v2/Items_Item.SteamTradable.translation", "res://Assets/v2/Items_Item.SteamMarketable.translation", "res://Assets/v2/Items_Item.SteamAutoStack.translation", "res://Assets/v2/Items_Item.SteamHidden.translation", "res://Assets/v2/Items_Item.SteamDisplayType.translation", "res://Assets/v2/Items_Item.SteamTags.translation", "res://Assets/v2/Items_Item.SteamIconUrl.translation", "res://Assets/v2/Items_Item.SteamIconUrlLarge.translation"]
+
+source_file="res://Assets/v2/Items_Item.csv"
+dest_files=["res://Assets/v2/Items_Item.Id.translation", "res://Assets/v2/Items_Item.Name.translation", "res://Assets/v2/Items_Item.ItemType.translation", "res://Assets/v2/Items_Item.HiddenRegionFlag.translation", "res://Assets/v2/Items_Item.SafeResourceId.translation", "res://Assets/v2/Items_Item.ItemRarity.translation", "res://Assets/v2/Items_Item.SortOrder.translation", "res://Assets/v2/Items_Item.IsHiddenInBag.translation", "res://Assets/v2/Items_Item.AcquisitionType.translation", "res://Assets/v2/Items_Item.StandardBoxWeight.translation", "res://Assets/v2/Items_Item.NewbieBoxWeight.translation", "res://Assets/v2/Items_Item.RefreshmentBoxWeight.translation", "res://Assets/v2/Items_Item.EventBoxWeight.translation", "res://Assets/v2/Items_Item.*AssetPathList.translation", "res://Assets/v2/Items_Item.IconPath.translation", "res://Assets/v2/Items_Item.SkinId.translation", "res://Assets/v2/Items_Item.SteamItemDefId.translation", "res://Assets/v2/Items_Item.SteamItemDefType.translation", "res://Assets/v2/Items_Item.SteamDescription.translation", "res://Assets/v2/Items_Item.SteamGameOnly.translation", "res://Assets/v2/Items_Item.SteamTradable.translation", "res://Assets/v2/Items_Item.SteamMarketable.translation", "res://Assets/v2/Items_Item.SteamAutoStack.translation", "res://Assets/v2/Items_Item.SteamHidden.translation", "res://Assets/v2/Items_Item.SteamDisplayType.translation", "res://Assets/v2/Items_Item.SteamTags.translation", "res://Assets/v2/Items_Item.SteamIconUrl.translation", "res://Assets/v2/Items_Item.SteamIconUrlLarge.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

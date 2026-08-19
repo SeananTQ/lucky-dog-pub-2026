@@ -1,0 +1,238 @@
+{
+  "_说明": "供 Items.xlsx / tbitem.json 填写的装扮资源清单",
+  "Version": "v2",
+  "ItemIconFolder": "ItemIcon",
+  "Items": [
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\AmericanPoliceCap_Blue.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_AmericanPoliceCap_Blue.png",
+      "IconName": "Headwear_AmericanPoliceCap_Blue.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "AmericanPoliceCap_Blue",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\AmericanPoliceCap_Black.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_AmericanPoliceCap_Black.png",
+      "IconName": "Headwear_AmericanPoliceCap_Black.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "AmericanPoliceCap_Black",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\JapanPoliceCap_Blue.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_JapanPoliceCap_Blue.png",
+      "IconName": "Headwear_JapanPoliceCap_Blue.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "JapanPoliceCap_Blue",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\PearlTurban_Delft.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_PearlTurban_Delft.png",
+      "IconName": "Headwear_PearlTurban_Delft.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "PearlTurban_Delft",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\PearlTurban_SweatDrop.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_PearlTurban_SweatDrop.png",
+      "IconName": "Headwear_PearlTurban_SweatDrop.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "PearlTurban_SweatDrop",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\CaptainCap_Admiral.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_CaptainCap_Admiral.png",
+      "IconName": "Headwear_CaptainCap_Admiral.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "CaptainCap_Admiral",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\FiveStarCommanderCap.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_FiveStarCommanderCap.png",
+      "IconName": "Headwear_FiveStarCommanderCap.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "FiveStarCommanderCap",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\JapanPoliceCap_Green.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_JapanPoliceCap_Green.png",
+      "IconName": "Headwear_JapanPoliceCap_Green.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "JapanPoliceCap_Green",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\AmericanPoliceCap_Red.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_AmericanPoliceCap_Red.png",
+      "IconName": "Headwear_AmericanPoliceCap_Red.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "AmericanPoliceCap_Red",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\SailorCap_Cruise.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_SailorCap_Cruise.png",
+      "IconName": "Headwear_SailorCap_Cruise.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "SailorCap_Cruise",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\SailorCap_Cargo.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_SailorCap_Cargo.png",
+      "IconName": "Headwear_SailorCap_Cargo.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "SailorCap_Cargo",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\SailorCap_Harbor.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_SailorCap_Harbor.png",
+      "IconName": "Headwear_SailorCap_Harbor.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "SailorCap_Harbor",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\ChefHat_White.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_ChefHat_White.png",
+      "IconName": "Headwear_ChefHat_White.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "ChefHat_White",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\ChefHat_Black.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_ChefHat_Black.png",
+      "IconName": "Headwear_ChefHat_Black.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "ChefHat_Black",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\ChefHat_Red.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_ChefHat_Red.png",
+      "IconName": "Headwear_ChefHat_Red.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "ChefHat_Red",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\VikingHelmet_Norway.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_VikingHelmet_Norway.png",
+      "IconName": "Headwear_VikingHelmet_Norway.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "VikingHelmet_Norway",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\VikingHelmet_Classic.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_VikingHelmet_Classic.png",
+      "IconName": "Headwear_VikingHelmet_Classic.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "VikingHelmet_Classic",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\VikingHelmet_Emerald.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_VikingHelmet_Emerald.png",
+      "IconName": "Headwear_VikingHelmet_Emerald.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "VikingHelmet_Emerald",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\PainterBeret_Classic.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_PainterBeret_Classic.png",
+      "IconName": "Headwear_PainterBeret_Classic.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "PainterBeret_Classic",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\PainterBeret_Cream.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_PainterBeret_Cream.png",
+      "IconName": "Headwear_PainterBeret_Cream.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "PainterBeret_Cream",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    },
+    {
+      "AssetPathList": [
+        "v2\\Headwear\\PainterBeret_OrangeDutch.png"
+      ],
+      "IconPath": "v2\\ItemIcon\\Headwear_PainterBeret_OrangeDutch.png",
+      "IconName": "Headwear_PainterBeret_OrangeDutch.png",
+      "SourceGroup": "Headwear",
+      "SourceLayer": "PainterBeret_OrangeDutch",
+      "ItemType": 2,
+      "IconExportRule": "LongSide"
+    }
+  ]
+}

@@ -1,0 +1,240 @@
+{
+  "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/LuckyDogPub_V2.psd",
+  "version": "v2",
+  "canvas_width": 1200,
+  "canvas_height": 1200,
+  "total_layers": 21,
+  "layers": [
+    {
+      "name": "AmericanPoliceCap_Blue",
+      "file": "Headwear/AmericanPoliceCap_Blue.png",
+      "group": "Headwear",
+      "x": 388,
+      "y": 113,
+      "width": 387,
+      "height": 239,
+      "doc_x": 388,
+      "doc_y": 113
+    },
+    {
+      "name": "AmericanPoliceCap_Black",
+      "file": "Headwear/AmericanPoliceCap_Black.png",
+      "group": "Headwear",
+      "x": 389,
+      "y": 112,
+      "width": 386,
+      "height": 240,
+      "doc_x": 389,
+      "doc_y": 112
+    },
+    {
+      "name": "JapanPoliceCap_Blue",
+      "file": "Headwear/JapanPoliceCap_Blue.png",
+      "group": "Headwear",
+      "x": 412,
+      "y": 156,
+      "width": 344,
+      "height": 191,
+      "doc_x": 412,
+      "doc_y": 156
+    },
+    {
+      "name": "PearlTurban_Delft",
+      "file": "Headwear/PearlTurban_Delft.png",
+      "group": "Headwear",
+      "x": 360,
+      "y": 140,
+      "width": 569,
+      "height": 505,
+      "doc_x": 360,
+      "doc_y": 140
+    },
+    {
+      "name": "PearlTurban_SweatDrop",
+      "file": "Headwear/PearlTurban_SweatDrop.png",
+      "group": "Headwear",
+      "x": 360,
+      "y": 140,
+      "width": 569,
+      "height": 505,
+      "doc_x": 360,
+      "doc_y": 140
+    },
+    {
+      "name": "CaptainCap_Admiral",
+      "file": "Headwear/CaptainCap_Admiral.png",
+      "group": "Headwear",
+      "x": 425,
+      "y": 160,
+      "width": 324,
+      "height": 179,
+      "doc_x": 425,
+      "doc_y": 160
+    },
+    {
+      "name": "FiveStarCommanderCap",
+      "file": "Headwear/FiveStarCommanderCap.png",
+      "group": "Headwear",
+      "x": 425,
+      "y": 160,
+      "width": 324,
+      "height": 179,
+      "doc_x": 425,
+      "doc_y": 160
+    },
+    {
+      "name": "JapanPoliceCap_Green",
+      "file": "Headwear/JapanPoliceCap_Green.png",
+      "group": "Headwear",
+      "x": 413,
+      "y": 156,
+      "width": 343,
+      "height": 191,
+      "doc_x": 413,
+      "doc_y": 156
+    },
+    {
+      "name": "AmericanPoliceCap_Red",
+      "file": "Headwear/AmericanPoliceCap_Red.png",
+      "group": "Headwear",
+      "x": 389,
+      "y": 112,
+      "width": 386,
+      "height": 240,
+      "doc_x": 389,
+      "doc_y": 112
+    },
+    {
+      "name": "SailorCap_Cruise",
+      "file": "Headwear/SailorCap_Cruise.png",
+      "group": "Headwear",
+      "x": 436,
+      "y": 143,
+      "width": 292,
+      "height": 184,
+      "doc_x": 436,
+      "doc_y": 143
+    },
+    {
+      "name": "SailorCap_Cargo",
+      "file": "Headwear/SailorCap_Cargo.png",
+      "group": "Headwear",
+      "x": 436,
+      "y": 143,
+      "width": 292,
+      "height": 184,
+      "doc_x": 436,
+      "doc_y": 143
+    },
+    {
+      "name": "SailorCap_Harbor",
+      "file": "Headwear/SailorCap_Harbor.png",
+      "group": "Headwear",
+      "x": 436,
+      "y": 143,
+      "width": 292,
+      "height": 184,
+      "doc_x": 436,
+      "doc_y": 143
+    },
+    {
+      "name": "ChefHat_White",
+      "file": "Headwear/ChefHat_White.png",
+      "group": "Headwear",
+      "x": 392,
+      "y": 23,
+      "width": 375,
+      "height": 302,
+      "doc_x": 392,
+      "doc_y": 23
+    },
+    {
+      "name": "ChefHat_Black",
+      "file": "Headwear/ChefHat_Black.png",
+      "group": "Headwear",
+      "x": 392,
+      "y": 23,
+      "width": 375,
+      "height": 302,
+      "doc_x": 392,
+      "doc_y": 23
+    },
+    {
+      "name": "ChefHat_Red",
+      "file": "Headwear/ChefHat_Red.png",
+      "group": "Headwear",
+      "x": 392,
+      "y": 23,
+      "width": 375,
+      "height": 302,
+      "doc_x": 392,
+      "doc_y": 23
+    },
+    {
+      "name": "VikingHelmet_Norway",
+      "file": "Headwear/VikingHelmet_Norway.png",
+      "group": "Headwear",
+      "x": 354,
+      "y": 55,
+      "width": 465,
+      "height": 333,
+      "doc_x": 354,
+      "doc_y": 55
+    },
+    {
+      "name": "VikingHelmet_Classic",
+      "file": "Headwear/VikingHelmet_Classic.png",
+      "group": "Headwear",
+      "x": 354,
+      "y": 51,
+      "width": 465,
+      "height": 284,
+      "doc_x": 354,
+      "doc_y": 51
+    },
+    {
+      "name": "VikingHelmet_Emerald",
+      "file": "Headwear/VikingHelmet_Emerald.png",
+      "group": "Headwear",
+      "x": 354,
+      "y": 51,
+      "width": 465,
+      "height": 284,
+      "doc_x": 354,
+      "doc_y": 51
+    },
+    {
+      "name": "PainterBeret_Classic",
+      "file": "Headwear/PainterBeret_Classic.png",
+      "group": "Headwear",
+      "x": 467,
+      "y": 154,
+      "width": 354,
+      "height": 228,
+      "doc_x": 467,
+      "doc_y": 154
+    },
+    {
+      "name": "PainterBeret_Cream",
+      "file": "Headwear/PainterBeret_Cream.png",
+      "group": "Headwear",
+      "x": 467,
+      "y": 154,
+      "width": 354,
+      "height": 228,
+      "doc_x": 467,
+      "doc_y": 154
+    },
+    {
+      "name": "PainterBeret_OrangeDutch",
+      "file": "Headwear/PainterBeret_OrangeDutch.png",
+      "group": "Headwear",
+      "x": 467,
+      "y": 154,
+      "width": 354,
+      "height": 228,
+      "doc_x": 467,
+      "doc_y": 154
+    }
+  ]
+}
