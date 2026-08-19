@@ -1,5 +1,4 @@
-"""
-PSD 导出工具 GUI
+"""PSD 导出工具 GUI（PySide6）。
 
 多个独立页签对应常用工作流：
 - 通用 PSD 导出
@@ -8,8 +7,11 @@ PSD 导出工具 GUI
 - 普通道具图标生成
 - 狗皮肤图标生成
 
-启动: python gui_app.pyw  (或双击 gui_app.bat)
+导出脚本和 gui_state.json 格式保持不变。窗口使用 Windows 原生标题栏，
+不实现自定义鼠标拖拽逻辑。
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -17,9 +19,30 @@ import subprocess
 import threading
 import traceback
 from datetime import datetime
-from tkinter import filedialog
 
-import customtkinter as ctk
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QTabWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -63,6 +86,7 @@ def parse_int(value: str, default: int) -> int:
 def read_psd_groups(psd_path: str) -> list[dict]:
     try:
         from psd_tools import PSDImage
+
         psd = PSDImage.open(psd_path)
     except Exception:
         return []
@@ -100,27 +124,33 @@ def read_psd_groups(psd_path: str) -> list[dict]:
     return result
 
 
-class App(ctk.CTk):
+class WorkerSignals(QObject):
+    log = Signal(str)
+    progress = Signal(int)
+    finished = Signal()
+
+
+class App(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title("PSD 导出工具")
-        self.geometry("900x720")
-        self.minsize(820, 620)
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-
-        ctk.set_appearance_mode("system")
-        ctk.set_default_color_theme("blue")
+        self.setWindowTitle("PSD 导出工具")
+        self.resize(900, 720)
+        self.setMinimumSize(820, 620)
 
         self.app_state = load_state()
-        self.vars: dict[str, ctk.Variable] = {}
-        self.textboxes: dict[str, ctk.CTkTextbox] = {}
+        self.fields: dict[str, QWidget] = {}
+        self.textboxes: dict[str, QPlainTextEdit] = {}
+        self.group_labels: dict[str, QLabel] = {}
         self.excluded_groups: dict[str, list[str]] = {
             "generic": self.app_state.get("generic", {}).get("excluded_groups", []),
             "lucky": self.app_state.get("lucky", {}).get("excluded_groups", []),
         }
-        self.group_labels: dict[str, ctk.StringVar] = {}
         self.running = False
         self.restoring_state = False
+        self.signals = WorkerSignals()
+        self.signals.log.connect(self._log)
+        self.signals.progress.connect(self.progress_set)
+        self.signals.finished.connect(self._finish_run)
 
         self._build_ui()
         self._restore_state()
@@ -128,228 +158,215 @@ class App(ctk.CTk):
     # UI
 
     def _build_ui(self):
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        root = QWidget(self)
+        self.setCentralWidget(root)
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(12, 12, 12, 12)
+        root_layout.setSpacing(8)
 
-        version_frame = ctk.CTkFrame(self, fg_color="transparent")
-        version_frame.grid(row=0, column=0, padx=12, pady=(12, 0), sticky="ew")
-        version_frame.grid_columnconfigure(2, weight=1)
-        ctk.CTkLabel(version_frame, text="美术资源版本号", width=110, anchor="w").grid(
-            row=0, column=0, padx=(0, 8), sticky="w")
-        ctk.CTkEntry(
-            version_frame,
-            textvariable=self._var("asset_version", ""),
-            width=180,
-            placeholder_text="例如 v1、v2 或 2026-08",
-        ).grid(row=0, column=1, sticky="w")
+        version_row = QHBoxLayout()
+        version_label = QLabel("美术资源版本号")
+        version_label.setMinimumWidth(110)
+        version_row.addWidget(version_label)
+        version_row.addWidget(self._line_edit("asset_version", ""), 0)
+        version_row.addStretch(1)
+        root_layout.addLayout(version_row)
 
-        self.tabs = ctk.CTkTabview(self)
-        self.tabs.grid(row=1, column=0, padx=12, pady=(8, 8), sticky="nsew")
-        self.tabs.add("通用 PSD 导出")
-        self.tabs.add("LuckyDogPub 总 PSD")
-        self.tabs.add("LuckyDogPub 装扮一体化")
-        self.tabs.add("普通道具图标")
-        self.tabs.add("狗皮肤图标")
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self._build_generic_tab(), "通用 PSD 导出")
+        self.tabs.addTab(self._build_lucky_tab(), "LuckyDogPub 总 PSD")
+        self.tabs.addTab(self._build_wearable_tab(), "LuckyDogPub 装扮一体化")
+        self.tabs.addTab(self._build_item_icons_tab(), "普通道具图标")
+        self.tabs.addTab(self._build_dog_icons_tab(), "狗皮肤图标")
+        root_layout.addWidget(self.tabs, 1)
 
-        self._build_generic_tab(self.tabs.tab("通用 PSD 导出"))
-        self._build_lucky_tab(self.tabs.tab("LuckyDogPub 总 PSD"))
-        self._build_wearable_tab(self.tabs.tab("LuckyDogPub 装扮一体化"))
-        self._build_item_icons_tab(self.tabs.tab("普通道具图标"))
-        self._build_dog_icons_tab(self.tabs.tab("狗皮肤图标"))
+        bottom = QFrame()
+        bottom.setFrameShape(QFrame.Shape.StyledPanel)
+        bottom_layout = QVBoxLayout(bottom)
+        bottom_layout.setContentsMargins(10, 10, 10, 10)
+        bottom_layout.setSpacing(6)
 
-        bottom = ctk.CTkFrame(self)
-        bottom.grid(row=2, column=0, padx=12, pady=(0, 12), sticky="nsew")
-        bottom.grid_columnconfigure(0, weight=1)
-        bottom.grid_rowconfigure(1, weight=1)
+        run_row = QHBoxLayout()
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        run_row.addWidget(self.progress, 1)
+        self.run_button = QPushButton("运行当前页签")
+        self.run_button.setMinimumWidth(130)
+        self.run_button.clicked.connect(self._start_current_tab)
+        run_row.addWidget(self.run_button)
+        clear_button = QPushButton("清空日志")
+        clear_button.setMinimumWidth(90)
+        clear_button.clicked.connect(self._clear_log)
+        run_row.addWidget(clear_button)
+        bottom_layout.addLayout(run_row)
 
-        run_row = ctk.CTkFrame(bottom, fg_color="transparent")
-        run_row.grid(row=0, column=0, padx=10, pady=(10, 6), sticky="ew")
-        run_row.grid_columnconfigure(0, weight=1)
+        self.log_text = QPlainTextEdit()
+        self.log_text.setReadOnly(True)
+        self.log_text.setMinimumHeight(170)
+        bottom_layout.addWidget(self.log_text, 1)
+        root_layout.addWidget(bottom, 0)
 
-        self.progress = ctk.CTkProgressBar(run_row)
-        self.progress.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-        self.progress.set(0)
-        self.run_button = ctk.CTkButton(run_row, text="运行当前页签", width=130, command=self._start_current_tab)
-        self.run_button.grid(row=0, column=1, padx=(0, 8))
-        ctk.CTkButton(run_row, text="清空日志", width=90, command=self._clear_log).grid(row=0, column=2)
+    def _page(self) -> tuple[QWidget, QVBoxLayout]:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(4)
+        return page, layout
 
-        self.log_text = ctk.CTkTextbox(bottom, height=170)
-        self.log_text.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+    def _section(self, layout: QVBoxLayout, text: str) -> None:
+        label = QLabel(text)
+        label.setFont(QFont("Microsoft YaHei UI", 15, QFont.Weight.Bold))
+        label.setContentsMargins(0, 6, 0, 2)
+        layout.addWidget(label)
 
-    def _build_generic_tab(self, tab):
-        tab.grid_columnconfigure(0, weight=1)
-        row = 0
-        self._section(tab, "任意 PSD 文件", row); row += 1
-        row = self._file_row(tab, row, "generic.psd", "PSD 文件", "选择 PSD 文件")
-        row = self._file_row(tab, row, "generic.out", "输出目录", "选择输出目录", directory=True)
-        row = self._option_row(tab, row, "generic.crop", "裁剪空白区域", True)
-        row = self._option_row(tab, row, "generic.composite", "使用合成渲染（慢，仅需图层效果时开启）", False)
-        row = self._group_row(tab, row, "generic")
+    def _build_generic_tab(self) -> QWidget:
+        page, layout = self._page()
+        self._section(layout, "任意 PSD 文件")
+        self._file_row(layout, "generic.psd", "PSD 文件", "选择 PSD 文件")
+        self._file_row(layout, "generic.out", "输出目录", "选择输出目录", directory=True)
+        layout.addWidget(self._check_box("generic.crop", "裁剪空白区域", True))
+        layout.addWidget(self._check_box("generic.composite", "使用合成渲染（慢，仅需图层效果时开启）", False))
+        self._group_row(layout, "generic")
+        layout.addStretch(1)
+        return page
 
-    def _build_lucky_tab(self, tab):
-        tab.grid_columnconfigure(0, weight=1)
-        row = 0
-        self._section(tab, "项目主 PSD 资源导出", row); row += 1
-        row = self._file_row(tab, row, "lucky.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        row = self._file_row(tab, row, "lucky.out", "输出目录", "选择输出目录", directory=True)
-        row = self._option_row(tab, row, "lucky.crop", "裁剪空白区域", True)
-        row = self._option_row(tab, row, "lucky.composite", "使用合成渲染（慢12倍，仅需图层效果时开启）", False)
-        row = self._group_row(tab, row, "lucky")
+    def _build_lucky_tab(self) -> QWidget:
+        page, layout = self._page()
+        self._section(layout, "项目主 PSD 资源导出")
+        self._file_row(layout, "lucky.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        self._file_row(layout, "lucky.out", "输出目录", "选择输出目录", directory=True)
+        layout.addWidget(self._check_box("lucky.crop", "裁剪空白区域", True))
+        layout.addWidget(self._check_box("lucky.composite", "使用合成渲染（慢12倍，仅需图层效果时开启）", False))
+        self._group_row(layout, "lucky")
+        note = QLabel("选择部分组时，只限制 PNG 输出；layer_index_版本号.json 仍记录完整 PSD（未填版本号时为 layer_index.json）。")
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        layout.addStretch(1)
+        return page
 
-        note = ctk.CTkLabel(
-            tab,
-            text="选择部分组时，只限制 PNG 输出；layer_index_版本号.json 仍记录完整 PSD（未填版本号时为 layer_index.json）。",
-            anchor="w",
-            text_color=("gray30", "gray75"),
-        )
-        note.grid(row=row, column=0, padx=12, pady=(8, 0), sticky="ew")
+    def _build_wearable_tab(self) -> QWidget:
+        page, layout = self._page()
+        self._section(layout, "装扮资源、坐标与图标一体化导出")
+        self._file_row(layout, "wearable.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        self._file_row(layout, "wearable.out", "输出根目录", "选择资源输出根目录", directory=True)
 
-    def _build_wearable_tab(self, tab):
-        tab.grid_columnconfigure(0, weight=1)
-        row = 0
-        self._section(tab, "装扮资源、坐标与图标一体化导出", row); row += 1
-        row = self._file_row(tab, row, "wearable.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        row = self._file_row(tab, row, "wearable.out", "输出根目录", "选择资源输出根目录", directory=True)
+        folder_row = QHBoxLayout()
+        folder_label = QLabel("图标文件夹")
+        folder_label.setMinimumWidth(86)
+        folder_row.addWidget(folder_label)
+        icon_folder = self._line_edit("wearable.icon_folder", "ItemIcon")
+        icon_folder.setMaximumWidth(110)
+        folder_row.addWidget(icon_folder)
+        folder_row.addWidget(QLabel("版本号\\图标文件夹\\图标名.png；此页签不导出狗皮肤"))
+        folder_row.addStretch(1)
+        layout.addLayout(folder_row)
 
-        folder_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        folder_frame.grid(row=row, column=0, padx=12, pady=4, sticky="ew")
-        ctk.CTkLabel(folder_frame, text="图标文件夹", width=86, anchor="w").grid(
-            row=0, column=0, padx=(0, 8), sticky="w")
-        ctk.CTkEntry(
-            folder_frame,
-            textvariable=self._var("wearable.icon_folder", "ItemIcon"),
-            width=110,
-        ).grid(row=0, column=1, sticky="w")
-        ctk.CTkLabel(
-            folder_frame,
-            text="版本号\\图标文件夹\\图标名.png；此页签不导出狗皮肤",
-            text_color=("gray30", "gray75"),
-            anchor="w",
-        ).grid(row=0, column=2, padx=(10, 0), sticky="w")
-        row += 1
-
-        row = self._option_row(tab, row, "wearable.crop", "裁剪装扮图层空白区域", True)
-        row = self._wearable_settings_grid(tab, row)
-
-        ctk.CTkLabel(tab, text="短边规则名单", anchor="w").grid(
-            row=row, column=0, padx=12, pady=(8, 2), sticky="w")
-        short_box = ctk.CTkTextbox(tab, height=78)
-        short_box.grid(row=row + 1, column=0, padx=12, pady=(0, 4), sticky="ew")
-        short_box.insert("1.0", "Background\nTable")
-        self.textboxes["wearable.short_rules"] = short_box
-        short_box.bind("<FocusOut>", lambda _event: self._save_current_state())
-        ctk.CTkLabel(
-            tab,
-            text="每行一个组名、图层名或路径；支持 # 注释，也兼容逗号分隔。命中后按短边缩放。",
-            text_color=("gray30", "gray75"),
-            anchor="w",
-        ).grid(row=row + 2, column=0, padx=12, pady=(0, 0), sticky="ew")
-
-    def _wearable_settings_grid(self, parent, row):
-        settings = ctk.CTkFrame(parent)
-        settings.grid(row=row, column=0, padx=12, pady=(10, 4), sticky="ew")
-        settings.grid_columnconfigure((0, 1, 2), weight=1)
-        fields = [
+        layout.addWidget(self._check_box("wearable.crop", "裁剪装扮图层空白区域", True))
+        settings = QGridLayout()
+        settings.setHorizontalSpacing(12)
+        for col, (key, label, default) in enumerate((
             ("wearable.canvas", "画布尺寸", "256"),
             ("wearable.content", "内容尺寸", "240"),
             ("wearable.margin", "边框留白", "16"),
-        ]
-        for col, (key, label, default) in enumerate(fields):
-            ctk.CTkLabel(settings, text=label, anchor="w").grid(
-                row=0, column=col, padx=8, pady=(8, 2), sticky="ew")
-            ctk.CTkEntry(settings, textvariable=self._var(key, default)).grid(
-                row=1, column=col, padx=8, pady=(0, 8), sticky="ew")
-        return row + 1
+        )):
+            settings.addWidget(QLabel(label), 0, col)
+            settings.addWidget(self._line_edit(key, default), 1, col)
+        layout.addLayout(settings)
 
-    def _build_item_icons_tab(self, tab):
-        tab.grid_columnconfigure(0, weight=1)
-        row = 0
-        self._section(tab, "普通道具图标生成", row); row += 1
-        row = self._file_row(tab, row, "item_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        row = self._file_row(tab, row, "item_icons.item_json", "道具表", "选择 tbitem.json")
-        row = self._file_row(tab, row, "item_icons.out", "输出目录", "选择图标输出目录", directory=True)
-        self._icon_settings_grid(tab, row, "item_icons")
+        layout.addWidget(QLabel("短边规则名单"))
+        short_box = QPlainTextEdit()
+        short_box.setPlainText("Background\nTable")
+        short_box.setMaximumHeight(92)
+        short_box.textChanged.connect(self._save_current_state)
+        self.textboxes["wearable.short_rules"] = short_box
+        layout.addWidget(short_box)
+        note = QLabel("每行一个组名、图层名或路径；支持 # 注释，也兼容逗号分隔。命中后按短边缩放。")
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        layout.addStretch(1)
+        return page
 
-    def _build_dog_icons_tab(self, tab):
-        tab.grid_columnconfigure(0, weight=1)
-        row = 0
-        self._section(tab, "狗皮肤图标生成", row); row += 1
-        row = self._file_row(tab, row, "dog_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        row = self._file_row(tab, row, "dog_icons.item_json", "道具表", "选择 tbitem.json")
-        row = self._file_row(tab, row, "dog_icons.dog_json", "狗皮肤表", "选择 tbdogskin.json")
-        row = self._file_row(tab, row, "dog_icons.out", "输出目录", "选择图标输出目录", directory=True)
-        self._icon_settings_grid(tab, row, "dog_icons")
+    def _build_item_icons_tab(self) -> QWidget:
+        page, layout = self._page()
+        self._section(layout, "普通道具图标生成")
+        self._file_row(layout, "item_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        self._file_row(layout, "item_icons.item_json", "道具表", "选择 tbitem.json")
+        self._file_row(layout, "item_icons.out", "输出目录", "选择图标输出目录", directory=True)
+        self._icon_settings(layout, "item_icons")
+        layout.addStretch(1)
+        return page
 
-    def _icon_settings_grid(self, parent, row, prefix):
-        settings = ctk.CTkFrame(parent)
-        settings.grid(row=row, column=0, padx=12, pady=(10, 4), sticky="ew")
-        settings.grid_columnconfigure((0, 1, 2, 3), weight=1)
-        fields = [
+    def _build_dog_icons_tab(self) -> QWidget:
+        page, layout = self._page()
+        self._section(layout, "狗皮肤图标生成")
+        self._file_row(layout, "dog_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        self._file_row(layout, "dog_icons.item_json", "道具表", "选择 tbitem.json")
+        self._file_row(layout, "dog_icons.dog_json", "狗皮肤表", "选择 tbdogskin.json")
+        self._file_row(layout, "dog_icons.out", "输出目录", "选择图标输出目录", directory=True)
+        self._icon_settings(layout, "dog_icons")
+        layout.addStretch(1)
+        return page
+
+    def _icon_settings(self, layout: QVBoxLayout, prefix: str) -> None:
+        settings = QGridLayout()
+        settings.setHorizontalSpacing(12)
+        fields = (
             (f"{prefix}.canvas", "画布尺寸", "256"),
             (f"{prefix}.content", "内容尺寸", "240"),
             (f"{prefix}.margin", "边框留白", "16"),
             (f"{prefix}.short_groups", "短边缩放组", "Background,Table"),
-        ]
+        )
         for col, (key, label, default) in enumerate(fields):
-            ctk.CTkLabel(settings, text=label, anchor="w").grid(row=0, column=col, padx=8, pady=(8, 2), sticky="ew")
-            var = self._var(key, default)
-            ctk.CTkEntry(settings, textvariable=var).grid(row=1, column=col, padx=8, pady=(0, 8), sticky="ew")
+            settings.addWidget(QLabel(label), 0, col)
+            settings.addWidget(self._line_edit(key, default), 1, col)
+        layout.addLayout(settings)
 
-    def _section(self, parent, text, row):
-        label = ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w")
-        label.grid(row=row, column=0, padx=12, pady=(14, 6), sticky="ew")
+    def _file_row(self, layout: QVBoxLayout, key: str, label: str, title: str, directory: bool = False) -> None:
+        row = QHBoxLayout()
+        text_label = QLabel(label)
+        text_label.setMinimumWidth(86)
+        row.addWidget(text_label)
+        edit = self._line_edit(key, "")
+        row.addWidget(edit, 1)
+        button = QPushButton("...")
+        button.setMaximumWidth(38)
+        button.clicked.connect(lambda: self._pick_path(key, title, directory))
+        row.addWidget(button)
+        layout.addLayout(row)
 
-    def _file_row(self, parent, row, key, label, title, directory=False):
-        frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.grid(row=row, column=0, padx=12, pady=4, sticky="ew")
-        frame.grid_columnconfigure(1, weight=1)
+    def _group_row(self, layout: QVBoxLayout, mode: str) -> None:
+        row = QHBoxLayout()
+        label = QLabel(self._group_label_text(mode))
+        self.group_labels[mode] = label
+        row.addWidget(label, 1)
+        button = QPushButton("选择导出组")
+        button.setMinimumWidth(110)
+        button.clicked.connect(lambda: self._open_group_picker(mode))
+        row.addWidget(button)
+        layout.addLayout(row)
 
-        ctk.CTkLabel(frame, text=label, width=86, anchor="w").grid(row=0, column=0, padx=(0, 8), sticky="w")
-        var = self._var(key, "")
-        ctk.CTkEntry(frame, textvariable=var).grid(row=0, column=1, sticky="ew", padx=(0, 6))
+    def _line_edit(self, key: str, default: str) -> QLineEdit:
+        if key in self.fields:
+            return self.fields[key]  # type: ignore[return-value]
+        edit = QLineEdit(str(default))
+        if key == "asset_version":
+            edit.setPlaceholderText("例如 v1、v2 或 2026-08")
+            edit.setMaximumWidth(180)
+        edit.textChanged.connect(self._save_current_state)
+        self.fields[key] = edit
+        return edit
 
-        def pick():
-            if directory:
-                path = filedialog.askdirectory(title=title, initialdir=self._initial_dir(var.get()))
-            else:
-                path = filedialog.askopenfilename(
-                    title=title,
-                    initialdir=self._initial_dir(var.get()),
-                    filetypes=[("PSD / JSON", "*.psd;*.json"), ("PSD", "*.psd"), ("JSON", "*.json"), ("所有文件", "*.*")],
-                )
-            if path:
-                var.set(path)
-                self._save_current_state()
-
-        ctk.CTkButton(frame, text="...", width=38, command=pick).grid(row=0, column=2)
-        return row + 1
-
-    def _option_row(self, parent, row, key, label, default):
-        var = self._var(key, default, bool_var=True)
-        ctk.CTkCheckBox(parent, text=label, variable=var, command=self._save_current_state).grid(
-            row=row, column=0, padx=12, pady=4, sticky="w")
-        return row + 1
-
-    def _group_row(self, parent, row, mode):
-        frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.grid(row=row, column=0, padx=12, pady=(8, 4), sticky="ew")
-        frame.grid_columnconfigure(0, weight=1)
-
-        label_var = ctk.StringVar(value=self._group_label_text(mode))
-        self.group_labels[mode] = label_var
-        ctk.CTkLabel(frame, textvariable=label_var, anchor="w").grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(frame, text="选择导出组", width=110, command=lambda: self._open_group_picker(mode)).grid(row=0, column=1)
-        return row + 1
+    def _check_box(self, key: str, label: str, default: bool) -> QCheckBox:
+        if key in self.fields:
+            return self.fields[key]  # type: ignore[return-value]
+        box = QCheckBox(label)
+        box.setChecked(default)
+        box.stateChanged.connect(self._save_current_state)
+        self.fields[key] = box
+        return box
 
     # State
-
-    def _var(self, key: str, default, bool_var=False):
-        if key in self.vars:
-            return self.vars[key]
-        var = ctk.BooleanVar(value=default) if bool_var else ctk.StringVar(value=str(default))
-        var.trace_add("write", lambda *_: self._save_current_state())
-        self.vars[key] = var
-        return var
 
     def _restore_state(self):
         self.restoring_state = True
@@ -407,19 +424,24 @@ class App(ctk.CTk):
             saved = self.app_state.get(section, {})
             for name, default in values.items():
                 key = f"{section}.{name}"
-                if key not in self.vars:
+                widget = self.fields.get(key)
+                if widget is None:
                     continue
                 value = saved.get(name, default)
-                self.vars[key].set(default if value in ("", None) else value)
+                value = default if value in ("", None) else value
+                if isinstance(widget, QCheckBox):
+                    widget.setChecked(bool(value))
+                else:
+                    widget.setText(str(value))
 
         version = self.app_state.get("asset_version", self.app_state.get("version", ""))
-        self.vars["asset_version"].set("" if version is None else str(version))
+        self.fields["asset_version"].setText("" if version is None else str(version))  # type: ignore[union-attr]
 
         short_rules = self.app_state.get("wearable", {}).get("short_rules", "Background\nTable")
-        self._set_textbox("wearable.short_rules", short_rules)
+        self.textboxes["wearable.short_rules"].setPlainText(str(short_rules or ""))
 
         for mode, label in self.group_labels.items():
-            label.set(self._group_label_text(mode))
+            label.setText(self._group_label_text(mode))
         self.restoring_state = False
         self._save_current_state()
 
@@ -472,8 +494,8 @@ class App(ctk.CTk):
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }
 
-    def _save_current_state(self):
-        if not hasattr(self, "vars") or getattr(self, "restoring_state", False):
+    def _save_current_state(self) -> None:
+        if not self.fields or self.restoring_state:
             return
         try:
             self.app_state = self._collect_state()
@@ -482,18 +504,17 @@ class App(ctk.CTk):
             pass
 
     def _get(self, key: str) -> str:
-        return self.vars[key].get()
+        widget = self.fields[key]
+        if isinstance(widget, QLineEdit):
+            return widget.text()
+        return ""
 
     def _get_bool(self, key: str) -> bool:
-        return bool(self.vars[key].get())
+        widget = self.fields[key]
+        return isinstance(widget, QCheckBox) and widget.isChecked()
 
     def _get_textbox(self, key: str) -> str:
-        return self.textboxes[key].get("1.0", "end-1c")
-
-    def _set_textbox(self, key: str, value: str):
-        textbox = self.textboxes[key]
-        textbox.delete("1.0", "end")
-        textbox.insert("1.0", str(value or ""))
+        return self.textboxes[key].toPlainText()
 
     # Group picker
 
@@ -508,76 +529,104 @@ class App(ctk.CTk):
             self._log("无法读取 PSD 组结构")
             return
 
-        dlg = ctk.CTkToplevel(self)
-        dlg.title("选择导出组")
-        dlg.geometry("520x600")
-        dlg.transient(self)
-        dlg.grab_set()
+        dlg = QDialog(self)
+        dlg.setWindowTitle("选择导出组")
+        dlg.resize(520, 600)
+        dlg.setModal(True)
+        dialog_layout = QVBoxLayout(dlg)
 
         top_count = sum(1 for g in groups if g["is_group"] and g["depth"] == 0)
         layer_count = sum(1 for g in groups if not g["is_group"])
-        ctk.CTkLabel(
-            dlg,
-            text=f"PSD 组结构 ({top_count} 个顶层组, {layer_count} 个图层)",
-            font=ctk.CTkFont(size=14, weight="bold"),
-        ).pack(padx=12, pady=(12, 4))
-        ctk.CTkLabel(dlg, text="取消勾选 = 本次不输出该组 PNG").pack(padx=12, pady=(0, 8))
+        title = QLabel(f"PSD 组结构 ({top_count} 个顶层组, {layer_count} 个图层)")
+        title.setFont(QFont("Microsoft YaHei UI", 14, QFont.Weight.Bold))
+        dialog_layout.addWidget(title)
+        dialog_layout.addWidget(QLabel("取消勾选 = 本次不输出该组 PNG"))
 
-        scroll = ctk.CTkScrollableFrame(dlg, height=430)
-        scroll.pack(fill="both", expand=True, padx=12, pady=4)
+        tree = QTreeWidget()
+        tree.setHeaderHidden(True)
+        tree.setUniformRowHeights(True)
+        dialog_layout.addWidget(tree, 1)
 
         excluded = set(self.excluded_groups[mode])
-        check_vars: dict[str, ctk.BooleanVar] = {}
-
-        def descendants_of(index: int, depth: int) -> list[str]:
-            result = []
-            for item in groups[index + 1:]:
-                if item["depth"] <= depth:
-                    break
-                if item["is_group"]:
-                    result.append(item["path"])
-            return result
-
-        def set_descendants(paths: list[str], value: bool):
-            for path in paths:
-                if path in check_vars:
-                    check_vars[path].set(value)
-
-        for index, item in enumerate(groups):
-            if not item["is_group"]:
-                continue
+        path_to_item: dict[str, QTreeWidgetItem] = {}
+        descendants: dict[str, list[str]] = {}
+        group_items = [item for item in groups if item["is_group"]]
+        for item in group_items:
             path = item["path"]
-            var = ctk.BooleanVar(value=path not in excluded and item["name"] not in excluded)
-            check_vars[path] = var
-            child_paths = descendants_of(index, item["depth"])
-            text = f"{'  ' * item['depth']}{item['name']}"
-            ctk.CTkCheckBox(
-                scroll,
-                text=text,
-                variable=var,
-                command=lambda v=var, children=child_paths: set_descendants(children, v.get()),
-            ).pack(anchor="w", padx=4, pady=2)
+            descendants[path] = [
+                child["path"]
+                for child in group_items
+                if child["path"].startswith(path + "/")
+            ]
 
-        buttons = ctk.CTkFrame(dlg, fg_color="transparent")
-        buttons.pack(fill="x", padx=12, pady=(8, 12))
+        stack: list[QTreeWidgetItem] = []
+        for item in group_items:
+            depth = item["depth"]
+            stack = stack[:depth]
+            parent = stack[-1] if depth > 0 and stack else tree.invisibleRootItem()
+            node = QTreeWidgetItem(parent, [item["name"]])
+            node.setData(0, Qt.ItemDataRole.UserRole, item["path"])
+            checked = item["path"] not in excluded and item["name"] not in excluded
+            node.setCheckState(0, Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
+            path_to_item[item["path"]] = node
+            stack.append(node)
+
+        picker_guard = {"value": False}
+
+        def on_item_changed(item: QTreeWidgetItem, _column: int):
+            if picker_guard["value"]:
+                return
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            if not path:
+                return
+            picker_guard["value"] = True
+            state = item.checkState(0)
+            for child_path in descendants.get(path, []):
+                child = path_to_item.get(child_path)
+                if child is not None:
+                    child.setCheckState(0, state)
+            picker_guard["value"] = False
+
+        tree.itemChanged.connect(on_item_changed)
+
+        buttons = QHBoxLayout()
+        all_button = QPushButton("全选")
+        none_button = QPushButton("全不选")
+        apply_button = QPushButton("确定")
+        buttons.addWidget(all_button)
+        buttons.addWidget(none_button)
+        buttons.addStretch(1)
+        buttons.addWidget(apply_button)
+        dialog_layout.addLayout(buttons)
+
+        def set_all(state: Qt.CheckState):
+            picker_guard["value"] = True
+            for item in path_to_item.values():
+                item.setCheckState(0, state)
+            picker_guard["value"] = False
+
+        all_button.clicked.connect(lambda: set_all(Qt.CheckState.Checked))
+        none_button.clicked.connect(lambda: set_all(Qt.CheckState.Unchecked))
 
         def apply():
-            checked_paths = {path for path, var in check_vars.items() if var.get()}
+            checked_paths = {
+                path for path, item in path_to_item.items()
+                if item.checkState(0) == Qt.CheckState.Checked
+            }
             excluded_paths = []
-            for path, var in check_vars.items():
-                if var.get():
+            for path, item in path_to_item.items():
+                if item.checkState(0) == Qt.CheckState.Checked:
                     continue
                 has_checked_child = any(child.startswith(path + "/") for child in checked_paths)
                 if not has_checked_child:
                     excluded_paths.append(path)
             self.excluded_groups[mode] = excluded_paths
-            self.group_labels[mode].set(self._group_label_text(mode))
+            self.group_labels[mode].setText(self._group_label_text(mode))
             self._save_current_state()
-            dlg.destroy()
+            dlg.accept()
 
-        ctk.CTkButton(buttons, text="全选", width=80, command=lambda: [v.set(True) for v in check_vars.values()]).pack(side="left")
-        ctk.CTkButton(buttons, text="全不选", width=80, command=lambda: [v.set(False) for v in check_vars.values()]).pack(side="left", padx=8)
-        ctk.CTkButton(buttons, text="确定", width=90, command=apply).pack(side="right")
+        apply_button.clicked.connect(apply)
+        dlg.exec()
 
     def _group_label_text(self, mode: str) -> str:
         count = len(self.excluded_groups.get(mode, []))
@@ -588,7 +637,8 @@ class App(ctk.CTk):
     def _start_current_tab(self):
         if self.running:
             return
-        tab_name = self.tabs.get()
+
+        tab_name = self.tabs.tabText(self.tabs.currentIndex())
         if tab_name == "通用 PSD 导出":
             job = "generic"
         elif tab_name == "LuckyDogPub 总 PSD":
@@ -601,28 +651,65 @@ class App(ctk.CTk):
             job = "dog_icons"
 
         self._save_current_state()
+        job_config = self._snapshot_job(job)
         self.running = True
-        self.progress.set(0)
-        self.run_button.configure(state="disabled", text="运行中...")
-        threading.Thread(target=lambda: self._run_job(job), daemon=True).start()
+        self.progress_set(0)
+        self.run_button.setEnabled(False)
+        self.run_button.setText("运行中...")
+        threading.Thread(target=lambda: self._run_job(job, job_config), daemon=True).start()
 
-    def _run_job(self, job: str):
+    def _snapshot_job(self, job: str) -> dict:
+        if job in ("generic", "lucky"):
+            return {
+                "psd": self._get(f"{job}.psd"),
+                "out": self._get(f"{job}.out"),
+                "version": self._get("asset_version").strip(),
+                "crop": self._get_bool(f"{job}.crop"),
+                "composite": self._get_bool(f"{job}.composite"),
+                "excluded": list(self.excluded_groups[job]),
+            }
+        if job == "wearable":
+            return {
+                "psd": self._get("wearable.psd"),
+                "out": self._get("wearable.out"),
+                "version": self._get("asset_version").strip(),
+                "icon_folder": self._get("wearable.icon_folder").strip(),
+                "crop": self._get_bool("wearable.crop"),
+                "canvas": self._get("wearable.canvas"),
+                "content": self._get("wearable.content"),
+                "margin": self._get("wearable.margin"),
+                "short_rules": self._get_textbox("wearable.short_rules"),
+            }
+        is_dog = job == "dog_icons"
+        return {
+            "psd": self._get(f"{job}.psd"),
+            "item_json": self._get(f"{job}.item_json"),
+            "dog_json": self._get("dog_icons.dog_json") if is_dog else "",
+            "out": self._get(f"{job}.out"),
+            "canvas": self._get(f"{job}.canvas"),
+            "content": self._get(f"{job}.content"),
+            "margin": self._get(f"{job}.margin"),
+            "short_groups": split_csv(self._get(f"{job}.short_groups")),
+            "is_dog": is_dog,
+        }
+
+    def _run_job(self, job: str, config: dict):
         try:
             if job in ("generic", "lucky"):
-                self._run_layer_export(job)
+                self._run_layer_export(job, config)
             elif job == "wearable":
-                self._run_wearable_export()
+                self._run_wearable_export(config)
             else:
-                self._run_icon_export(job)
-            self._after_progress(1)
-            self._after_log("\n--- 完成 ---")
+                self._run_icon_export(job, config)
+            self.signals.progress.emit(100)
+            self.signals.log.emit("\n--- 完成 ---")
         except Exception:
-            self._after_log(traceback.format_exc())
+            self.signals.log.emit(traceback.format_exc())
         finally:
-            self.after(0, self._finish_run)
+            self.signals.finished.emit()
 
-    def _run_layer_export(self, mode: str):
-        psd = self._get(f"{mode}.psd")
+    def _run_layer_export(self, mode: str, config: dict):
+        psd = config["psd"]
         if not os.path.exists(psd):
             raise FileNotFoundError(f"PSD 文件不存在: {psd}")
 
@@ -630,79 +717,78 @@ class App(ctk.CTk):
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
-                "输出目录": self._get(f"{mode}.out"),
-                "美术资源版本号": self._get("asset_version").strip(),
-                "裁剪空白": self._get_bool(f"{mode}.crop"),
-                "使用合成渲染": self._get_bool(f"{mode}.composite"),
-                "排除组": ",".join(self.excluded_groups[mode]),
+                "输出目录": config["out"],
+                "美术资源版本号": config["version"],
+                "裁剪空白": config["crop"],
+                "使用合成渲染": config["composite"],
+                "排除组": ",".join(config["excluded"]),
             }, f, ensure_ascii=False)
 
         title = "通用 PSD 导出" if mode == "generic" else "LuckyDogPub 总 PSD 导出"
-        self._after_log(f"\n--- {title} ---")
+        self.signals.log.emit(f"\n--- {title} ---")
         try:
             self._run_script("export_all_layers.py", ["--config", tmp_cfg])
-            self._after_progress(0.85)
+            self.signals.progress.emit(85)
         finally:
             self._remove_tmp(tmp_cfg)
 
-    def _run_wearable_export(self):
-        psd = self._get("wearable.psd")
+    def _run_wearable_export(self, config: dict):
+        psd = config["psd"]
         if not os.path.exists(psd):
             raise FileNotFoundError(f"PSD 文件不存在: {psd}")
-        version = self._get("asset_version").strip()
-        if not version:
+        if not config["version"]:
             raise ValueError("请先填写美术资源版本号")
 
         tmp_cfg = os.path.join(SCRIPT_DIR, "_tmp_wearable_export.json")
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
-                "输出根目录": self._get("wearable.out"),
-                "美术资源版本号": version,
-                "道具图标文件夹": self._get("wearable.icon_folder").strip(),
-                "裁剪空白": self._get_bool("wearable.crop"),
-                "画布尺寸": parse_int(self._get("wearable.canvas"), 256),
-                "内容尺寸": parse_int(self._get("wearable.content"), 240),
-                "边框留白": parse_int(self._get("wearable.margin"), 16),
-                "短边规则名单": self._get_textbox("wearable.short_rules"),
+                "输出根目录": config["out"],
+                "美术资源版本号": config["version"],
+                "道具图标文件夹": config["icon_folder"],
+                "裁剪空白": config["crop"],
+                "画布尺寸": parse_int(config["canvas"], 256),
+                "内容尺寸": parse_int(config["content"], 240),
+                "边框留白": parse_int(config["margin"], 16),
+                "短边规则名单": config["short_rules"],
             }, f, ensure_ascii=False)
 
-        self._after_log("\n--- LuckyDogPub 装扮资源一体化 ---")
+        self.signals.log.emit("\n--- LuckyDogPub 装扮资源一体化 ---")
         try:
             self._run_script("export_wearable_assets.py", ["--config", tmp_cfg])
-            self._after_progress(0.85)
+            self.signals.progress.emit(85)
         finally:
             self._remove_tmp(tmp_cfg)
 
-    def _run_icon_export(self, mode: str):
-        psd = self._get(f"{mode}.psd")
-        item_json = self._get(f"{mode}.item_json")
+    def _run_icon_export(self, mode: str, config: dict):
+        psd = config["psd"]
+        item_json = config["item_json"]
         if not os.path.exists(psd):
             raise FileNotFoundError(f"PSD 文件不存在: {psd}")
         if not os.path.exists(item_json):
             raise FileNotFoundError(f"道具表不存在: {item_json}")
 
-        is_dog_mode = mode == "dog_icons"
+        is_dog_mode = config["is_dog"]
         tmp_cfg = os.path.join(SCRIPT_DIR, f"_tmp_{mode}_export.json")
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
                 "道具表路径": item_json,
-                "狗皮肤表路径": self._get("dog_icons.dog_json") if is_dog_mode else "",
-                "输出目录": self._get(f"{mode}.out"),
-                "画布尺寸": parse_int(self._get(f"{mode}.canvas"), 256),
-                "内容尺寸": parse_int(self._get(f"{mode}.content"), 240),
-                "边框留白": parse_int(self._get(f"{mode}.margin"), 16),
-                "短边缩放组": split_csv(self._get(f"{mode}.short_groups")),
+                "狗皮肤表路径": config["dog_json"],
+                "输出目录": config["out"],
+                "画布尺寸": parse_int(config["canvas"], 256),
+                "内容尺寸": parse_int(config["content"], 240),
+                "边框留白": parse_int(config["margin"], 16),
+                "短边缩放组": config["short_groups"],
                 "导出普通道具": not is_dog_mode,
                 "导出狗皮肤": is_dog_mode,
             }, f, ensure_ascii=False)
 
         title = "狗皮肤图标生成" if is_dog_mode else "普通道具图标生成"
-        self._after_log(f"\n--- {title} ---")
+        self.signals.log.emit(f"\n--- {title} ---")
         try:
             self._run_script("export_icons.py", ["--config", tmp_cfg])
-            self._after_progress(0.85)
+            self.signals.progress.emit(85)
         finally:
             self._remove_tmp(tmp_cfg)
 
@@ -726,7 +812,7 @@ class App(ctk.CTk):
             for line in proc.stdout:
                 line = line.strip()
                 if line:
-                    self._after_log(line)
+                    self.signals.log.emit(line)
         proc.wait()
         if proc.returncode != 0:
             raise RuntimeError(f"{script_name} 运行失败，退出码 {proc.returncode}")
@@ -739,13 +825,30 @@ class App(ctk.CTk):
 
     def _finish_run(self):
         self.running = False
-        self.run_button.configure(state="normal", text="运行当前页签")
+        self.run_button.setEnabled(True)
+        self.run_button.setText("运行当前页签")
 
-    def _on_close(self):
+    def closeEvent(self, event):
         self._save_current_state()
-        self.destroy()
+        event.accept()
 
     # Misc
+
+    def _pick_path(self, key: str, title: str, directory: bool):
+        current = self._get(key)
+        initial = self._initial_dir(current)
+        if directory:
+            path = QFileDialog.getExistingDirectory(self, title, initial)
+        else:
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                title,
+                initial,
+                "PSD / JSON (*.psd *.json);;PSD (*.psd);;JSON (*.json);;所有文件 (*)",
+            )
+        if path:
+            self.fields[key].setText(path)  # type: ignore[union-attr]
+            self._save_current_state()
 
     def _initial_dir(self, current: str) -> str:
         if current and os.path.isdir(current):
@@ -755,23 +858,24 @@ class App(ctk.CTk):
         return SCRIPT_DIR
 
     def _log(self, msg: str):
-        self.log_text.insert("end", msg + "\n")
-        self.log_text.see("end")
+        self.log_text.appendPlainText(msg)
+        scrollbar = self.log_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
 
-    def _after_log(self, msg: str):
-        self.after(0, lambda: self._log(msg))
-
-    def _after_progress(self, value: float):
-        self.after(0, lambda: self.progress.set(value))
+    def progress_set(self, value: int):
+        self.progress.setValue(max(0, min(100, int(value))))
 
     def _clear_log(self):
-        self.log_text.delete("1.0", "end")
+        self.log_text.clear()
 
 
-def main():
-    app = App()
-    app.mainloop()
+def main() -> int:
+    app = QApplication([])
+    app.setApplicationName("PSD 导出工具")
+    window = App()
+    window.show()
+    return app.exec()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

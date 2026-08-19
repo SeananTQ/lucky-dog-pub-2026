@@ -1,5 +1,5 @@
 {
-  "asset_version": "V2",
+  "asset_version": "v2",
   "generic": {
     "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/ItemBoderV1.psd",
     "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
@@ -38,6 +38,16 @@
       "_Treat"
     ]
   },
+  "wearable": {
+    "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/LuckyDogPub_V2.psd",
+    "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
+    "icon_folder": "ItemIcon",
+    "crop": true,
+    "canvas": "256",
+    "content": "240",
+    "margin": "16",
+    "short_rules": "Background\nTable"
+  },
   "item_icons": {
     "psd": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\LuckyDogPub-Test02.psd",
     "item_json": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\tbitem.json",
@@ -57,5 +67,5 @@
     "margin": "16",
     "short_groups": "Background,Table"
   },
-  "updated_at": "2026-08-19T16:06:01"
+  "updated_at": "2026-08-19T18:27:15"
 }
