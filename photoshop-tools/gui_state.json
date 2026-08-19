@@ -1,4 +1,5 @@
 {
+  "asset_version": "V2",
   "generic": {
     "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/ItemBoderV1.psd",
     "out": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/output",
@@ -7,36 +8,34 @@
     "excluded_groups": []
   },
   "lucky": {
-    "psd": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\LuckyDogPub-Test02.psd",
+    "psd": "G:/Workspace/godot-project/lucky-dog-pub-2026/photoshop-tools/LuckyDogPub_V2.psd",
     "out": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\photoshop-tools\\output",
     "crop": true,
     "composite": false,
     "excluded_groups": [
-      "Background",
-      "Table",
-      "Table/_模板",
-      "Shiba",
-      "Shiba/Black",
-      "Shiba/Sesame",
-      "Shiba/Cream",
-      "Shiba/Red",
-      "Eyewear",
-      "Headwear",
+      "_Background",
+      "_Table",
+      "_Table/_模板",
+      "_Shiba",
+      "_Shiba/Black",
+      "_Shiba/Sesame",
+      "_Shiba/Cream",
+      "_Shiba/Red",
+      "_Eyewear",
       "CardFace",
-      "CardFace/Classic",
+      "CardFace/_Classic",
       "CardFace/_Flop2",
       "CardFace/_Flop3",
       "CardFace/_Trun",
-      "CardFace/_River",
-      "CardBack",
-      "Player/BodyDecoration",
-      "Player/_Hand1",
-      "Player/_Hand2",
-      "Player/_Thumb",
-      "Player/Accessory",
-      "Player/Clothes",
-      "ChipStack",
-      "Treat"
+      "_CardBack",
+      "_Player",
+      "_Player/Arm",
+      "_Player/BodyDecoration",
+      "_Player/_Thumb",
+      "_Player/_Accessory",
+      "_Player/Clothes",
+      "_ChipStack",
+      "_Treat"
     ]
   },
   "item_icons": {
@@ -58,5 +57,5 @@
     "margin": "16",
     "short_groups": "Background,Table"
   },
-  "updated_at": "2026-07-21T17:58:21"
+  "updated_at": "2026-08-19T03:33:48"
 }

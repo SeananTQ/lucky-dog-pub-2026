@@ -105,6 +105,7 @@ class App(ctk.CTk):
         self.title("PSD 导出工具")
         self.geometry("900x720")
         self.minsize(820, 620)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
@@ -126,10 +127,21 @@ class App(ctk.CTk):
 
     def _build_ui(self):
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        version_frame = ctk.CTkFrame(self, fg_color="transparent")
+        version_frame.grid(row=0, column=0, padx=12, pady=(12, 0), sticky="ew")
+        version_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(version_frame, text="美术资源版本号", width=110, anchor="w").grid(
+            row=0, column=0, padx=(0, 8), sticky="w")
+        ctk.CTkEntry(
+            version_frame,
+            textvariable=self._var("asset_version", ""),
+            placeholder_text="例如 v1、v2 或 2026-08",
+        ).grid(row=0, column=1, sticky="ew")
 
         self.tabs = ctk.CTkTabview(self)
-        self.tabs.grid(row=0, column=0, padx=12, pady=(12, 8), sticky="nsew")
+        self.tabs.grid(row=1, column=0, padx=12, pady=(8, 8), sticky="nsew")
         self.tabs.add("通用 PSD 导出")
         self.tabs.add("LuckyDogPub 总 PSD")
         self.tabs.add("普通道具图标")
@@ -141,7 +153,7 @@ class App(ctk.CTk):
         self._build_dog_icons_tab(self.tabs.tab("狗皮肤图标"))
 
         bottom = ctk.CTkFrame(self)
-        bottom.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        bottom.grid(row=2, column=0, padx=12, pady=(0, 12), sticky="nsew")
         bottom.grid_columnconfigure(0, weight=1)
         bottom.grid_rowconfigure(1, weight=1)
 
@@ -181,7 +193,7 @@ class App(ctk.CTk):
 
         note = ctk.CTkLabel(
             tab,
-            text="选择部分组时，只限制 PNG 输出；layer_index.json 仍记录完整 PSD。",
+            text="选择部分组时，只限制 PNG 输出；layer_index_版本号.json 仍记录完整 PSD（未填版本号时为 layer_index.json）。",
             anchor="w",
             text_color=("gray30", "gray75"),
         )
@@ -329,6 +341,9 @@ class App(ctk.CTk):
                 value = saved.get(name, default)
                 self.vars[key].set(default if value in ("", None) else value)
 
+        version = self.app_state.get("asset_version", self.app_state.get("version", ""))
+        self.vars["asset_version"].set("" if version is None else str(version))
+
         for mode, label in self.group_labels.items():
             label.set(self._group_label_text(mode))
         self.restoring_state = False
@@ -336,6 +351,7 @@ class App(ctk.CTk):
 
     def _collect_state(self) -> dict:
         return {
+            "asset_version": self._get("asset_version"),
             "generic": {
                 "psd": self._get("generic.psd"),
                 "out": self._get("generic.out"),
@@ -519,6 +535,7 @@ class App(ctk.CTk):
             json.dump({
                 "psd路径": psd,
                 "输出目录": self._get(f"{mode}.out"),
+                "美术资源版本号": self._get("asset_version").strip(),
                 "裁剪空白": self._get_bool(f"{mode}.crop"),
                 "使用合成渲染": self._get_bool(f"{mode}.composite"),
                 "排除组": ",".join(self.excluded_groups[mode]),
@@ -598,6 +615,10 @@ class App(ctk.CTk):
     def _finish_run(self):
         self.running = False
         self.run_button.configure(state="normal", text="运行当前页签")
+
+    def _on_close(self):
+        self._save_current_state()
+        self.destroy()
 
     # Misc
 

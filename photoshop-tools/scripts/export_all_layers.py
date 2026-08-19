@@ -2,7 +2,7 @@
 PSD 全量导出工具
 
 按 PSD 图层组结构导出所有非辅助图层为 PNG，
-同时生成 layer_index.json 坐标信息。
+同时生成带可选版本后缀的 layer_index 坐标信息。
 
 用法:
     python export_all_layers.py --psd <PSD路径> --out <导出目录>
@@ -55,6 +55,19 @@ def safe_filename(name: str) -> str:
     return re.sub(r'[:/\\ ]', '_', name)
 
 
+def layer_index_filename(asset_version: str) -> str:
+    """返回 layer_index 文件名；版本号仅用于文件名时做安全清洗。"""
+    version = str(asset_version or "").strip()
+    if not version:
+        return "layer_index.json"
+
+    safe_version = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", version)
+    safe_version = safe_version.strip(" .")
+    if not safe_version:
+        raise ValueError(f"美术资源版本号无法用于文件名: {asset_version!r}")
+    return f"layer_index_{safe_version}.json"
+
+
 def is_in_excluded_group(layer, excluded: set):
     """检查图层或其祖先组是否在排除列表中"""
     if not excluded:
@@ -70,7 +83,8 @@ def is_in_excluded_group(layer, excluded: set):
 
 
 def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
-                      use_composite: bool = False, excluded_groups: str = ""):
+                      use_composite: bool = False, excluded_groups: str = "",
+                      asset_version: str = ""):
     psd_name = Path(psd_path).stem
     psd = PSDImage.open(psd_path)
     excluded = set(g.strip() for g in excluded_groups.split(",") if g.strip()) if excluded_groups else set()
@@ -88,11 +102,15 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
     for layer in all_layers:
         if layer.is_group():
             continue
+        # 辅助图层及其子孙图层完全不进入索引，也不参与渲染。
+        if should_skip(layer):
+            skipped_count += 1
+            continue
         if not has_content(layer):
             skipped_count += 1
             continue
 
-        skip_layer = should_skip(layer) or is_in_excluded_group(layer, excluded)
+        skip_layer = is_in_excluded_group(layer, excluded)
         if skip_layer:
             skipped_count += 1
 
@@ -200,9 +218,11 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
             print(f"  进度: {exported_count} 图层已处理...")
 
     # JSON
-    json_path = os.path.join(out_dir, "layer_index.json")
+    json_filename = layer_index_filename(asset_version)
+    json_path = os.path.join(out_dir, json_filename)
     json_data = {
         "psd": psd_path,
+        "version": str(asset_version or "").strip(),
         "canvas_width": psd.width,
         "canvas_height": psd.height,
         "total_layers": exported_count,
@@ -235,6 +255,7 @@ def main():
     parser.add_argument("--config", help="配置文件路径")
     parser.add_argument("--psd", help="PSD 文件路径")
     parser.add_argument("--out", default="output", help="导出目录")
+    parser.add_argument("--version", default="", help="美术资源版本号；用于 layer_index 文件名和 JSON 元数据")
     args = parser.parse_args()
 
     if args.config:
@@ -246,6 +267,7 @@ def main():
         crop_blank = cfg.get("裁剪空白", True)
         use_composite = cfg.get("使用合成渲染", False)
         excluded_groups = cfg.get("排除组", "")
+        asset_version = cfg.get("美术资源版本号", cfg.get("asset_version", ""))
     else:
         if not args.psd:
             print("错误: 需要 --psd 或 --config")
@@ -256,12 +278,13 @@ def main():
         crop_blank = True
         use_composite = False
         excluded_groups = ""
+        asset_version = args.version or ""
 
     if not os.path.exists(psd_path):
         print(f"错误: PSD 文件不存在 - {psd_path}")
         sys.exit(1)
 
-    export_all_layers(psd_path, out_dir, crop_blank, use_composite, excluded_groups)
+    export_all_layers(psd_path, out_dir, crop_blank, use_composite, excluded_groups, asset_version)
 
 
 if __name__ == "__main__":
