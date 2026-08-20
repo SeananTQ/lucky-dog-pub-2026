@@ -1200,7 +1200,7 @@ public partial class SystemPanelController : CanvasLayer
         if (!snapshot.Succeeded)
         {
             RefreshLinkTreePageFromPlatformState();
-            GD.PushWarning($"[LinkTree] {snapshot.Message}");
+            GD.PushWarning($"[SteamInventory] {snapshot.Message}");
             return;
         }
 
@@ -1259,7 +1259,7 @@ public partial class SystemPanelController : CanvasLayer
             _refreshLinkTreeSelectionOnNextInventorySnapshot = false;
         }
         RefreshLinkTreePageFromPlatformState();
-        GD.Print($"[LinkTree] {snapshot.Message}");
+        GD.Print($"[SteamInventory] {snapshot.Message}");
     }
 
     private void OnPlatformConnectionStateChanged(PlatformConnectionState state)
