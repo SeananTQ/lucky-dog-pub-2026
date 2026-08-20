@@ -71,6 +71,7 @@ config.toml
 /photoshop-tools/*.psd
 /photoshop-tools/output/
 /photoshop-tools/gui_state.json
+lucky-dog-rise/Assets/v2/Items_Item.csv
 
 # 字体
 *.otf
