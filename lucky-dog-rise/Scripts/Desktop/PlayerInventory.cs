@@ -10,6 +10,7 @@ namespace LuckyDogRise;
 
 public class PlayerInventory
 {
+    private const string ItemIconFallbackPath = "res://Assets/v1/Fallback/ItemIcon_Fallback.png";
     private readonly Dictionary<int, int> _ownedItemCounts = new();
     private readonly Dictionary<EItemType, int> _equipped = new();
     private readonly HashSet<int> _newItemIds = new();
@@ -440,5 +441,21 @@ public class PlayerInventory
     public static string ToResPath(string lubanPath)
     {
         return "res://Assets/" + lubanPath.Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// 加载物品表配置的图标。配置为空、文件不存在或导入失败时，始终返回通用占位图标。
+    /// </summary>
+    public static Texture2D? LoadItemIconOrFallback(string iconPath)
+    {
+        var resourcePath = string.IsNullOrWhiteSpace(iconPath) ? string.Empty : ToResPath(iconPath);
+        if (!string.IsNullOrEmpty(resourcePath) && ResourceLoader.Exists(resourcePath))
+        {
+            var icon = GD.Load<Texture2D>(resourcePath);
+            if (icon != null)
+                return icon;
+        }
+
+        return GD.Load<Texture2D>(ItemIconFallbackPath);
     }
 }

@@ -1981,12 +1981,7 @@ public partial class SystemPanelController : CanvasLayer
                 "falling back to the generic item icon.");
         }
 
-        var fallbackPath = PlayerInventory.ToResPath(item.IconPath);
-        if (ResourceLoader.Exists(fallbackPath))
-            return GD.Load<Texture2D>(fallbackPath);
-
-        GD.PushWarning($"[Settings] Arm item icon could not be loaded: item {item.Id}, {fallbackPath}");
-        return null;
+        return PlayerInventory.LoadItemIconOrFallback(item.IconPath);
     }
 
     private void RefreshArmAppearanceSelection()

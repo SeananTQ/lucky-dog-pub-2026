@@ -42,10 +42,37 @@ ITEM_TYPE_BY_ICON_PREFIX = {
 }
 ITEM_TYPE_NAME_BY_VALUE = {value: key for key, value in ITEM_TYPE_BY_ICON_PREFIX.items()}
 
-TOOL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ITEMS_CSV_TEMPLATE = os.path.normpath(
-    os.path.join(TOOL_DIR, "..", "luban-excels", "csv", "Items_Item.csv")
-)
+# Items_Item.csv 的 4 行 Luban 头部。这里内置的是参考文件的字段结构，
+# 导出时不再依赖项目目录中的 Items_Item.csv 文件。
+ITEMS_CSV_HEADER_ROWS = [
+    [
+        "##var", "Id", "Name", "", "ItemType", "HiddenRegionFlag",
+        "SafeResourceId", "ItemRarity", "SortOrder", "", "IsHiddenInBag",
+        "AcquisitionType", "", "", "StandardBoxWeight", "NewbieBoxWeight",
+        "RefreshmentBoxWeight", "EventBoxWeight", "", "*AssetPathList",
+        "IconPath", "SkinId", "", "SteamItemDefId", "SteamItemDefType",
+        "SteamDescription", "SteamGameOnly", "SteamTradable", "SteamMarketable",
+        "SteamAutoStack", "SteamHidden", "SteamDisplayType", "SteamTags",
+        "SteamIconUrl", "SteamIconUrlLarge",
+    ],
+    [
+        "##type", "int", "string", "", "EItemType", "EHiddenRegionFlag",
+        "int", "ERarity", "int", "int", "bool", "EAcquisitionType", "", "",
+        "int", "int", "int", "int", "", "list,string", "string", "int", "",
+        "int", "ESteamItemDefType", "string", "bool", "bool", "bool", "bool",
+        "bool", "string", "string", "string", "string",
+    ],
+    ["##"] + [""] * 34,
+    [
+        "##", "id", "显示名称", "图层名称", "物品类型", "在哪些国家无法抽到",
+        "安全替换资源id", "品质", "排序权重", "盲盒权重", "在背包中隐藏",
+        "投放类型", "是否唯一", "随机组id", "标准权重", "新手权重", "消耗品权重",
+        "活动权重", "", "对应素材图片路径列表", "图标路径", "皮肤id", "",
+        "Steam定义物品ID", "定义类型", "英文说明", "为游戏内专用", "可交易",
+        "可在市场出售", "自动堆叠", "Steam隐藏", "显示类型", "自定义标签",
+        "小图标", "大图标",
+    ],
+]
 
 
 def clean_component(value: str, fallback: str = "Layer") -> str:
@@ -151,17 +178,10 @@ def write_items_csv(output_path: str, manifest_items: list[dict]) -> int:
 
     The exporter knows the source layer, item type, art path, and icon path.
     IDs, rarity, and loot configuration remain empty for later completion.
+    The Luban header rows are embedded above so this export is self-contained.
     """
-    if not os.path.exists(ITEMS_CSV_TEMPLATE):
-        raise FileNotFoundError(f"找不到 Luban CSV 模板: {ITEMS_CSV_TEMPLATE}")
-
-    with open(ITEMS_CSV_TEMPLATE, "r", encoding="utf-8-sig", newline="") as handle:
-        template_rows = list(csv.reader(handle))
-    if len(template_rows) < 4 or not template_rows[0]:
-        raise ValueError(f"Luban CSV 模板格式不完整: {ITEMS_CSV_TEMPLATE}")
-
-    width = len(template_rows[0])
-    rows = [row[:width] + [""] * max(0, width - len(row)) for row in template_rows[:4]]
+    width = len(ITEMS_CSV_HEADER_ROWS[0])
+    rows = [row[:] for row in ITEMS_CSV_HEADER_ROWS]
     for item in manifest_items:
         row = [""] * width
         row[2] = display_name_from_layer(item.get("SourceLayer", ""))

@@ -25,9 +25,7 @@ public partial class ItemCellController : PanelContainer
 
         ItemId = item.Id;
 
-        var iconPath = PlayerInventory.ToResPath(item.IconPath);
-        if (ResourceLoader.Exists(iconPath))
-            _iconRect.Texture = GD.Load<Texture2D>(iconPath);
+        _iconRect.Texture = PlayerInventory.LoadItemIconOrFallback(item.IconPath);
 
         // 品质底板和边框
         LoadTextureOrClear(_plate, $"res://Assets/UI/ItemUI/Plate_{item.ItemRarity}.png");
