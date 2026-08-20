@@ -277,7 +277,7 @@ lucky-dog-rise/
 - 对配置独立掉落参数的新 PlaytimeGenerator，真实 Steam 实测表明首次接受的 `TriggerItemDrop` 才建立该 Generator 的独立资格起点；上传时间、账号历史时长和首次调用前的游玩不能替代激活。客户端只预热当前需要的 Generator；当前 Schedule 为本地盲盒时，预热后面最近的一条 Steam Schedule，1012 则预热循环 Generator。激活状态、实例基线和意外返回奖励持久化。转换器直接把每行真实秒 `SteamDropIntervalSeconds` 向上取整为 Steam 分钟，不再从 `StartSeconds` 推导资格，也不扣除整队列预算或提前量。
 - `BlindBoxSchedule.SteamCompletionReceiptItemDefId` 是粗粒度新手换机恢复检查点，不是盲盒奖励。当前 Schedule 1005 / 1012 分别映射永久隐藏回执 `500005` / `500012`；奖励真正领取后才通过 `AddPromoItem` 补交，待补交 ID 写入 V15 存档。回执事务与盲盒准备、LinkTree 领奖共用库存写入单飞保护。
 - 提交 PlaytimeGenerator 前把 Generator、Schedule、BlindBox、提交时间和实例数量基线保存到 `PendingBlindBoxPreparation`。正常回调优先使用实际变化实例；回调丢失、超时或断联时通过可信完整库存差分复查。只有唯一且属于当前盲盒合法候选的增量才能进入 `PreparedBlindBoxReward`。
-- `TriggerItemDrop` 成功但没有合法增量只表示本次没有确认奖励。系统遵守 65 秒公共节流重试；展示点没有可信准备奖励时立即锁定本地 Refreshment Fallback。未决请求在 Fallback 后确认的奖励标记为迟到，只能占用后续展示点。
+- `TriggerItemDrop` 成功但没有合法增量只表示本次没有确认奖励。系统遵守 65 秒公共节流重试；展示点没有可信准备奖励时立即锁定本地 Refreshment Fallback，玩家领取后完成当前新手 Schedule。已提交但结果未知的旧请求只做一次最终库存复查，不再重试已略过的 Generator；复查后确认的奖励标记为 `LateSteam`，只占用后续展示点，领取时不推进当前调度。旧事务结算后再按当前进度激活后续 Generator。
 - `PlatformInventorySnapshot` 保存实例 ID、ItemDef 和数量，不能退化成仅记录 ItemDef 集合；重复装扮与堆叠物品的同步和事务复查都依赖实例级数据。Steam 返回的奖励必须映射到本地 `Item.SteamItemDefId`，并属于当前盲盒的表配置候选。
 - Steam 获得的非 Initial 装扮物品以平台库存数量为准同步到本地背包。`AcquisitionType=RefreshmentBlindBox` 的消耗品属于本地奖励，即使表中暂时存在 `SteamItemDefId` 也不参与 Steam 数量对账。Steam 盲盒奖励在展示期间会从同步数量中暂扣一份，玩家完成领取表演后再加入本地背包，避免“库存同步一次 + 动画领取一次”造成重复计数。
 - 展示点一旦锁定装扮、Schedule 本地盲盒或 Fallback，后续 Steam 状态变化不得替换当前气球。玩家点击只执行本地扣款、至少 500 毫秒反馈和既有表演，不发起 Steam 网络调用；Fallback 是正式必选分支，不提供关闭开关。
