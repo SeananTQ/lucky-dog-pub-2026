@@ -159,7 +159,9 @@ public partial class GameData : Node
 
     private static bool IsBlindBoxPreparationBlockingInventoryWrites(
         PendingBlindBoxPreparation pending) =>
-        pending != null && pending.Phase != BlindBoxPreparationPhase.RetryWaiting;
+        pending != null
+        && (pending.StopRetryAfterFallback
+            || pending.Phase != BlindBoxPreparationPhase.RetryWaiting);
 
     public void ConfigureStorage(AccountStorageContext storageContext)
     {
