@@ -65,14 +65,16 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         }
     }
 
-    // PSD → DogArea 本地坐标转换参数
-    // Headwear 需要独立 Y 偏移（683 vs 677），因为帽子在头顶位置较高
+    // 小狗本体的 PSD → DogArea 本地坐标转换参数。
     private const float OffsetX = 586f;
     private const float OffsetY = 677f;
-    private const float OffsetXHeadwear = 585f;
-    private const float OffsetYHeadwear = 683f;
 
     private Dictionary<string, Vector2> _positionCache = null!;
+    private Dictionary<string, Vector2> _psdCenterCache = null!;
+    private Vector2 _headwearReferenceLocalPosition;
+    private Vector2 _eyewearReferenceLocalPosition;
+    private string _headwearReferenceLayerPath = "";
+    private string _eyewearReferenceLayerPath = "";
 
     public override void _Ready()
     {
@@ -84,6 +86,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _clawRight = GetNode<Node2D>("ClawRight");
         _eyewear = GetNode<Sprite2D>("HeadRoot/Eyewear");
         _headwear = GetNode<Sprite2D>("HeadRoot/Headwear");
+        _eyewearReferenceLocalPosition = _eyewear.Position;
+        _headwearReferenceLocalPosition = _headwear.Position;
+        _eyewearReferenceLayerPath = GetLayerPath(_eyewear.Texture);
+        _headwearReferenceLayerPath = GetLayerPath(_headwear.Texture);
         _hitButton = GetNode<Button>("HitButton");
         RegisterHitButton(_hitButton);
         RegisterHitButton(GetNodeOrNull<Button>("ClawLeftHitButton"));
@@ -142,7 +148,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
-    /// 从资源所属版本的 layer_index_v*.json 读取 PSD 坐标，返回 DogArea 本地坐标。
+    /// 从资源所属版本的 layer_index_v*.json 读取小狗本体的绝对 PSD 坐标。
     /// </summary>
     public Vector2 GetScenePosition(string assetPath)
     {
@@ -163,6 +169,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (_positionCache != null) return;
         _positionCache = new Dictionary<string, Vector2>();
+        _psdCenterCache = new Dictionary<string, Vector2>();
 
         LoadPositionCache("res://Assets/v1/layer_index_v1.json", "v1");
         LoadPositionCache("res://Assets/v2/layer_index_v2.json", "v2");
@@ -185,13 +192,45 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             var cx = ReadFloat(d, "doc_x", "x") + ReadFloat(d, "width", "w") / 2f;
             var cy = ReadFloat(d, "doc_y", "y") + ReadFloat(d, "height", "h") / 2f;
 
-            var pos = path.StartsWith($"{assetVersion}/Headwear/")
-                ? new Vector2(cx - OffsetXHeadwear, cy - OffsetYHeadwear)
-                : new Vector2(cx - OffsetX, cy - OffsetY);
+            var center = new Vector2(cx, cy);
+            var pos = center - new Vector2(OffsetX, OffsetY);
 
             _positionCache[path] = pos;
-            _positionCache.TryAdd(fileOnly, pos);
+            _positionCache.TryAdd($"{assetVersion}/{fileOnly}", pos);
+            _psdCenterCache[path] = center;
+            _psdCenterCache.TryAdd($"{assetVersion}/{fileOnly}", center);
         }
+    }
+
+    private Vector2 GetAdornmentScenePosition(
+        string assetPath,
+        string referenceLayerPath,
+        Vector2 referenceLocalPosition)
+    {
+        if (!TryGetPsdCenter(assetPath, out var currentCenter))
+        {
+            GD.PushWarning($"[DogVisual] PSD center not found for adornment: {assetPath}");
+            return referenceLocalPosition;
+        }
+
+        if (!TryGetPsdCenter(referenceLayerPath, out var referenceCenter))
+        {
+            GD.PushWarning($"[DogVisual] Reference PSD center not found for adornment: {referenceLayerPath}");
+            return referenceLocalPosition;
+        }
+
+        return referenceLocalPosition + currentCenter - referenceCenter;
+    }
+
+    private bool TryGetPsdCenter(string assetPath, out Vector2 center)
+    {
+        var key = NormalizeLayerPath(assetPath);
+        if (_psdCenterCache.TryGetValue(key, out center))
+            return true;
+
+        var fileName = key.Split('/')[^1];
+        var version = key.StartsWith("v2/") ? "v2" : "v1";
+        return _psdCenterCache.TryGetValue($"{version}/{fileName}", out center);
     }
 
     public void ResetAppearance()
@@ -409,7 +448,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         }
 
         _headwear.Texture = texture;
-        _headwear.Position = GetScenePosition(item.AssetPathList[0]);
+        _headwear.Position = GetAdornmentScenePosition(
+            item.AssetPathList[0],
+            _headwearReferenceLayerPath,
+            _headwearReferenceLocalPosition);
         _headwear.Visible = true;
     }
 
@@ -436,7 +478,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         }
 
         _eyewear.Texture = texture;
-        _eyewear.Position = GetScenePosition(item.AssetPathList[0]);
+        _eyewear.Position = GetAdornmentScenePosition(
+            item.AssetPathList[0],
+            _eyewearReferenceLayerPath,
+            _eyewearReferenceLocalPosition);
         if (showIfEquipped)
             _eyewear.Visible = true;
     }
@@ -660,7 +705,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (texture == null) return;
 
         _headwear.Texture = texture;
-        _headwear.Position = GetScenePosition(assetPath);
+        _headwear.Position = GetAdornmentScenePosition(
+            assetPath,
+            _headwearReferenceLayerPath,
+            _headwearReferenceLocalPosition);
         _headwear.Visible = true;
     }
 
@@ -825,6 +873,11 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (path.StartsWith(assetsPrefix))
             path = path[assetsPrefix.Length..];
         return path;
+    }
+
+    private static string GetLayerPath(Texture2D texture)
+    {
+        return texture == null ? string.Empty : NormalizeLayerPath(texture.ResourcePath);
     }
 
     private static float ReadFloat(Godot.Collections.Dictionary d, string preferredKey, string fallbackKey)
