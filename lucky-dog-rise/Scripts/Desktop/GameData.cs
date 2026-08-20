@@ -1123,6 +1123,14 @@ public partial class GameData : Node
         var isRetry = false;
         if (pending != null)
         {
+            if (pending.StopRetryAfterFallback)
+            {
+                // The skipped Schedule may still have one request in flight or awaiting
+                // inventory revalidation. Do not submit it again while it settles.
+                _platformInventoryService.StartInventorySynchronization();
+                return;
+            }
+
             if (pending.Phase != BlindBoxPreparationPhase.RetryWaiting)
             {
                 _platformInventoryService.StartInventorySynchronization();
@@ -1144,9 +1152,8 @@ public partial class GameData : Node
                 return;
             }
 
-            // A Fallback consumes one presentation point without completing the newcomer
-            // Schedule. Keep retrying the original Generator; a confirmed late reward stays
-            // prepared until the next normal presentation point for this same Schedule.
+            // A retry is only valid while this Schedule has not been skipped by a claimed
+            // Fallback. Skipped preparations are handled by the guard above.
             isRetry = true;
         }
         else
@@ -1339,7 +1346,7 @@ public partial class GameData : Node
                 $"{item.InstanceId}:{item.ItemDefId}x{item.Quantity}")),
         });
 
-        pending.Phase = result.Succeeded
+        pending.Phase = result.Succeeded && !pending.StopRetryAfterFallback
             ? BlindBoxPreparationPhase.RetryWaiting
             : BlindBoxPreparationPhase.RevalidationRequired;
         pending.RetryNotBeforeTotalPlaySeconds = Math.Max(
@@ -1654,6 +1661,20 @@ public partial class GameData : Node
 
         if (_platformInventoryService?.IsPlaytimeDropPending == true)
             return;
+
+        if (pending.StopRetryAfterFallback)
+        {
+            runtimeState.PendingPreparation = null;
+            DiagnosticLog.Record("blindbox_preparation_stopped_after_fallback", new Dictionary<string, object>
+            {
+                ["scheduleId"] = pending.ScheduleId,
+                ["generatorItemDefId"] = pending.GeneratorItemDefId,
+                ["reason"] = reason,
+            });
+            SaveImmediatelyIfUsingLocalSave();
+            EmitSignal(SignalName.BlindBoxStateChanged);
+            return;
+        }
 
         pending.Phase = BlindBoxPreparationPhase.RetryWaiting;
         pending.RetryNotBeforeTotalPlaySeconds = Math.Max(

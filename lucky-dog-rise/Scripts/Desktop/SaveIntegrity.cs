@@ -179,6 +179,7 @@ internal static class SaveIntegrity
             GeneratorItemDefId = pending.GeneratorItemDefId,
             Phase = pending.Phase,
             IsLate = pending.IsLate,
+            StopRetryAfterFallback = pending.StopRetryAfterFallback,
             SubmittedAtTotalPlaySeconds = pending.SubmittedAtTotalPlaySeconds,
             RetryNotBeforeTotalPlaySeconds = pending.RetryNotBeforeTotalPlaySeconds,
             InventoryQuantitiesBeforeRequest = (pending.InventoryQuantitiesBeforeRequest ?? new Dictionary<ulong, uint>())

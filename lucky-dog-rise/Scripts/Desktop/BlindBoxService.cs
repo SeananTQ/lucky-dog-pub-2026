@@ -41,6 +41,8 @@ public sealed class PendingBlindBoxPreparation
     public int GeneratorItemDefId { get; set; }
     public BlindBoxPreparationPhase Phase { get; set; }
     public bool IsLate { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool StopRetryAfterFallback { get; set; }
     public double SubmittedAtTotalPlaySeconds { get; set; }
     public double RetryNotBeforeTotalPlaySeconds { get; set; }
     public Dictionary<ulong, uint> InventoryQuantitiesBeforeRequest { get; set; } = new();
@@ -299,7 +301,9 @@ public sealed class BlindBoxService
                 : LockedBlindBoxPresentationKind.PreparedSteam;
             runtimeState.LockedPresentation = new LockedBlindBoxPresentation
             {
-                ScheduleId = schedule.Id,
+                ScheduleId = kind == LockedBlindBoxPresentationKind.LateSteam
+                    ? prepared.ScheduleId
+                    : schedule.Id,
                 BlindBoxId = prepared.BlindBoxId,
                 Kind = kind,
                 PreparedPlatformInstanceId = prepared.PlatformInstanceId,
@@ -679,13 +683,22 @@ public sealed class BlindBoxService
             return false;
 
         var schedule = LubanData.Tables.TbBlindBoxSchedule.GetOrDefault(presentation.ScheduleId);
-        var completesSchedule = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam
-                                && !(presentation.Kind == LockedBlindBoxPresentationKind.Fallback
-                                     && schedule is
-                                     {
-                                         IsLoopTrack: false,
-                                         SteamPlaytimeGeneratorItemDefId: > 0,
-                                     });
+        var completesSchedule = presentation.Kind != LockedBlindBoxPresentationKind.LateSteam;
+        if (presentation.Kind == LockedBlindBoxPresentationKind.Fallback
+            && schedule is
+            {
+                IsLoopTrack: false,
+                SteamPlaytimeGeneratorItemDefId: > 0,
+            }
+            && runtimeState.PendingPreparation is { } pending
+            && pending.ScheduleId == schedule.Id)
+        {
+            // The Fallback now completes this newcomer step. Let an already submitted
+            // request finish once so a real late reward is not lost, but never keep
+            // retrying the skipped Generator and starving the next Schedule.
+            pending.IsLate = true;
+            pending.StopRetryAfterFallback = true;
+        }
         runtimeState.LockedPresentation = null;
         if (!completesSchedule || schedule == null || schedule.IsLoopTrack)
             return completesSchedule;

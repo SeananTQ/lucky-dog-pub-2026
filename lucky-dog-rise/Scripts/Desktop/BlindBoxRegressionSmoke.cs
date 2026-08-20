@@ -18,10 +18,10 @@ internal static class BlindBoxRegressionSmoke
         try
         {
             var service = new BlindBoxService(gameData);
-            VerifyRepeatedFallbackTiming(service);
+            VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
             VerifySaveSnapshotIsolation();
-            GD.Print("[BlindBoxRegressionSmoke] Passed fallback timing, inventory visibility grace, and save snapshot isolation checks.");
+            GD.Print("[BlindBoxRegressionSmoke] Passed fallback advance, late reward, inventory visibility grace, and save snapshot isolation checks.");
         }
         finally
         {
@@ -54,42 +54,67 @@ internal static class BlindBoxRegressionSmoke
             "Seeing the Steam instance again did not reset its missing-inventory evidence.");
     }
 
-    private static void VerifyRepeatedFallbackTiming(BlindBoxService service)
+    private static void VerifyFallbackAdvanceAndLateReward(BlindBoxService service)
     {
         var state = new BlindBoxRuntimeState();
         Assert(service.TryGetCurrentSchedule(state, out var firstSchedule)
                && firstSchedule?.Id == FirstScheduleId,
             "The first newcomer Schedule is unavailable for the regression check.");
         var presentationSeconds = (double)firstSchedule!.StartSeconds;
-        var presentationIntervalSeconds = (double)firstSchedule.IntervalSeconds;
-
-        for (var fallbackCount = 1; fallbackCount <= 8; fallbackCount++)
+        state.PendingPreparation = new PendingBlindBoxPreparation
         {
-            state.ScheduleSeconds = presentationSeconds;
-            Assert(service.MaintainPresentation(state),
-                $"Fallback {fallbackCount} was not locked at its presentation point.");
-            Assert(state.LockedPresentation is
-                {
-                    ScheduleId: FirstScheduleId,
-                    BlindBoxId: FallbackBlindBoxId,
-                    Kind: LockedBlindBoxPresentationKind.Fallback,
-                }, $"Fallback {fallbackCount} locked unexpected presentation data.");
+            ScheduleId = FirstScheduleId,
+            BlindBoxId = FirstSteamBlindBoxId,
+            GeneratorItemDefId = firstSchedule.SteamPlaytimeGeneratorItemDefId,
+            Phase = BlindBoxPreparationPhase.RetryWaiting,
+        };
+        state.ScheduleSeconds = presentationSeconds;
+        Assert(service.MaintainPresentation(state),
+            "The first Fallback was not locked at its presentation point.");
+        Assert(state.LockedPresentation is
+            {
+                ScheduleId: FirstScheduleId,
+                BlindBoxId: FallbackBlindBoxId,
+                Kind: LockedBlindBoxPresentationKind.Fallback,
+            }, "The first Fallback locked unexpected presentation data.");
 
-            var completedSchedule = service.ConsumeOpenedPresentation(state);
-            Assert(!completedSchedule,
-                $"Fallback {fallbackCount} incorrectly completed the Steam newcomer Schedule.");
-            service.CompleteClaimedPresentation(state, FirstScheduleId, completedSchedule);
+        var completedSchedule = service.ConsumeOpenedPresentation(state);
+        Assert(completedSchedule,
+            "Claiming a Fallback did not complete the Steam newcomer Schedule.");
+        Assert(state.SequenceIndex == 1,
+            "Claiming a Fallback did not advance the newcomer sequence.");
+        Assert(state.PendingPreparation is
+            {
+                IsLate: true,
+                StopRetryAfterFallback: true,
+            }, "The empty preparation was not retained for one final no-retry inventory check.");
+        service.CompleteClaimedPresentation(state, FirstScheduleId, completedSchedule);
+        Assert(Math.Abs(state.LastClaimSeconds - presentationSeconds) < 0.001,
+            "The Fallback claim time was not recorded.");
 
-            Assert(state.SequenceIndex == 0,
-                $"Fallback {fallbackCount} incorrectly advanced the newcomer sequence.");
-            Assert(Math.Abs(state.LastClaimSeconds - presentationSeconds) < 0.001,
-                $"Fallback {fallbackCount} did not record its claim time.");
-
-            state.ScheduleSeconds = presentationSeconds + 1.0;
-            Assert(!service.MaintainPresentation(state) && state.LockedPresentation == null,
-                $"Fallback {fallbackCount} immediately produced another balloon.");
-            presentationSeconds += presentationIntervalSeconds;
-        }
+        var inFlightState = new BlindBoxRuntimeState
+        {
+            PendingPreparation = new PendingBlindBoxPreparation
+            {
+                ScheduleId = FirstScheduleId,
+                BlindBoxId = FirstSteamBlindBoxId,
+                GeneratorItemDefId = firstSchedule.SteamPlaytimeGeneratorItemDefId,
+                Phase = BlindBoxPreparationPhase.Submitted,
+            },
+            LockedPresentation = new LockedBlindBoxPresentation
+            {
+                ScheduleId = FirstScheduleId,
+                BlindBoxId = FallbackBlindBoxId,
+                Kind = LockedBlindBoxPresentationKind.Fallback,
+            },
+        };
+        Assert(service.ConsumeOpenedPresentation(inFlightState),
+            "An in-flight Fallback did not complete the Steam newcomer Schedule.");
+        Assert(inFlightState.PendingPreparation is
+            {
+                IsLate: true,
+                StopRetryAfterFallback: true,
+            }, "The in-flight preparation was not retained as a single-settlement late request.");
 
         state.PreparedReward = new PreparedBlindBoxReward
         {
@@ -101,23 +126,28 @@ internal static class BlindBoxRegressionSmoke
             IsLate = true,
         };
 
-        state.ScheduleSeconds = state.LastClaimSeconds + presentationIntervalSeconds - 0.01;
+        Assert(service.TryGetCurrentSchedule(state, out var secondSchedule)
+               && secondSchedule != null && secondSchedule.Id != FirstScheduleId,
+            "The second newcomer Schedule is unavailable for the late-reward check.");
+        var secondIntervalSeconds = (double)secondSchedule!.IntervalSeconds;
+
+        state.ScheduleSeconds = state.LastClaimSeconds + secondIntervalSeconds - 0.01;
         Assert(!service.MaintainPresentation(state) && state.LockedPresentation == null,
             "A late Steam reward appeared before the next normal presentation point.");
 
-        state.ScheduleSeconds = state.LastClaimSeconds + presentationIntervalSeconds;
+        state.ScheduleSeconds = state.LastClaimSeconds + secondIntervalSeconds;
         Assert(service.MaintainPresentation(state),
             "A late Steam reward did not appear at the next normal presentation point.");
         Assert(state.LockedPresentation is
             {
                 ScheduleId: FirstScheduleId,
                 BlindBoxId: FirstSteamBlindBoxId,
-                Kind: LockedBlindBoxPresentationKind.DeferredSequenceSteam,
-            }, "The late Steam reward did not preserve the current newcomer Schedule.");
-        Assert(service.ConsumeOpenedPresentation(state),
-            "Claiming the late Steam reward did not complete its newcomer Schedule.");
+                Kind: LockedBlindBoxPresentationKind.LateSteam,
+            }, "The late Steam reward was misattributed to the next newcomer Schedule.");
+        Assert(!service.ConsumeOpenedPresentation(state),
+            "Claiming the late Steam reward incorrectly completed the next newcomer Schedule.");
         Assert(state.SequenceIndex == 1,
-            "Claiming the late Steam reward did not advance to the next newcomer Schedule.");
+            "Claiming the late Steam reward changed newcomer progress.");
     }
 
     private static void VerifySaveSnapshotIsolation()
@@ -143,6 +173,15 @@ internal static class BlindBoxRegressionSmoke
                 BlindBoxId = FallbackBlindBoxId,
                 Kind = LockedBlindBoxPresentationKind.Fallback,
             },
+            PendingPreparation = new PendingBlindBoxPreparation
+            {
+                ScheduleId = FirstScheduleId,
+                BlindBoxId = FirstSteamBlindBoxId,
+                GeneratorItemDefId = 700101,
+                Phase = BlindBoxPreparationPhase.RevalidationRequired,
+                IsLate = true,
+                StopRetryAfterFallback = true,
+            },
         };
         var liveProfile = new SaveProfile { BlindBoxRuntimeState = liveState };
 
@@ -165,6 +204,11 @@ internal static class BlindBoxRegressionSmoke
                 FirstMissingAtTotalPlaySeconds: 2.1,
                 ConsecutiveMissingInventorySnapshots: 1,
             }, "Save normalization discarded prepared-reward inventory visibility evidence.");
+        Assert(normalizedSnapshot.BlindBoxRuntimeState.PendingPreparation is
+            {
+                IsLate: true,
+                StopRetryAfterFallback: true,
+            }, "Save normalization discarded the skipped-preparation no-retry state.");
 
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
         Assert(liveState.LockedPresentation != null,
