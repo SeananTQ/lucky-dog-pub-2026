@@ -613,8 +613,16 @@ public partial class GameData : Node
         var sequence = GetEnabledSequenceSchedules().ElementAtOrDefault(Math.Max(0, state.SequenceIndex));
         if (_steamMockSimulationActive)
         {
-            _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
-            MaintainSteamPlaytimeDrops();
+            // Once this presentation's request has been revalidated as empty, the manual
+            // advance must lock its Fallback. Retrying here would start another Mock
+            // transaction and prevent the presentation clock from ever advancing.
+            var hasEmptyPreparationReadyForFallback = state.PendingPreparation?.Phase
+                                                      == BlindBoxPreparationPhase.RetryWaiting;
+            if (!hasEmptyPreparationReadyForFallback)
+            {
+                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+                MaintainSteamPlaytimeDrops();
+            }
 
             var currentNeedsSteam = sequence?.SteamPlaytimeGeneratorItemDefId > 0
                                     || sequence == null;
@@ -629,8 +637,13 @@ public partial class GameData : Node
             }
 
             AdvanceSteamMockPlaytimeToNextPresentation(state);
-            _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
-            MaintainSteamPlaytimeDrops();
+            hasEmptyPreparationReadyForFallback = state.PendingPreparation?.Phase
+                                                  == BlindBoxPreparationPhase.RetryWaiting;
+            if (!hasEmptyPreparationReadyForFallback)
+            {
+                _nextPlatformPlaytimeDropAttemptAtSeconds = 0.0;
+                MaintainSteamPlaytimeDrops();
+            }
             if (currentNeedsSteam
                 && !connectionUnavailable
                 && (activation.PendingActivation != null
