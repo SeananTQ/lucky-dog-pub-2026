@@ -43,6 +43,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<ItemRow> Items { get; } = new();
+    public ObservableCollection<RarityCountRow> RarityCounts { get; } = new();
     public ICollectionView ItemsView { get; }
     public IReadOnlyList<BlindBoxOption> BlindBoxes { get; private set; } = Array.Empty<BlindBoxOption>();
     public IReadOnlyList<EnumChoice<ERarity>> RarityOptions { get; }
@@ -211,6 +212,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void RecalculateAll()
     {
+        UpdateRarityCounts();
         if (_store is null || SelectedBlindBox is null)
             return;
 
@@ -250,6 +252,57 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     : item.CurrentWeight <= 0 ? "权重为 0" : "不参与当前抽取";
             item.SetProbabilities(rarityProbability, within, expected, status);
         }
+    }
+
+    private void UpdateRarityCounts()
+    {
+        var regularRarities = new[]
+        {
+            ERarity.Mythic,
+            ERarity.Legendary,
+            ERarity.Epic,
+            ERarity.Rare,
+            ERarity.Uncommon,
+            ERarity.Common,
+        };
+        var counts = Items
+            .GroupBy(item => item.Rarity)
+            .ToDictionary(group => group.Key, group => group.Count());
+        var otherCount = counts
+            .Where(pair => !regularRarities.Contains(pair.Key))
+            .Sum(pair => pair.Value);
+        var maxCount = regularRarities
+            .Select(rarity => counts.GetValueOrDefault(rarity))
+            .Append(otherCount)
+            .DefaultIfEmpty()
+            .Max();
+
+        RarityCounts.Clear();
+        foreach (var rarity in regularRarities)
+        {
+            var count = counts.GetValueOrDefault(rarity);
+            RarityCounts.Add(new RarityCountRow(
+                GetRarityLabel(rarity),
+                count,
+                GetCountBarWidth(count, maxCount),
+                CreateBrush(GetRarityColor(rarity))));
+        }
+
+        RarityCounts.Add(new RarityCountRow(
+            "其他",
+            otherCount,
+            GetCountBarWidth(otherCount, maxCount),
+            CreateBrush("#9CA3AF")));
+    }
+
+    private static double GetCountBarWidth(int count, int maxCount) =>
+        maxCount <= 0 ? 0 : 160d * count / maxCount;
+
+    private static SolidColorBrush CreateBrush(string color)
+    {
+        var brush = (SolidColorBrush)new BrushConverter().ConvertFromString(color)!;
+        brush.Freeze();
+        return brush;
     }
 
     private bool FilterItem(object obj)

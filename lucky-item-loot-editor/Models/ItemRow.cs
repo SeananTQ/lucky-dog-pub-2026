@@ -32,6 +32,7 @@ public sealed class ItemRow : INotifyPropertyChanged
         _source = source;
         Id = GetInt(source, "Id");
         Name = GetString(source, "Name");
+        ItemTypeValue = GetInt(source, "ItemType");
         IconPath = GetString(source, "IconPath");
         _rarity = (ERarity)GetInt(source, "ItemRarity");
         _acquisitionType = (EAcquisitionType)GetInt(source, "AcquisitionType");
@@ -49,6 +50,7 @@ public sealed class ItemRow : INotifyPropertyChanged
 
     public int Id { get; }
     public string Name { get; }
+    public int ItemTypeValue { get; }
     public string IconPath { get; }
     public ImageSource? Icon { get; }
     public ImageSource? RarityPlate => _rarityPlate;
@@ -61,9 +63,12 @@ public sealed class ItemRow : INotifyPropertyChanged
         {
             if (!SetField(ref _rarity, value))
                 return;
+            OnPropertyChanged(nameof(RarityValue));
             UpdateRarityAssets();
         }
     }
+
+    public int RarityValue => (int)Rarity;
 
     public EAcquisitionType AcquisitionType
     {

@@ -8,6 +8,7 @@
         MinHeight="650"
         Loaded="Window_Loaded">
   <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     <Style TargetType="DataGridColumnHeader">
       <Setter Property="Padding" Value="8,5" />
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -33,6 +34,9 @@
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
         <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="ReloadButton_Click">重新加载</Button>
+        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#B45309"
+                   FontWeight="SemiBold" Text="脏"
+                   Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="SaveButton_Click">保存 JSON</Button>
       </StackPanel>
     </DockPanel>
@@ -82,7 +86,7 @@
           </DataGridTemplateColumn>
           <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" IsReadOnly="True" />
           <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="190" IsReadOnly="True" />
-          <DataGridTemplateColumn Header="稀有度" Width="110">
+          <DataGridTemplateColumn Header="稀有度" Width="110" SortMemberPath="RarityValue">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <ComboBox ItemsSource="{Binding DataContext.RarityOptions, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -144,6 +148,7 @@
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
+          <DataGridTextColumn Header="类型" Binding="{Binding ItemTypeValue}" Width="45" IsReadOnly="True" />
         </DataGrid.Columns>
       </DataGrid>
 
@@ -180,6 +185,31 @@
                 <Image Source="{Binding RandomResultItem.RarityFrame}" Width="150" Height="150" Stretch="Uniform" />
               </Grid>
               <TextBlock Text="{Binding RandomResultText}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <Border Margin="0,12,0,0" Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="6">
+            <StackPanel>
+              <TextBlock FontSize="16" FontWeight="SemiBold">稀有度物品数量</TextBlock>
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding RarityCounts}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Margin="0,3,0,0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="52" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="30" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding Label}" />
+                      <Border Grid.Column="1" Height="12" Background="#F1F3F5" CornerRadius="3">
+                        <Border Width="{Binding BarWidth}" HorizontalAlignment="Left" Background="{Binding BarBrush}" CornerRadius="3" />
+                      </Border>
+                      <TextBlock Grid.Column="2" Margin="6,0,0,0" VerticalAlignment="Center"
+                                 TextAlignment="Right" Text="{Binding Count}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </Border>
         </StackPanel>
