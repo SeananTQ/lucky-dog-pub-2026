@@ -124,19 +124,20 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         HideUseBalloon();
     }
 
-    public void SetRefreshment(Texture2D texture, string fileName, int configuredBalloonOffsetY)
+    public void SetRefreshment(Texture2D texture, string assetPath, int configuredBalloonOffsetY)
     {
         StopRefreshmentFade();
         ResetHintAnimation();
         ResetUseFeedbackTransform();
         _refreshmentSprite.Texture = texture;
         _refreshmentSprite.Visible = true;
-        var centerPosition = _localCache.GetValueOrDefault(fileName, _referenceRefreshmentPosition);
-        var height = _heightCache.GetValueOrDefault(fileName, texture.GetHeight());
+        var cacheKey = NormalizeAssetPath(assetPath);
+        var centerPosition = _localCache.GetValueOrDefault(cacheKey, _referenceRefreshmentPosition);
+        var height = _heightCache.GetValueOrDefault(cacheKey, texture.GetHeight());
         _refreshmentAnchor.Position = centerPosition + new Vector2(0f, height * 0.5f);
         _refreshmentSprite.Position = new Vector2(0f, -height * 0.5f);
         _refreshmentRestPosition = _refreshmentAnchor.Position;
-        var balloonOffsetY = _balloonVerticalOffsetCache.GetValueOrDefault(fileName, 0f)
+        var balloonOffsetY = _balloonVerticalOffsetCache.GetValueOrDefault(cacheKey, 0f)
             + configuredBalloonOffsetY;
         _useBalloon.Position = _useBalloonBasePosition + new Vector2(0f, balloonOffsetY);
         _statusBalloon.Position = _statusBalloonBasePosition + new Vector2(0f, balloonOffsetY);
@@ -331,9 +332,8 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             return;
         }
 
-        var fileName = item.AssetPathList[0].Replace('\\', '/').Split('/')[^1];
         _displayedRefreshmentItemId = itemId;
-        SetRefreshment(texture, fileName, config.BalloonOffsetY);
+        SetRefreshment(texture, item.AssetPathList[0], config.BalloonOffsetY);
         RefreshStatusBalloonText();
         if (state.Status != TableRefreshmentStatus.BuffActive)
             HideStatusBalloon(animate: false);
@@ -630,18 +630,26 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         if (_cacheBuilt) return;
         _cacheBuilt = true;
 
-        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
-        if (file == null) return;
-
-        var json = new Json();
-        if (json.Parse(file.GetAsText()) != Error.Ok) return;
-
-        var layers = json.Data.AsGodotDictionary()["layers"].AsGodotArray();
         Vector2 referenceCenter = Vector2.Zero;
         float referenceTop = 0f;
-        bool foundReference = false;
+        if (!TryGetReferenceRefreshment(out referenceCenter, out referenceTop))
+            return;
 
-        foreach (var layer in layers)
+        AddRefreshmentPositions("res://Assets/v1/layer_index_v1.json", "v1", referenceCenter, referenceTop);
+        AddRefreshmentPositions("res://Assets/v2/layer_index_v2.json", "v2", referenceCenter, referenceTop);
+    }
+
+    private bool TryGetReferenceRefreshment(out Vector2 referenceCenter, out float referenceTop)
+    {
+        referenceCenter = Vector2.Zero;
+        referenceTop = 0f;
+        using var file = FileAccess.Open("res://Assets/v1/layer_index_v1.json", FileAccess.ModeFlags.Read);
+        if (file == null) return false;
+
+        var json = new Json();
+        if (json.Parse(file.GetAsText()) != Error.Ok) return false;
+
+        foreach (var layer in json.Data.AsGodotDictionary()["layers"].AsGodotArray())
         {
             var d = layer.AsGodotDictionary();
             var filePath = d["file"].AsString().Replace('\\', '/');
@@ -652,26 +660,39 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
 
             referenceCenter = ReadCenter(d);
             referenceTop = ReadTop(d);
-            foundReference = true;
-            break;
+            return true;
         }
 
-        if (!foundReference) return;
+        return false;
+    }
 
-        foreach (var layer in layers)
+    private void AddRefreshmentPositions(string indexPath, string assetVersion, Vector2 referenceCenter, float referenceTop)
+    {
+        using var file = FileAccess.Open(indexPath, FileAccess.ModeFlags.Read);
+        if (file == null) return;
+
+        var json = new Json();
+        if (json.Parse(file.GetAsText()) != Error.Ok) return;
+
+        foreach (var layer in json.Data.AsGodotDictionary()["layers"].AsGodotArray())
         {
             var d = layer.AsGodotDictionary();
             var filePath = d["file"].AsString().Replace('\\', '/');
             if (!filePath.StartsWith("Treat/")) continue;
 
-            var fileOnly = filePath.Split('/')[^1];
+            var cacheKey = $"{assetVersion}/{filePath}";
 
             var centerDelta = ReadCenter(d) - referenceCenter;
 
-            _localCache[fileOnly] = _referenceRefreshmentPosition + centerDelta;
-            _balloonVerticalOffsetCache[fileOnly] = ReadTop(d) - referenceTop;
-            _heightCache[fileOnly] = ReadDim(d, "h", "height");
+            _localCache[cacheKey] = _referenceRefreshmentPosition + centerDelta;
+            _balloonVerticalOffsetCache[cacheKey] = ReadTop(d) - referenceTop;
+            _heightCache[cacheKey] = ReadDim(d, "h", "height");
         }
+    }
+
+    private static string NormalizeAssetPath(string assetPath)
+    {
+        return assetPath.Replace('\\', '/').TrimStart('/');
     }
 
     private static bool ContainsViewportPoint(Control control, Vector2 viewportPosition)

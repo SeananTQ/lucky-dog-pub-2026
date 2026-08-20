@@ -25,7 +25,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
 
     public bool Enabled { get; set; }
 
-    private const string V1ResourcePrefix = "res://Assets/v1/";
+    private const string AssetsResourcePrefix = "res://Assets/";
 
     private Button _hitButton = null!;
     private Sprite2D _arm = null!;
@@ -223,12 +223,18 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         if (_psdCenterCache != null) return;
         _psdCenterCache = new Dictionary<string, Vector2>();
 
-        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
-        if (file == null) return;
-        ParseLayerJson(file.GetAsText());
+        LoadPsdCenterCache("res://Assets/v1/layer_index_v1.json", "v1");
+        LoadPsdCenterCache("res://Assets/v2/layer_index_v2.json", "v2");
     }
 
-    private void ParseLayerJson(string jsonText)
+    private void LoadPsdCenterCache(string indexPath, string assetVersion)
+    {
+        using var file = FileAccess.Open(indexPath, FileAccess.ModeFlags.Read);
+        if (file == null) return;
+        ParseLayerJson(file.GetAsText(), assetVersion);
+    }
+
+    private void ParseLayerJson(string jsonText, string assetVersion)
     {
         var json = new Json();
         if (json.Parse(jsonText) != Error.Ok) return;
@@ -237,7 +243,7 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
-            var layerPath = d["file"].AsString().Replace('\\', '/');
+            var layerPath = $"{assetVersion}/{d["file"].AsString().Replace('\\', '/')}";
             var w = d.ContainsKey("w") ? (float)d["w"].AsDouble() : (float)d["width"].AsDouble();
             var h = d.ContainsKey("h") ? (float)d["h"].AsDouble() : (float)d["height"].AsDouble();
             var cx = (float)d["x"].AsDouble() + w / 2f;
@@ -252,8 +258,8 @@ public partial class HandAreaController : Node2D, IInteractionHintTarget
             return "";
 
         var resourcePath = texture.ResourcePath.Replace('\\', '/');
-        return resourcePath.StartsWith(V1ResourcePrefix)
-            ? resourcePath[V1ResourcePrefix.Length..]
+        return resourcePath.StartsWith(AssetsResourcePrefix)
+            ? resourcePath[AssetsResourcePrefix.Length..]
             : resourcePath;
     }
 }

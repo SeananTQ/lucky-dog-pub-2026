@@ -142,7 +142,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
-    /// 从 v1 layer_index.json 读取指定资源的 PSD 坐标，返回 DogArea 本地坐标。
+    /// 从资源所属版本的 layer_index_v*.json 读取 PSD 坐标，返回 DogArea 本地坐标。
     /// </summary>
     public Vector2 GetScenePosition(string assetPath)
     {
@@ -151,7 +151,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             return pos;
 
         var fileName = key.Split('/')[^1];
-        if (_positionCache.TryGetValue(fileName, out pos))
+        var version = key.StartsWith("v2/") ? "v2" : "v1";
+        if (_positionCache.TryGetValue($"{version}/{fileName}", out pos))
             return pos;
 
         GD.PushWarning($"[DogVisual] Position not found for: {assetPath}");
@@ -163,7 +164,13 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (_positionCache != null) return;
         _positionCache = new Dictionary<string, Vector2>();
 
-        using var file = FileAccess.Open("res://Assets/v1/layer_index.json", FileAccess.ModeFlags.Read);
+        LoadPositionCache("res://Assets/v1/layer_index_v1.json", "v1");
+        LoadPositionCache("res://Assets/v2/layer_index_v2.json", "v2");
+    }
+
+    private void LoadPositionCache(string indexPath, string assetVersion)
+    {
+        using var file = FileAccess.Open(indexPath, FileAccess.ModeFlags.Read);
         if (file == null) return;
 
         var json = new Json();
@@ -173,12 +180,12 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         foreach (var layer in layers)
         {
             var d = layer.AsGodotDictionary();
-            var path = NormalizeLayerPath(d["file"].AsString());
+            var path = $"{assetVersion}/{NormalizeLayerPath(d["file"].AsString())}";
             var fileOnly = path.Split('/')[^1];
             var cx = ReadFloat(d, "doc_x", "x") + ReadFloat(d, "width", "w") / 2f;
             var cy = ReadFloat(d, "doc_y", "y") + ReadFloat(d, "height", "h") / 2f;
 
-            var pos = path.StartsWith("Headwear/")
+            var pos = path.StartsWith($"{assetVersion}/Headwear/")
                 ? new Vector2(cx - OffsetXHeadwear, cy - OffsetYHeadwear)
                 : new Vector2(cx - OffsetX, cy - OffsetY);
 
@@ -817,8 +824,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         const string assetsPrefix = "res://Assets/";
         if (path.StartsWith(assetsPrefix))
             path = path[assetsPrefix.Length..];
-        if (path.StartsWith("v1/"))
-            path = path[3..];
         return path;
     }
 
