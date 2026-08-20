@@ -2608,7 +2608,7 @@
     "AssetPathList": [
       "v1\\Player\\Accessory\\ChampionGoldBracelet.png"
     ],
-    "IconPath": "v1\\ItemIcon\\Accessory_ChampionGoldBracelet",
+    "IconPath": "v1\\ItemIcon\\Accessory_ChampionGoldBracelet.png",
     "SkinId": 0,
     "SteamItemDefId": 108011,
     "SteamItemDefType": 1,
