@@ -28,6 +28,7 @@ public partial class SteamMockPanelController : CanvasLayer
     private IDebugSteamMockController _controller = null!;
     private GameData _gameData = null!;
     private bool _updatingSelection;
+    private string _renderedEventLog = string.Empty;
     private float _panelBottomY;
 
     public Rect2 PanelRect => _panel == null ? default : new Rect2(_panel.Position, _panel.Size);
@@ -218,7 +219,12 @@ public partial class SteamMockPanelController : CanvasLayer
         var businessPhase = _gameData?.SteamMockBlindBoxBusinessPhase ?? "Idle";
         _transactionValue.Text = CompactText($"{snapshot.PendingOperation} / {businessPhase}", 24);
         _lastEventValue.Text = CompactText(snapshot.LastEvent, 72);
-        _eventLog.Text = string.Join('\n', snapshot.Events.Select(BbcodeEscape));
+        var eventLog = string.Join('\n', snapshot.Events.Select(BbcodeEscape));
+        if (!string.Equals(_renderedEventLog, eventLog, StringComparison.Ordinal))
+        {
+            _renderedEventLog = eventLog;
+            _eventLog.Text = eventLog;
+        }
         _scenarioOption.Disabled = snapshot.HasPendingTransaction
                                    || _gameData?.PendingBlindBoxReward != null
                                    || _gameData?.PendingLinkTreeClaim != null;
