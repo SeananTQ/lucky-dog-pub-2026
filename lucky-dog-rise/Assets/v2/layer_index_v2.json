@@ -43,44 +43,44 @@
       "file": "Headwear/PearlTurban_Delft.png",
       "group": "Headwear",
       "x": 360,
-      "y": 140,
+      "y": 142,
       "width": 569,
       "height": 505,
       "doc_x": 360,
-      "doc_y": 140
+      "doc_y": 142
     },
     {
       "name": "PearlTurban_SweatDrop",
       "file": "Headwear/PearlTurban_SweatDrop.png",
       "group": "Headwear",
       "x": 360,
-      "y": 140,
+      "y": 142,
       "width": 569,
       "height": 505,
       "doc_x": 360,
-      "doc_y": 140
+      "doc_y": 142
     },
     {
       "name": "CaptainCap_Admiral",
       "file": "Headwear/CaptainCap_Admiral.png",
       "group": "Headwear",
-      "x": 425,
-      "y": 160,
-      "width": 324,
-      "height": 179,
-      "doc_x": 425,
-      "doc_y": 160
+      "x": 364,
+      "y": 128,
+      "width": 437,
+      "height": 242,
+      "doc_x": 364,
+      "doc_y": 128
     },
     {
       "name": "FiveStarCommanderCap",
       "file": "Headwear/FiveStarCommanderCap.png",
       "group": "Headwear",
-      "x": 425,
-      "y": 160,
-      "width": 324,
-      "height": 179,
-      "doc_x": 425,
-      "doc_y": 160
+      "x": 368,
+      "y": 129,
+      "width": 438,
+      "height": 241,
+      "doc_x": 368,
+      "doc_y": 129
     },
     {
       "name": "JapanPoliceCap_Green",
