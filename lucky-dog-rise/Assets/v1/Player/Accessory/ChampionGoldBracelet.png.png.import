@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ct8qtrv13obab"
-path="res://.godot/imported/WSOPGoldBracelet.png-b3ca2e22413a4f5feefb144ec98127dc.ctex"
+uid="uid://2r64q7iyihfc"
+path="res://.godot/imported/ChampionGoldBracelet.png.png-ab1949423b57592a6699de30bb11df81.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/Player/Accessory/WSOPGoldBracelet.png"
-dest_files=["res://.godot/imported/WSOPGoldBracelet.png-b3ca2e22413a4f5feefb144ec98127dc.ctex"]
+source_file="res://Assets/v1/Player/Accessory/ChampionGoldBracelet.png.png"
+dest_files=["res://.godot/imported/ChampionGoldBracelet.png.png-ab1949423b57592a6699de30bb11df81.ctex"]
 
 [params]
 
