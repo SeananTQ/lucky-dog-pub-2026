@@ -23,7 +23,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:mythic"
     },
     {
       "itemdefid": 101004,
@@ -47,7 +47,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 101006,
@@ -95,7 +95,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 101010,
@@ -276,6 +276,258 @@
       "auto_stack": false,
       "hidden": false,
       "tags": "rarity:uncommon"
+    },
+    {
+      "itemdefid": 102013,
+      "type": "item",
+      "name": "American Police Cap Blue",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 102014,
+      "type": "item",
+      "name": "American Police Cap Black",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 102015,
+      "type": "item",
+      "name": "Japan Police Cap Blue",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 102016,
+      "type": "item",
+      "name": "Pearl Turban Delft",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 102017,
+      "type": "item",
+      "name": "Pearl Turban Sweat Drop",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 102018,
+      "type": "item",
+      "name": "Captain Cap Admiral",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 102019,
+      "type": "item",
+      "name": "Five Star Commander Cap",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 102020,
+      "type": "item",
+      "name": "Japan Police Cap Green",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 102021,
+      "type": "item",
+      "name": "American Police Cap Red",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 102022,
+      "type": "item",
+      "name": "Sailor Cap Cruise",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 102023,
+      "type": "item",
+      "name": "Sailor Cap Cargo",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 102024,
+      "type": "item",
+      "name": "Sailor Cap Harbor",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 102025,
+      "type": "item",
+      "name": "Chef Hat White",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:uncommon"
+    },
+    {
+      "itemdefid": 102026,
+      "type": "item",
+      "name": "Chef Hat Black",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 102027,
+      "type": "item",
+      "name": "Chef Hat Red",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 102028,
+      "type": "item",
+      "name": "Viking Helmet Norway",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 102029,
+      "type": "item",
+      "name": "Viking Helmet Classic",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 102030,
+      "type": "item",
+      "name": "Viking Helmet Emerald",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 102031,
+      "type": "item",
+      "name": "Painter Beret Classic",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 102032,
+      "type": "item",
+      "name": "Painter Beret Cream",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 102033,
+      "type": "item",
+      "name": "Painter Beret Orange Dutch",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 103001,
@@ -1260,7 +1512,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x471;101003x5294;101004x1385;101005x2647;101006x235;101007x4231;101008x692;101009x2647;101010x235;101011x692;101012x692;102001x31905;102002x12692;102003x31905;102004x12692;102005x2077;102006x12692;102007x31905;102008x7941;102009x31905;102010x7941;102011x12692;102012x31905;103001x31905;103002x12692;103003x7941;103004x2077;105001x10635;105002x2647;105003x4231;105004x2647;105005x2647;105006x10635;105007x4231;105008x10635;106002x5294;106003x5294;106004x8462;106005x8461;106006x5294;106007x471;106008x31905;106009x31905;106010x31905;106011x2077;107001x31905;107002x31905;107003x31905;107005x12692;107006x12692;107007x31905;107008x7941;107009x12692;107010x471;107011x12692;107012x2077;107013x12692;107014x31905;107015x31905;107016x12692;107017x7941;107018x31905;107019x7941;108001x12692;108003x12692;108004x7941;108005x31905;108007x2077;108008x2077;108009x31905;108010x31905;108011x118;108012x12692;108013x2077;112001x12692;112002x31905"
+      "bundle": "101002x276;101003x276;101004x1125;101005x563;101006x138;101007x4000;101008x563;101009x563;101010x138;101011x563;101012x563;102001x34655;102002x12000;102003x34655;102004x12000;102005x1688;102006x12000;102007x34655;102008x7714;102009x34655;102010x7714;102011x12000;102012x34655;102013x2571;102014x563;102015x2571;102016x138;102017x138;102018x138;102019x138;102020x563;102021x563;102022x2571;102023x4000;102024x2571;102025x11552;102026x4000;102027x4000;102028x563;102029x4000;102030x563;102031x4000;102032x2571;102033x563;103001x34655;103002x12000;103003x7714;103004x1688;105001x11552;105002x2571;105003x4000;105004x2571;105005x2571;105006x11552;105007x4000;105008x11552;106002x5143;106003x5143;106004x8000;106005x8000;106006x5143;106007x276;106008x34655;106009x34655;106010x34655;106011x1687;107001x34655;107002x34655;107003x11552;107005x4000;107006x12000;107007x11552;107008x7714;107009x12000;107010x276;107011x12000;107012x1687;107013x12000;107014x34655;107015x11552;107016x12000;107017x7714;107018x34655;107019x7714;108001x12000;108003x12000;108004x7714;108005x34655;108007x1125;108008x1125;108009x34655;108010x34655;108011x69;108012x12000;108013x1687;112001x12000;112002x34655"
     },
     {
       "itemdefid": 301002,
@@ -1273,7 +1525,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x640;101003x17895;101004x4903;101005x8947;101006x320;101007x15849;101008x2452;101009x8947;101010x320;101011x2452;101012x2452;102001x17619;102002x23774;102003x17619;102004x23774;102005x3677;102006x23774;102007x17619;102008x13421;102009x17619;102010x13421;102011x23774;102012x17619;103001x17619;103002x23774;103003x13421;103004x3677;105001x5873;105002x4474;105003x7924;105004x4474;105005x4474;105006x5873;105007x7924;105008x5873;106002x8947;106003x8947;106004x15849;106005x15849;106006x8947;106007x320;106008x17619;106009x17619;106010x17619;106011x3677;107001x17619;107002x17619;107003x17619;107005x23774;107006x23774;107007x17619;107008x13421;107009x23774;107010x320;107011x23774;107012x3677;107013x23774;107014x17619;107015x17619;107016x23774;107017x13421;107018x17619;107019x13421;108001x23774;108003x23774;108004x13421;108005x17619;108007x3677;108008x3677;108009x17619;108010x17619;108011x80;108012x23774;108013x3677;112001x23773;112002x17619"
+      "bundle": "101002x390;101003x390;101004x3707;101005x1854;101006x195;101007x14483;101008x1854;101009x1854;101010x195;101011x1854;101012x1854;102001x17344;102002x21724;102003x17344;102004x21724;102005x2781;102006x21724;102007x17344;102008x14571;102009x17344;102010x14571;102011x21724;102012x17344;102013x4857;102014x927;102015x4857;102016x98;102017x98;102018x98;102019x98;102020x927;102021x927;102022x4857;102023x7241;102024x4857;102025x5781;102026x7241;102027x7241;102028x927;102029x7241;102030x927;102031x7241;102032x4857;102033x927;103001x17344;103002x21724;103003x14571;103004x2781;105001x5781;105002x4857;105003x7241;105004x4857;105005x4857;105006x5781;105007x7241;105008x5781;106002x9714;106003x9714;106004x14483;106005x14483;106006x9714;106007x195;106008x17344;106009x17344;106010x17344;106011x2781;107001x17344;107002x17344;107003x17344;107005x21724;107006x21724;107007x17344;107008x14571;107009x21724;107010x195;107011x21724;107012x2781;107013x21724;107014x17344;107015x17344;107016x21724;107017x14571;107018x17344;107019x14571;108001x21724;108003x21724;108004x14571;108005x17344;108007x2781;108008x2780;108009x17344;108010x17344;108011x49;108012x21724;108013x2780;112001x21724;112002x17344"
     },
     {
       "itemdefid": 401001,
