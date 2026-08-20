@@ -116,15 +116,23 @@ internal static class BlindBoxRegressionSmoke
                 StopRetryAfterFallback: true,
             }, "The in-flight preparation was not retained as a single-settlement late request.");
 
-        state.PreparedReward = new PreparedBlindBoxReward
+        state.GeneratorActivation = new PlaytimeGeneratorActivationState
         {
-            ScheduleId = FirstScheduleId,
-            BlindBoxId = FirstSteamBlindBoxId,
-            PlatformInstanceId = 1,
-            SteamItemDefId = 101002,
-            ItemId = 1002,
-            IsLate = true,
+            DeferredReward = new PreparedBlindBoxReward
+            {
+                ScheduleId = FirstScheduleId,
+                BlindBoxId = FirstSteamBlindBoxId,
+                PlatformInstanceId = 1,
+                SteamItemDefId = 101002,
+                ItemId = 1002,
+            },
         };
+        Assert(service.TryPromoteDeferredActivationReward(state, out var promotedAsLate)
+               && promotedAsLate,
+            "An activation reward for an already skipped newcomer Schedule was not promoted as late.");
+        Assert(state.PreparedReward is { ScheduleId: FirstScheduleId, IsLate: true }
+               && state.GeneratorActivation.DeferredReward == null,
+            "Promoting a skipped activation reward did not release its deferred slot.");
 
         Assert(service.TryGetCurrentSchedule(state, out var secondSchedule)
                && secondSchedule != null && secondSchedule.Id != FirstScheduleId,

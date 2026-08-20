@@ -406,9 +406,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "当前平台不支持 Steam 库存。";
             return false;
         }
+        var isSelfReceiptGrant = IsNewcomerCompletionReceiptGrant(promoItemDefId, receiptItemDefId);
         if (!IsInventoryReady)
         {
-            message = "Steam Mock 当前不可用，LinkTree 领奖尚未提交。";
+            message = isSelfReceiptGrant
+                ? "Steam Mock 当前不可用，新手进度回执尚未提交。"
+                : "Steam Mock 当前不可用，LinkTree 领奖尚未提交。";
             AddEvent(message);
             return false;
         }
@@ -417,10 +420,6 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "Steam Mock 已有库存写事务正在处理。";
             return false;
         }
-        var isSelfReceiptGrant = promoItemDefId == receiptItemDefId
-            && LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
-                schedule.IsEnabled
-                && schedule.SteamCompletionReceiptItemDefId == receiptItemDefId);
         if (!isSelfReceiptGrant
             && !_linkTreeGrants.ContainsKey((promoItemDefId, receiptItemDefId)))
         {
@@ -681,6 +680,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
 
     private void CompletePromoGrantSuccess(string message)
     {
+        var operation = GetPendingPromoOperationName();
         var changedItems = ApplySuccessfulPromoGrant();
         _promoGrantPending = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, message);
@@ -691,12 +691,16 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             true,
             message,
             changedItems));
-        PublishInventorySnapshot("LinkTree 领奖回调后的完整模拟库存。", true);
+        PublishInventorySnapshot($"{operation}回调后的完整模拟库存。", true);
     }
 
     private void CompleteVerification(bool success)
     {
-        var operation = _playtimeDropPending ? "盲盒奖励准备" : _promoGrantPending ? "LinkTree 领奖" : "库存请求";
+        var operation = _playtimeDropPending
+            ? "盲盒奖励准备"
+            : _promoGrantPending
+                ? GetPendingPromoOperationName()
+                : "库存请求";
         if (success && _playtimeDropPending)
             ApplySuccessfulPlaytimeDrop();
         else if (success && _promoGrantPending)
@@ -710,6 +714,17 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 : $"库存复查完成：未发现本次{operation}请求产生的新物品。");
         PublishInventorySnapshot(_lastEvent, true, recordEvent: false);
     }
+
+    private static bool IsNewcomerCompletionReceiptGrant(int promoItemDefId, int receiptItemDefId) =>
+        promoItemDefId == receiptItemDefId
+        && LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
+            schedule.IsEnabled
+            && schedule.SteamCompletionReceiptItemDefId == receiptItemDefId);
+
+    private string GetPendingPromoOperationName() =>
+        IsNewcomerCompletionReceiptGrant(_pendingPromoItemDefId, _pendingReceiptItemDefId)
+            ? "新手进度回执"
+            : "LinkTree 领奖";
 
     private IReadOnlyList<PlatformInventoryItem> ApplySuccessfulPlaytimeDrop()
     {

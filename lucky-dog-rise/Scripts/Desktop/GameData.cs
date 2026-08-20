@@ -1016,7 +1016,7 @@ public partial class GameData : Node
             return;
         }
 #endif
-        PromoteDeferredActivationRewardIfCurrent();
+        PromoteDeferredActivationRewardIfEligible();
         if (PendingBlindBoxReward != null)
             return;
         if (_blindBoxService.MaintainPresentation(ActiveBlindBoxRuntimeState))
@@ -1040,26 +1040,30 @@ public partial class GameData : Node
         }
     }
 
-    private void PromoteDeferredActivationRewardIfCurrent()
+    private void PromoteDeferredActivationRewardIfEligible()
     {
         var runtimeState = ActiveBlindBoxRuntimeState;
-        var activation = GetGeneratorActivationState(runtimeState);
-        var deferred = activation.DeferredReward;
+        var deferred = GetGeneratorActivationState(runtimeState).DeferredReward;
         if (deferred == null
-            || runtimeState.PreparedReward != null
-            || !_blindBoxService.TryGetCurrentSchedule(runtimeState, out var currentSchedule)
-            || currentSchedule?.Id != deferred.ScheduleId)
+            || !_blindBoxService.TryPromoteDeferredActivationReward(runtimeState, out var promotedAsLate))
             return;
 
-        runtimeState.PreparedReward = deferred;
-        activation.DeferredReward = null;
         DiagnosticLog.Record("playtime_generator_activation_reward_promoted", new Dictionary<string, object>
         {
             ["scheduleId"] = deferred.ScheduleId,
             ["blindBoxId"] = deferred.BlindBoxId,
             ["platformInstanceId"] = deferred.PlatformInstanceId,
             ["steamItemDefId"] = deferred.SteamItemDefId,
+            ["isLate"] = promotedAsLate,
+            ["currentSequenceIndex"] = runtimeState.SequenceIndex,
         });
+        if (promotedAsLate)
+        {
+            GD.Print(
+                $"[BlindBox] 迟到预热奖励进入后续展示队列 Schedule={deferred.ScheduleId}, "
+                + $"Steam实例={deferred.PlatformInstanceId}, 当前新手进度索引={runtimeState.SequenceIndex}；"
+                + "领取时不会推进当前调度。");
+        }
         SaveImmediatelyIfUsingLocalSave();
     }
 
@@ -1122,7 +1126,7 @@ public partial class GameData : Node
             return;
 
         var runtimeState = ActiveBlindBoxRuntimeState;
-        PromoteDeferredActivationRewardIfCurrent();
+        PromoteDeferredActivationRewardIfEligible();
         var activation = GetGeneratorActivationState(runtimeState);
         if (activation.PendingActivation != null)
         {
@@ -2062,7 +2066,7 @@ public partial class GameData : Node
         // Completing the final newcomer presentation can start the loop stage. Promote an
         // activation reward synchronously so the platform-write tick cannot submit another
         // request for the same loop Schedule first.
-        PromoteDeferredActivationRewardIfCurrent();
+        PromoteDeferredActivationRewardIfEligible();
         if (completedScheduleDefinition != null)
             QueueBlindBoxCompletionReceipt(completedScheduleDefinition, completedSchedule);
         TryApplyObservedPlatformSequenceProgress();

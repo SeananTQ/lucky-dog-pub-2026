@@ -394,6 +394,32 @@ public sealed class BlindBoxService
         return runtimeState.LoopStageStarted && schedule != null;
     }
 
+    internal bool TryPromoteDeferredActivationReward(
+        BlindBoxRuntimeState runtimeState,
+        out bool promotedAsLate)
+    {
+        promotedAsLate = false;
+        var activation = runtimeState.GeneratorActivation;
+        var deferred = activation?.DeferredReward;
+        if (deferred == null || runtimeState.PreparedReward != null)
+            return false;
+
+        var currentScheduleMatches = TryGetCurrentSchedule(runtimeState, out var currentSchedule)
+                                     && currentSchedule?.Id == deferred.ScheduleId;
+        var sequenceSchedules = GetSequenceSchedules();
+        var deferredSequenceIndex = sequenceSchedules.FindIndex(schedule => schedule.Id == deferred.ScheduleId);
+        var skippedSequenceSchedule = deferredSequenceIndex >= 0
+                                      && deferredSequenceIndex < runtimeState.SequenceIndex;
+        if (!currentScheduleMatches && !skippedSequenceSchedule)
+            return false;
+
+        promotedAsLate = skippedSequenceSchedule;
+        deferred.IsLate |= promotedAsLate;
+        runtimeState.PreparedReward = deferred;
+        activation!.DeferredReward = null;
+        return true;
+    }
+
     public IReadOnlyList<BlindBoxSchedule> GetGeneratorActivationOrder(
         BlindBoxRuntimeState runtimeState)
     {
