@@ -41,6 +41,7 @@ position = Vector2(0, -262)
 texture = ExtResource("8_3ms1v")
 
 [node name="Headwear" type="Sprite2D" parent="HeadRoot" unique_id=268961892]
+visible = false
 position = Vector2(0, -440)
 texture = ExtResource("9_e0wpe")
 
