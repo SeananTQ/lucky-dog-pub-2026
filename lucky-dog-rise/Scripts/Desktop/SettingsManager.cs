@@ -38,6 +38,7 @@ public static class SettingsManager
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
+    private const string KeyPokerGuideOverlayEnabled = "poker_guide_overlay_enabled";
     private const string KeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
@@ -377,6 +378,37 @@ public static class SettingsManager
 
     public static event System.Action<bool> ProactiveInteractionHintsChanged;
 
+    public static bool LoadPokerGuideOverlayEnabled()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionSystem, KeyPokerGuideOverlayEnabled, false);
+    }
+
+    /// <summary>
+    /// 首次写入时由玩家存档决定默认值：新档开启，已有 V16 档关闭。
+    /// 一旦玩家主动改过设置，后续重置存档也不会覆盖其选择。
+    /// </summary>
+    public static void InitializePokerGuideOverlaySetting(bool enabledForNewPlayer)
+    {
+        var config = Load();
+        if (config.HasSectionKey(SectionSystem, KeyPokerGuideOverlayEnabled))
+            return;
+
+        config.SetValue(SectionSystem, KeyPokerGuideOverlayEnabled, enabledForNewPlayer);
+        config.Save(Path);
+        PokerGuideOverlayEnabledChanged?.Invoke(enabledForNewPlayer);
+    }
+
+    public static void SavePokerGuideOverlayEnabled(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyPokerGuideOverlayEnabled, enabled);
+        config.Save(Path);
+        PokerGuideOverlayEnabledChanged?.Invoke(enabled);
+    }
+
+    public static event System.Action<bool> PokerGuideOverlayEnabledChanged;
+
     public static bool LoadAvoidObscuringDogEyes()
     {
         var config = Load();
@@ -508,6 +540,7 @@ public static class SettingsManager
         ApplyDisplayPerformanceSettings();
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
+        PokerGuideOverlayEnabledChanged?.Invoke(false);
         AvoidObscuringDogEyesChanged?.Invoke(false);
         AutoHideCounterChanged?.Invoke(false);
     }

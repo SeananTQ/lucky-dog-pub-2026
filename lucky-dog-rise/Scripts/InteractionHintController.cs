@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using DataTables;
 
@@ -23,6 +24,8 @@ public interface IInteractionHintTarget
 /// </summary>
 public partial class InteractionHintController : Node
 {
+    public event Action EffectiveInteractionOccurred = delegate { };
+
     private const double DefaultProactiveHintIdleSeconds = 6.0;
     private const double DefaultProactiveHintRepeatSeconds = 0.8;
     private readonly Dictionary<string, IInteractionHintTarget> _targets = new();
@@ -106,6 +109,7 @@ public partial class InteractionHintController : Node
         _pendingClickWasHandled = true;
         ResetPassiveHintCooldown();
         ResetProactiveHintIdlePeriod();
+        EffectiveInteractionOccurred();
     }
 
     /// <summary>

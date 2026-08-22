@@ -96,6 +96,7 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _saveDataModeOption = null!;
 #endif
     private CheckButton _blindBoxBubbleToggle = null!;
+    private CheckButton _pokerGuideOverlayToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
     private bool _refreshingArmAppearanceOption;
@@ -158,6 +159,9 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _gameData = value;
+            SettingsManager.InitializePokerGuideOverlaySetting(_gameData.NeedsPokerBasicsGuidance);
+            _pokerGuideOverlayToggle?.SetPressedNoSignal(
+                SettingsManager.LoadPokerGuideOverlayEnabled());
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
             _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
@@ -369,6 +373,11 @@ public partial class SystemPanelController : CanvasLayer
         proactiveInteractionHintsToggle.ButtonPressed = SettingsManager.LoadProactiveInteractionHints();
         proactiveInteractionHintsToggle.Toggled += enabled => SettingsManager.SaveProactiveInteractionHints(enabled);
 
+        _pokerGuideOverlayToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow/PokerGuideOverlayToggle");
+        _pokerGuideOverlayToggle.ButtonPressed = SettingsManager.LoadPokerGuideOverlayEnabled();
+        _pokerGuideOverlayToggle.Toggled += SettingsManager.SavePokerGuideOverlayEnabled;
+        SettingsManager.PokerGuideOverlayEnabledChanged += OnPokerGuideOverlayEnabledChanged;
+
         var avoidObscuringDogEyesToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle");
         avoidObscuringDogEyesToggle.ButtonPressed = SettingsManager.LoadAvoidObscuringDogEyes();
         avoidObscuringDogEyesToggle.Toggled += enabled => SettingsManager.SaveAvoidObscuringDogEyes(enabled);
@@ -454,6 +463,7 @@ public partial class SystemPanelController : CanvasLayer
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         _showDeveloperLauncherNextStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow/DeveloperLauncherToggle");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
+        var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
@@ -479,6 +489,7 @@ public partial class SystemPanelController : CanvasLayer
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
+        markPokerBeginnerBtn.Pressed += () => _gameData.MarkPokerBasicsGuidanceNeededForDebug();
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         resetSaveBtn.Pressed += ConfirmResetSave;
         _resetSaveConfirm.Confirmed += OnResetConfirmed;
@@ -613,6 +624,11 @@ public partial class SystemPanelController : CanvasLayer
         controller.ConfigureLinkTreeGrants(grants);
     }
 #endif
+
+    public override void _ExitTree()
+    {
+        SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
+    }
 
     public override void _Process(double delta)
     {
@@ -2195,6 +2211,7 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
+        _pokerGuideOverlayToggle.SetPressedNoSignal(SettingsManager.LoadPokerGuideOverlayEnabled());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle")
             .SetPressedNoSignal(SettingsManager.LoadAvoidObscuringDogEyes());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
@@ -2217,6 +2234,11 @@ public partial class SystemPanelController : CanvasLayer
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
 #endif
         RefreshLocalizedOptionText();
+    }
+
+    private void OnPokerGuideOverlayEnabledChanged(bool enabled)
+    {
+        _pokerGuideOverlayToggle?.SetPressedNoSignal(enabled);
     }
 
     private void RefreshAudioControlsFromStorage()

@@ -21,6 +21,8 @@ public sealed class SaveProfile
     public string? OwnerAccountId { get; set; }
     public int Chips { get; set; } = GameData.StartingChips;
     public double TotalPlaySeconds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool NeedsPokerBasicsGuidance { get; set; }
     public List<int> OwnedItemIds { get; set; } = new();
     public Dictionary<int, int> OwnedItemCounts { get; set; } = new();
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
@@ -372,6 +374,7 @@ public static class SaveManager
             OwnerProvider = StorageContext.Provider,
             OwnerAccountId = StorageContext.AccountId,
             Chips = GameData.StartingChips,
+            NeedsPokerBasicsGuidance = true,
             // A fresh local profile must baseline receipts already present in the first
             // trusted Steam snapshot without re-granting historical local chip rewards.
             LinkTreeRewardLedgerInitialized = false,
@@ -463,6 +466,13 @@ public static class SaveManager
     }
 
 #if DEBUG
+    public static void MarkPokerBasicsGuidanceNeededForDebug()
+    {
+        var profile = LoadOrCreate();
+        profile.NeedsPokerBasicsGuidance = true;
+        Save(profile);
+    }
+
     public static SaveProfile ResetLocalSave()
     {
         var profile = CreateDefaultProfile();

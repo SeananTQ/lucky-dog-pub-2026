@@ -46,6 +46,7 @@ public partial class GameManager : Node2D
             DetachGameData();
             _gameData = value;
             AttachGameData();
+            _tutorial?.BindGameData(_gameData);
         }
     }
 
@@ -59,6 +60,7 @@ public partial class GameManager : Node2D
     private ChipStackController _chipStack = null!;
     private HandAreaController _handArea = null!;
     private InteractionHintController _interactionHints = null!;
+    private TutorialManager _tutorial = null!;
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
@@ -78,6 +80,10 @@ public partial class GameManager : Node2D
         _handArea = GetNode<HandAreaController>("HandArea");
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
+        _tutorial = GetNode<TutorialManager>("TutorialManager");
+        _tutorial.BindInteractionHints(_interactionHints);
+        _tutorial.BindGameData(_gameData);
+        _tutorial.OverlayVisibilityChanged += OnTutorialOverlayVisibilityChanged;
         _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetBetStack, _chipStack);
         _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetRefreshment, _itemArea);
         _interactionHints.RegisterTarget(InteractionHintKeys.RefreshmentUseConfirm, _itemArea);
@@ -117,6 +123,8 @@ public partial class GameManager : Node2D
     {
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         SettingsManager.AvoidObscuringDogEyesChanged -= OnAvoidObscuringDogEyesChanged;
+        if (_tutorial != null)
+            _tutorial.OverlayVisibilityChanged -= OnTutorialOverlayVisibilityChanged;
         if (_itemArea != null && _interactionHints != null)
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
@@ -131,20 +139,13 @@ public partial class GameManager : Node2D
         if (_interactionHints == null || _blindBoxOverlay == null)
             return;
 
-        var isPokerInputAvailable = _isPokerModeActive && !_blindBoxOverlay.Visible;
-        _interactionHints.SetInputContextActive(isPokerInputAvailable);
-        _interactionHints.SetProactiveHintContextActive(isPokerInputAvailable);
+        RefreshOverlayInteractionContexts();
     }
 
     public void SetInteractionHintPokerModeActive(bool active)
     {
         _isPokerModeActive = active;
-        if (_interactionHints != null && _blindBoxOverlay != null)
-        {
-            var isPokerInputAvailable = active && !_blindBoxOverlay.Visible;
-            _interactionHints.SetInputContextActive(isPokerInputAvailable);
-            _interactionHints.SetProactiveHintContextActive(isPokerInputAvailable);
-        }
+        RefreshOverlayInteractionContexts();
     }
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
@@ -156,11 +157,13 @@ public partial class GameManager : Node2D
         // 盲盒表演覆盖牌桌时，不应让后台尚未落地的下注筹码继续播落地音效。
         _chipStack.CompleteAppearanceSilently();
         _blindBoxOverlay.ShowReward(pending, animateDrop: false);
+        RefreshOverlayInteractionContexts();
     }
 
     public void HidePendingBlindBoxReward()
     {
         _blindBoxOverlay.HideOverlay();
+        RefreshOverlayInteractionContexts();
     }
 
     // === 信号处理 ===
@@ -351,6 +354,7 @@ public partial class GameManager : Node2D
         _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
+        _gameData.TryCompletePokerBasicsGuidance(rank, _currentHandProgressSource);
         _gameData.EmitHandResolved(rank, payout);
         _gameData.RecordPokerHandResolved(rank, payout, _dogHint.HasGivenHint, _currentHandProgressSource);
         _dogVisual.ApplyReaction(GetSawReaction(rank));
@@ -436,6 +440,25 @@ public partial class GameManager : Node2D
     {
         State = state;
         RefreshInteractionHintTargets();
+    }
+
+    private void OnTutorialOverlayVisibilityChanged(bool _)
+    {
+        RefreshOverlayInteractionContexts();
+    }
+
+    private void RefreshOverlayInteractionContexts()
+    {
+        if (_interactionHints == null || _blindBoxOverlay == null || _tutorial == null)
+            return;
+
+        var blindBoxVisible = _blindBoxOverlay.Visible;
+        _tutorial.SetPokerContext(_isPokerModeActive, blindBoxVisible);
+        var pokerInputAvailable = _isPokerModeActive
+            && !blindBoxVisible
+            && !_tutorial.IsOverlayVisible;
+        _interactionHints.SetInputContextActive(pokerInputAvailable);
+        _interactionHints.SetProactiveHintContextActive(pokerInputAvailable);
     }
 
     private void RefreshInteractionHintTargets()

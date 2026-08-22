@@ -541,6 +541,21 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="PokerGuideOverlayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="PokerGuideOverlayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_PokerGuideOverlay"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="PokerGuideOverlayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
 layout_mode = 2
 
@@ -955,6 +970,12 @@ theme_override_font_sizes/font_size = 14
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Play"
+
+[node name="MarkPokerBeginnerBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "将当前存档标记为扑克新手"
+tooltip_text = "立即写入当前帐号存档并开启教程显示；重启后按真实扑克新手流程运行。"
 
 [node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=240889279]
 layout_mode = 2

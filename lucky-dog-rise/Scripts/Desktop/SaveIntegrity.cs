@@ -65,6 +65,7 @@ internal static class SaveIntegrity
             OwnerAccountId = includeOwner ? profile.OwnerAccountId ?? string.Empty : null,
             Chips = profile.Chips,
             TotalPlaySeconds = profile.TotalPlaySeconds,
+            NeedsPokerBasicsGuidance = profile.NeedsPokerBasicsGuidance,
             OwnedItemIds = (profile.OwnedItemIds ?? []).OrderBy(id => id).ToList(),
             OwnedItemCounts = SortDictionary(profile.OwnedItemCounts),
             EquippedItemIdsByType = (profile.EquippedItemIdsByType ?? new Dictionary<string, int>())
