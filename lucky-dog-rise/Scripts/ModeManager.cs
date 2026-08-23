@@ -2733,8 +2733,6 @@ public partial class ModeManager : Control
         bool snapEnabled = SettingsManager.LoadSnapToWindowsTaskbar();
         bool currentlyAttachedToTaskbar =
             Math.Abs(currentAnchorScreenPosition.Y - usableRect.End.Y) <= SnapThreshold;
-        if (!_isDragging && snapEnabled && currentlyAttachedToTaskbar)
-            _taskbarSnapped = true;
 
         if (workAreaChanged && !_isDragging)
         {
@@ -2761,7 +2759,16 @@ public partial class ModeManager : Control
             }
             else
             {
+                // 未吸附时，任务栏尺寸变化不应改变玩家放置的桌宠位置。
+                // Windows 会先重排超大的透明宿主窗口，再更新 Godot 暴露的工作区；
+                // 因此要恢复最后一次可信锚点，而不是接受系统重排后的位置。
+                DisplayServer.WindowSetPosition(
+                    _bossLastTaskbarAnchorScreenPosition - anchorWindowPosition);
+                currentAnchorScreenPosition = _bossLastTaskbarAnchorScreenPosition;
                 _taskbarSnapped = false;
+                ApplyBossCounterLayout();
+                if (_settingsPanel?.IsOpen == true)
+                    PositionPanelInBestSlot();
             }
         }
         else if (!_isDragging && snapEnabled && _taskbarSnapped && !currentlyAttachedToTaskbar)
@@ -2775,6 +2782,20 @@ public partial class ModeManager : Control
             currentAnchorScreenPosition = desiredAnchorScreenPosition;
             ApplyBossCounterLayout();
         }
+        else if (!_isDragging
+            && !_taskbarSnapped
+            && screenRect == _bossLastScreenRect
+            && currentAnchorScreenPosition != _bossLastTaskbarAnchorScreenPosition)
+        {
+            // 工作区通知到达前，Windows 可能已经移动了胖窗口。未吸附状态下
+            // 玩家只能通过本类的拖拽流程移动窗口，所以此处可安全恢复自由锚点。
+            DisplayServer.WindowSetPosition(
+                _bossLastTaskbarAnchorScreenPosition - anchorWindowPosition);
+            currentAnchorScreenPosition = _bossLastTaskbarAnchorScreenPosition;
+            ApplyBossCounterLayout();
+            if (_settingsPanel?.IsOpen == true)
+                PositionPanelInBestSlot();
+        }
         else if (!snapEnabled)
         {
             _taskbarSnapped = false;
@@ -2784,20 +2805,23 @@ public partial class ModeManager : Control
             screenIndex,
             screenRect,
             usableRect,
-            currentAnchorScreenPosition);
+            currentAnchorScreenPosition,
+            updateAnchor: _isDragging || workAreaChanged || _taskbarSnapped);
     }
 
     private void CaptureBossWorkAreaSnapshot(
         int screenIndex,
         Rect2I screenRect,
         Rect2I usableRect,
-        Vector2I anchorScreenPosition)
+        Vector2I anchorScreenPosition,
+        bool updateAnchor = true)
     {
         _bossWorkAreaSnapshotReady = true;
         _bossWorkAreaScreen = screenIndex;
         _bossLastScreenRect = screenRect;
         _bossLastUsableRect = usableRect;
-        _bossLastTaskbarAnchorScreenPosition = anchorScreenPosition;
+        if (updateAnchor)
+            _bossLastTaskbarAnchorScreenPosition = anchorScreenPosition;
     }
 
     private static int FindScreenIndexAtPoint(Vector2I screenPoint)
