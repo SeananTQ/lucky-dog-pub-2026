@@ -58,7 +58,7 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_blindBoxHint")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_paytableBtn", "_blindBoxHint")]
 script = ExtResource("1_ctrl")
 _panel = NodePath("Panel")
 _chipsKeyLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsKey")
@@ -68,6 +68,7 @@ _winResultLabel = NodePath("Panel/RootVBox/WinResultLabel")
 _payoutGrid = NodePath("Panel/RootVBox/PayoutPanel/PayoutVBox/PayoutValuePanel/PayoutGrid")
 _settingsBtn = NodePath("Panel/RootVBox/ButtonRow/SettingsBtn")
 _blindBoxBtn = NodePath("Panel/RootVBox/ButtonRow/BlindBoxBtn")
+_paytableBtn = NodePath("Panel/RootVBox/PayoutPanel/PaytableBtn")
 _blindBoxHint = NodePath("Panel/RootVBox/BlindBoxHint")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1220554571]
@@ -262,6 +263,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "1"
 horizontal_alignment = 2
+
+[node name="PaytableBtn" type="Button" parent="Panel/RootVBox/PayoutPanel" unique_id=640000322]
+layout_mode = 2
+mouse_default_cursor_shape = 2
+focus_mode = 0
+flat = true
+text = ""
 
 [node name="WinResultLabel" type="Label" parent="Panel/RootVBox" unique_id=1739175701]
 layout_mode = 2

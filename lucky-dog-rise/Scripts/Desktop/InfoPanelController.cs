@@ -9,6 +9,7 @@ public partial class InfoPanelController : CanvasLayer
 {
     [Signal] public delegate void SettingsRequestedEventHandler();
     [Signal] public delegate void BlindBoxRequestedEventHandler();
+    [Signal] public delegate void PaytableRequestedEventHandler();
 
     [Export] private PanelContainer _panel = null!;
     [Export] private Label _chipsKeyLabel = null!;
@@ -18,6 +19,7 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private GridContainer _payoutGrid = null!;
     [Export] private Button _settingsBtn = null!;
     [Export] private Button _blindBoxBtn = null!;
+    [Export] private Button _paytableBtn = null!;
     [Export] private BalloonHintController _blindBoxHint = null!;
 
     // ===== 动画参数 =====
@@ -81,6 +83,7 @@ public partial class InfoPanelController : CanvasLayer
 
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
         _blindBoxBtn.Pressed += () => EmitSignal(SignalName.BlindBoxRequested);
+        _paytableBtn.Pressed += () => EmitSignal(SignalName.PaytableRequested);
         _blindBoxHint.Pressed += OnBlindBoxHintPressed;
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
 

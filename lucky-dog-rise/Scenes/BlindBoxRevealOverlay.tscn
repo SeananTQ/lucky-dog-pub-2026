@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://cn1sb6nwr4o2r" path="res://Scenes/Prefabs/BlindBoxRevealStage.tscn" id="2_stage"]
 
 [node name="BlindBoxRevealOverlay" type="CanvasLayer" unique_id=1685080072 node_paths=PackedStringArray("_revealBackground", "_revealWhiteMask", "_boxSprite", "_boxShadow", "_hintLabel", "_rewardRoot", "_rewardBackground", "_rewardWhiteMask", "_rewardVisualRoot", "_rewardCellShadow", "_rewardCell", "_debugLabel")]
-layer = 19
+layer = 20
 script = ExtResource("1_script")
 _revealBackground = NodePath("RevealRoot/RevealBackground")
 _revealWhiteMask = NodePath("RevealWhiteMask")

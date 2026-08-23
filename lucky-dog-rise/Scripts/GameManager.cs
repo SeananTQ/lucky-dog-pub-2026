@@ -64,6 +64,7 @@ public partial class GameManager : Node2D
     private ItemAreaController _itemArea = null!;
     private Marker2D _rewardSpawnPoint = null!;
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
+    [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     private bool _isPokerModeActive;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
@@ -104,6 +105,7 @@ public partial class GameManager : Node2D
         _blindBoxOverlay.RewardClaimRequested += () => EmitSignal(SignalName.BlindBoxRewardClaimRequested);
         _blindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
         _blindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
+        _pokerHandShowcase.ShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
 
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
@@ -125,6 +127,8 @@ public partial class GameManager : Node2D
         SettingsManager.AvoidObscuringDogEyesChanged -= OnAvoidObscuringDogEyesChanged;
         if (_tutorial != null)
             _tutorial.OverlayVisibilityChanged -= OnTutorialOverlayVisibilityChanged;
+        if (_pokerHandShowcase != null)
+            _pokerHandShowcase.ShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
         if (_itemArea != null && _interactionHints != null)
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
@@ -145,6 +149,20 @@ public partial class GameManager : Node2D
     public void SetInteractionHintPokerModeActive(bool active)
     {
         _isPokerModeActive = active;
+        if (!active)
+            _pokerHandShowcase?.HideOverlay();
+        RefreshOverlayInteractionContexts();
+    }
+
+    public void TogglePokerHandShowcase()
+    {
+        if (!_isPokerModeActive || _pokerHandShowcase == null)
+            return;
+
+        if (_pokerHandShowcase.IsOverlayVisible)
+            _pokerHandShowcase.HideOverlay();
+        else
+            _pokerHandShowcase.ShowOverlay();
         RefreshOverlayInteractionContexts();
     }
 
@@ -447,15 +465,22 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
+    private void OnPokerHandShowcaseVisibilityChanged(bool _)
+    {
+        RefreshOverlayInteractionContexts();
+    }
+
     private void RefreshOverlayInteractionContexts()
     {
-        if (_interactionHints == null || _blindBoxOverlay == null || _tutorial == null)
+        if (_interactionHints == null || _blindBoxOverlay == null || _tutorial == null || _pokerHandShowcase == null)
             return;
 
         var blindBoxVisible = _blindBoxOverlay.Visible;
-        _tutorial.SetPokerContext(_isPokerModeActive, blindBoxVisible);
+        var showcaseVisible = _pokerHandShowcase.IsOverlayVisible;
+        _tutorial.SetPokerContext(_isPokerModeActive, blindBoxVisible || showcaseVisible);
         var pokerInputAvailable = _isPokerModeActive
             && !blindBoxVisible
+            && !showcaseVisible
             && !_tutorial.IsOverlayVisible;
         _interactionHints.SetInputContextActive(pokerInputAvailable);
         _interactionHints.SetProactiveHintContextActive(pokerInputAvailable);

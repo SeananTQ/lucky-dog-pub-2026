@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://dfmf8apyokrwn" path="res://Assets/UI/Hint/TutorialStepGuide.svg" id="14_tutorial_guide"]
 [ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/ItemArea.tscn" id="14_items"]
 [ext_resource type="Script" uid="uid://bj45cgrcpjeor" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandShowcase.tscn" id="16_hand_showcase"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -36,8 +37,9 @@ corner_radius_top_right = 20
 corner_radius_bottom_right = 20
 corner_radius_bottom_left = 20
 
-[node name="Main" type="Node2D" unique_id=317845186]
+[node name="Main" type="Node2D" unique_id=317845186 node_paths=PackedStringArray("_pokerHandShowcase")]
 script = ExtResource("3_gm")
+_pokerHandShowcase = NodePath("PokerHandShowcase")
 
 [node name="Background" type="TextureRect" parent="." unique_id=296527543]
 offset_right = 1200.0
@@ -98,6 +100,8 @@ expand_mode = 1
 
 [node name="InteractionHints" type="Node" parent="." unique_id=1489800177]
 script = ExtResource("15_interaction_hints")
+
+[node name="PokerHandShowcase" parent="." instance=ExtResource("16_hand_showcase")]
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
 script = ExtResource("10_hud")

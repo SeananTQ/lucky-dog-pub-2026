@@ -835,6 +835,7 @@ public partial class ModeManager : Control
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             _gameManager.GameData = _gameData;
             _gameManager.SettingsPanel = _settingsPanel;
+            _infoPanel.PaytableRequested += _gameManager.TogglePokerHandShowcase;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
 
