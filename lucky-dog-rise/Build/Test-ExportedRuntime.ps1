@@ -55,7 +55,7 @@ if ($output -notmatch '\[DiagnosticsSmoke\] Export passed:') {
     throw "Exported runtime smoke test did not complete the diagnostic export. See $logDirectory"
 }
 
-$diagnosticPackages = @(Get-ChildItem -LiteralPath $diagnosticExportDirectory -Filter 'LuckyDogRise-Diagnostics-*.zip')
+$diagnosticPackages = @(Get-ChildItem -LiteralPath $diagnosticExportDirectory -Filter 'LDR_Diagnostics_*.zip')
 if ($diagnosticPackages.Count -ne 1) {
     throw "Expected exactly one diagnostic package, found $($diagnosticPackages.Count): $diagnosticExportDirectory"
 }

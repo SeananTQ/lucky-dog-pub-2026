@@ -24,6 +24,7 @@ ItemCellController
 LoadingIndicatorController
 SteamMockPanelController
 ModeManager
+PokerHandShowcaseController
 SingleInstanceGuard
 SystemPanelController
 TaskbarSnap

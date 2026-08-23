@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-10
+last_edit: 2026-08-23
 status: revised
 ---
 
@@ -81,7 +81,7 @@ ZIP 解压后包含 `LuckyDogRise.exe` 和 `data_LuckyDogRise_windows_x86_64`。
 7. 隐藏启动游戏十秒，检查 PCK、.NET、音频资源和 SFX cue。
 8. 所有检查通过后生成 ZIP。
 
-Playtest 包允许使用到香港时间 2026-08-24 结束。从 2026-08-25 00:00 起，游戏会提示测试包已过期并退出。该限制用于降低旧测试包继续转发的风险，但修改 Windows 系统时间仍可能绕过，因此不属于强 DRM。
+Playtest 包允许使用到香港时间 2026-09-08 结束。从 2026-09-09 00:00 起，游戏会提示测试包已过期并退出。该限制用于降低旧测试包继续转发的风险，但修改 Windows 系统时间仍可能绕过，因此不属于强 DRM。
 
 某一步失败时不会生成新的合格 ZIP。主人应保留 PowerShell 中的错误文字，并交给后续开发人员处理，不要为了出包手动关闭加密或混淆。
 
@@ -164,7 +164,7 @@ Release 不是当前日常测试命令。准备正式候选版本前，需要开
 测试者遇到启动、Steam、LinkTree、盲盒或存档异常时，让他在设置页点击“导出诊断包”。游戏会优先把以下 ZIP 放到 Windows 当前登记的“下载”文件夹，并自动打开资源管理器选中它：
 
 ```text
-LuckyDogRise-Diagnostics-yyyyMMdd-HHmmss.zip
+LDR_Diagnostics_<Steam昵称或状态>_yyyyMMdd-HHmmss.zip
 ```
 
 该路径会跟随 Windows 的下载文件夹设置；下载目录迁移到 D 盘或其他盘符时，不要求测试者去 C 盘寻找。如果系统下载目录不可用，游戏会回退到自身用户数据目录中的 `diagnostic-exports` 文件夹，并在界面上显示实际结果。

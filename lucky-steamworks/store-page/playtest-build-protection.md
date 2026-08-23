@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-08
+last_edit: 2026-08-23
 status: revised
 ---
 
@@ -33,7 +33,7 @@ Playtest 测试者可能来自 Godot 开发者群或其它半公开渠道，不�
 - 非 Debug 编译缺少渠道 tag、同时存在多个 tag 或缺少合法存档密钥时，主场景启动后立即报错退出。
 - 设置页底部显示版本、渠道和 Git 短提交号；Playtest 允许 dirty worktree，并在提交号后追加 `dirty`。
 - Release 构建要求 clean worktree。
-- Playtest 有效期截止到香港时间 2026-08-24 结束；从 2026-08-25 00:00 起弹出过期提示并退出。Dev 和 Release 永不过期。
+- Playtest 有效期截止到香港时间 2026-09-08 结束；从 2026-09-09 00:00 起弹出过期提示并退出。Dev 和 Release 永不过期。
 
 实现入口：
 

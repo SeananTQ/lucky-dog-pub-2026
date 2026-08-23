@@ -73,7 +73,7 @@ try {
     $env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
     $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
     $env:LUCKYDOG_BUILD_COMMIT = $commit
-    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-08-24T16:00:00Z' } else { '' }
+    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-08T16:00:00Z' } else { '' }
     try {
         & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
         Write-Host "[Build] Godot export exit code: $LASTEXITCODE"

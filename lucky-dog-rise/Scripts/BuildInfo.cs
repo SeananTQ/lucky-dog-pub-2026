@@ -97,7 +97,7 @@ public static class BuildInfo
         if (DateTimeOffset.UtcNow < expiresAt)
             return true;
 
-        ValidationError = "This Playtest build expired on August 24, 2026. Please request a newer build.";
+        ValidationError = "This Playtest build expired on September 8, 2026. Please request a newer build.";
         GD.PushError($"[Build] {ValidationError}");
         return false;
     }

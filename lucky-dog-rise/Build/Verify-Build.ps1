@@ -48,10 +48,10 @@ foreach ($developerAllowlistSymbol in 'DeveloperSteamAccountAllowlist', 'steam-a
         throw "Developer Steam account allowlist symbol remains in release assembly: $developerAllowlistSymbol"
     }
 }
-if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-08-24T16:00:00Z')) {
+if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-09-08T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
 }
-if ($Channel -eq 'Release' -and $ascii.Contains('2026-08-24T16:00:00Z')) {
+if ($Channel -eq 'Release' -and $ascii.Contains('2026-09-08T16:00:00Z')) {
     throw 'Playtest expiration metadata must not remain in the Release assembly.'
 }
 
