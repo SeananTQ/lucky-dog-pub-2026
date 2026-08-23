@@ -4,6 +4,11 @@
       "steamId64": "76561199543680302",
       "note": "Seanan｜大号｜主要开发帐号",
       "enabled": true
+    },
+    {
+      "steamId64": "76561198286180275",
+      "note": "小号｜LinkTree 真实 Steam 验收帐号",
+      "enabled": true
     }
   ]
 }
