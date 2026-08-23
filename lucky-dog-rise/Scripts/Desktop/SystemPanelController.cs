@@ -27,7 +27,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void CounterLayoutChangedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
-    [Export] private Label _progressionHighScoreLabel = null!;
+    [Export] private Label _globalInputChipsEarnedLabel = null!;
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
@@ -154,7 +154,7 @@ public partial class SystemPanelController : CanvasLayer
                 _gameData.RefreshmentStateChanged -= RefreshWardrobeGrid;
                 _gameData.EquipmentChanged -= RefreshArmAppearanceSelection;
                 _gameData.InventoryChanged -= BuildArmAppearanceOptions;
-                _gameData.ChipsChanged -= OnChipsChangedForProgressionLabel;
+                _gameData.ChipsChanged -= OnChipsChangedForGlobalInputLabel;
                 _gameData.BlindBoxStateChanged -= OnSharedInventoryTransactionStateChanged;
             }
 
@@ -167,13 +167,13 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
             _gameData.EquipmentChanged += RefreshArmAppearanceSelection;
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
-            _gameData.ChipsChanged += OnChipsChangedForProgressionLabel;
+            _gameData.ChipsChanged += OnChipsChangedForGlobalInputLabel;
             _gameData.BlindBoxStateChanged += OnSharedInventoryTransactionStateChanged;
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
                 BuildArmAppearanceOptions();
-                RefreshProgressionHighScoreLabel();
+                RefreshGlobalInputChipsEarnedLabel();
 #if DEBUG
                 RefreshBlindBoxLocalTestControls();
 #endif
@@ -317,7 +317,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
         SwitchTab(0);
         _buildVersionLabel.Text = BuildInfo.DisplayVersion;
-        RefreshProgressionHighScoreLabel();
+        RefreshGlobalInputChipsEarnedLabel();
 
         // === Settings 页 ===
         _sfxVolumeSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/SfxVolumeRow/SfxVolumeSlider");
@@ -793,9 +793,11 @@ public partial class SystemPanelController : CanvasLayer
 #endif
     }
 
-    private void OnChipsChangedForProgressionLabel(int _)
+    private void OnChipsChangedForGlobalInputLabel(int _)
     {
-        RefreshProgressionHighScoreLabel();
+        // GlobalInputTracker records the progress statistic immediately after changing
+        // the chip balance, so refresh after the current call stack has completed.
+        Callable.From(RefreshGlobalInputChipsEarnedLabel).CallDeferred();
     }
 
     private void OnSharedInventoryTransactionStateChanged()
@@ -804,12 +806,12 @@ public partial class SystemPanelController : CanvasLayer
             RefreshLinkTreePageFromPlatformState();
     }
 
-    private void RefreshProgressionHighScoreLabel()
+    private void RefreshGlobalInputChipsEarnedLabel()
     {
-        if (_progressionHighScoreLabel == null || _gameData == null)
+        if (_globalInputChipsEarnedLabel == null || _gameData == null)
             return;
 
-        _progressionHighScoreLabel.Text = _gameData.Progression.HighScore.ToString("N0", CultureInfo.InvariantCulture);
+        _globalInputChipsEarnedLabel.Text = _gameData.GlobalInputChipsEarned.ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private enum LinkTreeRewardState
@@ -2200,6 +2202,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _resetPlayerProgressPending = false;
             _gameData.ResetPlayerProgress();
+            RefreshGlobalInputChipsEarnedLabel();
             RefreshDebugPlayTime();
             return;
         }

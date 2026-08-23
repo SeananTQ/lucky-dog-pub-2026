@@ -51,6 +51,7 @@ public partial class GameData : Node
     public int BetAmount => 50;
     public ProgressionManager Progression { get; private set; } = null!;
     public PlayerProgress PlayerProgress { get; private set; } = null!;
+    public long GlobalInputChipsEarned => PlayerProgress?.GlobalInputChipsEarned ?? 0L;
 
     private BlindBoxRuntimeState _blindBoxRuntimeState = new();
     private LuckyDealBuffState _luckyDealBuffState = new();

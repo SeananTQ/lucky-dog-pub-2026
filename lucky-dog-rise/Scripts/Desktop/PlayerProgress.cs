@@ -113,6 +113,7 @@ public sealed class PlayerProgress
 
     public string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);
     public IReadOnlyDictionary<string, long> Statistics => _profile.Statistics;
+    public long GlobalInputChipsEarned => GetStatistic("GlobalInputChipsEarned");
     public IReadOnlyCollection<string> UnlockedAchievementApiNames => _profile.UnlockedAchievementApiNames;
     public int PlatformSuppressedAchievementCount => _profile.PlatformSuppressedAchievementApiNames.Count;
     public bool IsDirty => _dirty;

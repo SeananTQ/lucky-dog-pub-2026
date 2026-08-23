@@ -32,10 +32,10 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_progressionHighScoreLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseListeningToggle", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_globalInputChipsEarnedLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseListeningToggle", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
-_progressionHighScoreLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProgressionHighScoreLabel")
+_globalInputChipsEarnedLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/GlobalInputChipsEarnedLabel")
 _armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow/ArmAppearanceOption")
 _pokerFrameRateOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerFrameRateRow/PokerFrameRateOption")
 _vsyncToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow/VsyncToggle")
@@ -625,7 +625,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 2
 
-[node name="ProgressionHighScoreLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+[node name="GlobalInputChipsEarnedLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
 text = "0"
 label_settings = ExtResource("15_value_label")
