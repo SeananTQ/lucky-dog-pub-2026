@@ -110,9 +110,6 @@ SmartScreen 可能提示“Windows 已保护你的电脑”。
 
 
 
-取玩家Steam 昵称作为日志后缀
-
-
 
 
 
