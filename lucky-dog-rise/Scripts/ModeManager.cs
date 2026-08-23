@@ -50,6 +50,7 @@ public partial class ModeManager : Control
     private StyleBoxFlat _bossStatusPanelStyle = null!;
     private float _bossStatusPanelBaseMarginTop;
     private float _bossStatusPanelBaseMarginBottom;
+    private float _bossStatusPanelBaseAntiAliasingSize = 1f;
     private bool _bossStatusBarInteractable = true;
     private bool _bossStatusPanelBaseVisible = true;
     private bool _bossCounterAutoHidden;
@@ -1431,6 +1432,7 @@ public partial class ModeManager : Control
         _bossBubbleLayer.Scale = Vector2.One * _desktopPetScaleFactor;
         _bossBlindBoxHint?.SetRenderScale(_desktopPetScaleFactor);
         ApplyBossCounterTextRenderScale();
+        ApplyBossCounterStyleRenderScale();
         if (_bossBlindBoxOverlay != null)
             _bossBlindBoxOverlay.Scale = Vector2.One * _desktopPetScaleFactor;
 
@@ -1678,6 +1680,18 @@ public partial class ModeManager : Control
         _bossStatusPanel.AddThemeStyleboxOverride("panel", _bossStatusPanelStyle);
         _bossStatusPanelBaseMarginTop = _bossStatusPanelStyle.GetContentMargin(Side.Top);
         _bossStatusPanelBaseMarginBottom = _bossStatusPanelStyle.GetContentMargin(Side.Bottom);
+        _bossStatusPanelBaseAntiAliasingSize = _bossStatusPanelStyle.AntiAliasingSize;
+    }
+
+    private void ApplyBossCounterStyleRenderScale()
+    {
+        if (_bossStatusPanelStyle == null)
+            return;
+
+        // StyleBoxFlat recommends an antialiasing ring of 1 px at final display scale.
+        // Compensate for the CanvasLayer scale so the ring does not become visibly blurry.
+        _bossStatusPanelStyle.AntiAliasingSize =
+            _bossStatusPanelBaseAntiAliasingSize / Mathf.Max(0.01f, _desktopPetScaleFactor);
     }
 
     private void ApplyBossStatusPanelHeight(float height)

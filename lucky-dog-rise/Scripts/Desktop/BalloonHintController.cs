@@ -40,10 +40,13 @@ public partial class BalloonHintController : PanelContainer
     private string _strikeText = string.Empty;
     private Font? _sourceTextFont;
     private readonly Dictionary<int, Font> _oversampledTextFonts = new();
+    private StyleBoxFlat? _panelStyle;
+    private float _panelBaseAntiAliasingSize = 1f;
 
     public override void _Ready()
     {
         _sourceTextFont = _textLabel.GetThemeFont("normal_font");
+        CapturePanelStyle();
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
         _loadingIndicator.SetLoading(false);
@@ -60,6 +63,7 @@ public partial class BalloonHintController : PanelContainer
     public void SetRenderScale(float scale)
     {
         _sourceTextFont ??= _textLabel.GetThemeFont("normal_font");
+        ApplyPanelRenderScale(scale);
         var oversampling = Math.Max(1, Mathf.CeilToInt(scale));
         if (!_oversampledTextFonts.TryGetValue(oversampling, out var font))
         {
@@ -69,6 +73,26 @@ public partial class BalloonHintController : PanelContainer
 
         _textLabel.AddThemeFontOverride("normal_font", font);
         UpdateStrikeLine();
+    }
+
+    private void CapturePanelStyle()
+    {
+        if (GetThemeStylebox("panel") is not StyleBoxFlat style)
+            return;
+
+        _panelStyle = (StyleBoxFlat)style.Duplicate();
+        _panelBaseAntiAliasingSize = _panelStyle.AntiAliasingSize;
+        AddThemeStyleboxOverride("panel", _panelStyle);
+    }
+
+    private void ApplyPanelRenderScale(float scale)
+    {
+        if (_panelStyle == null)
+            return;
+
+        // The CanvasLayer transform also scales StyleBoxFlat's antialiasing ring.
+        // Keep that ring at one physical pixel instead of letting it become 3-4 px blur.
+        _panelStyle.AntiAliasingSize = _panelBaseAntiAliasingSize / Mathf.Max(0.01f, scale);
     }
 
     private static Font DuplicateFontForOversampling(Font source, float oversampling)
