@@ -2581,7 +2581,12 @@ public partial class ModeManager : Control
             return true;
         }
 
-        float bY = aY + ah - ph;
+        // 桌宠模式的 4/6 宫以 TaskBar 锚点（小狗吸附任务栏的下沿）作为底边。
+        // 不能使用整个 A 区底边，否则倍率越大，侧边面板会被额外向下推并挤出屏幕。
+        float sidePanelBottomY = CurrentMode == Mode.BossKey
+            ? GetBossTaskbarAnchorWindowPosition().Y
+            : aY + ah;
+        float bY = sidePanelBottomY - ph;
         float centerX = aX + aw / 2f - pw / 2f;
 
         var slotPriority = CurrentMode == Mode.Play ? PlayPanelSlotPriority : BossKeyPanelSlotPriority;
