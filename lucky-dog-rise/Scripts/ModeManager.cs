@@ -97,6 +97,7 @@ public partial class ModeManager : Control
     private IGamePlatformService _platformService = null!;
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
     private AccountStorageContext _storageContext = null!;
+    private AccountStateManager _accountStateManager = null!;
     private StartupAccountGateController _startupAccountGate = null!;
     private bool _startInSteamMock;
     private bool _shutdownRequested;
@@ -369,7 +370,8 @@ public partial class ModeManager : Control
 #endif
         });
 
-        var initialMeetingState = SettingsManager.LoadInitialMeetingStateForStartup();
+        _accountStateManager = new AccountStateManager(storageContext);
+        var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
         _gameData.Name = "GameData";
@@ -482,14 +484,14 @@ public partial class ModeManager : Control
         ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
-        if (initialMeetingState == SettingsManager.TutorialStepState.NotStarted)
+        if (initialMeetingState == AccountStateManager.TutorialStepState.NotStarted)
         {
             // A：初次见面，保持当前居中出现的位置，为后续右侧新手引导预留空间。
             SetWindowAboveTaskbar();
             _startupUseInitialMeetingPosition = true;
-            SettingsManager.SaveTutorialStepState(
-                SettingsManager.InitialMeetingTutorialId,
-                SettingsManager.TutorialStepState.Shown);
+            _accountStateManager.SaveTutorialStepState(
+                AccountStateManager.InitialMeetingTutorialId,
+                AccountStateManager.TutorialStepState.Shown);
         }
         else
         {
