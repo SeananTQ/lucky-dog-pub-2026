@@ -14,6 +14,7 @@ public enum DebugSteamScenario
     DisconnectAfterSubmit,
     DisconnectRecoverSuccess,
     ForcedSuccess,
+    LinkTreePostClaimSyncDelay,
 }
 
 public enum DebugSteamPhase

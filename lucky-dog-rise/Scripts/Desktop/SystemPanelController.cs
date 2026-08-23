@@ -599,6 +599,8 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var entry in _linkTreeRewardEntries)
         {
             entry.RewardFeedbackTween?.Kill();
+            entry.RewardFeedbackPending = false;
+            entry.RewardFeedbackPlaying = false;
             entry.ClaimPending = false;
             entry.State = LinkTreeRewardState.Unopened;
             entry.RewardVisualRoot.Visible = false;
@@ -778,6 +780,7 @@ public partial class SystemPanelController : CanvasLayer
             _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
             RefreshLinkTreePageFromPlatformState();
             _recoverablePlatformService?.RequestReconnect();
+            TryPlayPendingLinkTreeRewardFeedbacks();
         }
         #if DEBUG
         if (index == 3)
@@ -849,6 +852,8 @@ public partial class SystemPanelController : CanvasLayer
         public LinkTreeRewardState State;
         public bool SelectedForDisplay;
         public bool ClaimPending;
+        public bool RewardFeedbackPending;
+        public bool RewardFeedbackPlaying;
         public Tween RewardFeedbackTween = null!;
     }
 
@@ -1065,6 +1070,8 @@ public partial class SystemPanelController : CanvasLayer
             RefreshLinkTreeRewardEntry(entry);
             entry.Banner.Visible = showBanners && entry.SelectedForDisplay;
         }
+
+        TryPlayPendingLinkTreeRewardFeedbacks();
     }
 
     private static string GetLinkTreeSyncStatusText(bool includeRecoveryAdvice)
@@ -1130,6 +1137,11 @@ public partial class SystemPanelController : CanvasLayer
                 "showing all pinned banners.");
         }
 
+        AddLinkTreeEntriesUntilFull(
+            selected,
+            _linkTreeRewardEntries.Where(entry =>
+                !entry.Data.IsPinned && (entry.RewardFeedbackPending || entry.RewardFeedbackPlaying)),
+            visibleCount);
         AddLinkTreeEntriesUntilFull(
             selected,
             _linkTreeRewardEntries.Where(entry => !entry.Data.IsPinned && entry.State != LinkTreeRewardState.Claimed),
@@ -1322,6 +1334,11 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
+        // Enter the authoritative full-inventory synchronization state before queuing
+        // reward feedback. Otherwise the tween starts on the visible Banner and then
+        // immediately continues behind the full-page loading state.
+        _inventoryService?.StartInventorySynchronization();
+
         if (IsLinkTreeRewardConfirmedByItems(entry.Data, result.ChangedItems))
         {
             CompleteSteamLinkTreeClaim(entry, recovered: false);
@@ -1333,9 +1350,6 @@ public partial class SystemPanelController : CanvasLayer
             RefreshLinkTreeInteractionPresentation();
         }
 
-        // Reconcile the authoritative full inventory after the direct Promo result.
-        // This may briefly lag behind ChangedItems, but it must never resubmit the Bundle.
-        _inventoryService?.StartInventorySynchronization();
         GD.Print($"[LinkTree] {result.Message}");
     }
 
@@ -1370,7 +1384,7 @@ public partial class SystemPanelController : CanvasLayer
 
         MarkLinkTreeEntryClaimed(entry);
         SetupLinkTreeRewardPreview(entry);
-        PlayLinkTreeRewardFeedback(entry);
+        QueueLinkTreeRewardFeedback(entry);
         GD.Print($"[LinkTree] {(recovered ? "Recovered" : "Completed")} Steam-backed reward for {entry.Data.Key} ({entry.Data.Id}).");
         DiagnosticLog.Record("linktree_reward_completed", new Dictionary<string, object>
         {
@@ -1584,6 +1598,8 @@ public partial class SystemPanelController : CanvasLayer
 
     private void PlayLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
     {
+        entry.RewardFeedbackPending = false;
+        entry.RewardFeedbackPlaying = true;
         entry.RewardFeedbackTween?.Kill();
 
         entry.RewardVisualRoot.Visible = true;
@@ -1607,7 +1623,38 @@ public partial class SystemPanelController : CanvasLayer
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.In);
 
-        entry.RewardFeedbackTween.TweenCallback(Callable.From(() => entry.RewardVisualRoot.Visible = false));
+        entry.RewardFeedbackTween.TweenCallback(Callable.From(() =>
+        {
+            entry.RewardFeedbackPlaying = false;
+            entry.RewardVisualRoot.Visible = false;
+            RefreshLinkTreeVisibleEntries();
+        }));
+    }
+
+    private void QueueLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
+    {
+        entry.RewardFeedbackPending = true;
+        TryPlayPendingLinkTreeRewardFeedback(entry);
+    }
+
+    private void TryPlayPendingLinkTreeRewardFeedbacks()
+    {
+        foreach (var entry in _linkTreeRewardEntries)
+            TryPlayPendingLinkTreeRewardFeedback(entry);
+    }
+
+    private void TryPlayPendingLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
+    {
+        if (!entry.RewardFeedbackPending
+            || _linkTreePageState != LinkTreePageState.Ready
+            || !_linkTreeContent.Visible
+            || !entry.SelectedForDisplay
+            || !entry.Banner.IsVisibleInTree())
+        {
+            return;
+        }
+
+        PlayLinkTreeRewardFeedback(entry);
     }
 
     private static string FormatSignedLinkTreeRewardAmount(int amount)
@@ -1857,6 +1904,7 @@ public partial class SystemPanelController : CanvasLayer
         EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
+        Callable.From(TryPlayPendingLinkTreeRewardFeedbacks).CallDeferred();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 1f, 0.15f).SetEase(Tween.EaseType.Out);
     }

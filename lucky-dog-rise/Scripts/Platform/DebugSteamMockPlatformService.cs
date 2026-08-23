@@ -55,6 +55,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private double _simulationClockUpdatedAt;
     private bool _disposed;
     private bool _pendingGeneratorWasActivation;
+    private bool _awaitingLinkTreePostClaimSyncRequest;
+    private bool _linkTreePostClaimSyncPending;
 
     public DebugSteamMockPlatformService(
         IGamePlatformService inner,
@@ -160,7 +162,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             return;
         _inner.RunCallbacks();
         UpdateSimulationClock();
-        if (!IsMockActive || (!_playtimeDropPending && !_promoGrantPending))
+        if (!IsMockActive
+            || (!_playtimeDropPending && !_promoGrantPending && !_linkTreePostClaimSyncPending))
             return;
 
         var elapsed = NowSeconds() - _phaseStartedAt;
@@ -180,6 +183,17 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                      && elapsed >= 3.0:
                 CompletePendingOperationSuccess("慢响应在 3 秒后返回成功结果。", enforcePlaytimeRule: true);
+                break;
+            case DebugSteamScenario.LinkTreePostClaimSyncDelay
+                when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                     && elapsed >= 0.1:
+                CompletePendingOperationSuccess("LinkTree 模拟领奖成功，准备复查完整库存。", enforcePlaytimeRule: false);
+                break;
+            case DebugSteamScenario.LinkTreePostClaimSyncDelay
+                when _phase == DebugSteamPhase.InventoryVerification
+                     && _linkTreePostClaimSyncPending
+                     && elapsed >= 3.0:
+                CompleteLinkTreePostClaimInventorySync();
                 break;
             case DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback
                 when _phase is DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
@@ -305,6 +319,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _promoGrantPending = false;
         _pendingPromoItemDefId = 0;
         _pendingReceiptItemDefId = 0;
+        _awaitingLinkTreePostClaimSyncRequest = false;
+        _linkTreePostClaimSyncPending = false;
         _nextRewardInstanceOffset = 0;
         _lastRewardInstanceId = 0;
         _simulatedPlaytimeSeconds = 0.0;
@@ -361,6 +377,10 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 CompletePendingOperationSuccess("手动推进：模拟请求成功。", enforcePlaytimeRule: true);
                 break;
             case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
+                when _scenario == DebugSteamScenario.LinkTreePostClaimSyncDelay:
+                CompletePendingOperationSuccess("手动推进：LinkTree 模拟领奖成功。", enforcePlaytimeRule: false);
+                break;
+            case DebugSteamPhase.PlaytimeDropWaiting or DebugSteamPhase.PromoGrantWaiting
                 when _scenario is DebugSteamScenario.TimeoutVerifiedSuccess or DebugSteamScenario.TimeoutVerifiedFallback:
                 BeginInventoryVerification("手动推进：进入库存复查。");
                 break;
@@ -375,7 +395,15 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
                 BeginInventoryVerification("手动推进：恢复连接并开始库存复查。");
                 break;
             case DebugSteamPhase.InventoryVerification:
-                CompleteVerification(_scenario != DebugSteamScenario.TimeoutVerifiedFallback);
+                if (_scenario == DebugSteamScenario.LinkTreePostClaimSyncDelay
+                    && _linkTreePostClaimSyncPending)
+                {
+                    CompleteLinkTreePostClaimInventorySync();
+                }
+                else
+                {
+                    CompleteVerification(_scenario != DebugSteamScenario.TimeoutVerifiedFallback);
+                }
                 break;
         }
         PublishSnapshot();
@@ -392,6 +420,16 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         {
             SetInventoryTrustState(PlatformInventoryTrustState.RevalidationRequired, "Mock 仍处于断联阶段。");
             AddEvent("Mock 忽略库存同步请求：当前仍处于断联阶段。");
+            return;
+        }
+        if (_scenario == DebugSteamScenario.LinkTreePostClaimSyncDelay
+            && _awaitingLinkTreePostClaimSyncRequest)
+        {
+            _linkTreePostClaimSyncPending = true;
+            SetPhase(
+                DebugSteamPhase.InventoryVerification,
+                PlatformConnectionState.InventorySyncing,
+                "LinkTree 领奖成功，模拟完整库存同步保持 3 秒。");
             return;
         }
         PublishInventorySnapshot("Steam Mock 库存同步完成。", true);
@@ -681,9 +719,14 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private void CompletePromoGrantSuccess(string message)
     {
         var operation = GetPendingPromoOperationName();
+        var isLinkTreeClaim = !IsNewcomerCompletionReceiptGrant(
+            _pendingPromoItemDefId,
+            _pendingReceiptItemDefId);
         var changedItems = ApplySuccessfulPromoGrant();
         _promoGrantPending = false;
         SetPhase(DebugSteamPhase.Completed, PlatformConnectionState.Ready, message);
+        _awaitingLinkTreePostClaimSyncRequest =
+            _scenario == DebugSteamScenario.LinkTreePostClaimSyncDelay && isLinkTreeClaim;
         PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
             _pendingPromoItemDefId,
             _pendingReceiptItemDefId,
@@ -691,7 +734,18 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             true,
             message,
             changedItems));
+        _awaitingLinkTreePostClaimSyncRequest = false;
         PublishInventorySnapshot($"{operation}回调后的完整模拟库存。", true);
+    }
+
+    private void CompleteLinkTreePostClaimInventorySync()
+    {
+        _linkTreePostClaimSyncPending = false;
+        SetPhase(
+            DebugSteamPhase.Completed,
+            PlatformConnectionState.Ready,
+            "LinkTree 领奖后的完整库存同步已恢复 Ready。");
+        PublishInventorySnapshot("LinkTree 延迟库存同步完成。", true, recordEvent: false);
     }
 
     private void CompleteVerification(bool success)
