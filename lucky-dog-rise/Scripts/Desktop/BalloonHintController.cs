@@ -64,6 +64,7 @@ public partial class BalloonHintController : PanelContainer
     {
         _sourceTextFont ??= _textLabel.GetThemeFont("normal_font");
         ApplyPanelRenderScale(scale);
+        _loadingIndicator.SetRenderScale(scale);
         var oversampling = Math.Max(1, Mathf.CeilToInt(scale));
         if (!_oversampledTextFonts.TryGetValue(oversampling, out var font))
         {

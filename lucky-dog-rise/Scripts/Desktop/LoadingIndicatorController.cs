@@ -1,3 +1,5 @@
+#nullable enable
+
 using Godot;
 
 namespace LuckyDogRise;
@@ -14,6 +16,8 @@ public partial class LoadingIndicatorController : Control
     private double _elapsedSeconds;
     private bool _loadingStateInitialized;
     private bool _isLoading;
+    private DpiTexture? _rotatingRingDpiTexture;
+    private DpiTexture? _steamLogoDpiTexture;
 
     public override void _Ready()
     {
@@ -24,9 +28,30 @@ public partial class LoadingIndicatorController : Control
             return;
         }
 
+        _rotatingRingDpiTexture = MakeLocalDpiTexture(_rotatingRing);
+        _steamLogoDpiTexture = MakeLocalDpiTexture(_steamLogo);
         Resized += UpdatePivots;
         UpdatePivots();
         SetLoading(Visible);
+    }
+
+    public void SetRenderScale(float scale)
+    {
+        var rasterScale = Mathf.Max(1f, scale);
+        if (_rotatingRingDpiTexture != null)
+            _rotatingRingDpiTexture.BaseScale = rasterScale;
+        if (_steamLogoDpiTexture != null)
+            _steamLogoDpiTexture.BaseScale = rasterScale;
+    }
+
+    private static DpiTexture? MakeLocalDpiTexture(TextureRect textureRect)
+    {
+        if (textureRect.Texture is not DpiTexture source)
+            return null;
+
+        var local = (DpiTexture)source.Duplicate();
+        textureRect.Texture = local;
+        return local;
     }
 
     public override void _Process(double delta)
