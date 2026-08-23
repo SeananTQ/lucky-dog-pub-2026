@@ -413,7 +413,11 @@ public partial class SystemPanelController : CanvasLayer
 
         _taskbarSnapToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow/TaskbarSnapToggle");
         _taskbarSnapToggle.ButtonPressed = SettingsManager.LoadSnapToWindowsTaskbar();
-        _taskbarSnapToggle.Toggled += enabled => SettingsManager.SaveSnapToWindowsTaskbar(enabled);
+        _taskbarSnapToggle.Toggled += enabled =>
+        {
+            SettingsManager.SaveSnapToWindowsTaskbar(enabled);
+            EmitSignal(SignalName.CounterLayoutChanged);
+        };
 
         var streamerSafeToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle");
         streamerSafeToggle.ButtonPressed = SettingsManager.LoadStreamerSafeMode();

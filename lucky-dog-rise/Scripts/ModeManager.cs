@@ -1644,7 +1644,9 @@ public partial class ModeManager : Control
         if (_bossStatusPanel == null || _bossTaskBarAnchor == null)
             return;
 
-        if (!SettingsManager.LoadCenterCounterOnTaskbar())
+        if (!SettingsManager.LoadCenterCounterOnTaskbar()
+            || !SettingsManager.LoadSnapToWindowsTaskbar()
+            || !_taskbarSnapped)
         {
             ApplyBossStatusPanelHeight(_bossStatusPanelBaseSize.Y);
             _bossStatusPanel.Position = _bossStatusPanelBasePosition;
@@ -2660,6 +2662,7 @@ public partial class ModeManager : Control
             Math.Clamp(desiredWindowX, minWindowX, maxWindowX),
             taskbarTop - anchorY);
         DisplayServer.WindowSetPosition(windowPosition);
+        _taskbarSnapped = SettingsManager.LoadSnapToWindowsTaskbar();
         ApplyBossCounterLayout();
     }
 
@@ -2965,6 +2968,7 @@ public partial class ModeManager : Control
         int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
         int y = taskbarTop - anchorY;
         DisplayServer.WindowSetPosition(new Vector2I(x, y));
+        _taskbarSnapped = SettingsManager.LoadSnapToWindowsTaskbar();
         ApplyBossCounterLayout();
     }
 
