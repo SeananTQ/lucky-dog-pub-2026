@@ -3,7 +3,6 @@ namespace LuckyDogRise;
 public static class L10nKey
 {
     public const string Common_Quit = nameof(Common_Quit);
-    public const string Common_Restart = nameof(Common_Restart);
     public const string Common_Play = nameof(Common_Play);
     public const string Common_Desktop = nameof(Common_Desktop);
     public const string Common_Cancel = nameof(Common_Cancel);
@@ -62,6 +61,11 @@ public static class L10nKey
     public const string Settings_ExportDiagnostics = nameof(Settings_ExportDiagnostics);
     public const string Settings_ExportDiagnosticsSuccess = nameof(Settings_ExportDiagnosticsSuccess);
     public const string Settings_ExportDiagnosticsFailed = nameof(Settings_ExportDiagnosticsFailed);
+    public const string Settings_UpdateGame = nameof(Settings_UpdateGame);
+    public const string Settings_Update = nameof(Settings_Update);
+    public const string Settings_UpdateAndRestartUnavailable = nameof(Settings_UpdateAndRestartUnavailable);
+    public const string Settings_UpdateAndRestartPreparing = nameof(Settings_UpdateAndRestartPreparing);
+    public const string Settings_UpdateAndRestartFailed = nameof(Settings_UpdateAndRestartFailed);
     public const string Wardrobe_EmptyCategory = nameof(Wardrobe_EmptyCategory);
     public const string Wardrobe_Tab_Dog = nameof(Wardrobe_Tab_Dog);
     public const string Wardrobe_Tab_Hat = nameof(Wardrobe_Tab_Hat);

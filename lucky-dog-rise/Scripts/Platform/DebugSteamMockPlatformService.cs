@@ -12,7 +12,7 @@ namespace LuckyDogRise;
 /// </summary>
 public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
-    IDebugSteamMockController
+    IPlatformUpdateService, IDebugSteamMockController
 {
     private const ulong RewardInstanceBase = 9_100_000_000_000_000;
     private const ulong LinkTreeReceiptInstanceBase = 9_100_100_000_000_000;
@@ -23,6 +23,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private readonly IPlatformInventoryService _innerInventory;
     private readonly IRecoverablePlatformService _innerRecoverable;
     private readonly IPlatformAchievementTestOperations _innerAchievementTest;
+    private readonly IPlatformUpdateService _innerUpdateService;
     private readonly bool _canUseRealSteam;
     private readonly string _fallbackAccountId;
     private readonly List<string> _events = [];
@@ -72,6 +73,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         _innerInventory = inner as IPlatformInventoryService;
         _innerRecoverable = inner as IRecoverablePlatformService;
         _innerAchievementTest = inner as IPlatformAchievementTestOperations;
+        _innerUpdateService = inner as IPlatformUpdateService;
         inner.UserStatsReady += OnInnerUserStatsReady;
         if (_innerInventory != null)
         {
@@ -114,6 +116,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public string PersonaName => IsMockActive ? "Debug Mock" : _inner.PersonaName;
     public string AccountProvider => _fallbackAccountId.Length > 0 ? "dev" : _inner.AccountProvider;
     public string AccountId => _fallbackAccountId.Length > 0 ? _fallbackAccountId : _inner.AccountId;
+    public bool CanUpdateAndRestart => !IsMockActive && _innerUpdateService?.CanUpdateAndRestart == true;
     public bool IsReadyForWrites => !IsMockActive && _innerAchievementTest?.IsReadyForWrites == true;
     public bool IsInventoryReady => IsMockActive
         ? _connectionState == PlatformConnectionState.Ready
@@ -545,6 +548,20 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     }
 
     public bool OpenFriendsOverlay() => !IsMockActive && _inner.OpenFriendsOverlay();
+
+    public bool TryMarkContentCorrupt(bool missingFilesOnly, out string message)
+    {
+        if (IsMockActive)
+        {
+            message = "Steam Mock sandbox cannot mark real Steam content for verification.";
+            return false;
+        }
+        if (_innerUpdateService != null)
+            return _innerUpdateService.TryMarkContentCorrupt(missingFilesOnly, out message);
+
+        message = "The current platform does not support update and restart.";
+        return false;
+    }
     public PlatformAchievementReadResult ReadAchievementStates(IEnumerable<string> names) =>
         _inner.ReadAchievementStates(names);
 

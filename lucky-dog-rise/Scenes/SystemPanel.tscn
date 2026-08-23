@@ -32,7 +32,7 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_globalInputChipsEarnedLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseListeningToggle", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_globalInputChipsEarnedLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseListeningToggle", "_updateAndRestartButton", "_updateAndRestartStatusLabel", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
 _globalInputChipsEarnedLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/GlobalInputChipsEarnedLabel")
@@ -40,6 +40,8 @@ _armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsConte
 _pokerFrameRateOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerFrameRateRow/PokerFrameRateOption")
 _vsyncToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow/VsyncToggle")
 _disableGlobalMouseListeningToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DisableGlobalMouseListeningRow/DisableGlobalMouseListeningToggle")
+_updateAndRestartButton = NodePath("Panel/RootVBox/SettingsActionRow/UpdateGameBtn")
+_updateAndRestartStatusLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/UpdateAndRestartStatusLabel")
 _exportDiagnosticsButton = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ExportDiagnosticsBtn")
 _exportDiagnosticsStatusLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ExportDiagnosticsStatusLabel")
 _linkTreeBannerScene = ExtResource("13_linktree_banner")
@@ -130,11 +132,15 @@ size_flags_horizontal = 3
 theme_type_variation = &"DestructiveButton"
 text = "Common_Quit"
 
-[node name="RestartBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=1538965194]
+[node name="UpdateGameBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=1538965194]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Common_Restart"
+theme_type_variation = &"ActionButton"
+tooltip_text = "Settings_UpdateGame"
+text = "Settings_UpdateGame"
+text_overrun_behavior = 3
+clip_text = true
 
 [node name="SwitchToPlayBtn" type="Button" parent="Panel/RootVBox/SettingsActionRow" unique_id=764447966]
 custom_minimum_size = Vector2(0, 44)
@@ -613,6 +619,12 @@ size_flags_vertical = 4
 
 [node name="DisplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1350721495]
 layout_mode = 2
+
+[node name="UpdateAndRestartStatusLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
 
 [node name="ExportDiagnosticsBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2

@@ -6,7 +6,7 @@ using Steamworks;
 namespace LuckyDogRise;
 
 public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
-    IPlatformAchievementSyncOperations, IPlatformInventoryService
+    IPlatformAchievementSyncOperations, IPlatformInventoryService, IPlatformUpdateService
 {
     private enum InventoryRequestKind
     {
@@ -60,6 +60,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public string PersonaName => _runtime.PersonaName;
     public string AccountProvider => "steam";
     public string AccountId => _runtime.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public bool CanUpdateAndRestart => IsAvailable && AppId > 0;
     public bool IsReadyForWrites { get; private set; }
     public bool IsInventoryReady { get; private set; }
     public bool IsPromoGrantPending => _inventoryRequests.Values.Any(request =>
@@ -79,6 +80,32 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         return true;
     }
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
+
+    public bool TryMarkContentCorrupt(bool missingFilesOnly, out string message)
+    {
+        if (!CanUpdateAndRestart)
+        {
+            message = "Steam is not available for update and restart.";
+            return false;
+        }
+
+        try
+        {
+            if (!SteamApps.MarkContentCorrupt(missingFilesOnly))
+            {
+                message = "Steam rejected the content verification request.";
+                return false;
+            }
+
+            message = $"Steam accepted content verification for AppID {AppId}.";
+            return true;
+        }
+        catch (Exception exception)
+        {
+            message = $"Steam content verification failed: {exception.GetType().Name}: {exception.Message}";
+            return false;
+        }
+    }
 
     public void StartInventorySynchronization()
     {

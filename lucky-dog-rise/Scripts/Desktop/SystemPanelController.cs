@@ -32,6 +32,8 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
     [Export] private CheckButton _disableGlobalMouseListeningToggle = null!;
+    [Export] private Button _updateAndRestartButton = null!;
+    [Export] private Label _updateAndRestartStatusLabel = null!;
     [Export] private Button _exportDiagnosticsButton = null!;
     [Export] private Label _exportDiagnosticsStatusLabel = null!;
     [Export] private PackedScene _linkTreeBannerScene = null!;
@@ -219,6 +221,7 @@ public partial class SystemPanelController : CanvasLayer
                 ConfigureSteamMockLinkTreeGrants();
 #endif
                 InitializeLinkTreeInventory();
+                RefreshUpdateAndRestartAvailability();
             }
         }
     }
@@ -335,7 +338,6 @@ public partial class SystemPanelController : CanvasLayer
         _armAppearanceOption.GetPopup().AddThemeConstantOverride("icon_max_width", 32);
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
-        var restartBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/RestartBtn");
 
         BuildLanguageOptions();
 
@@ -416,8 +418,11 @@ public partial class SystemPanelController : CanvasLayer
 
         closeBtn.Pressed += Close;
         quitBtn.Pressed += () => EmitSignal(SignalName.QuitRequested);
-        restartBtn.Pressed += RestartGame;
+        _updateAndRestartButton.Pressed += UpdateAndRestart;
+        _updateAndRestartButton.Resized += RefreshUpdateGameButtonText;
         _exportDiagnosticsButton.Pressed += () => ExportDiagnostics();
+        RefreshUpdateAndRestartAvailability();
+        Callable.From(RefreshUpdateGameButtonText).CallDeferred();
 
         _switchToPlayBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToPlayBtn");
         _switchToBossKeyBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/SwitchToBossKeyBtn");
@@ -1306,6 +1311,7 @@ public partial class SystemPanelController : CanvasLayer
     private void OnPlatformConnectionStateChanged(PlatformConnectionState state)
     {
         RefreshLinkTreePageFromPlatformState();
+        RefreshUpdateAndRestartAvailability();
         if (state == PlatformConnectionState.Ready)
             ResumeWaitingLinkTreeClaims();
     }
@@ -1940,18 +1946,73 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Visible = false;
     }
 
-    private void RestartGame()
+    private void UpdateAndRestart()
     {
-        _gameData?.SaveImmediatelyIfUsingLocalSave();
-        SingleInstanceGuard.ReleaseForRestart();
-        var processId = OS.CreateInstance(OS.GetCmdlineArgs());
-        if (processId < 0)
+        if (_platformService is not IPlatformUpdateService updateService
+            || !updateService.CanUpdateAndRestart
+            || _platformService.AppId == 0)
         {
-            SingleInstanceGuard.ReacquireAfterFailedRestart();
-            OS.Alert("Failed to restart Lucky Dog Rise. The current game will remain open.", "Lucky Dog Rise");
+            ShowUpdateAndRestartFailure(L10n.Tr(L10nKey.Settings_UpdateAndRestartUnavailable));
             return;
         }
+
+        var appId = _platformService.AppId;
+        _updateAndRestartButton.Disabled = true;
+        _updateAndRestartStatusLabel.Modulate = new Color(0.62f, 0.68f, 0.7f);
+        _updateAndRestartStatusLabel.Text = L10n.Tr(L10nKey.Settings_UpdateAndRestartPreparing);
+        _updateAndRestartStatusLabel.Visible = true;
+
+        _gameData?.SaveImmediatelyIfUsingLocalSave();
+        if (!updateService.TryMarkContentCorrupt(missingFilesOnly: false, out var steamMessage))
+        {
+            ShowUpdateAndRestartFailure(
+                L10n.Format(L10nKey.Settings_UpdateAndRestartFailed, steamMessage));
+            return;
+        }
+
+        DiagnosticLog.Record("steam_update_and_restart_requested", new Dictionary<string, object>
+        {
+            ["appId"] = appId,
+            ["missingFilesOnly"] = false,
+        });
+
+        SingleInstanceGuard.ReleaseForRestart();
+        var launchError = OS.ShellOpen($"steam://run/{appId}");
+        if (launchError != Error.Ok)
+        {
+            SingleInstanceGuard.ReacquireAfterFailedRestart();
+            ShowUpdateAndRestartFailure(
+                L10n.Format(L10nKey.Settings_UpdateAndRestartFailed, launchError.ToString()));
+            return;
+        }
+
+        GD.Print($"[SteamUpdate] Marked full content verification and opened steam://run/{appId}.");
         GetTree().Quit();
+    }
+
+    private void RefreshUpdateAndRestartAvailability()
+    {
+        if (_updateAndRestartButton == null || _updateAndRestartStatusLabel == null)
+            return;
+
+        var available = _platformService is IPlatformUpdateService updateService
+            && updateService.CanUpdateAndRestart
+            && _platformService.AppId > 0;
+        _updateAndRestartButton.Disabled = !available;
+        _updateAndRestartStatusLabel.Visible = !available;
+        _updateAndRestartStatusLabel.Modulate = new Color(0.62f, 0.68f, 0.7f);
+        _updateAndRestartStatusLabel.Text = available
+            ? string.Empty
+            : L10n.Tr(L10nKey.Settings_UpdateAndRestartUnavailable);
+    }
+
+    private void ShowUpdateAndRestartFailure(string message)
+    {
+        _updateAndRestartButton.Disabled = false;
+        _updateAndRestartStatusLabel.Modulate = new Color(0.82f, 0.25f, 0.25f);
+        _updateAndRestartStatusLabel.Text = message;
+        _updateAndRestartStatusLabel.Visible = true;
+        GD.PushWarning($"[SteamUpdate] {message}");
     }
 
     public string ExportDiagnostics(bool revealInExplorer = true)
@@ -2220,6 +2281,8 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         RefreshModeButtonText();
+        RefreshUpdateGameButtonText();
+        RefreshUpdateAndRestartAvailability();
 
         foreach (var (button, tab) in _filterTabs)
             button.TooltipText = GetWardrobeTabTooltip(tab);
@@ -2281,6 +2344,27 @@ public partial class SystemPanelController : CanvasLayer
         var selectedId = _displayOption.GetSelectedId();
         if (selectedId >= 0)
             SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)selectedId);
+    }
+
+    private void RefreshUpdateGameButtonText()
+    {
+        if (_updateAndRestartButton == null)
+            return;
+
+        var fullText = L10n.Tr(L10nKey.Settings_UpdateGame);
+        var shortText = L10n.Tr(L10nKey.Settings_Update);
+        _updateAndRestartButton.TooltipText = fullText;
+
+        var font = _updateAndRestartButton.GetThemeFont("font");
+        var fontSize = _updateAndRestartButton.GetThemeFontSize("font_size");
+        var styleMinimumWidth = _updateAndRestartButton.GetThemeStylebox("normal").GetMinimumSize().X;
+        var availableTextWidth = Mathf.Max(0f, _updateAndRestartButton.Size.X - styleMinimumWidth - 6f);
+        var fullTextWidth = font.GetStringSize(
+            fullText,
+            HorizontalAlignment.Left,
+            -1f,
+            fontSize).X;
+        _updateAndRestartButton.Text = fullTextWidth <= availableTextWidth ? fullText : shortText;
     }
 
     private void OnPokerFrameRateSelected(long index)

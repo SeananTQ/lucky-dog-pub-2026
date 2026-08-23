@@ -5,7 +5,8 @@ using Godot;
 namespace LuckyDogRise;
 
 public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlatformInventoryService,
-    IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations
+    IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
+    IPlatformUpdateService
 {
     private const double InventoryTimeoutSeconds = 10.0;
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
@@ -43,6 +44,9 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public string PersonaName => _session?.PersonaName ?? string.Empty;
     public string AccountProvider => "steam";
     public string AccountId => _accountId;
+    public bool CanUpdateAndRestart => !_disposed
+        && !HasAccountIdentityConflict
+        && _session?.CanUpdateAndRestart == true;
     public bool HasAccountIdentityConflict { get; private set; }
     public bool IsReadyForWrites => _session?.IsReadyForWrites == true;
     public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
@@ -202,6 +206,17 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     }
 
     public bool OpenFriendsOverlay() => _session?.OpenFriendsOverlay() == true;
+
+    public bool TryMarkContentCorrupt(bool missingFilesOnly, out string message)
+    {
+        if (!CanUpdateAndRestart || _session == null)
+        {
+            message = "Steam is not connected; update and restart is unavailable.";
+            return false;
+        }
+
+        return _session.TryMarkContentCorrupt(missingFilesOnly, out message);
+    }
 
     public PlatformAchievementReadResult ReadAchievementStates(IEnumerable<string> achievementApiNames) =>
         _session?.ReadAchievementStates(achievementApiNames)
