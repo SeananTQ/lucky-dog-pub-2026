@@ -91,6 +91,11 @@ public partial class ModeManager : Control
     private bool _taskbarSnapped;
     private const int SnapThreshold = 15;
     private const int BreakawayThreshold = 30;
+    private bool _bossWorkAreaSnapshotReady;
+    private int _bossWorkAreaScreen = -1;
+    private Rect2I _bossLastScreenRect;
+    private Rect2I _bossLastUsableRect;
+    private Vector2I _bossLastTaskbarAnchorScreenPosition;
 
     private Rect2 _dogHitRect;
     private static readonly Rect2 BossDogHitRectDesign = new(60, 90, 180, 180);
@@ -767,6 +772,7 @@ public partial class ModeManager : Control
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
+        UpdateBossWorkAreaTracking();
 
         if (_hiddenByFullscreenApp)
             return;
@@ -2659,7 +2665,7 @@ public partial class ModeManager : Control
 
     private void ApplyTaskbarSnap(ref Vector2I newPos)
     {
-        if (!SettingsManager.LoadSnapToWindowsTaskbar())
+        if (CurrentMode != Mode.BossKey || !SettingsManager.LoadSnapToWindowsTaskbar())
         {
             _taskbarSnapped = false;
             return;
@@ -2685,6 +2691,127 @@ public partial class ModeManager : Control
             _taskbarSnapped = true;
             newPos.Y = snappedY;
         }
+    }
+
+    private void UpdateBossWorkAreaTracking()
+    {
+        if (CurrentMode != Mode.BossKey)
+        {
+            _bossWorkAreaSnapshotReady = false;
+            _bossWorkAreaScreen = -1;
+            return;
+        }
+
+        var anchorWindowPosition = RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+        var currentAnchorScreenPosition = DisplayServer.WindowGetPosition() + anchorWindowPosition;
+        int screenIndex = _bossWorkAreaSnapshotReady && !_isDragging
+            ? _bossWorkAreaScreen
+            : FindScreenIndexAtPoint(currentAnchorScreenPosition);
+        if (screenIndex < 0)
+            screenIndex = DisplayServer.WindowGetCurrentScreen();
+
+        var screenRect = new Rect2I(
+            DisplayServer.ScreenGetPosition(screenIndex),
+            DisplayServer.ScreenGetSize(screenIndex));
+        var usableRect = DisplayServer.ScreenGetUsableRect(screenIndex);
+
+        if (!_bossWorkAreaSnapshotReady || screenIndex != _bossWorkAreaScreen)
+        {
+            if (SettingsManager.LoadSnapToWindowsTaskbar()
+                && Math.Abs(currentAnchorScreenPosition.Y - usableRect.End.Y) <= SnapThreshold)
+                _taskbarSnapped = true;
+            CaptureBossWorkAreaSnapshot(
+                screenIndex,
+                screenRect,
+                usableRect,
+                currentAnchorScreenPosition);
+            return;
+        }
+
+        bool workAreaChanged = screenRect != _bossLastScreenRect
+            || usableRect != _bossLastUsableRect;
+        bool snapEnabled = SettingsManager.LoadSnapToWindowsTaskbar();
+        bool currentlyAttachedToTaskbar =
+            Math.Abs(currentAnchorScreenPosition.Y - usableRect.End.Y) <= SnapThreshold;
+        if (!_isDragging && snapEnabled && currentlyAttachedToTaskbar)
+            _taskbarSnapped = true;
+
+        if (workAreaChanged && !_isDragging)
+        {
+            bool wasAttachedToTaskbar = snapEnabled
+                && (_taskbarSnapped
+                    || Math.Abs(
+                        _bossLastTaskbarAnchorScreenPosition.Y - _bossLastUsableRect.End.Y)
+                        <= SnapThreshold);
+
+            if (wasAttachedToTaskbar)
+            {
+                // Windows may reposition this oversized transparent host window when its work
+                // area changes. Restore the previous horizontal anchor and attach it to the new
+                // taskbar top instead of trusting that OS-adjusted window position.
+                var desiredAnchorScreenPosition = new Vector2I(
+                    _bossLastTaskbarAnchorScreenPosition.X,
+                    usableRect.End.Y);
+                DisplayServer.WindowSetPosition(desiredAnchorScreenPosition - anchorWindowPosition);
+                currentAnchorScreenPosition = desiredAnchorScreenPosition;
+                _taskbarSnapped = true;
+                ApplyBossCounterLayout();
+                if (_settingsPanel?.IsOpen == true)
+                    PositionPanelInBestSlot();
+            }
+            else
+            {
+                _taskbarSnapped = false;
+            }
+        }
+        else if (!_isDragging && snapEnabled && _taskbarSnapped && !currentlyAttachedToTaskbar)
+        {
+            // The native window can be moved before Godot exposes the new work-area rect.
+            // Keep the last trusted horizontal anchor and immediately recover taskbar contact.
+            var desiredAnchorScreenPosition = new Vector2I(
+                _bossLastTaskbarAnchorScreenPosition.X,
+                usableRect.End.Y);
+            DisplayServer.WindowSetPosition(desiredAnchorScreenPosition - anchorWindowPosition);
+            currentAnchorScreenPosition = desiredAnchorScreenPosition;
+            ApplyBossCounterLayout();
+        }
+        else if (!snapEnabled)
+        {
+            _taskbarSnapped = false;
+        }
+
+        CaptureBossWorkAreaSnapshot(
+            screenIndex,
+            screenRect,
+            usableRect,
+            currentAnchorScreenPosition);
+    }
+
+    private void CaptureBossWorkAreaSnapshot(
+        int screenIndex,
+        Rect2I screenRect,
+        Rect2I usableRect,
+        Vector2I anchorScreenPosition)
+    {
+        _bossWorkAreaSnapshotReady = true;
+        _bossWorkAreaScreen = screenIndex;
+        _bossLastScreenRect = screenRect;
+        _bossLastUsableRect = usableRect;
+        _bossLastTaskbarAnchorScreenPosition = anchorScreenPosition;
+    }
+
+    private static int FindScreenIndexAtPoint(Vector2I screenPoint)
+    {
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = new Rect2I(
+                DisplayServer.ScreenGetPosition(i),
+                DisplayServer.ScreenGetSize(i));
+            if (screen.HasPoint(screenPoint))
+                return i;
+        }
+
+        return -1;
     }
 
     private void SetupPlayFatWindow()
@@ -2975,7 +3102,8 @@ public partial class ModeManager : Control
             {
                 if (_isDragging) GetViewport().SetInputAsHandled();
                 _isDragging = false; _potentialDrag = false;
-                _taskbarSnapped = false;
+                if (CurrentMode != Mode.BossKey || !SettingsManager.LoadSnapToWindowsTaskbar())
+                    _taskbarSnapped = false;
             }
         }
         else if (@event is InputEventMouseMotion && _potentialDrag)
