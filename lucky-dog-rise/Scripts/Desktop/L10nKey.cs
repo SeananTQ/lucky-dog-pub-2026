@@ -35,6 +35,12 @@ public static class L10nKey
     public const string Settings_RightClickQuickModeSwitch = nameof(Settings_RightClickQuickModeSwitch);
     public const string Settings_PreventAccidentalDrag = nameof(Settings_PreventAccidentalDrag);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);
+    public const string Settings_DesktopPetScale = nameof(Settings_DesktopPetScale);
+    public const string Settings_DesktopPetScaleApply = nameof(Settings_DesktopPetScaleApply);
+    public const string Settings_DesktopPetScaleConfirmTitle = nameof(Settings_DesktopPetScaleConfirmTitle);
+    public const string Settings_DesktopPetScaleConfirmMessage = nameof(Settings_DesktopPetScaleConfirmMessage);
+    public const string Settings_DesktopPetScaleKeep = nameof(Settings_DesktopPetScaleKeep);
+    public const string Settings_DesktopPetScaleRestore = nameof(Settings_DesktopPetScaleRestore);
     public const string Settings_Gameplay = nameof(Settings_Gameplay);
     public const string Settings_AutoHidePanelOnFocusLoss = nameof(Settings_AutoHidePanelOnFocusLoss);
     public const string Settings_TongueInstantMode = nameof(Settings_TongueInstantMode);

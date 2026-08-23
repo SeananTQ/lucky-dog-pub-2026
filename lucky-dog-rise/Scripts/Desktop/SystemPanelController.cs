@@ -25,6 +25,9 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DesktopBgmPlaybackChangedEventHandler(bool enabled);
     [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
+    [Signal] public delegate void DesktopPetScalePreviewRequestedEventHandler(int step);
+    [Signal] public delegate void DesktopPetScaleConfirmedEventHandler(int step);
+    [Signal] public delegate void DesktopPetScaleCanceledEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private Label _globalInputChipsEarnedLabel = null!;
@@ -94,6 +97,12 @@ public partial class SystemPanelController : CanvasLayer
     private CheckButton _preventAccidentalDragToggle = null!;
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
+    private HSlider _desktopPetScaleSlider = null!;
+    private Button _desktopPetScaleApplyButton = null!;
+    private ConfirmOverlayController _desktopScaleConfirm = null!;
+    private int _confirmedDesktopPetScaleStep = SettingsManager.DefaultDesktopPetScaleStep;
+    private int _pendingDesktopPetScaleStep = -1;
+    private bool _isBossKeyMode = true;
 #if DEBUG
     private OptionButton _saveDataModeOption = null!;
 #endif
@@ -335,6 +344,17 @@ public partial class SystemPanelController : CanvasLayer
         _preventAccidentalDragToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow/PreventAccidentalDragToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
+        _desktopPetScaleSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/Slider");
+        _desktopPetScaleApplyButton = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/ApplyButton");
+        _desktopScaleConfirm = GetNode<ConfirmOverlayController>("DesktopScaleConfirm");
+        _confirmedDesktopPetScaleStep = SettingsManager.LoadDesktopPetScaleStep();
+        _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
+        _desktopPetScaleSlider.ValueChanged += _ => RefreshDesktopPetScaleApplyState();
+        _desktopPetScaleApplyButton.Pressed += ApplySelectedDesktopPetScale;
+        _desktopScaleConfirm.Confirmed += ConfirmDesktopPetScale;
+        _desktopScaleConfirm.Canceled += RestoreDesktopPetScale;
+        _desktopPetScaleApplyButton.Text = L10n.Tr(L10nKey.Settings_DesktopPetScaleApply);
+        RefreshDesktopPetScaleApplyState();
         _armAppearanceOption.GetPopup().AddThemeConstantOverride("icon_max_width", 32);
         var closeBtn = GetNode<Button>("Panel/RootVBox/TitleRow/CloseBtn");
         var quitBtn = GetNode<Button>("Panel/RootVBox/SettingsActionRow/QuitBtn");
@@ -1897,6 +1917,8 @@ public partial class SystemPanelController : CanvasLayer
 
     public void SetCurrentMode(bool isBossKeyMode)
     {
+        _isBossKeyMode = isBossKeyMode;
+        RefreshDesktopPetScaleApplyState();
         if (_switchToPlayBtn == null || _switchToBossKeyBtn == null)
             return;
 
@@ -1918,6 +1940,7 @@ public partial class SystemPanelController : CanvasLayer
     public void SetPanelPosition(Vector2 pos)
     {
         _panel.Position = pos;
+        _desktopScaleConfirm?.SetOverlayRect(pos, PanelSize);
 #if DEBUG
         _resetSaveConfirm?.SetOverlayRect(pos, PanelSize);
 #endif
@@ -1925,6 +1948,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void Close()
     {
+        CancelPendingDesktopPetScaleChange();
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
@@ -1937,6 +1961,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+        CancelPendingDesktopPetScaleChange();
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
@@ -2060,6 +2085,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (!_panel.Visible) return false;
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
+            || (_desktopScaleConfirm.Visible && new Rect2(_desktopScaleConfirm.Position, _desktopScaleConfirm.Size).HasPoint(windowPos))
 #if DEBUG
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, _resetSaveConfirm.Size).HasPoint(windowPos))
 #endif
@@ -2281,6 +2307,8 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         RefreshModeButtonText();
+        if (_desktopPetScaleApplyButton != null)
+            _desktopPetScaleApplyButton.Text = L10n.Tr(L10nKey.Settings_DesktopPetScaleApply);
         RefreshUpdateGameButtonText();
         RefreshUpdateAndRestartAvailability();
 
@@ -2344,6 +2372,77 @@ public partial class SystemPanelController : CanvasLayer
         var selectedId = _displayOption.GetSelectedId();
         if (selectedId >= 0)
             SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)selectedId);
+    }
+
+    private void ApplySelectedDesktopPetScale()
+    {
+        if (!_isBossKeyMode || _pendingDesktopPetScaleStep >= 0)
+            return;
+
+        var selectedStep = Mathf.Clamp(
+            Mathf.RoundToInt(_desktopPetScaleSlider.Value),
+            SettingsManager.DesktopPetScaleStepMin,
+            SettingsManager.DesktopPetScaleStepMax);
+        if (selectedStep == _confirmedDesktopPetScaleStep)
+            return;
+
+        _pendingDesktopPetScaleStep = selectedStep;
+        EmitSignal(SignalName.DesktopPetScalePreviewRequested, selectedStep);
+        _desktopScaleConfirm.SetOverlayRect(_panel.Position, PanelSize);
+        _desktopScaleConfirm.ShowTimedConfirmKey(
+            L10nKey.Settings_DesktopPetScaleConfirmTitle,
+            L10nKey.Settings_DesktopPetScaleConfirmMessage,
+            L10nKey.Settings_DesktopPetScaleKeep,
+            L10nKey.Settings_DesktopPetScaleRestore,
+            timeoutSeconds: 10.0);
+        RefreshDesktopPetScaleApplyState();
+    }
+
+    private void ConfirmDesktopPetScale()
+    {
+        if (_pendingDesktopPetScaleStep < 0)
+            return;
+
+        _confirmedDesktopPetScaleStep = _pendingDesktopPetScaleStep;
+        _pendingDesktopPetScaleStep = -1;
+        SettingsManager.SaveDesktopPetScaleStep(_confirmedDesktopPetScaleStep);
+        _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
+        EmitSignal(SignalName.DesktopPetScaleConfirmed, _confirmedDesktopPetScaleStep);
+        RefreshDesktopPetScaleApplyState();
+    }
+
+    private void RestoreDesktopPetScale()
+    {
+        if (_pendingDesktopPetScaleStep < 0)
+            return;
+
+        _pendingDesktopPetScaleStep = -1;
+        _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
+        EmitSignal(SignalName.DesktopPetScaleCanceled);
+        RefreshDesktopPetScaleApplyState();
+    }
+
+    public bool CancelPendingDesktopPetScaleChange()
+    {
+        if (_pendingDesktopPetScaleStep < 0)
+            return false;
+
+        if (!_desktopScaleConfirm.CancelIfPending())
+            RestoreDesktopPetScale();
+        return true;
+    }
+
+    private void RefreshDesktopPetScaleApplyState()
+    {
+        if (_desktopPetScaleSlider == null || _desktopPetScaleApplyButton == null)
+            return;
+
+        var selectedStep = Mathf.RoundToInt(_desktopPetScaleSlider.Value);
+        var confirmationPending = _pendingDesktopPetScaleStep >= 0;
+        _desktopPetScaleSlider.Editable = _isBossKeyMode && !confirmationPending;
+        _desktopPetScaleApplyButton.Disabled = !_isBossKeyMode
+            || confirmationPending
+            || selectedStep == _confirmedDesktopPetScaleStep;
     }
 
     private void RefreshUpdateGameButtonText()
@@ -2458,6 +2557,11 @@ public partial class SystemPanelController : CanvasLayer
         _gameData.SetSaveDataMode(SettingsManager.LoadSaveDataMode());
         EmitSignal(SignalName.BlindBoxBubbleVisibilityChanged);
         EmitSignal(SignalName.CounterLayoutChanged);
+        _confirmedDesktopPetScaleStep = SettingsManager.LoadDesktopPetScaleStep();
+        _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
+        EmitSignal(SignalName.DesktopPetScalePreviewRequested, _confirmedDesktopPetScaleStep);
+        EmitSignal(SignalName.DesktopPetScaleConfirmed, _confirmedDesktopPetScaleStep);
+        RefreshDesktopPetScaleApplyState();
     }
 #endif
 
@@ -2487,6 +2591,10 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadCenterCounterOnTaskbar());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow/AutoHideCounterToggle")
             .SetPressedNoSignal(SettingsManager.LoadAutoHideCounter());
+        _confirmedDesktopPetScaleStep = SettingsManager.LoadDesktopPetScaleStep();
+        _pendingDesktopPetScaleStep = -1;
+        _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
+        RefreshDesktopPetScaleApplyState();
         BuildPokerFrameRateOptions();
         _vsyncToggle.SetPressedNoSignal(SettingsManager.LoadVsyncEnabled());
 

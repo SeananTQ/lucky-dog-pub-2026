@@ -69,7 +69,12 @@ public partial class DesktopRiseIntroController : Node2D
         RefreshVisuals();
     }
 
-    public void Configure(Vector2 contentOffset, Vector2 dogPosition, Vector2 dogScale, float taskbarTopY)
+    public void Configure(
+        Vector2 contentOffset,
+        Vector2 dogPosition,
+        Vector2 dogScale,
+        float taskbarTopY,
+        float desktopPetScaleFactor = 1f)
     {
         _dogPosition = dogPosition;
         _dogScale = dogScale;
@@ -77,6 +82,7 @@ public partial class DesktopRiseIntroController : Node2D
         if (!IsNodeReady()) return;
 
         _revealLayer.Offset = contentOffset;
+        _revealLayer.Scale = Vector2.One * desktopPetScaleFactor;
         _revealClip.Position = Vector2.Zero;
         // This game-owned clip is the real occluder. It remains correct even when
         // the player's Windows taskbar is translucent or fully transparent.

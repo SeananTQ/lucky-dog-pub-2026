@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace LuckyDogRise;
@@ -16,6 +17,10 @@ public partial class ConfirmOverlayController : Control
     private string _confirmKey = "";
     private string _cancelKey = "";
     private bool _usesLocalizationKeys;
+    private bool _timedConfirmActive;
+    private double _timedConfirmRemaining;
+    private string _timedMessageKey = "";
+    private int _lastDisplayedCountdown = -1;
 
     public override void _Ready()
     {
@@ -30,8 +35,20 @@ public partial class ConfirmOverlayController : Control
         Visible = false;
     }
 
+    public override void _Process(double delta)
+    {
+        if (!_timedConfirmActive)
+            return;
+
+        _timedConfirmRemaining = Math.Max(0.0, _timedConfirmRemaining - delta);
+        RefreshTimedMessage();
+        if (_timedConfirmRemaining <= 0.0)
+            Cancel();
+    }
+
     public void ShowConfirm(string title, string message, string confirmText = "确认", string cancelText = "取消")
     {
+        StopTimedConfirm();
         _usesLocalizationKeys = false;
         _titleLabel.Text = title;
         _messageLabel.Text = message;
@@ -42,6 +59,7 @@ public partial class ConfirmOverlayController : Control
 
     public void ShowConfirmKey(string titleKey, string messageKey, string confirmKey = L10nKey.Common_Confirm, string cancelKey = L10nKey.Common_Cancel)
     {
+        StopTimedConfirm();
         _usesLocalizationKeys = true;
         _titleKey = titleKey;
         _messageKey = messageKey;
@@ -49,6 +67,34 @@ public partial class ConfirmOverlayController : Control
         _cancelKey = cancelKey;
         RefreshLocalizedText();
         Visible = true;
+    }
+
+    public void ShowTimedConfirmKey(
+        string titleKey,
+        string messageKey,
+        string confirmKey,
+        string cancelKey,
+        double timeoutSeconds)
+    {
+        _usesLocalizationKeys = true;
+        _titleKey = titleKey;
+        _timedMessageKey = messageKey;
+        _confirmKey = confirmKey;
+        _cancelKey = cancelKey;
+        _timedConfirmRemaining = Math.Max(0.0, timeoutSeconds);
+        _timedConfirmActive = true;
+        _lastDisplayedCountdown = -1;
+        RefreshLocalizedText();
+        Visible = true;
+    }
+
+    public bool CancelIfPending()
+    {
+        if (!Visible || !_timedConfirmActive)
+            return false;
+
+        Cancel();
+        return true;
     }
 
     public void SetOverlayRect(Vector2 position, Vector2 size)
@@ -59,12 +105,14 @@ public partial class ConfirmOverlayController : Control
 
     private void Confirm()
     {
+        StopTimedConfirm();
         Visible = false;
         EmitSignal(SignalName.Confirmed);
     }
 
     private void Cancel()
     {
+        StopTimedConfirm();
         Visible = false;
         EmitSignal(SignalName.Canceled);
     }
@@ -75,8 +123,32 @@ public partial class ConfirmOverlayController : Control
             return;
 
         _titleLabel.Text = L10n.Tr(_titleKey);
-        _messageLabel.Text = L10n.Tr(_messageKey);
+        if (_timedConfirmActive)
+            RefreshTimedMessage(force: true);
+        else
+            _messageLabel.Text = L10n.Tr(_messageKey);
         _confirmButton.Text = L10n.Tr(_confirmKey);
         _cancelButton.Text = L10n.Tr(_cancelKey);
+    }
+
+    private void RefreshTimedMessage(bool force = false)
+    {
+        if (!_timedConfirmActive)
+            return;
+
+        var seconds = Math.Max(0, (int)Math.Ceiling(_timedConfirmRemaining));
+        if (!force && seconds == _lastDisplayedCountdown)
+            return;
+
+        _lastDisplayedCountdown = seconds;
+        _messageLabel.Text = L10n.Format(_timedMessageKey, seconds);
+    }
+
+    private void StopTimedConfirm()
+    {
+        _timedConfirmActive = false;
+        _timedConfirmRemaining = 0.0;
+        _lastDisplayedCountdown = -1;
+        _timedMessageKey = "";
     }
 }

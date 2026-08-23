@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using DataTables;
 using Godot;
 
@@ -37,9 +38,12 @@ public partial class BalloonHintController : PanelContainer
     private bool _interactionEnabled = true;
     private bool _showingLoading;
     private string _strikeText = string.Empty;
+    private Font? _sourceTextFont;
+    private readonly Dictionary<int, Font> _oversampledTextFonts = new();
 
     public override void _Ready()
     {
+        _sourceTextFont = _textLabel.GetThemeFont("normal_font");
         MouseFilter = MouseFilterEnum.Stop;
         _iconRect.Visible = false;
         _loadingIndicator.SetLoading(false);
@@ -47,6 +51,46 @@ public partial class BalloonHintController : PanelContainer
         SetTextContent(string.Empty);
         UpdateTail();
         PivotOffset = Size * 0.5f;
+    }
+
+    /// <summary>
+    /// CanvasLayer scaling does not automatically increase dynamic-font rasterization resolution.
+    /// Give this balloon its own oversampled font copy so enlarged countdown/cost text stays crisp.
+    /// </summary>
+    public void SetRenderScale(float scale)
+    {
+        _sourceTextFont ??= _textLabel.GetThemeFont("normal_font");
+        var oversampling = Math.Max(1, Mathf.CeilToInt(scale));
+        if (!_oversampledTextFonts.TryGetValue(oversampling, out var font))
+        {
+            font = DuplicateFontForOversampling(_sourceTextFont, oversampling);
+            _oversampledTextFonts[oversampling] = font;
+        }
+
+        _textLabel.AddThemeFontOverride("normal_font", font);
+        UpdateStrikeLine();
+    }
+
+    private static Font DuplicateFontForOversampling(Font source, float oversampling)
+    {
+        var copy = (Font)source.Duplicate();
+        if (copy is FontFile fontFile)
+            fontFile.Oversampling = oversampling;
+        else if (copy is SystemFont systemFont)
+            systemFont.Oversampling = oversampling;
+
+        if (copy is FontVariation variation && variation.BaseFont != null)
+            variation.BaseFont = DuplicateFontForOversampling(variation.BaseFont, oversampling);
+
+        if (source.Fallbacks.Count > 0)
+        {
+            var fallbacks = new Godot.Collections.Array<Font>();
+            foreach (var fallback in source.Fallbacks)
+                fallbacks.Add(DuplicateFontForOversampling(fallback, oversampling));
+            copy.Fallbacks = fallbacks;
+        }
+
+        return copy;
     }
 
     public override void _Notification(int what)

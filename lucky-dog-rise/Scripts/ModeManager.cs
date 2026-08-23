@@ -57,10 +57,23 @@ public partial class ModeManager : Control
     private bool _bossRiseIntroSuppressesBlindBoxHint;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
+    private Font _bossCounterSourceFont = null!;
+    private readonly Dictionary<int, Font> _bossCounterFontsByOversampling = new();
     private string _lastCounterPersonaName = string.Empty;
     private Vector2 _windowBaseSize;
+    private Vector2 _windowBaseDesignSize;
     private Vector2 _panelSize;
     private Vector2 _contentOffset;
+    private Vector2 _bossContentOffset;
+    private Node2D _bossContentA = null!;
+    private CanvasLayer _bossCanvasLayer = null!;
+    private CanvasLayer _bossBubbleLayer = null!;
+    private int _desktopPetScaleStep = SettingsManager.DefaultDesktopPetScaleStep;
+    private float _desktopPetScaleFactor = 1f;
+    private bool _desktopPetScalePreviewActive;
+    private int _desktopPetScalePreviewOriginalStep;
+    private Vector2I _desktopPetScalePreviewOriginalWindowPosition;
+    private bool _desktopPetScalePreviewOriginalTaskbarSnapped;
     // 延迟到桌宠已绘制一帧后才移动窗口；用于让过期的延迟移动失效。
     private int _modeSwitchRevision;
 
@@ -79,7 +92,7 @@ public partial class ModeManager : Control
     private const int BreakawayThreshold = 30;
 
     private Rect2 _dogHitRect;
-    private Rect2 _btnHitRect;
+    private static readonly Rect2 BossDogHitRectDesign = new(60, 90, 180, 180);
     private Texture2D _blindBoxIcon = null!;
     private bool _blindBoxOpeningUiActive;
     private double _blindBoxOpeningUiElapsedSeconds;
@@ -386,6 +399,9 @@ public partial class ModeManager : Control
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
+        _bossContentA = _bossKeyContent.GetNode<Node2D>("ContentA");
+        _bossCanvasLayer = _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer");
+        _bossBubbleLayer = _bossKeyContent.GetNode<CanvasLayer>("Bubble");
         _bossDogVisual = _bossKeyContent.GetNode<DogVisual>("ContentA/DogArea");
         _bossBlindBoxHint = _bossKeyContent.GetNode<BalloonHintController>("CanvasLayer/BlindBoxHint");
         _bossBlindBoxRevealAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/DesktopBlindBoxRevealAnchor");
@@ -397,6 +413,7 @@ public partial class ModeManager : Control
         _gameData.BlindBoxStateChanged += RefreshBossBlindBoxHint;
         _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
+        _bossCounterSourceFont = _mainText.GetThemeFont("font");
         _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
         _bossStatusPanelBasePosition = _bossStatusPanel.Position;
         _bossStatusPanelBaseSize = _bossStatusPanel.Size;
@@ -434,6 +451,9 @@ public partial class ModeManager : Control
 #endif
         _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
+        _settingsPanel.DesktopPetScalePreviewRequested += OnDesktopPetScalePreviewRequested;
+        _settingsPanel.DesktopPetScaleConfirmed += OnDesktopPetScaleConfirmed;
+        _settingsPanel.DesktopPetScaleCanceled += OnDesktopPetScaleCanceled;
         RefreshSettingsPanelModeActions();
 
         if (OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
@@ -475,12 +495,9 @@ public partial class ModeManager : Control
         _bossKeyContent.AddChild(_bossRiseIntro);
         _bossRiseIntro.BindGameData(_gameData);
 
-        _dogHitRect = new Rect2(60 + _contentOffset.X, 90 + _contentOffset.Y, 180, 180);
-        _btnHitRect = new Rect2(50 + _contentOffset.X, 265 + _contentOffset.Y, 240, 40);
-
-        _windowBaseSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
-        var bossContentA = _bossKeyContent.GetNode<Node2D>("ContentA");
-        bossContentA.Position = _contentOffset;
+        _windowBaseDesignSize = _bossKeyContent.GetNode<Marker2D>("ContentA/WindowSize").Position;
+        _desktopPetScaleStep = SettingsManager.LoadDesktopPetScaleStep();
+        ApplyDesktopPetScaleGeometry(_desktopPetScaleStep);
         ConfigureBossRiseIntro();
         UpdateBossBlindBoxOverlayPosition();
         SetupFatWindow();
@@ -504,10 +521,10 @@ public partial class ModeManager : Control
         DisplayServer.WindowSetPosition(DisplayServer.WindowGetPosition());
         EnableLayeredWindow();
 
-        _bossKeyContent.GetNode<CanvasLayer>("CanvasLayer").Offset = _contentOffset;
+        _bossCanvasLayer.Offset = _bossContentOffset;
         ApplyBossCounterLayout();
-        _bossKeyContent.GetNode<CanvasLayer>("Bubble").Offset = _contentOffset;
-        _bossKeyContent.GetNode<CanvasLayer>("Bubble").Visible = false;
+        _bossBubbleLayer.Offset = _bossContentOffset;
+        _bossBubbleLayer.Visible = false;
         RestoreBossBlindBoxRewardIfNeeded();
         CallDeferred(MethodName.RestoreBossBlindBoxRewardIfNeeded);
 
@@ -823,6 +840,7 @@ public partial class ModeManager : Control
     {
         if (CurrentMode == Mode.Play) return;
         _modeSwitchRevision++;
+        _settingsPanel.CancelPendingDesktopPetScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         HideBossKeyContent();
@@ -901,6 +919,7 @@ public partial class ModeManager : Control
         int switchRevision = ++_modeSwitchRevision;
         var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
         CancelWindowDrag();
+        _settingsPanel.CancelPendingDesktopPetScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         // DWM Cloak 会让窗口对玩家不可见，但仍允许 Godot 在后台继续 resize、移动和绘制。
@@ -1134,6 +1153,7 @@ public partial class ModeManager : Control
         if (_shutdownRequested)
             return;
 
+        _settingsPanel?.CancelPendingDesktopPetScaleChange();
         _shutdownRequested = true;
         _singleInstanceGuard?.BeginShutdown();
         var totalStopwatch = Stopwatch.StartNew();
@@ -1317,7 +1337,165 @@ public partial class ModeManager : Control
         if (_bossRiseIntro == null || _bossDogVisual == null)
             return;
 
-        _bossRiseIntro.Configure(_contentOffset, _bossDogVisual.Position, _bossDogVisual.Scale, _bossTaskBarAnchor.Position.Y);
+        _bossRiseIntro.Configure(
+            _bossContentOffset,
+            _bossDogVisual.Position,
+            _bossDogVisual.Scale,
+            _bossTaskBarAnchor.Position.Y,
+            _desktopPetScaleFactor);
+    }
+
+    private void OnDesktopPetScalePreviewRequested(int step)
+    {
+        if (!_desktopPetScalePreviewActive)
+        {
+            _desktopPetScalePreviewActive = true;
+            _desktopPetScalePreviewOriginalStep = _desktopPetScaleStep;
+            _desktopPetScalePreviewOriginalWindowPosition = DisplayServer.WindowGetPosition();
+            _desktopPetScalePreviewOriginalTaskbarSnapped = _taskbarSnapped;
+        }
+
+        ApplyDesktopPetScaleStep(step, preserveTaskbarAnchor: true);
+    }
+
+    private void OnDesktopPetScaleConfirmed(int step)
+    {
+        _desktopPetScaleStep = Mathf.Clamp(
+            step,
+            SettingsManager.DesktopPetScaleStepMin,
+            SettingsManager.DesktopPetScaleStepMax);
+        _desktopPetScalePreviewActive = false;
+    }
+
+    private void OnDesktopPetScaleCanceled()
+    {
+        if (!_desktopPetScalePreviewActive)
+            return;
+
+        var originalPosition = _desktopPetScalePreviewOriginalWindowPosition;
+        var originalTaskbarSnapped = _desktopPetScalePreviewOriginalTaskbarSnapped;
+        var originalStep = _desktopPetScalePreviewOriginalStep;
+        _desktopPetScalePreviewActive = false;
+        ApplyDesktopPetScaleStep(originalStep, preserveTaskbarAnchor: false);
+        DisplayServer.WindowSetPosition(originalPosition);
+        _taskbarSnapped = originalTaskbarSnapped;
+        ApplyBossCounterLayout();
+        UpdateBossBlindBoxOverlayPosition();
+        if (_settingsPanel?.IsOpen == true)
+            PositionPanelInBestSlot();
+    }
+
+    public void ApplyDesktopPetScaleStep(int step) =>
+        ApplyDesktopPetScaleStep(step, preserveTaskbarAnchor: true);
+
+    private void ApplyDesktopPetScaleStep(int step, bool preserveTaskbarAnchor)
+    {
+        var oldAnchorScreenPosition = DisplayServer.WindowGetPosition()
+            + RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+
+        ApplyDesktopPetScaleGeometry(step);
+        if (CurrentMode != Mode.BossKey)
+            return;
+
+        SetupFatWindow();
+        if (preserveTaskbarAnchor)
+        {
+            var newWindowPosition = oldAnchorScreenPosition
+                - RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+            DisplayServer.WindowSetPosition(newWindowPosition);
+        }
+
+        ApplyBossCounterLayout();
+        UpdateBossBlindBoxOverlayPosition();
+        if (_settingsPanel?.IsOpen == true)
+            PositionPanelInBestSlot();
+    }
+
+    private void ApplyDesktopPetScaleGeometry(int step)
+    {
+        _desktopPetScaleStep = Mathf.Clamp(
+            step,
+            SettingsManager.DesktopPetScaleStepMin,
+            SettingsManager.DesktopPetScaleStepMax);
+        _desktopPetScaleFactor = SettingsManager.GetDesktopPetScaleFactor(_desktopPetScaleStep);
+
+        _bossContentOffset = new Vector2(
+            _panelSize.X,
+            CalculateBossTopBufferHeight());
+
+        _bossContentA.Position = _bossContentOffset;
+        _bossContentA.Scale = Vector2.One * _desktopPetScaleFactor;
+        _bossCanvasLayer.Offset = _bossContentOffset;
+        _bossCanvasLayer.Scale = Vector2.One * _desktopPetScaleFactor;
+        _bossBubbleLayer.Offset = _bossContentOffset;
+        _bossBubbleLayer.Scale = Vector2.One * _desktopPetScaleFactor;
+        _bossBlindBoxHint?.SetRenderScale(_desktopPetScaleFactor);
+        ApplyBossCounterTextRenderScale();
+        if (_bossBlindBoxOverlay != null)
+            _bossBlindBoxOverlay.Scale = Vector2.One * _desktopPetScaleFactor;
+
+        _windowBaseSize = new Vector2(
+            Mathf.Ceil(_windowBaseDesignSize.X * _desktopPetScaleFactor),
+            Mathf.Ceil(_windowBaseDesignSize.Y * _desktopPetScaleFactor));
+        UpdateBossInteractionRects();
+        ConfigureBossRiseIntro();
+        UpdateBossBlindBoxOverlayPosition();
+    }
+
+    private float CalculateBossTopBufferHeight()
+    {
+        var revealTop = -302f;
+        if (_bossBlindBoxOverlay != null)
+        {
+            var revealRoot = _bossBlindBoxOverlay.GetNodeOrNull<Control>("RevealRoot");
+            var rewardRoot = _bossBlindBoxOverlay.GetNodeOrNull<Control>("RewardRoot");
+            if (revealRoot != null)
+                revealTop = Mathf.Min(revealTop, revealRoot.Position.Y);
+            if (rewardRoot != null)
+                revealTop = Mathf.Min(revealTop, rewardRoot.Position.Y);
+        }
+
+        var revealTopRelativeToA = _bossBlindBoxRevealAnchor.Position.Y + revealTop;
+        var requiredRevealBuffer = Mathf.Ceil(-revealTopRelativeToA * _desktopPetScaleFactor);
+        return Mathf.Max(_panelSize.Y, requiredRevealBuffer);
+    }
+
+    private Vector2 GetBossTaskbarAnchorWindowPosition() =>
+        _bossContentOffset + _bossTaskBarAnchor.Position * _desktopPetScaleFactor;
+
+    private void ApplyBossCounterTextRenderScale()
+    {
+        if (_mainText == null || _bossCounterSourceFont == null)
+            return;
+
+        var oversampling = Math.Max(1, Mathf.CeilToInt(_desktopPetScaleFactor));
+        if (!_bossCounterFontsByOversampling.TryGetValue(oversampling, out var font))
+        {
+            font = (Font)_bossCounterSourceFont.Duplicate();
+            if (font is FontFile fontFile)
+                fontFile.Oversampling = oversampling;
+            else if (font is SystemFont systemFont)
+                systemFont.Oversampling = oversampling;
+            _bossCounterFontsByOversampling[oversampling] = font;
+        }
+
+        _mainText.AddThemeFontOverride("font", font);
+    }
+
+    private static Vector2I RoundToVector2I(Vector2 value) =>
+        new(Mathf.RoundToInt(value.X), Mathf.RoundToInt(value.Y));
+
+    private Rect2 ScaleBossDesignRect(Rect2 designRect) => new(
+        _bossContentOffset + designRect.Position * _desktopPetScaleFactor,
+        designRect.Size * _desktopPetScaleFactor);
+
+    private void UpdateBossInteractionRects()
+    {
+        // The legacy dog rectangle extends 35 design pixels below A. At high scale this
+        // becomes a large invisible strip below the counter that still captures dragging.
+        var dogRectInsideA = BossDogHitRectDesign.Intersection(
+            new Rect2(Vector2.Zero, _windowBaseDesignSize));
+        _dogHitRect = ScaleBossDesignRect(dogRectInsideA);
     }
 
     private void PlayBossRiseIntro()
@@ -1480,16 +1658,14 @@ public partial class ModeManager : Control
             panelHeight = 29f;
 
         var taskbarTop = _bossTaskBarAnchor.Position.Y;
-        var taskbarBottom = taskbarTop + taskbarHeight;
-        var desiredTop = taskbarTop + (taskbarHeight - panelHeight) / 2f;
+        var taskbarHeightInDesignCoordinates = taskbarHeight / _desktopPetScaleFactor;
+        var desiredTop = taskbarTop + (taskbarHeightInDesignCoordinates - panelHeight) / 2f;
         var tongueLimitTop = GetBossTongueClearTopY();
         if (desiredTop < tongueLimitTop)
             desiredTop = tongueLimitTop;
 
-        var availableHeight = taskbarBottom - desiredTop;
-        var finalHeight = Mathf.Clamp(availableHeight, BossCounterMinimumHeight, panelHeight);
-        ApplyBossStatusPanelHeight(finalHeight);
-
+        // 桌宠倍率优先：Counter 保持完整设计高度，只通过移动避让舌头。
+        ApplyBossStatusPanelHeight(panelHeight);
         _bossStatusPanel.Position = new Vector2(_bossStatusPanelBasePosition.X, desiredTop);
     }
 
@@ -1640,16 +1816,16 @@ public partial class ModeManager : Control
     private Rect2 GetBossBlindBoxHintRect()
     {
         return new Rect2(
-            _contentOffset + _bossBlindBoxHint.Position,
-            _bossBlindBoxHint.Size
+            _bossContentOffset + _bossBlindBoxHint.Position * _desktopPetScaleFactor,
+            _bossBlindBoxHint.Size * _desktopPetScaleFactor
         );
     }
 
     private Rect2 GetBossStatusPanelRect()
     {
         return new Rect2(
-            _contentOffset + _bossStatusPanel.Position,
-            _bossStatusPanel.Size
+            _bossContentOffset + _bossStatusPanel.Position * _desktopPetScaleFactor,
+            _bossStatusPanel.Size * _desktopPetScaleFactor
         );
     }
 
@@ -1660,14 +1836,17 @@ public partial class ModeManager : Control
         if (root == null)
         {
             return new Rect2(
-                _bossBlindBoxRevealAnchor.GlobalPosition + new Vector2(-150f, -302f),
-                new Vector2(300f, 332f)
+                _bossBlindBoxRevealAnchor.GlobalPosition
+                    + new Vector2(-150f, -302f) * _desktopPetScaleFactor,
+                new Vector2(300f, 332f) * _desktopPetScaleFactor
             );
         }
 
-        var rect = new Rect2(_bossBlindBoxOverlay.Offset + root.Position, root.Size);
+        var rect = new Rect2(
+            _bossBlindBoxOverlay.Offset + root.Position * _desktopPetScaleFactor,
+            root.Size * _desktopPetScaleFactor);
         // The speech-bubble tail extends below the 300x300 panel.
-        rect.Size += new Vector2(0f, 32f);
+        rect.Size += new Vector2(0f, 32f) * _desktopPetScaleFactor;
         return rect;
     }
 
@@ -1996,7 +2175,7 @@ public partial class ModeManager : Control
 
         if (CurrentMode == Mode.BossKey)
         {
-            over |= _dogHitRect.HasPoint(localPos) || _btnHitRect.HasPoint(localPos);
+            over |= _dogHitRect.HasPoint(localPos);
             // Keep the counter geometry as a hover target even when the panel is hidden by auto-hide.
             over |= GetBossStatusPanelRect().HasPoint(localPos);
             if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
@@ -2336,7 +2515,9 @@ public partial class ModeManager : Control
     private void PositionPanelInBestSlot()
     {
         var winPos = DisplayServer.WindowGetPosition();
-        var scrSize = DisplayServer.ScreenGetSize();
+        var screen = CurrentMode == Mode.BossKey
+            ? GetBossKeyUsableScreenRect()
+            : GetBestScreenUsableRect(GetPlayGameScreenRect());
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
         const int pad = 5;
@@ -2352,16 +2533,16 @@ public partial class ModeManager : Control
         }
         else
         {
-            aX = _contentOffset.X;
-            aY = _contentOffset.Y;
+            aX = _bossContentOffset.X;
+            aY = _bossContentOffset.Y;
             aw = (int)_windowBaseSize.X;
             ah = (int)_windowBaseSize.Y;
         }
 
         bool Fits(int sx, int sy)
         {
-            if (sx < -pad || sx + pw > scrSize.X + pad ||
-                sy < -pad || sy + ph > scrSize.Y + pad)
+            if (sx < screen.Position.X - pad || sx + pw > screen.End.X + pad ||
+                sy < screen.Position.Y - pad || sy + ph > screen.End.Y + pad)
                 return false;
             // 游玩模式下避开信息面板区域
             if (CurrentMode == Mode.Play && _infoPanel != null && _infoPanel.Visible)
@@ -2422,8 +2603,8 @@ public partial class ModeManager : Control
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
 
-        int winW = (int)_windowBaseSize.X + (int)_panelSize.X * 2;
-        int winH = (int)_windowBaseSize.Y + (int)_panelSize.Y * 2;
+        int winW = Mathf.CeilToInt(_bossContentOffset.X + _windowBaseSize.X + _panelSize.X);
+        int winH = Mathf.CeilToInt(_bossContentOffset.Y + _windowBaseSize.Y + _panelSize.Y);
         var pos = DisplayServer.WindowGetPosition();
         DisplayServer.WindowSetSize(new Vector2I(winW, winH));
         DisplayServer.WindowSetPosition(pos);
@@ -2438,8 +2619,7 @@ public partial class ModeManager : Control
     {
         const int pad = 5;
 
-        var anchor = _bossTaskBarAnchor.Position;
-        int anchorY = (int)(_contentOffset.Y + anchor.Y);
+        int anchorY = Mathf.RoundToInt(GetBossTaskbarAnchorWindowPosition().Y);
         int taskbarTop = screen.End.Y;
 
         // _playViewport.Position.X 是扑克内容左侧信息面板的实际宽度；
@@ -2451,8 +2631,8 @@ public partial class ModeManager : Control
         int requiredRightSpace = playContentWidth + PlayGameSettingsGap + Mathf.CeilToInt(_panelSize.X);
         int desiredWindowX = screen.End.X - pad - requiredRightSpace;
 
-        int minWindowX = screen.Position.X + pad - (int)_contentOffset.X;
-        int maxWindowX = screen.End.X - pad - (int)_contentOffset.X - (int)_windowBaseSize.X;
+        int minWindowX = screen.Position.X + pad - (int)_bossContentOffset.X;
+        int maxWindowX = screen.End.X - pad - (int)_bossContentOffset.X - (int)_windowBaseSize.X;
         if (maxWindowX < minWindowX)
             maxWindowX = minWindowX;
 
@@ -2471,10 +2651,10 @@ public partial class ModeManager : Control
             return;
         }
 
-        var scrRect = DisplayServer.ScreenGetUsableRect();
+        var anchorWindowPosition = RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+        var scrRect = GetUsableScreenRectAtPoint(newPos + anchorWindowPosition);
         int taskbarTop = scrRect.Position.Y + scrRect.Size.Y;
-        var anchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar").Position;
-        int anchorY = (int)(_contentOffset.Y + anchor.Y);
+        int anchorY = anchorWindowPosition.Y;
         int snappedY = taskbarTop - anchorY;
 
         int dist = Math.Abs(newPos.Y - snappedY);
@@ -2545,6 +2725,25 @@ public partial class ModeManager : Control
             (Vector2I)(_playViewport.Size * _playViewport.Scale));
     }
 
+    private Rect2I GetBossKeyUsableScreenRect()
+    {
+        var anchorScreenPosition = DisplayServer.WindowGetPosition()
+            + RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+        return GetUsableScreenRectAtPoint(anchorScreenPosition);
+    }
+
+    private static Rect2I GetUsableScreenRectAtPoint(Vector2I screenPoint)
+    {
+        for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
+        {
+            var screen = new Rect2I(DisplayServer.ScreenGetPosition(i), DisplayServer.ScreenGetSize(i));
+            if (screen.HasPoint(screenPoint))
+                return DisplayServer.ScreenGetUsableRect(i);
+        }
+
+        return GetBestScreenUsableRect(new Rect2I(screenPoint, Vector2I.One));
+    }
+
     private static Rect2I GetBestScreenUsableRect(Rect2I targetRect)
     {
         var targetCenter = targetRect.Position + targetRect.Size / 2;
@@ -2571,10 +2770,10 @@ public partial class ModeManager : Control
         return best;
     }
 
-    private static int GetBottomTaskbarHeightAtWindow()
+    private int GetBottomTaskbarHeightAtWindow()
     {
-        var windowRect = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
-        var windowCenter = windowRect.Position + windowRect.Size / 2;
+        var anchorScreenPosition = DisplayServer.WindowGetPosition()
+            + RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
         int fallback = 0;
 
         for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
@@ -2585,7 +2784,7 @@ public partial class ModeManager : Control
             if (bottomHeight > 0 && fallback == 0)
                 fallback = bottomHeight;
 
-            if (screen.HasPoint(windowCenter) || screen.Intersects(windowRect))
+            if (screen.HasPoint(anchorScreenPosition))
                 return bottomHeight;
         }
 
@@ -2594,11 +2793,10 @@ public partial class ModeManager : Control
 
     private void SetWindowAboveTaskbar()
     {
-        var scrRect = DisplayServer.ScreenGetUsableRect();
+        var scrRect = GetBossKeyUsableScreenRect();
         int taskbarTop = (int)(scrRect.Position.Y + scrRect.Size.Y);
         int winW = DisplayServer.WindowGetSize().X;
-        var anchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar").Position;
-        int anchorY = (int)(_contentOffset.Y + anchor.Y);
+        int anchorY = Mathf.RoundToInt(GetBossTaskbarAnchorWindowPosition().Y);
         int x = (int)(scrRect.Position.X + (scrRect.Size.X - winW) / 2);
         int y = taskbarTop - anchorY;
         DisplayServer.WindowSetPosition(new Vector2I(x, y));
@@ -2739,6 +2937,16 @@ public partial class ModeManager : Control
 #if DEBUG
                 if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;
 #endif
+                if (CurrentMode == Mode.BossKey)
+                {
+                    if (_bossBlindBoxHint != null
+                        && _bossBlindBoxHint.Visible
+                        && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore
+                        && GetBossBlindBoxHintRect().HasPoint(localPos)) return;
+                    if (_bossBlindBoxOverlay != null
+                        && _bossBlindBoxOverlay.Visible
+                        && GetBossBlindBoxOverlayRect().HasPoint(localPos)) return;
+                }
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
                     int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
