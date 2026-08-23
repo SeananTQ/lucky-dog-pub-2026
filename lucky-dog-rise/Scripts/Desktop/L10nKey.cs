@@ -49,6 +49,7 @@ public static class L10nKey
     public const string Settings_CounterDisplay = nameof(Settings_CounterDisplay);
     public const string Settings_CounterDisplay_Clock = nameof(Settings_CounterDisplay_Clock);
     public const string Settings_CounterDisplay_Chips = nameof(Settings_CounterDisplay_Chips);
+    public const string Settings_CounterDisplay_Nickname = nameof(Settings_CounterDisplay_Nickname);
     public const string Settings_CounterDisplay_Hidden = nameof(Settings_CounterDisplay_Hidden);
     public const string Settings_AutoHideCounter = nameof(Settings_AutoHideCounter);
     public const string Settings_PokerFrameRate = nameof(Settings_PokerFrameRate);

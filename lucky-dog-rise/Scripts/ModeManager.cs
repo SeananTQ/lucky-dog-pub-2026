@@ -57,6 +57,7 @@ public partial class ModeManager : Control
     private bool _bossRiseIntroSuppressesBlindBoxHint;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
+    private string _lastCounterPersonaName = string.Empty;
     private Vector2 _windowBaseSize;
     private Vector2 _panelSize;
     private Vector2 _contentOffset;
@@ -751,15 +752,23 @@ public partial class ModeManager : Control
             return;
 
         var mode = SettingsManager.CurrentDisplayMode;
-        if (mode != _lastMode)
+        var personaName = _platformService?.PersonaName ?? string.Empty;
+        if (mode != _lastMode
+            || mode == SettingsManager.DisplayMode.Nickname
+                && !string.Equals(personaName, _lastCounterPersonaName, StringComparison.Ordinal))
         {
             _lastMode = mode;
+            _lastCounterPersonaName = personaName;
             _mainText.Text = mode switch
             {
                 SettingsManager.DisplayMode.Clock => DateTime.Now.ToString("HH:mm"),
+                SettingsManager.DisplayMode.Nickname => personaName,
                 SettingsManager.DisplayMode.Hidden => "",
                 _ => "0"
             };
+            _mainText.TooltipText = mode == SettingsManager.DisplayMode.Nickname
+                ? personaName
+                : string.Empty;
         }
         if (mode == SettingsManager.DisplayMode.Clock)
             _mainText.Text = DateTime.Now.ToString("HH:mm");

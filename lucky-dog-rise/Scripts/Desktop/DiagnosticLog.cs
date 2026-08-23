@@ -19,6 +19,7 @@ public static class DiagnosticLog
     private const string DiagnosticExportFallbackDir = "user://diagnostic-exports";
     private const int RetainedSessionFiles = 5;
     private const long MaxSessionBytes = 2 * 1024 * 1024;
+    private const int MaxPersonaFileNameRunes = 48;
     private const uint KnownFolderFlagCreate = 0x00008000;
     private static readonly Guid DownloadsFolderId = new("374DE290-123F-4565-9164-39C4925E467B");
     private static readonly object Sync = new();
@@ -92,7 +93,7 @@ public static class DiagnosticLog
             ? exportDirectoryOverride
             : ResolveExportDirectory();
         Directory.CreateDirectory(exportDirectory);
-        var outputPath = GetAvailableExportPath(exportDirectory);
+        var outputPath = GetAvailableExportPath(exportDirectory, platformService?.PersonaName);
         var temporaryPath = Path.Combine(
             exportDirectory,
             $".{Path.GetFileName(outputPath)}.{Guid.NewGuid():N}.tmp");
@@ -236,13 +237,48 @@ public static class DiagnosticLog
         return fallback;
     }
 
-    private static string GetAvailableExportPath(string directory)
+    private static string GetAvailableExportPath(string directory, string? personaName)
     {
-        var stem = $"LuckyDogRise-Diagnostics-{DateTimeOffset.Now:yyyyMMdd-HHmmss}";
+        var personaSegment = GetSafePersonaFileNameSegment(personaName);
+        var stem = $"LDR_Diagnostics_{personaSegment}_{DateTimeOffset.Now:yyyyMMdd-HHmmss}";
         var candidate = Path.Combine(directory, $"{stem}.zip");
         for (var suffix = 2; File.Exists(candidate); suffix++)
             candidate = Path.Combine(directory, $"{stem}-{suffix}.zip");
         return candidate;
+    }
+
+    private static string GetSafePersonaFileNameSegment(string? personaName)
+    {
+        if (string.IsNullOrWhiteSpace(personaName))
+            return "SteamPlayerUnavailable";
+
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var sanitized = new StringBuilder(personaName.Length);
+        var previousWasReplacement = false;
+        foreach (var rune in personaName.Trim().EnumerateRunes())
+        {
+            var isInvalid = rune.Value <= char.MaxValue &&
+                            Array.IndexOf(invalidCharacters, (char)rune.Value) >= 0;
+            if (isInvalid || Rune.IsControl(rune) || Rune.IsWhiteSpace(rune))
+            {
+                if (!previousWasReplacement)
+                    sanitized.Append('-');
+                previousWasReplacement = true;
+                continue;
+            }
+
+            sanitized.Append(rune.ToString());
+            previousWasReplacement = false;
+        }
+
+        var safeRunes = sanitized.ToString()
+            .Trim(' ', '.')
+            .EnumerateRunes()
+            .Take(MaxPersonaFileNameRunes)
+            .ToArray();
+        return safeRunes.Length == 0
+            ? "SteamPlayerUnavailable"
+            : string.Concat(safeRunes.Select(rune => rune.ToString()));
     }
 
     private static void AddTextEntryWithSharedRead(

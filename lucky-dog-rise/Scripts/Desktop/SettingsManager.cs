@@ -56,7 +56,8 @@ public static class SettingsManager
     {
         Clock = 0,
         Chips = 1,
-        Hidden = 2
+        Hidden = 2,
+        Nickname = 3
     }
 
     public enum SaveDataMode

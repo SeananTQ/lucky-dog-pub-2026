@@ -1926,8 +1926,23 @@ public partial class SystemPanelController : CanvasLayer
         _displayOption.Clear();
         _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Clock), (int)SettingsManager.DisplayMode.Clock);
         _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Chips), (int)SettingsManager.DisplayMode.Chips);
+        _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Nickname), (int)SettingsManager.DisplayMode.Nickname);
         _displayOption.AddItem(L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden), (int)SettingsManager.DisplayMode.Hidden);
-        _displayOption.Select((int)SettingsManager.LoadDisplayMode());
+        SelectDisplayModeOption(SettingsManager.LoadDisplayMode());
+    }
+
+    private void SelectDisplayModeOption(SettingsManager.DisplayMode mode)
+    {
+        for (var i = 0; i < _displayOption.ItemCount; i++)
+        {
+            if (_displayOption.GetItemId(i) != (int)mode)
+                continue;
+
+            _displayOption.Select(i);
+            return;
+        }
+
+        _displayOption.Select(0);
     }
 
     private void BuildPokerFrameRateOptions()
@@ -2029,11 +2044,20 @@ public partial class SystemPanelController : CanvasLayer
         if (selected >= 0)
             _languageOption.Select(selected);
 
-        if (_displayOption != null && _displayOption.ItemCount >= 3)
+        if (_displayOption != null)
         {
-            _displayOption.SetItemText(0, L10n.Tr(L10nKey.Settings_CounterDisplay_Clock));
-            _displayOption.SetItemText(1, L10n.Tr(L10nKey.Settings_CounterDisplay_Chips));
-            _displayOption.SetItemText(2, L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden));
+            for (var i = 0; i < _displayOption.ItemCount; i++)
+            {
+                var mode = (SettingsManager.DisplayMode)_displayOption.GetItemId(i);
+                _displayOption.SetItemText(i, mode switch
+                {
+                    SettingsManager.DisplayMode.Clock => L10n.Tr(L10nKey.Settings_CounterDisplay_Clock),
+                    SettingsManager.DisplayMode.Chips => L10n.Tr(L10nKey.Settings_CounterDisplay_Chips),
+                    SettingsManager.DisplayMode.Nickname => L10n.Tr(L10nKey.Settings_CounterDisplay_Nickname),
+                    SettingsManager.DisplayMode.Hidden => L10n.Tr(L10nKey.Settings_CounterDisplay_Hidden),
+                    _ => mode.ToString(),
+                });
+            }
         }
 
         if (_armAppearanceOption != null)
@@ -2101,7 +2125,9 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnDisplayModeChanged(long index)
     {
-        SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)(int)index);
+        var selectedId = _displayOption.GetSelectedId();
+        if (selectedId >= 0)
+            SettingsManager.SaveDisplayMode((SettingsManager.DisplayMode)selectedId);
     }
 
     private void OnPokerFrameRateSelected(long index)

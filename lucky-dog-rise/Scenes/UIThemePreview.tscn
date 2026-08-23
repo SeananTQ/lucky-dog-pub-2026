@@ -146,7 +146,7 @@ text = "Quit Game"
 [node name="SecretaryButton" type="Button" parent="Grid/SectionButtons/Row" unique_id=1734778938]
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
-text = "Secretary Button"
+text = "Secondary Button"
 
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
 layout_mode = 2
