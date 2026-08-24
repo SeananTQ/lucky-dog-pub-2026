@@ -2727,8 +2727,67 @@ public partial class ModeManager : Control
                 return;
             }
         }
-        // 兜底：覆盖在 A 区中央
-        _settingsPanel.SetPanelPosition(new Vector2(aX + aw / 2f - pw / 2f, aY + ah / 2f - ph / 2f));
+
+        // 完整面板无处可放时，允许面板底部超出显示器，但标题栏、关闭按钮和
+        // 顶部操作按钮必须完整可见，避免玩家无法关闭或退出。
+        int topActionHeight = Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight);
+        bool TopActionsFit(int sx, int sy)
+        {
+            return sx >= screen.Position.X - pad
+                && sx + pw <= screen.End.X + pad
+                && sy >= screen.Position.Y - pad
+                && sy + topActionHeight <= screen.End.Y + pad;
+        }
+
+        // 先保留旧兜底语义：只要关键操作区仍在屏幕内，就优先覆盖 A 区中央（5 区）。
+        // 这样不会在尚无必要时把面板推到屏幕底部。
+        var (centerFallbackX, centerFallbackY) = GetPanelSlotPosition(
+            5, aX, aY, aw, ah, pw, ph, bY, centerX);
+        if (TopActionsFit(winPos.X + centerFallbackX, winPos.Y + centerFallbackY))
+        {
+            _settingsPanel.SetPanelPosition(new Vector2(centerFallbackX, centerFallbackY));
+            return;
+        }
+
+        // 只有 5 区会把关键操作区挤出屏幕时，才退到 A 区下方的 2、1、3 区。
+        int[] partialBottomSlots = [2, 1, 3];
+        foreach (var slot in partialBottomSlots)
+        {
+            var (wx, wy) = GetPanelSlotPosition(slot, aX, aY, aw, ah, pw, ph, bY, centerX);
+            if (CurrentMode == Mode.Play && slot == 3)
+                wx += PlayGameSettingsGap;
+            if (TopActionsFit(winPos.X + wx, winPos.Y + wy))
+            {
+                _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
+                return;
+            }
+        }
+
+        // 极端情况下以 2 区为基础夹紧。只要显示器能容纳面板宽度和顶部操作区，
+        // 就保证这些关键控件留在屏幕内；剩余内容可从屏幕底部溢出。
+        var (fallbackX, fallbackY) = GetPanelSlotPosition(2, aX, aY, aw, ah, pw, ph, bY, centerX);
+        int screenMinX = screen.Position.X + pad - winPos.X;
+        int screenMaxX = screen.End.X - pad - pw - winPos.X;
+        int screenMinY = screen.Position.Y + pad - winPos.Y;
+        int screenMaxY = screen.End.Y - pad - topActionHeight - winPos.Y;
+        int hostMaxX = Math.Max(0, DisplayServer.WindowGetSize().X - pw);
+        int hostMaxY = Math.Max(0, DisplayServer.WindowGetSize().Y - ph);
+
+        int allowedMinX = Math.Max(0, screenMinX);
+        int allowedMaxX = Math.Min(hostMaxX, screenMaxX);
+        if (allowedMaxX >= allowedMinX)
+            fallbackX = Mathf.Clamp(fallbackX, allowedMinX, allowedMaxX);
+        else
+            fallbackX = Mathf.Clamp(fallbackX, 0, hostMaxX);
+
+        int allowedMinY = Math.Max(0, screenMinY);
+        int allowedMaxY = Math.Min(hostMaxY, screenMaxY);
+        if (allowedMaxY >= allowedMinY)
+            fallbackY = Mathf.Clamp(fallbackY, allowedMinY, allowedMaxY);
+        else
+            fallbackY = Mathf.Clamp(fallbackY, 0, hostMaxY);
+
+        _settingsPanel.SetPanelPosition(new Vector2(fallbackX, fallbackY));
     }
 
     private static (int wx, int wy) GetPanelSlotPosition(

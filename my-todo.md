@@ -37,9 +37,6 @@ Steam 库存物品动态属性
 
 
 
-
-
-
 Windows 代码签名证书：证明 LuckyDogRise.exe 来自 Seanan Studio，降低 SmartScreen 和杀毒软件警告。尚未完成。
 代码签名之后，Windows 可以在 EXE 属性里显示数字签名和发布者，例如：
 Publisher: Seanan Studio

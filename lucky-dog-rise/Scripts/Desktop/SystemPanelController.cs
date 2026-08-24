@@ -46,6 +46,22 @@ public partial class SystemPanelController : CanvasLayer
 
     public bool IsOpen => _panel.Visible;
 
+    public float TopActionAreaHeight
+    {
+        get
+        {
+            if (_panel == null || _settingsActionRow == null)
+                return 100f * _renderScale;
+
+            var panelTransform = _panel.GetGlobalTransformWithCanvas();
+            var actionTransform = _settingsActionRow.GetGlobalTransformWithCanvas();
+            var panelTop = panelTransform.Origin.Y;
+            var actionBottom = (actionTransform * new Vector2(0f, _settingsActionRow.Size.Y)).Y;
+            var height = actionBottom - panelTop;
+            return height > 0f ? height : 100f * _renderScale;
+        }
+    }
+
     public Vector2 PanelSize
     {
         get
