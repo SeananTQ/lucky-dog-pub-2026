@@ -458,6 +458,99 @@ custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 mouse_filter = 2
 
+[node name="OtherUiScaleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+text = "Settings_OtherUiScale"
+label_settings = ExtResource("9_option_label")
+
+[node name="OtherUiScaleControl" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ControlRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Slider" type="HSlider" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 4.0
+step = 1.0
+value = 1.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="ApplyButton" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow"]
+custom_minimum_size = Vector2(84, 28)
+layout_mode = 2
+text = "Settings_DesktopPetScaleApply"
+disabled = true
+
+[node name="TickLabels" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl"]
+layout_mode = 2
+
+[node name="ScaleLabels" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels"]
+custom_minimum_size = Vector2(0, 17)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scale075" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels/ScaleLabels"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 17.0
+theme_override_font_sizes/font_size = 11
+text = "0.75x"
+
+[node name="Scale1" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels/ScaleLabels"]
+layout_mode = 0
+anchor_left = 0.25
+anchor_right = 0.25
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 17.0
+theme_override_font_sizes/font_size = 11
+text = "1x"
+horizontal_alignment = 1
+
+[node name="Scale125" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels/ScaleLabels"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 17.0
+theme_override_font_sizes/font_size = 11
+text = "1.25x"
+horizontal_alignment = 1
+
+[node name="Scale15" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels/ScaleLabels"]
+layout_mode = 0
+anchor_left = 0.75
+anchor_right = 0.75
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 17.0
+theme_override_font_sizes/font_size = 11
+text = "1.5x"
+horizontal_alignment = 1
+
+[node name="Scale2" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels/ScaleLabels"]
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 17.0
+theme_override_font_sizes/font_size = 11
+text = "2x"
+horizontal_alignment = 2
+
+[node name="ApplySpacer" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels"]
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
 layout_mode = 2
 
@@ -1090,5 +1183,7 @@ theme_type_variation = &"DestructiveButton"
 text = "Settings_ResetSaveData"
 
 [node name="DesktopScaleConfirm" parent="." instance=ExtResource("3_confirm")]
+
+[node name="OtherUiScaleConfirm" parent="." instance=ExtResource("3_confirm")]
 
 [node name="ResetSaveConfirm" parent="." unique_id=1096261693 instance=ExtResource("3_confirm")]

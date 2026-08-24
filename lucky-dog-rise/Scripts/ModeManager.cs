@@ -75,6 +75,11 @@ public partial class ModeManager : Control
     private int _desktopPetScalePreviewOriginalStep;
     private Vector2I _desktopPetScalePreviewOriginalWindowPosition;
     private bool _desktopPetScalePreviewOriginalTaskbarSnapped;
+    private int _otherUiScaleStep = SettingsManager.DefaultOtherUiScaleStep;
+    private float _otherUiScaleFactor = 1f;
+    private bool _otherUiScalePreviewActive;
+    private int _otherUiScalePreviewOriginalStep;
+    private Vector2I _otherUiScalePreviewOriginalWindowPosition;
     // 延迟到桌宠已绘制一帧后才移动窗口；用于让过期的延迟移动失效。
     private int _modeSwitchRevision;
 
@@ -84,8 +89,8 @@ public partial class ModeManager : Control
     private const float DefaultDragThreshold = 5f;
     private const float ProtectedPlayDragThreshold = 6f;
     private const ulong ProtectedPlayDragHoldDelayMsec = 70;
-    private const int PlayInfoPanelWidth = 246;
-    private const int PlayGameWidth = 600;
+    private const int PlayInfoPanelBaseWidth = 246;
+    private const int PlayGameBaseSize = 600;
     private const int PlayGameSettingsGap = 0;
 
     private bool _taskbarSnapped;
@@ -437,6 +442,10 @@ public partial class ModeManager : Control
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
+        _otherUiScaleStep = SettingsManager.LoadOtherUiScaleStep();
+        _otherUiScaleFactor = SettingsManager.GetOtherUiScaleFactor(_otherUiScaleStep);
+        GetViewport().OversamplingOverride = Mathf.Max(1f, _otherUiScaleFactor);
+        _settingsPanel.SetRenderScale(_otherUiScaleFactor);
         _settingsPanel.GameData = _gameData;
         _settingsPanel.PlatformService = _platformService;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
@@ -460,6 +469,9 @@ public partial class ModeManager : Control
         _settingsPanel.DesktopPetScalePreviewRequested += OnDesktopPetScalePreviewRequested;
         _settingsPanel.DesktopPetScaleConfirmed += OnDesktopPetScaleConfirmed;
         _settingsPanel.DesktopPetScaleCanceled += OnDesktopPetScaleCanceled;
+        _settingsPanel.OtherUiScalePreviewRequested += OnOtherUiScalePreviewRequested;
+        _settingsPanel.OtherUiScaleConfirmed += OnOtherUiScaleConfirmed;
+        _settingsPanel.OtherUiScaleCanceled += OnOtherUiScaleCanceled;
         RefreshSettingsPanelModeActions();
 
         if (OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
@@ -848,6 +860,7 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.Play) return;
         _modeSwitchRevision++;
         _settingsPanel.CancelPendingDesktopPetScaleChange();
+        _settingsPanel.CancelPendingOtherUiScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         HideBossKeyContent();
@@ -859,11 +872,13 @@ public partial class ModeManager : Control
             AddChild(_playRoot);
             _playViewport = _playRoot.GetNode<SubViewportContainer>("SubViewportContainer");
             _playSubViewport = _playRoot.GetNode<SubViewport>("SubViewportContainer/SubViewport");
+            _playViewport.Scale = Vector2.One * (0.5f * _otherUiScaleFactor);
 
             // 信息面板由 ModeManager 直接管理（需要动态定位+避让）
             _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
             _infoPanel.Name = "InfoPanel";
             AddChild(_infoPanel);
+            _infoPanel.SetRenderScale(_otherUiScaleFactor);
             _infoPanel.SettingsRequested += ToggleSettingsPanel;
             _infoPanel.BlindBoxRequested += OnBlindBoxRequested;
 
@@ -908,16 +923,18 @@ public partial class ModeManager : Control
         var winPos = DisplayServer.WindowGetPosition();
         int baseY = (int)_contentOffset.Y;
         const int pad = 5;
-        int gameX = PlayInfoPanelWidth;
+        int infoWidth = GetPlayInfoPanelWidth();
+        int gameSize = GetPlayGameSize();
+        int gameX = infoWidth;
 
         // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + PlayInfoPanelWidth
-        bool leftOk = winPos.X >= -pad && winPos.X + PlayInfoPanelWidth <= scrSize.X + pad;
+        bool leftOk = winPos.X >= -pad && winPos.X + infoWidth <= scrSize.X + pad;
 
         _infoPanelOnRight = !leftOk;
 
         // 游戏面板位置固定，信息面板自己绕到右侧
         _playViewport.Position = new Vector2(gameX, baseY);
-        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + PlayGameWidth + PlayGameSettingsGap : 0, baseY));
+        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameSize + PlayGameSettingsGap : 0, baseY));
     }
 
     private void SwitchToBossKey()
@@ -927,6 +944,7 @@ public partial class ModeManager : Control
         var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
         CancelWindowDrag();
         _settingsPanel.CancelPendingDesktopPetScaleChange();
+        _settingsPanel.CancelPendingOtherUiScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
         // DWM Cloak 会让窗口对玩家不可见，但仍允许 Godot 在后台继续 resize、移动和绘制。
@@ -1161,6 +1179,7 @@ public partial class ModeManager : Control
             return;
 
         _settingsPanel?.CancelPendingDesktopPetScaleChange();
+        _settingsPanel?.CancelPendingOtherUiScaleChange();
         _shutdownRequested = true;
         _singleInstanceGuard?.BeginShutdown();
         var totalStopwatch = Stopwatch.StartNew();
@@ -1391,6 +1410,108 @@ public partial class ModeManager : Control
         if (_settingsPanel?.IsOpen == true)
             PositionPanelInBestSlot();
     }
+
+    private void OnOtherUiScalePreviewRequested(int step)
+    {
+        if (!_otherUiScalePreviewActive)
+        {
+            _otherUiScalePreviewActive = true;
+            _otherUiScalePreviewOriginalStep = _otherUiScaleStep;
+            _otherUiScalePreviewOriginalWindowPosition = DisplayServer.WindowGetPosition();
+        }
+
+        ApplyOtherUiScaleStep(step, preserveContentAnchor: true);
+    }
+
+    private void OnOtherUiScaleConfirmed(int step)
+    {
+        _otherUiScaleStep = Mathf.Clamp(
+            step,
+            SettingsManager.OtherUiScaleStepMin,
+            SettingsManager.OtherUiScaleStepMax);
+        _otherUiScalePreviewActive = false;
+    }
+
+    private void OnOtherUiScaleCanceled()
+    {
+        if (!_otherUiScalePreviewActive)
+            return;
+
+        var originalStep = _otherUiScalePreviewOriginalStep;
+        var originalPosition = _otherUiScalePreviewOriginalWindowPosition;
+        _otherUiScalePreviewActive = false;
+        ApplyOtherUiScaleStep(originalStep, preserveContentAnchor: false);
+        DisplayServer.WindowSetPosition(originalPosition);
+        if (CurrentMode == Mode.BossKey)
+        {
+            ApplyBossCounterLayout();
+            UpdateBossBlindBoxOverlayPosition();
+        }
+        else if (CurrentMode == Mode.Play)
+        {
+            UpdatePlayLayout();
+        }
+
+        if (_settingsPanel?.IsOpen == true)
+            PositionPanelInBestSlot();
+    }
+
+    private void ApplyOtherUiScaleStep(int step, bool preserveContentAnchor)
+    {
+        var oldBossAnchor = DisplayServer.WindowGetPosition()
+            + RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
+        var oldPlayAnchor = _playViewport == null
+            ? DisplayServer.WindowGetPosition()
+            : DisplayServer.WindowGetPosition() + RoundToVector2I(_playViewport.Position);
+
+        _otherUiScaleStep = Mathf.Clamp(
+            step,
+            SettingsManager.OtherUiScaleStepMin,
+            SettingsManager.OtherUiScaleStepMax);
+        _otherUiScaleFactor = SettingsManager.GetOtherUiScaleFactor(_otherUiScaleStep);
+        GetViewport().OversamplingOverride = Mathf.Max(1f, _otherUiScaleFactor);
+        _settingsPanel.SetRenderScale(_otherUiScaleFactor);
+        _panelSize = _settingsPanel.PanelSize;
+        _contentOffset = _panelSize;
+#if DEBUG
+        _steamMockPanel?.SetPanelBottom(_contentOffset.Y);
+#endif
+        ApplyDesktopPetScaleGeometry(_desktopPetScaleStep);
+
+        if (_playViewport != null)
+            _playViewport.Scale = Vector2.One * (0.5f * _otherUiScaleFactor);
+        _infoPanel?.SetRenderScale(_otherUiScaleFactor);
+
+        if (CurrentMode == Mode.BossKey)
+        {
+            SetupFatWindow();
+            if (preserveContentAnchor)
+            {
+                DisplayServer.WindowSetPosition(
+                    oldBossAnchor - RoundToVector2I(GetBossTaskbarAnchorWindowPosition()));
+            }
+            ApplyBossCounterLayout();
+            UpdateBossBlindBoxOverlayPosition();
+        }
+        else if (CurrentMode == Mode.Play)
+        {
+            SetupPlayFatWindow();
+            UpdatePlayLayout();
+            if (preserveContentAnchor)
+            {
+                DisplayServer.WindowSetPosition(
+                    oldPlayAnchor - RoundToVector2I(_playViewport.Position));
+            }
+            KeepPlayContentWithinScreen();
+            UpdatePlayLayout();
+        }
+
+        if (_settingsPanel.IsOpen)
+            PositionPanelInBestSlot();
+    }
+
+    private int GetPlayInfoPanelWidth() => Mathf.CeilToInt(PlayInfoPanelBaseWidth * _otherUiScaleFactor);
+    private int GetPlayGameSize() => Mathf.CeilToInt(PlayGameBaseSize * _otherUiScaleFactor);
 
     public void ApplyDesktopPetScaleStep(int step) =>
         ApplyDesktopPetScaleStep(step, preserveTaskbarAnchor: true);
@@ -2215,8 +2336,8 @@ public partial class ModeManager : Control
             }
             if (_infoPanel != null && _infoPanel.Visible)
             {
-                int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
-                over |= new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos);
+                int infoX = _infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0;
+                over |= new Rect2(infoX, _contentOffset.Y, GetPlayInfoPanelWidth(), GetPlayGameSize()).HasPoint(localPos);
             }
         }
 
@@ -2574,7 +2695,11 @@ public partial class ModeManager : Control
                 int infoY = (int)aY;
                 var setRect = new Rect2(sx, sy, pw, ph);
                 // info 坐标是窗口空间，Fits 是屏幕空间，需加 winPos
-                var infoRect = new Rect2(winPos.X + infoX, winPos.Y + infoY, PlayInfoPanelWidth, 600);
+                var infoRect = new Rect2(
+                    winPos.X + infoX,
+                    winPos.Y + infoY,
+                    GetPlayInfoPanelWidth(),
+                    GetPlayGameSize());
                 if (setRect.Intersects(infoRect))
                     return false;
             }
@@ -2652,7 +2777,7 @@ public partial class ModeManager : Control
         // _playViewport.Position.X 是扑克内容左侧信息面板的实际宽度；
         // _panelSize 则直接来自系统设置面板的运行时尺寸，避免未来改面板宽度后坐标公式失效。
         int playContentWidth = _playViewport == null
-            ? PlayInfoPanelWidth + PlayGameWidth
+            ? GetPlayInfoPanelWidth() + GetPlayGameSize()
             : Mathf.CeilToInt(_playViewport.Position.X
                 + _playViewport.Size.X * _playViewport.Scale.X);
         int requiredRightSpace = playContentWidth + PlayGameSettingsGap + Mathf.CeilToInt(_panelSize.X);
@@ -2850,8 +2975,8 @@ public partial class ModeManager : Control
     {
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
-        int contentW = PlayInfoPanelWidth + PlayGameWidth;
-        int contentH = 600;
+        int contentW = GetPlayInfoPanelWidth() + GetPlayGameSize();
+        int contentH = GetPlayGameSize();
         int winW = contentW + pw * 2;
         int winH = Math.Max(contentH, ph) + ph * 2;
         // 只 resize，保留窗口当前位置，不让内容跳位
@@ -2862,8 +2987,8 @@ public partial class ModeManager : Control
 
     private void KeepPlayContentWithinScreen()
     {
-        const int contentW = PlayInfoPanelWidth + PlayGameWidth;
-        const int contentH = 600;
+        int contentW = GetPlayInfoPanelWidth() + GetPlayGameSize();
+        int contentH = GetPlayGameSize();
         const int pad = 5;
 
         var pos = DisplayServer.WindowGetPosition();
@@ -3123,8 +3248,8 @@ public partial class ModeManager : Control
                 }
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
-                    int infoX = _infoPanelOnRight ? PlayInfoPanelWidth + PlayGameWidth + PlayGameSettingsGap : 0;
-                    if (new Rect2(infoX, _contentOffset.Y, PlayInfoPanelWidth, 600).HasPoint(localPos)) return;
+                    int infoX = _infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0;
+                    if (new Rect2(infoX, _contentOffset.Y, GetPlayInfoPanelWidth(), GetPlayGameSize()).HasPoint(localPos)) return;
                 }
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();

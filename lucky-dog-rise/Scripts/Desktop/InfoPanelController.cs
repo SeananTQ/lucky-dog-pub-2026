@@ -23,7 +23,7 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private BalloonHintController _blindBoxHint = null!;
 
     // ===== 动画参数 =====
-    private static readonly Vector2 PanelSize = new(246, 600);
+    public static readonly Vector2 BasePanelSize = new(246, 600);
     private const float ChipsAnimDuration = 0.4f;
     private const float BlinkVisibleDuration = 0.8f;
     private const float BlinkHiddenDuration = 0.4f;
@@ -309,10 +309,15 @@ public partial class InfoPanelController : CanvasLayer
         LockPanelSize();
     }
 
+    public void SetRenderScale(float scale)
+    {
+        _panel.Scale = Vector2.One * Mathf.Max(0.01f, scale);
+    }
+
     private void LockPanelSize()
     {
-        _panel.CustomMinimumSize = PanelSize;
-        _panel.Size = PanelSize;
+        _panel.CustomMinimumSize = BasePanelSize;
+        _panel.Size = BasePanelSize;
     }
 
     public void RefreshBlindBoxButton()

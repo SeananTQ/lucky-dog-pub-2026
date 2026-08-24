@@ -41,6 +41,9 @@ public static class L10nKey
     public const string Settings_DesktopPetScaleConfirmMessage = nameof(Settings_DesktopPetScaleConfirmMessage);
     public const string Settings_DesktopPetScaleKeep = nameof(Settings_DesktopPetScaleKeep);
     public const string Settings_DesktopPetScaleRestore = nameof(Settings_DesktopPetScaleRestore);
+    public const string Settings_OtherUiScale = nameof(Settings_OtherUiScale);
+    public const string Settings_OtherUiScaleConfirmTitle = nameof(Settings_OtherUiScaleConfirmTitle);
+    public const string Settings_OtherUiScaleConfirmMessage = nameof(Settings_OtherUiScaleConfirmMessage);
     public const string Settings_Gameplay = nameof(Settings_Gameplay);
     public const string Settings_AutoHidePanelOnFocusLoss = nameof(Settings_AutoHidePanelOnFocusLoss);
     public const string Settings_TongueInstantMode = nameof(Settings_TongueInstantMode);

@@ -36,6 +36,7 @@ public static class SettingsManager
     private const string KeyVsyncEnabled = "vsync_enabled";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
     private const string KeyDesktopPetScaleStep = "desktop_pet_scale_step";
+    private const string KeyOtherUiScaleStep = "other_ui_scale_step";
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyPokerGuideOverlayEnabled = "poker_guide_overlay_enabled";
@@ -380,6 +381,10 @@ public static class SettingsManager
     public const int DesktopPetScaleStepMax = 4;
     public const int DefaultDesktopPetScaleStep = 1;
     private static readonly float[] DesktopPetScaleFactors = [0.5f, 1f, 2f, 3f, 4f];
+    public const int OtherUiScaleStepMin = 0;
+    public const int OtherUiScaleStepMax = 4;
+    public const int DefaultOtherUiScaleStep = 1;
+    private static readonly float[] OtherUiScaleFactors = [0.75f, 1f, 1.25f, 1.5f, 2f];
 
     /// <summary>
     /// 首次写入时由玩家存档决定默认值：新档开启，已有 V16 档关闭。
@@ -483,6 +488,35 @@ public static class SettingsManager
 
     public static float GetDesktopPetScaleFactor(int step) =>
         DesktopPetScaleFactors[Mathf.Clamp(step, DesktopPetScaleStepMin, DesktopPetScaleStepMax)];
+
+    public static int LoadOtherUiScaleStep()
+    {
+        var config = Load();
+        var value = config.GetValue(
+            SectionDisplay,
+            KeyOtherUiScaleStep,
+            DefaultOtherUiScaleStep);
+        if (value.VariantType != Variant.Type.Int)
+            return DefaultOtherUiScaleStep;
+
+        var step = (int)value;
+        return step is >= OtherUiScaleStepMin and <= OtherUiScaleStepMax
+            ? step
+            : DefaultOtherUiScaleStep;
+    }
+
+    public static void SaveOtherUiScaleStep(int step)
+    {
+        var config = Load();
+        config.SetValue(
+            SectionDisplay,
+            KeyOtherUiScaleStep,
+            Mathf.Clamp(step, OtherUiScaleStepMin, OtherUiScaleStepMax));
+        config.Save(Path);
+    }
+
+    public static float GetOtherUiScaleFactor(int step) =>
+        OtherUiScaleFactors[Mathf.Clamp(step, OtherUiScaleStepMin, OtherUiScaleStepMax)];
 
     public static string LoadLocale()
     {
