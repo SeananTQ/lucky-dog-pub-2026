@@ -58,6 +58,10 @@ public partial class SystemPanelController : CanvasLayer
 
     private Vector2 PanelDesignSize => PanelSize / _renderScale;
     private float _renderScale = 1f;
+    private Font _popupSourceFont = null!;
+    private readonly Dictionary<int, Font> _popupFontsByOversampling = new();
+    private readonly Dictionary<ulong, Font> _buttonSourceFonts = new();
+    private readonly Dictionary<string, Font> _buttonFontsBySourceAndOversampling = new();
 
     private PanelContainer _panel = null!;
     private ScrollContainer _panelScroll = null!;
@@ -1984,7 +1988,100 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         _resetSaveConfirm.Scale = value;
 #endif
+        ApplyPopupRenderQuality(_panel);
         SetPanelPosition(_panel.Position);
+    }
+
+    private void ApplyPopupRenderQuality(Node node)
+    {
+        if (node is BaseButton button)
+            ApplyButtonFontRenderQuality(button);
+
+        if (node is OptionButton optionButton)
+        {
+            var popup = optionButton.GetPopup();
+            var oversampling = Math.Max(1, Mathf.CeilToInt(_renderScale));
+            popup.OversamplingOverride = oversampling;
+            _popupSourceFont ??= popup.GetThemeFont("font");
+            if (!_popupFontsByOversampling.TryGetValue(oversampling, out var font))
+            {
+                font = DuplicateFontForOversampling(_popupSourceFont, oversampling);
+                AppendKoreanSystemFallback(font, oversampling);
+                _popupFontsByOversampling[oversampling] = font;
+            }
+            popup.AddThemeFontOverride("font", font);
+        }
+
+        foreach (var child in node.GetChildren())
+            ApplyPopupRenderQuality(child);
+    }
+
+    private void ApplyButtonFontRenderQuality(BaseButton button)
+    {
+        var instanceId = button.GetInstanceId();
+        if (!_buttonSourceFonts.TryGetValue(instanceId, out var sourceFont))
+        {
+            sourceFont = button.GetThemeFont("font");
+            _buttonSourceFonts[instanceId] = sourceFont;
+        }
+
+        var oversampling = Math.Max(1, Mathf.CeilToInt(_renderScale));
+        var cacheKey = $"{sourceFont.GetInstanceId()}:{oversampling}";
+        if (!_buttonFontsBySourceAndOversampling.TryGetValue(cacheKey, out var font))
+        {
+            font = DuplicateFontForOversampling(sourceFont, oversampling);
+            AppendKoreanSystemFallback(font, oversampling);
+            _buttonFontsBySourceAndOversampling[cacheKey] = font;
+        }
+
+        button.AddThemeFontOverride("font", font);
+    }
+
+    private static Font DuplicateFontForOversampling(Font source, float oversampling)
+    {
+        var copy = (Font)source.Duplicate();
+        if (copy is FontFile fontFile)
+            fontFile.Oversampling = oversampling;
+        else if (copy is SystemFont systemFont)
+            systemFont.Oversampling = oversampling;
+
+        if (copy is FontVariation variation && variation.BaseFont != null)
+            variation.BaseFont = DuplicateFontForOversampling(variation.BaseFont, oversampling);
+
+        if (source.Fallbacks.Count > 0)
+        {
+            var fallbacks = new Godot.Collections.Array<Font>();
+            foreach (var fallback in source.Fallbacks)
+                fallbacks.Add(DuplicateFontForOversampling(fallback, oversampling));
+            copy.Fallbacks = fallbacks;
+        }
+
+        return copy;
+    }
+
+    private static void AppendKoreanSystemFallback(Font font, float oversampling)
+    {
+        var fallbacks = new Godot.Collections.Array<Font>();
+        foreach (var fallback in font.Fallbacks)
+            fallbacks.Add(fallback);
+        fallbacks.Add(CreateKoreanSystemFallback(oversampling));
+        font.Fallbacks = fallbacks;
+    }
+
+    private static SystemFont CreateKoreanSystemFallback(float oversampling)
+    {
+        return new SystemFont
+        {
+            FontNames =
+            [
+                "Malgun Gothic",
+                "Apple SD Gothic Neo",
+                "Noto Sans CJK KR",
+                "Noto Sans KR",
+            ],
+            FontWeight = 700,
+            Oversampling = oversampling,
+        };
     }
 
     public void Close()
@@ -2434,7 +2531,7 @@ public partial class SystemPanelController : CanvasLayer
 
         _pendingDesktopPetScaleStep = selectedStep;
         EmitSignal(SignalName.DesktopPetScalePreviewRequested, selectedStep);
-        _desktopScaleConfirm.SetOverlayRect(_panel.Position, PanelSize);
+        _desktopScaleConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
         _desktopScaleConfirm.ShowTimedConfirmKey(
             L10nKey.Settings_DesktopPetScaleConfirmTitle,
             L10nKey.Settings_DesktopPetScaleConfirmMessage,
