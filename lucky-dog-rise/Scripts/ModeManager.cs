@@ -66,6 +66,7 @@ public partial class ModeManager : Control
     private Vector2 _panelSize;
     private Vector2 _contentOffset;
     private Vector2 _bossContentOffset;
+    private readonly IPanelAvoidanceStrategy _panelAvoidanceStrategy = new LegacyRealtimeGridStrategy();
     private Node2D _bossContentA = null!;
     private CanvasLayer _bossCanvasLayer = null!;
     private CanvasLayer _bossBubbleLayer = null!;
@@ -151,20 +152,6 @@ public partial class ModeManager : Control
         Owned,
     }
 #endif
-
-    // 面板避让九宫优先级：伪装模式。按数组顺序尝试，数字对应键盘九宫格：
-    // 789 / 456 / 123
-    private static readonly int[] BossKeyPanelSlotPriority =
-    [
-        8, 9, 7, 6, 4, 2, 3, 1,
-    ];
-
-    // 面板避让九宫优先级：扑克模式。需要调整扑克模式面板位置时，只改这个数组顺序。
-    // 789 / 456 / 123
-    private static readonly int[] PlayPanelSlotPriority =
-    [
-        6, 8, 9, 7, 4, 2, 3, 1,
-    ];
 
 #if DEBUG
     private readonly Random _debugRandom = new();
@@ -2663,7 +2650,6 @@ public partial class ModeManager : Control
             : GetBestScreenUsableRect(GetPlayGameScreenRect());
         int pw = (int)_panelSize.X;
         int ph = (int)_panelSize.Y;
-        const int pad = 5;
 
         // 根据模式取 A 区位置和尺寸
         float aX, aY; int aw, ah;
@@ -2682,28 +2668,17 @@ public partial class ModeManager : Control
             ah = (int)_windowBaseSize.Y;
         }
 
-        bool Fits(int sx, int sy)
+        Rect2? infoPanelRect = null;
+        if (CurrentMode == Mode.Play && _infoPanel != null && _infoPanel.Visible)
         {
-            if (sx < screen.Position.X - pad || sx + pw > screen.End.X + pad ||
-                sy < screen.Position.Y - pad || sy + ph > screen.End.Y + pad)
-                return false;
-            // 游玩模式下避开信息面板区域
-            if (CurrentMode == Mode.Play && _infoPanel != null && _infoPanel.Visible)
-            {
-                int infoX = _infoPanelOnRight
-                    ? (int)aX + aw + PlayGameSettingsGap : 0;
-                int infoY = (int)aY;
-                var setRect = new Rect2(sx, sy, pw, ph);
-                // info 坐标是窗口空间，Fits 是屏幕空间，需加 winPos
-                var infoRect = new Rect2(
-                    winPos.X + infoX,
-                    winPos.Y + infoY,
-                    GetPlayInfoPanelWidth(),
-                    GetPlayGameSize());
-                if (setRect.Intersects(infoRect))
-                    return false;
-            }
-            return true;
+            int infoX = _infoPanelOnRight
+                ? (int)aX + aw + PlayGameSettingsGap
+                : 0;
+            infoPanelRect = new Rect2(
+                infoX,
+                (int)aY,
+                GetPlayInfoPanelWidth(),
+                GetPlayGameSize());
         }
 
         // 桌宠模式的 4/6 宫以 TaskBar 锚点（小狗吸附任务栏的下沿）作为底边。
@@ -2711,100 +2686,21 @@ public partial class ModeManager : Control
         float sidePanelBottomY = CurrentMode == Mode.BossKey
             ? GetBossTaskbarAnchorWindowPosition().Y
             : aY + ah;
-        float bY = sidePanelBottomY - ph;
-        float centerX = aX + aw / 2f - pw / 2f;
 
-        var slotPriority = CurrentMode == Mode.Play ? PlayPanelSlotPriority : BossKeyPanelSlotPriority;
-
-        foreach (var slot in slotPriority)
-        {
-            var (wx, wy) = GetPanelSlotPosition(slot, aX, aY, aw, ah, pw, ph, bY, centerX);
-            if (CurrentMode == Mode.Play && (slot == 6 || slot == 9 || slot == 3))
-                wx += PlayGameSettingsGap;
-            if (Fits(winPos.X + wx, winPos.Y + wy))
-            {
-                _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
-                return;
-            }
-        }
-
-        // 完整面板无处可放时，允许面板底部超出显示器，但标题栏、关闭按钮和
-        // 顶部操作按钮必须完整可见，避免玩家无法关闭或退出。
-        int topActionHeight = Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight);
-        bool TopActionsFit(int sx, int sy)
-        {
-            return sx >= screen.Position.X - pad
-                && sx + pw <= screen.End.X + pad
-                && sy >= screen.Position.Y - pad
-                && sy + topActionHeight <= screen.End.Y + pad;
-        }
-
-        // 先保留旧兜底语义：只要关键操作区仍在屏幕内，就优先覆盖 A 区中央（5 区）。
-        // 这样不会在尚无必要时把面板推到屏幕底部。
-        var (centerFallbackX, centerFallbackY) = GetPanelSlotPosition(
-            5, aX, aY, aw, ah, pw, ph, bY, centerX);
-        if (TopActionsFit(winPos.X + centerFallbackX, winPos.Y + centerFallbackY))
-        {
-            _settingsPanel.SetPanelPosition(new Vector2(centerFallbackX, centerFallbackY));
-            return;
-        }
-
-        // 只有 5 区会把关键操作区挤出屏幕时，才退到 A 区下方的 2、1、3 区。
-        int[] partialBottomSlots = [2, 1, 3];
-        foreach (var slot in partialBottomSlots)
-        {
-            var (wx, wy) = GetPanelSlotPosition(slot, aX, aY, aw, ah, pw, ph, bY, centerX);
-            if (CurrentMode == Mode.Play && slot == 3)
-                wx += PlayGameSettingsGap;
-            if (TopActionsFit(winPos.X + wx, winPos.Y + wy))
-            {
-                _settingsPanel.SetPanelPosition(new Vector2(wx, wy));
-                return;
-            }
-        }
-
-        // 极端情况下以 2 区为基础夹紧。只要显示器能容纳面板宽度和顶部操作区，
-        // 就保证这些关键控件留在屏幕内；剩余内容可从屏幕底部溢出。
-        var (fallbackX, fallbackY) = GetPanelSlotPosition(2, aX, aY, aw, ah, pw, ph, bY, centerX);
-        int screenMinX = screen.Position.X + pad - winPos.X;
-        int screenMaxX = screen.End.X - pad - pw - winPos.X;
-        int screenMinY = screen.Position.Y + pad - winPos.Y;
-        int screenMaxY = screen.End.Y - pad - topActionHeight - winPos.Y;
-        int hostMaxX = Math.Max(0, DisplayServer.WindowGetSize().X - pw);
-        int hostMaxY = Math.Max(0, DisplayServer.WindowGetSize().Y - ph);
-
-        int allowedMinX = Math.Max(0, screenMinX);
-        int allowedMaxX = Math.Min(hostMaxX, screenMaxX);
-        if (allowedMaxX >= allowedMinX)
-            fallbackX = Mathf.Clamp(fallbackX, allowedMinX, allowedMaxX);
-        else
-            fallbackX = Mathf.Clamp(fallbackX, 0, hostMaxX);
-
-        int allowedMinY = Math.Max(0, screenMinY);
-        int allowedMaxY = Math.Min(hostMaxY, screenMaxY);
-        if (allowedMaxY >= allowedMinY)
-            fallbackY = Mathf.Clamp(fallbackY, allowedMinY, allowedMaxY);
-        else
-            fallbackY = Mathf.Clamp(fallbackY, 0, hostMaxY);
-
-        _settingsPanel.SetPanelPosition(new Vector2(fallbackX, fallbackY));
-    }
-
-    private static (int wx, int wy) GetPanelSlotPosition(
-        int slot, float aX, float aY, int aw, int ah, int pw, int ph, float bY, float centerX)
-    {
-        return slot switch
-        {
-            9 => ((int)aX + aw, 0),
-            8 => ((int)centerX, 0),
-            7 => (0, 0),
-            6 => ((int)aX + aw, (int)bY),
-            4 => (0, (int)bY),
-            3 => ((int)aX + aw, (int)aY + ah),
-            2 => ((int)centerX, (int)aY + ah),
-            1 => (0, (int)aY + ah),
-            _ => ((int)(aX + aw / 2f - pw / 2f), (int)(aY + ah / 2f - ph / 2f)),
-        };
+        var placement = _panelAvoidanceStrategy.CalculatePanelPlacement(
+            new PanelPlacementContext(
+                CurrentMode == Mode.Play ? PanelHostMode.Play : PanelHostMode.BossKey,
+                winPos,
+                DisplayServer.WindowGetSize(),
+                screen,
+                new Vector2(aX, aY),
+                new Vector2I(aw, ah),
+                new Vector2I(pw, ph),
+                sidePanelBottomY,
+                infoPanelRect,
+                Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight),
+                PlayGameSettingsGap));
+        _settingsPanel.SetPanelPosition(placement.PanelPosition);
     }
 
     // ===== 窗口管理 =====
@@ -2814,10 +2710,17 @@ public partial class ModeManager : Control
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
 
-        int winW = Mathf.CeilToInt(_bossContentOffset.X + _windowBaseSize.X + _panelSize.X);
-        int winH = Mathf.CeilToInt(_bossContentOffset.Y + _windowBaseSize.Y + _panelSize.Y);
+        var layout = _panelAvoidanceStrategy.CalculateHostLayout(
+            new HostLayoutContext(
+                PanelHostMode.BossKey,
+                _bossContentOffset,
+                _windowBaseSize,
+                _panelSize,
+                0,
+                0));
+        _bossContentOffset = layout.MainContentOrigin;
         var pos = DisplayServer.WindowGetPosition();
-        DisplayServer.WindowSetSize(new Vector2I(winW, winH));
+        DisplayServer.WindowSetSize(layout.WindowSize);
         DisplayServer.WindowSetPosition(pos);
         RenderingServer.SetDefaultClearColor(new Color(0, 0, 0, 0));
     }
@@ -3032,15 +2935,20 @@ public partial class ModeManager : Control
 
     private void SetupPlayFatWindow()
     {
-        int pw = (int)_panelSize.X;
-        int ph = (int)_panelSize.Y;
-        int contentW = GetPlayInfoPanelWidth() + GetPlayGameSize();
-        int contentH = GetPlayGameSize();
-        int winW = contentW + pw * 2;
-        int winH = Math.Max(contentH, ph) + ph * 2;
+        var layout = _panelAvoidanceStrategy.CalculateHostLayout(
+            new HostLayoutContext(
+                PanelHostMode.Play,
+                _contentOffset,
+                new Vector2(
+                    GetPlayInfoPanelWidth() + GetPlayGameSize(),
+                    GetPlayGameSize()),
+                _panelSize,
+                GetPlayInfoPanelWidth(),
+                GetPlayGameSize()));
+        _contentOffset = layout.MainContentOrigin;
         // 只 resize，保留窗口当前位置，不让内容跳位
         var pos = DisplayServer.WindowGetPosition();
-        DisplayServer.WindowSetSize(new Vector2I(winW, winH));
+        DisplayServer.WindowSetSize(layout.WindowSize);
         DisplayServer.WindowSetPosition(pos);
     }
 
@@ -3351,7 +3259,7 @@ public partial class ModeManager : Control
                 DisplayServer.WindowSetPosition(newPos);
                 if (CurrentMode == Mode.BossKey)
                     ApplyBossCounterLayout();
-                if (_settingsPanel.IsOpen)
+                if (_settingsPanel.IsOpen && _panelAvoidanceStrategy.ReflowWhileDragging)
                     PositionPanelInBestSlot();
                 if (CurrentMode == Mode.Play)
                     UpdatePlayLayout();
