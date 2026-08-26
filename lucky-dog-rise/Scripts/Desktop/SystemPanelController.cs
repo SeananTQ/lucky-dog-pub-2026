@@ -31,6 +31,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void OtherUiScalePreviewRequestedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleConfirmedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleCanceledEventHandler();
+    [Signal] public delegate void OpenStateChangedEventHandler(bool open);
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private Label _globalInputChipsEarnedLabel = null!;
@@ -45,6 +46,7 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
+    public Rect2 PanelRect => new(_panel.Position, PanelSize);
 
     public float TopActionAreaHeight
     {
@@ -1979,6 +1981,7 @@ public partial class SystemPanelController : CanvasLayer
         EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
+        EmitSignal(SignalName.OpenStateChanged, true);
         Callable.From(TryPlayPendingLinkTreeRewardFeedbacks).CallDeferred();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 1f, 0.15f).SetEase(Tween.EaseType.Out);
@@ -2111,11 +2114,16 @@ public partial class SystemPanelController : CanvasLayer
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 0f, 0.1f).SetEase(Tween.EaseType.In);
-        _tween.TweenCallback(Callable.From(() => _panel.Visible = false));
+        _tween.TweenCallback(Callable.From(() =>
+        {
+            _panel.Visible = false;
+            EmitSignal(SignalName.OpenStateChanged, false);
+        }));
     }
 
     public void CloseImmediate()
     {
+        bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
 #if DEBUG
@@ -2125,6 +2133,8 @@ public partial class SystemPanelController : CanvasLayer
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
+        if (wasOpen)
+            EmitSignal(SignalName.OpenStateChanged, false);
     }
 
     private void UpdateAndRestart()

@@ -9,6 +9,8 @@ namespace LuckyDogRise;
 
 public partial class ModeManager : Control
 {
+    [Export] private ColorRect _playPanelDismissOverlay = null!;
+
 #if DEBUG
     private const string AccountIdentityProbeArgument = "--account-identity-probe";
     private const string SingleInstanceSmokeArgument = "--single-instance-smoke";
@@ -459,6 +461,8 @@ public partial class ModeManager : Control
         _settingsPanel.OtherUiScalePreviewRequested += OnOtherUiScalePreviewRequested;
         _settingsPanel.OtherUiScaleConfirmed += OnOtherUiScaleConfirmed;
         _settingsPanel.OtherUiScaleCanceled += OnOtherUiScaleCanceled;
+        _settingsPanel.OpenStateChanged += OnSettingsPanelOpenStateChanged;
+        _playPanelDismissOverlay.GuiInput += OnPlayPanelDismissOverlayGuiInput;
         RefreshSettingsPanelModeActions();
 
         if (OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
@@ -925,6 +929,7 @@ public partial class ModeManager : Control
         // 游戏面板位置固定，信息面板自己绕到右侧
         _playViewport.Position = new Vector2(gameX, baseY);
         _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameSize + PlayGameSettingsGap : 0, baseY));
+        UpdatePlayPanelDismissOverlay();
     }
 
     private void SwitchToBossKey()
@@ -2654,6 +2659,47 @@ public partial class ModeManager : Control
         _settingsPanel.Open();
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
+
+    private void OnSettingsPanelOpenStateChanged(bool _)
+    {
+        UpdatePlayPanelDismissOverlay();
+    }
+
+    private void OnPlayPanelDismissOverlayGuiInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Left,
+                Pressed: true,
+            })
+        {
+            return;
+        }
+
+        _playPanelDismissOverlay.AcceptEvent();
+        _settingsPanel?.Close();
+    }
+
+    private void UpdatePlayPanelDismissOverlay()
+    {
+        if (_playPanelDismissOverlay == null
+            || CurrentMode != Mode.Play
+            || _playViewport == null
+            || _settingsPanel?.IsOpen != true)
+        {
+            if (_playPanelDismissOverlay != null)
+                _playPanelDismissOverlay.Visible = false;
+            return;
+        }
+
+        var gameRect = new Rect2(
+            _playViewport.Position,
+            _playViewport.Size * _playViewport.Scale);
+        bool overlapsGame = _settingsPanel.PanelRect.Intersects(gameRect);
+        _playPanelDismissOverlay.Position = gameRect.Position;
+        _playPanelDismissOverlay.Size = gameRect.Size;
+        _playPanelDismissOverlay.Visible = overlapsGame;
+    }
     private void RefreshSettingsPanelModeActions()
     {
         _settingsPanel?.SetCurrentMode(CurrentMode == Mode.BossKey);
@@ -2733,6 +2779,7 @@ public partial class ModeManager : Control
                 PlayGameSettingsGap,
                 IsHighOtherUiScale()));
         _settingsPanel.SetPanelPosition(placement.PanelPosition);
+        UpdatePlayPanelDismissOverlay();
     }
 
     // ===== 窗口管理 =====

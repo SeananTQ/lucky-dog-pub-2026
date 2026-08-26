@@ -2,5 +2,14 @@
 
 [ext_resource type="Script" uid="uid://bqt7jksk08p1p" path="res://Scripts/ModeManager.cs" id="1_ctrl"]
 
-[node name="ModeManager" type="Control"]
+[node name="ModeManager" type="Control" node_paths=PackedStringArray("_playPanelDismissOverlay")]
 script = ExtResource("1_ctrl")
+_playPanelDismissOverlay = NodePath("PlayPanelDismissLayer/DismissOverlay")
+
+[node name="PlayPanelDismissLayer" type="CanvasLayer" parent="."]
+layer = 90
+
+[node name="DismissOverlay" type="ColorRect" parent="PlayPanelDismissLayer"]
+visible = false
+mouse_filter = 0
+color = Color(0, 0, 0, 0.5)
