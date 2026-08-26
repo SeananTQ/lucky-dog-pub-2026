@@ -59,6 +59,9 @@ wick-mcp-server/*
 # Codex
 config.toml
 
+# Claude Code 本地权限与环境配置
+**/.claude/settings.local.json
+
 
 
 # 鲁班 
@@ -101,5 +104,4 @@ lucky-steamworks/playtest-key/
 # 测试文件夹和外部资源不需要上传到版本控制系统
 lucky-steamworks/achievement/tools/steamworks-achievement-sync/test/
 lucky-steamworks/achievement/external/
-
 
