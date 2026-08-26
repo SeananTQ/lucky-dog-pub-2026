@@ -292,6 +292,7 @@ public partial class SystemPanelController : CanvasLayer
         L10n.SpanishLatinAmericaLocale,
         L10n.PortugueseBrazilLocale,
         L10n.PortuguesePortugalLocale,
+        L10n.RussianLocale,
         L10n.FrenchLocale,
         L10n.GermanLocale,
         L10n.DanishLocale,
@@ -301,6 +302,7 @@ public partial class SystemPanelController : CanvasLayer
         L10n.DutchLocale,
         L10n.VietnameseLocale,
         L10n.MalayLocale,
+        L10n.UkrainianLocale,
     ];
     private static readonly int[] PokerFrameRateOptions = [60, 30, 20, 15];
     private static readonly Color LinkTreeGiftLockedColor = new(0.6039216f, 0.70980394f, 0.7411765f, 1f);

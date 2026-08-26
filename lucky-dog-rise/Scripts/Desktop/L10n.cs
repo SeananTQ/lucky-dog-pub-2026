@@ -21,6 +21,8 @@ public static class L10n
     public const string PortuguesePortugalLocale = "pt_PT";
     public const string FrenchLocale = "fr";
     public const string GermanLocale = "de";
+    public const string RussianLocale = "ru";
+    public const string UkrainianLocale = "uk";
     public const string DanishLocale = "da";
     public const string IndonesianLocale = "id";
     public const string NorwegianLocale = "nb";
@@ -97,6 +99,8 @@ public static class L10n
             PortuguesePortugalLocale => "Português (PT)",
             FrenchLocale => "Français",
             GermanLocale => "Deutsch",
+            RussianLocale => "Русский",
+            UkrainianLocale => "Українська",
             DanishLocale => "Dansk",
             IndonesianLocale => "Bahasa Indonesia",
             NorwegianLocale => "Norsk bokmål",
@@ -146,6 +150,9 @@ public static class L10n
 
         if (locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return JapaneseLocale;
+
+        if (locale.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return RussianLocale;
 
         if (locale.StartsWith("es_419", StringComparison.OrdinalIgnoreCase)
             || locale.StartsWith("es-419", StringComparison.OrdinalIgnoreCase)
@@ -199,6 +206,9 @@ public static class L10n
 
         if (locale.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
             return KoreanLocale;
+
+        if (locale.StartsWith("uk", StringComparison.OrdinalIgnoreCase))
+            return UkrainianLocale;
 
         if (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             return EnglishLocale;
@@ -299,6 +309,7 @@ public static class L10n
             SimplifiedChineseLocale,
             TraditionalChineseLocale,
             JapaneseLocale,
+            RussianLocale,
             SpanishSpainLocale,
             SpanishLatinAmericaLocale,
             PortugueseBrazilLocale,
@@ -313,6 +324,7 @@ public static class L10n
             VietnameseLocale,
             MalayLocale,
             KoreanLocale,
+            UkrainianLocale,
         ];
 
         foreach (var locale in locales)
