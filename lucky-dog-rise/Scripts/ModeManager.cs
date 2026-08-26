@@ -12,6 +12,9 @@ public partial class ModeManager : Control
     [Export] private ColorRect _playPanelDismissOverlay = null!;
 
 #if DEBUG
+    private const int DeveloperLauncherWindowWidth = 620;
+    private const int DeveloperLauncherMinimumWindowHeight = 430;
+    private const int DeveloperLauncherVerticalPadding = 50;
     private const string AccountIdentityProbeArgument = "--account-identity-probe";
     private const string SingleInstanceSmokeArgument = "--single-instance-smoke";
     private const string BlindBoxRegressionSmokeArgument = "--blindbox-regression-smoke";
@@ -268,13 +271,10 @@ public partial class ModeManager : Control
             .Instantiate<DeveloperLauncherController>();
         _developerLauncher.Name = "DeveloperLauncher";
         _developerLauncher.LaunchRequested += OnDeveloperLaunchRequested;
+        _developerLauncher.LayoutChanged += OnDeveloperLauncherLayoutChanged;
         AddChild(_developerLauncher);
 
-        var launcherSize = new Vector2I(620, 430);
-        DisplayServer.WindowSetSize(launcherSize);
-        var screen = DisplayServer.WindowGetCurrentScreen();
-        var usable = DisplayServer.ScreenGetUsableRect(screen);
-        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - launcherSize) / 2);
+        ApplyDeveloperLauncherWindowLayout();
         SetClickThrough(false);
         SetNativeMainWindowVisible(true);
         _startupState = StartupState.HiddenBootstrap;
@@ -287,10 +287,32 @@ public partial class ModeManager : Control
             (DebugRuntimeEnvironment)environment,
             (DebugSteamScenario)scenario);
         _developerLauncher.LaunchRequested -= OnDeveloperLaunchRequested;
+        _developerLauncher.LayoutChanged -= OnDeveloperLauncherLayoutChanged;
         _developerLauncher.QueueFree();
         _developerLauncher = null!;
         SetNativeMainWindowVisible(false);
         ContinueStartup(selection);
+    }
+
+    private void OnDeveloperLauncherLayoutChanged()
+    {
+        CallDeferred(nameof(ApplyDeveloperLauncherWindowLayout));
+    }
+
+    private void ApplyDeveloperLauncherWindowLayout()
+    {
+        if (_developerLauncher == null || !IsInstanceValid(_developerLauncher))
+            return;
+
+        var panelMinimumSize = _developerLauncher.GetPanelMinimumSize();
+        var launcherHeight = Math.Max(
+            DeveloperLauncherMinimumWindowHeight,
+            Mathf.CeilToInt(panelMinimumSize.Y) + DeveloperLauncherVerticalPadding);
+        var launcherSize = new Vector2I(DeveloperLauncherWindowWidth, launcherHeight);
+        DisplayServer.WindowSetSize(launcherSize);
+        var screen = DisplayServer.WindowGetCurrentScreen();
+        var usable = DisplayServer.ScreenGetUsableRect(screen);
+        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - launcherSize) / 2);
     }
 
     private void ContinueStartup(DebugLaunchSelection selection)

@@ -1,4 +1,5 @@
 #if DEBUG
+using System;
 using Godot;
 
 namespace LuckyDogRise;
@@ -17,6 +18,7 @@ public partial class DeveloperLauncherController : CanvasLayer
 {
     [Signal]
     public delegate void LaunchRequestedEventHandler(int environment, int scenario);
+    public event Action LayoutChanged = null!;
 
     [Export] private OptionButton _environmentOption = null!;
     [Export] private VBoxContainer _mockScenarioSection = null!;
@@ -53,7 +55,16 @@ public partial class DeveloperLauncherController : CanvasLayer
         _environmentHint.Text = environment == DebugRuntimeEnvironment.SteamMock
             ? "Steam 模拟环境使用独立内存沙箱，不创建真实 Steam 会话，也不写入真实存档。"
             : "综合调试环境使用当前真实 Steam 与本地存档，并保留完整 Debug 工具。";
+        CallDeferred(nameof(NotifyLayoutChanged));
     }
+
+    public Vector2 GetPanelMinimumSize()
+    {
+        var panel = GetNode<PanelContainer>("Backdrop/Center/Panel");
+        return panel.GetCombinedMinimumSize();
+    }
+
+    private void NotifyLayoutChanged() => LayoutChanged?.Invoke();
 
     private void OnLaunchPressed()
     {
