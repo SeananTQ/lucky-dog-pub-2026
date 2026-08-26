@@ -15,7 +15,9 @@ public readonly record struct HostLayoutContext(
     Vector2 MainContentSize,
     Vector2 PanelSize,
     int PlayInfoPanelWidth,
-    int PlayGameSize);
+    int PlayGameSize,
+    bool PlayHighScale,
+    int PlayTopAccessoryHeight);
 
 public readonly record struct HostLayoutSpec(
     Vector2I WindowSize,
@@ -31,8 +33,10 @@ public readonly record struct PanelPlacementContext(
     Vector2I PanelSize,
     float SidePanelBottomY,
     Rect2? InfoPanelRect,
+    Rect2? TopAccessoryRect,
     int TopActionHeight,
-    int PlaySettingsGap);
+    int PlaySettingsGap,
+    bool PlayHighScale);
 
 public readonly record struct PanelPlacementResult(Vector2 PanelPosition);
 
@@ -46,23 +50,18 @@ public interface IPanelAvoidanceStrategy
 }
 
 /// <summary>
-/// The original real-time nine-slot panel avoidance behavior. This strategy intentionally
-/// preserves its existing size formula, five-pixel tolerance, slot order, and fallbacks.
-/// It contains no Godot node or native-window mutations; ModeManager remains the executor.
+/// The active real-time panel avoidance behavior. Desktop-pet mode preserves the accepted
+/// nine-slot layout. Poker mode uses a compact host and its scale-specific placement rules.
+/// The strategy contains no Godot node or native-window mutations; ModeManager is the executor.
 /// </summary>
 public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
 {
     private const int LegacyScreenTolerance = 5;
 
-    // 789 / 456 / 123. Preserve the currently accepted per-mode priorities verbatim.
+    // 789 / 456 / 123. Preserve the accepted desktop-pet priority verbatim.
     private static readonly int[] BossKeyPanelSlotPriority =
     [
         8, 9, 7, 6, 4, 2, 3, 1,
-    ];
-
-    private static readonly int[] PlayPanelSlotPriority =
-    [
-        6, 8, 9, 7, 4, 2, 3, 1,
     ];
 
     public bool ReflowWhileDragging => true;
@@ -72,14 +71,15 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
         if (context.Mode == PanelHostMode.Play)
         {
             int panelWidth = (int)context.PanelSize.X;
-            int panelHeight = (int)context.PanelSize.Y;
             int contentWidth = context.PlayInfoPanelWidth + context.PlayGameSize;
             int contentHeight = context.PlayGameSize;
+            int topReserve = context.PlayHighScale ? 0 : contentHeight;
+            topReserve = Math.Max(topReserve, context.PlayTopAccessoryHeight);
             return new HostLayoutSpec(
                 new Vector2I(
-                    contentWidth + panelWidth * 2,
-                    Math.Max(contentHeight, panelHeight) + panelHeight * 2),
-                context.PanelSize);
+                    contentWidth + panelWidth,
+                    contentHeight + topReserve),
+                new Vector2(0f, topReserve));
         }
 
         return new HostLayoutSpec(
@@ -128,12 +128,34 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
                     return false;
             }
 
+            if (context.TopAccessoryRect is { } topAccessoryRect)
+            {
+                var settingsRect = new Rect2(screenX, screenY, panelWidth, panelHeight);
+                var accessoryScreenRect = new Rect2(
+                    context.WindowPosition.X + topAccessoryRect.Position.X,
+                    context.WindowPosition.Y + topAccessoryRect.Position.Y,
+                    topAccessoryRect.Size.X,
+                    topAccessoryRect.Size.Y);
+                if (settingsRect.Intersects(accessoryScreenRect))
+                    return false;
+            }
+
             return true;
         }
 
-        var priority = context.Mode == PanelHostMode.Play
-            ? PlayPanelSlotPriority
-            : BossKeyPanelSlotPriority;
+        if (context.Mode == PanelHostMode.Play)
+        {
+            return CalculatePlayPanelPlacement(
+                context,
+                mainX,
+                mainY,
+                mainWidth,
+                panelWidth,
+                panelHeight,
+                Fits);
+        }
+
+        var priority = BossKeyPanelSlotPriority;
 
         foreach (var slot in priority)
         {
@@ -147,8 +169,6 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
                 panelHeight,
                 sideY,
                 centerX);
-            if (context.Mode == PanelHostMode.Play && (slot == 6 || slot == 9 || slot == 3))
-                position.X += context.PlaySettingsGap;
             if (Fits(
                     context.WindowPosition.X + position.X,
                     context.WindowPosition.Y + position.Y))
@@ -196,8 +216,6 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
                 panelHeight,
                 sideY,
                 centerX);
-            if (context.Mode == PanelHostMode.Play && slot == 3)
-                position.X += context.PlaySettingsGap;
             if (TopActionsFit(
                     context.WindowPosition.X + position.X,
                     context.WindowPosition.Y + position.Y))
@@ -246,6 +264,47 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
             : Mathf.Clamp(fallback.Y, 0, hostMaxY);
 
         return new PanelPlacementResult(new Vector2(fallback.X, fallback.Y));
+    }
+
+    private static PanelPlacementResult CalculatePlayPanelPlacement(
+        PanelPlacementContext context,
+        float mainX,
+        float mainY,
+        int mainWidth,
+        int panelWidth,
+        int panelHeight,
+        Func<int, int, bool> fits)
+    {
+        int rightAlignedX = (int)mainX + mainWidth - panelWidth;
+        int mainRowY = (int)mainY;
+        int rightX = (int)mainX + mainWidth + context.PlaySettingsGap;
+
+        // Default poker layout is Info | A | Settings. When the left edge leaves the
+        // display, UpdatePlayLayout moves Info to A's right, so Settings must overlay A.
+        bool leftSideOutside = context.WindowPosition.X
+            < context.UsableScreen.Position.X - LegacyScreenTolerance;
+        if (!leftSideOutside
+            && fits(context.WindowPosition.X + rightX, context.WindowPosition.Y + mainRowY))
+        {
+            return new PanelPlacementResult(new Vector2(rightX, mainRowY));
+        }
+
+        // Low UI scales reserve one full row above A. Prefer that row whenever the
+        // right/left horizontal layout no longer fits, keeping the panel right-aligned to A.
+        if (!context.PlayHighScale)
+        {
+            int aboveY = mainRowY - panelHeight;
+            if (fits(
+                    context.WindowPosition.X + rightAlignedX,
+                    context.WindowPosition.Y + aboveY))
+            {
+                return new PanelPlacementResult(new Vector2(rightAlignedX, aboveY));
+            }
+        }
+
+        // High scales have no vertical reserve. Low scales also use this fallback when
+        // the upper row is outside the usable screen.
+        return new PanelPlacementResult(new Vector2(rightAlignedX, mainRowY));
     }
 
     private static Vector2I GetPanelSlotPosition(

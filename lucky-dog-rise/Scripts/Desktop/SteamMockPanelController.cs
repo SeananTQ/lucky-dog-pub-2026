@@ -32,6 +32,11 @@ public partial class SteamMockPanelController : CanvasLayer
     private float _panelBottomY;
 
     public Rect2 PanelRect => _panel == null ? default : new Rect2(_panel.Position, _panel.Size);
+    public Vector2 PanelSize => _panel == null
+        ? Vector2.Zero
+        : new Vector2(
+            Mathf.Max(_panel.Size.X, _panel.CustomMinimumSize.X),
+            Mathf.Max(_panel.Size.Y, _panel.CustomMinimumSize.Y));
 
     public override void _Ready()
     {

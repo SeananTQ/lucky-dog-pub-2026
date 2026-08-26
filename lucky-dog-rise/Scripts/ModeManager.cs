@@ -906,16 +906,19 @@ public partial class ModeManager : Control
 
     private void UpdatePlayLayout()
     {
-        var scrSize = DisplayServer.ScreenGetSize();
         var winPos = DisplayServer.WindowGetPosition();
         int baseY = (int)_contentOffset.Y;
         const int pad = 5;
         int infoWidth = GetPlayInfoPanelWidth();
         int gameSize = GetPlayGameSize();
         int gameX = infoWidth;
+        var usableScreen = GetBestScreenUsableRect(new Rect2I(
+            winPos + new Vector2I(gameX, baseY),
+            new Vector2I(gameSize, gameSize)));
 
         // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + PlayInfoPanelWidth
-        bool leftOk = winPos.X >= -pad && winPos.X + infoWidth <= scrSize.X + pad;
+        bool leftOk = winPos.X >= usableScreen.Position.X - pad
+            && winPos.X + infoWidth <= usableScreen.End.X + pad;
 
         _infoPanelOnRight = !leftOk;
 
@@ -1499,6 +1502,18 @@ public partial class ModeManager : Control
 
     private int GetPlayInfoPanelWidth() => Mathf.CeilToInt(PlayInfoPanelBaseWidth * _otherUiScaleFactor);
     private int GetPlayGameSize() => Mathf.CeilToInt(PlayGameBaseSize * _otherUiScaleFactor);
+    private bool IsHighOtherUiScale() => _otherUiScaleFactor >= 1.5f;
+
+    private int GetPlayTopAccessoryHeight()
+    {
+#if DEBUG
+        return _steamMockPanel == null
+            ? 0
+            : Mathf.CeilToInt(_steamMockPanel.PanelSize.Y);
+#else
+        return 0;
+#endif
+    }
 
     public void ApplyDesktopPetScaleStep(int step) =>
         ApplyDesktopPetScaleStep(step, preserveTaskbarAnchor: true);
@@ -2280,6 +2295,8 @@ public partial class ModeManager : Control
     {
         _steamMockPanel?.SetPanelVisible(
             _steamMockPanelRequestedVisible && CurrentMode == Mode.Play);
+        if (CurrentMode == Mode.Play && _settingsPanel?.IsOpen == true)
+            PositionPanelInBestSlot();
     }
 
     private void UpdateSteamMockPresentation()
@@ -2681,6 +2698,19 @@ public partial class ModeManager : Control
                 GetPlayGameSize());
         }
 
+        Rect2? topAccessoryRect = null;
+#if DEBUG
+        if (CurrentMode == Mode.Play && _steamMockPanel?.Visible == true)
+        {
+            Vector2 accessorySize = _steamMockPanel.PanelSize;
+            topAccessoryRect = new Rect2(
+                0f,
+                aY - accessorySize.Y,
+                accessorySize.X,
+                accessorySize.Y);
+        }
+#endif
+
         // 桌宠模式的 4/6 宫以 TaskBar 锚点（小狗吸附任务栏的下沿）作为底边。
         // 不能使用整个 A 区底边，否则倍率越大，侧边面板会被额外向下推并挤出屏幕。
         float sidePanelBottomY = CurrentMode == Mode.BossKey
@@ -2698,8 +2728,10 @@ public partial class ModeManager : Control
                 new Vector2I(pw, ph),
                 sidePanelBottomY,
                 infoPanelRect,
+                topAccessoryRect,
                 Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight),
-                PlayGameSettingsGap));
+                PlayGameSettingsGap,
+                IsHighOtherUiScale()));
         _settingsPanel.SetPanelPosition(placement.PanelPosition);
     }
 
@@ -2717,6 +2749,8 @@ public partial class ModeManager : Control
                 _windowBaseSize,
                 _panelSize,
                 0,
+                0,
+                false,
                 0));
         _bossContentOffset = layout.MainContentOrigin;
         var pos = DisplayServer.WindowGetPosition();
@@ -2944,8 +2978,13 @@ public partial class ModeManager : Control
                     GetPlayGameSize()),
                 _panelSize,
                 GetPlayInfoPanelWidth(),
-                GetPlayGameSize()));
+                GetPlayGameSize(),
+                IsHighOtherUiScale(),
+                GetPlayTopAccessoryHeight()));
         _contentOffset = layout.MainContentOrigin;
+#if DEBUG
+        _steamMockPanel?.SetPanelBottom(_contentOffset.Y);
+#endif
         // 只 resize，保留窗口当前位置，不让内容跳位
         var pos = DisplayServer.WindowGetPosition();
         DisplayServer.WindowSetSize(layout.WindowSize);
@@ -3259,10 +3298,10 @@ public partial class ModeManager : Control
                 DisplayServer.WindowSetPosition(newPos);
                 if (CurrentMode == Mode.BossKey)
                     ApplyBossCounterLayout();
-                if (_settingsPanel.IsOpen && _panelAvoidanceStrategy.ReflowWhileDragging)
-                    PositionPanelInBestSlot();
                 if (CurrentMode == Mode.Play)
                     UpdatePlayLayout();
+                if (_settingsPanel.IsOpen && _panelAvoidanceStrategy.ReflowWhileDragging)
+                    PositionPanelInBestSlot();
                 GetViewport().SetInputAsHandled();
             }
         }
