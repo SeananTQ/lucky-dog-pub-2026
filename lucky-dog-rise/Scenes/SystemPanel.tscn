@@ -365,6 +365,227 @@ layout_mode = 2
 text = "Settings_DesktopPet"
 label_settings = ExtResource("8_group_title")
 
+[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_CounterDisplay"
+label_settings = ExtResource("9_option_label")
+
+[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
+custom_minimum_size = Vector2(112, 28)
+layout_mode = 2
+
+[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=462672903]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="CounterCenterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1962368471]
+layout_mode = 2
+
+[node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_CenterCounterOnTaskbar"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="AutoHideCounterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000133]
+layout_mode = 2
+
+[node name="AutoHideCounterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000134]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AutoHideCounter"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="AutoHideCounterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000135]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
+layout_mode = 2
+
+[node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AutoHidePanelOnFocusLoss"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
+layout_mode = 2
+
+[node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_TongueInstantMode"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BlindBoxBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=739196546]
+layout_mode = 2
+
+[node name="BlindBoxBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=487480890]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AlwaysShowBlindBoxBubble"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="DesktopPetSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1623273464]
+layout_mode = 2
+
+[node name="ConvenienceLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1009223726]
+layout_mode = 2
+text = "Settings_Convenience"
+label_settings = ExtResource("8_group_title")
+
+[node name="AutoEquipRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=87456177]
+layout_mode = 2
+
+[node name="AutoEquipLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=1157129014]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AutoEquipNewOutfits"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="TaskbarSnapRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1404126057]
+layout_mode = 2
+
+[node name="TaskbarSnapLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1748010630]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_SnapToWindowsTaskbar"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RightClickQuickModeSwitchRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="RightClickQuickModeSwitchLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/RightClickQuickModeSwitchRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_RightClickQuickModeSwitch"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="RightClickQuickModeSwitchToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/RightClickQuickModeSwitchRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="PreventAccidentalDragRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="PreventAccidentalDragLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_PreventAccidentalDrag"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="PreventAccidentalDragToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
+layout_mode = 2
+
+[node name="GameplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+text = "Settings_Gameplay"
+label_settings = ExtResource("8_group_title")
+
+[node name="AvoidObscuringDogEyesRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000130]
+layout_mode = 2
+
+[node name="AvoidObscuringDogEyesLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow" unique_id=2048000131]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_AvoidObscuringDogEyes"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="AvoidObscuringDogEyesToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow" unique_id=2048000132]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
+layout_mode = 2
+
+[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_ProactiveInteractionHints"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
+layout_mode = 2
+
+[node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_StreamerSafeMode"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
+layout_mode = 2
+text = "Settings_Display"
+label_settings = ExtResource("8_group_title")
+
 [node name="DesktopPetScaleHeader" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
 
@@ -595,227 +816,6 @@ horizontal_alignment = 2
 custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 mouse_filter = 2
-
-[node name="DisplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867985]
-layout_mode = 2
-
-[node name="DisplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=634754941]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_CounterDisplay"
-label_settings = ExtResource("9_option_label")
-
-[node name="DisplayOption" type="OptionButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=356464326]
-custom_minimum_size = Vector2(112, 28)
-layout_mode = 2
-
-[node name="RightScrollbarGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow" unique_id=462672903]
-custom_minimum_size = Vector2(4, 0)
-layout_mode = 2
-
-[node name="CounterCenterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1962368471]
-layout_mode = 2
-
-[node name="CounterCenterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1093769915]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_CenterCounterOnTaskbar"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="CounterCenterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/CounterCenterRow" unique_id=1121709838]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="AutoHideCounterRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000133]
-layout_mode = 2
-
-[node name="AutoHideCounterLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000134]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_AutoHideCounter"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="AutoHideCounterToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideCounterRow" unique_id=2048000135]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="AutoHideRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1556867986]
-layout_mode = 2
-
-[node name="AutoHideLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=634754942]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_AutoHidePanelOnFocusLoss"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="AutoHideToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoHideRow" unique_id=1581395181]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="TongueImmediateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1889982942]
-layout_mode = 2
-
-[node name="TongueImmediateLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=1227371210]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_TongueInstantMode"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="TongueImmediateToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TongueImmediateRow" unique_id=2129417167]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="BlindBoxBubbleRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=739196546]
-layout_mode = 2
-
-[node name="BlindBoxBubbleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=487480890]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_AlwaysShowBlindBoxBubble"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="BlindBoxBubbleToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow" unique_id=1942655187]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="DesktopPetSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1623273464]
-layout_mode = 2
-
-[node name="ConvenienceLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1009223726]
-layout_mode = 2
-text = "Settings_Convenience"
-label_settings = ExtResource("8_group_title")
-
-[node name="AutoEquipRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=87456177]
-layout_mode = 2
-
-[node name="AutoEquipLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=1157129014]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_AutoEquipNewOutfits"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="AutoEquipToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow" unique_id=681471793]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="TaskbarSnapRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1404126057]
-layout_mode = 2
-
-[node name="TaskbarSnapLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1748010630]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_SnapToWindowsTaskbar"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="TaskbarSnapToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow" unique_id=1256503324]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="RightClickQuickModeSwitchRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-
-[node name="RightClickQuickModeSwitchLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/RightClickQuickModeSwitchRow"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_RightClickQuickModeSwitch"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="RightClickQuickModeSwitchToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/RightClickQuickModeSwitchRow"]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="PreventAccidentalDragRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-
-[node name="PreventAccidentalDragLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_PreventAccidentalDrag"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="PreventAccidentalDragToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow"]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
-layout_mode = 2
-
-[node name="GameplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-text = "Settings_Gameplay"
-label_settings = ExtResource("8_group_title")
-
-[node name="AvoidObscuringDogEyesRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000130]
-layout_mode = 2
-
-[node name="AvoidObscuringDogEyesLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow" unique_id=2048000131]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_AvoidObscuringDogEyes"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="AvoidObscuringDogEyesToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow" unique_id=2048000132]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
-layout_mode = 2
-
-[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_ProactiveInteractionHints"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
-layout_mode = 2
-
-[node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_StreamerSafeMode"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-
-[node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
-layout_mode = 2
-text = "Settings_Display"
-label_settings = ExtResource("8_group_title")
 
 [node name="PokerFrameRateRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
