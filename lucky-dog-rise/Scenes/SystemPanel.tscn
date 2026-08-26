@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LinkTreeBanner.tscn" id="13_linktree_banner"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="14_loading_indicator"]
 [ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="15_value_label"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_ScaleValue.tres" id="16_scale_value"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
@@ -364,10 +365,25 @@ layout_mode = 2
 text = "Settings_DesktopPet"
 label_settings = ExtResource("8_group_title")
 
-[node name="DesktopPetScaleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+[node name="DesktopPetScaleHeader" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
+
+[node name="DesktopPetScaleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Settings_DesktopPetScale"
 label_settings = ExtResource("9_option_label")
+
+[node name="DesktopPetScaleValueLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleHeader"]
+layout_mode = 2
+label_settings = ExtResource("16_scale_value")
+text = "1x"
+horizontal_alignment = 2
+
+[node name="RightInset" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleHeader"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="DesktopPetScaleControl" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
@@ -385,16 +401,23 @@ size_flags_vertical = 4
 max_value = 4.0
 step = 1.0
 value = 1.0
-tick_count = 5
-ticks_on_borders = true
+tick_count = 0
+ticks_on_borders = false
 
 [node name="ApplyButton" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow"]
-custom_minimum_size = Vector2(84, 28)
+custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
+theme_type_variation = &"CapsuleButton"
 text = "Settings_DesktopPetScaleApply"
 disabled = true
 
+[node name="RightInset" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="TickLabels" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl"]
+visible = false
 layout_mode = 2
 
 [node name="ScaleLabels" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/TickLabels"]
@@ -458,10 +481,25 @@ custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="OtherUiScaleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+[node name="OtherUiScaleHeader" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
+
+[node name="OtherUiScaleLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Settings_OtherUiScale"
 label_settings = ExtResource("9_option_label")
+
+[node name="OtherUiScaleValueLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleHeader"]
+layout_mode = 2
+label_settings = ExtResource("16_scale_value")
+text = "1x"
+horizontal_alignment = 2
+
+[node name="RightInset" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleHeader"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="OtherUiScaleControl" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
@@ -479,16 +517,23 @@ size_flags_vertical = 4
 max_value = 4.0
 step = 1.0
 value = 1.0
-tick_count = 5
-ticks_on_borders = true
+tick_count = 0
+ticks_on_borders = false
 
 [node name="ApplyButton" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow"]
-custom_minimum_size = Vector2(84, 28)
+custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
+theme_type_variation = &"CapsuleButton"
 text = "Settings_DesktopPetScaleApply"
 disabled = true
 
+[node name="RightInset" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="TickLabels" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl"]
+visible = false
 layout_mode = 2
 
 [node name="ScaleLabels" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/TickLabels"]

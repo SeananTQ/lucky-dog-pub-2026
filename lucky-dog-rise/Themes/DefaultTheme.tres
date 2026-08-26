@@ -25,6 +25,10 @@
 [ext_resource type="StyleBox" uid="uid://bvffm2q3ajeu2" path="res://Themes/Buttons/Destructive_Pressed.tres" id="16_5gcxy"]
 [ext_resource type="StyleBox" uid="uid://cby4qnkqk5fsb" path="res://Themes/Buttons/Secretary_Pressed.tres" id="16_ox3pi"]
 [ext_resource type="Texture2D" uid="uid://bdkj5muigwl3y" path="res://Assets/UI/ScrollbarStrip.svg" id="17_scrollbar"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Normal.tres" id="18_capsule_normal"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Hover.tres" id="19_capsule_hover"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Pressed.tres" id="20_capsule_pressed"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Disabled.tres" id="21_capsule_disabled"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
@@ -649,6 +653,19 @@ ActionButton/styles/focus = SubResource("StyleBoxFlat_7288i")
 ActionButton/styles/hover = ExtResource("10_kaug1")
 ActionButton/styles/normal = ExtResource("1_l8k4y")
 ActionButton/styles/pressed = ExtResource("12_bcron")
+CapsuleButton/base_type = &"Button"
+CapsuleButton/colors/font_color = Color(0.92, 0.98, 0.96, 1)
+CapsuleButton/colors/font_disabled_color = Color(0.88, 0.88, 0.88, 0.5)
+CapsuleButton/colors/font_focus_color = Color(0.92, 0.98, 0.96, 1)
+CapsuleButton/colors/font_hover_color = Color(1, 1, 1, 1)
+CapsuleButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+CapsuleButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+CapsuleButton/styles/disabled = ExtResource("21_capsule_disabled")
+CapsuleButton/styles/focus = ExtResource("18_capsule_normal")
+CapsuleButton/styles/hover = ExtResource("19_capsule_hover")
+CapsuleButton/styles/normal = ExtResource("18_capsule_normal")
+CapsuleButton/styles/pressed = ExtResource("20_capsule_pressed")
+CapsuleButton/styles/hover_pressed = ExtResource("20_capsule_pressed")
 Button/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_disabled_color = Color(0.875, 0.875, 0.875, 0.5)
 Button/colors/font_focus_color = Color(0.95, 0.95, 0.95, 1)

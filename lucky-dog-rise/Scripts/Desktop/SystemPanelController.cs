@@ -9,6 +9,7 @@ namespace LuckyDogRise;
 
 public partial class SystemPanelController : CanvasLayer
 {
+    private static readonly Color PendingScaleValueColor = new(0.4f, 0.8784314f, 0.69803923f, 1f);
 #if DEBUG
     [Signal] public delegate void RandomizeRequestedEventHandler();
     [Signal] public delegate void RandomizeDogRequestedEventHandler();
@@ -126,11 +127,13 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _languageOption = null!;
     private OptionButton _displayOption = null!;
     private HSlider _desktopPetScaleSlider = null!;
+    private Label _desktopPetScaleValueLabel = null!;
     private Button _desktopPetScaleApplyButton = null!;
     private ConfirmOverlayController _desktopScaleConfirm = null!;
     private int _confirmedDesktopPetScaleStep = SettingsManager.DefaultDesktopPetScaleStep;
     private int _pendingDesktopPetScaleStep = -1;
     private HSlider _otherUiScaleSlider = null!;
+    private Label _otherUiScaleValueLabel = null!;
     private Button _otherUiScaleApplyButton = null!;
     private ConfirmOverlayController _otherUiScaleConfirm = null!;
     private int _confirmedOtherUiScaleStep = SettingsManager.DefaultOtherUiScaleStep;
@@ -377,6 +380,7 @@ public partial class SystemPanelController : CanvasLayer
         _preventAccidentalDragToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PreventAccidentalDragRow/PreventAccidentalDragToggle");
         _languageOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/LanguageRow/LanguageOption");
         _displayOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DisplayRow/DisplayOption");
+        _desktopPetScaleValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleHeader/DesktopPetScaleValueLabel");
         _desktopPetScaleSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/Slider");
         _desktopPetScaleApplyButton = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/ApplyButton");
         _desktopScaleConfirm = GetNode<ConfirmOverlayController>("DesktopScaleConfirm");
@@ -388,6 +392,7 @@ public partial class SystemPanelController : CanvasLayer
         _desktopScaleConfirm.Canceled += RestoreDesktopPetScale;
         _desktopPetScaleApplyButton.Text = L10n.Tr(L10nKey.Settings_DesktopPetScaleApply);
         RefreshDesktopPetScaleApplyState();
+        _otherUiScaleValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleHeader/OtherUiScaleValueLabel");
         _otherUiScaleSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow/Slider");
         _otherUiScaleApplyButton = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleControl/ControlRow/ApplyButton");
         _otherUiScaleConfirm = GetNode<ConfirmOverlayController>("OtherUiScaleConfirm");
@@ -2607,6 +2612,10 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         var selectedStep = Mathf.RoundToInt(_desktopPetScaleSlider.Value);
+        RefreshScaleValueLabel(
+            _desktopPetScaleValueLabel,
+            SettingsManager.GetDesktopPetScaleFactor(selectedStep),
+            selectedStep == _confirmedDesktopPetScaleStep);
         var confirmationPending = _pendingDesktopPetScaleStep >= 0;
         _desktopPetScaleSlider.Editable = _isBossKeyMode && !confirmationPending;
         _desktopPetScaleApplyButton.Disabled = !_isBossKeyMode
@@ -2678,10 +2687,23 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         var selectedStep = Mathf.RoundToInt(_otherUiScaleSlider.Value);
+        RefreshScaleValueLabel(
+            _otherUiScaleValueLabel,
+            SettingsManager.GetOtherUiScaleFactor(selectedStep),
+            selectedStep == _confirmedOtherUiScaleStep);
         var confirmationPending = _pendingOtherUiScaleStep >= 0;
         _otherUiScaleSlider.Editable = !confirmationPending;
         _otherUiScaleApplyButton.Disabled = confirmationPending
             || selectedStep == _confirmedOtherUiScaleStep;
+    }
+
+    private static void RefreshScaleValueLabel(Label label, float scale, bool isCurrent)
+    {
+        if (label == null)
+            return;
+
+        label.Text = $"{scale.ToString("0.##", CultureInfo.InvariantCulture)}x";
+        label.Modulate = isCurrent ? Colors.White : PendingScaleValueColor;
     }
 
     private void RefreshUpdateGameButtonText()

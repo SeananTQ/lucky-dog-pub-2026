@@ -1,0 +1,13 @@
+[gd_resource type="LabelSettings" format=3]
+
+[ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_scale_inter"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2_scale_misans"]
+
+[sub_resource type="FontVariation" id="FontVariation_scale_value"]
+fallbacks = Array[Font]([ExtResource("2_scale_misans")])
+base_font = ExtResource("1_scale_inter")
+
+[resource]
+font = SubResource("FontVariation_scale_value")
+font_size = 14
+font_color = Color(1, 1, 1, 1)
