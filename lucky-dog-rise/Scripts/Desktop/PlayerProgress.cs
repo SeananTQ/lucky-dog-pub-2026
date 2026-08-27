@@ -25,12 +25,24 @@ public sealed class PlayerProgressProfile
     public string OwnerProvider { get; set; } = "";
     public string OwnerAccountId { get; set; } = "";
     public Dictionary<string, long> Statistics { get; set; } = new();
+    public Dictionary<string, long> PlatformStatisticBaselines { get; set; } = new();
     public HashSet<string> OccurredEventKeys { get; set; } = new();
     public HashSet<string> UnlockedAchievementApiNames { get; set; } = new();
     public HashSet<string> PlatformSuppressedAchievementApiNames { get; set; } = new();
     public bool ExternalInventoryBackfilled { get; set; }
+    public string PlaytestFirstObservedAtUtc { get; set; } = "";
+    public long PokerGuidanceRuntimeBaseline { get; set; }
+    public long PokerGuidanceHandsBaseline { get; set; }
     public string UpdatedAt { get; set; } = "";
 }
+
+public readonly record struct PlatformStatisticSyncState(
+    string StatisticKey,
+    string ApiName,
+    EPlayerStatisticType StatisticType,
+    long LocalValue,
+    bool HasBaseline,
+    long BaselineValue);
 
 /// <summary>
 /// 与可重置游戏存档分离的账号级长期进度。
@@ -140,6 +152,52 @@ public sealed class PlayerProgress
             !_profile.PlatformSuppressedAchievementApiNames.Contains(apiName));
     }
 
+    public IReadOnlyList<PlatformStatisticSyncState> GetPlatformSyncStatisticStates()
+    {
+        if (!IsPlatformSyncAllowed)
+            return [];
+
+        return _statisticsByKey.Values
+            .Where(definition => definition.SyncToPlatform
+                                 && !string.IsNullOrWhiteSpace(definition.PlatformApiName))
+            .Select(definition => new PlatformStatisticSyncState(
+                definition.StatisticKey,
+                definition.PlatformApiName,
+                definition.StatisticType,
+                GetStatistic(definition.StatisticKey),
+                _profile.PlatformStatisticBaselines.TryGetValue(definition.StatisticKey, out _),
+                _profile.PlatformStatisticBaselines.GetValueOrDefault(definition.StatisticKey)))
+            .OrderBy(state => state.ApiName, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public void CommitPlatformStatisticSync(string statisticKey, long synchronizedValue)
+    {
+        if (!_statisticsByKey.TryGetValue(statisticKey, out var definition)
+            || !definition.SyncToPlatform
+            || synchronizedValue < 0)
+            return;
+
+        if (definition.StatisticType == EPlayerStatisticType.Flag)
+            synchronizedValue = synchronizedValue > 0 ? 1 : 0;
+
+        var changed = GetStatistic(statisticKey) != synchronizedValue;
+        if (changed)
+        {
+            _profile.Statistics[statisticKey] = synchronizedValue;
+            EvaluateStatisticAchievements(statisticKey);
+        }
+
+        if (_profile.PlatformStatisticBaselines.TryGetValue(statisticKey, out var baseline)
+            && baseline == synchronizedValue
+            && !changed)
+            return;
+
+        _profile.PlatformStatisticBaselines[statisticKey] = synchronizedValue;
+        _dirty = true;
+        RequestImmediateSave();
+    }
+
     /// <summary>平台侧已解锁项是账号事实；合并到本地并解除旧的 Debug 上传抑制。</summary>
     public int ImportPlatformAchievements(IEnumerable<string> achievementApiNames)
     {
@@ -161,6 +219,99 @@ public sealed class PlayerProgress
     }
 
     public void RecordAppLaunch() => RecordCounter("AppLaunchCount", 1, PlayerProgressSource.Gameplay);
+
+    public void RecordPlaytestLaunch(DateTimeOffset observedAtUtc)
+    {
+        if (BuildInfo.Channel != BuildChannel.Playtest)
+            return;
+
+        observedAtUtc = observedAtUtc.ToUniversalTime();
+        RecordFlag("PlaytestCohortMember", PlayerProgressSource.Gameplay);
+        if (!DateTimeOffset.TryParse(
+                _profile.PlaytestFirstObservedAtUtc,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal
+                | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var firstObservedAtUtc))
+        {
+            _profile.PlaytestFirstObservedAtUtc = observedAtUtc.ToString("O");
+            _profile.PokerGuidanceRuntimeBaseline = GetStatistic("GameRuntimeSeconds");
+            _profile.PokerGuidanceHandsBaseline = GetStatistic("PokerHandsPlayed");
+            _dirty = true;
+            RequestImmediateSave();
+            return;
+        }
+
+        foreach (var statisticKey in GetReturnStatisticKeys(observedAtUtc - firstObservedAtUtc))
+            RecordFlag(statisticKey, PlayerProgressSource.Gameplay);
+    }
+
+    public void RecordPokerBasicsGuidanceCompleted()
+    {
+        if (BuildInfo.Channel != BuildChannel.Playtest
+            || GetStatistic("PokerBasicsGuidanceCompleted") > 0)
+            return;
+
+        var completionSeconds = Math.Max(
+            0,
+            GetStatistic("GameRuntimeSeconds") - _profile.PokerGuidanceRuntimeBaseline);
+        var completionHands = Math.Max(
+            0,
+            GetStatistic("PokerHandsPlayed") - _profile.PokerGuidanceHandsBaseline);
+        if (completionSeconds > 0)
+            RecordCounter("PokerBasicsGuidanceCompletionSeconds", completionSeconds, PlayerProgressSource.Gameplay);
+        if (completionHands > 0)
+            RecordCounter("PokerBasicsGuidanceCompletionHandsPlayed", completionHands, PlayerProgressSource.Gameplay);
+        RecordFlag("PokerBasicsGuidanceCompleted", PlayerProgressSource.Gameplay);
+    }
+
+    public void RecordPlaytestSteamBlindBoxClaim(int scheduleId, bool isPlatformReward, bool completesSchedule)
+    {
+        if (BuildInfo.Channel != BuildChannel.Playtest)
+            return;
+
+        var statisticKey = GetSteamBlindBoxClaimStatisticKey(
+            scheduleId,
+            isPlatformReward,
+            completesSchedule);
+        if (statisticKey.Length > 0)
+            RecordFlag(statisticKey, PlayerProgressSource.BlindBox);
+    }
+
+    internal static IReadOnlyList<string> GetReturnStatisticKeys(TimeSpan elapsed)
+    {
+        var keys = new List<string>(3);
+        if (elapsed >= TimeSpan.FromHours(24))
+            keys.Add("ReturnedAfter24Hours");
+        if (elapsed >= TimeSpan.FromHours(72))
+            keys.Add("ReturnedAfter72Hours");
+        if (elapsed >= TimeSpan.FromHours(168))
+            keys.Add("ReturnedAfter168Hours");
+        return keys;
+    }
+
+    internal static string GetSteamBlindBoxClaimStatisticKey(
+        int scheduleId,
+        bool isPlatformReward,
+        bool completesSchedule)
+    {
+        if (!isPlatformReward || !completesSchedule)
+            return string.Empty;
+
+        return scheduleId switch
+        {
+            1001 => "NewcomerBox1SteamRewardClaimed",
+            1004 => "NewcomerBox4SteamRewardClaimed",
+            2001 => "FirstLoopBoxSteamRewardClaimed",
+            _ => string.Empty,
+        };
+    }
+
+    public void RecordPlaytestLinkTreeRewardClaimed()
+    {
+        if (BuildInfo.Channel == BuildChannel.Playtest)
+            RecordFlag("AnyLinkTreeRewardClaimed", PlayerProgressSource.Gameplay);
+    }
 
     public void RecordDuration(string statisticKey, double seconds, PlayerProgressSource source)
     {
@@ -428,6 +579,25 @@ public sealed class PlayerProgress
         EvaluateStatisticAchievements(statisticKey);
     }
 
+    private void RecordFlag(string statisticKey, PlayerProgressSource source)
+    {
+        if (source == PlayerProgressSource.Debug
+            || !_statisticsByKey.TryGetValue(statisticKey, out var definition))
+            return;
+        if (definition.StatisticType != EPlayerStatisticType.Flag)
+        {
+            GD.PushError($"[PlayerProgress] Statistic '{statisticKey}' is not a Flag.");
+            return;
+        }
+        if (GetStatistic(statisticKey) > 0)
+            return;
+
+        _profile.Statistics[statisticKey] = 1;
+        _dirty = true;
+        EvaluateStatisticAchievements(statisticKey);
+        RequestImmediateSave();
+    }
+
     private long GetStatistic(string statisticKey) => _profile.Statistics.TryGetValue(statisticKey, out var value) ? value : 0L;
 
     private long ApplyMultiplier(long amount, PlayerProgressSource source)
@@ -590,6 +760,7 @@ public sealed class PlayerProgress
                 return false;
             }
             profile.Statistics ??= new Dictionary<string, long>();
+            profile.PlatformStatisticBaselines ??= new Dictionary<string, long>();
             profile.OccurredEventKeys ??= new HashSet<string>();
             profile.UnlockedAchievementApiNames ??= new HashSet<string>();
             profile.PlatformSuppressedAchievementApiNames ??= new HashSet<string>();
@@ -644,6 +815,14 @@ public sealed class PlayerProgress
         ValidateNoDuplicates(achievements.Select(row => row.ApiName), "Achievement ApiName");
         ValidateNoDuplicates(_statisticsByKey.Keys, "PlayerStatistic StatisticKey");
         ValidateNoDuplicates(_statisticsByKey.Values.Where(row => !string.IsNullOrWhiteSpace(row.PlatformApiName)).Select(row => row.PlatformApiName), "PlayerStatistic PlatformApiName");
+
+        foreach (var statistic in _statisticsByKey.Values)
+        {
+            var flagType = statistic.StatisticType == EPlayerStatisticType.Flag;
+            var flagUnit = statistic.Unit == EPlayerStatisticUnit.Flag;
+            if (flagType != flagUnit)
+                GD.PushError($"[PlayerProgress] Flag Unit/StatisticType mismatch: {statistic.StatisticKey}.");
+        }
 
         foreach (var achievement in achievements)
         {

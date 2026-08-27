@@ -216,6 +216,7 @@ public partial class GameData : Node
         {
             PlayerProgress.BackfillExternalInventory(Inventory);
             PlayerProgress.RecordAppLaunch();
+            PlayerProgress.RecordPlaytestLaunch(DateTimeOffset.UtcNow);
         }
     }
 
@@ -2086,7 +2087,13 @@ public partial class GameData : Node
             + $"Steam实例={(platformInstanceId > 0 ? platformInstanceId.ToString() : "无")}, "
             + $"推进调度={completedSchedule}。");
         if (CanRecordPlayerProgress)
+        {
             PlayerProgress.RecordBlindBoxRewardClaimed(PlayerProgressSource.BlindBox);
+            PlayerProgress.RecordPlaytestSteamBlindBoxClaim(
+                scheduleId,
+                isPlatformReward,
+                completedSchedule);
+        }
         EmitSignal(SignalName.BlindBoxStateChanged);
         QueueSaveIfUsingLocalSave();
     }
@@ -2391,6 +2398,8 @@ public partial class GameData : Node
 #endif
 
         NeedsPokerBasicsGuidance = false;
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordPokerBasicsGuidanceCompleted();
         EmitSignal(SignalName.PokerBasicsGuidanceChanged, false);
         QueueSaveIfUsingLocalSave();
     }
@@ -2405,6 +2414,12 @@ public partial class GameData : Node
     {
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordFirstEvent(eventKey, source);
+    }
+
+    public void RecordPlaytestLinkTreeRewardClaimed()
+    {
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordPlaytestLinkTreeRewardClaimed();
     }
 
 #if DEBUG

@@ -18,6 +18,7 @@ public partial class ModeManager : Control
     private const string AccountIdentityProbeArgument = "--account-identity-probe";
     private const string SingleInstanceSmokeArgument = "--single-instance-smoke";
     private const string BlindBoxRegressionSmokeArgument = "--blindbox-regression-smoke";
+    private const string PlayerStatisticRegressionSmokeArgument = "--player-statistic-regression-smoke";
 #endif
     private enum StartupState
     {
@@ -126,6 +127,7 @@ public partial class ModeManager : Control
     private GameData _gameData = null!;
     private IGamePlatformService _platformService = null!;
     private PlatformAchievementSynchronizer _achievementSynchronizer = null!;
+    private PlatformStatisticSynchronizer _statisticSynchronizer = null!;
     private AccountStorageContext _storageContext = null!;
     private AccountStateManager _accountStateManager = null!;
     private StartupAccountGateController _startupAccountGate = null!;
@@ -237,6 +239,22 @@ public partial class ModeManager : Control
             catch (Exception exception)
             {
                 GD.PushError($"[BlindBoxRegressionSmoke] Failed: {exception}");
+                GetTree().Quit(1);
+            }
+            return;
+        }
+
+        if (OS.GetCmdlineUserArgs().Any(argument =>
+                string.Equals(argument, PlayerStatisticRegressionSmokeArgument, StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                PlayerStatisticRegressionSmoke.Run();
+                GetTree().Quit();
+            }
+            catch (Exception exception)
+            {
+                GD.PushError($"[PlayerStatisticRegressionSmoke] Failed: {exception}");
                 GetTree().Quit(1);
             }
             return;
@@ -417,6 +435,7 @@ public partial class ModeManager : Control
         AddChild(_gameData);
         _gameData.BindPlatformInventoryService(_platformService);
         _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
+        _statisticSynchronizer = new PlatformStatisticSynchronizer(_platformService, _gameData.PlayerProgress);
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
@@ -779,6 +798,7 @@ public partial class ModeManager : Control
             return;
         _platformService?.RunCallbacks();
         _achievementSynchronizer?.Tick(_);
+        _statisticSynchronizer?.Tick(_);
         UpdateStartup(_);
         UpdateBlindBoxOpeningUi(_);
 #if DEBUG
@@ -1237,6 +1257,7 @@ public partial class ModeManager : Control
 
         if (_platformService is IRecoverablePlatformService recoverable)
             recoverable.AccountIdentityConflictDetected -= OnAccountIdentityConflictDetected;
+        _statisticSynchronizer?.Flush();
         _platformService?.Dispose();
         _platformDisposed = true;
     }

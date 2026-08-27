@@ -12,7 +12,7 @@ namespace LuckyDogRise;
 /// </summary>
 public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
-    IPlatformUpdateService, IDebugSteamMockController
+    IPlatformStatisticSyncOperations, IPlatformUpdateService, IDebugSteamMockController
 {
     private const ulong RewardInstanceBase = 9_100_000_000_000_000;
     private const ulong LinkTreeReceiptInstanceBase = 9_100_100_000_000_000;
@@ -569,6 +569,17 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         ? new PlatformAchievementUnlockResult(false, "Steam Mock 沙箱禁止上传成就。", [])
         : (_inner as IPlatformAchievementSyncOperations)?.UnlockAchievements(names)
           ?? new PlatformAchievementUnlockResult(false, "当前平台不支持成就写入。", []);
+
+    public PlatformStatisticReadResult ReadStatistics(IEnumerable<string> names) => IsMockActive
+        ? new PlatformStatisticReadResult(false, "Steam Mock 沙箱禁止读取真实玩家统计。", [])
+        : (_inner as IPlatformStatisticSyncOperations)?.ReadStatistics(names)
+          ?? new PlatformStatisticReadResult(false, "当前平台不支持玩家统计读取。", []);
+
+    public PlatformStatisticWriteResult SubmitStatistics(IReadOnlyDictionary<string, int> valuesByApiName) =>
+        IsMockActive
+            ? new PlatformStatisticWriteResult(false, "Steam Mock 沙箱禁止上传玩家统计。", [])
+            : (_inner as IPlatformStatisticSyncOperations)?.SubmitStatistics(valuesByApiName)
+              ?? new PlatformStatisticWriteResult(false, "当前平台不支持玩家统计写入。", []);
 
     public bool TrySetAchievementForTesting(string apiName, bool unlocked, out string message)
     {

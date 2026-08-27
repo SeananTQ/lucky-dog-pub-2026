@@ -6,7 +6,7 @@ namespace LuckyDogRise;
 
 public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
-    IPlatformUpdateService
+    IPlatformStatisticSyncOperations, IPlatformUpdateService
 {
     private const double InventoryTimeoutSeconds = 10.0;
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
@@ -225,6 +225,14 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public PlatformAchievementUnlockResult UnlockAchievements(IEnumerable<string> achievementApiNames) =>
         _session?.UnlockAchievements(achievementApiNames)
         ?? new PlatformAchievementUnlockResult(false, StatusMessage, Array.Empty<string>());
+
+    public PlatformStatisticReadResult ReadStatistics(IEnumerable<string> statisticApiNames) =>
+        _session?.ReadStatistics(statisticApiNames)
+        ?? new PlatformStatisticReadResult(false, StatusMessage, Array.Empty<PlatformStatisticState>());
+
+    public PlatformStatisticWriteResult SubmitStatistics(IReadOnlyDictionary<string, int> valuesByApiName) =>
+        _session?.SubmitStatistics(valuesByApiName)
+        ?? new PlatformStatisticWriteResult(false, StatusMessage, Array.Empty<string>());
 
     public bool TrySetAchievementForTesting(string apiName, bool unlocked, out string message)
     {

@@ -1464,6 +1464,7 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         MarkLinkTreeEntryClaimed(entry);
+        _gameData?.RecordPlaytestLinkTreeRewardClaimed();
         SetupLinkTreeRewardPreview(entry);
         QueueLinkTreeRewardFeedback(entry);
         GD.Print($"[LinkTree] {(recovered ? "Recovered" : "Completed")} Steam-backed reward for {entry.Data.Key} ({entry.Data.Id}).");

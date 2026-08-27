@@ -6,7 +6,8 @@ using Steamworks;
 namespace LuckyDogRise;
 
 public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
-    IPlatformAchievementSyncOperations, IPlatformInventoryService, IPlatformUpdateService
+    IPlatformAchievementSyncOperations, IPlatformStatisticSyncOperations, IPlatformInventoryService,
+    IPlatformUpdateService
 {
     private enum InventoryRequestKind
     {
@@ -31,7 +32,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private readonly HashSet<int> _ownedInventoryItemDefIds = new();
     private readonly HashSet<int> _loggedPlaytimeGeneratorItemDefIds = new();
     private PlatformInventoryItem[] _inventoryItems = [];
-    private bool _hasPendingAchievementStore;
+    private bool _userStatsDirty;
+    private bool _userStatsStoreInFlight;
     private bool _inventorySynchronizationStarted;
     private InventoryRequest? _promoItemAwaitingInventoryVerification;
     private InventoryRequest? _playtimeDropAwaitingInventoryVerification;
@@ -45,6 +47,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         _inventoryDefinitionUpdateCallback = Callback<SteamInventoryDefinitionUpdate_t>.Create(OnInventoryDefinitionUpdated);
         _inventoryFullUpdateCallback = Callback<SteamInventoryFullUpdate_t>.Create(OnFullInventoryUpdated);
         _inventoryResultReadyCallback = Callback<SteamInventoryResultReady_t>.Create(OnInventoryResultReady);
+        // Steamworks SDK 1.61+ synchronizes current-user stats before game launch and
+        // removed RequestCurrentStats. Individual Get/Set calls still validate schema.
+        IsReadyForWrites = IsAvailable;
     }
 
     public event Action UserStatsReady = delegate { };
@@ -358,9 +363,10 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return false;
         }
 
-        if (!SteamUserStats.StoreStats())
+        _userStatsDirty = true;
+        if (!TrySubmitUserStatsStore(out var storeMessage))
         {
-            message = $"已修改内存状态，但 StoreStats 请求失败：{apiName}";
+            message = $"已修改内存状态，但提交失败：{apiName}。{storeMessage}";
             return false;
         }
 
@@ -385,16 +391,88 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             if (!SteamUserStats.SetAchievement(apiName))
                 return new(false, $"Steam 拒绝解锁成就：{apiName}", submittedApiNames);
             submittedApiNames.Add(apiName);
-            _hasPendingAchievementStore = true;
+            _userStatsDirty = true;
         }
 
-        if (!_hasPendingAchievementStore)
-            return new(true, "没有需要提交的 Steam 成就。", submittedApiNames);
-        if (!SteamUserStats.StoreStats())
-            return new(false, "成就已写入 Steam 内存状态，但 StoreStats 请求失败。", submittedApiNames);
-
-        _hasPendingAchievementStore = false;
+        if (!TrySubmitUserStatsStore(out var storeMessage))
+            return new(false, $"成就已写入 Steam 内存状态，但 {storeMessage}", submittedApiNames);
         return new(true, $"已向 Steam 提交 {submittedApiNames.Count} 项成就。", submittedApiNames);
+    }
+
+    public PlatformStatisticReadResult ReadStatistics(IEnumerable<string> statisticApiNames)
+    {
+        if (!IsAvailable || !IsReadyForWrites)
+            return new(false, "Steam 用户统计尚未就绪。", Array.Empty<PlatformStatisticState>());
+
+        var states = statisticApiNames
+            .Where(apiName => !string.IsNullOrWhiteSpace(apiName))
+            .Distinct(StringComparer.Ordinal)
+            .Select(apiName =>
+            {
+                var succeeded = SteamUserStats.GetStat(apiName, out int value);
+                return new PlatformStatisticState(
+                    apiName,
+                    IsConfigured: succeeded,
+                    ReadSucceeded: succeeded,
+                    Value: succeeded ? value : 0);
+            })
+            .ToArray();
+        return new(true, $"Steam 已读取 {states.Count(state => state.ReadSucceeded)} 项玩家统计。", states);
+    }
+
+    public PlatformStatisticWriteResult SubmitStatistics(IReadOnlyDictionary<string, int> valuesByApiName)
+    {
+        if (!IsAvailable || !IsReadyForWrites)
+            return new(false, "Steam 用户统计尚未就绪，拒绝写入。", Array.Empty<string>());
+
+        var acceptedApiNames = new List<string>();
+        foreach (var (apiName, value) in valuesByApiName)
+        {
+            if (string.IsNullOrWhiteSpace(apiName) || value < 0)
+                continue;
+            if (!SteamUserStats.SetStat(apiName, value))
+                continue;
+
+            acceptedApiNames.Add(apiName);
+            _userStatsDirty = true;
+        }
+
+        var allAccepted = acceptedApiNames.Count == valuesByApiName.Count;
+        if (!TrySubmitUserStatsStore(out var storeMessage))
+            return new(false, storeMessage, acceptedApiNames);
+        if (!allAccepted)
+            return new(false, "部分统计被 Steam 拒绝；请检查后台 API 名与 INT 类型。", acceptedApiNames);
+
+        return new(
+            true,
+            acceptedApiNames.Count > 0
+                ? $"已写入 {acceptedApiNames.Count} 项 Steam 统计并排队持久化。"
+                : storeMessage,
+            acceptedApiNames);
+    }
+
+    private bool TrySubmitUserStatsStore(out string message)
+    {
+        if (_userStatsStoreInFlight)
+        {
+            message = "已有 StoreStats 请求在途，新变更将在其后提交。";
+            return true;
+        }
+        if (!_userStatsDirty)
+        {
+            message = "没有待提交的 Steam 用户统计变更。";
+            return true;
+        }
+        if (!SteamUserStats.StoreStats())
+        {
+            message = "Steam 拒绝 StoreStats 请求。";
+            return false;
+        }
+
+        _userStatsDirty = false;
+        _userStatsStoreInFlight = true;
+        message = "StoreStats 请求已提交。";
+        return true;
     }
 
     public void Dispose()
@@ -696,13 +774,16 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         if (callback.m_nGameID != AppId)
             return;
 
+        _userStatsStoreInFlight = false;
         var message = callback.m_eResult == EResult.k_EResultOK
             ? "Steam 已持久化成就/统计状态。"
             : $"Steam StoreStats 失败：{callback.m_eResult}";
         if (callback.m_eResult != EResult.k_EResultOK)
-            _hasPendingAchievementStore = true;
+            _userStatsDirty = true;
         Godot.GD.Print($"[Steamworks] {message}");
         StoreStatusChanged(message);
+        if (callback.m_eResult == EResult.k_EResultOK && _userStatsDirty)
+            TrySubmitUserStatsStore(out _);
     }
 
     private void OnUserAchievementStored(UserAchievementStored_t callback)
