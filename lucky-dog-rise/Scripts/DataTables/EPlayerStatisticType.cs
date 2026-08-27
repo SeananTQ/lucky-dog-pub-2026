@@ -24,6 +24,10 @@ namespace DataTables
         /// 最高记录
         /// </summary>
         Maximum = 2,
+        /// <summary>
+        /// 标记
+        /// </summary>
+        Flag = 3,
     }
 
 } 

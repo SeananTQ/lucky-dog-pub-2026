@@ -6,7 +6,7 @@
     "Unit": 3,
     "StatisticType": 1,
     "PlatformApiName": "STAT_GAME_RUNTIME_SECONDS",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "游戏启动至退出的累计运行秒数；对应现有 TotalPlaySeconds"
   },
   {
@@ -16,7 +16,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_APP_LAUNCH_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "累计正常初始化游戏数据的次数"
   },
   {
@@ -36,7 +36,7 @@
     "Unit": 3,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_MODE_SECONDS",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "扑克游玩模式处于激活状态的累计秒数"
   },
   {
@@ -46,7 +46,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_GLOBAL_INPUT_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "真实全局输入次数；不受未来筹码产出倍率影响，目前是打字和筹码1比1，但有频率上限锁（打字包括鼠标点击）"
   },
   {
@@ -56,7 +56,7 @@
     "Unit": 2,
     "StatisticType": 1,
     "PlatformApiName": "STAT_GLOBAL_INPUT_CHIPS_EARNED",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "仅累计 GlobalInputTracker 的真实打字奖励筹码（包括鼠标点击）"
   },
   {
@@ -66,7 +66,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_HANDS_PLAYED",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "成功下注并开始发牌的扑克局数"
   },
   {
@@ -76,7 +76,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_HANDS_WON",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算有正向扑克奖励的局数"
   },
   {
@@ -86,7 +86,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_HANDS_LOST",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算没有扑克奖励的局数"
   },
   {
@@ -96,7 +96,7 @@
     "Unit": 2,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_CHIPS_WON",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "仅累计玩家实际收取的扑克奖励；不含打字、盲盒和 Debug 发放"
   },
   {
@@ -106,7 +106,7 @@
     "Unit": 2,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_CHIPS_WAGERED",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "累计实际下注的扑克筹码"
   },
   {
@@ -116,7 +116,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_NOTHING_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为坏牌的次数"
   },
   {
@@ -126,7 +126,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_ONE_PAIR_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为一对的次数"
   },
   {
@@ -136,7 +136,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_TWO_PAIR_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为两对的次数"
   },
   {
@@ -146,7 +146,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_THREE_OF_A_KIND_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为三条的次数"
   },
   {
@@ -156,7 +156,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_STRAIGHT_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为顺子的次数"
   },
   {
@@ -166,7 +166,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_FLUSH_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为同花的次数"
   },
   {
@@ -176,7 +176,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_FULL_HOUSE_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为葫芦的次数"
   },
   {
@@ -186,7 +186,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_FOUR_OF_A_KIND_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为四条的次数"
   },
   {
@@ -196,7 +196,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_STRAIGHT_FLUSH_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为同花顺的次数"
   },
   {
@@ -206,7 +206,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_POKER_ROYAL_FLUSH_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "最终结算为皇家同花顺的次数"
   },
   {
@@ -216,7 +216,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_BLIND_BOX_OPENED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "成功打开盲盒的次数"
   },
   {
@@ -226,7 +226,7 @@
     "Unit": 2,
     "StatisticType": 1,
     "PlatformApiName": "STAT_BLIND_BOX_CHIPS_SPENT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "累计实际成功开启盲盒时扣除的筹码；不记录因筹码不足而失败的尝试"
   },
   {
@@ -236,7 +236,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_BLIND_BOX_REWARD_CLAIMED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "成功领取盲盒奖励的次数"
   },
   {
@@ -246,7 +246,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得的道具数量；重复道具按实际数量累计"
   },
   {
@@ -256,7 +256,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_BLIND_BOX_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从盲盒领取到的道具数量；重复道具按实际数量累计"
   },
   {
@@ -266,7 +266,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_DOG_HINT_ASKED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "玩家询问狗狗牌运的次数"
   },
   {
@@ -276,7 +276,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_DOG_HINT_ASKED_WIN_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "该局曾询问狗狗牌运，且最终结算有奖励的次数；不要求玩家完全按建议保留牌"
   },
   {
@@ -286,7 +286,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_COMMON_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得普通品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -296,7 +296,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_UNCOMMON_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得优秀品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -306,7 +306,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_RARE_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得稀有品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -316,7 +316,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_EPIC_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得史诗品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -326,7 +326,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_LEGENDARY_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得传说品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -336,7 +336,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_MYTHIC_ITEM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得神话品质物品的数量；重复道具按实际数量累计"
   },
   {
@@ -346,7 +346,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_DOG_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得狗狗的数量；重复狗狗按实际数量累计"
   },
   {
@@ -356,7 +356,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_HEADWEAR_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得头部装饰的数量；重复道具按实际数量累计"
   },
   {
@@ -366,7 +366,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_EYEWEAR_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得眼部装饰的数量；重复道具按实际数量累计"
   },
   {
@@ -376,7 +376,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_ARM_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得 Arm 部位道具的数量；重复道具按实际数量累计"
   },
   {
@@ -386,7 +386,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_CLOTHES_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得衣服的数量；重复道具按实际数量累计"
   },
   {
@@ -396,7 +396,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_TABLE_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得桌布的数量；重复道具按实际数量累计"
   },
   {
@@ -406,7 +406,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_BACKGROUND_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得背景的数量；重复道具按实际数量累计"
   },
   {
@@ -416,7 +416,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_ACCESSORY_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得手部装饰的数量；重复道具按实际数量累计"
   },
   {
@@ -426,7 +426,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_REFRESHMENT_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得饮品/消耗品的数量；重复道具按实际数量累计"
   },
   {
@@ -436,7 +436,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_CARD_BACK_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得卡背的数量；重复道具按实际数量累计"
   },
   {
@@ -446,7 +446,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_CARD_FACE_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得卡面的数量；重复道具按实际数量累计"
   },
   {
@@ -456,7 +456,7 @@
     "Unit": 1,
     "StatisticType": 1,
     "PlatformApiName": "STAT_EXTERNAL_BODY_DECORATION_ACQUIRED_COUNT",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "从非初始来源获得体表装饰的数量，例如体毛、纹身、美甲；重复道具按实际数量累计"
   },
   {
@@ -466,7 +466,117 @@
     "Unit": 2,
     "StatisticType": 2,
     "PlatformApiName": "STAT_PEAK_HALF_HOUR_INPUT_CHIPS_EARNED",
-    "SyncToPlatform": true,
+    "SyncToPlatform": false,
     "Notes": "游戏运行期间，按系统本地时间的自然半小时分段累计键鼠获得的筹码；首尾分段可能不足 30 分钟。"
+  },
+  {
+    "StatisticId": 1051,
+    "StatisticKey": "PlaytestCohortMember",
+    "DisplayName": "Playtest统计样本玩家",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_COHORT_MEMBER",
+    "SyncToPlatform": true,
+    "Notes": "Playtest正式环境首次完成统计初始化后置1；仅正常模式记录，Debug和Mock不记录"
+  },
+  {
+    "StatisticId": 1052,
+    "StatisticKey": "ReturnedAfter24Hours",
+    "DisplayName": "24小时后回访玩家",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_RETURNED_AFTER_24H",
+    "SyncToPlatform": true,
+    "Notes": "距本版本首次观察时间达到24小时后的下一次独立启动置1；持续运行不算回访；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1053,
+    "StatisticKey": "ReturnedAfter72Hours",
+    "DisplayName": "72小时后回访玩家",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_RETURNED_AFTER_72H",
+    "SyncToPlatform": true,
+    "Notes": "距本版本首次观察时间达到72小时后的下一次独立启动置1；持续运行不算回访；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1054,
+    "StatisticKey": "ReturnedAfter168Hours",
+    "DisplayName": "168小时后回访玩家",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_RETURNED_AFTER_168H",
+    "SyncToPlatform": true,
+    "Notes": "距本版本首次观察时间达到168小时后的下一次独立启动置1；持续运行不算回访；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1055,
+    "StatisticKey": "PokerBasicsGuidanceCompleted",
+    "DisplayName": "完成扑克基础引导玩家",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_POKER_GUIDANCE_COMPLETED",
+    "SyncToPlatform": true,
+    "Notes": "正常扑克游玩成功消除扑克新手标记后置1；每名玩家只记一次；Debug和Mock不记录"
+  },
+  {
+    "StatisticId": 1056,
+    "StatisticKey": "PokerBasicsGuidanceCompletionSeconds",
+    "DisplayName": "完成扑克基础引导所需秒数",
+    "Unit": 3,
+    "StatisticType": 1,
+    "PlatformApiName": "STAT_PT1_POKER_GUIDANCE_SECONDS",
+    "SyncToPlatform": true,
+    "Notes": "从本版本首次观察到成功消除扑克新手标记的累计正常游戏秒数；仅完成时写入一次"
+  },
+  {
+    "StatisticId": 1057,
+    "StatisticKey": "PokerBasicsGuidanceCompletionHandsPlayed",
+    "DisplayName": "完成扑克基础引导所需局数",
+    "Unit": 1,
+    "StatisticType": 1,
+    "PlatformApiName": "STAT_PT1_POKER_GUIDANCE_HANDS",
+    "SyncToPlatform": true,
+    "Notes": "从本版本首次观察到成功消除扑克新手标记前完成的扑克局数；仅完成时写入一次"
+  },
+  {
+    "StatisticId": 1058,
+    "StatisticKey": "NewcomerBox1SteamRewardClaimed",
+    "DisplayName": "新手第1盲盒Steam奖励成功",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_NEWCOMER_BOX_1_STEAM_CLAIMED",
+    "SyncToPlatform": true,
+    "Notes": "Schedule 1001 的Steam装扮成功入账后置1；Fallback和该Schedule结束后的LateSteam均不记录；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1059,
+    "StatisticKey": "NewcomerBox4SteamRewardClaimed",
+    "DisplayName": "新手第4盲盒Steam奖励成功",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_NEWCOMER_BOX_4_STEAM_CLAIMED",
+    "SyncToPlatform": true,
+    "Notes": "Schedule 1004 的Steam装扮成功入账后置1；Fallback和该Schedule结束后的LateSteam均不记录；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1060,
+    "StatisticKey": "FirstLoopBoxSteamRewardClaimed",
+    "DisplayName": "首个循环盲盒Steam奖励成功",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_FIRST_LOOP_BOX_STEAM_CLAIMED",
+    "SyncToPlatform": true,
+    "Notes": "Schedule 2001 的首次Steam装扮成功入账后置1；Fallback和该Schedule结束后的LateSteam均不记录；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1061,
+    "StatisticKey": "AnyLinkTreeRewardClaimed",
+    "DisplayName": "任意LinkTree奖励领取成功",
+    "Unit": 4,
+    "StatisticType": 3,
+    "PlatformApiName": "STAT_PT1_ANY_LINKTREE_REWARD_CLAIMED",
+    "SyncToPlatform": true,
+    "Notes": "任意LinkTree永久回执经Steam确认且奖励成功应用后置1；每名玩家只记一次"
   }
 ]

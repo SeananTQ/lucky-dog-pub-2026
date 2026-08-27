@@ -28,6 +28,10 @@ namespace DataTables
         /// 秒
         /// </summary>
         Seconds = 3,
+        /// <summary>
+        /// 标记
+        /// </summary>
+        Flag = 4,
     }
 
 } 
