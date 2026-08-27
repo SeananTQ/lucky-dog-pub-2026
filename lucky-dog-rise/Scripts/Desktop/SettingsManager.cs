@@ -35,7 +35,8 @@ public static class SettingsManager
     private const string LegacyKeyFrameRateLimit = "frame_rate_limit";
     private const string KeyVsyncEnabled = "vsync_enabled";
     private const string KeyCenterCounterOnTaskbar = "center_counter_on_taskbar";
-    private const string KeyDesktopPetScaleStep = "desktop_pet_scale_step";
+    private const string LegacyKeyDesktopPetScaleStep = "desktop_pet_scale_step";
+    private const string KeyDesktopPetScaleStep = "desktop_pet_scale_step_v2";
     private const string KeyOtherUiScaleStep = "other_ui_scale_step";
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
@@ -378,9 +379,9 @@ public static class SettingsManager
     }
 
     public const int DesktopPetScaleStepMin = 0;
-    public const int DesktopPetScaleStepMax = 4;
-    public const int DefaultDesktopPetScaleStep = 1;
-    private static readonly float[] DesktopPetScaleFactors = [0.5f, 1f, 2f, 3f, 4f];
+    public const int DesktopPetScaleStepMax = 5;
+    public const int DefaultDesktopPetScaleStep = 2;
+    private static readonly float[] DesktopPetScaleFactors = [0.5f, 0.75f, 1f, 2f, 3f, 4f];
     public const int OtherUiScaleStepMin = 0;
     public const int OtherUiScaleStepMax = 4;
     public const int DefaultOtherUiScaleStep = 1;
@@ -463,6 +464,27 @@ public static class SettingsManager
     public static int LoadDesktopPetScaleStep()
     {
         var config = Load();
+        if (!config.HasSectionKey(SectionDisplay, KeyDesktopPetScaleStep))
+        {
+            var legacyValue = config.GetValue(
+                SectionDisplay,
+                LegacyKeyDesktopPetScaleStep,
+                -1);
+            if (legacyValue.VariantType != Variant.Type.Int)
+                return DefaultDesktopPetScaleStep;
+
+            var legacyStep = (int)legacyValue;
+            if (legacyStep is < 0 or > 4)
+                return DefaultDesktopPetScaleStep;
+
+            // v1 used [0.5, 1, 2, 3, 4]. Keep the selected factor after
+            // inserting 0.75 between 0.5 and 1 in the v2 scale list.
+            var migratedStep = legacyStep == 0 ? 0 : legacyStep + 1;
+            config.SetValue(SectionDisplay, KeyDesktopPetScaleStep, migratedStep);
+            config.Save(Path);
+            return migratedStep;
+        }
+
         var value = config.GetValue(
             SectionDisplay,
             KeyDesktopPetScaleStep,
