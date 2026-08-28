@@ -22,7 +22,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private readonly List<Button> _hitButtons = new();
 
     private GameData _gameData = null!;
-    private DogSkin _dogSkin = null!;
+    private DogAppearanceSpec _dogSkin = null!;
+    private DogAppearanceSpec _previewAppearance = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     private Tween _tongueTween = null!;
     private Tween _pawTween = null!;
@@ -317,9 +318,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (!IsNodeReady()) return;
 
         var dogItem = _gameData?.Inventory.GetEquipped(EItemType.Dog);
-        _dogSkin = dogItem != null
-            ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
-            : null;
+        _dogSkin = ResolveEquippedAppearance(dogItem);
 
         ReapplyCurrentReaction();
     }
@@ -329,9 +328,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (!IsNodeReady()) return;
 
         var dogItem = _gameData?.Inventory.GetEquipped(EItemType.Dog);
-        _dogSkin = dogItem != null
-            ? LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId)
-            : null;
+        _dogSkin = ResolveEquippedAppearance(dogItem);
 
         ReapplyCurrentReaction();
     }
@@ -345,6 +342,17 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
         _currentReaction = trigger;
         ReapplyCurrentReaction();
+    }
+
+    /// <summary>
+    /// Development-tool preview entry point. Runtime equipment remains untouched.
+    /// Pass null to return to the equipped DogSkin.
+    /// </summary>
+    public void SetPreviewAppearance(DogAppearanceSpec appearance)
+    {
+        _previewAppearance = appearance;
+        if (IsNodeReady())
+            ReapplyCurrentReaction();
     }
 
     public void PlayTemporaryReaction(EDogReactionTrigger trigger, double seconds = 0.9)
@@ -541,7 +549,18 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         palm.Visible = state == "Palm";
     }
 
-    private DogSkin CurrentDogSkin => _dogSkin ?? LubanData.Tables.TbDogSkin.Get(1001);
+    private DogAppearanceSpec CurrentDogSkin => _previewAppearance
+        ?? _dogSkin
+        ?? DogAppearanceSpec.FromDogSkin(LubanData.Tables.TbDogSkin.Get(1001));
+
+    private static DogAppearanceSpec ResolveEquippedAppearance(Item dogItem)
+    {
+        if (dogItem == null)
+            return null;
+
+        var skin = LubanData.Tables.TbDogSkin.GetOrDefault(dogItem.SkinId);
+        return skin == null ? null : DogAppearanceSpec.FromDogSkin(skin);
+    }
 
     private string DogResPath(string fileName)
     {

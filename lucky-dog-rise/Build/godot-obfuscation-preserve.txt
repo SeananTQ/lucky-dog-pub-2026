@@ -10,6 +10,7 @@ ConfirmOverlayController
 DesktopRiseIntroController
 DeveloperLauncherController
 DogVisual
+DogSkinEditorController
 DragHandler
 GameData
 GameManager
