@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2r64q7iyihfc"
-path="res://.godot/imported/ChampionGoldBracelet.png.png-ab1949423b57592a6699de30bb11df81.ctex"
+uid="uid://dsh8lomdx777l"
+path="res://.godot/imported/ChampionGoldBracelet.png-c2eeb12bc225a21e727f5c9822a0c4cf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/v1/Player/Accessory/ChampionGoldBracelet.png.png"
-dest_files=["res://.godot/imported/ChampionGoldBracelet.png.png-ab1949423b57592a6699de30bb11df81.ctex"]
+source_file="res://Assets/v1/Player/Accessory/ChampionGoldBracelet.png"
+dest_files=["res://.godot/imported/ChampionGoldBracelet.png-c2eeb12bc225a21e727f5c9822a0c4cf.ctex"]
 
 [params]
 

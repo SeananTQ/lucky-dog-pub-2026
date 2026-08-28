@@ -17,7 +17,7 @@
   {
     "AchievementId": 1001,
     "ApiName": "ACH_FIRST_HEADWEAR",
-    "IsEnabled": false,
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Headwear",
     "TargetValue": 1,
@@ -32,7 +32,7 @@
   {
     "AchievementId": 1002,
     "ApiName": "ACH_FIRST_EYEWEAR",
-    "IsEnabled": true,
+    "IsEnabled": false,
     "RuleType": 1,
     "TargetKey": "Eyewear",
     "TargetValue": 1,

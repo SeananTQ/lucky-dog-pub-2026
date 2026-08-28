@@ -5582,8 +5582,8 @@
       "doc_y": 1073
     },
     {
-      "name": "WSOPGoldBracelet",
-      "file": "Player/Accessory/WSOPGoldBracelet.png",
+      "name": "ChampionGoldBracelet",
+      "file": "Player/Accessory/ChampionGoldBracelet.png",
       "group": "Player/Accessory",
       "x": 178,
       "y": 1075,

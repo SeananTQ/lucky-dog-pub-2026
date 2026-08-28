@@ -149,7 +149,6 @@ public partial class ModeManager : Control
 
 #if DEBUG
     private static readonly EItemType[] DebugGrantItemTypes = Enum.GetValues<EItemType>()
-        .Where(type => type != EItemType.Dog)
         .ToArray();
     private const int DebugEmptyEquipmentWeight = 3;
 
@@ -2100,7 +2099,7 @@ public partial class ModeManager : Control
     private void OnRandomAcquireItem()
     {
         var allCandidates = LubanData.Tables.TbItem.DataList
-            .Where(item => item.ItemType != EItemType.Dog && !item.IsHiddenInBag)
+            .Where(item => item.AcquisitionType != EAcquisitionType.Retired && !item.IsHiddenInBag)
             .ToList();
         if (allCandidates.Count == 0)
             return;
@@ -2656,6 +2655,7 @@ public partial class ModeManager : Control
             var candidates = (source == DebugEquipmentSource.AllCatalog
                     ? LubanData.Tables.TbItem.DataList.Where(item => item.ItemType == type)
                     : _gameData.Inventory.GetOwnedOfType(type))
+                .Where(item => item.AcquisitionType != EAcquisitionType.Retired)
                 // Special2 暂作为录制避让标记：不参与 Debug 快速随机穿戴。
                 .Where(item => item.ItemRarity != ERarity.Special2)
                 .Select(item => item.Id)
