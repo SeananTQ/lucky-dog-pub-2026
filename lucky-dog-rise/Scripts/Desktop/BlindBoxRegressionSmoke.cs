@@ -2,6 +2,8 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace LuckyDogRise;
@@ -18,10 +20,12 @@ internal static class BlindBoxRegressionSmoke
         try
         {
             var service = new BlindBoxService(gameData);
+            VerifyRetiredEyewearSaveCleanup();
+            GD.Print("[BlindBoxRegressionSmoke] Passed retired eyewear save cleanup checks.");
             VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
             VerifySaveSnapshotIsolation();
-            GD.Print("[BlindBoxRegressionSmoke] Passed fallback advance, late reward, inventory visibility grace, and save snapshot isolation checks.");
+            GD.Print("[BlindBoxRegressionSmoke] Passed fallback advance, late reward, inventory visibility grace, save snapshot isolation, and retired eyewear cleanup checks.");
         }
         finally
         {
@@ -221,6 +225,40 @@ internal static class BlindBoxRegressionSmoke
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
         Assert(liveState.LockedPresentation != null,
             "Mutating the persistence snapshot changed the live locked presentation.");
+    }
+
+    private static void VerifyRetiredEyewearSaveCleanup()
+    {
+        const int redShibaItemId = 1001;
+        const int retiredEyewearItemId = 3001;
+        var profile = new SaveProfile
+        {
+            OwnedItemCounts = new Dictionary<int, int>
+            {
+                [redShibaItemId] = 1,
+                [retiredEyewearItemId] = 2,
+            },
+            OwnedItemIds = [redShibaItemId, retiredEyewearItemId],
+            EquippedItemIdsByType = new Dictionary<string, int>
+            {
+                [DataTables.EItemType.Dog.ToString()] = redShibaItemId,
+                [DataTables.EItemType.Eyewear.ToString()] = retiredEyewearItemId,
+            },
+            NewItemIds = [retiredEyewearItemId],
+        };
+
+        var normalized = SaveManager.CreateNormalizedDetachedSnapshotForTesting(profile);
+        Assert(normalized.OwnedItemCounts.GetValueOrDefault(retiredEyewearItemId) == 2,
+            "Retired eyewear ownership was removed instead of being preserved for Steam compatibility.");
+        Assert(!normalized.EquippedItemIdsByType.Keys.Any(key =>
+                Enum.TryParse<DataTables.EItemType>(key, ignoreCase: true, out var type)
+                && type == DataTables.EItemType.Eyewear),
+            "Retired eyewear remained equipped after save normalization.");
+        Assert(!normalized.NewItemIds.Contains(retiredEyewearItemId),
+            "A hidden retired eyewear item kept an inaccessible New marker.");
+        Assert(normalized.EquippedItemIdsByType.GetValueOrDefault(
+                   DataTables.EItemType.Dog.ToString()) == redShibaItemId,
+            "Retired eyewear cleanup changed an unrelated equipped item.");
     }
 
     private static void Assert(bool condition, string message)

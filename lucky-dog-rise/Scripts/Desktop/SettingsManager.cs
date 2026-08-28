@@ -41,6 +41,7 @@ public static class SettingsManager
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyPokerGuideOverlayEnabled = "poker_guide_overlay_enabled";
+    private const string LegacyKeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
     private const string KeyLocale = "locale";
@@ -568,6 +569,11 @@ public static class SettingsManager
     {
         var config = new ConfigFile();
         config.Load(Path);
+        if (config.HasSectionKey(SectionSystem, LegacyKeyAvoidObscuringDogEyes))
+        {
+            config.EraseSectionKey(SectionSystem, LegacyKeyAvoidObscuringDogEyes);
+            config.Save(Path);
+        }
         return config;
     }
 }

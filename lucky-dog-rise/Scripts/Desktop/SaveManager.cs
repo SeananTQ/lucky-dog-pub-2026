@@ -534,6 +534,10 @@ public static class SaveManager
             .Where(item => item.AcquisitionType == DataTables.EAcquisitionType.Initial)
             .Select(item => item.Id)
             .ToHashSet();
+        var eyewearItemIds = LubanData.Tables.TbItem.DataList
+            .Where(item => item.ItemType == DataTables.EItemType.Eyewear)
+            .Select(item => item.Id)
+            .ToHashSet();
 
         if (profile.OwnedItemCounts.Count == 0 && profile.OwnedItemIds.Count > 0)
             profile.OwnedItemCounts = profile.OwnedItemIds
@@ -555,6 +559,7 @@ public static class SaveManager
         profile.NewItemIds = profile.NewItemIds
             .Where(id => validIds.Contains(id)
                          && !initialItemIds.Contains(id)
+                         && !eyewearItemIds.Contains(id)
                          && profile.OwnedItemCounts.ContainsKey(id))
             .Distinct()
             .OrderBy(id => id)
@@ -615,6 +620,18 @@ public static class SaveManager
         var legacyRefreshmentItemId = TryGetLegacyRefreshmentItemId(
             profile.EquippedItemIdsByType,
             profile.OwnedItemCounts);
+
+        // Eyewear is now part of DogSkin rather than an independent equipment slot.
+        // Keep the retired items in ownership for Steam compatibility, but make the
+        // old equipped value disappear from the next persisted snapshot explicitly.
+        foreach (var key in profile.EquippedItemIdsByType.Keys
+                     .Where(key => Enum.TryParse<DataTables.EItemType>(key, ignoreCase: true, out var type)
+                                   && type == DataTables.EItemType.Eyewear)
+                     .ToArray())
+        {
+            profile.EquippedItemIdsByType.Remove(key);
+        }
+
         var inventory = new PlayerInventory();
         inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         profile.EquippedItemIdsByType = inventory.GetEquippedIdsByTypeName();
