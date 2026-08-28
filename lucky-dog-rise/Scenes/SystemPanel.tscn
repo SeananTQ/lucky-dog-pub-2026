@@ -1194,7 +1194,7 @@ text = "已拥有物品随机穿戴（F3）"
 [node name="RandomAcquireItemBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=478263499]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "轮换获得道具（含狗）"
+text = "轮换获得道具"
 
 [node name="HideDebugTabBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=637548531]
 layout_mode = 2
