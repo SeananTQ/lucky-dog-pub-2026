@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-07-30
+last_edit: 2026-08-28
 status: draft
 ---
 
@@ -35,7 +35,13 @@ status: draft
 
 `AcquisitionType` 表达物品的主要获取来源。新建或重置本地存档时，玩家默认拥有 `Initial` 物品。初始物品是必选装备槽的永久基础资产，不进入盲盒奖池，未来也不得被回收或熔炼。
 
+`Retired` 表示已经下架的历史物品。玩家已有数量和 Steam 库存实例继续保留，但新客户端不得再通过盲盒、LinkTree、普通发奖或调试候选池主动发放，也不得自动穿戴或产生新的获得类成就和玩家统计。历史统计不追溯扣除。
+
+`IsHiddenInBag` 只控制背包显示，不能替代 `Retired` 的业务语义。仍在运营但暂时隐藏的物品可以使用 `IsHiddenInBag`；需要永久停止新增获取时必须使用 `AcquisitionType=Retired` 并同步移出 Steam 发奖定义。
+
 相同道具允许重复获得并累计数量。Steam Generator 不会根据玩家已有库存动态排除候选物品。
+
+Dev 调试工具同样遵守下架边界：全物品随机穿戴、已拥有物品随机穿戴和轮换获得道具都排除 `Retired`。轮换获得道具仍按 `EItemType` 枚举轮换，并允许获得 Dog。该入口继续只选择 `IsHiddenInBag=FALSE` 的普通可见物品；这是调试候选的可见性限制，不承担下架语义。
 
 ### 盲盒权重
 
