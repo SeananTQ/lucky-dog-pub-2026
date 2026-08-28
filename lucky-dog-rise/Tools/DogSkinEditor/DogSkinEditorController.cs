@@ -400,9 +400,38 @@ public partial class DogSkinEditorController : Control
         _dirtyIndicators.Add(dirtyIndicator);
         UpdateDirtyIndicator(dirtyIndicator);
         row.AddChild(dirtyIndicator);
+        row.AddChild(CreateButton("放弃并返回", ConfirmDiscardAndReturn));
         row.AddChild(CreateButton("仅保存草稿", SaveCatalog));
         row.AddChild(CreateButton("保存并返回总览", SaveAndReturnToOverview));
         return row;
+    }
+
+    private void ConfirmDiscardAndReturn()
+    {
+        if (!_hasUnsavedChanges)
+        {
+            ShowOverview();
+            return;
+        }
+
+        var dialog = new ConfirmationDialog
+        {
+            Title = "放弃未保存的修改",
+            DialogText = "这会重新载入上次保存的草稿，并放弃自上次保存以来的全部修改，包括新建或克隆的狗狗。\n\n确定要放弃并返回总览吗？",
+        };
+        dialog.GetOkButton().Text = "放弃并返回";
+        dialog.GetCancelButton().Text = "继续编辑";
+        dialog.Confirmed += () =>
+        {
+            LoadCatalog();
+            SetDirtyState(false);
+            ShowOverview();
+            SetStatus("已放弃未保存的修改，并重新载入上次保存的草稿。", false);
+        };
+        dialog.Canceled += dialog.QueueFree;
+        dialog.Confirmed += dialog.QueueFree;
+        AddChild(dialog);
+        dialog.PopupCentered(new Vector2I(600, 250));
     }
 
     private void SaveAndReturnToOverview()
