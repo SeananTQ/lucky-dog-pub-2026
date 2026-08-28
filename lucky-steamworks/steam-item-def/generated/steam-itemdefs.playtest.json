@@ -11,7 +11,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:mythic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101003,
@@ -23,7 +23,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:mythic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101004,
@@ -35,7 +35,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101005,
@@ -47,7 +47,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101006,
@@ -59,7 +59,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:mythic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101007,
@@ -83,7 +83,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101009,
@@ -95,7 +95,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101010,
@@ -107,7 +107,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:mythic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101011,
@@ -119,7 +119,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 101012,
@@ -131,7 +131,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 102001,
@@ -538,7 +538,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:uncommon"
     },
     {
@@ -550,7 +550,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:rare"
     },
     {
@@ -562,7 +562,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:epic"
     },
     {
@@ -574,7 +574,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:legendary"
     },
     {
@@ -586,7 +586,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:epic"
     },
     {
@@ -1442,6 +1442,18 @@
       "tags": "rarity:uncommon"
     },
     {
+      "itemdefid": 151001,
+      "type": "item",
+      "name": "Cream Shiba Inu",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:special_1"
+    },
+    {
       "itemdefid": 152001,
       "type": "item",
       "name": "Angel Halo",
@@ -1462,7 +1474,7 @@
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
-      "hidden": false,
+      "hidden": true,
       "tags": "rarity:special_1"
     },
     {
@@ -1536,7 +1548,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x276;101003x276;101004x1125;101005x563;101006x138;101007x4000;101008x563;101009x563;101010x138;101011x563;101012x563;102001x34655;102002x12000;102003x34655;102004x12000;102005x1688;102006x12000;102007x34655;102008x7714;102009x34655;102010x7714;102011x12000;102012x34655;102013x2571;102014x563;102015x2571;102016x138;102017x138;102018x138;102019x138;102020x563;102021x563;102022x2571;102023x4000;102024x2571;102025x11552;102026x4000;102027x4000;102028x563;102029x4000;102030x563;102031x4000;102032x2571;102033x563;103001x34655;103002x12000;103003x7714;103004x1688;105001x11552;105002x2571;105003x4000;105004x2571;105005x2571;105006x11552;105007x4000;105008x11552;106002x5143;106003x5143;106004x8000;106005x8000;106006x5143;106007x276;106008x34655;106009x34655;106010x34655;106011x1687;107001x34655;107002x34655;107003x11552;107005x4000;107006x12000;107007x11552;107008x7714;107009x12000;107010x276;107011x12000;107012x1687;107013x12000;107014x34655;107015x11552;107016x12000;107017x7714;107018x34655;107019x7714;108001x12000;108003x12000;108004x7714;108005x34655;108007x1125;108008x1125;108009x34655;108010x34655;108011x69;108012x12000;108013x1687;112001x12000;112002x34655"
+      "bundle": "101002x6769;101003x6769;101004x6769;101005x3385;101006x3385;101007x3385;101008x3385;101009x3385;101010x3385;101011x3385;101012x3385;102001x36545;102002x10154;102003x36545;102004x10154;102005x2455;102006x10154;102007x36545;102008x8438;102009x36545;102010x8438;102011x10154;102012x36545;102013x2813;102014x818;102015x2813;102016x235;102017x235;102018x235;102019x235;102020x818;102021x818;102022x2813;102023x3385;102024x2813;102025x12182;102026x3385;102027x3385;102028x818;102029x3385;102030x818;102031x3385;102032x2812;102033x818;105001x12182;105002x2812;105003x3385;105004x2812;105005x2812;105006x12182;105007x3385;105008x12182;106002x5625;106003x5625;106004x6769;106005x6769;106006x5625;106007x471;106008x36545;106009x36545;106010x36545;106011x2455;107001x36545;107002x36545;107003x12182;107005x3385;107006x10154;107007x12182;107008x8437;107009x10154;107010x471;107011x10154;107012x2455;107013x10154;107014x36545;107015x12182;107016x10154;107017x8437;107018x36545;107019x8437;108001x10154;108003x10154;108004x8437;108005x36545;108007x1636;108008x1636;108009x36545;108010x36545;108011x118;108012x10154;108013x2455;112001x10154;112002x36545"
     },
     {
       "itemdefid": 301002,
@@ -1549,7 +1561,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x390;101003x390;101004x3707;101005x1854;101006x195;101007x14483;101008x1854;101009x1854;101010x195;101011x1854;101012x1854;102001x17344;102002x21724;102003x17344;102004x21724;102005x2781;102006x21724;102007x17344;102008x14571;102009x17344;102010x14571;102011x21724;102012x17344;102013x4857;102014x927;102015x4857;102016x98;102017x98;102018x98;102019x98;102020x927;102021x927;102022x4857;102023x7241;102024x4857;102025x5781;102026x7241;102027x7241;102028x927;102029x7241;102030x927;102031x7241;102032x4857;102033x927;103001x17344;103002x21724;103003x14571;103004x2781;105001x5781;105002x4857;105003x7241;105004x4857;105005x4857;105006x5781;105007x7241;105008x5781;106002x9714;106003x9714;106004x14483;106005x14483;106006x9714;106007x195;106008x17344;106009x17344;106010x17344;106011x2781;107001x17344;107002x17344;107003x17344;107005x21724;107006x21724;107007x17344;107008x14571;107009x21724;107010x195;107011x21724;107012x2781;107013x21724;107014x17344;107015x17344;107016x21724;107017x14571;107018x17344;107019x14571;108001x21724;108003x21724;108004x14571;108005x17344;108007x2781;108008x2780;108009x17344;108010x17344;108011x49;108012x21724;108013x2780;112001x21724;112002x17344"
+      "bundle": "101002x20741;101003x20741;101004x20741;101005x10370;101006x10370;101007x10370;101008x10370;101009x10370;101010x10370;101011x10370;101012x10370;102001x18197;102002x15556;102003x18197;102004x15556;102005x4750;102006x15556;102007x18197;102008x15937;102009x18197;102010x15937;102011x15556;102012x18197;102013x5312;102014x1583;102015x5312;102016x235;102017x235;102018x235;102019x235;102020x1583;102021x1583;102022x5312;102023x5185;102024x5312;102025x6066;102026x5185;102027x5185;102028x1583;102029x5185;102030x1583;102031x5185;102032x5312;102033x1583;105001x6066;105002x5312;105003x5185;105004x5312;105005x5312;105006x6066;105007x5185;105008x6066;106002x10625;106003x10625;106004x10370;106005x10370;106006x10625;106007x471;106008x18197;106009x18197;106010x18197;106011x4750;107001x18197;107002x18197;107003x18197;107005x15556;107006x15556;107007x18197;107008x15937;107009x15556;107010x471;107011x15556;107012x4750;107013x15556;107014x18197;107015x18197;107016x15556;107017x15937;107018x18197;107019x15937;108001x15556;108003x15556;108004x15937;108005x18197;108007x4750;108008x4750;108009x18197;108010x18197;108011x118;108012x15556;108013x4750;112001x15556;112002x18197"
     },
     {
       "itemdefid": 401001,
@@ -2015,6 +2027,19 @@
       "auto_stack": false
     },
     {
+      "itemdefid": 501007,
+      "type": "item",
+      "name": "LinkTree Claim - Xiaohongshu Profile",
+      "description": "Permanent receipt for the Xiaohongshu profile reward.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
       "itemdefid": 601001,
       "type": "bundle",
       "name": "LinkTree Reward Bundle - Twitter Follow",
@@ -2097,6 +2122,20 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "501006x1;153001x1"
+    },
+    {
+      "itemdefid": 601007,
+      "type": "bundle",
+      "name": "LinkTree Reward Bundle - Xiaohongshu Profile",
+      "description": "Grants the permanent receipt and fixed item reward for the Xiaohongshu profile entry.",
+      "promo": "manual",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501007x1;151001x1"
     },
     {
       "itemdefid": 700001,

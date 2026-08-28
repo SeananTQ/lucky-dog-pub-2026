@@ -184,7 +184,7 @@
     "Key": "XiaohongshuProfile",
     "SortOrder": 120,
     "IsPinned": false,
-    "IsEnabled": true,
+    "IsEnabled": false,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -198,5 +198,25 @@
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 501006,
     "SteamClaimBundleItemDefId": 601006
+  },
+  {
+    "Id": 1011,
+    "Key": "XiaohongshuProfile",
+    "SortOrder": 120,
+    "IsPinned": false,
+    "IsEnabled": true,
+    "TooltipKey": "Xiaohongshu",
+    "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
+    "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
+    "PreClaimUrl": "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a",
+    "PostClaimUrl": "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a",
+    "OpenCheckType": 1,
+    "RewardType": 1,
+    "RewardItemId": 51001,
+    "RewardChips": 0,
+    "SequentialPackId": 0,
+    "RewardBlindBoxId": 0,
+    "SteamReceiptItemDefId": 501007,
+    "SteamClaimBundleItemDefId": 601007
   }
 ]
