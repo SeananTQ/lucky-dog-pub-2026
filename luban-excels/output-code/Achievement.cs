@@ -19,6 +19,7 @@ public sealed partial class Achievement : Luban.BeanBase
     {
         { if(!_buf["AchievementId"].IsNumber) { throw new SerializationException(); }  AchievementId = _buf["AchievementId"]; }
         { if(!_buf["ApiName"].IsString) { throw new SerializationException(); }  ApiName = _buf["ApiName"]; }
+        { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["RuleType"].IsNumber) { throw new SerializationException(); }  RuleType = (EAchievementRuleType)_buf["RuleType"].AsInt; }
         { if(!_buf["TargetKey"].IsString) { throw new SerializationException(); }  TargetKey = _buf["TargetKey"]; }
         { if(!_buf["TargetValue"].IsNumber) { throw new SerializationException(); }  TargetValue = _buf["TargetValue"]; }
@@ -44,6 +45,10 @@ public sealed partial class Achievement : Luban.BeanBase
     /// 平台和存档使用的稳定机器名；发布后不要改名
     /// </summary>
     public readonly string ApiName;
+    /// <summary>
+    /// 控制该成就是否参与实际功能。设为 FALSE 时，仅保留 AchievementId 和 ApiName 作为历史墓碑；客户端不再进行条件判定、历史补发、平台读取、解锁或同步，Steam 成就配置转换器也不再导出该行。已停用成就的 AchievementId 和 ApiName 不得复用。<br/>注意：已经为FALSE的条目禁止改回TRUE，如有必要可新增条目
+    /// </summary>
+    public readonly bool IsEnabled;
     /// <summary>
     /// FirstExternalItemType=首次非初始获得部位；FirstExternalItemRarity=首次非初始获得指定品质；FirstEvent=首次发生事件；StatisticAtLeast=统计达到数值
     /// </summary>
@@ -97,6 +102,7 @@ public sealed partial class Achievement : Luban.BeanBase
         return "{ "
         + "AchievementId:" + AchievementId + ","
         + "ApiName:" + ApiName + ","
+        + "IsEnabled:" + IsEnabled + ","
         + "RuleType:" + RuleType + ","
         + "TargetKey:" + TargetKey + ","
         + "TargetValue:" + TargetValue + ","

@@ -57,6 +57,8 @@ public sealed class PlayerProgress
     private string BackupPath => _storageContext.PlayerProgressBackupPath;
     private string TempPath => _storageContext.PlayerProgressTempPath;
     private readonly Dictionary<string, PlayerStatistic> _statisticsByKey;
+    private readonly Achievement[] _enabledAchievements;
+    private readonly HashSet<string> _enabledAchievementApiNames;
     private readonly Dictionary<EItemType, string> _externalItemStatisticKeys = new()
     {
         [EItemType.Dog] = "ExternalDogAcquiredCount",
@@ -115,7 +117,14 @@ public sealed class PlayerProgress
         _storageContext = storageContext ?? throw new ArgumentNullException(nameof(storageContext));
         EnsureStorageDirectory();
         _statisticsByKey = LubanData.Tables.TbPlayerStatistic.DataList
+            .Where(stat => stat.IsEnabled)
             .ToDictionary(stat => stat.StatisticKey, StringComparer.Ordinal);
+        _enabledAchievements = LubanData.Tables.TbAchievement.DataList
+            .Where(achievement => achievement.IsEnabled)
+            .ToArray();
+        _enabledAchievementApiNames = _enabledAchievements
+            .Select(achievement => achievement.ApiName)
+            .ToHashSet(StringComparer.Ordinal);
         _profile = LoadOrCreate();
         GD.Print(
             $"[PlayerProgress] Loaded account={_storageContext}, Version={_profile.Version}, Path={AbsoluteSavePath}");
@@ -124,10 +133,15 @@ public sealed class PlayerProgress
     }
 
     public string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);
-    public IReadOnlyDictionary<string, long> Statistics => _profile.Statistics;
+    public IReadOnlyDictionary<string, long> Statistics => _profile.Statistics
+        .Where(pair => _statisticsByKey.ContainsKey(pair.Key))
+        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
     public long GlobalInputChipsEarned => GetStatistic("GlobalInputChipsEarned");
-    public IReadOnlyCollection<string> UnlockedAchievementApiNames => _profile.UnlockedAchievementApiNames;
-    public int PlatformSuppressedAchievementCount => _profile.PlatformSuppressedAchievementApiNames.Count;
+    public IReadOnlyCollection<string> UnlockedAchievementApiNames => _profile.UnlockedAchievementApiNames
+        .Where(_enabledAchievementApiNames.Contains)
+        .ToArray();
+    public int PlatformSuppressedAchievementCount => _profile.PlatformSuppressedAchievementApiNames.Count(
+        _enabledAchievementApiNames.Contains);
     public bool IsDirty => _dirty;
     public bool RequiresImmediateSave => _dirty && _immediateSaveRequested;
     public bool IsPlatformSyncAllowed
@@ -149,7 +163,8 @@ public sealed class PlayerProgress
             return Array.Empty<string>();
 #endif
         return _profile.UnlockedAchievementApiNames.Where(apiName =>
-            !_profile.PlatformSuppressedAchievementApiNames.Contains(apiName));
+            _enabledAchievementApiNames.Contains(apiName)
+            && !_profile.PlatformSuppressedAchievementApiNames.Contains(apiName));
     }
 
     public IReadOnlyList<PlatformStatisticSyncState> GetPlatformSyncStatisticStates()
@@ -204,6 +219,7 @@ public sealed class PlayerProgress
         var changedCount = 0;
         foreach (var apiName in achievementApiNames
                      .Where(apiName => !string.IsNullOrWhiteSpace(apiName))
+                     .Where(_enabledAchievementApiNames.Contains)
                      .Distinct(StringComparer.Ordinal))
         {
             var added = _profile.UnlockedAchievementApiNames.Add(apiName);
@@ -370,20 +386,24 @@ public sealed class PlayerProgress
 
     public void RecordExternalItemAcquired(Item item, int count, PlayerProgressSource source)
     {
-        if (source == PlayerProgressSource.Debug || count <= 0 || item.AcquisitionType == EAcquisitionType.Initial)
+        if (source == PlayerProgressSource.Debug
+            || count <= 0
+            || item.AcquisitionType is EAcquisitionType.Initial or EAcquisitionType.Retired)
             return;
 
         RecordCounter("ExternalItemAcquiredCount", count, source);
         if (source == PlayerProgressSource.BlindBox)
             RecordCounter("BlindBoxItemAcquiredCount", count, source);
-        if (_externalItemStatisticKeys.TryGetValue(item.ItemType, out var itemKey))
+        var itemTypeTrackingEnabled = TryGetEnabledExternalItemStatisticKey(item.ItemType, out var itemKey);
+        if (itemTypeTrackingEnabled)
             RecordCounter(itemKey, count, source);
         if (_externalRarityStatisticKeys.TryGetValue(item.ItemRarity, out var rarityKey))
             RecordCounter(rarityKey, count, source);
 
         EvaluateAchievements(achievement => achievement.RuleType switch
         {
-            EAchievementRuleType.FirstExternalItemType => string.Equals(achievement.TargetKey, item.ItemType.ToString(), StringComparison.Ordinal),
+            EAchievementRuleType.FirstExternalItemType => itemTypeTrackingEnabled
+                && string.Equals(achievement.TargetKey, item.ItemType.ToString(), StringComparison.Ordinal),
             EAchievementRuleType.FirstExternalItemRarity => string.Equals(achievement.TargetKey, item.ItemRarity.ToString(), StringComparison.Ordinal),
             _ => false,
         });
@@ -622,7 +642,7 @@ public sealed class PlayerProgress
     private void EvaluateHistoricalAchievements()
     {
         var unlockedCount = 0;
-        foreach (var achievement in LubanData.Tables.TbAchievement.DataList)
+        foreach (var achievement in _enabledAchievements)
         {
             if (!IsHistoricalAchievementSatisfied(achievement) || !UnlockAchievement(achievement.ApiName))
                 continue;
@@ -660,11 +680,21 @@ public sealed class PlayerProgress
     {
         count = 0;
         if (!Enum.TryParse<EItemType>(itemTypeName, ignoreCase: false, out var itemType)
-            || !_externalItemStatisticKeys.TryGetValue(itemType, out var statisticKey))
+            || !TryGetEnabledExternalItemStatisticKey(itemType, out var statisticKey))
             return false;
 
         count = GetStatistic(statisticKey);
         return true;
+    }
+
+    private bool TryGetEnabledExternalItemStatisticKey(EItemType itemType, out string statisticKey)
+    {
+        if (_externalItemStatisticKeys.TryGetValue(itemType, out statisticKey!)
+            && _statisticsByKey.ContainsKey(statisticKey))
+            return true;
+
+        statisticKey = string.Empty;
+        return false;
     }
 
     private bool TryGetExternalItemRarityAcquisitionCount(string rarityName, out long count)
@@ -680,7 +710,7 @@ public sealed class PlayerProgress
 
     private void EvaluateAchievements(Func<Achievement, bool> predicate)
     {
-        foreach (var achievement in LubanData.Tables.TbAchievement.DataList.Where(predicate))
+        foreach (var achievement in _enabledAchievements.Where(predicate))
         {
             if (!UnlockAchievement(achievement.ApiName))
                 continue;
@@ -812,9 +842,10 @@ public sealed class PlayerProgress
     {
 #if DEBUG
         var achievements = LubanData.Tables.TbAchievement.DataList;
+        var statistics = LubanData.Tables.TbPlayerStatistic.DataList;
         ValidateNoDuplicates(achievements.Select(row => row.ApiName), "Achievement ApiName");
-        ValidateNoDuplicates(_statisticsByKey.Keys, "PlayerStatistic StatisticKey");
-        ValidateNoDuplicates(_statisticsByKey.Values.Where(row => !string.IsNullOrWhiteSpace(row.PlatformApiName)).Select(row => row.PlatformApiName), "PlayerStatistic PlatformApiName");
+        ValidateNoDuplicates(statistics.Select(row => row.StatisticKey), "PlayerStatistic StatisticKey");
+        ValidateNoDuplicates(statistics.Where(row => !string.IsNullOrWhiteSpace(row.PlatformApiName)).Select(row => row.PlatformApiName), "PlayerStatistic PlatformApiName");
 
         foreach (var statistic in _statisticsByKey.Values)
         {
@@ -824,11 +855,14 @@ public sealed class PlayerProgress
                 GD.PushError($"[PlayerProgress] Flag Unit/StatisticType mismatch: {statistic.StatisticKey}.");
         }
 
-        foreach (var achievement in achievements)
+        foreach (var achievement in achievements.Where(achievement => achievement.IsEnabled))
         {
             bool valid = achievement.RuleType switch
             {
-                EAchievementRuleType.FirstExternalItemType => Enum.TryParse<EItemType>(achievement.TargetKey, out _) && achievement.TargetValue == 1,
+                EAchievementRuleType.FirstExternalItemType =>
+                    Enum.TryParse<EItemType>(achievement.TargetKey, out var itemType)
+                    && TryGetEnabledExternalItemStatisticKey(itemType, out _)
+                    && achievement.TargetValue == 1,
                 EAchievementRuleType.FirstExternalItemRarity => Enum.TryParse<ERarity>(achievement.TargetKey, out _) && achievement.TargetValue == 1,
                 EAchievementRuleType.FirstEvent => achievement.TargetValue == 1 && IsKnownEventKey(achievement.TargetKey),
                 EAchievementRuleType.StatisticAtLeast => achievement.TargetValue > 0 && _statisticsByKey.ContainsKey(achievement.TargetKey),

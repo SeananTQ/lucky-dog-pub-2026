@@ -2,6 +2,7 @@
   {
     "AchievementId": 1000,
     "ApiName": "ACH_FIRST_DOG",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Dog",
     "TargetValue": 1,
@@ -16,6 +17,7 @@
   {
     "AchievementId": 1001,
     "ApiName": "ACH_FIRST_HEADWEAR",
+    "IsEnabled": false,
     "RuleType": 1,
     "TargetKey": "Headwear",
     "TargetValue": 1,
@@ -30,6 +32,7 @@
   {
     "AchievementId": 1002,
     "ApiName": "ACH_FIRST_EYEWEAR",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Eyewear",
     "TargetValue": 1,
@@ -44,6 +47,7 @@
   {
     "AchievementId": 1003,
     "ApiName": "ACH_FIRST_ARM",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Arm",
     "TargetValue": 1,
@@ -58,6 +62,7 @@
   {
     "AchievementId": 1004,
     "ApiName": "ACH_FIRST_CLOTHES",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Clothes",
     "TargetValue": 1,
@@ -72,6 +77,7 @@
   {
     "AchievementId": 1005,
     "ApiName": "ACH_FIRST_TABLE",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Table",
     "TargetValue": 1,
@@ -86,6 +92,7 @@
   {
     "AchievementId": 1006,
     "ApiName": "ACH_FIRST_BACKGROUND",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Background",
     "TargetValue": 1,
@@ -100,6 +107,7 @@
   {
     "AchievementId": 1007,
     "ApiName": "ACH_FIRST_ACCESSORY",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Accessory",
     "TargetValue": 1,
@@ -114,6 +122,7 @@
   {
     "AchievementId": 1008,
     "ApiName": "ACH_FIRST_REFRESHMENT",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "Refreshment",
     "TargetValue": 1,
@@ -128,6 +137,7 @@
   {
     "AchievementId": 1009,
     "ApiName": "ACH_FIRST_CARD_BACK",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "CardBack",
     "TargetValue": 1,
@@ -142,6 +152,7 @@
   {
     "AchievementId": 1010,
     "ApiName": "ACH_FIRST_CARD_FACE",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "CardFace",
     "TargetValue": 1,
@@ -156,6 +167,7 @@
   {
     "AchievementId": 1101,
     "ApiName": "ACH_FIRST_THREE_OF_A_KIND",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankThreeOfAKindCount",
     "TargetValue": 1,
@@ -170,6 +182,7 @@
   {
     "AchievementId": 1102,
     "ApiName": "ACH_FIRST_STRAIGHT",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankStraightCount",
     "TargetValue": 1,
@@ -184,6 +197,7 @@
   {
     "AchievementId": 1103,
     "ApiName": "ACH_FIRST_FLUSH",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankFlushCount",
     "TargetValue": 1,
@@ -198,6 +212,7 @@
   {
     "AchievementId": 1104,
     "ApiName": "ACH_FIRST_FULL_HOUSE",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankFullHouseCount",
     "TargetValue": 1,
@@ -212,6 +227,7 @@
   {
     "AchievementId": 1105,
     "ApiName": "ACH_FIRST_FOUR_OF_A_KIND",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankFourOfAKindCount",
     "TargetValue": 1,
@@ -226,6 +242,7 @@
   {
     "AchievementId": 1106,
     "ApiName": "ACH_FIRST_STRAIGHT_FLUSH",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankStraightFlushCount",
     "TargetValue": 1,
@@ -240,6 +257,7 @@
   {
     "AchievementId": 1107,
     "ApiName": "ACH_FIRST_ROYAL_FLUSH",
+    "IsEnabled": true,
     "RuleType": 4,
     "TargetKey": "PokerHandRankRoyalFlushCount",
     "TargetValue": 1,
@@ -254,6 +272,7 @@
   {
     "AchievementId": 1201,
     "ApiName": "ACH_DOG_FIRST_HINT",
+    "IsEnabled": true,
     "RuleType": 3,
     "TargetKey": "DogHintAsked",
     "TargetValue": 1,
@@ -268,6 +287,7 @@
   {
     "AchievementId": 1202,
     "ApiName": "ACH_DOG_FIRST_REFUSAL",
+    "IsEnabled": true,
     "RuleType": 3,
     "TargetKey": "DogHintRefused",
     "TargetValue": 1,
@@ -282,6 +302,7 @@
   {
     "AchievementId": 1203,
     "ApiName": "ACH_DOG_FIRST_STARSTRUCK",
+    "IsEnabled": true,
     "RuleType": 3,
     "TargetKey": "DesktopStarstruckEntered",
     "TargetValue": 1,
@@ -296,6 +317,7 @@
   {
     "AchievementId": 1301,
     "ApiName": "ACH_FIRST_COMMON_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Common",
     "TargetValue": 1,
@@ -310,6 +332,7 @@
   {
     "AchievementId": 1302,
     "ApiName": "ACH_FIRST_UNCOMMON_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Uncommon",
     "TargetValue": 1,
@@ -324,6 +347,7 @@
   {
     "AchievementId": 1303,
     "ApiName": "ACH_FIRST_RARE_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Rare",
     "TargetValue": 1,
@@ -338,6 +362,7 @@
   {
     "AchievementId": 1304,
     "ApiName": "ACH_FIRST_EPIC_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Epic",
     "TargetValue": 1,
@@ -352,6 +377,7 @@
   {
     "AchievementId": 1305,
     "ApiName": "ACH_FIRST_LEGENDARY_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Legendary",
     "TargetValue": 1,
@@ -366,6 +392,7 @@
   {
     "AchievementId": 1306,
     "ApiName": "ACH_FIRST_MYTHIC_ITEM",
+    "IsEnabled": true,
     "RuleType": 2,
     "TargetKey": "Mythic",
     "TargetValue": 1,
@@ -380,6 +407,7 @@
   {
     "AchievementId": 1011,
     "ApiName": "ACH_FIRST_BODY_DECORATION",
+    "IsEnabled": true,
     "RuleType": 1,
     "TargetKey": "BodyDecoration",
     "TargetValue": 1,

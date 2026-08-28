@@ -120,6 +120,9 @@ function buildArtifacts(records, options) {
     for (const record of records) {
         const apiName = requiredString(record, "ApiName", errors);
         const achievementId = record.AchievementId;
+        if (typeof record.IsEnabled !== "boolean") {
+            errors.push(`${apiName || "<缺少 ApiName>"}：IsEnabled 必须是 true 或 false。`);
+        }
         if (!Number.isInteger(achievementId)) {
             errors.push(`${apiName || "<缺少 ApiName>"}：AchievementId 必须是整数。`);
         } else if (seenAchievementIds.has(achievementId)) {
@@ -135,6 +138,12 @@ function buildArtifacts(records, options) {
                 errors.push(`${apiName}：ApiName 重复。`);
             }
             seenApiNames.add(apiName);
+        }
+
+        // Disabled rows are permanent tombstones. Their stable identifiers are still
+        // validated above, but they must not produce Steam definitions or icon demands.
+        if (record.IsEnabled !== true) {
+            continue;
         }
 
         const nameEn = requiredString(record, "SteamNameEn", errors);
@@ -205,7 +214,9 @@ function main() {
     const reportPath = path.join(options.generatedRoot, "validation-report.json");
     const report = {
         source: path.relative(PROJECT_ROOT, options.input).replace(/\\/g, "/"),
-        achievementCount: records.length,
+        sourceRecordCount: records.length,
+        achievementCount: achievements.length,
+        disabledCount: records.length - achievements.length,
         iconCheckEnabled: options.checkIcons,
         errors,
         warnings,

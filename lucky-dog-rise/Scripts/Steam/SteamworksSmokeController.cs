@@ -101,7 +101,10 @@ public partial class SteamworksSmokeController : Control
             return;
         }
 
-        var tableApiNames = LubanData.Tables.TbAchievement.DataList.Select(achievement => achievement.ApiName).ToArray();
+        var tableApiNames = LubanData.Tables.TbAchievement.DataList
+            .Where(achievement => achievement.IsEnabled)
+            .Select(achievement => achievement.ApiName)
+            .ToArray();
         var result = _platformService.ReadAchievementStates(tableApiNames);
         if (!result.Succeeded)
         {

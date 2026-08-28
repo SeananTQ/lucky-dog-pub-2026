@@ -30,6 +30,7 @@ public sealed class PlatformAchievementSynchronizer
         _writeOperations = platformService as IPlatformAchievementSyncOperations;
         _playerProgress = playerProgress;
         _knownAchievementApiNames = LubanData.Tables.TbAchievement.DataList
+            .Where(achievement => achievement.IsEnabled)
             .Select(achievement => achievement.ApiName)
             .Where(apiName => !string.IsNullOrWhiteSpace(apiName))
             .Distinct(StringComparer.Ordinal)

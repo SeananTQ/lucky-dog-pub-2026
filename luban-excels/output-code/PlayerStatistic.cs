@@ -20,6 +20,7 @@ public sealed partial class PlayerStatistic : Luban.BeanBase
         { if(!_buf["StatisticId"].IsNumber) { throw new SerializationException(); }  StatisticId = _buf["StatisticId"]; }
         { if(!_buf["StatisticKey"].IsString) { throw new SerializationException(); }  StatisticKey = _buf["StatisticKey"]; }
         { if(!_buf["DisplayName"].IsString) { throw new SerializationException(); }  DisplayName = _buf["DisplayName"]; }
+        { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
         { if(!_buf["Unit"].IsNumber) { throw new SerializationException(); }  Unit = (EPlayerStatisticUnit)_buf["Unit"].AsInt; }
         { if(!_buf["StatisticType"].IsNumber) { throw new SerializationException(); }  StatisticType = (EPlayerStatisticType)_buf["StatisticType"].AsInt; }
         { if(!_buf["PlatformApiName"].IsString) { throw new SerializationException(); }  PlatformApiName = _buf["PlatformApiName"]; }
@@ -44,6 +45,10 @@ public sealed partial class PlayerStatistic : Luban.BeanBase
     /// CSV 数据字典用的中文名称
     /// </summary>
     public readonly string DisplayName;
+    /// <summary>
+    /// 控制该统计定义是否参与实际功能。设为 FALSE 时，仅保留 StatisticId、StatisticKey 和 PlatformApiName 作为历史墓碑；客户端不再累计、显示、用于成就判定或参与平台同步，Steam统计配置转换器也不再导出。玩家存档中已有的历史统计值可以保留，但运行时忽略。已停用统计的 StatisticId、StatisticKey 和 PlatformApiName 不得复用。<br/><br/>注意：已经为FALSE的条目禁止改回TRUE，如有必要可新增条目
+    /// </summary>
+    public readonly bool IsEnabled;
     /// <summary>
     /// 数值单位
     /// </summary>
@@ -78,6 +83,7 @@ public sealed partial class PlayerStatistic : Luban.BeanBase
         + "StatisticId:" + StatisticId + ","
         + "StatisticKey:" + StatisticKey + ","
         + "DisplayName:" + DisplayName + ","
+        + "IsEnabled:" + IsEnabled + ","
         + "Unit:" + Unit + ","
         + "StatisticType:" + StatisticType + ","
         + "PlatformApiName:" + PlatformApiName + ","
