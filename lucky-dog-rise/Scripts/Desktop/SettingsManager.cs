@@ -41,7 +41,6 @@ public static class SettingsManager
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
     private const string KeyPokerGuideOverlayEnabled = "poker_guide_overlay_enabled";
-    private const string KeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
     private const string KeyLocale = "locale";
@@ -412,22 +411,6 @@ public static class SettingsManager
 
     public static event System.Action<bool> PokerGuideOverlayEnabledChanged;
 
-    public static bool LoadAvoidObscuringDogEyes()
-    {
-        var config = Load();
-        return (bool)config.GetValue(SectionSystem, KeyAvoidObscuringDogEyes, false);
-    }
-
-    public static void SaveAvoidObscuringDogEyes(bool enabled)
-    {
-        var config = Load();
-        config.SetValue(SectionSystem, KeyAvoidObscuringDogEyes, enabled);
-        config.Save(Path);
-        AvoidObscuringDogEyesChanged?.Invoke(enabled);
-    }
-
-    public static event System.Action<bool> AvoidObscuringDogEyesChanged;
-
     public static bool LoadRightClickQuickModeSwitch()
     {
         var config = Load();
@@ -578,7 +561,6 @@ public static class SettingsManager
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
         PokerGuideOverlayEnabledChanged?.Invoke(false);
-        AvoidObscuringDogEyesChanged?.Invoke(false);
         AutoHideCounterChanged?.Invoke(false);
     }
 

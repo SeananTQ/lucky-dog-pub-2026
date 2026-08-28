@@ -47,6 +47,9 @@ public sealed partial class DogReaction : Luban.BeanBase
     /// 有些表情需要临时更换头饰，例如被打晕的时候头上转的星星。但目前版本没有
     /// </summary>
     public readonly string OverrideHeadwear;
+    /// <summary>
+    /// 该功能处于改版器，暂时禁用效果。bool字段保留后续用其他方式表示狗狗沉默。
+    /// </summary>
     public readonly bool WearGlasses;
     /// <summary>
     /// 左指画面左侧，而非狗自己的左

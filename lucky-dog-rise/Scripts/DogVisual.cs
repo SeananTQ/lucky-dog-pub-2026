@@ -48,8 +48,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     [Export] private float _desktopTongueBeatSeconds = 0.12f;
     [Export] private float _desktopTongueBurstWindowSeconds = 0.25f;
     [Export] private int _desktopTongueBurstThreshold = 2;
-    [Export] public bool ShowEquippedEyewearByDefault { get; set; }
-
     public bool CanPlayInteractionHint => IsNodeReady()
         && _hitButtons.Any(button => button.Visible && !button.Disabled);
     public bool IsInteractionHintPlaying => (_pawTween?.IsRunning() ?? false)
@@ -455,21 +453,19 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _headwear.Visible = true;
     }
 
-    public void RefreshEquippedEyewear(bool showIfEquipped = false, bool allowOwnedFallback = false)
+    private void RefreshFixedEyewear()
     {
         if (!IsNodeReady()) return;
 
-        var item = _gameData?.Inventory.GetEquipped(EItemType.Eyewear);
-        if ((item == null || item.AssetPathList.Count == 0) && allowOwnedFallback)
-            item = _gameData?.Inventory.GetOwnedOfType(EItemType.Eyewear).FirstOrDefault();
-
-        if (item == null || item.AssetPathList.Count == 0)
+        var fileName = CurrentDogSkin.FixedEyewear;
+        if (string.IsNullOrEmpty(fileName))
         {
             _eyewear.Visible = false;
             return;
         }
 
-        var path = PlayerInventory.ToResPath(item.AssetPathList[0]);
+        var assetPath = $"v1\\Eyewear\\{fileName}";
+        var path = PlayerInventory.ToResPath(assetPath);
         var texture = GD.Load<Texture2D>(path);
         if (texture == null)
         {
@@ -479,11 +475,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
         _eyewear.Texture = texture;
         _eyewear.Position = GetAdornmentScenePosition(
-            item.AssetPathList[0],
+            assetPath,
             _eyewearReferenceLayerPath,
             _eyewearReferenceLocalPosition);
-        if (showIfEquipped)
-            _eyewear.Visible = true;
+        _eyewear.Visible = true;
     }
 
     // 手心（掌心朝上，被桌子挡住）
@@ -589,8 +584,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             result.EyeAsset = reaction.EyeAsset;
         if (!string.IsNullOrEmpty(reaction.OverrideHeadwear))
             result.OverrideHeadwear = reaction.OverrideHeadwear;
-        if (reaction.WearGlasses)
-            result.WearGlasses = true;
         if (!string.IsNullOrEmpty(reaction.LeftPawAnimation))
             result.LeftPawAnimation = reaction.LeftPawAnimation;
         if (!string.IsNullOrEmpty(reaction.RightPawAnimation))
@@ -657,10 +650,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (!string.IsNullOrEmpty(visual.OverrideHeadwear))
             ApplyHeadwearOverride(visual.OverrideHeadwear);
 
-        var shouldShowEyewear = visual.WearGlasses || ShowEquippedEyewearByDefault;
-        RefreshEquippedEyewear(showIfEquipped: shouldShowEyewear, allowOwnedFallback: visual.WearGlasses);
-        if (!shouldShowEyewear)
-            _eyewear.Visible = false;
+        RefreshFixedEyewear();
 
         ApplyTongueVisual(visual);
     }
@@ -847,7 +837,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         public string EarAsset;
         public string EyeAsset;
         public string OverrideHeadwear;
-        public bool WearGlasses;
         public string LeftPawAnimation;
         public string RightPawAnimation;
         public string TongueAnimation;
@@ -858,7 +847,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             EarAsset = "默认",
             EyeAsset = "默认",
             OverrideHeadwear = "",
-            WearGlasses = false,
             LeftPawAnimation = "手背",
             RightPawAnimation = "手背",
             TongueAnimation = "正常",

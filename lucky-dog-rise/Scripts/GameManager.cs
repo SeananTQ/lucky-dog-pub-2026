@@ -76,7 +76,6 @@ public partial class GameManager : Node2D
         _hud = GetNode<HUDController>("HUD");
         _cardTable = GetNode<CardTableController>("CardArea");
         _dogVisual = GetNode<DogVisual>("DogArea");
-        _dogVisual.ShowEquippedEyewearByDefault = !SettingsManager.LoadAvoidObscuringDogEyes();
         _chipStack = GetNode<ChipStackController>("ChipStack");
         _handArea = GetNode<HandAreaController>("HandArea");
         _itemArea = GetNode<ItemAreaController>("ItemArea");
@@ -97,7 +96,6 @@ public partial class GameManager : Node2D
         _itemArea.HintContextChanged += RefreshInteractionHintTargets;
         _interactionHints.SetProactiveHintsEnabled(SettingsManager.LoadProactiveInteractionHints());
         SettingsManager.ProactiveInteractionHintsChanged += _interactionHints.SetProactiveHintsEnabled;
-        SettingsManager.AvoidObscuringDogEyesChanged += OnAvoidObscuringDogEyesChanged;
         _rewardSpawnPoint = GetNode<Marker2D>("RewardSpawnPoint");
         _rewardSpawnPoint.GetNode<Sprite2D>("PreviewSprite").Visible = false;
         _blindBoxOverlay = BlindBoxRevealOverlayScene.Instantiate<BlindBoxRevealOverlayController>();
@@ -124,7 +122,6 @@ public partial class GameManager : Node2D
     public override void _ExitTree()
     {
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
-        SettingsManager.AvoidObscuringDogEyesChanged -= OnAvoidObscuringDogEyesChanged;
         if (_tutorial != null)
             _tutorial.OverlayVisibilityChanged -= OnTutorialOverlayVisibilityChanged;
         if (_pokerHandShowcase != null)
@@ -585,7 +582,6 @@ public partial class GameManager : Node2D
         ApplyItemTexture(EItemType.Clothes, (tex, name) => _handArea.SetClothes(tex, name), () => _handArea.SetClothes(null, ""));
         ApplyItemTexture(EItemType.Accessory, (tex, name) => _handArea.SetAccessory(tex, name), () => _handArea.SetAccessory(null, ""));
         _dogVisual.RefreshEquippedHeadwear();
-        _dogVisual.RefreshEquippedEyewear();
     }
 
     private void ApplyItemTexture(EItemType type, System.Action<Texture2D, string> apply, Action clear = null)
@@ -658,9 +654,4 @@ public partial class GameManager : Node2D
         _hud.SetMessage("");
     }
 
-    private void OnAvoidObscuringDogEyesChanged(bool enabled)
-    {
-        _dogVisual.ShowEquippedEyewearByDefault = !enabled;
-        _dogVisual.RefreshEquippedVisuals();
-    }
 }

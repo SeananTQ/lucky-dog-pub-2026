@@ -51,9 +51,6 @@ public partial class DesktopRiseIntroController : Node2D
         _maskedTongue = GetNode<Sprite2D>("RevealLayer/RevealClip/HeadDog/HeadRoot/Tonghe");
         _frontTongue = GetNode<Sprite2D>("RevealLayer/FrontRoot/FrontTongueDog/HeadRoot/Tonghe");
 
-        _headDog.ShowEquippedEyewearByDefault = true;
-        _clawDog.ShowEquippedEyewearByDefault = true;
-        _frontTongueDog.ShowEquippedEyewearByDefault = true;
         _headDog.SetHitButtonEnabled(false);
         _clawDog.SetHitButtonEnabled(false);
         _frontTongueDog.SetHitButtonEnabled(false);
@@ -94,11 +91,8 @@ public partial class DesktopRiseIntroController : Node2D
     {
         if (!IsNodeReady()) return;
         _headDog.RefreshEquippedDisguiseVisuals();
-        _headDog.RefreshEquippedEyewear(showIfEquipped: true);
         _clawDog.RefreshEquippedDisguiseVisuals();
-        _clawDog.RefreshEquippedEyewear(showIfEquipped: true);
         _frontTongueDog.RefreshEquippedDisguiseVisuals();
-        _frontTongueDog.RefreshEquippedEyewear(showIfEquipped: true);
     }
 
     public void Play()

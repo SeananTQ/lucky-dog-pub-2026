@@ -10,11 +10,6 @@
     "DefaultItemId": 0
   },
   {
-    "ItemType": 3,
-    "CanUnequip": "True",
-    "DefaultItemId": 0
-  },
-  {
     "ItemType": 4,
     "CanUnequip": "False",
     "DefaultItemId": 4003

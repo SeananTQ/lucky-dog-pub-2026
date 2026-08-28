@@ -319,7 +319,6 @@ public partial class SystemPanelController : CanvasLayer
     {
         [1001] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Dog.svg"),
         [1002] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Headwear.svg"),
-        [1003] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Eyewear.svg"),
         [1004] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Player.svg"),
         [1005] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Theme.svg"),
         [1006] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Refreshment.svg"),
@@ -453,10 +452,6 @@ public partial class SystemPanelController : CanvasLayer
         _pokerGuideOverlayToggle.ButtonPressed = SettingsManager.LoadPokerGuideOverlayEnabled();
         _pokerGuideOverlayToggle.Toggled += SettingsManager.SavePokerGuideOverlayEnabled;
         SettingsManager.PokerGuideOverlayEnabledChanged += OnPokerGuideOverlayEnabledChanged;
-
-        var avoidObscuringDogEyesToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle");
-        avoidObscuringDogEyesToggle.ButtonPressed = SettingsManager.LoadAvoidObscuringDogEyes();
-        avoidObscuringDogEyesToggle.Toggled += enabled => SettingsManager.SaveAvoidObscuringDogEyes(enabled);
 
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
@@ -1934,7 +1929,6 @@ public partial class SystemPanelController : CanvasLayer
         {
             1001 => L10nKey.Wardrobe_Tab_Dog,
             1002 => L10nKey.Wardrobe_Tab_Hat,
-            1003 => L10nKey.Wardrobe_Tab_Eyewear,
             1004 => L10nKey.Wardrobe_Tab_Player,
             1005 => L10nKey.Wardrobe_Tab_Theme,
             1006 => L10nKey.Wardrobe_Tab_Refreshment,
@@ -2849,8 +2843,6 @@ public partial class SystemPanelController : CanvasLayer
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
         _pokerGuideOverlayToggle.SetPressedNoSignal(SettingsManager.LoadPokerGuideOverlayEnabled());
-        GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AvoidObscuringDogEyesRow/AvoidObscuringDogEyesToggle")
-            .SetPressedNoSignal(SettingsManager.LoadAvoidObscuringDogEyes());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());

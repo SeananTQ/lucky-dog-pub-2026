@@ -16,14 +16,6 @@
     "SortOrder": 2
   },
   {
-    "Id": 1003,
-    "TabName": "Eye",
-    "TabItemTypeList": [
-      3
-    ],
-    "SortOrder": 3
-  },
-  {
     "Id": 1004,
     "TabName": "Player",
     "TabItemTypeList": [

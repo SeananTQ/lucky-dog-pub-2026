@@ -447,7 +447,6 @@ public partial class ModeManager : Control
         _bossBlindBoxHint = _bossKeyContent.GetNode<BalloonHintController>("CanvasLayer/BlindBoxHint");
         _bossBlindBoxRevealAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/DesktopBlindBoxRevealAnchor");
         _bossTaskBarAnchor = _bossKeyContent.GetNode<Marker2D>("ContentA/TaskBar");
-        _bossDogVisual.ShowEquippedEyewearByDefault = true;
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
         _gameData.EquipmentChanged += RefreshBossDogVisuals;
@@ -1392,7 +1391,6 @@ public partial class ModeManager : Control
     private void RefreshBossDogVisuals()
     {
         _bossDogVisual.RefreshEquippedDisguiseVisuals();
-        _bossDogVisual.RefreshEquippedEyewear(showIfEquipped: true);
         _bossRiseIntro?.RefreshVisuals();
     }
 
