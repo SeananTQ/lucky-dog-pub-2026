@@ -18,6 +18,7 @@ public sealed partial class DogSkin : Luban.BeanBase
     public DogSkin(JSONNode _buf) 
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
+        { if(!_buf["Alias"].IsString) { throw new SerializationException(); }  Alias = _buf["Alias"]; }
         { if(!_buf["IconName"].IsString) { throw new SerializationException(); }  IconName = _buf["IconName"]; }
         { if(!_buf["DefaultEars"].IsString) { throw new SerializationException(); }  DefaultEars = _buf["DefaultEars"]; }
         { if(!_buf["DefaultEyes"].IsString) { throw new SerializationException(); }  DefaultEyes = _buf["DefaultEyes"]; }
@@ -44,6 +45,7 @@ public sealed partial class DogSkin : Luban.BeanBase
     }
 
     public readonly int Id;
+    public readonly string Alias;
     public readonly string IconName;
     /// <summary>
     /// 只影响图标和桌宠模式，不影响打牌模式
@@ -80,6 +82,7 @@ public sealed partial class DogSkin : Luban.BeanBase
     {
         return "{ "
         + "Id:" + Id + ","
+        + "Alias:" + Alias + ","
         + "IconName:" + IconName + ","
         + "DefaultEars:" + DefaultEars + ","
         + "DefaultEyes:" + DefaultEyes + ","

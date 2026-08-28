@@ -6,7 +6,7 @@ namespace LuckyDogRise.Tools;
 
 public sealed class DogSkinCatalogDraft
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public List<DogSkinDraft> DogSkins { get; set; } = new();
 }
@@ -14,6 +14,7 @@ public sealed class DogSkinCatalogDraft
 public sealed class DogSkinDraft
 {
     public int Id { get; set; }
+    public string Alias { get; set; } = "";
     public string IconName { get; set; } = "";
     public string DefaultEars { get; set; } = "";
     public string DefaultEyes { get; set; } = "";
@@ -38,6 +39,7 @@ public sealed class DogSkinDraft
         return new DogSkinDraft
         {
             Id = skin.Id,
+            Alias = skin.Alias,
             IconName = skin.IconName,
             DefaultEars = skin.DefaultEars,
             DefaultEyes = skin.DefaultEyes,
@@ -64,6 +66,7 @@ public sealed class DogSkinDraft
         return new DogSkinDraft
         {
             Id = id,
+            Alias = Alias,
             IconName = IconName,
             DefaultEars = DefaultEars,
             DefaultEyes = DefaultEyes,

@@ -1,9 +1,10 @@
 {
-  "Version": 1,
-  "UpdatedAtUtc": "2026-08-28T17:49:02.7142136Z",
+  "Version": 2,
+  "UpdatedAtUtc": "2026-08-28T20:12:52.7724747Z",
   "DogSkins": [
     {
       "Id": 1001,
+      "Alias": "赤柴原色",
       "IconName": "Shiba_Red.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -25,6 +26,7 @@
     },
     {
       "Id": 1002,
+      "Alias": "黑柴",
       "IconName": "Shiba_Black.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -46,6 +48,7 @@
     },
     {
       "Id": 1003,
+      "Alias": "白柴",
       "IconName": "Shiba_Cream.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -67,6 +70,7 @@
     },
     {
       "Id": 1004,
+      "Alias": "胡麻柴",
       "IconName": "Shiba_Sesame.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -88,6 +92,7 @@
     },
     {
       "Id": 1005,
+      "Alias": "瘦赤柴",
       "IconName": "Shiba_ThinRed.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Lucky.png",
@@ -109,11 +114,12 @@
     },
     {
       "Id": 1006,
+      "Alias": "胡渣赤柴",
       "IconName": "Shiba_UnshavenRed.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
       "DefaultTongue": "Tongue_Regular",
-      "FixedEyewear": "Monocle_golden.png",
+      "FixedEyewear": "Monocle_black.png",
       "FolderPath": "v1\\Shiba\\Red",
       "Head": "Head_Unshaven.png",
       "ClawLeftBack": "Claw_Lucky_Left.png",
@@ -130,11 +136,12 @@
     },
     {
       "Id": 1007,
+      "Alias": "瘦黑柴",
       "IconName": "Shiba_ThinBlack.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Wink.png",
       "DefaultTongue": "Tongue_Regular",
-      "FixedEyewear": "3DGlasses.png",
+      "FixedEyewear": "EyePatch.png",
       "FolderPath": "v1\\Shiba\\Black",
       "Head": "Head_Thin.png",
       "ClawLeftBack": "Claw_Lucky_Left.png",
@@ -151,6 +158,7 @@
     },
     {
       "Id": 1008,
+      "Alias": "胡渣黑柴",
       "IconName": "Shiba_UnshavenBlack.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -172,6 +180,7 @@
     },
     {
       "Id": 1009,
+      "Alias": "瘦白柴",
       "IconName": "Shiba_ThinCream.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Wink.png",
@@ -193,6 +202,7 @@
     },
     {
       "Id": 1010,
+      "Alias": "胡渣白柴",
       "IconName": "Shiba_UnshavenCream.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -214,6 +224,7 @@
     },
     {
       "Id": 1011,
+      "Alias": "瘦芝麻柴",
       "IconName": "Shiba_ThinSesame.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
@@ -235,11 +246,12 @@
     },
     {
       "Id": 1012,
+      "Alias": "胡渣胡麻柴",
       "IconName": "Shiba_UnshavenSesame.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
       "DefaultTongue": "Tongue_Regular",
-      "FixedEyewear": "",
+      "FixedEyewear": "EyePatch.png",
       "FolderPath": "v1\\Shiba\\Sesame",
       "Head": "Head_Unshaven.png",
       "ClawLeftBack": "Claw_Lucky_Left.png",
@@ -256,11 +268,12 @@
     },
     {
       "Id": 1013,
-      "IconName": "DogSkin_1013.png",
+      "Alias": "新狗狗 1013",
+      "IconName": "Shiba_Red.png",
       "DefaultEars": "Ears_Happy.png",
       "DefaultEyes": "Eyes_Cute.png",
       "DefaultTongue": "Tongue_Regular",
-      "FixedEyewear": "",
+      "FixedEyewear": "EyePatch.png",
       "FolderPath": "v1\\Shiba\\Red",
       "Head": "Head_Chubby.png",
       "ClawLeftBack": "Claw_Lucky_Left.png",
