@@ -196,7 +196,38 @@ public partial class DogSkinIconExportService : Node
         output.FillRect(new Rect2I(0, OutputCanvasSize - SafeMargin, OutputCanvasSize, SafeMargin), Colors.Transparent);
         output.FillRect(new Rect2I(0, SafeMargin, SafeMargin, SafeContentSize), Colors.Transparent);
         output.FillRect(new Rect2I(OutputCanvasSize - SafeMargin, SafeMargin, SafeMargin, SafeContentSize), Colors.Transparent);
+        UnpremultiplyAlpha(output);
         return output;
+    }
+
+    /// <summary>
+    /// SubViewport pixels use premultiplied alpha. PNG readers expect straight
+    /// alpha, so saving the captured RGB values directly produces dark fringes
+    /// when the icon is composited over a light rarity plate.
+    /// </summary>
+    private static void UnpremultiplyAlpha(Image image)
+    {
+        if (image.GetFormat() != Image.Format.Rgba8)
+            image.Convert(Image.Format.Rgba8);
+
+        var data = image.GetData();
+        for (var offset = 0; offset < data.Length; offset += 4)
+        {
+            var alpha = data[offset + 3];
+            if (alpha is 0 or 255)
+                continue;
+
+            data[offset] = UnpremultiplyChannel(data[offset], alpha);
+            data[offset + 1] = UnpremultiplyChannel(data[offset + 1], alpha);
+            data[offset + 2] = UnpremultiplyChannel(data[offset + 2], alpha);
+        }
+
+        image.SetData(image.GetWidth(), image.GetHeight(), false, Image.Format.Rgba8, data);
+    }
+
+    private static byte UnpremultiplyChannel(byte channel, byte alpha)
+    {
+        return (byte)Math.Min(255, (channel * 255 + alpha / 2) / alpha);
     }
 
     private static void BlitClipped(Image source, Image target, int cropX, int cropY)
