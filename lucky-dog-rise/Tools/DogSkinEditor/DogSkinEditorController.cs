@@ -35,6 +35,7 @@ public partial class DogSkinEditorController : Control
     private Button _duplicateOnlyFilter = null!;
     private DogSkinDraft _editingDraft = null!;
     private DogVisual _editorPreview = null!;
+    private DogSkinIconExportService _iconExportService = null!;
     private EDogReactionTrigger _editorReaction = EDogReactionTrigger.Default;
     private bool _hasUnsavedChanges;
     private readonly List<Label> _dirtyIndicators = new();
@@ -59,6 +60,8 @@ public partial class DogSkinEditorController : Control
         CenterWindow();
 
         _assets = new DogSkinAssetCatalog();
+        _iconExportService = new DogSkinIconExportService();
+        AddChild(_iconExportService);
         LoadCatalog();
         BuildShell();
         ShowOverview();
@@ -93,6 +96,7 @@ public partial class DogSkinEditorController : Control
         toolbar.AddChild(CreateButton("保存草稿", SaveCatalog));
         toolbar.AddChild(CreateButton("重新载入正式 JSON", ConfirmReloadFromTable));
         toolbar.AddChild(CreateButton("导出完整 CSV", ExportCsv));
+        toolbar.AddChild(CreateButton("合成道具图标", ShowIconComposer));
 
         _status = new Label
         {
@@ -1022,6 +1026,22 @@ public partial class DogSkinEditorController : Control
         }
     }
 
+    private void ShowIconComposer()
+    {
+        var errors = ValidateCatalog(requireDogSkinTableFields: false);
+        if (errors.Count > 0)
+        {
+            ShowMessage("合成前校验失败", string.Join("\n", errors.Take(24)));
+            SetStatus($"图标未生成：发现 {errors.Count} 个 DogSkin 数据错误。", true);
+            return;
+        }
+
+        var window = new DogSkinIconComposerWindow();
+        window.Initialize(_iconExportService, _catalog.DogSkins, Theme);
+        AddChild(window);
+        window.PopupCentered();
+    }
+
     private static string DescribeFileOperationError(Exception exception, string path, string operation)
     {
         var reason = exception switch
@@ -1044,7 +1064,7 @@ public partial class DogSkinEditorController : Control
         return windowsError is 32 or 33;
     }
 
-    private List<string> ValidateCatalog()
+    private List<string> ValidateCatalog(bool requireDogSkinTableFields = true)
     {
         var errors = new List<string>();
         foreach (var duplicate in _catalog.DogSkins.GroupBy(d => d.Id).Where(group => group.Count() > 1))
@@ -1052,8 +1072,10 @@ public partial class DogSkinEditorController : Control
 
         foreach (var draft in _catalog.DogSkins)
         {
-            if (string.IsNullOrWhiteSpace(draft.Alias)) errors.Add($"#{draft.Id} 缺少中文别名（Alias）。");
-            if (string.IsNullOrWhiteSpace(draft.IconName)) errors.Add($"#{draft.Id} 缺少图标名称（IconName）。");
+            if (requireDogSkinTableFields && string.IsNullOrWhiteSpace(draft.Alias))
+                errors.Add($"#{draft.Id} 缺少中文别名（Alias）。");
+            if (requireDogSkinTableFields && string.IsNullOrWhiteSpace(draft.IconName))
+                errors.Add($"#{draft.Id} 缺少图标名称（IconName）。");
             if (string.IsNullOrWhiteSpace(draft.FolderPath)) errors.Add($"#{draft.Id} 缺少素材目录（FolderPath）。");
             ValidateDogAsset(errors, draft, nameof(draft.Head), draft.Head);
             ValidateDogAsset(errors, draft, nameof(draft.DefaultEars), draft.DefaultEars);

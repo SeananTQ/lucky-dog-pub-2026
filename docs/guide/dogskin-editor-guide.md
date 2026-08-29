@@ -36,11 +36,18 @@ lucky-dog-rise/
 │   ├── DogSkinEditorController.cs
 │   ├── DogSkinDraft.cs
 │   ├── DogSkinAssetCatalog.cs
+│   ├── DogSkinIconComposerWindow.cs
+│   ├── DogSkinIconExportService.cs
 │   ├── DogSkinEditorTheme.tres
+│   ├── Assets/IconComposer/CardboardBox.png
 │   └── output/
 │       ├── .gdignore
 │       ├── DogSkinCatalogDraft.json
-│       └── DogSkin.csv
+│       ├── DogSkin.csv
+│       └── IconComposer/
+│           ├── settings.json
+│           ├── tbitem_dog_icon_patch.csv
+│           └── ItemIcon/Dog_*.png
 ├── Scripts/DogAppearanceSpec.cs
 ├── Scripts/DogVisual.cs
 └── Scenes/DogArea.tscn
@@ -52,6 +59,8 @@ lucky-dog-rise/
 - `DogSkinEditorController.cs`：负责窗口、总览、编辑表单、实时选择器、脏状态、校验、草稿保存和 CSV 导出。
 - `DogSkinDraft.cs`：定义可序列化草稿模型、正式表到草稿的映射、克隆和渲染模型转换。
 - `DogSkinAssetCatalog.cs`：扫描狗狗素材目录与眼镜 PNG，提供候选列表和资源存在性检查。
+- `DogSkinIconComposerWindow.cs`：管理图标预览、纸箱水平偏移、批量生成进度和完成提示。
+- `DogSkinIconExportService.cs`：复用 `DogVisual` 离屏渲染狗狗，合成纸箱，生成 256×256 PNG 和 tbitem 补丁 CSV。
 - `DogSkinEditorTheme.tres`：开发工具专用的 Godot 3 风格深色主题。
 - `DogAppearanceSpec.cs`：游戏运行时与开发工具共享的可变视觉数据模型。
 - `DogVisual.cs`：唯一的狗狗渲染实现，同时接受正式 `DogSkin` 和工具预览数据。
@@ -216,9 +225,9 @@ V1 → V2 的现有迁移会按 `Id` 从正式表补齐 `Alias`。后续不得�
 
 “克隆”会复制选中 DogSkin 的全部数据，分配新 ID，并复用来源 `IconName`。
 
-因此，新建或克隆后出现完全重复标记是预期行为。工具当前不会合成背包图标，也不会虚构一个尚不存在的 PNG 文件名。
+因此，新建或克隆后出现完全重复标记是预期行为。图标合成不读取或修改 `IconName`，而是根据 DogSkin ID 固定生成 `Dog_{Id}.png`。新建 DogSkin 即使还没有对应 Item 行，也可以先生成审阅图标；tbitem 补丁 CSV 不会凭空创建 Item 行。
 
-未来接入图标合成时，应把“视觉组合生成”和“图标产物生成”拆成两个明确步骤。图标生成失败不得破坏已经保存的 DogSkin 草稿。
+“视觉组合生成”和“图标产物生成”是两个独立步骤。图标生成失败不得破坏已经保存的 DogSkin 草稿。
 
 ## 可视化选择器
 
@@ -253,7 +262,65 @@ Id, Alias, IconName, DefaultEars, DefaultEyes, ...
 - 狗头、耳朵、眼睛、爪子和常规舌头素材是否存在。
 - 固定眼镜素材是否存在。
 
-`IconName` 当前只检查非空，不检查图标 PNG 是否存在，因为图标自动合成尚未接入。该边界发生变化时，应同时更新校验提示和本文档。
+完整 DogSkin CSV 导出时，`IconName` 只检查非空，不检查同名 PNG 是否存在。图标合成使用 DogSkin ID 生成独立文件名，不消费也不校验该字段；在 DogSkin 表正式移除 `IconName` 前，完整 DogSkin CSV 仍须保留它。
+
+## DogSkin 道具图标合成
+
+图标合成是独立工具模块，不属于 DogSkin 草稿保存或完整 DogSkin CSV 导出。入口位于主工具栏的“合成道具图标”。
+
+合成流程如下：
+
+```mermaid
+flowchart TD
+    A[DogSkinDraft] --> B[DogAppearanceSpec]
+    B --> C[DogVisual 1200x1200 离屏渲染]
+    D[CardboardBox.png] --> E[纸箱图层]
+    C --> F[测量狗狗透明像素包围盒]
+    C --> G[与纸箱按原始画布坐标合成]
+    E --> G
+    F --> H[按狗狗长边缩放到 240 像素]
+    G --> H
+    H --> I[256x256 输出并清空外围 8 像素]
+```
+
+纸箱素材保持 1200×1200 完整 PSD 画布，不应预先缩小为 256×256。所有狗狗部件、固定眼镜和纸箱先在源尺寸合成，只在最后执行一次 Lanczos 缩放，避免交界处因多次缩放出现透明虚边。
+
+纸箱使用全局 `CardboardOffsetX` 微调水平位置，单位是 1200×1200 源画布像素，正值向右。该参数保存在 `output/IconComposer/settings.json`，不进入 DogSkin 表。垂直方向使用纸箱与 PSD 的原始画布坐标，不为单只 DogSkin 保存补偿参数。
+
+输出固定写入工具目录：
+
+```text
+Tools/DogSkinEditor/output/IconComposer/
+├── ItemIcon/
+│   ├── Dog_1001.png
+│   └── Dog_1002.png
+└── tbitem_dog_icon_patch.csv
+```
+
+工具不直接写入 `Assets/v0`。主人审阅 PNG 后，手动将通过的文件复制到 `Assets/v0/ItemIcon`。`output/.gdignore` 会阻止 Godot 导入这些审阅产物；工具内预览使用运行时 `ImageTexture`，不能依赖 `GD.Load()` 读取 output 下的 PNG。
+
+图标文件名不读取 `DogSkin.IconName`，固定使用 `Dog_{DogSkin.Id}.png`。`IconName` 仍属于当前 DogSkin 表与完整 DogSkin CSV，在正式表决定移除该字段前，不应由图标模块擅自删除或改写。
+
+## tbitem 图标补丁 CSV
+
+图标批量生成同时输出 `tbitem_dog_icon_patch.csv`，用于人工更新 Item 表的 `AssetPathList` 与 `IconPath`。这是一份差量辅助文件，不是完整 Luban Item 表。
+
+列顺序固定为：
+
+```text
+Id,SkinId,AssetPathList,IconPath
+```
+
+关联必须使用 `Item.SkinId == DogSkin.Id`，不得假设 `Item.Id == DogSkin.Id`。活动物品等多条 Item 可以引用同一个 DogSkin；这些行会共享同一张生成图标。
+
+每行的生成规则为：
+
+- `Id`：现有 Item ID。
+- `SkinId`：现有 Item 的 DogSkin 引用，用于人工核对。
+- `AssetPathList`：对应 DogSkin 的 `FolderPath`，规范化为带尾部反斜杠的单目录值。
+- `IconPath`：`v0\ItemIcon\Dog_{SkinId}.png`。
+
+新 DogSkin 没有现有 Item 引用时仍生成 PNG，但不生成补丁行。现有 Item 引用了草稿中不存在的 DogSkin 时，批量生成必须失败并提示具体 Item 与 SkinId，不能输出一份不完整 CSV。
 
 导出成功弹窗可调用 `OS.ShellShowInFileManager()` 打开文件所在目录。Windows 文件占用错误通过 HResult 低位 `32/33` 识别，并转换为中文提示。
 
@@ -350,7 +417,7 @@ Id, Alias, IconName, DefaultEars, DefaultEyes, ...
 
 - 不直接写 Excel。
 - 不直接修改 Luban 正式 JSON。
-- 不生成 DogSkin 背包图标。
+- 不自动把生成的 DogSkin 背包图标复制到正式 `Assets/v0`。
 - 不编辑 PSD 或批量导出 PSD 素材。
 - 不处理帽子与眼镜的前后层级配置。
 - 不提供单只 DogSkin 的撤销/重做。
