@@ -16,7 +16,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_Red.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1001.png",
     "SkinId": 1001,
     "SteamItemDefId": 0,
     "SteamItemDefType": 1,
@@ -48,7 +48,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_Black.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1002.png",
     "SkinId": 1002,
     "SteamItemDefId": 101002,
     "SteamItemDefType": 1,
@@ -80,7 +80,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_Cream.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1003.png",
     "SkinId": 1003,
     "SteamItemDefId": 101003,
     "SteamItemDefType": 1,
@@ -112,7 +112,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_Sesame.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1004.png",
     "SkinId": 1004,
     "SteamItemDefId": 101004,
     "SteamItemDefType": 1,
@@ -144,7 +144,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_ThinRed.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1005.png",
     "SkinId": 1005,
     "SteamItemDefId": 101005,
     "SteamItemDefType": 1,
@@ -176,7 +176,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Red\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenRed.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1006.png",
     "SkinId": 1006,
     "SteamItemDefId": 101006,
     "SteamItemDefType": 1,
@@ -208,7 +208,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_ThinBlack.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1007.png",
     "SkinId": 1007,
     "SteamItemDefId": 101007,
     "SteamItemDefType": 1,
@@ -240,7 +240,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Black\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenBlack.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1008.png",
     "SkinId": 1008,
     "SteamItemDefId": 101008,
     "SteamItemDefType": 1,
@@ -272,7 +272,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_ThinCream.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1009.png",
     "SkinId": 1009,
     "SteamItemDefId": 101009,
     "SteamItemDefType": 1,
@@ -304,7 +304,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenCream.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1010.png",
     "SkinId": 1010,
     "SteamItemDefId": 101010,
     "SteamItemDefType": 1,
@@ -336,7 +336,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_ThinSesame.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1011.png",
     "SkinId": 1011,
     "SteamItemDefId": 101011,
     "SteamItemDefType": 1,
@@ -368,7 +368,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenSesame.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1012.png",
     "SkinId": 1012,
     "SteamItemDefId": 101012,
     "SteamItemDefType": 1,
@@ -3216,7 +3216,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Cream\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_Cream.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1003.png",
     "SkinId": 1003,
     "SteamItemDefId": 151001,
     "SteamItemDefType": 1,
@@ -3344,7 +3344,7 @@
     "AssetPathList": [
       "v1\\Shiba\\Sesame\\"
     ],
-    "IconPath": "v1\\ItemIcon\\Shiba_UnshavenSesame.png",
+    "IconPath": "v0\\ItemIcon\\Dog_1012.png",
     "SkinId": 1012,
     "SteamItemDefId": 191012,
     "SteamItemDefType": 1,
