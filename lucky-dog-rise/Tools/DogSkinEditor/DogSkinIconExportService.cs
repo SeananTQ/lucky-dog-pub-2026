@@ -31,6 +31,8 @@ public partial class DogSkinIconExportService : Node
     private const int OutputCanvasSize = 256;
     private const int SafeMargin = 8;
     private const int SafeContentSize = OutputCanvasSize - SafeMargin * 2;
+    private const int DogTopMargin = 16;
+    private const int TableOcclusionY = 677;
     private static readonly Vector2 DogCanvasOrigin = new(586f, 677f);
     private static readonly PackedScene DogAreaScene = GD.Load<PackedScene>("res://Scenes/DogArea.tscn");
 
@@ -62,19 +64,35 @@ public partial class DogSkinIconExportService : Node
             dog.SetPreviewAppearance(draft.ToAppearanceSpec());
             viewport.AddChild(dog);
 
-            var cardboardSprite = new Sprite2D
+            var cardboardBack = new Sprite2D
             {
                 Texture = ImageTexture.CreateFromImage(cardboard),
                 Position = new Vector2(SourceCanvasSize / 2f + cardboardOffsetX, SourceCanvasSize / 2f),
                 ZAsRelative = false,
+                ZIndex = -1,
+                Visible = false,
+            };
+            viewport.AddChild(cardboardBack);
+
+            var cardboardFrontImage = (Image)cardboard.Duplicate();
+            cardboardFrontImage.FillRect(
+                new Rect2I(0, 0, SourceCanvasSize, TableOcclusionY),
+                Colors.Transparent);
+            var cardboardFront = new Sprite2D
+            {
+                Texture = ImageTexture.CreateFromImage(cardboardFrontImage),
+                Position = new Vector2(SourceCanvasSize / 2f + cardboardOffsetX, SourceCanvasSize / 2f),
+                ZAsRelative = false,
+                // Same role as Main.tscn's Table: palm(1) < front(2) < back paw(3).
                 ZIndex = 2,
                 Visible = false,
             };
-            viewport.AddChild(cardboardSprite);
+            viewport.AddChild(cardboardFront);
 
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             dog.SetHitButtonEnabled(false);
             dog.ApplyReaction(EDogReactionTrigger.Default);
+            dog.ShowInspectionClaws();
 
             await WaitForViewportFramesAsync();
             var dogOnly = viewport.GetTexture().GetImage();
@@ -82,7 +100,8 @@ public partial class DogSkinIconExportService : Node
             if (dogBounds.Size.X <= 0 || dogBounds.Size.Y <= 0)
                 throw new InvalidDataException($"DogSkin #{draft.Id} 没有渲染出可见像素。");
 
-            cardboardSprite.Visible = true;
+            cardboardBack.Visible = true;
+            cardboardFront.Visible = true;
             await WaitForViewportFramesAsync();
             var combined = viewport.GetTexture().GetImage();
             return FitToItemIcon(combined, dogBounds);
@@ -155,16 +174,17 @@ public partial class DogSkinIconExportService : Node
 
     private static Image FitToItemIcon(Image combined, Rect2I dogBounds)
     {
-        var dogLongSide = Math.Max(dogBounds.Size.X, dogBounds.Size.Y);
-        var scale = SafeContentSize / (float)dogLongSide;
+        var availableDogHeight = OutputCanvasSize - DogTopMargin - SafeMargin;
+        var scale = Math.Min(
+            SafeContentSize / (float)dogBounds.Size.X,
+            availableDogHeight / (float)dogBounds.Size.Y);
         var scaledWidth = Math.Max(1, Mathf.RoundToInt(combined.GetWidth() * scale));
         var scaledHeight = Math.Max(1, Mathf.RoundToInt(combined.GetHeight() * scale));
         combined.Resize(scaledWidth, scaledHeight, Image.Interpolation.Lanczos);
 
-        var combinedBounds = combined.GetUsedRect();
         var dogCenterX = (dogBounds.Position.X + dogBounds.Size.X / 2f) * scale;
         var cropX = Mathf.RoundToInt(dogCenterX - OutputCanvasSize / 2f);
-        var cropY = combinedBounds.End.Y - (OutputCanvasSize - SafeMargin);
+        var cropY = Mathf.RoundToInt(dogBounds.Position.Y * scale - DogTopMargin);
 
         var output = Image.CreateEmpty(OutputCanvasSize, OutputCanvasSize, false, Image.Format.Rgba8);
         output.Fill(Colors.Transparent);

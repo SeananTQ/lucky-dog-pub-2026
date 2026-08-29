@@ -23,6 +23,8 @@ public partial class DogSkinIconComposerWindow : Window
     private OptionButton _dogOption = null!;
     private SpinBox _offsetInput = null!;
     private TextureRect _preview = null!;
+    private TextureRect _rarePreviewIcon = null!;
+    private TextureRect _epicPreviewIcon = null!;
     private Label _status = null!;
     private Button _refreshButton = null!;
     private Button _exportButton = null!;
@@ -94,12 +96,67 @@ public partial class DogSkinIconComposerWindow : Window
         _refreshButton = CreateButton("刷新预览", RefreshPreviewAsync);
         controls.AddChild(_refreshButton);
 
-        var previewPanel = new PanelContainer
+        var previews = new HBoxContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
         };
-        root.AddChild(previewPanel);
+        previews.AddThemeConstantOverride("separation", 12);
+        root.AddChild(previews);
+
+        var smallPreviewPanel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(230, 0),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        previews.AddChild(smallPreviewPanel);
+        var smallPreviewColumn = new VBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+        };
+        smallPreviewColumn.AddThemeConstantOverride("separation", 12);
+        smallPreviewPanel.AddChild(smallPreviewColumn);
+        var smallPreviewTitle = new Label
+        {
+            Text = "背包实机尺寸预览",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        smallPreviewTitle.AddThemeFontSizeOverride("font_size", 16);
+        smallPreviewColumn.AddChild(smallPreviewTitle);
+
+        var rarityPreviews = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        rarityPreviews.AddThemeConstantOverride("separation", 12);
+        smallPreviewColumn.AddChild(rarityPreviews);
+        rarityPreviews.AddChild(CreateRarityPreview("Rare", "蓝色 · 稀有", out _rarePreviewIcon));
+        rarityPreviews.AddChild(CreateRarityPreview("Epic", "紫色 · 史诗", out _epicPreviewIcon));
+
+        smallPreviewColumn.AddChild(new Label
+        {
+            Text = "90×90 · 与背包道具格层级一致",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Modulate = new Color("aeb8c7"),
+        });
+
+        var detailPanel = new PanelContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        previews.AddChild(detailPanel);
+        var detailColumn = new VBoxContainer();
+        detailColumn.AddThemeConstantOverride("separation", 6);
+        detailPanel.AddChild(detailColumn);
+        var detailTitle = new Label
+        {
+            Text = "原图细节预览（不含道具框）",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        detailTitle.AddThemeFontSizeOverride("font_size", 16);
+        detailColumn.AddChild(detailTitle);
         _preview = new TextureRect
         {
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -108,7 +165,7 @@ public partial class DogSkinIconComposerWindow : Window
             CustomMinimumSize = new Vector2(480, 480),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        previewPanel.AddChild(_preview);
+        detailColumn.AddChild(_preview);
 
         _status = new Label
         {
@@ -143,7 +200,10 @@ public partial class DogSkinIconComposerWindow : Window
             if (requestVersion != _previewRequestVersion || !IsInstanceValid(this))
                 return;
 
-            _preview.Texture = ImageTexture.CreateFromImage(image);
+            var texture = ImageTexture.CreateFromImage(image);
+            _preview.Texture = texture;
+            _rarePreviewIcon.Texture = texture;
+            _epicPreviewIcon.Texture = texture;
             SetStatus(
                 $"预览：{DogSkinIconExportService.IconFileName(draft.Id)}。"
                 + "外围 8 像素已清空；纸箱水平偏移为全局参数。",
@@ -293,6 +353,54 @@ public partial class DogSkinIconComposerWindow : Window
         var button = new Button { Text = text, CustomMinimumSize = new Vector2(0, 36) };
         button.Pressed += action;
         return button;
+    }
+
+    private static TextureRect CreateSmallPreviewLayer()
+    {
+        var layer = new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        SetFullRect(layer);
+        return layer;
+    }
+
+    private static VBoxContainer CreateRarityPreview(
+        string rarityName,
+        string label,
+        out TextureRect iconLayer)
+    {
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 5);
+
+        var cell = new Control
+        {
+            CustomMinimumSize = new Vector2(90, 90),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        column.AddChild(cell);
+
+        var plate = CreateSmallPreviewLayer();
+        plate.Texture = GD.Load<Texture2D>($"res://Assets/UI/ItemUI/Plate_{rarityName}.png");
+        cell.AddChild(plate);
+
+        iconLayer = CreateSmallPreviewLayer();
+        cell.AddChild(iconLayer);
+
+        var frame = CreateSmallPreviewLayer();
+        frame.Texture = GD.Load<Texture2D>($"res://Assets/UI/ItemUI/Frame_{rarityName}.png");
+        cell.AddChild(frame);
+
+        column.AddChild(new Label
+        {
+            Text = label,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Modulate = new Color("aeb8c7"),
+        });
+        return column;
     }
 
     private static void SetFullRect(Control control)

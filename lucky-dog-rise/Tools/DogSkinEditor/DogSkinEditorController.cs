@@ -333,7 +333,7 @@ public partial class DogSkinEditorController : Control
         reactionOption.ItemSelected += index =>
         {
             _editorReaction = (EDogReactionTrigger)reactionOption.GetItemId((int)index);
-            _editorPreview?.ApplyReaction(_editorReaction);
+            ApplyEditorPreviewReaction();
         };
         previewHeader.AddChild(new Label { Text = "表情：", VerticalAlignment = VerticalAlignment.Center });
         previewHeader.AddChild(reactionOption);
@@ -525,11 +525,22 @@ public partial class DogSkinEditorController : Control
         SetFullRect(background);
         viewport.AddChild(background);
 
+        // Mirror Main.tscn's table layer without introducing a distracting
+        // table texture into the asset editor: palm(1) < mask/table(2) < back(3).
+        var tableMask = new ColorRect
+        {
+            Color = background.Color,
+            ZIndex = 2,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        viewport.AddChild(tableMask);
+
         var dog = DogAreaScene.Instantiate<DogVisual>();
         dog.SetPreviewAppearance(draft.ToAppearanceSpec());
         viewport.AddChild(dog);
         dog.SetHitButtonEnabled(false);
         dog.CallDeferred(nameof(DogVisual.SetHitButtonEnabled), false);
+        dog.CallDeferred(nameof(DogVisual.ShowInspectionClaws));
         void UpdatePreviewTransform()
         {
             var size = container.Size;
@@ -545,13 +556,17 @@ public partial class DogSkinEditorController : Control
             var gameDogOrigin = new Vector2(610f, 677f);
             dog.Scale = Vector2.One * scale;
             dog.Position = letterboxOffset + (gameDogOrigin - sourceFrame.Position) * scale;
+
+            var tableY = letterboxOffset.Y + (677f - sourceFrame.Position.Y) * scale;
+            tableMask.Position = new Vector2(0f, tableY);
+            tableMask.Size = new Vector2(size.X, Mathf.Max(0f, size.Y - tableY));
         }
         container.Resized += UpdatePreviewTransform;
         Callable.From(UpdatePreviewTransform).CallDeferred();
         if (!thumbnail)
         {
             _editorPreview = dog;
-            dog.ApplyReaction(_editorReaction);
+            ApplyEditorPreviewReaction();
         }
 
         return container;
@@ -882,7 +897,16 @@ public partial class DogSkinEditorController : Control
         if (_editingDraft == null || _editorPreview == null)
             return;
         _editorPreview.SetPreviewAppearance(_editingDraft.ToAppearanceSpec());
+        ApplyEditorPreviewReaction();
+    }
+
+    private void ApplyEditorPreviewReaction()
+    {
+        if (_editorPreview == null)
+            return;
+
         _editorPreview.ApplyReaction(_editorReaction);
+        _editorPreview.ShowInspectionClaws();
     }
 
     private void CreateNewDraft()

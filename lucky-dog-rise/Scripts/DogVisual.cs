@@ -517,6 +517,20 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         SetClawState(_clawRight, "Back");
     }
 
+    /// <summary>
+    /// Development-tool inspection pose. Showing one paw back and one palm at
+    /// the same time makes large eyewear collisions visible in every preview.
+    /// Runtime reactions must not call this method.
+    /// </summary>
+    public void ShowInspectionClaws()
+    {
+        if (!IsNodeReady()) return;
+
+        StopPawAnimation();
+        SetClawPresentation(_clawLeft, "Back", 3);
+        SetClawPresentation(_clawRight, "Palm", 1);
+    }
+
     public void HideClaw()
     {
         StopPawAnimation();
