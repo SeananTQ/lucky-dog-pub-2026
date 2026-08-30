@@ -105,3 +105,6 @@ lucky-steamworks/playtest-key/
 lucky-steamworks/achievement/tools/steamworks-achievement-sync/test/
 lucky-steamworks/achievement/external/
 
+
+# 皮肤编辑器输出的图标不需要上传到版本控制系统
+lucky-dog-rise/Tools/DogSkinEditor/output/
