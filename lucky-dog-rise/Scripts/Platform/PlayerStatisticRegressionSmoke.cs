@@ -12,7 +12,8 @@ internal static class PlayerStatisticRegressionSmoke
         VerifyRetentionThresholds();
         VerifyBlindBoxSuccessRules();
         VerifyPlatformMergeRules();
-        GD.Print("[PlayerStatisticRegressionSmoke] Passed retention, blind-box, and Steam merge checks.");
+        VerifyChipLedgerRules();
+        GD.Print("[PlayerStatisticRegressionSmoke] Passed retention, blind-box, Steam merge, and chip-ledger checks.");
     }
 
     private static void VerifyRetentionThresholds()
@@ -55,6 +56,39 @@ internal static class PlayerStatisticRegressionSmoke
             "Remote progress and new local delta were not merged.");
         Assert(Calculate(EPlayerStatisticType.Maximum, 80, true, 70, 90) == 90,
             "Maximum statistic did not retain the higher remote value.");
+    }
+
+    private static void VerifyChipLedgerRules()
+    {
+        Assert(PlayerProgress.CalculateChipLedgerBalance(1_000, 400) == 600,
+            "Chip ledger did not subtract cumulative debits from credits.");
+        Assert(PlayerProgress.CalculateChipLedgerBalance(400, 1_000) == 0,
+            "Chip ledger allowed a negative player balance.");
+
+        var mergedCredits = Calculate(EPlayerStatisticType.Counter, 130, true, 100, 120);
+        var mergedDebits = Calculate(EPlayerStatisticType.Counter, 50, true, 40, 45);
+        Assert(PlayerProgress.CalculateChipLedgerBalance(mergedCredits, mergedDebits) == 95,
+            "Independent cross-device credit/debit deltas did not restore the expected balance.");
+
+        var freshDevice = PlayerProgress.CalculateInitialChipLedger(
+            remoteCredits: 1_200,
+            remoteDebits: 300,
+            migrationBalance: GameData.StartingChips,
+            mayPreserveLocalBalance: false,
+            pendingCredits: 0,
+            pendingDebits: 0);
+        Assert(freshDevice == (1_200, 300),
+            "A fresh device granted its starting chips to an existing remote ledger.");
+
+        var existingSave = PlayerProgress.CalculateInitialChipLedger(
+            remoteCredits: 1_200,
+            remoteDebits: 300,
+            migrationBalance: 1_100,
+            mayPreserveLocalBalance: true,
+            pendingCredits: 25,
+            pendingDebits: 10);
+        Assert(existingSave == (1_425, 310),
+            "Existing local balance or pre-sync chip changes were lost during migration.");
     }
 
     private static long Calculate(

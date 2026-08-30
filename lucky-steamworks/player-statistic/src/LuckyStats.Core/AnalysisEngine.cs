@@ -80,6 +80,31 @@ public sealed class AnalysisEngine
         AddAverage(metrics, "使用", "desktop_average_seconds", "每名样本玩家平均桌宠时长",
             Get(analyzed, "STAT_DESKTOP_MODE_SECONDS"), cohort, "秒");
 
+        if (HasDefinition(input.Definitions, "STAT_GLOBAL_INPUT_CHIPS_EARNED"))
+        {
+            var inputChips = Get(analyzed, "STAT_GLOBAL_INPUT_CHIPS_EARNED");
+            metrics.Add(new MetricResult("履历", "global_input_chips_earned", "累计全局输入获得筹码",
+                FormatInteger(inputChips), "全局累计值 - 已排除开发帐号", "可用", inputChips));
+            AddAverage(metrics, "履历", "global_input_chips_average", "每名样本玩家平均累计输入筹码",
+                inputChips, cohort, "筹码");
+        }
+
+        if (HasDefinition(input.Definitions, "STAT_CHIP_LEDGER_CREDITS")
+            && HasDefinition(input.Definitions, "STAT_CHIP_LEDGER_DEBITS"))
+        {
+            var credits = Get(analyzed, "STAT_CHIP_LEDGER_CREDITS");
+            var debits = Get(analyzed, "STAT_CHIP_LEDGER_DEBITS");
+            var balance = Math.Max(0, credits - debits);
+            metrics.Add(new MetricResult("经济", "current_chip_balance_total", "样本玩家当前筹码余额总计",
+                FormatInteger(balance), $"累计入账 {credits} - 累计支出 {debits}",
+                credits >= debits ? "可用" : "账本关系异常", balance));
+            AddAverage(metrics, "经济", "current_chip_balance_average", "每名样本玩家平均当前筹码余额",
+                balance, cohort, "筹码");
+            if (debits > credits)
+                checks.Add(new ValidationResult(CheckSeverity.Error, "累计筹码支出不得超过累计入账",
+                    $"累计入账={credits}、累计支出={debits}；应检查迁移或同步是否只完成了一半。"));
+        }
+
         ValidateNonNegative(facts, checks);
         ValidateFlagsDoNotExceedCohort(facts, cohort, checks);
         ValidateRetentionOrder(analyzed, checks);
@@ -157,6 +182,9 @@ public sealed class AnalysisEngine
 
     private static long Get(IReadOnlyDictionary<string, long> values, string key) =>
         values.TryGetValue(key, out var value) ? value : 0;
+
+    private static bool HasDefinition(IEnumerable<StatisticDefinition> definitions, string apiName) =>
+        definitions.Any(x => string.Equals(x.ApiName, apiName, StringComparison.Ordinal));
 
     private static string UnitLabel(StatisticUnit unit) => unit switch
     {

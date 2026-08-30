@@ -4,7 +4,7 @@
 
 ## 项目组成
 
-- `LuckyStats.Core`：12 项统计定义、Steam JSON 解析、派生公式与关系校验。
+- `LuckyStats.Core`：从 `tbplayerstatistic.json` 动态读取全部平台统计定义、解析 Steam JSON，并执行留存、履历、筹码账本等派生公式与关系校验。
 - `LuckyStats.Infrastructure`：Steam Web API、SQLite 快照、CSV/JSON 导出。
 - `LuckyStats.Desktop`：Windows WPF 图形界面。
 - `LuckyStats.Cli`：供 Codex、脚本和自动化任务调用的纯 JSON 命令行接口。

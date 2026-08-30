@@ -434,7 +434,10 @@ public partial class ModeManager : Control
         AddChild(_gameData);
         _gameData.BindPlatformInventoryService(_platformService);
         _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
-        _statisticSynchronizer = new PlatformStatisticSynchronizer(_platformService, _gameData.PlayerProgress);
+        _statisticSynchronizer = new PlatformStatisticSynchronizer(
+            _platformService,
+            _gameData.PlayerProgress,
+            _gameData.OnPlatformStatisticsSynchronized);
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
@@ -2126,7 +2129,7 @@ public partial class ModeManager : Control
 
     private void OnDebugGrantChips()
     {
-        _gameData.ModifyChips(8000);
+        _gameData.ModifyChips(8000, PlayerProgressSource.Debug);
     }
 
     private void OnDebugGrantLuckyDeals()

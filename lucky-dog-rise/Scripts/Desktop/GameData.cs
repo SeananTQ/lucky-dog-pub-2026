@@ -91,6 +91,7 @@ public partial class GameData : Node
     private double _blindBoxTickTimer;
     private double _profileAutosaveTimer;
     private double _playerProgressSaveTimer;
+    private bool _loadedExistingLocalSave;
     private bool _shutdownFlushCompleted;
     private AccountStorageContext _storageContext = null!;
     private bool _accountStorageFrozen;
@@ -203,6 +204,7 @@ public partial class GameData : Node
         _profileAutosaveTimer = ProfileAutosaveSeconds;
         _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
+        PrepareOrRecoverChipLedger();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
         Inventory.InventoryChanged += OnInventoryChanged;
 #if DEBUG
@@ -964,7 +966,7 @@ public partial class GameData : Node
         if (Chips < price.ActualCost)
             return null;
         if (price.ActualCost > 0)
-            ModifyChips(-price.ActualCost);
+            ModifyChips(-price.ActualCost, PlayerProgressSource.BlindBox);
 
         var result = _blindBoxService.CreateOpenResult(
             TotalPlaySeconds,
@@ -977,7 +979,7 @@ public partial class GameData : Node
         if (result == null)
         {
             if (price.ActualCost > 0)
-                ModifyChips(price.ActualCost);
+                ModifyChips(price.ActualCost, PlayerProgressSource.BlindBox);
             return null;
         }
 
@@ -2117,15 +2119,57 @@ public partial class GameData : Node
         SaveImmediatelyIfUsingLocalSave();
     }
 
-    public void ModifyChips(int delta)
+    public void ModifyChips(int delta, PlayerProgressSource source = PlayerProgressSource.Gameplay)
     {
-        Chips += delta;
+        Chips = checked(Chips + delta);
+        if (CanRecordPlayerProgress)
+            PlayerProgress.RecordChipBalanceDelta(delta, source);
 #if DEBUG
         if (!_blindBoxLocalTestMode)
 #endif
         Progression.UpdateHighScore(Chips);
         EmitSignal(SignalName.ChipsChanged, Chips);
         QueueSaveIfUsingLocalSave();
+    }
+
+    public void OnPlatformStatisticsSynchronized()
+    {
+        if (PlayerProgress.TryCompleteChipLedgerMigration())
+            ReconcileChipLedgerBalance();
+    }
+
+    private void ReconcileChipLedgerBalance()
+    {
+        if (!CanRecordPlayerProgress || PlayerProgress == null || !PlayerProgress.IsChipLedgerAvailable)
+            return;
+
+        var previousBalance = Chips;
+        var recoveredBalance = PlayerProgress.RecoverChipLedgerBalance(previousBalance);
+        var restoredBalance = (int)Math.Min(int.MaxValue, recoveredBalance);
+        if (restoredBalance == previousBalance)
+            return;
+
+        Chips = restoredBalance;
+        Progression.UpdateHighScore(Chips);
+        EmitSignal(SignalName.ChipsChanged, Chips);
+        SaveImmediatelyIfUsingLocalSave();
+        DiagnosticLog.Record("chip_ledger_balance_recovered", new Dictionary<string, object>
+        {
+            ["previousBalance"] = previousBalance,
+            ["restoredBalance"] = restoredBalance,
+            ["credits"] = PlayerProgress.ChipLedgerCredits,
+            ["debits"] = PlayerProgress.ChipLedgerDebits,
+        });
+        GD.Print($"[ChipLedger] Restored chip balance {previousBalance} -> {restoredBalance}.");
+    }
+
+    private void PrepareOrRecoverChipLedger()
+    {
+        if (!CanRecordPlayerProgress || PlayerProgress == null)
+            return;
+
+        PlayerProgress.PrepareChipLedgerMigration(Chips, _loadedExistingLocalSave);
+        ReconcileChipLedgerBalance();
     }
 
     public bool TryBeginLinkTreeClaim(
@@ -2182,14 +2226,7 @@ public partial class GameData : Node
             return true;
 
         if (chipDelta != 0)
-        {
-            Chips = checked(Chips + chipDelta);
-#if DEBUG
-            if (!_blindBoxLocalTestMode)
-#endif
-            Progression.UpdateHighScore(Chips);
-            EmitSignal(SignalName.ChipsChanged, Chips);
-        }
+            ModifyChips(chipDelta, PlayerProgressSource.Gameplay);
 
         _appliedLinkTreeRewardIds.Add(linkTreeId);
         SaveImmediatelyIfUsingLocalSave();
@@ -2423,7 +2460,11 @@ public partial class GameData : Node
     }
 
 #if DEBUG
-    public void ResetPlayerProgress() => PlayerProgress.Reset();
+    public void ResetPlayerProgress()
+    {
+        PlayerProgress.Reset();
+        PrepareOrRecoverChipLedger();
+    }
     public void SetPlayerProgressDebugMultiplier(int multiplier) => PlayerProgress.SetDebugMultiplier(multiplier);
     public string GetPlayerProgressDebugStatus() =>
         $"Progress file: {PlayerProgress.AbsoluteSavePath}\n" +
@@ -2513,7 +2554,10 @@ public partial class GameData : Node
         SettingsManager.SaveSaveDataMode(mode);
         LoadDataForCurrentMode();
         if (CanRecordPlayerProgress)
+        {
+            PrepareOrRecoverChipLedger();
             PlayerProgress.BackfillExternalInventory(Inventory);
+        }
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
@@ -2555,6 +2599,8 @@ public partial class GameData : Node
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
+            _loadedExistingLocalSave = false;
+            PrepareOrRecoverChipLedger();
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
             EmitSignal(SignalName.BlindBoxStateChanged);
@@ -2567,7 +2613,9 @@ public partial class GameData : Node
     {
         ResetPlaytimeDropTransientState();
 #if !DEBUG
-        var profile = SaveManager.LoadOrCreate();
+        var loadResult = SaveManager.LoadOrCreateDetailed();
+        var profile = loadResult.Profile;
+        _loadedExistingLocalSave = IsExistingSave(loadResult.Disposition);
         Chips = profile.Chips;
         TotalPlaySeconds = profile.TotalPlaySeconds;
         LoadBlindBoxState(profile);
@@ -2579,7 +2627,9 @@ public partial class GameData : Node
 #else
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
         {
-            var profile = SaveManager.LoadOrCreate();
+            var loadResult = SaveManager.LoadOrCreateDetailed();
+            var profile = loadResult.Profile;
+            _loadedExistingLocalSave = IsExistingSave(loadResult.Disposition);
             Chips = profile.Chips;
             TotalPlaySeconds = profile.TotalPlaySeconds;
             LoadBlindBoxState(profile);
@@ -2592,6 +2642,7 @@ public partial class GameData : Node
         }
 
         Chips = DebugAllItemsStartingChips;
+        _loadedExistingLocalSave = false;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         PendingLinkTreeClaim = null;
@@ -2607,6 +2658,9 @@ public partial class GameData : Node
         _saveTimer = 0.0;
 #endif
     }
+
+    private static bool IsExistingSave(SaveLoadDisposition disposition) =>
+        disposition is SaveLoadDisposition.Primary or SaveLoadDisposition.BackupRecovered;
 
     private void ResetPlaytimeDropTransientState()
     {

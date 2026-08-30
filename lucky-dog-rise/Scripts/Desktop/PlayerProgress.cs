@@ -26,6 +26,11 @@ public sealed class PlayerProgressProfile
     public string OwnerAccountId { get; set; } = "";
     public Dictionary<string, long> Statistics { get; set; } = new();
     public Dictionary<string, long> PlatformStatisticBaselines { get; set; } = new();
+    public bool ChipLedgerInitialized { get; set; }
+    public long? ChipLedgerMigrationBalance { get; set; }
+    public bool ChipLedgerMigrationMayPreserveLocalBalance { get; set; }
+    public long PendingChipLedgerCredits { get; set; }
+    public long PendingChipLedgerDebits { get; set; }
     public HashSet<string> OccurredEventKeys { get; set; } = new();
     public HashSet<string> UnlockedAchievementApiNames { get; set; } = new();
     public HashSet<string> PlatformSuppressedAchievementApiNames { get; set; } = new();
@@ -50,6 +55,9 @@ public readonly record struct PlatformStatisticSyncState(
 /// </summary>
 public sealed class PlayerProgress
 {
+    public const string ChipLedgerCreditsStatisticKey = "ChipLedgerCredits";
+    public const string ChipLedgerDebitsStatisticKey = "ChipLedgerDebits";
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly AccountStorageContext _storageContext;
@@ -137,6 +145,12 @@ public sealed class PlayerProgress
         .Where(pair => _statisticsByKey.ContainsKey(pair.Key))
         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
     public long GlobalInputChipsEarned => GetStatistic("GlobalInputChipsEarned");
+    public bool IsChipLedgerAvailable =>
+        IsCounterDefinition(ChipLedgerCreditsStatisticKey)
+        && IsCounterDefinition(ChipLedgerDebitsStatisticKey);
+    public bool IsChipLedgerInitialized => _profile.ChipLedgerInitialized && IsChipLedgerAvailable;
+    public long ChipLedgerCredits => GetStatistic(ChipLedgerCreditsStatisticKey);
+    public long ChipLedgerDebits => GetStatistic(ChipLedgerDebitsStatisticKey);
     public IReadOnlyCollection<string> UnlockedAchievementApiNames => _profile.UnlockedAchievementApiNames
         .Where(_enabledAchievementApiNames.Contains)
         .ToArray();
@@ -211,6 +225,130 @@ public sealed class PlayerProgress
         _profile.PlatformStatisticBaselines[statisticKey] = synchronizedValue;
         _dirty = true;
         RequestImmediateSave();
+    }
+
+    /// <summary>
+    /// Captures the local balance that existed before the first successful Steam ledger read.
+    /// It is only used when both remote ledger values are zero, so a fresh device cannot
+    /// grant its starting chips to an account that already has a remote balance.
+    /// </summary>
+    public void PrepareChipLedgerMigration(long currentLocalBalance, bool mayPreserveLocalBalance)
+    {
+        currentLocalBalance = Math.Max(0, currentLocalBalance);
+        if (!IsChipLedgerAvailable || IsChipLedgerInitialized || _profile.ChipLedgerMigrationBalance.HasValue)
+            return;
+
+        _profile.ChipLedgerMigrationBalance = currentLocalBalance;
+        _profile.ChipLedgerMigrationMayPreserveLocalBalance = mayPreserveLocalBalance;
+        _dirty = true;
+        RequestImmediateSave();
+    }
+
+    /// <summary>
+    /// Completes first-use migration only after both Steam ledger stats were read.
+    /// Remote data wins over the local migration candidate; locally earned/spent chips
+    /// accumulated while waiting for Steam are then appended to that remote ledger.
+    /// </summary>
+    public bool TryCompleteChipLedgerMigration()
+    {
+        if (!IsChipLedgerAvailable || IsChipLedgerInitialized)
+            return IsChipLedgerInitialized;
+
+        if (!_profile.PlatformStatisticBaselines.ContainsKey(ChipLedgerCreditsStatisticKey)
+            || !_profile.PlatformStatisticBaselines.ContainsKey(ChipLedgerDebitsStatisticKey))
+            return false;
+
+        var (credits, debits) = CalculateInitialChipLedger(
+            ChipLedgerCredits,
+            ChipLedgerDebits,
+            _profile.ChipLedgerMigrationBalance.GetValueOrDefault(),
+            _profile.ChipLedgerMigrationMayPreserveLocalBalance,
+            _profile.PendingChipLedgerCredits,
+            _profile.PendingChipLedgerDebits);
+        _profile.Statistics[ChipLedgerCreditsStatisticKey] = credits;
+        _profile.Statistics[ChipLedgerDebitsStatisticKey] = debits;
+        _profile.ChipLedgerInitialized = true;
+        _profile.ChipLedgerMigrationBalance = null;
+        _profile.ChipLedgerMigrationMayPreserveLocalBalance = false;
+        _profile.PendingChipLedgerCredits = 0;
+        _profile.PendingChipLedgerDebits = 0;
+        _dirty = true;
+        RequestImmediateSave();
+        return true;
+    }
+
+    public long RecoverChipLedgerBalance(long currentLocalBalance)
+    {
+        currentLocalBalance = Math.Max(0, currentLocalBalance);
+        if (!IsChipLedgerInitialized)
+            return currentLocalBalance;
+
+        var ledgerBalance = GetChipLedgerBalance();
+        if (currentLocalBalance <= ledgerBalance)
+            return ledgerBalance;
+
+        RecordCounter(
+            ChipLedgerCreditsStatisticKey,
+            currentLocalBalance - ledgerBalance,
+            PlayerProgressSource.Gameplay,
+            applyDebugMultiplier: false);
+        RequestImmediateSave();
+        return currentLocalBalance;
+    }
+
+    public void RecordChipBalanceDelta(int delta, PlayerProgressSource source)
+    {
+        if (source == PlayerProgressSource.Debug || delta == 0 || !IsChipLedgerAvailable)
+            return;
+
+        if (!IsChipLedgerInitialized)
+        {
+            if (delta > 0)
+                _profile.PendingChipLedgerCredits = checked(_profile.PendingChipLedgerCredits + delta);
+            else
+                _profile.PendingChipLedgerDebits = checked(_profile.PendingChipLedgerDebits - (long)delta);
+            _dirty = true;
+            RequestImmediateSave();
+            return;
+        }
+
+        if (delta > 0)
+            RecordCounter(ChipLedgerCreditsStatisticKey, delta, source, applyDebugMultiplier: false);
+        else
+            RecordCounter(ChipLedgerDebitsStatisticKey, -(long)delta, source, applyDebugMultiplier: false);
+    }
+
+    public long GetChipLedgerBalance()
+    {
+        if (!IsChipLedgerInitialized)
+            return 0;
+
+        return CalculateChipLedgerBalance(ChipLedgerCredits, ChipLedgerDebits);
+    }
+
+    internal static long CalculateChipLedgerBalance(long credits, long debits) =>
+        Math.Max(0, Math.Max(0, credits) - Math.Max(0, debits));
+
+    internal static (long Credits, long Debits) CalculateInitialChipLedger(
+        long remoteCredits,
+        long remoteDebits,
+        long migrationBalance,
+        bool mayPreserveLocalBalance,
+        long pendingCredits,
+        long pendingDebits)
+    {
+        var credits = Math.Max(0, remoteCredits);
+        var debits = Math.Max(0, remoteDebits);
+        migrationBalance = Math.Max(0, migrationBalance);
+        var remoteBalance = CalculateChipLedgerBalance(credits, debits);
+        if (credits == 0 && debits == 0)
+            credits = migrationBalance;
+        else if (mayPreserveLocalBalance && migrationBalance > remoteBalance)
+            credits = checked(credits + migrationBalance - remoteBalance);
+
+        return (
+            checked(credits + Math.Max(0, pendingCredits)),
+            checked(debits + Math.Max(0, pendingDebits)));
     }
 
     /// <summary>平台侧已解锁项是账号事实；合并到本地并解除旧的 Debug 上传抑制。</summary>
@@ -560,7 +698,11 @@ public sealed class PlayerProgress
     }
 #endif
 
-    private void RecordCounter(string statisticKey, long amount, PlayerProgressSource source)
+    private void RecordCounter(
+        string statisticKey,
+        long amount,
+        PlayerProgressSource source,
+        bool applyDebugMultiplier = true)
     {
         if (source == PlayerProgressSource.Debug || amount <= 0)
             return;
@@ -572,7 +714,7 @@ public sealed class PlayerProgress
             return;
         }
 
-        var applied = ApplyMultiplier(amount, source);
+        var applied = applyDebugMultiplier ? ApplyMultiplier(amount, source) : amount;
         _profile.Statistics[statisticKey] = checked(GetStatistic(statisticKey) + applied);
         _dirty = true;
         EvaluateStatisticAchievements(statisticKey);
@@ -619,6 +761,10 @@ public sealed class PlayerProgress
     }
 
     private long GetStatistic(string statisticKey) => _profile.Statistics.TryGetValue(statisticKey, out var value) ? value : 0L;
+
+    private bool IsCounterDefinition(string statisticKey) =>
+        _statisticsByKey.TryGetValue(statisticKey, out var definition)
+        && definition.StatisticType == EPlayerStatisticType.Counter;
 
     private long ApplyMultiplier(long amount, PlayerProgressSource source)
     {

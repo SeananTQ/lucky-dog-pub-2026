@@ -314,7 +314,7 @@ public partial class GameManager : Node2D
     private void OnChipCollected()
     {
         _pendingReward = null;
-        _gameData.ModifyChips(_pendingPayout);
+        _gameData.ModifyChips(_pendingPayout, _currentHandProgressSource);
         _gameData.RecordPokerPayoutCollected(_pendingPayout, _currentHandProgressSource);
         _pendingPayout = 0;
         RefreshUI();
@@ -326,7 +326,7 @@ public partial class GameManager : Node2D
 
     public void AddChips(int amount)
     {
-        _gameData.ModifyChips(amount);
+        _gameData.ModifyChips(amount, PlayerProgressSource.Debug);
         RefreshUI();
     }
 
@@ -338,7 +338,7 @@ public partial class GameManager : Node2D
             return;
         }
 
-        _gameData.ModifyChips(-_gameData.BetAmount);
+        _gameData.ModifyChips(-_gameData.BetAmount, _currentHandProgressSource);
         _gameData.RecordPokerHandStarted(_gameData.BetAmount, _currentHandProgressSource);
         _gameData.EmitNewHandStarted();
         var hasLuckyDealBuff = _gameData.TryConsumeLuckyDealBuff(

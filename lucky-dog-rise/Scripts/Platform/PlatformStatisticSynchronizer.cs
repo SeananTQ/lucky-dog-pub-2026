@@ -21,16 +21,21 @@ public sealed class PlatformStatisticSynchronizer
     private readonly IGamePlatformService _platformService;
     private readonly IPlatformStatisticSyncOperations? _operations;
     private readonly PlayerProgress _playerProgress;
+    private readonly Action? _synchronizationCompleted;
     private string _lastLocalSnapshot = string.Empty;
     private double _secondsUntilSync;
     private bool _initialSyncCompleted;
     private bool _reportedMissingDefinitions;
 
-    public PlatformStatisticSynchronizer(IGamePlatformService platformService, PlayerProgress playerProgress)
+    public PlatformStatisticSynchronizer(
+        IGamePlatformService platformService,
+        PlayerProgress playerProgress,
+        Action? synchronizationCompleted = null)
     {
         _platformService = platformService;
         _operations = platformService as IPlatformStatisticSyncOperations;
         _playerProgress = playerProgress;
+        _synchronizationCompleted = synchronizationCompleted;
     }
 
     public void Tick(double delta)
@@ -130,6 +135,7 @@ public sealed class PlatformStatisticSynchronizer
 
         _initialSyncCompleted = true;
         _lastLocalSnapshot = BuildSnapshot(_playerProgress.GetPlatformSyncStatisticStates());
+        _synchronizationCompleted?.Invoke();
         _secondsUntilSync = writeResult.Succeeded
             ? CounterUploadIntervalSeconds
             : RetryIntervalSeconds;

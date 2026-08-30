@@ -5,6 +5,7 @@ var tests = new (string Name, Action Run)[]
     ("解析 Steam 全局 JSON", ParseGlobal),
     ("解析 Steam 玩家 JSON 并补零", ParseUser),
     ("开发帐号扣除与派生指标", AnalyzeExclusion),
+    ("跨设备筹码账本派生", AnalyzeChipLedger),
     ("成熟留存分母", AnalyzeRetentionBaseline),
     ("关系异常检测", DetectInvalidRelations)
 };
@@ -73,6 +74,25 @@ static void AnalyzeRetentionBaseline()
     Equal("数据不足", report.Metrics.Single(x => x.Key == "retention_72h").Value);
 }
 
+static void AnalyzeChipLedger()
+{
+    var values = EmptyValues();
+    values["STAT_PT1_COHORT_MEMBER"] = 3;
+    values["STAT_GLOBAL_INPUT_CHIPS_EARNED"] = 200;
+    values["STAT_CHIP_LEDGER_CREDITS"] = 1_000;
+    values["STAT_CHIP_LEDGER_DEBITS"] = 400;
+    var developer = EmptyValues();
+    developer["STAT_PT1_COHORT_MEMBER"] = 1;
+    developer["STAT_GLOBAL_INPUT_CHIPS_EARNED"] = 20;
+    developer["STAT_CHIP_LEDGER_CREDITS"] = 100;
+    developer["STAT_CHIP_LEDGER_DEBITS"] = 50;
+
+    var report = Analyze(values, [new AccountFacts("1", "dev", developer)], new Dictionary<int, HistoricalBaseline>());
+    Equal("180", report.Metrics.Single(x => x.Key == "global_input_chips_earned").Value);
+    Equal("550", report.Metrics.Single(x => x.Key == "current_chip_balance_total").Value);
+    Equal("275.0 筹码", report.Metrics.Single(x => x.Key == "current_chip_balance_average").Value);
+}
+
 static void DetectInvalidRelations()
 {
     var values = EmptyValues();
@@ -101,12 +121,17 @@ static IReadOnlyList<StatisticDefinition> Definitions()
         "STAT_PT1_RETURNED_AFTER_72H", "STAT_PT1_RETURNED_AFTER_168H", "STAT_PT1_POKER_GUIDANCE_COMPLETED",
         "STAT_PT1_POKER_GUIDANCE_SECONDS", "STAT_PT1_POKER_GUIDANCE_HANDS",
         "STAT_PT1_NEWCOMER_BOX_1_STEAM_CLAIMED", "STAT_PT1_NEWCOMER_BOX_4_STEAM_CLAIMED",
-        "STAT_PT1_FIRST_LOOP_BOX_STEAM_CLAIMED", "STAT_PT1_ANY_LINKTREE_REWARD_CLAIMED"
+        "STAT_PT1_FIRST_LOOP_BOX_STEAM_CLAIMED", "STAT_PT1_ANY_LINKTREE_REWARD_CLAIMED",
+        "STAT_GLOBAL_INPUT_CHIPS_EARNED", "STAT_CHIP_LEDGER_CREDITS", "STAT_CHIP_LEDGER_DEBITS"
     };
     return names.Select((name, index) => new StatisticDefinition(
         1000 + index, name, name,
-        name.Contains("SECONDS", StringComparison.Ordinal) ? StatisticUnit.Seconds : StatisticUnit.Flag,
-        name.Contains("SECONDS", StringComparison.Ordinal) ? StatisticType.Counter : StatisticType.Flag,
+        name.Contains("SECONDS", StringComparison.Ordinal)
+            ? StatisticUnit.Seconds
+            : name.Contains("CHIP", StringComparison.Ordinal) ? StatisticUnit.Chips : StatisticUnit.Flag,
+        name.Contains("SECONDS", StringComparison.Ordinal) || name.Contains("CHIP", StringComparison.Ordinal)
+            ? StatisticType.Counter
+            : StatisticType.Flag,
         name, string.Empty)).ToArray();
 }
 

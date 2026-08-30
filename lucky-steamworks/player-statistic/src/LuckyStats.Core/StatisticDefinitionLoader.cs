@@ -4,6 +4,22 @@ namespace LuckyStats.Core;
 
 public static class StatisticDefinitionLoader
 {
+    private static readonly string[] RequiredAnalysisApiNames =
+    [
+        "STAT_DESKTOP_MODE_SECONDS",
+        "STAT_PT1_COHORT_MEMBER",
+        "STAT_PT1_RETURNED_AFTER_24H",
+        "STAT_PT1_RETURNED_AFTER_72H",
+        "STAT_PT1_RETURNED_AFTER_168H",
+        "STAT_PT1_POKER_GUIDANCE_COMPLETED",
+        "STAT_PT1_POKER_GUIDANCE_SECONDS",
+        "STAT_PT1_POKER_GUIDANCE_HANDS",
+        "STAT_PT1_NEWCOMER_BOX_1_STEAM_CLAIMED",
+        "STAT_PT1_NEWCOMER_BOX_4_STEAM_CLAIMED",
+        "STAT_PT1_FIRST_LOOP_BOX_STEAM_CLAIMED",
+        "STAT_PT1_ANY_LINKTREE_REWARD_CLAIMED"
+    ];
+
     public static IReadOnlyList<StatisticDefinition> LoadSynced(string path)
     {
         using var stream = File.OpenRead(path);
@@ -31,8 +47,10 @@ public static class StatisticDefinitionLoader
                 row.TryGetProperty("Notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty));
         }
 
-        if (result.Count != 12)
-            throw new InvalidDataException($"预期 12 项 SyncToPlatform=true 的统计，实际读取到 {result.Count} 项。");
+        var configuredApiNames = result.Select(x => x.ApiName).ToHashSet(StringComparer.Ordinal);
+        var missingRequired = RequiredAnalysisApiNames.Where(x => !configuredApiNames.Contains(x)).ToArray();
+        if (missingRequired.Length > 0)
+            throw new InvalidDataException($"缺少分析工具必需的平台统计：{string.Join(", ", missingRequired)}。");
 
         return result.OrderBy(x => x.StatisticId).ToArray();
     }

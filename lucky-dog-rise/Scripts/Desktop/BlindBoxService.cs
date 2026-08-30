@@ -618,7 +618,7 @@ public sealed class BlindBoxService
             return null;
         }
 
-        _gameData.ModifyChips(-price.ActualCost);
+        _gameData.ModifyChips(-price.ActualCost, PlayerProgressSource.BlindBox);
         return CreateOpenResult(totalPlaySeconds, schedule, box, item, price.ActualCost);
     }
 
