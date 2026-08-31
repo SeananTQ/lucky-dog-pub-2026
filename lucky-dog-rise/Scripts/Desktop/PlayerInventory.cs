@@ -138,6 +138,36 @@ public class PlayerInventory
         return _newItemIds.OrderBy(id => id).ToArray();
     }
 
+    public void ReplaceItemCounts(
+        IEnumerable<int> itemIds,
+        IReadOnlyDictionary<int, int> replacementCounts,
+        bool emitChanged = true)
+    {
+        var validIds = itemIds
+            .Where(id => FindItem(id) != null)
+            .Distinct()
+            .ToHashSet();
+        var changed = false;
+        foreach (var itemId in validIds)
+        {
+            var replacement = Math.Max(0, replacementCounts.GetValueOrDefault(itemId));
+            if (GetCount(itemId) == replacement)
+                continue;
+
+            changed = true;
+            if (replacement > 0)
+                _ownedItemCounts[itemId] = replacement;
+            else
+            {
+                _ownedItemCounts.Remove(itemId);
+                _newItemIds.Remove(itemId);
+            }
+        }
+
+        if (changed && emitChanged)
+            InventoryChanged?.Invoke();
+    }
+
     public Dictionary<string, int> GetEquippedIdsByTypeName()
     {
         return _equipped

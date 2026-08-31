@@ -7,7 +7,7 @@ namespace LuckyDogRise;
 
 public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
     IPlatformAchievementSyncOperations, IPlatformStatisticSyncOperations, IPlatformInventoryService,
-    IPlatformUpdateService
+    IPlatformUpdateService, IPlatformCloudStorageService
 {
     private enum InventoryRequestKind
     {
@@ -61,6 +61,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public string ProviderName => "Steam";
     public string StatusMessage => _runtime.StatusMessage;
     public bool IsAvailable => _runtime.IsInitialized;
+    public bool IsCloudAvailable => IsAvailable
+        && SteamRemoteStorage.IsCloudEnabledForAccount()
+        && SteamRemoteStorage.IsCloudEnabledForApp();
     public uint AppId => _runtime.AppId;
     public string PersonaName => _runtime.PersonaName;
     public string AccountProvider => "steam";
@@ -85,6 +88,75 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         return true;
     }
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
+
+    public PlatformCloudFileReadResult ReadCloudTextFile(string fileName)
+    {
+        if (!IsCloudAvailable)
+            return new PlatformCloudFileReadResult(
+                false, false, string.Empty, 0,
+                "Steam Cloud 未启用，或玩家关闭了该游戏的云存储。");
+
+        try
+        {
+            if (!SteamRemoteStorage.FileExists(fileName))
+                return new PlatformCloudFileReadResult(
+                    true, false, string.Empty, 0,
+                    $"Steam Cloud 文件不存在：{fileName}");
+
+            var size = SteamRemoteStorage.GetFileSize(fileName);
+            if (size < 0)
+                return new PlatformCloudFileReadResult(
+                    false, true, string.Empty, 0,
+                    $"Steam Cloud 文件大小无效：{fileName}");
+
+            var bytes = new byte[size];
+            var bytesRead = size == 0 ? 0 : SteamRemoteStorage.FileRead(fileName, bytes, size);
+            if (bytesRead != size)
+                return new PlatformCloudFileReadResult(
+                    false, true, string.Empty, 0,
+                    $"Steam Cloud 文件读取不完整：{bytesRead}/{size} bytes。");
+
+            return new PlatformCloudFileReadResult(
+                true,
+                true,
+                System.Text.Encoding.UTF8.GetString(bytes),
+                SteamRemoteStorage.GetFileTimestamp(fileName),
+                $"Steam Cloud 已读取 {fileName}。");
+        }
+        catch (Exception exception)
+        {
+            return new PlatformCloudFileReadResult(
+                false, false, string.Empty, 0,
+                $"Steam Cloud 读取失败：{exception.GetType().Name}: {exception.Message}");
+        }
+    }
+
+    public bool TryWriteCloudTextFile(string fileName, string content, out string message)
+    {
+        if (!IsCloudAvailable)
+        {
+            message = "Steam Cloud 未启用，或玩家关闭了该游戏的云存储。";
+            return false;
+        }
+
+        try
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(content ?? string.Empty);
+            if (!SteamRemoteStorage.FileWrite(fileName, bytes, bytes.Length))
+            {
+                message = $"Steam Cloud 拒绝写入 {fileName}；请检查 Cloud 配额。";
+                return false;
+            }
+
+            message = $"Steam Cloud 已写入 {fileName}（{bytes.Length} bytes）。";
+            return true;
+        }
+        catch (Exception exception)
+        {
+            message = $"Steam Cloud 写入失败：{exception.GetType().Name}: {exception.Message}";
+            return false;
+        }
+    }
 
     public bool TryMarkContentCorrupt(bool missingFilesOnly, out string message)
     {

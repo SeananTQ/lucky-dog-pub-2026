@@ -33,6 +33,7 @@ public sealed class AccountStorageContext
     public string PlayerProgressTempPath => $"{RootPath}/player_progress_0.temp.json";
     public string PlayerProgressCorruptPath => $"{RootPath}/player_progress_0.corrupt.json";
     public string AccountStatePath => $"{RootPath}/account_state.cfg";
+    public string ConsumableCloudLocalPath => $"{RootPath}/consumables_v1.local.json";
     public string ProgressionPath => $"{RootPath}/progress.cfg";
     public string ProgressionBackupPath => $"{RootPath}/progress.backup.cfg";
     public string ProgressionTempPath => $"{RootPath}/progress.temp.cfg";

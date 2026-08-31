@@ -6,7 +6,7 @@ namespace LuckyDogRise;
 
 public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
-    IPlatformStatisticSyncOperations, IPlatformUpdateService
+    IPlatformStatisticSyncOperations, IPlatformUpdateService, IPlatformCloudStorageService
 {
     private const double InventoryTimeoutSeconds = 10.0;
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
@@ -47,6 +47,9 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public bool CanUpdateAndRestart => !_disposed
         && !HasAccountIdentityConflict
         && _session?.CanUpdateAndRestart == true;
+    public bool IsCloudAvailable => !_disposed
+        && !HasAccountIdentityConflict
+        && _session?.IsCloudAvailable == true;
     public bool HasAccountIdentityConflict { get; private set; }
     public bool IsReadyForWrites => _session?.IsReadyForWrites == true;
     public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
@@ -206,6 +209,18 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     }
 
     public bool OpenFriendsOverlay() => _session?.OpenFriendsOverlay() == true;
+
+    public PlatformCloudFileReadResult ReadCloudTextFile(string fileName) =>
+        _session?.ReadCloudTextFile(fileName)
+        ?? new PlatformCloudFileReadResult(false, false, string.Empty, 0, StatusMessage);
+
+    public bool TryWriteCloudTextFile(string fileName, string content, out string message)
+    {
+        if (_session != null)
+            return _session.TryWriteCloudTextFile(fileName, content, out message);
+        message = StatusMessage;
+        return false;
+    }
 
     public bool TryMarkContentCorrupt(bool missingFilesOnly, out string message)
     {

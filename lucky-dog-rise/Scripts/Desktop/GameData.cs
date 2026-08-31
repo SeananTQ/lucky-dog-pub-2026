@@ -62,6 +62,7 @@ public partial class GameData : Node
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
+    private ConsumableCloudSynchronizer _consumableCloudSynchronizer;
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
     private int _pendingBlindBoxCompletionReceiptItemDefId;
     private int _observedPlatformSequenceCompletionCount;
@@ -224,6 +225,7 @@ public partial class GameData : Node
 
     public override void _Process(double delta)
     {
+        _consumableCloudSynchronizer?.Process();
         TotalPlaySeconds += delta;
         _blindBoxService.AdvanceScheduleClock(ActiveBlindBoxRuntimeState, delta);
         if (CanRecordPlayerProgress)
@@ -284,13 +286,23 @@ public partial class GameData : Node
 #if DEBUG
         EndBlindBoxLocalTestMode(force: true, synchronizeInventory: false);
 #endif
-        UnbindPlatformInventoryService();
         FlushForShutdown();
+        UnbindPlatformInventoryService();
     }
 
     public void BindPlatformInventoryService(IGamePlatformService platformService)
     {
         UnbindPlatformInventoryService();
+        if (platformService is IPlatformCloudStorageService cloudStorage
+            && _storageContext.Provider == "steam"
+            && _saveDataMode == SettingsManager.SaveDataMode.LocalSave)
+        {
+            _consumableCloudSynchronizer = new ConsumableCloudSynchronizer(
+                cloudStorage,
+                _storageContext,
+                Inventory,
+                trustCurrentLocalCounts: _loadedExistingLocalSave);
+        }
         _platformInventoryService = platformService as IPlatformInventoryService;
         _recoverablePlatformService = platformService as IRecoverablePlatformService;
         if (_platformInventoryService == null)
@@ -323,6 +335,10 @@ public partial class GameData : Node
         var stopwatch = Stopwatch.StartNew();
         SaveImmediatelyIfUsingLocalSave();
         GD.Print($"[Shutdown] Profile save completed in {stopwatch.ElapsedMilliseconds} ms.");
+
+        stopwatch.Restart();
+        _consumableCloudSynchronizer?.FlushForShutdown();
+        GD.Print($"[Shutdown] Consumable cloud flush completed in {stopwatch.ElapsedMilliseconds} ms.");
 
         stopwatch.Restart();
         PlayerProgress?.FlushSession();
@@ -1661,6 +1677,8 @@ public partial class GameData : Node
 
     private void UnbindPlatformInventoryService()
     {
+        _consumableCloudSynchronizer?.Dispose();
+        _consumableCloudSynchronizer = null;
         if (_platformInventoryService != null)
         {
             _platformInventoryService.InventorySnapshotChanged -= OnPlatformInventorySnapshotChanged;
