@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 [ext_resource type="Texture2D" uid="uid://4upal3vc8wlb" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
 [ext_resource type="Texture2D" uid="uid://y8vkbcba3ytw" path="res://Assets/UI/Icon/TabIcon_LinkTree.svg" id="5_linktree"]
+[ext_resource type="Texture2D" uid="uid://c37thix5jp8ea" path="res://Assets/UI/Icon/TabIcon_OutfitPreset.svg" id="5_preset"]
 [ext_resource type="Texture2D" uid="uid://cwilhq5lum061" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
 [ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
 [ext_resource type="LabelSettings" uid="uid://cw0whg8jho3rf" path="res://Themes/Label_SettingsGroupTitle.tres" id="8_group_title"]
@@ -62,7 +63,7 @@ theme_override_constants/separation = 0
 
 [node name="TitleRow" type="HBoxContainer" parent="Panel/RootVBox" unique_id=1627757193]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="WardrobeTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168622]
 custom_minimum_size = Vector2(68, 44)
@@ -80,6 +81,15 @@ tooltip_text = "Settings_Tab_LinkTree"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("5_linktree")
+icon_alignment = 1
+
+[node name="OutfitPresetTab" type="Button" parent="Panel/RootVBox/TitleRow"]
+custom_minimum_size = Vector2(68, 44)
+layout_mode = 2
+tooltip_text = "Settings_Tab_OutfitPresets"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("5_preset")
 icon_alignment = 1
 
 [node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
@@ -953,6 +963,22 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 autowrap_mode = 3
+
+[node name="OutfitPresetContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="PresetTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="PresetSlots" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
 [node name="LinkTreeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
 custom_minimum_size = Vector2(0, 6)

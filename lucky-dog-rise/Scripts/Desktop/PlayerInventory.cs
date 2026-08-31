@@ -171,7 +171,7 @@ public class PlayerInventory
     public Dictionary<string, int> GetEquippedIdsByTypeName()
     {
         return _equipped
-            .Where(pair => IsEquipmentType(pair.Key))
+            .Where(pair => IsOutfitPresetType(pair.Key))
             .OrderBy(pair => pair.Key.ToString())
             .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);
     }
@@ -183,7 +183,7 @@ public class PlayerInventory
         var selections = new Dictionary<EItemType, int>();
         foreach (var (typeName, itemId) in equippedIdsByTypeName)
         {
-            if (!Enum.TryParse<EItemType>(typeName, out var type) || !IsEquipmentType(type))
+            if (!Enum.TryParse<EItemType>(typeName, out var type) || !IsOutfitPresetType(type))
                 continue;
 
             var item = FindItem(itemId);
@@ -206,7 +206,7 @@ public class PlayerInventory
         _debugPreviewEquipped.Clear();
         _debugPreviewActiveTypes.Clear();
 #endif
-        foreach (var type in GetEquipmentTypes())
+        foreach (var type in GetEquipmentTypes().Where(IsOutfitPresetType))
         {
             if (selections.TryGetValue(type, out var selectedItemId))
             {
@@ -427,6 +427,13 @@ public class PlayerInventory
     /// </summary>
     public static bool IsEquipmentType(EItemType type) =>
         type != EItemType.Refreshment && GetEquipmentSlot(type) != null;
+
+    /// <summary>
+    /// 装扮预设只管理玩家能在背包中搭配的装备。
+    /// Arm 由系统设置中的手臂外观选项独立管理，不随预设保存或切换。
+    /// </summary>
+    public static bool IsOutfitPresetType(EItemType type) =>
+        type != EItemType.Arm && IsEquipmentType(type);
 
     public static IReadOnlyList<EItemType> GetEquipmentTypes()
     {

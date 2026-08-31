@@ -9,6 +9,7 @@ public static class L10nKey
     public const string Common_Confirm = nameof(Common_Confirm);
     public const string Settings_Tab_Wardrobe = nameof(Settings_Tab_Wardrobe);
     public const string Settings_Tab_LinkTree = nameof(Settings_Tab_LinkTree);
+    public const string Settings_Tab_OutfitPresets = nameof(Settings_Tab_OutfitPresets);
     public const string Settings_Tab_Settings = nameof(Settings_Tab_Settings);
     public const string Settings_Tab_Debug = nameof(Settings_Tab_Debug);
     public const string Settings_General = nameof(Settings_General);
@@ -80,6 +81,9 @@ public static class L10nKey
     public const string Wardrobe_Tab_Player = nameof(Wardrobe_Tab_Player);
     public const string Wardrobe_Tab_Theme = nameof(Wardrobe_Tab_Theme);
     public const string Wardrobe_Tab_Refreshment = nameof(Wardrobe_Tab_Refreshment);
+    public const string OutfitPreset_SaveEmptySlot = nameof(OutfitPreset_SaveEmptySlot);
+    public const string OutfitPreset_ApplySlot = nameof(OutfitPreset_ApplySlot);
+    public const string OutfitPreset_DeleteSlot = nameof(OutfitPreset_DeleteSlot);
     public const string LinkTree_SyncingRewards = nameof(LinkTree_SyncingRewards);
     public const string LinkTree_RewardsUnavailable = nameof(LinkTree_RewardsUnavailable);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);

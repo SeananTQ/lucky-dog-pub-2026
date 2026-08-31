@@ -96,6 +96,7 @@ public partial class SystemPanelController : CanvasLayer
     private Button _settingsTab = null!;
     private Button _wardrobeTab = null!;
     private Button _linkTreeTab = null!;
+    private Button _outfitPresetTab = null!;
 #if DEBUG
     private Button _debugTab = null!;
 #endif
@@ -104,6 +105,8 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _linkTreeContent = null!;
+    private VBoxContainer _outfitPresetContent = null!;
+    private VBoxContainer _outfitPresetSlots = null!;
     private Control _linkTreeStatusCenter = null!;
     private Label _linkTreeStatusLabel = null!;
 #if DEBUG
@@ -205,6 +208,7 @@ public partial class SystemPanelController : CanvasLayer
                 _gameData.InventoryChanged -= BuildArmAppearanceOptions;
                 _gameData.ChipsChanged -= OnChipsChangedForGlobalInputLabel;
                 _gameData.BlindBoxStateChanged -= OnSharedInventoryTransactionStateChanged;
+                _gameData.OutfitPresetsChanged -= RebuildOutfitPresetSlots;
             }
 
             _gameData = value;
@@ -218,6 +222,7 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.InventoryChanged += BuildArmAppearanceOptions;
             _gameData.ChipsChanged += OnChipsChangedForGlobalInputLabel;
             _gameData.BlindBoxStateChanged += OnSharedInventoryTransactionStateChanged;
+            _gameData.OutfitPresetsChanged += RebuildOutfitPresetSlots;
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
@@ -324,6 +329,11 @@ public partial class SystemPanelController : CanvasLayer
         [1006] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Refreshment.svg"),
     };
     private const string ArmColorChipPathPrefix = "res://Assets/UI/Icon/Arm_ColorChip_";
+    private const float OutfitPresetRowHeight = 50f;
+    private const float OutfitPresetItemCellSize = 34f;
+    private const float OutfitPresetDeleteButtonSize = 32f;
+    private static readonly Texture2D OutfitPresetDeleteIcon =
+        GD.Load<Texture2D>("res://Assets/UI/Icon/Icon_OutfitPresetDelete.svg");
 
     public override void _Ready()
     {
@@ -333,17 +343,22 @@ public partial class SystemPanelController : CanvasLayer
         _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
         _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
         _linkTreeTab = GetNode<Button>("Panel/RootVBox/TitleRow/LinkTreeTab");
+        _outfitPresetTab = GetNode<Button>("Panel/RootVBox/TitleRow/OutfitPresetTab");
         _tabs.Add(_wardrobeTab);
         _tabs.Add(_linkTreeTab);
+        _tabs.Add(_outfitPresetTab);
         _tabs.Add(_settingsTab);
 
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
+        _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
+        _outfitPresetSlots = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent/PresetSlots");
         _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
         _linkTreeStatusLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter/StatusVBox/LinkTreeStatusLabel");
         _tabContents.Add(_wardrobeContent);
         _tabContents.Add(_linkTreeContent);
+        _tabContents.Add(_outfitPresetContent);
         _tabContents.Add(_settingsContent);
         _settingsActionTopGap = GetNode<Control>("Panel/RootVBox/ActionTopGap");
         _settingsActionRow = GetNode<Control>("Panel/RootVBox/SettingsActionRow");
@@ -352,7 +367,8 @@ public partial class SystemPanelController : CanvasLayer
 
         _wardrobeTab.Pressed += () => SwitchTab(0);
         _linkTreeTab.Pressed += () => SwitchTab(1);
-        _settingsTab.Pressed += () => SwitchTab(2);
+        _outfitPresetTab.Pressed += () => SwitchTab(2);
+        _settingsTab.Pressed += () => SwitchTab(3);
         BuildLinkTree();
         SetLinkTreePageState(LinkTreePageState.Loading);
         InitializeLinkTreeInventory();
@@ -361,7 +377,7 @@ public partial class SystemPanelController : CanvasLayer
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
         _tabs.Add(_debugTab);
         _tabContents.Add(_debugContent);
-        _debugTab.Pressed += () => SwitchTab(3);
+        _debugTab.Pressed += () => SwitchTab(4);
 #else
         GetNode("Panel/RootVBox/TitleRow/DebugTab").Free();
         GetNode("Panel/RootVBox/Scroll/ContentVBox/DebugContent").Free();
@@ -843,10 +859,10 @@ public partial class SystemPanelController : CanvasLayer
             _tabContents[i].Visible = i == index;
             _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
-        _settingsActionTopGap.Visible = index == 2;
-        _settingsActionRow.Visible = index == 2;
-        _settingsActionBottomGap.Visible = index == 2;
-        _settingsActionSep.Visible = index == 2;
+        _settingsActionTopGap.Visible = index == 3;
+        _settingsActionRow.Visible = index == 3;
+        _settingsActionBottomGap.Visible = index == 3;
+        _settingsActionSep.Visible = index == 3;
         if (index == 0 && _gameData != null)
             BuildWardrobe();
         if (index == 1)
@@ -857,8 +873,10 @@ public partial class SystemPanelController : CanvasLayer
             _recoverablePlatformService?.RequestReconnect();
             TryPlayPendingLinkTreeRewardFeedbacks();
         }
+        if (index == 2)
+            RebuildOutfitPresetSlots();
         #if DEBUG
-        if (index == 3)
+        if (index == 4)
             RefreshDebugPlayTime();
         #endif
     }
@@ -870,6 +888,8 @@ public partial class SystemPanelController : CanvasLayer
 
         if (_wardrobeContent?.Visible == true)
             BuildWardrobe();
+        if (_outfitPresetContent?.Visible == true)
+            RebuildOutfitPresetSlots();
 #if DEBUG
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
@@ -1944,6 +1964,209 @@ public partial class SystemPanelController : CanvasLayer
             PopulateWardrobeGrid(_selectedTab);
     }
 
+    // ===== 装扮预设页 =====
+
+    private void RebuildOutfitPresetSlots()
+    {
+        if (_outfitPresetSlots == null || _gameData == null)
+            return;
+
+        foreach (var child in _outfitPresetSlots.GetChildren())
+            child.QueueFree();
+
+        var slots = _gameData.GetOutfitPresetSlots();
+        foreach (var slot in slots)
+        {
+            _outfitPresetSlots.AddChild(CreateOutfitPresetRow(slot));
+            if (slot.SlotIndex < OutfitPresetCloudSynchronizer.SlotCount - 1)
+            {
+                var separator = new HSeparator();
+                separator.MouseFilter = Control.MouseFilterEnum.Ignore;
+                _outfitPresetSlots.AddChild(separator);
+            }
+        }
+    }
+
+    private Control CreateOutfitPresetRow(OutfitPresetSlotSnapshot slot)
+    {
+        var row = new HBoxContainer
+        {
+            CustomMinimumSize = new Vector2(0f, OutfitPresetRowHeight),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Pass,
+        };
+        row.AddThemeConstantOverride("separation", 4);
+
+        var presetButton = new Button
+        {
+            CustomMinimumSize = new Vector2(0f, OutfitPresetRowHeight),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Flat = true,
+            MouseDefaultCursorShape = Control.CursorShape.PointingHand,
+            TooltipText = L10n.Tr(slot.IsOccupied
+                ? L10nKey.OutfitPreset_ApplySlot
+                : L10nKey.OutfitPreset_SaveEmptySlot),
+        };
+        if (slot.IsOccupied)
+        {
+            AddOutfitPresetIcons(presetButton, slot.EquippedItemIdsByType);
+            presetButton.Pressed += () => HandleApplyOutfitPreset(slot.SlotIndex);
+        }
+        else
+        {
+            var addLabel = new Label
+            {
+                Text = "+",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            addLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+            addLabel.AddThemeFontSizeOverride("font_size", 22);
+            presetButton.AddChild(addLabel);
+            presetButton.Pressed += () => HandleSaveOutfitPreset(slot.SlotIndex);
+        }
+        row.AddChild(presetButton);
+
+        if (slot.IsOccupied)
+        {
+            var deleteButton = new Button
+            {
+                CustomMinimumSize = new Vector2(
+                    OutfitPresetDeleteButtonSize,
+                    OutfitPresetDeleteButtonSize),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                ThemeTypeVariation = "PanelCloseButton",
+                Icon = OutfitPresetDeleteIcon,
+                IconAlignment = HorizontalAlignment.Center,
+                MouseDefaultCursorShape = Control.CursorShape.PointingHand,
+                TooltipText = L10n.Tr(L10nKey.OutfitPreset_DeleteSlot),
+            };
+            deleteButton.AddThemeConstantOverride("icon_max_width", 16);
+            deleteButton.Pressed += () => HandleDeleteOutfitPreset(slot.SlotIndex);
+            row.AddChild(deleteButton);
+        }
+        else
+        {
+            row.AddChild(new Control
+            {
+                CustomMinimumSize = new Vector2(
+                    OutfitPresetDeleteButtonSize,
+                    OutfitPresetDeleteButtonSize),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            });
+        }
+
+        return row;
+    }
+
+    private static void AddOutfitPresetIcons(
+        Button presetButton,
+        IReadOnlyDictionary<string, int> equippedItemIdsByType)
+    {
+        var margin = new MarginContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        margin.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        margin.AddThemeConstantOverride("margin_left", 6);
+        margin.AddThemeConstantOverride("margin_right", 6);
+        margin.AddThemeConstantOverride("margin_top", 8);
+        margin.AddThemeConstantOverride("margin_bottom", 8);
+
+        var iconRow = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Begin,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        iconRow.AddThemeConstantOverride("separation", 2);
+        margin.AddChild(iconRow);
+        presetButton.AddChild(margin);
+
+        var orderedTypes = LubanData.Tables.TbEquipmentSlotConfig.DataList
+            .Select(slot => slot.ItemType)
+            .Where(PlayerInventory.IsOutfitPresetType)
+            .Distinct();
+        foreach (var type in orderedTypes)
+        {
+            if (!equippedItemIdsByType.TryGetValue(type.ToString(), out var itemId))
+                continue;
+            var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
+            if (item == null || item.IsHiddenInBag)
+                continue;
+
+            iconRow.AddChild(CreateOutfitPresetItemCell(item));
+        }
+    }
+
+    private static Control CreateOutfitPresetItemCell(Item item)
+    {
+        var cell = new Control
+        {
+            CustomMinimumSize = new Vector2(
+                OutfitPresetItemCellSize,
+                OutfitPresetItemCellSize),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        AddOutfitPresetItemCellLayer(
+            cell,
+            $"res://Assets/UI/ItemUI/Plate_{item.ItemRarity}.png");
+        AddOutfitPresetItemCellLayer(
+            cell,
+            item.IconPath,
+            useFallback: true);
+        AddOutfitPresetItemCellLayer(
+            cell,
+            $"res://Assets/UI/ItemUI/Frame_{item.ItemRarity}.png");
+        return cell;
+    }
+
+    private static void AddOutfitPresetItemCellLayer(
+        Control cell,
+        string texturePath,
+        bool useFallback = false)
+    {
+        var texture = useFallback
+            ? PlayerInventory.LoadItemIconOrFallback(texturePath)
+            : ResourceLoader.Exists(texturePath) ? GD.Load<Texture2D>(texturePath) : null;
+        if (texture == null)
+            return;
+
+        var layer = new TextureRect
+        {
+            Texture = texture,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        layer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        cell.AddChild(layer);
+    }
+
+    private void HandleSaveOutfitPreset(int slotIndex)
+    {
+        if (!_gameData.TrySaveCurrentOutfitPreset(slotIndex, out var message))
+            GD.PushWarning($"[OutfitPresetUI] {message}");
+        else
+            GD.Print($"[OutfitPresetUI] {message}");
+    }
+
+    private void HandleApplyOutfitPreset(int slotIndex)
+    {
+        if (!_gameData.TryApplyOutfitPreset(slotIndex, out var message))
+            GD.PushWarning($"[OutfitPresetUI] {message}");
+        else
+            GD.Print($"[OutfitPresetUI] {message}");
+    }
+
+    private void HandleDeleteOutfitPreset(int slotIndex)
+    {
+        if (!_gameData.TryDeleteOutfitPreset(slotIndex, out var message))
+            GD.PushWarning($"[OutfitPresetUI] {message}");
+        else
+            GD.Print($"[OutfitPresetUI] {message}");
+    }
+
     private static readonly PackedScene ItemCellScene = GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
 
     private Node CreateItemCell(Item item)
@@ -2485,6 +2708,10 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var (button, tab) in _filterTabs)
             button.TooltipText = GetWardrobeTabTooltip(tab);
+        if (_outfitPresetTab != null)
+            _outfitPresetTab.TooltipText = L10n.Tr(L10nKey.Settings_Tab_OutfitPresets);
+        if (_outfitPresetContent?.Visible == true)
+            RebuildOutfitPresetSlots();
     }
 
     private void RefreshModeButtonText()

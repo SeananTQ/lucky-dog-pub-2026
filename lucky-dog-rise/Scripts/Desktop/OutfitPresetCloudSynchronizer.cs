@@ -382,7 +382,7 @@ public sealed class OutfitPresetCloudSynchronizer : IDisposable
         IReadOnlyDictionary<string, int>? source) =>
         (source ?? new Dictionary<string, int>())
             .Where(pair => Enum.TryParse<DataTables.EItemType>(pair.Key, out var type)
-                           && PlayerInventory.IsEquipmentType(type)
+                           && PlayerInventory.IsOutfitPresetType(type)
                            && pair.Value > 0)
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
