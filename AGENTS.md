@@ -191,6 +191,7 @@ lucky-dog-rise/
 - 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
 - 相同道具可以重复获得并累计数量。`AcquisitionType=Initial` 的道具是永久基础物品，不进入盲盒奖池；未来的回收系统也不得消耗这类物品。
 - 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
+- Playtest 包存档根目录：`C:\Users\carlo\AppData\Roaming\LuckyDogRise\Playtest\accounts\steam\<SteamID64>`；小号目录为 0275 结尾。
 - V15 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`PendingBlindBoxCompletionReceiptItemDefId`、`CreatedAt`、`UpdatedAt`；盲盒运行态包含未决准备、已确认待揭晓奖励和已锁定展示来源。
 - 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆等）。盲盒开盒中断状态会保存并恢复，包括当前盲盒、奖励、RevealStep 与奖励是否已展示。
 - 盲盒倒计时每秒刷新 UI，但不应因此每秒写存档。普通存档变化使用 0.75 秒防抖，持续游玩时间每 60 秒保存一次快照；开盒资格消耗、奖励入账和待揭晓状态变化等关键节点立即保存。
