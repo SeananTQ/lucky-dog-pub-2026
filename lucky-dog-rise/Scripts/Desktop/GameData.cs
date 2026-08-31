@@ -22,6 +22,7 @@ public partial class GameData : Node
     [Signal] public delegate void NewHandStartedEventHandler();
     [Signal] public delegate void EquipmentChangedEventHandler();
     [Signal] public delegate void InventoryChangedEventHandler();
+    [Signal] public delegate void OutfitPresetsChangedEventHandler();
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
     [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
@@ -63,6 +64,7 @@ public partial class GameData : Node
     private IPlatformInventoryService _platformInventoryService;
     private IRecoverablePlatformService _recoverablePlatformService;
     private ConsumableCloudSynchronizer _consumableCloudSynchronizer;
+    private OutfitPresetCloudSynchronizer _outfitPresetCloudSynchronizer;
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
     private int _pendingBlindBoxCompletionReceiptItemDefId;
     private int _observedPlatformSequenceCompletionCount;
@@ -226,6 +228,7 @@ public partial class GameData : Node
     public override void _Process(double delta)
     {
         _consumableCloudSynchronizer?.Process();
+        _outfitPresetCloudSynchronizer?.Process();
         TotalPlaySeconds += delta;
         _blindBoxService.AdvanceScheduleClock(ActiveBlindBoxRuntimeState, delta);
         if (CanRecordPlayerProgress)
@@ -303,6 +306,11 @@ public partial class GameData : Node
                 Inventory,
                 trustCurrentLocalCounts: _loadedExistingLocalSave);
         }
+        _outfitPresetCloudSynchronizer = new OutfitPresetCloudSynchronizer(
+            platformService as IPlatformCloudStorageService,
+            _storageContext,
+            Inventory);
+        _outfitPresetCloudSynchronizer.Changed += OnOutfitPresetsChanged;
         _platformInventoryService = platformService as IPlatformInventoryService;
         _recoverablePlatformService = platformService as IRecoverablePlatformService;
         if (_platformInventoryService == null)
@@ -341,6 +349,10 @@ public partial class GameData : Node
         GD.Print($"[Shutdown] Consumable cloud flush completed in {stopwatch.ElapsedMilliseconds} ms.");
 
         stopwatch.Restart();
+        _outfitPresetCloudSynchronizer?.FlushForShutdown();
+        GD.Print($"[Shutdown] Outfit preset cloud flush completed in {stopwatch.ElapsedMilliseconds} ms.");
+
+        stopwatch.Restart();
         PlayerProgress?.FlushSession();
         GD.Print($"[Shutdown] Player progress save completed in {stopwatch.ElapsedMilliseconds} ms.");
         _shutdownFlushCompleted = true;
@@ -361,6 +373,39 @@ public partial class GameData : Node
         }
 
         Inventory.ToggleEquip(itemId);
+    }
+
+    public IReadOnlyList<OutfitPresetSlotSnapshot> GetOutfitPresetSlots() =>
+        _outfitPresetCloudSynchronizer?.GetSlots()
+        ?? Enumerable.Range(0, OutfitPresetCloudSynchronizer.SlotCount)
+            .Select(index => new OutfitPresetSlotSnapshot(
+                index,
+                false,
+                new Dictionary<string, int>()))
+            .ToArray();
+
+    public bool TrySaveCurrentOutfitPreset(int slotIndex, out string message)
+    {
+        if (_outfitPresetCloudSynchronizer != null)
+            return _outfitPresetCloudSynchronizer.TrySaveCurrentToEmptySlot(slotIndex, out message);
+        message = "装扮预设服务尚未初始化。";
+        return false;
+    }
+
+    public bool TryApplyOutfitPreset(int slotIndex, out string message)
+    {
+        if (_outfitPresetCloudSynchronizer != null)
+            return _outfitPresetCloudSynchronizer.TryApplySlot(slotIndex, out message);
+        message = "装扮预设服务尚未初始化。";
+        return false;
+    }
+
+    public bool TryDeleteOutfitPreset(int slotIndex, out string message)
+    {
+        if (_outfitPresetCloudSynchronizer != null)
+            return _outfitPresetCloudSynchronizer.TryDeleteSlot(slotIndex, out message);
+        message = "装扮预设服务尚未初始化。";
+        return false;
     }
 
     public void AddItem(int itemId, int count = 1, bool markNew = true, PlayerProgressSource source = PlayerProgressSource.Gameplay)
@@ -1677,6 +1722,12 @@ public partial class GameData : Node
 
     private void UnbindPlatformInventoryService()
     {
+        if (_outfitPresetCloudSynchronizer != null)
+        {
+            _outfitPresetCloudSynchronizer.Changed -= OnOutfitPresetsChanged;
+            _outfitPresetCloudSynchronizer.Dispose();
+            _outfitPresetCloudSynchronizer = null;
+        }
         _consumableCloudSynchronizer?.Dispose();
         _consumableCloudSynchronizer = null;
         if (_platformInventoryService != null)
@@ -1687,6 +1738,11 @@ public partial class GameData : Node
         }
         _platformInventoryService = null;
         _recoverablePlatformService = null;
+    }
+
+    private void OnOutfitPresetsChanged()
+    {
+        EmitSignal(SignalName.OutfitPresetsChanged);
     }
 
     private void ReconcilePendingPreparation(IReadOnlyList<PlatformInventoryItem> platformItems)

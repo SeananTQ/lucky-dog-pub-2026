@@ -176,6 +176,69 @@ public class PlayerInventory
             .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);
     }
 
+    public bool TryApplyEquipmentPreset(
+        IReadOnlyDictionary<string, int> equippedIdsByTypeName,
+        out string message)
+    {
+        var selections = new Dictionary<EItemType, int>();
+        foreach (var (typeName, itemId) in equippedIdsByTypeName)
+        {
+            if (!Enum.TryParse<EItemType>(typeName, out var type) || !IsEquipmentType(type))
+                continue;
+
+            var item = FindItem(itemId);
+            if (item == null || item.ItemType != type)
+            {
+                message = $"预设中的道具 {itemId} 与槽位 {typeName} 不匹配。";
+                return false;
+            }
+            if (!Owns(itemId))
+            {
+                message = $"尚未拥有预设中的道具：{itemId}。";
+                return false;
+            }
+            selections[type] = itemId;
+        }
+
+        var changed = false;
+        var newMarkerChanged = false;
+#if DEBUG
+        _debugPreviewEquipped.Clear();
+        _debugPreviewActiveTypes.Clear();
+#endif
+        foreach (var type in GetEquipmentTypes())
+        {
+            if (selections.TryGetValue(type, out var selectedItemId))
+            {
+                if (!_equipped.TryGetValue(type, out var currentItemId) || currentItemId != selectedItemId)
+                {
+                    _equipped[type] = selectedItemId;
+                    changed = true;
+                }
+                newMarkerChanged |= _newItemIds.Remove(selectedItemId);
+                continue;
+            }
+
+            if (CanUnequip(type) && _equipped.Remove(type))
+                changed = true;
+        }
+
+        changed |= ApplyDefaultEquipment();
+        if (changed)
+        {
+            EquipmentChanged?.Invoke();
+        }
+        if (changed || newMarkerChanged)
+        {
+            InventoryChanged?.Invoke();
+        }
+
+        message = changed || newMarkerChanged
+            ? "已应用装扮预设。"
+            : "当前已经是这套装扮预设。";
+        return true;
+    }
+
 #if DEBUG
     /// <summary>只用于 Debug 录制展示；null 表示该类型临时留空。</summary>
     public void SetDebugPreviewEquipment(IReadOnlyDictionary<EItemType, int?> selections)
