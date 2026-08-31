@@ -171,6 +171,14 @@ public class PlayerInventory
     public Dictionary<string, int> GetEquippedIdsByTypeName()
     {
         return _equipped
+            .Where(pair => IsEquipmentType(pair.Key))
+            .OrderBy(pair => pair.Key.ToString())
+            .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);
+    }
+
+    public Dictionary<string, int> GetOutfitPresetEquippedIdsByTypeName()
+    {
+        return _equipped
             .Where(pair => IsOutfitPresetType(pair.Key))
             .OrderBy(pair => pair.Key.ToString())
             .ToDictionary(pair => pair.Key.ToString(), pair => pair.Value);

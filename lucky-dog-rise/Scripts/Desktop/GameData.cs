@@ -95,6 +95,7 @@ public partial class GameData : Node
     private double _profileAutosaveTimer;
     private double _playerProgressSaveTimer;
     private bool _loadedExistingLocalSave;
+    private bool _pendingFreshSaveOutfitPresetRestore;
     private bool _shutdownFlushCompleted;
     private AccountStorageContext _storageContext = null!;
     private bool _accountStorageFrozen;
@@ -311,8 +312,10 @@ public partial class GameData : Node
             _storageContext,
             Inventory);
         _outfitPresetCloudSynchronizer.Changed += OnOutfitPresetsChanged;
+        _outfitPresetCloudSynchronizer.Reconciled += OnOutfitPresetsReconciled;
         _platformInventoryService = platformService as IPlatformInventoryService;
         _recoverablePlatformService = platformService as IRecoverablePlatformService;
+        TryAutoRestoreFirstAvailableOutfitPreset();
         if (_platformInventoryService == null)
             return;
 
@@ -1461,6 +1464,7 @@ public partial class GameData : Node
         ReconcilePreparedRewardPresence(snapshot.Items);
         ReconcileDeferredActivationRewardPresence(snapshot.Items);
         ReconcilePlatformInventory(snapshot.Items);
+        TryAutoRestoreFirstAvailableOutfitPreset();
     }
 
     private void ReconcilePendingPlaytimeGeneratorActivation(
@@ -1725,6 +1729,7 @@ public partial class GameData : Node
         if (_outfitPresetCloudSynchronizer != null)
         {
             _outfitPresetCloudSynchronizer.Changed -= OnOutfitPresetsChanged;
+            _outfitPresetCloudSynchronizer.Reconciled -= OnOutfitPresetsReconciled;
             _outfitPresetCloudSynchronizer.Dispose();
             _outfitPresetCloudSynchronizer = null;
         }
@@ -1743,6 +1748,51 @@ public partial class GameData : Node
     private void OnOutfitPresetsChanged()
     {
         EmitSignal(SignalName.OutfitPresetsChanged);
+        TryAutoRestoreFirstAvailableOutfitPreset();
+    }
+
+    private void OnOutfitPresetsReconciled()
+    {
+        TryAutoRestoreFirstAvailableOutfitPreset();
+    }
+
+    private void TryAutoRestoreFirstAvailableOutfitPreset()
+    {
+        if (!_pendingFreshSaveOutfitPresetRestore
+            || !IsUsingLocalSave
+            || _storageContext.Provider != "steam"
+            || _outfitPresetCloudSynchronizer?.IsSessionReconciled != true
+            || _platformInventoryService?.IsInventoryReady != true)
+            return;
+
+        foreach (var slot in _outfitPresetCloudSynchronizer.GetSlots()
+                     .Where(slot => slot.IsOccupied && slot.EquippedItemIdsByType.Count > 0)
+                     .OrderBy(slot => slot.SlotIndex))
+        {
+            if (!Inventory.TryApplyEquipmentPreset(slot.EquippedItemIdsByType, out var message))
+            {
+                GD.PushWarning(
+                    $"[OutfitPresetRestore] Slot {slot.SlotIndex + 1} is not currently usable: {message}");
+                continue;
+            }
+
+            _pendingFreshSaveOutfitPresetRestore = false;
+            SaveImmediatelyIfUsingLocalSave();
+            GD.Print($"[OutfitPresetRestore] Applied first available slot {slot.SlotIndex + 1}.");
+            DiagnosticLog.Record("outfit_preset_auto_restored", new Dictionary<string, object>
+            {
+                ["slotIndex"] = slot.SlotIndex,
+                ["message"] = message,
+            });
+            return;
+        }
+
+        _pendingFreshSaveOutfitPresetRestore = false;
+        GD.Print("[OutfitPresetRestore] Fresh save has no currently usable cloud preset.");
+        DiagnosticLog.Record("outfit_preset_auto_restore_skipped", new Dictionary<string, object>
+        {
+            ["reason"] = "no_usable_preset",
+        });
     }
 
     private void ReconcilePendingPreparation(IReadOnlyList<PlatformInventoryItem> platformItems)
@@ -2674,11 +2724,13 @@ public partial class GameData : Node
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
             _loadedExistingLocalSave = false;
+            _pendingFreshSaveOutfitPresetRestore = true;
             PrepareOrRecoverChipLedger();
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
             EmitSignal(SignalName.BlindBoxStateChanged);
             EmitSignal(SignalName.RefreshmentStateChanged);
+            TryAutoRestoreFirstAvailableOutfitPreset();
         }
     }
 #endif
@@ -2690,6 +2742,7 @@ public partial class GameData : Node
         var loadResult = SaveManager.LoadOrCreateDetailed();
         var profile = loadResult.Profile;
         _loadedExistingLocalSave = IsExistingSave(loadResult.Disposition);
+        _pendingFreshSaveOutfitPresetRestore = !_loadedExistingLocalSave;
         Chips = profile.Chips;
         TotalPlaySeconds = profile.TotalPlaySeconds;
         LoadBlindBoxState(profile);
@@ -2704,6 +2757,7 @@ public partial class GameData : Node
             var loadResult = SaveManager.LoadOrCreateDetailed();
             var profile = loadResult.Profile;
             _loadedExistingLocalSave = IsExistingSave(loadResult.Disposition);
+            _pendingFreshSaveOutfitPresetRestore = !_loadedExistingLocalSave;
             Chips = profile.Chips;
             TotalPlaySeconds = profile.TotalPlaySeconds;
             LoadBlindBoxState(profile);
@@ -2717,6 +2771,7 @@ public partial class GameData : Node
 
         Chips = DebugAllItemsStartingChips;
         _loadedExistingLocalSave = false;
+        _pendingFreshSaveOutfitPresetRestore = false;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         PendingLinkTreeClaim = null;

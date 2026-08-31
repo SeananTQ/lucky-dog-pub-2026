@@ -69,6 +69,9 @@ public sealed class OutfitPresetCloudSynchronizer : IDisposable
     }
 
     public event Action Changed = delegate { };
+    public event Action Reconciled = delegate { };
+
+    public bool IsSessionReconciled => _sessionReconciled;
 
     public IReadOnlyList<OutfitPresetSlotSnapshot> GetSlots()
     {
@@ -104,7 +107,7 @@ public sealed class OutfitPresetCloudSynchronizer : IDisposable
             SlotIndex = slotIndex,
             UpdatedAtUnixMilliseconds = NowUnixMilliseconds(),
             Deleted = false,
-            EquippedItemIdsByType = NormalizeEquipment(_inventory.GetEquippedIdsByTypeName()),
+            EquippedItemIdsByType = NormalizeEquipment(_inventory.GetOutfitPresetEquippedIdsByTypeName()),
         };
         PersistLocalChange();
         message = $"已保存装扮预设到槽位 {slotIndex + 1}。";
@@ -204,6 +207,7 @@ public sealed class OutfitPresetCloudSynchronizer : IDisposable
             }
 
             _sessionReconciled = true;
+            Reconciled();
         }
 
         if (_dirty)
