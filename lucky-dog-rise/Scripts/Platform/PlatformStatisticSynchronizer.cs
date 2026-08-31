@@ -10,7 +10,9 @@ namespace LuckyDogRise;
 
 /// <summary>
 /// Merges monotonic local player facts with Steam INT stats. Flags and maxima use max;
-/// counters add only the local delta recorded since the last merge baseline.
+/// counters add only the local delta recorded since the last merge baseline. A persisted
+/// migration baseline separates pre-existing local history from activity before the first
+/// successful Steam read, including after an offline restart.
 /// </summary>
 public sealed class PlatformStatisticSynchronizer
 {

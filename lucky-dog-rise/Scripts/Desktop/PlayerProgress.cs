@@ -26,6 +26,7 @@ public sealed class PlayerProgressProfile
     public string OwnerAccountId { get; set; } = "";
     public Dictionary<string, long> Statistics { get; set; } = new();
     public Dictionary<string, long> PlatformStatisticBaselines { get; set; } = new();
+    public Dictionary<string, long> PlatformCounterMigrationBaselines { get; set; } = new();
     public bool ChipLedgerInitialized { get; set; }
     public long? ChipLedgerMigrationBalance { get; set; }
     public bool ChipLedgerMigrationMayPreserveLocalBalance { get; set; }
@@ -134,6 +135,7 @@ public sealed class PlayerProgress
             .Select(achievement => achievement.ApiName)
             .ToHashSet(StringComparer.Ordinal);
         _profile = LoadOrCreate();
+        InitializePlatformCounterMigrationBaselines();
         GD.Print(
             $"[PlayerProgress] Loaded account={_storageContext}, Version={_profile.Version}, Path={AbsoluteSavePath}");
         ValidateDefinitions();
@@ -194,8 +196,8 @@ public sealed class PlayerProgress
                 definition.PlatformApiName,
                 definition.StatisticType,
                 GetStatistic(definition.StatisticKey),
-                _profile.PlatformStatisticBaselines.TryGetValue(definition.StatisticKey, out _),
-                _profile.PlatformStatisticBaselines.GetValueOrDefault(definition.StatisticKey)))
+                TryGetPlatformStatisticBaseline(definition.StatisticKey, out var baseline),
+                baseline))
             .OrderBy(state => state.ApiName, StringComparer.Ordinal)
             .ToArray();
     }
@@ -223,6 +225,7 @@ public sealed class PlayerProgress
             return;
 
         _profile.PlatformStatisticBaselines[statisticKey] = synchronizedValue;
+        _profile.PlatformCounterMigrationBaselines.Remove(statisticKey);
         _dirty = true;
         RequestImmediateSave();
     }
@@ -633,6 +636,7 @@ public sealed class PlayerProgress
     public void Reset()
     {
         _profile = CreateEmptyProfile();
+        InitializePlatformCounterMigrationBaselines();
         _durationRemainders.Clear();
         _inputBucketStart = default;
         _inputBucketChips = 0;
@@ -937,6 +941,7 @@ public sealed class PlayerProgress
             }
             profile.Statistics ??= new Dictionary<string, long>();
             profile.PlatformStatisticBaselines ??= new Dictionary<string, long>();
+            profile.PlatformCounterMigrationBaselines ??= new Dictionary<string, long>();
             profile.OccurredEventKeys ??= new HashSet<string>();
             profile.UnlockedAchievementApiNames ??= new HashSet<string>();
             profile.PlatformSuppressedAchievementApiNames ??= new HashSet<string>();
@@ -956,6 +961,38 @@ public sealed class PlayerProgress
         OwnerProvider = _storageContext.Provider,
         OwnerAccountId = _storageContext.AccountId,
     };
+
+    private void InitializePlatformCounterMigrationBaselines()
+    {
+        var changed = false;
+        foreach (var definition in _statisticsByKey.Values.Where(definition =>
+                     definition.SyncToPlatform
+                     && definition.StatisticType == EPlayerStatisticType.Counter
+                     && !string.IsNullOrWhiteSpace(definition.PlatformApiName)))
+        {
+            if (_profile.PlatformStatisticBaselines.ContainsKey(definition.StatisticKey)
+                || _profile.PlatformCounterMigrationBaselines.ContainsKey(definition.StatisticKey))
+                continue;
+
+            _profile.PlatformCounterMigrationBaselines[definition.StatisticKey] =
+                Math.Max(0, GetStatistic(definition.StatisticKey));
+            changed = true;
+        }
+
+        if (!changed)
+            return;
+
+        _dirty = true;
+        RequestImmediateSave();
+    }
+
+    private bool TryGetPlatformStatisticBaseline(string statisticKey, out long baseline)
+    {
+        if (_profile.PlatformStatisticBaselines.TryGetValue(statisticKey, out baseline))
+            return true;
+
+        return _profile.PlatformCounterMigrationBaselines.TryGetValue(statisticKey, out baseline);
+    }
 
     private void EnsureStorageDirectory()
     {

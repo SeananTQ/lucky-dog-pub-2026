@@ -62,7 +62,7 @@
     "Unit": 2,
     "StatisticType": 1,
     "PlatformApiName": "STAT_GLOBAL_INPUT_CHIPS_EARNED",
-    "SyncToPlatform": false,
+    "SyncToPlatform": true,
     "Notes": "仅累计 GlobalInputTracker 的真实打字奖励筹码（包括鼠标点击）"
   },
   {
@@ -636,5 +636,27 @@
     "PlatformApiName": "STAT_PT1_ANY_LINKTREE_REWARD_CLAIMED",
     "SyncToPlatform": true,
     "Notes": "任意LinkTree永久回执经Steam确认且奖励成功应用后置1；每名玩家只记一次"
+  },
+  {
+    "StatisticId": 1062,
+    "StatisticKey": "ChipLedgerCredits",
+    "DisplayName": "累计筹码入账",
+    "IsEnabled": true,
+    "Unit": 2,
+    "StatisticType": 1,
+    "PlatformApiName": "STAT_CHIP_LEDGER_CREDITS",
+    "SyncToPlatform": true,
+    "Notes": "用于跨设备恢复当前筹码余额的只增账本；包含初始筹码、正常游戏入账及退款补偿；首次启用时以当前本地余额作为迁移入账基线；Debug和Mock不记录"
+  },
+  {
+    "StatisticId": 1063,
+    "StatisticKey": "ChipLedgerDebits",
+    "DisplayName": "累计筹码支出",
+    "IsEnabled": true,
+    "Unit": 2,
+    "StatisticType": 1,
+    "PlatformApiName": "STAT_CHIP_LEDGER_DEBITS",
+    "SyncToPlatform": true,
+    "Notes": "用于跨设备恢复当前筹码余额的只增账本；记录正常游戏中的全部筹码支出；Debug和Mock不记录；当前余额取累计入账减累计支出且不低于0"
   }
 ]

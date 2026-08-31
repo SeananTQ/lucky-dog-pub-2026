@@ -54,6 +54,10 @@ internal static class PlayerStatisticRegressionSmoke
             "Local counter delta was not preserved.");
         Assert(Calculate(EPlayerStatisticType.Counter, 130, true, 100, 120) == 150,
             "Remote progress and new local delta were not merged.");
+        Assert(Calculate(EPlayerStatisticType.Counter, 30, true, 0, 1_000) == 1_030,
+            "Fresh-device activity before the first Steam read was lost.");
+        Assert(Calculate(EPlayerStatisticType.Counter, 1_030, true, 1_000, 1_200) == 1_230,
+            "Existing local history was double-counted or its new pre-sync delta was lost.");
         Assert(Calculate(EPlayerStatisticType.Maximum, 80, true, 70, 90) == 90,
             "Maximum statistic did not retain the higher remote value.");
     }
