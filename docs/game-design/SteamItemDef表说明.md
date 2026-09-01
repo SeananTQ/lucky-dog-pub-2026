@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-20
+last_edit: 2026-09-01
 status: draft
 ---
 
@@ -109,7 +109,7 @@ flowchart LR
 
 回执在对应前台奖励真正领取后发放，与 Steam 是否为本次展示提供装扮无关，因此本地 Schedule 奖励和 Fallback 同样能够推进检查点。客户端只保存一个最高待补交回执；可信库存中已经存在较高检查点时，只向前恢复本地新手进度，不回退现有进度，也不替换已锁定气球或进行中的表演。
 
-这套回执不是逐条云存档。它只降低换机后的最大重跑长度，不恢复本地筹码、消耗品、装备、New、统计或精确倒计时。
+这套回执不是逐条云存档。它只降低换机后的最大重跑长度，不直接恢复本地筹码、消耗品、装备、New、统计或精确倒计时。Refreshment 消耗品数量和装扮预设由独立的 Steam Cloud 文件恢复；筹码由 Steam Stats 累计账本恢复，具体边界见 [Steam 云存档与装扮预设设计](Steam云存档与装扮预设设计.md)。
 
 相关 Steam 官方说明：[ISteamInventory::AddPromoItem、ConsumeItem 与 GenerateItems](https://partner.steamgames.com/doc/api/isteaminventory)。
 

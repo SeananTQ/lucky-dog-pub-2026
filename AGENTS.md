@@ -14,8 +14,8 @@
 
 - 桌宠模式：已支持打字/点击统计、输入加筹码、舌头反馈、根据 `DesktopActivityState` 切换小狗表情、启动 Rise 动画、桌宠气泡盲盒提示与开盒表演。
 - 小狗视觉：已迁移到 v1 资源和 `DogReaction` 数据驱动，旧硬编码入口仅保留 TODO 待清理。
-- 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位。
-- 存档：本地 JSON 存档当前为 V15；V14 及更早存档归档为 `legacy` 后创建新档，并保留损坏备份、重置存档确认和开盒表演中断恢复。
+- 背包：已支持分页、空分页提示、数量堆叠、New 标记、装备/卸下、可空闲装备位，以及 9 槽装扮预设的保存、应用、删除和 Steam Cloud 同步。装扮预设不控制由系统设置管理的 Arm。
+- 存档：本地 JSON 存档当前为 V15；V14 及更早存档归档为 `legacy` 后创建新档，并保留损坏备份、重置存档确认和开盒表演中断恢复。Refreshment 消耗品数量和装扮预设通过 Steam Cloud API 跨设备保存；筹码跨设备恢复使用 Steam Stats 累计账本。
 - 调试：Dev 启动器支持综合调试环境与启动级 Steam 模拟环境；Debug 页和顶部 Steam Mock 面板支持盲盒/LinkTree 网络场景、展示点推进、新手 12 个盲盒或普通循环起点，以及独立内存沙箱。Mock 的“正常掉落规则”会让每个 Generator 首次预热返回空结果，再按 Schedule 的资格间隔与窗口上限返回奖励或空结果；“强制快速成功”允许首次预热直接生成装扮，用于验证暂扣和调度交接保护。
 - 盲盒：已迁移为 PlaytimeGenerator 直接生成具体 Steam 装扮；支持按当前进度预热 Generator、实例级库存基线与复查、单槽位待揭晓奖励、12 个新手 Schedule、第 5 / 第 12 个新手进度回执、普通循环、Refreshment Fallback、迟到奖励、价格覆盖、桌宠/扑克开盒表演及中断恢复。玩家点击开盒时不访问 Steam。
 - LinkTree：已支持数据驱动入口、四阶段领取状态、外部操作等待、Steam Inventory 永久领取回执和奖励反馈动画。
@@ -190,8 +190,12 @@ lucky-dog-rise/
 - 新建/重置本地存档时，默认只拥有 `Item.AcquisitionType == Initial` 的道具。`调试全道具` 模式仍然拥有全部道具，不写入真实存档。
 - 获得道具时，如果该道具所属槽位当前为空，会自动装备本次获得的道具；不会顺手补齐其它可空闲槽位。
 - 相同道具可以重复获得并累计数量。`AcquisitionType=Initial` 的道具是永久基础物品，不进入盲盒奖池；未来的回收系统也不得消耗这类物品。
-- 本地存档由 `SaveManager` 写入 `user://saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。
+- 本地存档由 `SaveManager` 写入 `user://accounts/<Provider>/<AccountId>/saves/profile_0.json`，同时维护 `profile_0.backup.json` 和损坏档 `profile_0.corrupt.json`。Steam 正式运行时 `<Provider>/<AccountId>` 为 `steam/<SteamID64>`。
 - Playtest 包存档根目录：`C:\Users\carlo\AppData\Roaming\LuckyDogRise\Playtest\accounts\steam\<SteamID64>`；小号目录为 0275 结尾。
+- Steam Cloud 使用 `ISteamRemoteStorage` 主动读写，不使用 Auto-Cloud 上传整个存档。云端文件为 `consumables_v1.json` 和 `outfit_presets_v1.json`；本地镜像位于同一账号根目录下的 `consumables_v1.local.json` 和 `outfit_presets_v1.local.json`，禁止跨 SteamID 合并。
+- `consumables_v1.json` 只同步 `ItemType=Refreshment` 且 `AcquisitionType=RefreshmentBlindBox` 的数量。Buff 回合、桌面当前 Refreshment、New 标记和其他本地状态不进入云端。首次建立基线按每种物品较大数量合并，之后按文档更新时间采用较新版本。
+- `outfit_presets_v1.json` 保存 9 个槽位，每个槽位独立按更新时间合并，删除使用墓碑避免旧设备复活预设。保存和应用均排除 Arm；应用前必须校验道具存在、类型匹配且当前 Steam 账号拥有全部道具。
+- 新建或重建本地存档时，装扮预设完成云端合并且 Steam Inventory 可信后，按槽位顺序应用首个非空且当前账号可用的预设。完全没有可用预设时保留默认装扮并结束本次恢复；已有本地存档的正常启动不得自动覆盖当前装扮。
 - V15 存档含 `Version`、`Chips`、`TotalPlaySeconds`、`OwnedItemCounts`、`EquippedItemIdsByType`、`NewItemIds`、`BlindBoxRuntimeState`、`PendingBlindBoxReward`、`PendingBlindBoxCompletionReceiptItemDefId`、`CreatedAt`、`UpdatedAt`；盲盒运行态包含未决准备、已确认待揭晓奖励和已锁定展示来源。
 - 当前不保存单局牌局状态（手牌、弃牌/保留、牌堆等）。盲盒开盒中断状态会保存并恢复，包括当前盲盒、奖励、RevealStep 与奖励是否已展示。
 - 盲盒倒计时每秒刷新 UI，但不应因此每秒写存档。普通存档变化使用 0.75 秒防抖，持续游玩时间每 60 秒保存一次快照；开盒资格消耗、奖励入账和待揭晓状态变化等关键节点立即保存。
