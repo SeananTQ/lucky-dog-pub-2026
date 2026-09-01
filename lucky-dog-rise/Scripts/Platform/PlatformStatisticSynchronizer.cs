@@ -28,6 +28,7 @@ public sealed class PlatformStatisticSynchronizer
     private double _secondsUntilSync;
     private bool _initialSyncCompleted;
     private bool _reportedMissingDefinitions;
+    private string _lastSequenceProgressDiagnosticFailure = string.Empty;
 
     public PlatformStatisticSynchronizer(
         IGamePlatformService platformService,
@@ -88,10 +89,22 @@ public sealed class PlatformStatisticSynchronizer
         var operations = _operations;
         if (operations == null)
             return;
+        var isInitialSync = !_initialSyncCompleted;
+        var sequenceLocal = localStates.FirstOrDefault(state =>
+            state.StatisticKey == PlayerProgress.InitialRewardSequenceProgressStatisticKey);
+        var hasSequenceProgress = !string.IsNullOrWhiteSpace(sequenceLocal.ApiName);
 
         var readResult = operations.ReadStatistics(localStates.Select(state => state.ApiName));
         if (!readResult.Succeeded)
         {
+            if (hasSequenceProgress)
+            {
+                RecordSequenceProgressFailureOnce(
+                    sequenceLocal.ApiName,
+                    "read_failed",
+                    sequenceLocal.LocalValue,
+                    readResult.Message);
+            }
             _secondsUntilSync = RetryIntervalSeconds;
             return;
         }
@@ -100,6 +113,7 @@ public sealed class PlatformStatisticSynchronizer
         var pendingValues = new Dictionary<string, int>(StringComparer.Ordinal);
         var targetsByApiName = new Dictionary<string, (string StatisticKey, long Target)>(StringComparer.Ordinal);
         var missingApiNames = new List<string>();
+        (long Local, int Remote, long Target)? sequenceProgressAudit = null;
         foreach (var local in localStates)
         {
             if (!remoteByApiName.TryGetValue(local.ApiName, out var remote)
@@ -107,6 +121,14 @@ public sealed class PlatformStatisticSynchronizer
                 || !remote.ReadSucceeded)
             {
                 missingApiNames.Add(local.ApiName);
+                if (local.StatisticKey == PlayerProgress.InitialRewardSequenceProgressStatisticKey)
+                {
+                    RecordSequenceProgressFailureOnce(
+                        local.ApiName,
+                        !remote.IsConfigured ? "not_configured" : "read_failed",
+                        local.LocalValue,
+                        readResult.Message);
+                }
                 continue;
             }
 
@@ -118,6 +140,8 @@ public sealed class PlatformStatisticSynchronizer
             }
 
             targetsByApiName[local.ApiName] = (local.StatisticKey, target);
+            if (local.StatisticKey == PlayerProgress.InitialRewardSequenceProgressStatisticKey)
+                sequenceProgressAudit = (local.LocalValue, remote.Value, target);
             if (target != remote.Value)
                 pendingValues[local.ApiName] = checked((int)target);
         }
@@ -137,6 +161,28 @@ public sealed class PlatformStatisticSynchronizer
                 _playerProgress.CommitPlatformStatisticSync(targetState.StatisticKey, targetState.Target);
         }
 
+        if (sequenceProgressAudit is { } sequenceAudit)
+        {
+            _lastSequenceProgressDiagnosticFailure = string.Empty;
+            var submitted = pendingValues.ContainsKey(sequenceLocal.ApiName);
+            var sequenceAccepted = !submitted || accepted.Contains(sequenceLocal.ApiName);
+            if (isInitialSync || submitted || sequenceAudit.Target != sequenceAudit.Local)
+            {
+                DiagnosticLog.Record("platform_statistic_sequence_progress_synchronized", new Dictionary<string, object?>
+                {
+                    ["apiName"] = sequenceLocal.ApiName,
+                    ["localValue"] = sequenceAudit.Local,
+                    ["remoteValue"] = sequenceAudit.Remote,
+                    ["targetValue"] = sequenceAudit.Target,
+                    ["submitted"] = submitted,
+                    ["accepted"] = sequenceAccepted,
+                    ["writeSucceeded"] = writeResult.Succeeded,
+                    ["initialSync"] = isInitialSync,
+                    ["message"] = writeResult.Message,
+                });
+            }
+        }
+
         _initialSyncCompleted = true;
         _lastLocalSnapshot = BuildSnapshot(_playerProgress.GetPlatformSyncStatisticStates());
         _synchronizationCompleted?.Invoke();
@@ -150,6 +196,26 @@ public sealed class PlatformStatisticSynchronizer
             else
                 GD.PushWarning($"[StatisticSync] {writeResult.Message}");
         }
+    }
+
+    private void RecordSequenceProgressFailureOnce(
+        string apiName,
+        string phase,
+        long localValue,
+        string message)
+    {
+        var signature = $"{phase}|{localValue}|{message}";
+        if (string.Equals(signature, _lastSequenceProgressDiagnosticFailure, StringComparison.Ordinal))
+            return;
+
+        _lastSequenceProgressDiagnosticFailure = signature;
+        DiagnosticLog.Record("platform_statistic_sequence_progress_unavailable", new Dictionary<string, object?>
+        {
+            ["apiName"] = apiName,
+            ["phase"] = phase,
+            ["localValue"] = localValue,
+            ["message"] = message,
+        });
     }
 
     internal static long CalculateTarget(PlatformStatisticSyncState local, long remoteValue)

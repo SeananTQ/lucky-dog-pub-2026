@@ -68,6 +68,7 @@ public partial class GameData : Node
     private double _nextPlatformPlaytimeDropAttemptAtSeconds;
     private int _pendingBlindBoxCompletionReceiptItemDefId;
     private int _observedPlatformSequenceProgressCheckpoint;
+    private string _observedPlatformSequenceProgressSource = string.Empty;
 #if DEBUG
     private bool _blindBoxLocalTestMode;
     private bool _steamMockSimulationActive;
@@ -1582,7 +1583,10 @@ public partial class GameData : Node
 
         var progressCheckpoint = GetHighestSequenceProgressCheckpoint(ownedItemDefIds);
         if (progressCheckpoint > ActiveObservedPlatformSequenceProgressCheckpoint)
+        {
             ActiveObservedPlatformSequenceProgressCheckpoint = progressCheckpoint;
+            _observedPlatformSequenceProgressSource = "steam_inventory_receipt";
+        }
 
         var pendingReceiptItemDefId = ActivePendingBlindBoxCompletionReceiptItemDefId;
         if (pendingReceiptItemDefId > 0 && ownedItemDefIds.Contains(pendingReceiptItemDefId))
@@ -2074,7 +2078,10 @@ public partial class GameData : Node
     {
         var progressCheckpoint = GetSequenceProgressCheckpointForReceipt(receiptItemDefId);
         if (progressCheckpoint > ActiveObservedPlatformSequenceProgressCheckpoint)
+        {
             ActiveObservedPlatformSequenceProgressCheckpoint = progressCheckpoint;
+            _observedPlatformSequenceProgressSource = "steam_inventory_receipt";
+        }
         if (ActivePendingBlindBoxCompletionReceiptItemDefId == receiptItemDefId)
             ActivePendingBlindBoxCompletionReceiptItemDefId = 0;
 
@@ -2120,6 +2127,7 @@ public partial class GameData : Node
         {
             ["sequenceIndex"] = runtimeState.SequenceIndex,
             ["progressCheckpoint"] = targetProgressCheckpoint,
+            ["source"] = _observedPlatformSequenceProgressSource,
             ["totalPlaySeconds"] = TotalPlaySeconds,
         });
         SaveImmediatelyIfUsingLocalSave();
@@ -2183,6 +2191,7 @@ public partial class GameData : Node
             : completedScheduleDefinition?.SteamPlaytimeGeneratorItemDefId > 0
                 ? "Fallback"
                 : "ScheduledLocal";
+        var previousProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
         _blindBoxService.CompleteClaimedPresentation(
@@ -2196,6 +2205,18 @@ public partial class GameData : Node
             PlayerProgress.RecordInitialRewardSequenceProgress(
                 completedScheduleDefinition.ProgressCheckpoint,
                 PlayerProgressSource.BlindBox);
+        }
+        var currentProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
+        if (currentProgressCheckpoint > previousProgressCheckpoint)
+        {
+            DiagnosticLog.Record("blindbox_sequence_progress_recorded", new Dictionary<string, object>
+            {
+                ["scheduleId"] = scheduleId,
+                ["rewardSource"] = claimSource,
+                ["previousProgressCheckpoint"] = previousProgressCheckpoint,
+                ["progressCheckpoint"] = currentProgressCheckpoint,
+                ["sequenceIndex"] = ActiveBlindBoxRuntimeState.SequenceIndex,
+            });
         }
         // Completing the final newcomer presentation can start the loop stage. Promote an
         // activation reward synchronously so the platform-write tick cannot submit another
@@ -2267,7 +2288,10 @@ public partial class GameData : Node
             ? int.MaxValue
             : (int)Math.Max(0, platformProgress);
         if (progressCheckpoint > ActiveObservedPlatformSequenceProgressCheckpoint)
+        {
             ActiveObservedPlatformSequenceProgressCheckpoint = progressCheckpoint;
+            _observedPlatformSequenceProgressSource = "steam_stat";
+        }
         TryApplyObservedPlatformSequenceProgress();
 
         if (PlayerProgress.TryCompleteChipLedgerMigration())
@@ -2314,6 +2338,14 @@ public partial class GameData : Node
             return;
 
         var progressCheckpoint = _blindBoxService.NormalizeSequenceProgress(_blindBoxRuntimeState);
+        if (progressCheckpoint > 0)
+        {
+            DiagnosticLog.Record("blindbox_sequence_progress_local_loaded", new Dictionary<string, object>
+            {
+                ["progressCheckpoint"] = progressCheckpoint,
+                ["sequenceIndex"] = _blindBoxRuntimeState.SequenceIndex,
+            });
+        }
         if (progressCheckpoint > 0 && CanRecordPlayerProgress)
         {
             PlayerProgress.RecordInitialRewardSequenceProgress(
@@ -2671,6 +2703,7 @@ public partial class GameData : Node
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
+        _observedPlatformSequenceProgressSource = string.Empty;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
@@ -2804,6 +2837,7 @@ public partial class GameData : Node
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
+        _observedPlatformSequenceProgressSource = string.Empty;
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
@@ -2902,12 +2936,27 @@ public partial class GameData : Node
     private void LoadBlindBoxState(SaveProfile profile)
     {
         _blindBoxRuntimeState = profile.BlindBoxRuntimeState ?? new BlindBoxRuntimeState();
+        var previousSequenceIndex = _blindBoxRuntimeState.SequenceIndex;
+        var previousProgressCheckpoint = _blindBoxRuntimeState.SequenceProgressCheckpoint;
+        var progressWasInitialized = _blindBoxRuntimeState.SequenceProgressInitialized;
         _blindBoxService.NormalizeSequenceProgress(_blindBoxRuntimeState);
+        if (!progressWasInitialized
+            && (previousSequenceIndex > 0 || previousProgressCheckpoint > 0))
+        {
+            DiagnosticLog.Record("blindbox_sequence_progress_local_migrated", new Dictionary<string, object>
+            {
+                ["previousSequenceIndex"] = previousSequenceIndex,
+                ["previousProgressCheckpoint"] = previousProgressCheckpoint,
+                ["progressCheckpoint"] = _blindBoxRuntimeState.SequenceProgressCheckpoint,
+                ["sequenceIndex"] = _blindBoxRuntimeState.SequenceIndex,
+            });
+        }
         PendingBlindBoxReward = profile.PendingBlindBoxReward;
         PendingLinkTreeClaim = profile.PendingLinkTreeClaim;
         _pendingBlindBoxCompletionReceiptItemDefId =
             profile.PendingBlindBoxCompletionReceiptItemDefId;
         _observedPlatformSequenceProgressCheckpoint = 0;
+        _observedPlatformSequenceProgressSource = string.Empty;
         _appliedLinkTreeRewardIds.Clear();
         foreach (var linkTreeId in profile.AppliedLinkTreeRewardIds ?? [])
             _appliedLinkTreeRewardIds.Add(linkTreeId);
