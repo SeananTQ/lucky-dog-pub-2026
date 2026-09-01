@@ -1,5 +1,6 @@
 #if DEBUG
 using System;
+using System.Linq;
 using DataTables;
 using Godot;
 
@@ -12,8 +13,26 @@ internal static class PlayerStatisticRegressionSmoke
         VerifyRetentionThresholds();
         VerifyBlindBoxSuccessRules();
         VerifyPlatformMergeRules();
+        VerifyInitialRewardSequenceProgressDefinition();
         VerifyChipLedgerRules();
-        GD.Print("[PlayerStatisticRegressionSmoke] Passed retention, blind-box, Steam merge, and chip-ledger checks.");
+        GD.Print("[PlayerStatisticRegressionSmoke] Passed retention, blind-box, sequence-progress, Steam merge, and chip-ledger checks.");
+    }
+
+    private static void VerifyInitialRewardSequenceProgressDefinition()
+    {
+        var definition = LubanData.Tables.TbPlayerStatistic.DataList.FirstOrDefault(statistic =>
+            statistic.StatisticKey == PlayerProgress.InitialRewardSequenceProgressStatisticKey);
+        Assert(definition is
+            {
+                IsEnabled: true,
+                StatisticType: EPlayerStatisticType.Maximum,
+                PlatformApiName: "STAT_INITIAL_REWARD_SEQUENCE_PROGRESS",
+                SyncToPlatform: true,
+            }, "Initial reward sequence progress is missing or has the wrong Steam Maximum definition.");
+        Assert(Calculate(EPlayerStatisticType.Maximum, 5_000, false, 0, 3_000) == 5_000,
+            "A newer local sequence checkpoint did not win the Steam merge.");
+        Assert(Calculate(EPlayerStatisticType.Maximum, 3_000, false, 0, 5_000) == 5_000,
+            "A newer Steam sequence checkpoint did not win the local merge.");
     }
 
     private static void VerifyRetentionThresholds()

@@ -144,6 +144,18 @@ public sealed class BlindBoxOpenResult
 
 public sealed class BlindBoxRuntimeState
 {
+    /// <summary>
+    /// 已正式完成的首轮奖励序列最高稳定进度值。SequenceIndex 仅保留用于旧存档迁移、
+    /// Debug 展示和兼容现有运行时代码；插入新 Schedule 后由本字段重新推导索引。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int SequenceProgressCheckpoint { get; set; }
+    /// <summary>
+    /// 标记旧 SequenceIndex 是否已迁移。新流程在第一次读取时置为 true，使开盒表演期间
+    /// 暂时领先的 SequenceIndex 不会被误认成已经正式领取的稳定进度。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool SequenceProgressInitialized { get; set; }
     public int SequenceIndex { get; set; }
     /// <summary>
     /// 盲盒专用的连续调度时钟。它按真实帧时间持续累积，但流速由等待时间倍率控制；
@@ -729,6 +741,7 @@ public sealed class BlindBoxService
         if (!completesSchedule || schedule == null || schedule.IsLoopTrack)
             return completesSchedule;
 
+        NormalizeSequenceProgress(runtimeState);
         var sequenceSchedules = GetSequenceSchedules();
         if (runtimeState.SequenceIndex < sequenceSchedules.Count
             && sequenceSchedules[runtimeState.SequenceIndex].Id == schedule.Id)
@@ -757,6 +770,11 @@ public sealed class BlindBoxService
         runtimeState.LastClaimSeconds = scheduleSeconds;
         if (completedSchedule && !schedule.IsLoopTrack)
         {
+            runtimeState.SequenceProgressInitialized = true;
+            runtimeState.SequenceProgressCheckpoint = Math.Max(
+                runtimeState.SequenceProgressCheckpoint,
+                schedule.ProgressCheckpoint);
+            NormalizeSequenceProgress(runtimeState);
             if (GetCurrentSequenceSchedule(runtimeState) == null)
                 StartLoopStage(runtimeState);
             return;
@@ -767,21 +785,24 @@ public sealed class BlindBoxService
     /// 将 Steam 永久回执证明的新手进度合并到本地。只允许向前推进；调用方需保证当前没有
     /// 已锁定气球、待揭晓奖励或正在播放的表演，避免远端进度替换玩家已经看见的内容。
     /// </summary>
-    public bool MergeSequenceCompletionCount(
+    public bool MergeSequenceProgressCheckpoint(
         BlindBoxRuntimeState runtimeState,
-        int completedScheduleCount)
+        int progressCheckpoint)
     {
         var sequenceSchedules = GetSequenceSchedules();
-        var target = Math.Clamp(completedScheduleCount, 0, sequenceSchedules.Count);
-        if (target <= runtimeState.SequenceIndex)
+        NormalizeSequenceProgress(runtimeState);
+        var targetProgress = Math.Max(0, progressCheckpoint);
+        if (targetProgress <= runtimeState.SequenceProgressCheckpoint)
             return false;
 
-        runtimeState.SequenceIndex = target;
+        runtimeState.SequenceProgressCheckpoint = targetProgress;
+        runtimeState.SequenceProgressInitialized = true;
+        runtimeState.SequenceIndex = GetCompletedSequenceCount(sequenceSchedules, targetProgress);
         runtimeState.LastClaimSeconds = runtimeState.ScheduleSeconds;
         runtimeState.PendingPreparation = null;
         runtimeState.PreparedReward = null;
         runtimeState.LockedPresentation = null;
-        if (target >= sequenceSchedules.Count)
+        if (runtimeState.SequenceIndex >= sequenceSchedules.Count)
         {
             StartLoopStage(runtimeState);
         }
@@ -794,10 +815,10 @@ public sealed class BlindBoxService
         return true;
     }
 
-    public double GetMinimumRealPlaySecondsForSequenceCompletion(int completedScheduleCount)
+    public double GetMinimumRealPlaySecondsForSequenceProgress(int progressCheckpoint)
     {
         var sequenceSchedules = GetSequenceSchedules();
-        var completed = Math.Clamp(completedScheduleCount, 0, sequenceSchedules.Count);
+        var completed = GetCompletedSequenceCount(sequenceSchedules, Math.Max(0, progressCheckpoint));
         if (completed == 0)
             return 0.0;
 
@@ -807,20 +828,141 @@ public sealed class BlindBoxService
     private static BlindBoxSchedule? GetCurrentSequenceSchedule(BlindBoxRuntimeState runtimeState)
     {
         var sequenceSchedules = GetSequenceSchedules();
-        if (runtimeState.SequenceIndex < 0)
-            runtimeState.SequenceIndex = 0;
+        NormalizeSequenceProgress(runtimeState, sequenceSchedules);
         if (runtimeState.SequenceIndex >= sequenceSchedules.Count)
             return null;
         return sequenceSchedules[runtimeState.SequenceIndex];
     }
 
-    private static List<BlindBoxSchedule> GetSequenceSchedules()
+    internal static List<BlindBoxSchedule> GetSequenceSchedules()
     {
-        return LubanData.Tables.TbBlindBoxSchedule.DataList
+        var enabled = LubanData.Tables.TbBlindBoxSchedule.DataList
             .Where(schedule => schedule.IsEnabled && !schedule.IsLoopTrack)
-            .OrderBy(schedule => schedule.StartSeconds)
-            .ThenBy(schedule => schedule.Id)
             .ToList();
+        if (TryBuildSequenceChain(enabled, out var chain, out var failure))
+            return chain;
+
+        throw new InvalidOperationException(
+            $"Invalid first-run reward sequence configuration: {failure}.");
+    }
+
+    public int NormalizeSequenceProgress(BlindBoxRuntimeState runtimeState) =>
+        NormalizeSequenceProgress(runtimeState, GetSequenceSchedules());
+
+    private static int NormalizeSequenceProgress(
+        BlindBoxRuntimeState runtimeState,
+        IReadOnlyList<BlindBoxSchedule> sequenceSchedules)
+    {
+        runtimeState.SequenceIndex = Math.Max(0, runtimeState.SequenceIndex);
+        runtimeState.SequenceProgressCheckpoint = Math.Max(0, runtimeState.SequenceProgressCheckpoint);
+
+        // V15 saves created before SequenceProgressCheckpoint existed only have an index.
+        // The currently published chain still matches that legacy order, so migrate once.
+        if (!runtimeState.SequenceProgressInitialized)
+        {
+            var legacyCompleted = Math.Clamp(runtimeState.SequenceIndex, 0, sequenceSchedules.Count);
+            if (legacyCompleted > 0)
+            {
+                runtimeState.SequenceProgressCheckpoint =
+                    Math.Max(0, sequenceSchedules[legacyCompleted - 1].ProgressCheckpoint);
+            }
+            runtimeState.SequenceProgressInitialized = true;
+        }
+
+        runtimeState.SequenceIndex = Math.Max(
+            runtimeState.SequenceIndex,
+            GetCompletedSequenceCount(sequenceSchedules, runtimeState.SequenceProgressCheckpoint));
+        return runtimeState.SequenceProgressCheckpoint;
+    }
+
+    private static int GetCompletedSequenceCount(
+        IReadOnlyList<BlindBoxSchedule> sequenceSchedules,
+        int progressCheckpoint)
+    {
+        var completed = 0;
+        while (completed < sequenceSchedules.Count
+               && sequenceSchedules[completed].ProgressCheckpoint <= progressCheckpoint)
+            completed++;
+        return completed;
+    }
+
+    private static bool TryBuildSequenceChain(
+        IReadOnlyList<BlindBoxSchedule> schedules,
+        out List<BlindBoxSchedule> chain,
+        out string failure)
+    {
+        chain = [];
+        failure = string.Empty;
+        if (schedules.Count == 0)
+        {
+            failure = "no enabled first-run Schedules";
+            return false;
+        }
+
+        var duplicateId = schedules
+            .GroupBy(schedule => schedule.Id)
+            .FirstOrDefault(group => group.Count() > 1)?.Key;
+        if (duplicateId.HasValue)
+        {
+            failure = $"duplicate Schedule ID {duplicateId.Value}";
+            return false;
+        }
+
+        var byId = schedules.ToDictionary(schedule => schedule.Id);
+        var predecessorCounts = schedules.ToDictionary(schedule => schedule.Id, _ => 0);
+        foreach (var schedule in schedules)
+        {
+            if (schedule.NextScheduleId == 0)
+                continue;
+            if (!byId.ContainsKey(schedule.NextScheduleId))
+            {
+                failure = $"Schedule {schedule.Id} references missing NextScheduleId {schedule.NextScheduleId}";
+                return false;
+            }
+            predecessorCounts[schedule.NextScheduleId]++;
+            if (predecessorCounts[schedule.NextScheduleId] > 1)
+            {
+                failure = $"Schedule {schedule.NextScheduleId} has multiple predecessors";
+                return false;
+            }
+        }
+
+        var heads = schedules.Where(schedule => predecessorCounts[schedule.Id] == 0).ToArray();
+        if (heads.Length != 1)
+        {
+            failure = $"expected one sequence head, found {heads.Length}";
+            return false;
+        }
+
+        var visited = new HashSet<int>();
+        var current = heads[0];
+        var previousProgress = 0;
+        while (true)
+        {
+            if (!visited.Add(current.Id))
+            {
+                failure = $"cycle detected at Schedule {current.Id}";
+                return false;
+            }
+            if (current.ProgressCheckpoint <= previousProgress)
+            {
+                failure = $"Schedule {current.Id} ProgressCheckpoint must be greater than {previousProgress}";
+                return false;
+            }
+
+            chain.Add(current);
+            previousProgress = current.ProgressCheckpoint;
+            if (current.NextScheduleId == 0)
+                break;
+            current = byId[current.NextScheduleId];
+        }
+
+        if (chain.Count != schedules.Count)
+        {
+            failure = $"{schedules.Count - chain.Count} enabled Schedule(s) are unreachable from the sequence head";
+            return false;
+        }
+        return true;
     }
 
     public static double GetSequencePresentationReadyAtSeconds(
@@ -934,6 +1076,11 @@ public sealed class BlindBoxService
             GD.PushError("[BlindBox] No enabled newbie schedules.");
         if (enabledSchedules.Count(schedule => schedule.IsLoopTrack) != 1)
             GD.PushError("[BlindBox] Exactly one enabled loop schedule is required.");
+        var enabledSequenceSchedules = enabledSchedules
+            .Where(schedule => !schedule.IsLoopTrack)
+            .ToList();
+        if (!TryBuildSequenceChain(enabledSequenceSchedules, out _, out var sequenceFailure))
+            GD.PushError($"[BlindBox] Invalid first-run reward sequence: {sequenceFailure}.");
         foreach (var schedule in enabledSchedules)
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
@@ -964,6 +1111,10 @@ public sealed class BlindBoxService
             {
                 if (schedule.StartSeconds != 0)
                     GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} StartSeconds must be 0.");
+                if (schedule.NextScheduleId != 0)
+                    GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} NextScheduleId must be 0.");
+                if (schedule.ProgressCheckpoint != 0)
+                    GD.PushError($"[BlindBox] Loop Schedule {schedule.Id} ProgressCheckpoint must be 0.");
             }
 
             if (box.IsPlatformInventoryRequired)

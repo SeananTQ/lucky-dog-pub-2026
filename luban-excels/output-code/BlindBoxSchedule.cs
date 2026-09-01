@@ -18,6 +18,8 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     public BlindBoxSchedule(JSONNode _buf) 
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
+        { if(!_buf["NextScheduleId"].IsNumber) { throw new SerializationException(); }  NextScheduleId = _buf["NextScheduleId"]; }
+        { if(!_buf["ProgressCheckpoint"].IsNumber) { throw new SerializationException(); }  ProgressCheckpoint = _buf["ProgressCheckpoint"]; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
         { if(!_buf["FallbackBlindBoxId"].IsNumber) { throw new SerializationException(); }  FallbackBlindBoxId = _buf["FallbackBlindBoxId"]; }
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
@@ -39,6 +41,14 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     }
 
     public readonly int Id;
+    /// <summary>
+    /// 首轮奖励序列中，当前 Schedule 完成后进入的下一条 BlindBoxSchedule.Id；末条首轮 Schedule 填 0，循环 Schedule 填 0；所有启用的首轮 Schedule 必须组成无环、无分叉的单链，顺序不再根据 StartSeconds 或数字 ID 推断。
+    /// </summary>
+    public readonly int NextScheduleId;
+    /// <summary>
+    /// 当前 Schedule 正式完成后写入 Steam Stat 的只增进度值；仅首轮奖励序列填写大于 0，循环 Schedule 填 0；沿 NextScheduleId 必须严格递增，发布后不得修改、降低或复用；建议步骤之间预留较大数值间隔，方便以后插入步骤。
+    /// </summary>
+    public readonly int ProgressCheckpoint;
     /// <summary>
     /// 对应 BlindBox.Id
     /// </summary>
@@ -103,6 +113,8 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     {
         return "{ "
         + "Id:" + Id + ","
+        + "NextScheduleId:" + NextScheduleId + ","
+        + "ProgressCheckpoint:" + ProgressCheckpoint + ","
         + "BlindBoxId:" + BlindBoxId + ","
         + "FallbackBlindBoxId:" + FallbackBlindBoxId + ","
         + "IsLoopTrack:" + IsLoopTrack + ","

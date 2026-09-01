@@ -658,5 +658,16 @@
     "PlatformApiName": "STAT_CHIP_LEDGER_DEBITS",
     "SyncToPlatform": true,
     "Notes": "用于跨设备恢复当前筹码余额的只增账本；记录正常游戏中的全部筹码支出；Debug和Mock不记录；当前余额取累计入账减累计支出且不低于0"
+  },
+  {
+    "StatisticId": 1064,
+    "StatisticKey": "InitialRewardSequenceProgress",
+    "DisplayName": "首轮奖励序列进度",
+    "IsEnabled": true,
+    "Unit": 1,
+    "StatisticType": 2,
+    "PlatformApiName": "STAT_INITIAL_REWARD_SEQUENCE_PROGRESS",
+    "SyncToPlatform": true,
+    "Notes": "记录玩家已正式完成的首轮奖励序列最高 ProgressCheckpoint；Steam奖励、Fallback和本地奖励只要正式领取并推进当前Schedule均记录；LateSteam不推进；用于跨设备恢复首轮奖励序列进度；Debug和Mock不记录"
   }
 ]

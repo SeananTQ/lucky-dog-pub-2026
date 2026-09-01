@@ -16,7 +16,7 @@ namespace LuckyDogRise;
 /// </summary>
 public sealed class PlatformStatisticSynchronizer
 {
-    private const double FlagUploadDelaySeconds = 10.0;
+    private const double MonotonicFactUploadDelaySeconds = 10.0;
     private const double CounterUploadIntervalSeconds = 60.0;
     private const double RetryIntervalSeconds = 10.0;
 
@@ -59,10 +59,12 @@ public sealed class PlatformStatisticSynchronizer
         if (!string.Equals(snapshot, _lastLocalSnapshot, StringComparison.Ordinal))
         {
             var previousValues = ParseSnapshot(_lastLocalSnapshot);
-            var flagChanged = states.Any(state =>
-                state.StatisticType == EPlayerStatisticType.Flag
+            var monotonicFactChanged = states.Any(state =>
+                state.StatisticType != EPlayerStatisticType.Counter
                 && previousValues.GetValueOrDefault(state.StatisticKey) != state.LocalValue);
-            var delay = flagChanged ? FlagUploadDelaySeconds : CounterUploadIntervalSeconds;
+            var delay = monotonicFactChanged
+                ? MonotonicFactUploadDelaySeconds
+                : CounterUploadIntervalSeconds;
             if (_secondsUntilSync <= 0.0 || delay < _secondsUntilSync)
                 _secondsUntilSync = delay;
             _lastLocalSnapshot = snapshot;

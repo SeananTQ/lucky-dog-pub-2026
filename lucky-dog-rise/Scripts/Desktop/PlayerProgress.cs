@@ -58,6 +58,7 @@ public sealed class PlayerProgress
 {
     public const string ChipLedgerCreditsStatisticKey = "ChipLedgerCredits";
     public const string ChipLedgerDebitsStatisticKey = "ChipLedgerDebits";
+    public const string InitialRewardSequenceProgressStatisticKey = "InitialRewardSequenceProgress";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -147,6 +148,8 @@ public sealed class PlayerProgress
         .Where(pair => _statisticsByKey.ContainsKey(pair.Key))
         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
     public long GlobalInputChipsEarned => GetStatistic("GlobalInputChipsEarned");
+    public long InitialRewardSequenceProgress =>
+        GetStatistic(InitialRewardSequenceProgressStatisticKey);
     public bool IsChipLedgerAvailable =>
         IsCounterDefinition(ChipLedgerCreditsStatisticKey)
         && IsCounterDefinition(ChipLedgerDebitsStatisticKey);
@@ -433,6 +436,27 @@ public sealed class PlayerProgress
             completesSchedule);
         if (statisticKey.Length > 0)
             RecordFlag(statisticKey, PlayerProgressSource.BlindBox);
+    }
+
+    /// <summary>
+    /// 记录账号已经正式完成的首轮奖励序列最高稳定进度。该值既用于 Playtest，也用于正式版；
+    /// Dev/Debug 不写入，且不受统计倍率影响。
+    /// </summary>
+    public void RecordInitialRewardSequenceProgress(
+        int progressCheckpoint,
+        PlayerProgressSource source)
+    {
+        if (BuildInfo.Channel == BuildChannel.Dev
+            || source == PlayerProgressSource.Debug
+            || progressCheckpoint <= GetStatistic(InitialRewardSequenceProgressStatisticKey))
+            return;
+
+        RecordMaximum(
+            InitialRewardSequenceProgressStatisticKey,
+            progressCheckpoint,
+            source,
+            applyDebugMultiplier: false);
+        RequestImmediateSave();
     }
 
     internal static IReadOnlyList<string> GetReturnStatisticKeys(TimeSpan elapsed)
@@ -724,7 +748,11 @@ public sealed class PlayerProgress
         EvaluateStatisticAchievements(statisticKey);
     }
 
-    private void RecordMaximum(string statisticKey, long value, PlayerProgressSource source)
+    private void RecordMaximum(
+        string statisticKey,
+        long value,
+        PlayerProgressSource source,
+        bool applyDebugMultiplier = true)
     {
         if (source == PlayerProgressSource.Debug || value < 0)
             return;
@@ -736,7 +764,7 @@ public sealed class PlayerProgress
             return;
         }
 
-        var applied = ApplyMultiplier(value, source);
+        var applied = applyDebugMultiplier ? ApplyMultiplier(value, source) : value;
         if (applied <= GetStatistic(statisticKey))
             return;
 

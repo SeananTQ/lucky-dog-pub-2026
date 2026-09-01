@@ -1,6 +1,8 @@
 [
   {
     "Id": 1001,
+    "NextScheduleId": 1002,
+    "ProgressCheckpoint": 1000,
     "BlindBoxId": 1001,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -17,6 +19,8 @@
   },
   {
     "Id": 1002,
+    "NextScheduleId": 1003,
+    "ProgressCheckpoint": 2000,
     "BlindBoxId": 1002,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -33,6 +37,8 @@
   },
   {
     "Id": 1003,
+    "NextScheduleId": 1004,
+    "ProgressCheckpoint": 3000,
     "BlindBoxId": 2001,
     "FallbackBlindBoxId": 0,
     "IsLoopTrack": false,
@@ -49,6 +55,8 @@
   },
   {
     "Id": 1004,
+    "NextScheduleId": 1005,
+    "ProgressCheckpoint": 4000,
     "BlindBoxId": 1001,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -65,6 +73,8 @@
   },
   {
     "Id": 1005,
+    "NextScheduleId": 1006,
+    "ProgressCheckpoint": 5000,
     "BlindBoxId": 1002,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -81,6 +91,8 @@
   },
   {
     "Id": 1006,
+    "NextScheduleId": 1007,
+    "ProgressCheckpoint": 6000,
     "BlindBoxId": 2001,
     "FallbackBlindBoxId": 0,
     "IsLoopTrack": false,
@@ -97,6 +109,8 @@
   },
   {
     "Id": 1007,
+    "NextScheduleId": 1008,
+    "ProgressCheckpoint": 7000,
     "BlindBoxId": 1001,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -113,6 +127,8 @@
   },
   {
     "Id": 1008,
+    "NextScheduleId": 1009,
+    "ProgressCheckpoint": 8000,
     "BlindBoxId": 1002,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -129,6 +145,8 @@
   },
   {
     "Id": 1009,
+    "NextScheduleId": 1010,
+    "ProgressCheckpoint": 9000,
     "BlindBoxId": 2001,
     "FallbackBlindBoxId": 0,
     "IsLoopTrack": false,
@@ -145,6 +163,8 @@
   },
   {
     "Id": 1010,
+    "NextScheduleId": 1011,
+    "ProgressCheckpoint": 10000,
     "BlindBoxId": 1001,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -161,6 +181,8 @@
   },
   {
     "Id": 1011,
+    "NextScheduleId": 1012,
+    "ProgressCheckpoint": 11000,
     "BlindBoxId": 1002,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": false,
@@ -177,6 +199,8 @@
   },
   {
     "Id": 1012,
+    "NextScheduleId": 0,
+    "ProgressCheckpoint": 12000,
     "BlindBoxId": 2001,
     "FallbackBlindBoxId": 0,
     "IsLoopTrack": false,
@@ -193,6 +217,8 @@
   },
   {
     "Id": 2001,
+    "NextScheduleId": 0,
+    "ProgressCheckpoint": 0,
     "BlindBoxId": 1001,
     "FallbackBlindBoxId": 2001,
     "IsLoopTrack": true,

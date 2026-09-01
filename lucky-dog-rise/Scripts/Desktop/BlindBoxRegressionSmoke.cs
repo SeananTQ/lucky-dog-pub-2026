@@ -22,15 +22,51 @@ internal static class BlindBoxRegressionSmoke
             var service = new BlindBoxService(gameData);
             VerifyRetiredEyewearSaveCleanup();
             GD.Print("[BlindBoxRegressionSmoke] Passed retired eyewear save cleanup checks.");
+            VerifySequenceProgressMigrationAndOrdering(service);
             VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
             VerifySaveSnapshotIsolation();
-            GD.Print("[BlindBoxRegressionSmoke] Passed fallback advance, late reward, inventory visibility grace, save snapshot isolation, and retired eyewear cleanup checks.");
+            GD.Print("[BlindBoxRegressionSmoke] Passed linked sequence, progress migration, fallback advance, late reward, inventory visibility grace, save snapshot isolation, and retired eyewear cleanup checks.");
         }
         finally
         {
             gameData.Free();
         }
+    }
+
+    private static void VerifySequenceProgressMigrationAndOrdering(BlindBoxService service)
+    {
+        var schedules = BlindBoxService.GetSequenceSchedules();
+        Assert(schedules.Count > 0 && schedules[0].Id == FirstScheduleId,
+            "The linked first-run reward sequence did not start at Schedule 1001.");
+        for (var index = 0; index < schedules.Count - 1; index++)
+        {
+            Assert(schedules[index].NextScheduleId == schedules[index + 1].Id,
+                $"Schedule {schedules[index].Id} did not link to the next runtime Schedule.");
+            Assert(schedules[index].ProgressCheckpoint < schedules[index + 1].ProgressCheckpoint,
+                "First-run reward progress checkpoints were not strictly increasing.");
+        }
+        Assert(schedules[^1].NextScheduleId == 0,
+            "The final first-run reward Schedule did not terminate the linked sequence.");
+
+        var legacyState = new BlindBoxRuntimeState { SequenceIndex = 5 };
+        Assert(service.NormalizeSequenceProgress(legacyState) == schedules[4].ProgressCheckpoint,
+            "A pre-checkpoint local save did not migrate its exact completed Schedule.");
+        Assert(legacyState.SequenceIndex == 5,
+            "Migrating a pre-checkpoint local save changed its current sequence position.");
+
+        var restoredState = new BlindBoxRuntimeState
+        {
+            SequenceProgressCheckpoint = schedules[2].ProgressCheckpoint,
+        };
+        service.NormalizeSequenceProgress(restoredState);
+        Assert(restoredState.SequenceIndex == 3,
+            "A stable progress checkpoint did not restore the next linked Schedule.");
+        Assert(service.MergeSequenceProgressCheckpoint(
+                   restoredState,
+                   schedules[4].ProgressCheckpoint)
+               && restoredState.SequenceIndex == 5,
+            "A higher Steam progress checkpoint did not advance the linked sequence.");
     }
 
     private static void VerifyPreparedRewardInventoryVisibilityGrace()
@@ -87,12 +123,16 @@ internal static class BlindBoxRegressionSmoke
             "Claiming a Fallback did not complete the Steam newcomer Schedule.");
         Assert(state.SequenceIndex == 1,
             "Claiming a Fallback did not advance the newcomer sequence.");
+        Assert(state.SequenceProgressCheckpoint == 0,
+            "Opening a Fallback recorded stable progress before the reward was claimed.");
         Assert(state.PendingPreparation is
             {
                 IsLate: true,
                 StopRetryAfterFallback: true,
             }, "The empty preparation was not retained for one final no-retry inventory check.");
         service.CompleteClaimedPresentation(state, FirstScheduleId, completedSchedule);
+        Assert(state.SequenceProgressCheckpoint == firstSchedule.ProgressCheckpoint,
+            "Claiming a Fallback did not record the completed Schedule progress checkpoint.");
         Assert(Math.Abs(state.LastClaimSeconds - presentationSeconds) < 0.001,
             "The Fallback claim time was not recorded.");
 
@@ -160,6 +200,8 @@ internal static class BlindBoxRegressionSmoke
             "Claiming the late Steam reward incorrectly completed the next newcomer Schedule.");
         Assert(state.SequenceIndex == 1,
             "Claiming the late Steam reward changed newcomer progress.");
+        Assert(state.SequenceProgressCheckpoint == firstSchedule.ProgressCheckpoint,
+            "Claiming the late Steam reward changed the stable progress checkpoint.");
     }
 
     private static void VerifySaveSnapshotIsolation()
@@ -167,18 +209,8 @@ internal static class BlindBoxRegressionSmoke
         var liveState = new BlindBoxRuntimeState
         {
             SequenceIndex = 0,
+            SequenceProgressCheckpoint = 0,
             ScheduleSeconds = 1.0,
-            PreparedReward = new PreparedBlindBoxReward
-            {
-                ScheduleId = FirstScheduleId,
-                BlindBoxId = FirstSteamBlindBoxId,
-                PlatformInstanceId = 1,
-                SteamItemDefId = 102009,
-                ItemId = 2009,
-                ConfirmedAtTotalPlaySeconds = 2.0,
-                FirstMissingAtTotalPlaySeconds = 2.1,
-                ConsecutiveMissingInventorySnapshots = 1,
-            },
             LockedPresentation = new LockedBlindBoxPresentation
             {
                 ScheduleId = FirstScheduleId,
@@ -202,6 +234,8 @@ internal static class BlindBoxRegressionSmoke
             "Save preparation reused the live profile object.");
         Assert(!ReferenceEquals(liveState, normalizedSnapshot.BlindBoxRuntimeState),
             "Save preparation reused the live blind-box runtime object.");
+        Assert(normalizedSnapshot.BlindBoxRuntimeState.SequenceProgressCheckpoint == 0,
+            "Save normalization changed the stable sequence progress checkpoint.");
         Assert(liveState.LockedPresentation != null,
             "Save normalization cleared the live locked presentation.");
         Assert(normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation is
@@ -210,12 +244,6 @@ internal static class BlindBoxRegressionSmoke
                 BlindBoxId: FallbackBlindBoxId,
                 Kind: LockedBlindBoxPresentationKind.Fallback,
             }, "Save normalization discarded a valid newcomer locked presentation.");
-        Assert(normalizedSnapshot.BlindBoxRuntimeState.PreparedReward is
-            {
-                ConfirmedAtTotalPlaySeconds: 2.0,
-                FirstMissingAtTotalPlaySeconds: 2.1,
-                ConsecutiveMissingInventorySnapshots: 1,
-            }, "Save normalization discarded prepared-reward inventory visibility evidence.");
         Assert(normalizedSnapshot.BlindBoxRuntimeState.PendingPreparation is
             {
                 IsLate: true,
@@ -225,6 +253,31 @@ internal static class BlindBoxRegressionSmoke
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
         Assert(liveState.LockedPresentation != null,
             "Mutating the persistence snapshot changed the live locked presentation.");
+
+        var preparedProfile = new SaveProfile
+        {
+            BlindBoxRuntimeState = new BlindBoxRuntimeState
+            {
+                PreparedReward = new PreparedBlindBoxReward
+                {
+                    ScheduleId = FirstScheduleId,
+                    BlindBoxId = FirstSteamBlindBoxId,
+                    PlatformInstanceId = 1,
+                    SteamItemDefId = 102009,
+                    ItemId = 2009,
+                    ConfirmedAtTotalPlaySeconds = 2.0,
+                    FirstMissingAtTotalPlaySeconds = 2.1,
+                    ConsecutiveMissingInventorySnapshots = 1,
+                },
+            },
+        };
+        var preparedSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(preparedProfile);
+        Assert(preparedSnapshot.BlindBoxRuntimeState.PreparedReward is
+            {
+                ConfirmedAtTotalPlaySeconds: 2.0,
+                FirstMissingAtTotalPlaySeconds: 2.1,
+                ConsecutiveMissingInventorySnapshots: 1,
+            }, "Save normalization discarded prepared-reward inventory visibility evidence.");
     }
 
     private static void VerifyRetiredEyewearSaveCleanup()
