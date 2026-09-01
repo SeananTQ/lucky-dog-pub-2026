@@ -18,6 +18,7 @@ Lucky Dog Rise 使用 Steam Cloud API（`ISteamRemoteStorage`）同步少量需�
 其他平台数据继续由各自系统负责：
 
 - 当前筹码余额与累计全局输入获得筹码由 Steam Stats 和本地累计账本负责。
+- 首轮奖励序列已经完成的最高稳定进度由 Maximum 类型的 Steam Stat 负责；旧 Steam Inventory 里程碑回执只作为兼容证据。
 - Steam 装扮所有权由 Steam Inventory 负责。
 - 扑克牌局、Buff 剩余局数、当前桌面 Refreshment、New 标记、设置和盲盒精确运行态不进入 Steam Cloud。
 
@@ -127,4 +128,3 @@ Playtest AppID 已完成 Steam Cloud 配置、发布和客户端实测：
 - 新建本地档会正常触发新手流程，证明恢复内容不是旧本地总存档残留。
 - Steam Inventory 物品与本地消耗品继续保持各自的数据边界。
 - 不同 Steam 账号使用独立的本地镜像，没有复用另一账号的预设数据。
-
