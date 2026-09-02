@@ -283,6 +283,7 @@ internal static class BlindBoxRegressionSmoke
         {
             OwnedItemCounts = new Dictionary<int, int> { [2009] = 2 },
             RecoveredItemCounts = new Dictionary<int, int> { [2009] = 3 },
+            ExpectedPlatformItemIncreaseCounts = new Dictionary<int, int> { [2009] = 1 },
         };
         var recoveredSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(recoveredProfile);
         Assert(recoveredSnapshot.RecoveredItemCounts?.GetValueOrDefault(2009) == 2,
@@ -290,6 +291,11 @@ internal static class BlindBoxRegressionSmoke
         recoveredSnapshot.RecoveredItemCounts![2009] = 1;
         Assert(recoveredProfile.RecoveredItemCounts.GetValueOrDefault(2009) == 3,
             "Mutating the recovered-item persistence snapshot changed the live notice queue.");
+        Assert(recoveredSnapshot.ExpectedPlatformItemIncreaseCounts?.GetValueOrDefault(2009) == 1,
+            "A known platform acquisition marker was not retained in the persistence snapshot.");
+        recoveredSnapshot.ExpectedPlatformItemIncreaseCounts![2009] = 2;
+        Assert(recoveredProfile.ExpectedPlatformItemIncreaseCounts.GetValueOrDefault(2009) == 1,
+            "Mutating a known platform acquisition marker changed the live save state.");
     }
 
     private static void VerifyRetiredEyewearSaveCleanup()

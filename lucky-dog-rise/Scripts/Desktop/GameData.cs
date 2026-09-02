@@ -62,6 +62,7 @@ public partial class GameData : Node
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
     private Dictionary<int, int> _recoveredItemCounts = new();
+    private Dictionary<int, int> _expectedPlatformItemIncreaseCounts = new();
     public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
@@ -92,6 +93,7 @@ public partial class GameData : Node
     private double _blindBoxLocalTestSavedNextPlatformPlaytimeDropAttemptAtSeconds;
     private int _blindBoxLocalTestPendingCompletionReceiptItemDefId;
     private int _blindBoxLocalTestObservedSequenceProgressCheckpoint;
+    private bool _suppressRecoveredItemsOnNextPlatformReconciliation;
 #endif
     private SettingsManager.SaveDataMode _saveDataMode;
     private bool _saveDirty;
@@ -2002,12 +2004,23 @@ public partial class GameData : Node
         var ownedCounts = Inventory.GetOwnedItemCounts();
         var newItemIds = Inventory.GetNewItemIds().ToHashSet();
         var changed = false;
+#if DEBUG
+        var suppressRecoveredItems = _suppressRecoveredItemsOnNextPlatformReconciliation;
+        _suppressRecoveredItemsOnNextPlatformReconciliation = false;
+#else
+        const bool suppressRecoveredItems = false;
+#endif
+        var expectedIncreasesChanged = false;
         foreach (var item in mappedItems)
         {
             var desiredCount = countsByItemDef.GetValueOrDefault(item.SteamItemDefId);
             var previousCount = ownedCounts.GetValueOrDefault(item.Id);
             if (desiredCount == previousCount)
+            {
+                if (_expectedPlatformItemIncreaseCounts.Remove(item.Id))
+                    expectedIncreasesChanged = true;
                 continue;
+            }
 
             changed = true;
             if (desiredCount > 0)
@@ -2016,11 +2029,29 @@ public partial class GameData : Node
                 if (desiredCount > previousCount && !item.IsHiddenInBag)
                 {
                     newItemIds.Add(item.Id);
-                    if (!IsExpectedPendingLinkTreeItem(item.Id))
+                    var positiveDelta = desiredCount - previousCount;
+                    var expectedDelta = Math.Min(
+                        positiveDelta,
+                        _expectedPlatformItemIncreaseCounts.GetValueOrDefault(item.Id));
+                    if (expectedDelta > 0)
+                    {
+                        expectedIncreasesChanged = true;
+                        var remainingExpected =
+                            _expectedPlatformItemIncreaseCounts[item.Id] - expectedDelta;
+                        if (remainingExpected > 0)
+                            _expectedPlatformItemIncreaseCounts[item.Id] = remainingExpected;
+                        else
+                            _expectedPlatformItemIncreaseCounts.Remove(item.Id);
+                    }
+
+                    var unknownDelta = positiveDelta - expectedDelta;
+                    if (!suppressRecoveredItems
+                        && unknownDelta > 0
+                        && !IsExpectedPendingLinkTreeItem(item.Id))
                     {
                         QueueRecoveredItem(
                             item.Id,
-                            desiredCount - previousCount,
+                            unknownDelta,
                             "platform_inventory_positive_delta");
                     }
                 }
@@ -2029,6 +2060,8 @@ public partial class GameData : Node
             {
                 ownedCounts.Remove(item.Id);
                 newItemIds.Remove(item.Id);
+                if (_expectedPlatformItemIncreaseCounts.Remove(item.Id))
+                    expectedIncreasesChanged = true;
             }
         }
 
@@ -2050,14 +2083,17 @@ public partial class GameData : Node
         if (recoveredItemsChanged)
             EmitSignal(SignalName.RecoveredItemsChanged);
 
-        if (!changed && !recoveredItemsChanged)
+        if (!changed && !recoveredItemsChanged && !expectedIncreasesChanged)
             return;
 
-        Inventory.LoadState(
-            ownedCounts,
-            Inventory.GetEquippedIdsByTypeName(),
-            newItemIds,
-            emitChanged: true);
+        if (changed || recoveredItemsChanged)
+        {
+            Inventory.LoadState(
+                ownedCounts,
+                Inventory.GetEquippedIdsByTypeName(),
+                newItemIds,
+                emitChanged: true);
+        }
         SaveImmediatelyIfUsingLocalSave();
     }
 
@@ -2345,6 +2381,33 @@ public partial class GameData : Node
         _recoveredItemCounts.Clear();
         DiagnosticLog.Record("recovered_items_acknowledged");
         EmitSignal(SignalName.RecoveredItemsChanged);
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
+    public void RegisterKnownPlatformItemCount(int itemId, int confirmedPlatformCount)
+    {
+#if DEBUG
+        if (_steamMockSimulationActive)
+            return;
+#endif
+        if (!IsUsingLocalSave || itemId <= 0 || confirmedPlatformCount <= 0)
+            return;
+
+        var localCount = Inventory.GetCount(itemId);
+        var expectedIncrease = confirmedPlatformCount - localCount;
+        if (expectedIncrease <= 0)
+            return;
+
+        _expectedPlatformItemIncreaseCounts[itemId] = Math.Max(
+            _expectedPlatformItemIncreaseCounts.GetValueOrDefault(itemId),
+            expectedIncrease);
+        DiagnosticLog.Record("known_platform_item_increase_registered", new Dictionary<string, object>
+        {
+            ["itemId"] = itemId,
+            ["confirmedPlatformCount"] = confirmedPlatformCount,
+            ["localCount"] = localCount,
+            ["expectedIncrease"] = expectedIncrease,
+        });
         SaveImmediatelyIfUsingLocalSave();
     }
 
@@ -2797,6 +2860,7 @@ public partial class GameData : Node
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _recoveredItemCounts.Clear();
+        _expectedPlatformItemIncreaseCounts.Clear();
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
@@ -2827,11 +2891,18 @@ public partial class GameData : Node
         if (_saveDataMode == mode)
             return;
 
+        var previousMode = _saveDataMode;
+
 #if DEBUG
         EndBlindBoxLocalTestMode(force: true);
 #endif
         FlushSave();
         _saveDataMode = mode;
+#if DEBUG
+        _suppressRecoveredItemsOnNextPlatformReconciliation =
+            previousMode != SettingsManager.SaveDataMode.LocalSave
+            && mode == SettingsManager.SaveDataMode.LocalSave;
+#endif
         SettingsManager.SaveSaveDataMode(mode);
         LoadDataForCurrentMode();
         PrepareInitialRewardSequenceProgress();
@@ -2843,6 +2914,9 @@ public partial class GameData : Node
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
+        EmitSignal(SignalName.RecoveredItemsChanged);
+        if (mode == SettingsManager.SaveDataMode.LocalSave)
+            _platformInventoryService?.StartInventorySynchronization();
     }
 
 #if DEBUG
@@ -2936,6 +3010,7 @@ public partial class GameData : Node
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
         _recoveredItemCounts.Clear();
+        _expectedPlatformItemIncreaseCounts.Clear();
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
@@ -3046,6 +3121,9 @@ public partial class GameData : Node
             RecoveredItemCounts = _recoveredItemCounts.Count == 0
                 ? null
                 : new Dictionary<int, int>(_recoveredItemCounts),
+            ExpectedPlatformItemIncreaseCounts = _expectedPlatformItemIncreaseCounts.Count == 0
+                ? null
+                : new Dictionary<int, int>(_expectedPlatformItemIncreaseCounts),
             AppliedLinkTreeRewardIds = _appliedLinkTreeRewardIds.OrderBy(id => id).ToList(),
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
@@ -3093,6 +3171,10 @@ public partial class GameData : Node
 
     private void LoadRecoveredItemsState(SaveProfile profile)
     {
+        _expectedPlatformItemIncreaseCounts =
+            (profile.ExpectedPlatformItemIncreaseCounts ?? new Dictionary<int, int>())
+            .Where(pair => pair.Value > 0 && LubanData.Tables.TbItem.GetOrDefault(pair.Key) != null)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
         _recoveredItemCounts = (profile.RecoveredItemCounts ?? new Dictionary<int, int>())
             .Where(pair => pair.Value > 0 && Inventory.GetCount(pair.Key) > 0)
             .ToDictionary(

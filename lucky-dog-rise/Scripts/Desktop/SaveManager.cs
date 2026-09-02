@@ -30,6 +30,8 @@ public sealed class SaveProfile
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<int, int>? RecoveredItemCounts { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<int, int>? ExpectedPlatformItemIncreaseCounts { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<int>? AppliedLinkTreeRewardIds { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
@@ -502,6 +504,15 @@ public static class SaveManager
             if (profile.RecoveredItemCounts.Count == 0)
                 profile.RecoveredItemCounts = null;
         }
+        if (profile.ExpectedPlatformItemIncreaseCounts != null)
+        {
+            profile.ExpectedPlatformItemIncreaseCounts = profile.ExpectedPlatformItemIncreaseCounts
+                .Where(pair => pair.Key > 0 && pair.Value > 0)
+                .OrderBy(pair => pair.Key)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            if (profile.ExpectedPlatformItemIncreaseCounts.Count == 0)
+                profile.ExpectedPlatformItemIncreaseCounts = null;
+        }
         profile.AppliedLinkTreeRewardIds ??= new List<int>();
         profile.AppliedLinkTreeRewardIds = profile.AppliedLinkTreeRewardIds
             .Where(id => id > 0)
@@ -587,6 +598,15 @@ public static class SaveManager
                     pair => Math.Min(pair.Value, profile.OwnedItemCounts[pair.Key]));
             if (profile.RecoveredItemCounts.Count == 0)
                 profile.RecoveredItemCounts = null;
+        }
+
+        if (profile.ExpectedPlatformItemIncreaseCounts != null)
+        {
+            profile.ExpectedPlatformItemIncreaseCounts = profile.ExpectedPlatformItemIncreaseCounts
+                .Where(pair => validIds.Contains(pair.Key) && pair.Value > 0)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            if (profile.ExpectedPlatformItemIncreaseCounts.Count == 0)
+                profile.ExpectedPlatformItemIncreaseCounts = null;
         }
 
         var validScheduleIds = LubanData.Tables.TbBlindBoxSchedule.DataList

@@ -75,6 +75,9 @@ internal static class SaveIntegrity
             RecoveredItemCounts = profile.RecoveredItemCounts == null
                 ? null
                 : SortDictionary(profile.RecoveredItemCounts),
+            ExpectedPlatformItemIncreaseCounts = profile.ExpectedPlatformItemIncreaseCounts == null
+                ? null
+                : SortDictionary(profile.ExpectedPlatformItemIncreaseCounts),
             AppliedLinkTreeRewardIds = (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList(),
             LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? false,
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),

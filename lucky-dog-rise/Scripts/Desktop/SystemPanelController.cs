@@ -1384,7 +1384,12 @@ public partial class SystemPanelController : CanvasLayer
             if (snapshot.OwnedItemDefIds.Contains(pending!.SteamReceiptItemDefId)
                 && IsLinkTreeRewardConfirmedBySnapshot(pendingEntry.Data, snapshot))
             {
-                CompleteSteamLinkTreeClaim(pendingEntry, recovered: true);
+                CompleteSteamLinkTreeClaim(
+                    pendingEntry,
+                    recovered: true,
+                    confirmedRewardItemCount: GetLinkTreeRewardItemCount(
+                        pendingEntry.Data,
+                        snapshot.Items));
             }
             else if (_inventoryService?.IsPromoGrantPending != true)
             {
@@ -1400,7 +1405,10 @@ public partial class SystemPanelController : CanvasLayer
             if (!IsLinkTreeRewardConfirmedBySnapshot(entry.Data, snapshot))
                 continue;
 
-            CompleteSteamLinkTreeClaim(entry, recovered: true);
+            CompleteSteamLinkTreeClaim(
+                entry,
+                recovered: true,
+                confirmedRewardItemCount: GetLinkTreeRewardItemCount(entry.Data, snapshot.Items));
         }
 
         ResumeWaitingLinkTreeClaims();
@@ -1453,7 +1461,12 @@ public partial class SystemPanelController : CanvasLayer
 
         if (IsLinkTreeRewardConfirmedByItems(entry.Data, result.ChangedItems))
         {
-            CompleteSteamLinkTreeClaim(entry, recovered: false);
+            CompleteSteamLinkTreeClaim(
+                entry,
+                recovered: false,
+                confirmedRewardItemCount: GetConfirmedPromoRewardItemCount(
+                    entry.Data,
+                    result.ChangedItems));
         }
         else
         {
@@ -1465,7 +1478,10 @@ public partial class SystemPanelController : CanvasLayer
         GD.Print($"[LinkTree] {result.Message}");
     }
 
-    private void CompleteSteamLinkTreeClaim(LinkTreeRewardEntry entry, bool recovered)
+    private void CompleteSteamLinkTreeClaim(
+        LinkTreeRewardEntry entry,
+        bool recovered,
+        int confirmedRewardItemCount = 0)
     {
         if (_gameData?.PendingLinkTreeClaim is { } pending
             && (pending.LinkTreeId != entry.Data.Id
@@ -1486,6 +1502,18 @@ public partial class SystemPanelController : CanvasLayer
                 MarkLinkTreeEntryClaimed(entry);
             }
             return;
+        }
+
+        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItem
+            && entry.Data.RewardItemId > 0
+            && confirmedRewardItemCount > 0)
+        {
+            // The reward is a known Steam increase. Persist that attribution before the
+            // LinkTree transaction is cleared so a later full snapshot cannot present the
+            // same item as an unknown recovery.
+            _gameData?.RegisterKnownPlatformItemCount(
+                entry.Data.RewardItemId,
+                confirmedRewardItemCount);
         }
 
         if (!TryGrantLinkTreeReward(entry.Data))
@@ -1575,6 +1603,53 @@ public partial class SystemPanelController : CanvasLayer
 
         return items.Any(changedItem =>
             changedItem.ItemDefId == item.SteamItemDefId && changedItem.Quantity > 0);
+    }
+
+    private static int GetLinkTreeRewardItemCount(
+        LinkTree data,
+        IReadOnlyList<PlatformInventoryItem> items)
+    {
+        if (data.RewardType != ELinkTreeRewardType.FixedItem)
+            return 0;
+
+        var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
+        if (item == null || item.SteamItemDefId <= 0)
+            return 0;
+
+        return checked((int)items
+            .Where(platformItem =>
+                platformItem.ItemDefId == item.SteamItemDefId
+                && platformItem.Quantity > 0)
+            .Sum(platformItem => (long)platformItem.Quantity));
+    }
+
+    private int GetConfirmedPromoRewardItemCount(
+        LinkTree data,
+        IReadOnlyList<PlatformInventoryItem> changedItems)
+    {
+        var cachedCount = GetLinkTreeRewardItemCount(
+            data,
+            _inventoryService?.InventoryItems ?? []);
+        var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
+        if (item == null || item.SteamItemDefId <= 0)
+            return cachedCount;
+
+        var changedRewardItems = changedItems
+            .Where(changedItem =>
+                changedItem.ItemDefId == item.SteamItemDefId
+                && changedItem.Quantity > 0)
+            .ToArray();
+        if (changedRewardItems.Length == 0)
+            return cachedCount;
+
+        var cacheAlreadyContainsChanges = changedRewardItems.All(changedItem =>
+            (_inventoryService?.InventoryItems ?? []).Any(cachedItem =>
+                cachedItem.InstanceId == changedItem.InstanceId
+                && cachedItem.ItemDefId == changedItem.ItemDefId
+                && cachedItem.Quantity >= changedItem.Quantity));
+        return cacheAlreadyContainsChanges
+            ? cachedCount
+            : checked(cachedCount + 1);
     }
 
     private void MarkLinkTreeEntryClaimed(LinkTreeRewardEntry entry)
