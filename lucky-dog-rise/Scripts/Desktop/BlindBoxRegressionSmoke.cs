@@ -278,6 +278,18 @@ internal static class BlindBoxRegressionSmoke
                 FirstMissingAtTotalPlaySeconds: 2.1,
                 ConsecutiveMissingInventorySnapshots: 1,
             }, "Save normalization discarded prepared-reward inventory visibility evidence.");
+
+        var recoveredProfile = new SaveProfile
+        {
+            OwnedItemCounts = new Dictionary<int, int> { [2009] = 2 },
+            RecoveredItemCounts = new Dictionary<int, int> { [2009] = 3 },
+        };
+        var recoveredSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(recoveredProfile);
+        Assert(recoveredSnapshot.RecoveredItemCounts?.GetValueOrDefault(2009) == 2,
+            "Recovered-item notices were not clamped to the owned inventory quantity.");
+        recoveredSnapshot.RecoveredItemCounts![2009] = 1;
+        Assert(recoveredProfile.RecoveredItemCounts.GetValueOrDefault(2009) == 3,
+            "Mutating the recovered-item persistence snapshot changed the live notice queue.");
     }
 
     private static void VerifyRetiredEyewearSaveCleanup()

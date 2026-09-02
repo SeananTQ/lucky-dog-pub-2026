@@ -1,0 +1,130 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/RecoveredItemsOverlayController.cs" id="1_controller"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
+[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="5_inter_regular"]
+[ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="6_misans_regular"]
+
+[sub_resource type="FontVariation" id="font_title"]
+fallbacks = Array[Font]([ExtResource("4_misans_bold")])
+base_font = ExtResource("3_inter_bold")
+
+[sub_resource type="FontVariation" id="font_body"]
+fallbacks = Array[Font]([ExtResource("6_misans_regular")])
+base_font = ExtResource("5_inter_regular")
+
+[sub_resource type="StyleBoxFlat" id="overlay_bg"]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0.047, 0.071, 0.075, 0.97)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="items_bg"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(0.12, 0.2, 0.2, 0.72)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="RecoveredItemsOverlay" type="Control"]
+visible = false
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_controller")
+
+[node name="OverlayPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("overlay_bg")
+
+[node name="Margin" type="MarginContainer" parent="OverlayPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="OverlayPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TopSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 22
+text = "小狗找回了物品！"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Lead" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 17
+text = "小狗帮你找回了一些还没来得及告诉你的物品！"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.82, 0.82, 1)
+theme_override_fonts/font = SubResource("font_body")
+theme_override_font_sizes/font_size = 14
+text = "这些物品可能因为网络波动、异步交易或在其他设备上登录，之前没来得及展示给你。"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ItemsPanel" type="PanelContainer" parent="OverlayPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 128)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("items_bg")
+
+[node name="ItemsScroll" type="ScrollContainer" parent="OverlayPanel/Margin/Content/ItemsPanel"]
+layout_mode = 2
+
+[node name="ItemGrid" type="GridContainer" parent="OverlayPanel/Margin/Content/ItemsPanel/ItemsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="Praise" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 16
+text = "谢谢小狗，小狗真棒！"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConfirmButton" type="Button" parent="OverlayPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"ActionButton"
+text = "确认"
+
+[node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3

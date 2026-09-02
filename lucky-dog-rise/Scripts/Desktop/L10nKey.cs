@@ -81,6 +81,10 @@ public static class L10nKey
     public const string Wardrobe_Tab_Player = nameof(Wardrobe_Tab_Player);
     public const string Wardrobe_Tab_Theme = nameof(Wardrobe_Tab_Theme);
     public const string Wardrobe_Tab_Refreshment = nameof(Wardrobe_Tab_Refreshment);
+    public const string RecoveredItems_Title = nameof(RecoveredItems_Title);
+    public const string RecoveredItems_Lead = nameof(RecoveredItems_Lead);
+    public const string RecoveredItems_Detail = nameof(RecoveredItems_Detail);
+    public const string RecoveredItems_Praise = nameof(RecoveredItems_Praise);
     public const string OutfitPreset_SaveEmptySlot = nameof(OutfitPreset_SaveEmptySlot);
     public const string OutfitPreset_ApplySlot = nameof(OutfitPreset_ApplySlot);
     public const string OutfitPreset_DeleteSlot = nameof(OutfitPreset_DeleteSlot);

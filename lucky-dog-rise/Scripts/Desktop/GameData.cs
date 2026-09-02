@@ -22,6 +22,7 @@ public partial class GameData : Node
     [Signal] public delegate void NewHandStartedEventHandler();
     [Signal] public delegate void EquipmentChangedEventHandler();
     [Signal] public delegate void InventoryChangedEventHandler();
+    [Signal] public delegate void RecoveredItemsChangedEventHandler();
     [Signal] public delegate void OutfitPresetsChangedEventHandler();
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
@@ -43,6 +44,7 @@ public partial class GameData : Node
     public double TotalPlaySeconds { get; private set; }
     public bool NeedsPokerBasicsGuidance { get; private set; }
     public PendingBlindBoxReward PendingBlindBoxReward { get; private set; }
+    public bool HasRecoveredItems => _recoveredItemCounts.Count > 0;
     public int PendingBlindBoxCompletionReceiptItemDefId =>
         ActivePendingBlindBoxCompletionReceiptItemDefId;
     public bool ActiveBlindBoxPreparationPending =>
@@ -59,6 +61,7 @@ public partial class GameData : Node
     private RefreshmentRuntimeState _refreshmentRuntimeState = new();
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
+    private Dictionary<int, int> _recoveredItemCounts = new();
     public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
     private BlindBoxService _blindBoxService;
     private IPlatformInventoryService _platformInventoryService;
@@ -81,6 +84,7 @@ public partial class GameData : Node
     private Dictionary<int, int> _blindBoxLocalTestSavedInventoryCounts = new();
     private Dictionary<string, int> _blindBoxLocalTestSavedEquippedItems = new();
     private List<int> _blindBoxLocalTestSavedNewItemIds = new();
+    private Dictionary<int, int> _blindBoxLocalTestSavedRecoveredItemCounts = new();
     private LuckyDealBuffState _blindBoxLocalTestSavedLuckyDealBuffState = new();
     private RefreshmentRuntimeState _blindBoxLocalTestSavedRefreshmentRuntimeState = new();
     private HashSet<int> _blindBoxLocalTestSavedLinkTreeRewardIds = [];
@@ -537,6 +541,7 @@ public partial class GameData : Node
             return false;
 
         PendingBlindBoxReward = null;
+        _recoveredItemCounts.Clear();
         PendingLinkTreeClaim = null;
         _blindBoxLocalTestPendingCompletionReceiptItemDefId = 0;
         _blindBoxLocalTestObservedSequenceProgressCheckpoint = 0;
@@ -812,6 +817,8 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedInventoryCounts = Inventory.GetOwnedItemCounts();
         _blindBoxLocalTestSavedEquippedItems = Inventory.GetEquippedIdsByTypeName();
         _blindBoxLocalTestSavedNewItemIds = Inventory.GetNewItemIds().ToList();
+        _blindBoxLocalTestSavedRecoveredItemCounts = new Dictionary<int, int>(_recoveredItemCounts);
+        _recoveredItemCounts.Clear();
         _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState
         {
             RemainingHands = _luckyDealBuffState.RemainingHands,
@@ -864,6 +871,7 @@ public partial class GameData : Node
             _blindBoxLocalTestSavedEquippedItems,
             _blindBoxLocalTestSavedNewItemIds,
             emitChanged: true);
+        _recoveredItemCounts = new Dictionary<int, int>(_blindBoxLocalTestSavedRecoveredItemCounts);
         _luckyDealBuffState = _blindBoxLocalTestSavedLuckyDealBuffState;
         _refreshmentRuntimeState = _blindBoxLocalTestSavedRefreshmentRuntimeState;
         _appliedLinkTreeRewardIds.Clear();
@@ -882,6 +890,7 @@ public partial class GameData : Node
         _blindBoxLocalTestSavedInventoryCounts = new Dictionary<int, int>();
         _blindBoxLocalTestSavedEquippedItems = new Dictionary<string, int>();
         _blindBoxLocalTestSavedNewItemIds = new List<int>();
+        _blindBoxLocalTestSavedRecoveredItemCounts = new Dictionary<int, int>();
         _blindBoxLocalTestSavedLuckyDealBuffState = new LuckyDealBuffState();
         _blindBoxLocalTestSavedRefreshmentRuntimeState = new RefreshmentRuntimeState();
         _blindBoxLocalTestSavedLinkTreeRewardIds = [];
@@ -894,6 +903,7 @@ public partial class GameData : Node
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
+        EmitSignal(SignalName.RecoveredItemsChanged);
         if (synchronizeInventory)
             _platformInventoryService?.StartInventorySynchronization();
         GD.Print("[BlindBox] Left local test mode and restored the real local/Steam-backed state.");
@@ -2001,7 +2011,20 @@ public partial class GameData : Node
 
             changed = true;
             if (desiredCount > 0)
+            {
                 ownedCounts[item.Id] = desiredCount;
+                if (desiredCount > previousCount && !item.IsHiddenInBag)
+                {
+                    newItemIds.Add(item.Id);
+                    if (!IsExpectedPendingLinkTreeItem(item.Id))
+                    {
+                        QueueRecoveredItem(
+                            item.Id,
+                            desiredCount - previousCount,
+                            "platform_inventory_positive_delta");
+                    }
+                }
+            }
             else
             {
                 ownedCounts.Remove(item.Id);
@@ -2009,7 +2032,25 @@ public partial class GameData : Node
             }
         }
 
-        if (!changed)
+        var recoveredItemsChanged = false;
+        foreach (var itemId in _recoveredItemCounts.Keys.ToArray())
+        {
+            var ownedCount = ownedCounts.GetValueOrDefault(itemId);
+            var recoveredCount = Math.Min(_recoveredItemCounts[itemId], ownedCount);
+            if (recoveredCount == _recoveredItemCounts[itemId])
+                continue;
+
+            recoveredItemsChanged = true;
+            if (recoveredCount > 0)
+                _recoveredItemCounts[itemId] = recoveredCount;
+            else
+                _recoveredItemCounts.Remove(itemId);
+        }
+
+        if (recoveredItemsChanged)
+            EmitSignal(SignalName.RecoveredItemsChanged);
+
+        if (!changed && !recoveredItemsChanged)
             return;
 
         Inventory.LoadState(
@@ -2180,6 +2221,14 @@ public partial class GameData : Node
         if (PendingBlindBoxReward == null || !PendingBlindBoxReward.RewardShown)
             return;
 
+        CompletePendingBlindBoxReward(recoveredFromInterruptedReveal: false);
+    }
+
+    private void CompletePendingBlindBoxReward(bool recoveredFromInterruptedReveal)
+    {
+        if (PendingBlindBoxReward == null)
+            return;
+
         var itemId = PendingBlindBoxReward.ItemId;
         var scheduleId = PendingBlindBoxReward.ScheduleId;
         var completedSchedule = PendingBlindBoxReward.CompletesSchedule;
@@ -2194,6 +2243,8 @@ public partial class GameData : Node
         var previousProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
+        if (recoveredFromInterruptedReveal)
+            QueueRecoveredItem(itemId, 1, "interrupted_blindbox_reveal");
         _blindBoxService.CompleteClaimedPresentation(
             ActiveBlindBoxRuntimeState,
             scheduleId,
@@ -2232,6 +2283,7 @@ public partial class GameData : Node
             ["source"] = claimSource,
             ["platformInstanceId"] = platformInstanceId,
             ["completesSchedule"] = completedSchedule,
+            ["recoveredFromInterruptedReveal"] = recoveredFromInterruptedReveal,
         });
         GD.Print(
             $"[BlindBox] 奖励入账 Schedule={scheduleId}, 来源={claimSource}, Item={itemId}, "
@@ -2246,7 +2298,10 @@ public partial class GameData : Node
                 completedSchedule);
         }
         EmitSignal(SignalName.BlindBoxStateChanged);
-        QueueSaveIfUsingLocalSave();
+        if (recoveredFromInterruptedReveal)
+            SaveImmediatelyIfUsingLocalSave();
+        else
+            QueueSaveIfUsingLocalSave();
     }
 
     public void SetPendingBlindBoxRevealStep(int step)
@@ -2255,7 +2310,6 @@ public partial class GameData : Node
             return;
 
         PendingBlindBoxReward.RevealStep = Mathf.Max(0, step);
-        SaveImmediatelyIfUsingLocalSave();
     }
 
     public void MarkPendingBlindBoxRewardShown()
@@ -2265,7 +2319,6 @@ public partial class GameData : Node
 
         PendingBlindBoxReward.RewardShown = true;
         EmitSignal(SignalName.BlindBoxStateChanged);
-        SaveImmediatelyIfUsingLocalSave();
     }
 
     public void ModifyChips(int delta, PlayerProgressSource source = PlayerProgressSource.Gameplay)
@@ -2279,6 +2332,49 @@ public partial class GameData : Node
         Progression.UpdateHighScore(Chips);
         EmitSignal(SignalName.ChipsChanged, Chips);
         QueueSaveIfUsingLocalSave();
+    }
+
+    public IReadOnlyDictionary<int, int> GetRecoveredItemCounts() =>
+        new Dictionary<int, int>(_recoveredItemCounts);
+
+    public void ConfirmRecoveredItems()
+    {
+        if (_recoveredItemCounts.Count == 0)
+            return;
+
+        _recoveredItemCounts.Clear();
+        DiagnosticLog.Record("recovered_items_acknowledged");
+        EmitSignal(SignalName.RecoveredItemsChanged);
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
+    private bool IsExpectedPendingLinkTreeItem(int itemId)
+    {
+        if (PendingLinkTreeClaim is not { } pending)
+            return false;
+
+        var linkTree = LubanData.Tables.TbLinkTree.GetOrDefault(pending.LinkTreeId);
+        return linkTree != null
+               && linkTree.SteamClaimBundleItemDefId == pending.SteamClaimBundleItemDefId
+               && linkTree.SteamReceiptItemDefId == pending.SteamReceiptItemDefId
+               && linkTree.RewardType == ELinkTreeRewardType.FixedItem
+               && linkTree.RewardItemId == itemId;
+    }
+
+    private void QueueRecoveredItem(int itemId, int count, string reason)
+    {
+        if (itemId <= 0 || count <= 0 || LubanData.Tables.TbItem.GetOrDefault(itemId) == null)
+            return;
+
+        _recoveredItemCounts[itemId] = checked(
+            _recoveredItemCounts.GetValueOrDefault(itemId) + count);
+        DiagnosticLog.Record("recovered_item_queued", new Dictionary<string, object>
+        {
+            ["itemId"] = itemId,
+            ["count"] = count,
+            ["reason"] = reason,
+        });
+        EmitSignal(SignalName.RecoveredItemsChanged);
     }
 
     public void OnPlatformStatisticsSynchronized()
@@ -2700,6 +2796,7 @@ public partial class GameData : Node
         Chips = DebugAllItemsStartingChips;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
+        _recoveredItemCounts.Clear();
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
@@ -2711,6 +2808,7 @@ public partial class GameData : Node
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
+        EmitSignal(SignalName.RecoveredItemsChanged);
         QueueSaveIfUsingLocalSave();
     }
 #endif
@@ -2783,6 +2881,7 @@ public partial class GameData : Node
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
+            LoadRecoveredItemsState(profile);
             _loadedExistingLocalSave = false;
             _pendingFreshSaveOutfitPresetRestore = true;
             PrepareOrRecoverChipLedger();
@@ -2810,6 +2909,7 @@ public partial class GameData : Node
         Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         LoadRefreshmentState(profile);
         LoadPokerBasicsGuidanceState(profile);
+        LoadRecoveredItemsState(profile);
         QueueSaveIfUsingLocalSave();
 #else
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
@@ -2825,6 +2925,7 @@ public partial class GameData : Node
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
+            LoadRecoveredItemsState(profile);
             QueueSaveIfUsingLocalSave();
             return;
         }
@@ -2834,6 +2935,7 @@ public partial class GameData : Node
         _pendingFreshSaveOutfitPresetRestore = false;
         TotalPlaySeconds = 0;
         PendingBlindBoxReward = null;
+        _recoveredItemCounts.Clear();
         PendingLinkTreeClaim = null;
         _pendingBlindBoxCompletionReceiptItemDefId = 0;
         _observedPlatformSequenceProgressCheckpoint = 0;
@@ -2866,8 +2968,31 @@ public partial class GameData : Node
     private void OnInventoryChanged()
     {
         SanitizeTableRefreshment();
+        ClampRecoveredItemsToInventory();
         EmitSignal(SignalName.InventoryChanged);
         QueueSaveIfUsingLocalSave();
+    }
+
+    private void ClampRecoveredItemsToInventory()
+    {
+        var changed = false;
+        foreach (var itemId in _recoveredItemCounts.Keys.ToArray())
+        {
+            var recoveredCount = Math.Min(
+                _recoveredItemCounts[itemId],
+                Inventory.GetCount(itemId));
+            if (recoveredCount == _recoveredItemCounts[itemId])
+                continue;
+
+            changed = true;
+            if (recoveredCount > 0)
+                _recoveredItemCounts[itemId] = recoveredCount;
+            else
+                _recoveredItemCounts.Remove(itemId);
+        }
+
+        if (changed)
+            EmitSignal(SignalName.RecoveredItemsChanged);
     }
 
     private void QueueSaveIfUsingLocalSave()
@@ -2918,6 +3043,9 @@ public partial class GameData : Node
             OwnedItemCounts = Inventory.GetOwnedItemCounts(),
             EquippedItemIdsByType = Inventory.GetEquippedIdsByTypeName(),
             NewItemIds = Inventory.GetNewItemIds().ToList(),
+            RecoveredItemCounts = _recoveredItemCounts.Count == 0
+                ? null
+                : new Dictionary<int, int>(_recoveredItemCounts),
             AppliedLinkTreeRewardIds = _appliedLinkTreeRewardIds.OrderBy(id => id).ToList(),
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
@@ -2961,6 +3089,27 @@ public partial class GameData : Node
         foreach (var linkTreeId in profile.AppliedLinkTreeRewardIds ?? [])
             _appliedLinkTreeRewardIds.Add(linkTreeId);
         LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? true;
+    }
+
+    private void LoadRecoveredItemsState(SaveProfile profile)
+    {
+        _recoveredItemCounts = (profile.RecoveredItemCounts ?? new Dictionary<int, int>())
+            .Where(pair => pair.Value > 0 && Inventory.GetCount(pair.Key) > 0)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => Math.Min(pair.Value, Inventory.GetCount(pair.Key)));
+
+        if (PendingBlindBoxReward != null)
+        {
+            // A reveal is presentation only. On a later process launch, settle the selected
+            // reward once and let the wardrobe recovery notice replace fragile step-by-step
+            // animation restoration across devices and client versions.
+            CompletePendingBlindBoxReward(recoveredFromInterruptedReveal: true);
+            return;
+        }
+
+        if (_recoveredItemCounts.Count > 0)
+            EmitSignal(SignalName.RecoveredItemsChanged);
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

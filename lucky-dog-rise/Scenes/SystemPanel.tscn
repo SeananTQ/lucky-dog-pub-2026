@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="14_loading_indicator"]
 [ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="15_value_label"]
 [ext_resource type="LabelSettings" path="res://Themes/Label_ScaleValue.tres" id="16_scale_value"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/RecoveredItemsOverlay.tscn" id="17_recovered_items"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
@@ -1254,5 +1255,7 @@ text = "Settings_ResetSaveData"
 [node name="DesktopScaleConfirm" parent="." instance=ExtResource("3_confirm")]
 
 [node name="OtherUiScaleConfirm" parent="." instance=ExtResource("3_confirm")]
+
+[node name="RecoveredItemsOverlay" parent="." instance=ExtResource("17_recovered_items")]
 
 [node name="ResetSaveConfirm" parent="." unique_id=1096261693 instance=ExtResource("3_confirm")]

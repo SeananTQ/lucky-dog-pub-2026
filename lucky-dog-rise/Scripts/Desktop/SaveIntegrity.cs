@@ -72,6 +72,9 @@ internal static class SaveIntegrity
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             NewItemIds = (profile.NewItemIds ?? []).OrderBy(id => id).ToList(),
+            RecoveredItemCounts = profile.RecoveredItemCounts == null
+                ? null
+                : SortDictionary(profile.RecoveredItemCounts),
             AppliedLinkTreeRewardIds = (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList(),
             LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? false,
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),

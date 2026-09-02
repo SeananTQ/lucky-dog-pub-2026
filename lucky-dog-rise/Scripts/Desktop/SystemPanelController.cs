@@ -179,6 +179,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
 
     // Wardrobe 页
+    private RecoveredItemsOverlayController _recoveredItemsOverlay = null!;
     private GridContainer _wardrobeGrid = null!;
     private Control _emptyWardrobeCenter = null!;
     private HBoxContainer _typeFilterRow = null!;
@@ -209,6 +210,7 @@ public partial class SystemPanelController : CanvasLayer
                 _gameData.ChipsChanged -= OnChipsChangedForGlobalInputLabel;
                 _gameData.BlindBoxStateChanged -= OnSharedInventoryTransactionStateChanged;
                 _gameData.OutfitPresetsChanged -= RebuildOutfitPresetSlots;
+                _gameData.RecoveredItemsChanged -= RefreshRecoveredItemsOverlay;
             }
 
             _gameData = value;
@@ -223,11 +225,13 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.ChipsChanged += OnChipsChangedForGlobalInputLabel;
             _gameData.BlindBoxStateChanged += OnSharedInventoryTransactionStateChanged;
             _gameData.OutfitPresetsChanged += RebuildOutfitPresetSlots;
+            _gameData.RecoveredItemsChanged += RefreshRecoveredItemsOverlay;
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
                 BuildArmAppearanceOptions();
                 RefreshGlobalInputChipsEarnedLabel();
+                RefreshRecoveredItemsOverlay();
 #if DEBUG
                 RefreshBlindBoxLocalTestControls();
 #endif
@@ -587,6 +591,11 @@ public partial class SystemPanelController : CanvasLayer
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         resetSaveBtn.Pressed += ConfirmResetSave;
         _resetSaveConfirm.Confirmed += OnResetConfirmed;
+#endif
+
+        _recoveredItemsOverlay = GetNode<RecoveredItemsOverlayController>("RecoveredItemsOverlay");
+        _recoveredItemsOverlay.Confirmed += OnRecoveredItemsConfirmed;
+#if DEBUG
         _playerProgressMultiplierOption.AddItem("统计 x1", 1);
         _playerProgressMultiplierOption.AddItem("统计 x10", 10);
         _playerProgressMultiplierOption.AddItem("统计 x100", 100);
@@ -864,7 +873,14 @@ public partial class SystemPanelController : CanvasLayer
         _settingsActionBottomGap.Visible = index == 3;
         _settingsActionSep.Visible = index == 3;
         if (index == 0 && _gameData != null)
+        {
             BuildWardrobe();
+            RefreshRecoveredItemsOverlay();
+        }
+        else
+        {
+            _recoveredItemsOverlay?.HideOverlay();
+        }
         if (index == 1)
         {
             RefreshLinkTreeVisibleEntries();
@@ -1964,6 +1980,27 @@ public partial class SystemPanelController : CanvasLayer
             PopulateWardrobeGrid(_selectedTab);
     }
 
+    private void RefreshRecoveredItemsOverlay()
+    {
+        if (_recoveredItemsOverlay == null || _gameData == null)
+            return;
+
+        if (!_panel.Visible || !_wardrobeContent.Visible || !_gameData.HasRecoveredItems)
+        {
+            _recoveredItemsOverlay.HideOverlay();
+            return;
+        }
+
+        _recoveredItemsOverlay.ShowItems(_gameData.GetRecoveredItemCounts());
+    }
+
+    private void OnRecoveredItemsConfirmed()
+    {
+        _gameData?.ConfirmRecoveredItems();
+        _recoveredItemsOverlay.HideOverlay();
+        RefreshWardrobeGrid();
+    }
+
     // ===== 装扮预设页 =====
 
     private void RebuildOutfitPresetSlots()
@@ -2206,6 +2243,7 @@ public partial class SystemPanelController : CanvasLayer
         EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
+        RefreshRecoveredItemsOverlay();
         EmitSignal(SignalName.OpenStateChanged, true);
         Callable.From(TryPlayPendingLinkTreeRewardFeedbacks).CallDeferred();
         _tween = CreateTween();
@@ -2217,6 +2255,7 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Position = pos;
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
+        _recoveredItemsOverlay?.SetOverlayRect(pos, PanelDesignSize);
 #if DEBUG
         _resetSaveConfirm?.SetOverlayRect(pos, PanelDesignSize);
 #endif
@@ -2229,6 +2268,7 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Scale = value;
         _desktopScaleConfirm.Scale = value;
         _otherUiScaleConfirm.Scale = value;
+        _recoveredItemsOverlay.Scale = value;
 #if DEBUG
         _resetSaveConfirm.Scale = value;
 #endif
@@ -2337,6 +2377,7 @@ public partial class SystemPanelController : CanvasLayer
             _resetSaveConfirm.Visible = false;
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
+        _recoveredItemsOverlay?.HideOverlay();
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 0f, 0.1f).SetEase(Tween.EaseType.In);
         _tween.TweenCallback(Callable.From(() =>
@@ -2356,6 +2397,7 @@ public partial class SystemPanelController : CanvasLayer
             _resetSaveConfirm.Visible = false;
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
+        _recoveredItemsOverlay?.HideOverlay();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
         if (wasOpen)
@@ -2478,6 +2520,7 @@ public partial class SystemPanelController : CanvasLayer
         return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
             || (_desktopScaleConfirm.Visible && new Rect2(_desktopScaleConfirm.Position, PanelSize).HasPoint(windowPos))
             || (_otherUiScaleConfirm.Visible && new Rect2(_otherUiScaleConfirm.Position, PanelSize).HasPoint(windowPos))
+            || (_recoveredItemsOverlay.Visible && new Rect2(_recoveredItemsOverlay.Position, PanelSize).HasPoint(windowPos))
 #if DEBUG
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, PanelSize).HasPoint(windowPos))
 #endif
@@ -2712,6 +2755,7 @@ public partial class SystemPanelController : CanvasLayer
             _outfitPresetTab.TooltipText = L10n.Tr(L10nKey.Settings_Tab_OutfitPresets);
         if (_outfitPresetContent?.Visible == true)
             RebuildOutfitPresetSlots();
+        _recoveredItemsOverlay?.RefreshLocalizedText();
     }
 
     private void RefreshModeButtonText()

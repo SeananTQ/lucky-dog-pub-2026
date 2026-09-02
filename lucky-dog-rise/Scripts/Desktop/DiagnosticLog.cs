@@ -147,6 +147,8 @@ public static class DiagnosticLog
                     ["pendingLinkTreeClaim"] = gameData?.PendingLinkTreeClaim != null,
                     ["linkTreeRewardLedgerInitialized"] = gameData?.LinkTreeRewardLedgerInitialized,
                     ["pendingBlindBoxReward"] = gameData?.PendingBlindBoxReward != null,
+                    ["pendingRecoveredItemTypeCount"] =
+                        gameData?.GetRecoveredItemCounts().Count ?? 0,
                     ["pendingBlindBoxPreparation"] = gameData?.ActiveBlindBoxPreparationPending == true,
                     ["pendingBlindBoxCompletionReceiptItemDefId"] =
                         gameData?.PendingBlindBoxCompletionReceiptItemDefId ?? 0,

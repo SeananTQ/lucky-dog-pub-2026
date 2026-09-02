@@ -28,6 +28,8 @@ public sealed class SaveProfile
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();
     public List<int> NewItemIds { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<int, int>? RecoveredItemCounts { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<int>? AppliedLinkTreeRewardIds { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
@@ -491,6 +493,15 @@ public static class SaveManager
         profile.OwnedItemCounts ??= new Dictionary<int, int>();
         profile.EquippedItemIdsByType ??= new Dictionary<string, int>();
         profile.NewItemIds ??= new List<int>();
+        if (profile.RecoveredItemCounts != null)
+        {
+            profile.RecoveredItemCounts = profile.RecoveredItemCounts
+                .Where(pair => pair.Key > 0 && pair.Value > 0)
+                .OrderBy(pair => pair.Key)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            if (profile.RecoveredItemCounts.Count == 0)
+                profile.RecoveredItemCounts = null;
+        }
         profile.AppliedLinkTreeRewardIds ??= new List<int>();
         profile.AppliedLinkTreeRewardIds = profile.AppliedLinkTreeRewardIds
             .Where(id => id > 0)
@@ -564,6 +575,19 @@ public static class SaveManager
             .Distinct()
             .OrderBy(id => id)
             .ToList();
+
+        if (profile.RecoveredItemCounts != null)
+        {
+            profile.RecoveredItemCounts = profile.RecoveredItemCounts
+                .Where(pair => validIds.Contains(pair.Key)
+                               && profile.OwnedItemCounts.TryGetValue(pair.Key, out var ownedCount)
+                               && ownedCount > 0)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => Math.Min(pair.Value, profile.OwnedItemCounts[pair.Key]));
+            if (profile.RecoveredItemCounts.Count == 0)
+                profile.RecoveredItemCounts = null;
+        }
 
         var validScheduleIds = LubanData.Tables.TbBlindBoxSchedule.DataList
             .Select(schedule => schedule.Id)
