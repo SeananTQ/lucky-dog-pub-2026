@@ -9,10 +9,13 @@ public partial class SteamMockPanelController : CanvasLayer
 {
     [Signal] public delegate void CloseRequestedEventHandler();
     [Signal] public delegate void SimulationResetEventHandler();
+    [Signal] public delegate void RecoveredItemsPreviewRequestedEventHandler(int itemCount);
 
     [Export] private PanelContainer _panel = null!;
     [Export] private OptionButton _scenarioOption = null!;
     [Export] private OptionButton _progressOption = null!;
+    [Export] private OptionButton _recoveredItemsPreviewOption = null!;
+    [Export] private Button _recoveredItemsPreviewButton = null!;
     [Export] private Button _resetButton = null!;
     [Export] private Button _advanceButton = null!;
     [Export] private Button _platformModeButton = null!;
@@ -54,6 +57,13 @@ public partial class SteamMockPanelController : CanvasLayer
         _progressOption.AddItem("普通循环：跳过新手 12 个盲盒", (int)DebugBlindBoxProgressMode.Loop);
         _progressOption.Select(1);
         _progressOption.ItemSelected += OnProgressSelected;
+        _recoveredItemsPreviewOption.AddItem("单个物品：检查最小内容布局", 1);
+        _recoveredItemsPreviewOption.AddItem("6 个物品：检查常规两行布局", 6);
+        _recoveredItemsPreviewOption.AddItem("12 个物品：检查滚动与溢出布局", 12);
+        _recoveredItemsPreviewOption.Select(1);
+        _recoveredItemsPreviewButton.Pressed += () => EmitSignal(
+            SignalName.RecoveredItemsPreviewRequested,
+            _recoveredItemsPreviewOption.GetSelectedId());
         _resetButton.Pressed += ResetScenario;
         _advanceButton.Pressed += AdvancePhase;
         _platformModeButton.Pressed += TogglePlatformMode;
@@ -240,7 +250,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _platformModeButton.Disabled = snapshot.HasPendingTransaction
                                        || _gameData?.PendingBlindBoxReward != null
                                        || _gameData?.PendingLinkTreeClaim != null;
-        _platformModeButton.Text = _controller.IsMockActive ? "恢复真实 Steam" : "启用 Mock";
+        _platformModeButton.Text = _controller.IsMockActive ? "真实 Steam" : "启用 Mock";
     }
 
     private static string GetAdvanceButtonText(DebugSteamMockSnapshot snapshot)

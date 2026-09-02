@@ -180,6 +180,9 @@ public partial class SystemPanelController : CanvasLayer
 
     // Wardrobe 页
     private RecoveredItemsOverlayController _recoveredItemsOverlay = null!;
+#if DEBUG
+    private bool _recoveredItemsMockPreviewActive;
+#endif
     private GridContainer _wardrobeGrid = null!;
     private Control _emptyWardrobeCenter = null!;
     private HBoxContainer _typeFilterRow = null!;
@@ -879,6 +882,9 @@ public partial class SystemPanelController : CanvasLayer
         }
         else
         {
+#if DEBUG
+            _recoveredItemsMockPreviewActive = false;
+#endif
             _recoveredItemsOverlay?.HideOverlay();
         }
         if (index == 1)
@@ -2059,6 +2065,10 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (_recoveredItemsOverlay == null || _gameData == null)
             return;
+#if DEBUG
+        if (_recoveredItemsMockPreviewActive)
+            return;
+#endif
 
         if (!_panel.Visible || !_wardrobeContent.Visible || !_gameData.HasRecoveredItems)
         {
@@ -2071,6 +2081,16 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnRecoveredItemsConfirmed()
     {
+#if DEBUG
+        if (_recoveredItemsMockPreviewActive)
+        {
+            _recoveredItemsMockPreviewActive = false;
+            _recoveredItemsOverlay.HideOverlay();
+            RefreshWardrobeGrid();
+            RefreshRecoveredItemsOverlay();
+            return;
+        }
+#endif
         _gameData?.ConfirmRecoveredItems();
         _recoveredItemsOverlay.HideOverlay();
         RefreshWardrobeGrid();
@@ -2325,6 +2345,35 @@ public partial class SystemPanelController : CanvasLayer
         _tween.TweenProperty(_panel, "modulate:a", 1f, 0.15f).SetEase(Tween.EaseType.Out);
     }
 
+#if DEBUG
+    public void ShowRecoveredItemsMockPreview(int requestedItemCount)
+    {
+        var itemCounts = LubanData.Tables.TbItem.DataList
+            .Where(item => !item.IsHiddenInBag
+                           && item.AcquisitionType != EAcquisitionType.Initial
+                           && item.AcquisitionType != EAcquisitionType.Retired
+                           && !string.IsNullOrWhiteSpace(item.IconPath))
+            .OrderBy(item => item.ItemType)
+            .ThenByDescending(item => item.ItemRarity)
+            .ThenBy(item => item.SortOrder)
+            .ThenBy(item => item.Id)
+            .Take(Math.Max(1, requestedItemCount))
+            .ToDictionary(item => item.Id, _ => 1);
+
+        if (itemCounts.Count == 0)
+        {
+            GD.PushWarning("[Recovered Items Mock] 没有可用于预览的可见非初始物品。");
+            return;
+        }
+
+        _recoveredItemsMockPreviewActive = true;
+        SwitchTab(0);
+        if (!_panel.Visible)
+            Open();
+        _recoveredItemsOverlay.ShowItems(itemCounts);
+    }
+#endif
+
     public void SetPanelPosition(Vector2 pos)
     {
         _panel.Position = pos;
@@ -2450,6 +2499,7 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
+        _recoveredItemsMockPreviewActive = false;
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();
@@ -2470,6 +2520,7 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
+        _recoveredItemsMockPreviewActive = false;
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();

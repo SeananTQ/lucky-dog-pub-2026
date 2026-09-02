@@ -15,18 +15,14 @@ public partial class RecoveredItemsOverlayController : Control
         GD.Load<PackedScene>("res://Scenes/Prefabs/ItemCell.tscn");
 
     private Label _title = null!;
-    private Label _lead = null!;
     private Label _detail = null!;
-    private Label _praise = null!;
     private GridContainer _itemGrid = null!;
     private Button _confirmButton = null!;
 
     public override void _Ready()
     {
         _title = GetNode<Label>("OverlayPanel/Margin/Content/Title");
-        _lead = GetNode<Label>("OverlayPanel/Margin/Content/Lead");
         _detail = GetNode<Label>("OverlayPanel/Margin/Content/Detail");
-        _praise = GetNode<Label>("OverlayPanel/Margin/Content/Praise");
         _itemGrid = GetNode<GridContainer>("OverlayPanel/Margin/Content/ItemsPanel/ItemsScroll/ItemGrid");
         _confirmButton = GetNode<Button>("OverlayPanel/Margin/Content/ConfirmButton");
         _confirmButton.Pressed += () => EmitSignal(SignalName.Confirmed);
@@ -69,9 +65,7 @@ public partial class RecoveredItemsOverlayController : Control
             return;
 
         _title.Text = L10n.Tr(L10nKey.RecoveredItems_Title);
-        _lead.Text = L10n.Tr(L10nKey.RecoveredItems_Lead);
         _detail.Text = L10n.Tr(L10nKey.RecoveredItems_Detail);
-        _praise.Text = L10n.Tr(L10nKey.RecoveredItems_Praise);
-        _confirmButton.Text = L10n.Tr(L10nKey.Common_Confirm);
+        _confirmButton.Text = L10n.Tr(L10nKey.RecoveredItems_Confirm);
     }
 }

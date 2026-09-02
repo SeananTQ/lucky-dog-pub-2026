@@ -74,15 +74,7 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_fonts/font = SubResource("font_title")
 theme_override_font_sizes/font_size = 22
-text = "小狗找回了物品！"
-horizontal_alignment = 1
-autowrap_mode = 3
-
-[node name="Lead" type="Label" parent="OverlayPanel/Margin/Content"]
-layout_mode = 2
-theme_override_fonts/font = SubResource("font_title")
-theme_override_font_sizes/font_size = 17
-text = "小狗帮你找回了一些还没来得及告诉你的物品！"
+text = "小狗帮你找回了一些还没来得及告诉你的物品"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -96,7 +88,7 @@ horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="ItemsPanel" type="PanelContainer" parent="OverlayPanel/Margin/Content"]
-custom_minimum_size = Vector2(0, 128)
+custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("items_bg")
@@ -111,19 +103,10 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 3
 
-[node name="Praise" type="Label" parent="OverlayPanel/Margin/Content"]
-layout_mode = 2
-theme_override_fonts/font = SubResource("font_title")
-theme_override_font_sizes/font_size = 16
-text = "谢谢小狗，小狗真棒！"
-horizontal_alignment = 1
-autowrap_mode = 3
-
 [node name="ConfirmButton" type="Button" parent="OverlayPanel/Margin/Content"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"ActionButton"
-text = "确认"
+text = "小狗真棒！"
 
 [node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
 layout_mode = 2

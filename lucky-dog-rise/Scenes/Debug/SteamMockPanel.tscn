@@ -20,12 +20,14 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_progressOption", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
 _scenarioOption = NodePath("Panel/Root/SteamPage/ScenarioRow/ScenarioOption")
 _progressOption = NodePath("Panel/Root/SteamPage/ProgressRow/ProgressOption")
+_recoveredItemsPreviewOption = NodePath("Panel/Root/SteamPage/RecoveredItemsPreviewRow/PreviewOption")
+_recoveredItemsPreviewButton = NodePath("Panel/Root/SteamPage/RecoveredItemsPreviewRow/PreviewButton")
 _resetButton = NodePath("Panel/Root/SteamPage/ActionRow/ResetButton")
 _advanceButton = NodePath("Panel/Root/SteamPage/ActionRow/AdvanceButton")
 _platformModeButton = NodePath("Panel/Root/SteamPage/ActionRow/PlatformModeButton")
@@ -108,24 +110,48 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "选择后不会立刻清空当前测试；点击“重置场景”后生效。"
 
+[node name="RecoveredItemsPreviewRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PreviewLabel" type="Label" parent="Panel/Root/SteamPage/RecoveredItemsPreviewRow"]
+custom_minimum_size = Vector2(145, 0)
+layout_mode = 2
+text = "找回物品 UI"
+
+[node name="PreviewOption" type="OptionButton" parent="Panel/Root/SteamPage/RecoveredItemsPreviewRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "只预览界面，不修改存档、Steam 库存或真实待找回物品。"
+
+[node name="PreviewButton" type="Button" parent="Panel/Root/SteamPage/RecoveredItemsPreviewRow"]
+custom_minimum_size = Vector2(112, 28)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+tooltip_text = "自动打开背包并显示找回物品界面；可以反复点击或切换规模。"
+text = "预览"
+
 [node name="ActionRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="ResetButton" type="Button" parent="Panel/Root/SteamPage/ActionRow"]
-custom_minimum_size = Vector2(160, 36)
+custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
+theme_type_variation = &"CapsuleButton"
 text = "重置场景"
 
 [node name="AdvanceButton" type="Button" parent="Panel/Root/SteamPage/ActionRow"]
-custom_minimum_size = Vector2(200, 36)
+custom_minimum_size = Vector2(200, 28)
 layout_mode = 2
+theme_type_variation = &"CapsuleButton"
 tooltip_text = "仅在奖励准备或 LinkTree 请求已提交、当前网络阶段仍在等待时可用。"
 text = "推进到下一阶段"
 
 [node name="PlatformModeButton" type="Button" parent="Panel/Root/SteamPage/ActionRow"]
-custom_minimum_size = Vector2(160, 36)
+custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
+theme_type_variation = &"CapsuleButton"
 text = "启用 Mock"
 
 [node name="StateGrid" type="GridContainer" parent="Panel/Root/SteamPage"]

@@ -527,6 +527,7 @@ public partial class ModeManager : Control
             _steamMockPanel.SetPanelBottom(_contentOffset.Y);
             _steamMockPanel.CloseRequested += OnSteamMockPanelCloseRequested;
             _steamMockPanel.SimulationReset += OnSteamMockSimulationReset;
+            _steamMockPanel.RecoveredItemsPreviewRequested += OnRecoveredItemsPreviewRequested;
         }
 #endif
 
@@ -2337,6 +2338,12 @@ public partial class ModeManager : Control
         _settingsPanel?.ResetSteamMockLinkTreeState();
         RefreshBossBlindBoxHint();
         _infoPanel?.RefreshBlindBoxButton();
+    }
+
+    private void OnRecoveredItemsPreviewRequested(int itemCount)
+    {
+        _settingsPanel.ShowRecoveredItemsMockPreview(itemCount);
+        PositionPanelInBestSlot();
     }
 
     private void RefreshSteamMockPanelVisibility()
