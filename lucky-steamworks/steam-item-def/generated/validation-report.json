@@ -9,16 +9,15 @@
     "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json",
     "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
-  "sourceItemDefCount": 67,
+  "sourceItemDefCount": 75,
   "sourceGameItemCount": 126,
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
   "exportedItemDefCountByChannel": {
-    "playtest": 190,
-    "release": 164
+    "playtest": 198
   },
-  "checkedLinkTreeReferenceCount": 11,
+  "checkedLinkTreeReferenceCount": 15,
   "checkedBlindBoxReferenceCount": 2,
   "checkedPlaytimeReferenceCount": 9,
   "checkedCompletionReceiptReferenceCount": 2,
@@ -26,10 +25,6 @@
     {
       "name": "playtest",
       "appid": 4972240
-    },
-    {
-      "name": "release",
-      "appid": 2583700
     }
   ],
   "errors": [],
