@@ -16,6 +16,7 @@ GameData
 GameManager
 GlobalInputTracker
 RawInputMouseListener
+RecoveredItemsOverlayController
 HandAreaController
 HUDController
 InfoPanelController
