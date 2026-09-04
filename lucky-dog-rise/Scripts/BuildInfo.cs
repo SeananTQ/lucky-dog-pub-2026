@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Globalization;
+using DataTables;
 using Godot;
 
 namespace LuckyDogRise;
@@ -52,6 +53,21 @@ public static class BuildInfo
         BuildChannel.Release => ReleaseSteamAppId,
         _ => 0,
     };
+
+    public static bool IncludesCurrentChannel(EBuildChannelMask channelMask)
+    {
+        if (Channel == BuildChannel.Dev)
+            return true;
+
+        var currentChannelMask = Channel switch
+        {
+            BuildChannel.Playtest => EBuildChannelMask.Playtest,
+            BuildChannel.Demo => EBuildChannelMask.Demo,
+            BuildChannel.Release => EBuildChannelMask.Release,
+            _ => (EBuildChannelMask)0,
+        };
+        return (channelMask & currentChannelMask) != 0;
+    }
 
     public static string DisplayVersion
     {

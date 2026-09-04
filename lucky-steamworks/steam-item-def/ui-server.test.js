@@ -20,10 +20,10 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.equal(preview.channels.length, 2);
     const playtest = preview.channels.find(channel => channel.name === "playtest");
     const release = preview.channels.find(channel => channel.name === "release");
-    assert.ok(playtest.itemDefIds.includes(401001));
-    assert.ok(!release.itemDefIds.includes(401001));
-    assert.ok(release.itemDefIds.includes(501001));
-    assert.equal(preview.rows.find(row => row.id === 401001).linkTrees.length, 1);
+    assert.ok(playtest.itemDefIds.includes(410001));
+    assert.ok(!release.itemDefIds.includes(410001));
+    assert.ok(release.itemDefIds.includes(501002));
+    assert.equal(preview.rows.find(row => row.id === 410001).linkTrees.length, 1);
     assert.equal(preview.sources.item.exists, true);
     assert.equal(preview.sources.blindBox.exists, true);
     assert.equal(preview.sources.blindBoxSchedule.exists, true);

@@ -10,14 +10,15 @@
     "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
   "sourceItemDefCount": 75,
-  "sourceGameItemCount": 126,
+  "sourceGameItemCount": 120,
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
   "exportedItemDefCountByChannel": {
-    "playtest": 198
+    "playtest": 186,
+    "release": 152
   },
-  "checkedLinkTreeReferenceCount": 15,
+  "checkedLinkTreeReferenceCount": 8,
   "checkedBlindBoxReferenceCount": 2,
   "checkedPlaytimeReferenceCount": 9,
   "checkedCompletionReceiptReferenceCount": 2,
@@ -25,11 +26,21 @@
     {
       "name": "playtest",
       "appid": 4972240
+    },
+    {
+      "name": "release",
+      "appid": 2583700
     }
   ],
   "errors": [],
   "warnings": [
     "StandardBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
-    "NewbieBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。"
+    "NewbieBlindBoxV1Generator：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeTwitterFollowClaimOfficial：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeXiaohongshuProfileClaimOfficial：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeXiaohongshuProfileClaimPlaytest1：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeTwitterFollowRewardBundle：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeXiaohongshuProfileRewardBundle：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。",
+    "LinkTreeXiaohongshuProfileRewardBundle_Playtest：IsEnabled=false，本次不会输出；请继续保留该行和 ItemDef ID 台账，已发布定义不得复用。"
   ]
 }

@@ -1006,7 +1006,7 @@ public partial class SystemPanelController : CanvasLayer
         _linkTreeRewardEntries.Clear();
 
         var entries = LubanData.Tables.TbLinkTree.DataList
-            .Where(entry => entry.IsEnabled)
+            .Where(entry => entry.IsEnabled && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask))
             .OrderBy(entry => entry.SortOrder)
             .ThenBy(entry => entry.Id);
 

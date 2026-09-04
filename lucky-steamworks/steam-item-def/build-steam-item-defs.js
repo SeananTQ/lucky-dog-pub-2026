@@ -71,6 +71,13 @@ const CHANNELS = Object.freeze({
     release: { appId: 2583700, fileName: "steam-itemdefs.release.json" },
 });
 
+const BUILD_CHANNEL_MASKS = Object.freeze({
+    playtest: 2,
+    demo: 4,
+    release: 8,
+    all: 2 | 4 | 8,
+});
+
 const ITEM_TYPE_NAMES = Object.freeze({
     1: "item",
     2: "bundle",
@@ -670,6 +677,18 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         const receiptItemDefId = record.SteamReceiptItemDefId ?? record.SteamPromoItemDefId ?? 0;
         const claimBundleItemDefId = record.SteamClaimBundleItemDefId ?? 0;
         const isEnabled = record.IsEnabled === true;
+        const buildChannelMask = record.BuildChannelMask;
+
+        if (!Number.isInteger(buildChannelMask)
+            || buildChannelMask < 0
+            || (buildChannelMask & ~BUILD_CHANNEL_MASKS.all) !== 0) {
+            errors.push(`${key}：BuildChannelMask 必须只包含 Playtest、Demo、Release。`);
+            continue;
+        }
+        if (isEnabled && buildChannelMask === 0) {
+            errors.push(`${key}：启用的入口必须至少配置一个 BuildChannelMask。`);
+            continue;
+        }
 
         if (!Number.isInteger(receiptItemDefId) || receiptItemDefId < 0) {
             errors.push(`${key}：SteamReceiptItemDefId 必须是大于等于 0 的整数。`);
@@ -1299,8 +1318,16 @@ function buildArtifacts(
         idRangePlan,
         channelReferences: [
             ...linkTreeRecords.filter(record => record.IsEnabled === true).flatMap(record => [
-                { label: `LinkTree ${record.Id} 永久回执`, itemDefId: record.SteamReceiptItemDefId },
-                { label: `LinkTree ${record.Id} 领奖 Bundle`, itemDefId: record.SteamClaimBundleItemDefId },
+                {
+                    label: `LinkTree ${record.Id} 永久回执`,
+                    itemDefId: record.SteamReceiptItemDefId,
+                    buildChannelMask: record.BuildChannelMask,
+                },
+                {
+                    label: `LinkTree ${record.Id} 领奖 Bundle`,
+                    itemDefId: record.SteamClaimBundleItemDefId,
+                    buildChannelMask: record.BuildChannelMask,
+                },
             ]),
             ...blindBoxes.references.flatMap(reference => [
                 { label: `BlindBox ${reference.blindBoxId} 奖励池`, itemDefId: reference.targetItemDefId },
@@ -1347,6 +1374,10 @@ function buildChannelArtifact(result, channel) {
 
     if (channel === "release" && plan) {
         for (const reference of result.channelReferences) {
+            if (Number.isInteger(reference.buildChannelMask)
+                && (reference.buildChannelMask & BUILD_CHANNEL_MASKS.release) === 0) {
+                continue;
+            }
             if (idInRange(plan, ID_RANGE_ROWS.playtestOnly, reference.itemDefId)) {
                 errors.push(`${reference.label} 引用了 Playtest 专用 ItemDef ${reference.itemDefId}，不得进入 Release。`);
             }
@@ -1475,6 +1506,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+    BUILD_CHANNEL_MASKS,
     CHANNELS,
     buildArtifacts,
     buildChannelArtifact,

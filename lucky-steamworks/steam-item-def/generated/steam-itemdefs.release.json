@@ -530,66 +530,6 @@
       "tags": "rarity:legendary"
     },
     {
-      "itemdefid": 103001,
-      "type": "item",
-      "name": "3D Glasses",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:uncommon"
-    },
-    {
-      "itemdefid": 103002,
-      "type": "item",
-      "name": "Eye Patch",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:rare"
-    },
-    {
-      "itemdefid": 103003,
-      "type": "item",
-      "name": "Black Monocle",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:epic"
-    },
-    {
-      "itemdefid": 103004,
-      "type": "item",
-      "name": "Golden Monocle",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:legendary"
-    },
-    {
-      "itemdefid": 103005,
-      "type": "item",
-      "name": "Blade Sunglasses",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:epic"
-    },
-    {
       "itemdefid": 104001,
       "type": "item",
       "name": "Type 1",
@@ -1466,18 +1406,6 @@
       "tags": "rarity:special_1"
     },
     {
-      "itemdefid": 153001,
-      "type": "item",
-      "name": "Angel Golden Monocle",
-      "granted_manually": false,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "auto_stack": false,
-      "hidden": true,
-      "tags": "rarity:special_1"
-    },
-    {
       "itemdefid": 191012,
       "type": "item",
       "name": "Unshaven Sesame",
@@ -1590,19 +1518,6 @@
       "auto_stack": false
     },
     {
-      "itemdefid": 501001,
-      "type": "item",
-      "name": "LinkTree Claim - Twitter Follow",
-      "description": "Permanent receipt for the Twitter follow reward.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false
-    },
-    {
       "itemdefid": 501002,
       "type": "item",
       "name": "LinkTree Claim - Steam Community",
@@ -1629,36 +1544,10 @@
       "auto_stack": false
     },
     {
-      "itemdefid": 501004,
-      "type": "item",
-      "name": "LinkTree Claim - Xiaohongshu Profile",
-      "description": "Permanent receipt for the Xiaohongshu profile reward.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false
-    },
-    {
       "itemdefid": 501005,
       "type": "item",
       "name": "LinkTree Claim - Twitter Follow",
       "description": "Permanent receipt for the Twitter follow reward.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false
-    },
-    {
-      "itemdefid": 501006,
-      "type": "item",
-      "name": "LinkTree Claim - Xiaohongshu Profile",
-      "description": "Permanent receipt for the Xiaohongshu profile reward.",
       "promo": "manual",
       "granted_manually": true,
       "tradable": false,
@@ -1679,20 +1568,6 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false
-    },
-    {
-      "itemdefid": 601001,
-      "type": "bundle",
-      "name": "LinkTree Reward Bundle - Twitter Follow",
-      "description": "Grants the permanent receipt and fixed item reward for the Twitter follow entry.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false,
-      "bundle": "501001x1;192005x1"
     },
     {
       "itemdefid": 601002,
@@ -1723,20 +1598,6 @@
       "bundle": "501003x1"
     },
     {
-      "itemdefid": 601004,
-      "type": "bundle",
-      "name": "LinkTree Reward Bundle - Xiaohongshu Profile",
-      "description": "Grants the permanent receipt and fixed item reward for the Xiaohongshu profile entry.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false,
-      "bundle": "501004x1;191012x1"
-    },
-    {
       "itemdefid": 601005,
       "type": "bundle",
       "name": "LinkTree Reward Bundle - Twitter Follow",
@@ -1749,20 +1610,6 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "501005x1;152001x1"
-    },
-    {
-      "itemdefid": 601006,
-      "type": "bundle",
-      "name": "LinkTree Reward Bundle - Xiaohongshu Profile",
-      "description": "Grants the permanent receipt and fixed item reward for the Xiaohongshu profile entry.",
-      "promo": "manual",
-      "granted_manually": true,
-      "tradable": false,
-      "marketable": false,
-      "game_only": true,
-      "store_hidden": true,
-      "auto_stack": false,
-      "bundle": "501006x1;153001x1"
     },
     {
       "itemdefid": 601007,

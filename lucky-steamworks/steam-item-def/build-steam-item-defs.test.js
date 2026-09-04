@@ -59,6 +59,7 @@ function linkTree(overrides = {}) {
         Id: 1001,
         Key: "TwitterFollow",
         IsEnabled: true,
+        BuildChannelMask: 14,
         RewardType: 1,
         RewardItemId: 1002,
         RewardChips: 0,
@@ -702,6 +703,33 @@ test("rejects a Playtest-only business reference in Release", () => {
 
     assert.ok(buildChannelArtifact(result, "release").errors.some(error =>
         error.includes("Playtest 专用 ItemDef")));
+});
+
+test("allows a Playtest-only LinkTree reference when its channel mask excludes Release", () => {
+    const result = buildArtifacts(
+        [receipt(), claimBundle()],
+        [linkTree({ BuildChannelMask: 2 })],
+        [gameItem()],
+        [],
+        [],
+        [],
+        [],
+        idRanges(),
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.deepEqual(buildChannelArtifact(result, "playtest").errors, []);
+    assert.deepEqual(buildChannelArtifact(result, "release").errors, []);
+});
+
+test("rejects an enabled LinkTree entry without a build channel", () => {
+    const result = buildArtifacts(
+        [receipt(), claimBundle()],
+        [linkTree({ BuildChannelMask: 0 })],
+        [gameItem()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("至少配置一个 BuildChannelMask")));
 });
 
 test("validates the formal Item mapping from the exported ID plan", () => {
