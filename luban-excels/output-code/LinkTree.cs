@@ -22,6 +22,7 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["IsPinned"].IsBoolean) { throw new SerializationException(); }  IsPinned = _buf["IsPinned"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
+        { if(!_buf["BuildChannelMask"].IsNumber) { throw new SerializationException(); }  BuildChannelMask = (EBuildChannelMask)_buf["BuildChannelMask"].AsInt; }
         { if(!_buf["TooltipKey"].IsString) { throw new SerializationException(); }  TooltipKey = _buf["TooltipKey"]; }
         { if(!_buf["BannerTexturePath"].IsString) { throw new SerializationException(); }  BannerTexturePath = _buf["BannerTexturePath"]; }
         { if(!_buf["BadgeTexturePath"].IsString) { throw new SerializationException(); }  BadgeTexturePath = _buf["BadgeTexturePath"]; }
@@ -62,6 +63,10 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// 是否显示这个入口
     /// </summary>
     public readonly bool IsEnabled;
+    /// <summary>
+    /// 该条数据允许生效的构建渠道，使用位标记，可同时选择多个渠道。只有 IsEnabled=TRUE 且包含当前构建渠道时，客户端才显示并执行该入口；Steam ItemDef 转换器也只在对应渠道校验相关引用。0 表示不在任何渠道生效。
+    /// </summary>
+    public readonly EBuildChannelMask BuildChannelMask;
     /// <summary>
     /// Tooltip 本地化 key；当前也可直接作为显示名来源
     /// </summary>
@@ -130,6 +135,7 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "SortOrder:" + SortOrder + ","
         + "IsPinned:" + IsPinned + ","
         + "IsEnabled:" + IsEnabled + ","
+        + "BuildChannelMask:" + BuildChannelMask + ","
         + "TooltipKey:" + TooltipKey + ","
         + "BannerTexturePath:" + BannerTexturePath + ","
         + "BadgeTexturePath:" + BadgeTexturePath + ","

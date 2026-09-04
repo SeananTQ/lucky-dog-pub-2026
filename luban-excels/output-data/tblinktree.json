@@ -5,6 +5,7 @@
     "SortOrder": 30,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Twitter",
     "BannerTexturePath": "UI/LinkTree/Banner_Twitter.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -16,7 +17,7 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401001,
+    "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0
   },
   {
@@ -25,6 +26,7 @@
     "SortOrder": 10,
     "IsPinned": true,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Steam Community",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamCommunity.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -36,7 +38,7 @@
     "RewardChips": 2500,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401002,
+    "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0
   },
   {
@@ -45,6 +47,7 @@
     "SortOrder": 20,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Steam Store",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamStore.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -56,7 +59,7 @@
     "RewardChips": 2500,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401003,
+    "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0
   },
   {
@@ -65,6 +68,7 @@
     "SortOrder": 40,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -76,7 +80,7 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 401004,
+    "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0
   },
   {
@@ -85,6 +89,7 @@
     "SortOrder": 60,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Twitter",
     "BannerTexturePath": "UI/LinkTree/Banner_Twitter.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -96,8 +101,8 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 501001,
-    "SteamClaimBundleItemDefId": 601001
+    "SteamReceiptItemDefId": 0,
+    "SteamClaimBundleItemDefId": 0
   },
   {
     "Id": 1006,
@@ -105,6 +110,7 @@
     "SortOrder": 80,
     "IsPinned": true,
     "IsEnabled": true,
+    "BuildChannelMask": 14,
     "TooltipKey": "Steam Community",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamCommunity.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -125,6 +131,7 @@
     "SortOrder": 100,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 14,
     "TooltipKey": "Steam Store",
     "BannerTexturePath": "UI/LinkTree/Banner_SteamStore.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -145,6 +152,7 @@
     "SortOrder": 120,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -152,12 +160,12 @@
     "PostClaimUrl": "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a",
     "OpenCheckType": 1,
     "RewardType": 1,
-    "RewardItemId": 91012,
+    "RewardItemId": 0,
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 501004,
-    "SteamClaimBundleItemDefId": 601004
+    "SteamReceiptItemDefId": 0,
+    "SteamClaimBundleItemDefId": 0
   },
   {
     "Id": 1009,
@@ -165,6 +173,7 @@
     "SortOrder": 60,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 14,
     "TooltipKey": "Twitter",
     "BannerTexturePath": "UI/LinkTree/Banner_Twitter.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -185,6 +194,7 @@
     "SortOrder": 120,
     "IsPinned": false,
     "IsEnabled": false,
+    "BuildChannelMask": 0,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -192,12 +202,12 @@
     "PostClaimUrl": "https://www.xiaohongshu.com/user/profile/647bc1b5000000001001f13a",
     "OpenCheckType": 1,
     "RewardType": 1,
-    "RewardItemId": 53001,
+    "RewardItemId": 0,
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 501006,
-    "SteamClaimBundleItemDefId": 601006
+    "SteamReceiptItemDefId": 0,
+    "SteamClaimBundleItemDefId": 0
   },
   {
     "Id": 1011,
@@ -205,6 +215,7 @@
     "SortOrder": 120,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 14,
     "TooltipKey": "Xiaohongshu",
     "BannerTexturePath": "UI/LinkTree/Banner_Xiaohongshu.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -222,9 +233,10 @@
   {
     "Id": 410001,
     "Key": "Test01",
-    "SortOrder": 20,
+    "SortOrder": 2000,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 2,
     "TooltipKey": "Test",
     "BannerTexturePath": "UI/LinkTree/Banner_Test.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -242,9 +254,10 @@
   {
     "Id": 410002,
     "Key": "Test02",
-    "SortOrder": 20,
+    "SortOrder": 2000,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 2,
     "TooltipKey": "Test",
     "BannerTexturePath": "UI/LinkTree/Banner_Test.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -262,9 +275,10 @@
   {
     "Id": 410003,
     "Key": "Test03",
-    "SortOrder": 20,
+    "SortOrder": 2000,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 2,
     "TooltipKey": "Test",
     "BannerTexturePath": "UI/LinkTree/Banner_Test.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
@@ -282,9 +296,10 @@
   {
     "Id": 410004,
     "Key": "Test04",
-    "SortOrder": 20,
+    "SortOrder": 2000,
     "IsPinned": false,
     "IsEnabled": true,
+    "BuildChannelMask": 2,
     "TooltipKey": "Test",
     "BannerTexturePath": "UI/LinkTree/Banner_Test.png",
     "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
