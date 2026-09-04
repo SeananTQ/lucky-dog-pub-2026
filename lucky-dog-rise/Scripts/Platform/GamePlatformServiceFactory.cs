@@ -40,7 +40,7 @@ public static class GamePlatformServiceFactory
             return offline;
         }
 
-        IGamePlatformService service = new RecoveringSteamPlatformService();
+        IGamePlatformService service = new RecoveringSteamPlatformService(BuildCapabilities.SteamInventory);
 #if DEBUG
         service = new DebugSteamMockPlatformService(service);
 #endif

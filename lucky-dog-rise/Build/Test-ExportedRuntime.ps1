@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$ExecutablePath,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [int]$RunSeconds = 10
 )
 
@@ -53,6 +54,13 @@ if ($matchedPattern) {
 
 if ($output -notmatch '\[DiagnosticsSmoke\] Export passed:') {
     throw "Exported runtime smoke test did not complete the diagnostic export. See $logDirectory"
+}
+
+if ($Channel -eq 'Demo') {
+    $expectedCapabilities = '[BuildCapabilities] Channel=Demo, BlindBoxes=False, LinkTree=False, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=True'
+    if (!$output.Contains($expectedCapabilities, [StringComparison]::Ordinal)) {
+        throw "Exported Demo did not report the expected capability profile. See $logDirectory"
+    }
 }
 
 $diagnosticPackages = @(Get-ChildItem -LiteralPath $diagnosticExportDirectory -Filter 'LDR_Diagnostics_*.zip')

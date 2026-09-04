@@ -86,6 +86,11 @@ public partial class InfoPanelController : CanvasLayer
         _paytableBtn.Pressed += () => EmitSignal(SignalName.PaytableRequested);
         _blindBoxHint.Pressed += OnBlindBoxHintPressed;
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
+        if (!BuildCapabilities.BlindBoxes)
+        {
+            _blindBoxBtn.Visible = false;
+            _blindBoxHint.SetDisplayVisible(false);
+        }
 
         foreach (var child in _payoutGrid.GetChildren())
         {
@@ -130,7 +135,8 @@ public partial class InfoPanelController : CanvasLayer
         data.ChipsChanged += OnChipsChanged;
         data.HandResolved += OnHandResolved;
         data.NewHandStarted += OnNewHandStarted;
-        data.BlindBoxStateChanged += RefreshBlindBoxButton;
+        if (BuildCapabilities.BlindBoxes)
+            data.BlindBoxStateChanged += RefreshBlindBoxButton;
         RefreshPayoutValues();
         RefreshBlindBoxButton();
     }
@@ -322,6 +328,13 @@ public partial class InfoPanelController : CanvasLayer
 
     public void RefreshBlindBoxButton()
     {
+        if (!BuildCapabilities.BlindBoxes)
+        {
+            _blindBoxBtn.Visible = false;
+            SetBlindBoxHintDisplayVisible(false);
+            return;
+        }
+
         if (_gameData == null)
             return;
 

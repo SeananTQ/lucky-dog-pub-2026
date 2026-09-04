@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [string]$GodotEditor
 )
 
@@ -46,7 +46,8 @@ if ($dirty) { $commit = "$commit-dirty" }
 
 $channelSlug = $Channel.ToLowerInvariant()
 $staging = Join-Path $localBuild "staging\$channelSlug"
-$outputExe = Join-Path $staging 'LuckyDogRise.exe'
+$executableBaseName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo' } else { 'LuckyDogRise' }
+$outputExe = Join-Path $staging "$executableBaseName.exe"
 $assemblyPath = Join-Path $staging 'data_LuckyDogRise_windows_x86_64\LuckyDogRise.dll'
 $packageDir = Join-Path $workspace 'GameBuild'
 $packagePath = Join-Path $packageDir "LuckyDogRise-$version-$channelSlug-win-x64.zip"
@@ -150,7 +151,7 @@ Get-ChildItem -LiteralPath $staging -Recurse -File | Where-Object { $_.Extension
     Remove-Item -Force
 
 & (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel $Channel -Version $version
-& (Join-Path $PSScriptRoot 'Test-ExportedRuntime.ps1') -ExecutablePath $outputExe
+& (Join-Path $PSScriptRoot 'Test-ExportedRuntime.ps1') -ExecutablePath $outputExe -Channel $Channel
 if (Test-Path -LiteralPath $packagePath) { Remove-Item -Force -LiteralPath $packagePath }
 Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $packagePath -CompressionLevel Optimal
 Write-Host "Package ready: $packagePath"

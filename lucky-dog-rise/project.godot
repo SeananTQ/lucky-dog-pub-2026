@@ -22,6 +22,8 @@ config/icon="res://icon.svg"
 config/windows_native_icon="res://windows_icon.ico"
 config/use_custom_user_dir.lucky_playtest=true
 config/custom_user_dir_name.lucky_playtest="LuckyDogRise/Playtest"
+config/use_custom_user_dir.lucky_demo=true
+config/custom_user_dir_name.lucky_demo="LuckyDogRise/Demo"
 config/use_custom_user_dir.lucky_release=true
 config/custom_user_dir_name.lucky_release="LuckyDogRise/Release"
 

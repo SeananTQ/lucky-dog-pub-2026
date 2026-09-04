@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$TemplatePath,
     [Parameter(Mandatory)] [string]$ExportPath,
     [Parameter(Mandatory)] [string]$Version
@@ -8,7 +8,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-$feature = if ($Channel -eq 'Playtest') { 'lucky_playtest' } else { 'lucky_release' }
+$feature = switch ($Channel) {
+    'Playtest' { 'lucky_playtest' }
+    'Demo' { 'lucky_demo' }
+    default { 'lucky_release' }
+}
+$productName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } else { 'Lucky Dog Rise' }
 $presetName = "Windows $Channel"
 $escapedTemplate = $TemplatePath.Replace('\', '/')
 $escapedExport = $ExportPath.Replace('\', '/')
@@ -52,8 +57,8 @@ application/icon_interpolation=4
 application/file_version="$fileVersion"
 application/product_version="$fileVersion"
 application/company_name="Seanan Studio"
-application/product_name="Lucky Dog Rise"
-application/file_description="Lucky Dog Rise"
+application/product_name="$productName"
+application/file_description="$productName"
 application/copyright="Copyright (c) 2026 Seanan Studio"
 application/trademarks=""
 dotnet/include_scripts_content=false

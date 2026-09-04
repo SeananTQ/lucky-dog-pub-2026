@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$StagingDirectory,
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$Version
 )
 
@@ -21,8 +21,10 @@ if ($forbidden) {
 
 $gameAssembly = $files | Where-Object Name -eq 'LuckyDogRise.dll' | Select-Object -First 1
 if (!$gameAssembly) { throw 'LuckyDogRise.dll is missing from the exported build.' }
-$gameExecutable = $files | Where-Object Name -eq 'LuckyDogRise.exe' | Select-Object -First 1
-if (!$gameExecutable) { throw 'LuckyDogRise.exe is missing from the exported build.' }
+$expectedExecutableName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo.exe' } else { 'LuckyDogRise.exe' }
+$expectedProductName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } else { 'Lucky Dog Rise' }
+$gameExecutable = $files | Where-Object Name -eq $expectedExecutableName | Select-Object -First 1
+if (!$gameExecutable) { throw "$expectedExecutableName is missing from the exported build." }
 $steamworksManaged = $files | Where-Object Name -eq 'Steamworks.NET.dll' | Select-Object -First 1
 if (!$steamworksManaged) { throw 'Steamworks.NET.dll is missing from the exported build.' }
 $steamworksNative = $files | Where-Object Name -eq 'steam_api64.dll' | Select-Object -First 1
@@ -33,7 +35,7 @@ $developerAllowlist = $files | Where-Object Name -eq 'steam-account-allowlist.js
 if ($developerAllowlist) { throw 'The developer Steam account allowlist must not be included in a Steam Depot build.' }
 $versionInfo = $gameExecutable.VersionInfo
 if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
-    ($versionInfo.ProductName -ne 'Lucky Dog Rise') -or
+    ($versionInfo.ProductName -ne $expectedProductName) -or
     ($versionInfo.FileVersion -ne $windowsVersion) -or
     ($versionInfo.ProductVersion -ne $windowsVersion)) {
     throw 'Windows executable metadata is missing or incorrect.'
@@ -53,6 +55,9 @@ if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-09-08T16:00:00Z')) {
 }
 if ($Channel -eq 'Release' -and $ascii.Contains('2026-09-08T16:00:00Z')) {
     throw 'Playtest expiration metadata must not remain in the Release assembly.'
+}
+if ($Channel -eq 'Demo' -and $ascii.Contains('2026-09-08T16:00:00Z')) {
+    throw 'Playtest expiration metadata must not remain in the Demo assembly.'
 }
 
 $report = @"

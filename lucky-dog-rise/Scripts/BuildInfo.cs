@@ -10,14 +10,17 @@ public enum BuildChannel
 {
     Dev,
     Playtest,
+    Demo,
     Release,
 }
 
 public static class BuildInfo
 {
     private const string PlaytestFeature = "lucky_playtest";
+    private const string DemoFeature = "lucky_demo";
     private const string ReleaseFeature = "lucky_release";
     public const uint PlaytestSteamAppId = 4972240;
+    public const uint DemoSteamAppId = 5220880;
     public const uint ReleaseSteamAppId = 2583700;
 
     public static BuildChannel Channel
@@ -27,7 +30,9 @@ public static class BuildInfo
 #if DEBUG
             return BuildChannel.Dev;
 #else
-            return OS.HasFeature(PlaytestFeature) ? BuildChannel.Playtest : BuildChannel.Release;
+            if (OS.HasFeature(PlaytestFeature))
+                return BuildChannel.Playtest;
+            return OS.HasFeature(DemoFeature) ? BuildChannel.Demo : BuildChannel.Release;
 #endif
         }
     }
@@ -43,6 +48,7 @@ public static class BuildInfo
     public static uint ExpectedSteamAppId => Channel switch
     {
         BuildChannel.Playtest => PlaytestSteamAppId,
+        BuildChannel.Demo => DemoSteamAppId,
         BuildChannel.Release => ReleaseSteamAppId,
         _ => 0,
     };
@@ -63,8 +69,10 @@ public static class BuildInfo
         return true;
 #else
         var playtest = OS.HasFeature(PlaytestFeature);
+        var demo = OS.HasFeature(DemoFeature);
         var release = OS.HasFeature(ReleaseFeature);
-        if (!(playtest ^ release) || !TryGetSaveHmacKey(out _))
+        if ((Convert.ToInt32(playtest) + Convert.ToInt32(demo) + Convert.ToInt32(release) != 1)
+            || !TryGetSaveHmacKey(out _))
         {
             ValidationError = "This build is missing a valid channel tag or save key.";
             GD.PushError($"[Build] {ValidationError}");
@@ -134,4 +142,16 @@ public static class BuildInfo
             .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal))
             ?.Value ?? fallback;
     }
+}
+
+public static class BuildCapabilities
+{
+    private static bool IsReviewDemo => BuildInfo.Channel == BuildChannel.Demo;
+
+    public static bool BlindBoxes => !IsReviewDemo;
+    public static bool LinkTree => !IsReviewDemo;
+    public static bool SteamInventory => !IsReviewDemo;
+    public static bool PlatformStatistics => !IsReviewDemo;
+    public static bool Achievements => !IsReviewDemo;
+    public static bool SteamCloud => true;
 }

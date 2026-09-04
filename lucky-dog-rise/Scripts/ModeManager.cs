@@ -216,10 +216,16 @@ public partial class ModeManager : Control
 
         if (!BuildInfo.ValidateCurrentBuild())
         {
-            OS.Alert(BuildInfo.ValidationError, "Lucky Dog Rise Playtest");
+            OS.Alert(BuildInfo.ValidationError, $"Lucky Dog Rise {BuildInfo.Channel}");
             GetTree().Quit(2);
             return;
         }
+
+        GD.Print(
+            $"[BuildCapabilities] Channel={BuildInfo.Channel}, BlindBoxes={BuildCapabilities.BlindBoxes}, " +
+            $"LinkTree={BuildCapabilities.LinkTree}, SteamInventory={BuildCapabilities.SteamInventory}, " +
+            $"PlatformStatistics={BuildCapabilities.PlatformStatistics}, Achievements={BuildCapabilities.Achievements}, " +
+            $"SteamCloud={BuildCapabilities.SteamCloud}");
 
         _pokerFrameRate = SettingsManager.LoadPokerFrameRate();
         SettingsManager.PokerFrameRateChanged += OnPokerFrameRateChanged;
@@ -433,11 +439,15 @@ public partial class ModeManager : Control
 #endif
         AddChild(_gameData);
         _gameData.BindPlatformInventoryService(_platformService);
-        _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
-        _statisticSynchronizer = new PlatformStatisticSynchronizer(
-            _platformService,
-            _gameData.PlayerProgress,
-            _gameData.OnPlatformStatisticsSynchronized);
+        if (BuildCapabilities.Achievements)
+            _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
+        if (BuildCapabilities.PlatformStatistics)
+        {
+            _statisticSynchronizer = new PlatformStatisticSynchronizer(
+                _platformService,
+                _gameData.PlayerProgress,
+                _gameData.OnPlatformStatisticsSynchronized);
+        }
 
         _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
@@ -452,8 +462,11 @@ public partial class ModeManager : Control
         _bossDogVisual.GameData = _gameData;
         RefreshBossDogVisuals();
         _gameData.EquipmentChanged += RefreshBossDogVisuals;
-        _gameData.BlindBoxStateChanged += RefreshBossBlindBoxHint;
-        _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
+        if (BuildCapabilities.BlindBoxes)
+        {
+            _gameData.BlindBoxStateChanged += RefreshBossBlindBoxHint;
+            _gameData.ChipsChanged += _ => RefreshBossBlindBoxHint();
+        }
         _mainText = _bossKeyContent.GetNode<Label>("CanvasLayer/Panel/HBoxContainer/MainText");
         _bossCounterSourceFont = _mainText.GetThemeFont("font");
         _bossStatusPanel = _bossKeyContent.GetNode<PanelContainer>("CanvasLayer/Panel");
@@ -465,7 +478,10 @@ public partial class ModeManager : Control
         _bossSystemButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
         _bossModeButton.Pressed += OnBossModeButtonPressed;
         _bossSystemButton.Pressed += OnBossSystemButtonPressed;
-        _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
+        if (BuildCapabilities.BlindBoxes)
+            _bossBlindBoxHint.Pressed += OnBossBlindBoxHintPressed;
+        else
+            _bossBlindBoxHint.SetDisplayVisible(false);
         RefreshBossBlindBoxHint();
 
         // 先实例化面板以读取实际尺寸
@@ -495,7 +511,8 @@ public partial class ModeManager : Control
         _steamMockPanelRequestedVisible = startInSteamMock;
         _settingsPanel.SetSteamMockPanelToggle(_steamMockPanelRequestedVisible);
 #endif
-        _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
+        if (BuildCapabilities.BlindBoxes)
+            _settingsPanel.BlindBoxBubbleVisibilityChanged += OnBlindBoxBubbleVisibilityChanged;
         _settingsPanel.CounterLayoutChanged += ApplyBossCounterLayout;
         _settingsPanel.DesktopPetScalePreviewRequested += OnDesktopPetScalePreviewRequested;
         _settingsPanel.DesktopPetScaleConfirmed += OnDesktopPetScaleConfirmed;
@@ -531,13 +548,16 @@ public partial class ModeManager : Control
         }
 #endif
 
-        _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
-            .Instantiate<BlindBoxRevealOverlayController>();
-        _bossBlindBoxOverlay.Name = "DesktopBlindBoxRevealOverlay";
-        _bossBlindBoxOverlay.RewardClaimRequested += OnBossBlindBoxRewardClaimRequested;
-        _bossBlindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
-        _bossBlindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
-        _bossKeyContent.AddChild(_bossBlindBoxOverlay);
+        if (BuildCapabilities.BlindBoxes)
+        {
+            _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
+                .Instantiate<BlindBoxRevealOverlayController>();
+            _bossBlindBoxOverlay.Name = "DesktopBlindBoxRevealOverlay";
+            _bossBlindBoxOverlay.RewardClaimRequested += OnBossBlindBoxRewardClaimRequested;
+            _bossBlindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
+            _bossBlindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
+            _bossKeyContent.AddChild(_bossBlindBoxOverlay);
+        }
 
         _bossRiseIntro = GD.Load<PackedScene>("res://Scenes/DesktopRiseIntro.tscn")
             .Instantiate<DesktopRiseIntroController>();
@@ -1925,6 +1945,11 @@ public partial class ModeManager : Control
     {
         if (_bossBlindBoxHint == null || _gameData == null)
             return;
+        if (!BuildCapabilities.BlindBoxes)
+        {
+            SetBossBlindBoxHintDisplayVisible(false);
+            return;
+        }
 
         if (_bossRiseIntroSuppressesBlindBoxHint)
         {
@@ -2054,7 +2079,8 @@ public partial class ModeManager : Control
 
     private void RestoreBossBlindBoxRewardIfNeeded()
     {
-        if (_blindBoxOpeningUiActive
+        if (!BuildCapabilities.BlindBoxes
+            || _blindBoxOpeningUiActive
             || CurrentMode != Mode.BossKey
             || _gameData.PendingBlindBoxReward == null)
             return;

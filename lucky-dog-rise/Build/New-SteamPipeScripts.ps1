@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$ContentRoot,
     [Parameter(Mandatory)] [string]$OutputDirectory,
     [Parameter(Mandatory)] [int]$AppId,
@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $expectedIds = @{
     Playtest = @{ AppId = 4972240; DepotId = 4972241 }
+    Demo = @{ AppId = 5220880; DepotId = 5220881 }
     Release = @{ AppId = 2583700; DepotId = 2583701 }
 }
 
@@ -36,7 +37,8 @@ if ($SetLiveBranch -eq 'default') { throw 'SteamPipe cannot set the default bran
 $resolvedContentRoot = Resolve-Path -LiteralPath $ContentRoot
 $files = Get-ChildItem -LiteralPath $resolvedContentRoot -Recurse -File
 if (!$files) { throw "SteamPipe content root is empty: $resolvedContentRoot" }
-foreach ($requiredName in 'LuckyDogRise.exe', 'steam_api64.dll', 'Steamworks.NET.dll', 'build-verification.txt') {
+$expectedExecutableName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo.exe' } else { 'LuckyDogRise.exe' }
+foreach ($requiredName in $expectedExecutableName, 'steam_api64.dll', 'Steamworks.NET.dll', 'build-verification.txt') {
     if (!($files | Where-Object Name -eq $requiredName | Select-Object -First 1)) {
         throw "Required $Channel build file is missing: $requiredName"
     }

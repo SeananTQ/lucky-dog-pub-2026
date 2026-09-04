@@ -215,7 +215,8 @@ public partial class GameData : Node
         _profileAutosaveTimer = ProfileAutosaveSeconds;
         _playerProgressSaveTimer = PlayerProgressAutosaveSeconds;
         LoadDataForCurrentMode();
-        PrepareInitialRewardSequenceProgress();
+        if (BuildCapabilities.BlindBoxes)
+            PrepareInitialRewardSequenceProgress();
         PrepareOrRecoverChipLedger();
         Inventory.EquipmentChanged += OnInventoryEquipmentChanged;
         Inventory.InventoryChanged += OnInventoryChanged;
@@ -239,28 +240,32 @@ public partial class GameData : Node
         _consumableCloudSynchronizer?.Process();
         _outfitPresetCloudSynchronizer?.Process();
         TotalPlaySeconds += delta;
-        _blindBoxService.AdvanceScheduleClock(ActiveBlindBoxRuntimeState, delta);
+        if (BuildCapabilities.BlindBoxes)
+            _blindBoxService.AdvanceScheduleClock(ActiveBlindBoxRuntimeState, delta);
         if (CanRecordPlayerProgress)
             PlayerProgress.RecordDuration("GameRuntimeSeconds", delta, PlayerProgressSource.Gameplay);
-        _blindBoxTickTimer -= delta;
-        if (_blindBoxTickTimer <= 0.0)
+        if (BuildCapabilities.BlindBoxes)
         {
-            _blindBoxTickTimer = BlindBoxTickSeconds;
-#if DEBUG
-            if (_steamMockPresentationAdvancePending
-                && _steamMockSimulationActive
-                && (_recoverablePlatformService?.ConnectionState == PlatformConnectionState.Unavailable
-                    || (GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation == null
-                        && _platformInventoryService?.IsPlaytimeDropPending != true
-                        && _platformInventoryService?.IsPromoGrantPending != true)))
+            _blindBoxTickTimer -= delta;
+            if (_blindBoxTickTimer <= 0.0)
             {
-                CompleteDeferredSteamMockPresentationAdvance();
-            }
+                _blindBoxTickTimer = BlindBoxTickSeconds;
+#if DEBUG
+                if (_steamMockPresentationAdvancePending
+                    && _steamMockSimulationActive
+                    && (_recoverablePlatformService?.ConnectionState == PlatformConnectionState.Unavailable
+                        || (GetGeneratorActivationState(ActiveBlindBoxRuntimeState).PendingActivation == null
+                            && _platformInventoryService?.IsPlaytimeDropPending != true
+                            && _platformInventoryService?.IsPromoGrantPending != true)))
+                {
+                    CompleteDeferredSteamMockPresentationAdvance();
+                }
 #endif
-            MaintainLoopPresentation();
-            MaintainBlindBoxCompletionReceiptGrant();
-            MaintainSteamPlaytimeDrops();
-            EmitSignal(SignalName.BlindBoxStateChanged);
+                MaintainLoopPresentation();
+                MaintainBlindBoxCompletionReceiptGrant();
+                MaintainSteamPlaytimeDrops();
+                EmitSignal(SignalName.BlindBoxStateChanged);
+            }
         }
 
         _profileAutosaveTimer -= delta;
@@ -305,7 +310,8 @@ public partial class GameData : Node
     public void BindPlatformInventoryService(IGamePlatformService platformService)
     {
         UnbindPlatformInventoryService();
-        if (platformService is IPlatformCloudStorageService cloudStorage
+        if (BuildCapabilities.SteamCloud
+            && platformService is IPlatformCloudStorageService cloudStorage
             && _storageContext.Provider == "steam"
             && _saveDataMode == SettingsManager.SaveDataMode.LocalSave)
         {
@@ -316,13 +322,17 @@ public partial class GameData : Node
                 trustCurrentLocalCounts: _loadedExistingLocalSave);
         }
         _outfitPresetCloudSynchronizer = new OutfitPresetCloudSynchronizer(
-            platformService as IPlatformCloudStorageService,
+            BuildCapabilities.SteamCloud ? platformService as IPlatformCloudStorageService : null,
             _storageContext,
             Inventory);
         _outfitPresetCloudSynchronizer.Changed += OnOutfitPresetsChanged;
         _outfitPresetCloudSynchronizer.Reconciled += OnOutfitPresetsReconciled;
-        _platformInventoryService = platformService as IPlatformInventoryService;
-        _recoverablePlatformService = platformService as IRecoverablePlatformService;
+        _platformInventoryService = BuildCapabilities.SteamInventory
+            ? platformService as IPlatformInventoryService
+            : null;
+        _recoverablePlatformService = BuildCapabilities.SteamInventory
+            ? platformService as IRecoverablePlatformService
+            : null;
         TryAutoRestoreFirstAvailableOutfitPreset();
         if (_platformInventoryService == null)
             return;

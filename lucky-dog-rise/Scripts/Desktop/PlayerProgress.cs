@@ -129,9 +129,11 @@ public sealed class PlayerProgress
         _statisticsByKey = LubanData.Tables.TbPlayerStatistic.DataList
             .Where(stat => stat.IsEnabled)
             .ToDictionary(stat => stat.StatisticKey, StringComparer.Ordinal);
-        _enabledAchievements = LubanData.Tables.TbAchievement.DataList
-            .Where(achievement => achievement.IsEnabled)
-            .ToArray();
+        _enabledAchievements = BuildCapabilities.Achievements
+            ? LubanData.Tables.TbAchievement.DataList
+                .Where(achievement => achievement.IsEnabled)
+                .ToArray()
+            : [];
         _enabledAchievementApiNames = _enabledAchievements
             .Select(achievement => achievement.ApiName)
             .ToHashSet(StringComparer.Ordinal);
@@ -140,7 +142,8 @@ public sealed class PlayerProgress
         GD.Print(
             $"[PlayerProgress] Loaded account={_storageContext}, Version={_profile.Version}, Path={AbsoluteSavePath}");
         ValidateDefinitions();
-        EvaluateHistoricalAchievements();
+        if (BuildCapabilities.Achievements)
+            EvaluateHistoricalAchievements();
     }
 
     public string AbsoluteSavePath => ProjectSettings.GlobalizePath(SavePath);

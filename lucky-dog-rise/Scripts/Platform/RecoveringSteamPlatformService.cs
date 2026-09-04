@@ -12,6 +12,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
 
     private SteamGamePlatformService _session;
+    private readonly bool _inventoryEnabled;
     private string _statusMessage = "Steam 尚未连接。";
     private double _nextRetryAtSeconds;
     private double _inventoryDeadlineSeconds;
@@ -23,8 +24,9 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private string _accountId = string.Empty;
     private SteamInitializationFailureKind _lastInitializationFailure;
 
-    public RecoveringSteamPlatformService()
+    public RecoveringSteamPlatformService(bool enableInventory = true)
     {
+        _inventoryEnabled = enableInventory;
         TryConnect();
     }
 
@@ -52,7 +54,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         && _session?.IsCloudAvailable == true;
     public bool HasAccountIdentityConflict { get; private set; }
     public bool IsReadyForWrites => _session?.IsReadyForWrites == true;
-    public bool IsInventoryReady => ConnectionState == PlatformConnectionState.Ready
+    public bool IsInventoryReady => _inventoryEnabled
+        && ConnectionState == PlatformConnectionState.Ready
         && InventoryTrustState == PlatformInventoryTrustState.Trusted
         && _session?.IsInventoryReady == true;
     public bool IsPromoGrantPending => _session?.IsPromoGrantPending == true;
@@ -161,6 +164,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     public void StartInventorySynchronization()
     {
+        if (!_inventoryEnabled)
+            return;
         _inventorySynchronizationRequested = true;
         if (_session?.IsAvailable == true)
             BeginInventorySynchronization();
@@ -170,6 +175,11 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     public bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message)
     {
+        if (!_inventoryEnabled)
+        {
+            message = "Steam Inventory is disabled for this build channel.";
+            return false;
+        }
         if (!IsInventoryReady || _session == null)
         {
             message = "Steam 库存尚未连接。";
@@ -186,6 +196,11 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     public bool TryTriggerPlaytimeDrop(int generatorItemDefId, out string message)
     {
+        if (!_inventoryEnabled)
+        {
+            message = "Steam Inventory is disabled for this build channel.";
+            return false;
+        }
         if (!IsInventoryReady || _session == null)
         {
             message = "Steam 库存尚未连接。";
@@ -299,14 +314,19 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         _session = new SteamGamePlatformService(runtime);
         _session.UserStatsReady += OnUserStatsReady;
         _session.StoreStatusChanged += OnStoreStatusChanged;
-        _session.InventorySnapshotChanged += OnInventorySnapshotChanged;
-        _session.PromoItemGrantCompleted += OnPromoItemGrantCompleted;
-        _session.PlaytimeDropCompleted += OnPlaytimeDropCompleted;
+        if (_inventoryEnabled)
+        {
+            _session.InventorySnapshotChanged += OnInventorySnapshotChanged;
+            _session.PromoItemGrantCompleted += OnPromoItemGrantCompleted;
+            _session.PlaytimeDropCompleted += OnPlaytimeDropCompleted;
+        }
         _statusMessage = runtime.StatusMessage;
         GD.Print($"[PlatformRecovery] Steam connected. AppID={AppId}, Persona={PersonaName}");
 
         if (_inventorySynchronizationRequested)
             BeginInventorySynchronization();
+        else if (!_inventoryEnabled)
+            SetConnectionState(PlatformConnectionState.Ready);
     }
 
     private void HandleAccountIdentityConflict(string actualAccountId)
@@ -323,6 +343,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
     private void BeginInventorySynchronization()
     {
+        if (!_inventoryEnabled)
+            return;
         if (_session?.IsAvailable != true || ConnectionState == PlatformConnectionState.InventorySyncing)
             return;
 
@@ -385,7 +407,8 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private void HandleDisconnected(string message)
     {
         _statusMessage = string.IsNullOrWhiteSpace(message) ? "Steam 连接已中断。" : message;
-        RequireInventoryRevalidation(_statusMessage);
+        if (_inventoryEnabled)
+            RequireInventoryRevalidation(_statusMessage);
         DisposeSession();
         ScheduleRetry(_statusMessage);
     }

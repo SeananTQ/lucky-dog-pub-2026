@@ -259,8 +259,12 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _platformService = value;
-            _inventoryService = value as IPlatformInventoryService;
-            _recoverablePlatformService = value as IRecoverablePlatformService;
+            _inventoryService = BuildCapabilities.SteamInventory
+                ? value as IPlatformInventoryService
+                : null;
+            _recoverablePlatformService = BuildCapabilities.LinkTree
+                ? value as IRecoverablePlatformService
+                : null;
             if (_inventoryService != null)
             {
                 _inventoryService.InventorySnapshotChanged += OnPlatformInventorySnapshotChanged;
@@ -277,7 +281,8 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
                 ConfigureSteamMockLinkTreeGrants();
 #endif
-                InitializeLinkTreeInventory();
+                if (BuildCapabilities.LinkTree)
+                    InitializeLinkTreeInventory();
                 RefreshUpdateAndRestartAvailability();
             }
         }
@@ -376,9 +381,17 @@ public partial class SystemPanelController : CanvasLayer
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _outfitPresetTab.Pressed += () => SwitchTab(2);
         _settingsTab.Pressed += () => SwitchTab(3);
-        BuildLinkTree();
-        SetLinkTreePageState(LinkTreePageState.Loading);
-        InitializeLinkTreeInventory();
+        if (BuildCapabilities.LinkTree)
+        {
+            BuildLinkTree();
+            SetLinkTreePageState(LinkTreePageState.Loading);
+            InitializeLinkTreeInventory();
+        }
+        else
+        {
+            _linkTreeTab.Visible = false;
+            _linkTreeContent.Visible = false;
+        }
 #if DEBUG
         _debugTab = GetNode<Button>("Panel/RootVBox/TitleRow/DebugTab");
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
@@ -456,8 +469,13 @@ public partial class SystemPanelController : CanvasLayer
         tongueImmediateToggle.Toggled += enabled => SettingsManager.SaveDesktopTongueImmediateMode(enabled);
 
         _blindBoxBubbleToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow/BlindBoxBubbleToggle");
-        _blindBoxBubbleToggle.ButtonPressed = SettingsManager.LoadAlwaysShowBlindBoxBubble();
-        _blindBoxBubbleToggle.Toggled += OnAlwaysShowBlindBoxBubbleToggled;
+        var blindBoxBubbleRow = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BlindBoxBubbleRow");
+        blindBoxBubbleRow.Visible = BuildCapabilities.BlindBoxes;
+        if (BuildCapabilities.BlindBoxes)
+        {
+            _blindBoxBubbleToggle.ButtonPressed = SettingsManager.LoadAlwaysShowBlindBoxBubble();
+            _blindBoxBubbleToggle.Toggled += OnAlwaysShowBlindBoxBubbleToggled;
+        }
 
         var showFullscreenToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ShowFullscreenRow/ShowFullscreenToggle");
         showFullscreenToggle.ButtonPressed = SettingsManager.LoadShowOverFullscreenApps();
