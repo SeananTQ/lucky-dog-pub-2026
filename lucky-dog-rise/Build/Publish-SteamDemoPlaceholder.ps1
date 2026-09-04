@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+Write-Warning 'This script only creates the retired non-playable placeholder. Use Publish-SteamDemo.ps1 for the real review build.'
 $demoAppId = 5220880
 $placeholderSizeBytes = 28KB
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
