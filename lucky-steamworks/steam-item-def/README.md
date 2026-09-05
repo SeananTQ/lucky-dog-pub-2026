@@ -40,6 +40,7 @@ lucky-dog-rise/Data/Json/tbitem.json
 lucky-dog-rise/Data/Json/tbblindbox.json
 lucky-dog-rise/Data/Json/tbblindboxschedule.json
 lucky-dog-rise/Data/Json/tbblindboxrarityrate.json
+lucky-dog-rise/Data/Json/tbblindboxitemweight.json
 lucky-dog-rise/Data/Json/tbgamedevelopconfig.json
 lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json
 ```
@@ -86,6 +87,7 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 - Bundle/Generator/PlaytimeGenerator 没有配置内容配方。
 - 非 PlaytimeGenerator 配置了 Steam 投放上限，或启用 Schedule 引用了已经显式停发的 Generator。
 - PlaytimeGenerator 没有以数量 1 引用且只引用一个 Generator 奖励池。
+- `BlindBoxItemWeight` 引用不存在的物品、存在重复启用关系、权重不是正整数，或物品获取类型与盲盒类型不匹配。
 - 多个盲盒共用同一个 `@AUTO` Generator 但生成结果不同，或自动奖池缺少有效品质概率/候选物品。生成结果完全一致时允许复用同一 Generator。
 - BlindBoxSchedule 引用的 PlaytimeGenerator 不存在、被多条计划共用，或没有落入新手/循环直接奖励 ID 子段。
 - BlindBoxSchedule 的新手进度回执不存在、被多条计划共用、落入错误 ID 分段，或不是安全的永久隐藏手动回执；循环 Schedule 不得配置进度回执。
@@ -99,13 +101,13 @@ node lucky-steamworks/steam-item-def/build-steam-item-defs.js --help
 
 ### Generator 奖池
 
-当 `SteamItemDef.Type=Generator` 且 `Bundle=@AUTO` 时，转换器沿 `BlindBoxSchedule → PlaytimeGenerator.Bundle → Generator` 建立盲盒与奖励池的映射，并自动生成奖池。它先读取 `BlindBoxRarityRate` 的品质概率，再读取 `Item` 中该盲盒类型对应的权重列，将两阶段概率展平为 Steam 的单层权重：
+当 `SteamItemDef.Type=Generator` 且 `Bundle=@AUTO` 时，转换器沿 `BlindBoxSchedule → PlaytimeGenerator.Bundle → Generator` 建立盲盒与奖励池的映射，并自动生成奖池。它先读取 `BlindBoxRarityRate` 的品质概率，再读取 `BlindBoxItemWeight` 中当前盲盒的物品权重，将两阶段概率展平为 Steam 的单层权重：
 
 ```text
 物品最终概率 = 品质概率 * 物品在该品质内的权重占比
 ```
 
-生成权重统一缩放到 `1000000`，并进行整数舍入和约分。没有候选物品的品质不会被静默转移给其它品质，而是使转换失败，避免 Steam 实际概率与策划表不一致。
+`BlindBoxItemWeight` 只保存 `BlindBoxId / ItemId / Weight / IsEnabled`；品质与获取类型继续以 `Item` 为准。生成权重统一缩放到 `1000000`，并进行整数舍入和约分。没有候选物品的品质不会被静默转移给其它品质，也不会回退到获取类型不匹配的物品，而是使转换失败，避免 Steam 实际概率与策划表不一致。
 
 `Item.ItemRarity` 会自动生成小写的 Steam `rarity:` 标签；`Item.SteamTags` 仅填写其它自定义标签，不要重复填写 `rarity:`。
 

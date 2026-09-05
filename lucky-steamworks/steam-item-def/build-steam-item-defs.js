@@ -48,6 +48,13 @@ const DEFAULT_BLIND_BOX_RARITY_RATE_INPUT = path.join(
     "Json",
     "tbblindboxrarityrate.json",
 );
+const DEFAULT_BLIND_BOX_ITEM_WEIGHT_INPUT = path.join(
+    PROJECT_ROOT,
+    "lucky-dog-rise",
+    "Data",
+    "Json",
+    "tbblindboxitemweight.json",
+);
 const DEFAULT_GAME_DEVELOP_CONFIG_INPUT = path.join(
     PROJECT_ROOT,
     "lucky-dog-rise",
@@ -97,11 +104,11 @@ const RARITY_TAGS = Object.freeze({
     22: "special_2",
 });
 
-const BLIND_BOX_ITEM_RULES = Object.freeze({
-    1: { acquisitionType: 2, weightField: "StandardBoxWeight" },
-    2: { acquisitionType: 2, weightField: "NewbieBoxWeight" },
-    3: { acquisitionType: 3, weightField: "RefreshmentBoxWeight" },
-    4: { acquisitionType: 4, weightField: "EventBoxWeight" },
+const BLIND_BOX_ACQUISITION_TYPES = Object.freeze({
+    1: 2,
+    2: 2,
+    3: 3,
+    4: 4,
 });
 
 const ID_RANGE_ROWS = Object.freeze({
@@ -129,6 +136,7 @@ function parseArguments(argv) {
         blindBoxInput: DEFAULT_BLIND_BOX_INPUT,
         blindBoxScheduleInput: DEFAULT_BLIND_BOX_SCHEDULE_INPUT,
         blindBoxRarityRateInput: DEFAULT_BLIND_BOX_RARITY_RATE_INPUT,
+        blindBoxItemWeightInput: DEFAULT_BLIND_BOX_ITEM_WEIGHT_INPUT,
         gameDevelopConfigInput: DEFAULT_GAME_DEVELOP_CONFIG_INPUT,
         itemDefIdRangeInput: DEFAULT_ITEM_DEF_ID_RANGE_INPUT,
         outputRoot: DEFAULT_OUTPUT_ROOT,
@@ -170,6 +178,9 @@ function parseArguments(argv) {
             case "--blind-box-rarity-rate-input":
                 options.blindBoxRarityRateInput = path.resolve(value);
                 break;
+            case "--blind-box-item-weight-input":
+                options.blindBoxItemWeightInput = path.resolve(value);
+                break;
             case "--game-develop-config-input":
                 options.gameDevelopConfigInput = path.resolve(value);
                 break;
@@ -209,6 +220,7 @@ function printUsage() {
   --blind-box-input <file> Luban 导出的 tbblindbox.json
   --blind-box-schedule-input <file> Luban 导出的 tbblindboxschedule.json
   --blind-box-rarity-rate-input <file> Luban 导出的 tbblindboxrarityrate.json
+  --blind-box-item-weight-input <file> Luban 导出的 tbblindboxitemweight.json
   --game-develop-config-input <file> Luban 导出的 tbgamedevelopconfig.json
   --item-def-id-range-input <file> Luban 导出的 tbsteamitemdefidrange.json
   --output-root <dir>      输出目录
@@ -925,13 +937,16 @@ function validateBundleReferences(definitions, enabledById) {
     return errors;
 }
 
-function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, errors) {
+function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, itemWeightRecords, merged, errors) {
     const label = `BlindBox ${box.Id} ${box.Name || ""}`.trim();
-    const rule = BLIND_BOX_ITEM_RULES[box.BoxType];
-    if (!rule) {
-        errors.push(`${label}：BoxType ${box.BoxType} 没有对应的 Item 权重字段。`);
+    const expectedAcquisitionType = BLIND_BOX_ACQUISITION_TYPES[box.BoxType];
+    if (!expectedAcquisitionType) {
+        errors.push(`${label}：BoxType ${box.BoxType} 没有对应的获取类型规则。`);
         return "";
     }
+
+    const itemById = new Map(itemRecords.map(item => [item.Id, item]));
+    const poolRows = itemWeightRecords.filter(row => row.BlindBoxId === box.Id && row.IsEnabled === true);
 
     const rarityWeights = new Map();
     for (const rate of rarityRateRecords.filter(rate => rate.IsEnabled === true && rate.BlindBoxId === box.Id)) {
@@ -956,18 +971,18 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, e
     const totalRarityWeight = [...rarityWeights.values()].reduce((sum, weight) => sum + weight, 0);
     const probabilities = [];
     for (const [rarity, rarityWeight] of [...rarityWeights].sort((left, right) => left[0] - right[0])) {
-        const weightedItems = itemRecords
-            .filter(item => item.ItemRarity === rarity)
-            .filter(item => Number.isInteger(item[rule.weightField]) && item[rule.weightField] > 0);
-        const preferredItems = weightedItems.filter(item => item.AcquisitionType === rule.acquisitionType);
-        const candidates = preferredItems.length > 0 ? preferredItems : weightedItems;
+        const candidates = poolRows
+            .filter(row => Number.isInteger(row.Weight) && row.Weight > 0)
+            .map(row => ({ row, item: itemById.get(row.ItemId) }))
+            .filter(entry => entry.item?.ItemRarity === rarity)
+            .filter(entry => entry.item.AcquisitionType === expectedAcquisitionType);
         if (candidates.length === 0) {
-            errors.push(`${label}：品质 ${rarity} 的概率大于 0，但没有配置 ${rule.weightField} 候选物品。`);
+            errors.push(`${label}：品质 ${rarity} 的概率大于 0，但 BlindBoxItemWeight 没有合法候选物品。`);
             continue;
         }
 
-        const totalItemWeight = candidates.reduce((sum, item) => sum + item[rule.weightField], 0);
-        for (const item of candidates) {
+        const totalItemWeight = candidates.reduce((sum, entry) => sum + entry.row.Weight, 0);
+        for (const { item, row } of candidates) {
             if (!Number.isInteger(item.SteamItemDefId) || item.SteamItemDefId <= 0) {
                 errors.push(`${label}：候选 Item ${item.Id} ${item.Name || ""} 没有配置 SteamItemDefId。`);
                 continue;
@@ -978,7 +993,7 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, e
             }
             probabilities.push({
                 itemDefId: item.SteamItemDefId,
-                probability: (rarityWeight / totalRarityWeight) * (item[rule.weightField] / totalItemWeight),
+                probability: (rarityWeight / totalRarityWeight) * (row.Weight / totalItemWeight),
             });
         }
     }
@@ -988,12 +1003,45 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, merged, e
     return weights.map(entry => `${entry.itemDefId}x${entry.weight}`).join(";");
 }
 
+function validateBlindBoxItemWeights(records, boxes, items) {
+    const errors = [];
+    const boxesById = new Map(boxes.map(box => [box.Id, box]));
+    const itemsById = new Map(items.map(item => [item.Id, item]));
+    for (const duplicate of records.reduce((groups, row) => {
+        const key = `${row.BlindBoxId}:${row.ItemId}`;
+        groups.set(key, [...(groups.get(key) || []), row]);
+        return groups;
+    }, new Map()).values()) {
+        if (duplicate.length > 1) {
+            errors.push(`BlindBoxItemWeight：BlindBox ${duplicate[0].BlindBoxId} 与 Item ${duplicate[0].ItemId} 存在重复行。`);
+        }
+    }
+
+    for (const row of records) {
+        const label = `BlindBoxItemWeight ${row.Id ?? "<未知>"}`;
+        const box = boxesById.get(row.BlindBoxId);
+        const item = itemsById.get(row.ItemId);
+        if (!box) errors.push(`${label}：引用的 BlindBox ${row.BlindBoxId} 不存在。`);
+        if (!item) errors.push(`${label}：引用的 Item ${row.ItemId} 不存在。`);
+        if (row.IsEnabled === true && (!Number.isInteger(row.Weight) || row.Weight <= 0)) {
+            errors.push(`${label}：启用行的 Weight 必须是正整数。`);
+        }
+        const expectedAcquisitionType = box && BLIND_BOX_ACQUISITION_TYPES[box.BoxType];
+        if (row.IsEnabled === true && item && expectedAcquisitionType
+            && item.AcquisitionType !== expectedAcquisitionType) {
+            errors.push(`${label}：Item ${item.Id} 的 AcquisitionType 与 BlindBox ${box.Id} 的 BoxType 不匹配。`);
+        }
+    }
+    return errors;
+}
+
 function applyBlindBoxMappings(
     records,
     scheduleRecords,
     merged,
     itemRecords = [],
     rarityRateRecords = [],
+    itemWeightRecords = [],
 ) {
     const errors = [];
     const warnings = [];
@@ -1078,6 +1126,7 @@ function applyBlindBoxMappings(
                 record,
                 itemRecords,
                 rarityRateRecords,
+                itemWeightRecords,
                 merged,
                 errors,
             );
@@ -1271,6 +1320,7 @@ function buildArtifacts(
     blindBoxRarityRateRecords = [],
     gameDevelopConfigRecords = [],
     itemDefIdRangeRecords = [],
+    blindBoxItemWeightRecords = [],
 ) {
     const idRangePlan = itemDefIdRangeRecords.length > 0
         ? buildIdRangePlan(itemDefIdRangeRecords)
@@ -1278,12 +1328,18 @@ function buildArtifacts(
     const itemDefs = validateAndBuildItemDefs(itemDefRecords);
     const gameItems = validateAndBuildGameItems(itemRecords);
     const merged = mergeDefinitions(itemDefs, gameItems);
+    const blindBoxItemWeightErrors = validateBlindBoxItemWeights(
+        blindBoxItemWeightRecords,
+        blindBoxRecords,
+        itemRecords,
+    );
     const blindBoxes = applyBlindBoxMappings(
         blindBoxRecords,
         blindBoxScheduleRecords,
         merged,
         itemRecords,
         blindBoxRarityRateRecords,
+        blindBoxItemWeightRecords,
     );
     const playtime = applyPlaytimeMappings(
         blindBoxScheduleRecords,
@@ -1345,6 +1401,7 @@ function buildArtifacts(
             ...itemDefs.errors,
             ...gameItems.errors,
             ...merged.errors,
+            ...blindBoxItemWeightErrors,
             ...blindBoxes.errors,
             ...playtime.errors,
             ...bundleErrors,
@@ -1409,6 +1466,7 @@ function main(argv = process.argv.slice(2)) {
     const blindBoxRecords = readJsonArray(options.blindBoxInput, "BlindBox JSON");
     const blindBoxScheduleRecords = readJsonArray(options.blindBoxScheduleInput, "BlindBoxSchedule JSON");
     const blindBoxRarityRateRecords = readJsonArray(options.blindBoxRarityRateInput, "BlindBoxRarityRate JSON");
+    const blindBoxItemWeightRecords = readJsonArray(options.blindBoxItemWeightInput, "BlindBoxItemWeight JSON");
     const gameDevelopConfigRecords = readJsonArray(options.gameDevelopConfigInput, "GameDevelopConfig JSON");
     const itemDefIdRangeRecords = readJsonArray(options.itemDefIdRangeInput, "SteamItemDefIdRange JSON");
     const result = buildArtifacts(
@@ -1420,6 +1478,7 @@ function main(argv = process.argv.slice(2)) {
         blindBoxRarityRateRecords,
         gameDevelopConfigRecords,
         itemDefIdRangeRecords,
+        blindBoxItemWeightRecords,
     );
     const channelResults = new Map(options.channels.map(channel => [
         channel,
@@ -1439,6 +1498,7 @@ function main(argv = process.argv.slice(2)) {
             blindBox: projectRelative(options.blindBoxInput),
             blindBoxSchedule: projectRelative(options.blindBoxScheduleInput),
             blindBoxRarityRate: projectRelative(options.blindBoxRarityRateInput),
+            blindBoxItemWeight: projectRelative(options.blindBoxItemWeightInput),
             gameDevelopConfig: projectRelative(options.gameDevelopConfigInput),
             steamItemDefIdRange: projectRelative(options.itemDefIdRangeInput),
         },
@@ -1447,6 +1507,7 @@ function main(argv = process.argv.slice(2)) {
         sourceBlindBoxCount: blindBoxRecords.length,
         sourceBlindBoxScheduleCount: blindBoxScheduleRecords.length,
         sourceBlindBoxRarityRateCount: blindBoxRarityRateRecords.length,
+        sourceBlindBoxItemWeightCount: blindBoxItemWeightRecords.length,
         exportedItemDefCountByChannel: Object.fromEntries(options.channels.map(channel => [
             channel,
             channelResults.get(channel).items.length,

@@ -6,6 +6,7 @@
     "blindBox": "lucky-dog-rise/Data/Json/tbblindbox.json",
     "blindBoxSchedule": "lucky-dog-rise/Data/Json/tbblindboxschedule.json",
     "blindBoxRarityRate": "lucky-dog-rise/Data/Json/tbblindboxrarityrate.json",
+    "blindBoxItemWeight": "lucky-dog-rise/Data/Json/tbblindboxitemweight.json",
     "gameDevelopConfig": "lucky-dog-rise/Data/Json/tbgamedevelopconfig.json",
     "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
@@ -14,6 +15,7 @@
   "sourceBlindBoxCount": 5,
   "sourceBlindBoxScheduleCount": 13,
   "sourceBlindBoxRarityRateCount": 25,
+  "sourceBlindBoxItemWeightCount": 294,
   "exportedItemDefCountByChannel": {
     "playtest": 186,
     "release": 152

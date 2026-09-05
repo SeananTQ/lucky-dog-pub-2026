@@ -18,6 +18,7 @@ const ITEM_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tb
 const BLIND_BOX_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindbox.json");
 const BLIND_BOX_SCHEDULE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxschedule.json");
 const BLIND_BOX_RARITY_RATE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxrarityrate.json");
+const BLIND_BOX_ITEM_WEIGHT_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbblindboxitemweight.json");
 const GAME_DEVELOP_CONFIG_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbgamedevelopconfig.json");
 const ITEM_DEF_ID_RANGE_INPUT = path.join(PROJECT_ROOT, "lucky-dog-rise", "Data", "Json", "tbsteamitemdefidrange.json");
 const DEFAULT_PORT = 43117;
@@ -57,6 +58,7 @@ function loadPreview() {
     const blindBoxRecords = readJsonArray(BLIND_BOX_INPUT);
     const blindBoxScheduleRecords = readJsonArray(BLIND_BOX_SCHEDULE_INPUT);
     const blindBoxRarityRateRecords = readJsonArray(BLIND_BOX_RARITY_RATE_INPUT);
+    const blindBoxItemWeightRecords = readJsonArray(BLIND_BOX_ITEM_WEIGHT_INPUT);
     const gameDevelopConfigRecords = readJsonArray(GAME_DEVELOP_CONFIG_INPUT);
     const itemDefIdRangeRecords = readJsonArray(ITEM_DEF_ID_RANGE_INPUT);
     const result = converter.buildArtifacts(
@@ -68,6 +70,7 @@ function loadPreview() {
         blindBoxRarityRateRecords,
         gameDevelopConfigRecords,
         itemDefIdRangeRecords,
+        blindBoxItemWeightRecords,
     );
     const linkTreesByItemDef = new Map();
     const blindBoxesByItemDef = new Map();
@@ -151,6 +154,7 @@ function loadPreview() {
         blindBox: fileInfo(BLIND_BOX_INPUT),
         blindBoxSchedule: fileInfo(BLIND_BOX_SCHEDULE_INPUT),
         blindBoxRarityRate: fileInfo(BLIND_BOX_RARITY_RATE_INPUT),
+        blindBoxItemWeight: fileInfo(BLIND_BOX_ITEM_WEIGHT_INPUT),
         gameDevelopConfig: fileInfo(GAME_DEVELOP_CONFIG_INPUT),
         steamItemDefIdRange: fileInfo(ITEM_DEF_ID_RANGE_INPUT),
     };

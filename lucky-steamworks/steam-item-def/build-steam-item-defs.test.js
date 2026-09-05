@@ -87,10 +87,6 @@ function gameItem(overrides = {}) {
         Name: "Black and Tan Shiba Inu",
         ItemRarity: 4,
         AcquisitionType: 2,
-        StandardBoxWeight: 1,
-        NewbieBoxWeight: 1,
-        RefreshmentBoxWeight: 0,
-        EventBoxWeight: 0,
         SteamItemDefId: 101002,
         SteamItemDefType: 1,
         SteamDescription: "",
@@ -134,6 +130,17 @@ function rarityRate(overrides = {}) {
         BlindBoxId: 4001,
         Rarity: 4,
         Weight: 100,
+        IsEnabled: true,
+        ...overrides,
+    };
+}
+
+function itemWeight(overrides = {}) {
+    return {
+        Id: 1,
+        BlindBoxId: 4001,
+        ItemId: 1002,
+        Weight: 1,
         IsEnabled: true,
         ...overrides,
     };
@@ -339,9 +346,9 @@ test("rejects a non-integer CostChipsOverride", () => {
 test("generates an AUTO blind box bundle with equivalent two-stage probabilities", () => {
     const generator = rewardGenerator({ Bundle: "@AUTO" });
     const items = [
-        gameItem({ Id: 1001, SteamItemDefId: 101001, ItemRarity: 4, StandardBoxWeight: 1 }),
-        gameItem({ Id: 1002, SteamItemDefId: 101002, ItemRarity: 4, StandardBoxWeight: 3 }),
-        gameItem({ Id: 1003, SteamItemDefId: 101003, ItemRarity: 3, StandardBoxWeight: 1 }),
+        gameItem({ Id: 1001, SteamItemDefId: 101001, ItemRarity: 4 }),
+        gameItem({ Id: 1002, SteamItemDefId: 101002, ItemRarity: 4 }),
+        gameItem({ Id: 1003, SteamItemDefId: 101003, ItemRarity: 3 }),
     ];
     const rates = [
         rarityRate({ Rarity: 4, Weight: 75 }),
@@ -355,6 +362,12 @@ test("generates an AUTO blind box bundle with equivalent two-stage probabilities
         [schedule()],
         rates,
         [config()],
+        [],
+        [
+            itemWeight({ Id: 1, ItemId: 1001, Weight: 1 }),
+            itemWeight({ Id: 2, ItemId: 1002, Weight: 3 }),
+            itemWeight({ Id: 3, ItemId: 1003, Weight: 1 }),
+        ],
     );
 
     assert.deepEqual(result.errors, []);
@@ -378,9 +391,29 @@ test("rejects an AUTO blind box candidate without a Steam ItemDef mapping", () =
         [schedule()],
         [rarityRate()],
         [config()],
+        [],
+        [itemWeight()],
     );
 
     assert.ok(result.errors.some(error => error.includes("没有配置 SteamItemDefId")));
+});
+
+test("rejects duplicate BlindBoxItemWeight rows", () => {
+    const result = buildArtifacts(
+        [], [], [gameItem()], [blindBox()], [], [], [], [],
+        [itemWeight(), itemWeight({ Id: 2 })],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("存在重复行")));
+});
+
+test("rejects a BlindBoxItemWeight acquisition mismatch", () => {
+    const result = buildArtifacts(
+        [], [], [gameItem({ AcquisitionType: 3 })], [blindBox()], [], [], [], [],
+        [itemWeight()],
+    );
+
+    assert.ok(result.errors.some(error => error.includes("AcquisitionType") && error.includes("不匹配")));
 });
 
 test("uses the schedule's explicit real-second playtime interval", () => {
@@ -666,6 +699,11 @@ test("allows blind boxes to share an AUTO generator when their generated pools m
             rarityRate({ Id: 100104, BlindBoxId: 1001 }),
         ],
         [config()],
+        [],
+        [
+            itemWeight(),
+            itemWeight({ Id: 2, BlindBoxId: 1001 }),
+        ],
     );
 
     assert.deepEqual(result.errors, []);
