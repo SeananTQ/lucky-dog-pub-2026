@@ -2056,5 +2056,19 @@
     "ItemId": 12002,
     "Weight": 300,
     "IsEnabled": true
+  },
+  {
+    "Id": 20021001,
+    "BlindBoxId": 2002,
+    "ItemId": 0,
+    "Weight": 0,
+    "IsEnabled": false
+  },
+  {
+    "Id": 20031001,
+    "BlindBoxId": 2003,
+    "ItemId": 0,
+    "Weight": 0,
+    "IsEnabled": false
   }
 ]

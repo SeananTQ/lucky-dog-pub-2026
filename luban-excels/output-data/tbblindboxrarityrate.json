@@ -126,6 +126,90 @@
     "IsEnabled": true
   },
   {
+    "Id": 200201,
+    "BlindBoxId": 2002,
+    "Rarity": 6,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200202,
+    "BlindBoxId": 2002,
+    "Rarity": 5,
+    "Weight": 3700,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200203,
+    "BlindBoxId": 2002,
+    "Rarity": 4,
+    "Weight": 4200,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200204,
+    "BlindBoxId": 2002,
+    "Rarity": 3,
+    "Weight": 1700,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200205,
+    "BlindBoxId": 2002,
+    "Rarity": 2,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200206,
+    "BlindBoxId": 2002,
+    "Rarity": 1,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200301,
+    "BlindBoxId": 2003,
+    "Rarity": 6,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200302,
+    "BlindBoxId": 2003,
+    "Rarity": 5,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200303,
+    "BlindBoxId": 2003,
+    "Rarity": 4,
+    "Weight": 0,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200304,
+    "BlindBoxId": 2003,
+    "Rarity": 3,
+    "Weight": 1000,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200305,
+    "BlindBoxId": 2003,
+    "Rarity": 2,
+    "Weight": 1000,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200306,
+    "BlindBoxId": 2003,
+    "Rarity": 1,
+    "Weight": 2000,
+    "IsEnabled": true
+  },
+  {
     "Id": 300101,
     "BlindBoxId": 3001,
     "Rarity": 21,

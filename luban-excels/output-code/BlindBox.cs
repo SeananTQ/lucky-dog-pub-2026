@@ -20,6 +20,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
         { if(!_buf["BoxType"].IsNumber) { throw new SerializationException(); }  BoxType = (EBlindBoxType)_buf["BoxType"].AsInt; }
+        { if(!_buf["RewardSelectionMode"].IsNumber) { throw new SerializationException(); }  RewardSelectionMode = (ERewardSelectionMode)_buf["RewardSelectionMode"].AsInt; }
         { if(!_buf["DisplayMode"].IsNumber) { throw new SerializationException(); }  DisplayMode = (EBlindBoxDisplayMode)_buf["DisplayMode"].AsInt; }
         { if(!_buf["CostChips"].IsNumber) { throw new SerializationException(); }  CostChips = _buf["CostChips"]; }
         { if(!_buf["HintValueMode"].IsNumber) { throw new SerializationException(); }  HintValueMode = (EBlindBoxValueMode)_buf["HintValueMode"].AsInt; }
@@ -44,9 +45,13 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// </summary>
     public readonly string Name;
     /// <summary>
-    /// 装扮、新手装扮、消耗品、活动盲盒<br/>程序中硬编码与Item对应列的映射关系
+    /// 盲盒的奖励内容类别。用于约束奖池物品的投放类型；具体候选物品及权重由 BlindBoxItemWeight 按 BlindBoxId 配置。
     /// </summary>
     public readonly EBlindBoxType BoxType;
+    /// <summary>
+    /// 决定盲盒从自身奖池中选择奖励时，是否排除该盲盒此前已经抽中的物品。
+    /// </summary>
+    public readonly ERewardSelectionMode RewardSelectionMode;
     /// <summary>
     /// 升级表演/直接展示
     /// </summary>
@@ -90,6 +95,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         + "Id:" + Id + ","
         + "Name:" + Name + ","
         + "BoxType:" + BoxType + ","
+        + "RewardSelectionMode:" + RewardSelectionMode + ","
         + "DisplayMode:" + DisplayMode + ","
         + "CostChips:" + CostChips + ","
         + "HintValueMode:" + HintValueMode + ","

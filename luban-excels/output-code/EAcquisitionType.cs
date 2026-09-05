@@ -29,7 +29,7 @@ namespace DataTables
         /// </summary>
         RefreshmentBlindBox = 3,
         /// <summary>
-        /// 活动/LinkTree等
+        /// 活动、渠道或限时玩法使用的奖励盲盒。
         /// </summary>
         EventReward = 4,
         /// <summary>
