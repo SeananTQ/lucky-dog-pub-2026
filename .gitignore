@@ -109,3 +109,6 @@ lucky-steamworks/achievement/external/
 
 # 皮肤编辑器输出的图标不需要上传到版本控制系统
 lucky-dog-rise/Tools/DogSkinEditor/output/
+
+# 盲盒掉率编辑器导出的 Excel 回填 CSV
+lucky-item-loot-editor/output/
