@@ -30,14 +30,14 @@
       <StackPanel DockPanel.Dock="Left">
         <TextBlock FontSize="24" FontWeight="SemiBold">Lucky Item Loot Editor</TextBlock>
         <TextBlock Margin="0,3,0,0" Style="{StaticResource MutedText}"
-                   Text="编辑 tbItem.json 的稀有度、获取类型和盲盒权重" />
+                   Text="编辑物品稀有度、获取类型和独立盲盒奖池，并导出可回填 Excel 的 CSV" />
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
         <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="ReloadButton_Click">重新加载</Button>
         <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#B45309"
                    FontWeight="SemiBold" Text="脏"
                    Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibilityConverter}}" />
-        <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="SaveButton_Click">保存 JSON</Button>
+        <Button Width="90" Margin="6,0,0,0" Padding="8,5" Click="SaveButton_Click">导出 CSV</Button>
       </StackPanel>
     </DockPanel>
 
@@ -56,7 +56,7 @@
       <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="18,0,8,0">筛选</TextBlock>
       <TextBox Grid.Column="3" Height="28" VerticalContentAlignment="Center" TextChanged="SearchTextBox_TextChanged" />
       <TextBlock Grid.Column="4" Margin="18,0,0,0" VerticalAlignment="Center" Style="{StaticResource MutedText}"
-                 Text="{Binding SelectedWeightFieldLabel, StringFormat=当前编辑字段：{0}}" />
+                 Text="{Binding SelectedWeightFieldLabel, StringFormat=当前编辑奖池：{0}}" />
       <Button Grid.Column="5" Width="100" Padding="8,5" Click="RandomButton_Click">随机一次</Button>
     </Grid>
 

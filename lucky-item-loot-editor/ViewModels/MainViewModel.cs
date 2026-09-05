@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -20,6 +21,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private ItemRow? _randomResultItem;
     private string _randomResultText = "点击“随机一次”体验当前奖池。";
     private bool _isDirty;
+    private bool _isSwitchingBlindBox;
 
     public MainViewModel()
     {
@@ -70,10 +72,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (ReferenceEquals(_selectedBlindBox, value))
                 return;
             _selectedBlindBox = value;
-            if (value is not null)
+            if (value is not null && _store is not null)
             {
+                _isSwitchingBlindBox = true;
                 foreach (var item in Items)
-                    item.ActiveWeightField = value.WeightField;
+                    item.CurrentWeight = _store.GetWeight(value.Id, item.Id);
+                _isSwitchingBlindBox = false;
             }
             RecalculateAll();
             OnPropertyChanged();
@@ -81,7 +85,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public string SelectedWeightFieldLabel => SelectedBlindBox?.WeightFieldLabel ?? "未选择权重字段";
+    public string SelectedWeightFieldLabel => SelectedBlindBox is null
+        ? "未选择奖池"
+        : $"BlindBoxItemWeight · BlindBoxId {SelectedBlindBox.Id}";
 
     public ItemRow? SelectedItem
     {
@@ -152,9 +158,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (_store is null)
             return;
-        _store.Save();
+        var paths = _store.ExportCsv();
         IsDirty = false;
-        StatusText = $"已保存 tbItem.json；可使用 Git 查看差异。";
+        StatusText = $"已导出 {paths.Count} 个 CSV：{Path.GetDirectoryName(paths[0])}";
     }
 
     public void RollRandom()
@@ -178,12 +184,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        var primary = Items
+        var candidates = Items
             .Where(item => item.Rarity == rarity && item.CurrentWeight > 0 && item.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType)
             .ToList();
-        var candidates = primary.Count > 0
-            ? primary
-            : Items.Where(item => item.Rarity == rarity && item.CurrentWeight > 0).ToList();
         var item = PickWeighted(candidates, candidate => candidate.CurrentWeight);
         if (item is null)
         {
@@ -200,10 +203,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void ItemOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(ItemRow.Rarity) or nameof(ItemRow.AcquisitionType) or nameof(ItemRow.CurrentWeight)
-            or nameof(ItemRow.StandardBoxWeight) or nameof(ItemRow.NewbieBoxWeight)
-            or nameof(ItemRow.RefreshmentBoxWeight) or nameof(ItemRow.EventBoxWeight))
+        if (_isSwitchingBlindBox)
+            return;
+
+        if (e.PropertyName is nameof(ItemRow.Rarity) or nameof(ItemRow.AcquisitionType) or nameof(ItemRow.CurrentWeight))
         {
+            if (e.PropertyName == nameof(ItemRow.CurrentWeight)
+                && sender is ItemRow item
+                && _store is not null
+                && SelectedBlindBox is not null)
+            {
+                _store.SetWeight(SelectedBlindBox.Id, item.Id, item.CurrentWeight);
+            }
             IsDirty = true;
             RecalculateAll();
             StatusText = "有未保存修改。";
@@ -227,10 +238,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var effectiveCandidates = new Dictionary<ERarity, IReadOnlyList<ItemRow>>();
         foreach (var group in Items.GroupBy(item => item.Rarity))
         {
-            var primary = group.Where(item => item.CurrentWeight > 0 && item.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType).ToList();
-            effectiveCandidates[group.Key] = primary.Count > 0
-                ? primary
-                : group.Where(item => item.CurrentWeight > 0).ToList();
+            effectiveCandidates[group.Key] = group
+                .Where(item => item.CurrentWeight > 0
+                    && item.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType)
+                .ToList();
         }
 
         foreach (var item in Items)
@@ -246,10 +257,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 : !rarityProbabilities.ContainsKey(item.Rarity)
                     ? "无稀有度概率"
                 : isCandidate
-                    ? candidates.Any(candidate => candidate.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType)
-                        ? "正式候选"
-                        : "兜底候选"
-                    : item.CurrentWeight <= 0 ? "权重为 0" : "不参与当前抽取";
+                    ? "正式候选"
+                    : item.CurrentWeight <= 0
+                        ? "权重为 0"
+                        : item.AcquisitionType != SelectedBlindBox.ExpectedAcquisitionType
+                            ? "获取类型不匹配"
+                            : "不参与当前抽取";
             item.SetProbabilities(rarityProbability, within, expected, status);
         }
     }
