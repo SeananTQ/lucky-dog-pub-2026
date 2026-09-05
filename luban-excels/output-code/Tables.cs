@@ -36,6 +36,7 @@ public partial class Tables
     public TbSteamItemDef TbSteamItemDef {get; }
     public TbSteamItemDefIdRange TbSteamItemDefIdRange {get; }
     public TbRefreshmentConfig TbRefreshmentConfig {get; }
+    public TbBlindBoxItemWeight TbBlindBoxItemWeight {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -61,6 +62,7 @@ public partial class Tables
         TbSteamItemDef = new TbSteamItemDef(loader("tbsteamitemdef"));
         TbSteamItemDefIdRange = new TbSteamItemDefIdRange(loader("tbsteamitemdefidrange"));
         TbRefreshmentConfig = new TbRefreshmentConfig(loader("tbrefreshmentconfig"));
+        TbBlindBoxItemWeight = new TbBlindBoxItemWeight(loader("tbblindboxitemweight"));
         ResolveRef();
     }
     
@@ -88,6 +90,7 @@ public partial class Tables
         TbSteamItemDef.ResolveRef(this);
         TbSteamItemDefIdRange.ResolveRef(this);
         TbRefreshmentConfig.ResolveRef(this);
+        TbBlindBoxItemWeight.ResolveRef(this);
     }
 }
 
