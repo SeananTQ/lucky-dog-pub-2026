@@ -1081,6 +1081,35 @@ public sealed class BlindBoxService
             .ToList();
         if (!TryBuildSequenceChain(enabledSequenceSchedules, out _, out var sequenceFailure))
             GD.PushError($"[BlindBox] Invalid first-run reward sequence: {sequenceFailure}.");
+
+        foreach (var duplicate in LubanData.Tables.TbBlindBoxItemWeight.DataList
+                     .GroupBy(entry => (entry.BlindBoxId, entry.ItemId))
+                     .Where(group => group.Count() > 1))
+        {
+            GD.PushError(
+                $"[BlindBox] Duplicate item-pool mapping for box {duplicate.Key.BlindBoxId}, "
+                + $"item {duplicate.Key.ItemId}: rows {string.Join(",", duplicate.Select(entry => entry.Id))}.");
+        }
+
+        foreach (var entry in LubanData.Tables.TbBlindBoxItemWeight.DataList)
+        {
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(entry.BlindBoxId);
+            var item = LubanData.Tables.TbItem.GetOrDefault(entry.ItemId);
+            if (box == null)
+                GD.PushError($"[BlindBox] Item-pool row {entry.Id} references missing box {entry.BlindBoxId}.");
+            if (item == null)
+                GD.PushError($"[BlindBox] Item-pool row {entry.Id} references missing item {entry.ItemId}.");
+            if (entry.IsEnabled && entry.Weight <= 0)
+                GD.PushError($"[BlindBox] Enabled item-pool row {entry.Id} must have a positive Weight.");
+            if (box != null && item != null && entry.IsEnabled
+                && item.AcquisitionType != GetExpectedAcquisitionType(box.BoxType))
+            {
+                GD.PushError(
+                    $"[BlindBox] Item-pool row {entry.Id} has incompatible AcquisitionType "
+                    + $"{item.AcquisitionType} for box {box.Id} ({box.BoxType}).");
+            }
+        }
+
         foreach (var schedule in enabledSchedules)
         {
             var box = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId);
@@ -1291,33 +1320,25 @@ public sealed class BlindBoxService
 
     private static List<(Item Item, int Weight)> GetRewardCandidates(BlindBox box, ERarity rarity)
     {
-        var expectedAcquisition = box.BoxType switch
-        {
-            EBlindBoxType.Decoration => EAcquisitionType.DecorationBlindBox,
-            EBlindBoxType.NewbieDecoration => EAcquisitionType.DecorationBlindBox,
-            EBlindBoxType.Refreshment => EAcquisitionType.RefreshmentBlindBox,
-            EBlindBoxType.Event => EAcquisitionType.EventReward,
-            _ => EAcquisitionType.DebugOnly,
-        };
-
-        var candidates = LubanData.Tables.TbItem.DataList
-            .Select(item => (Item: item, Weight: GetItemWeight(box.BoxType, item)))
-            .Where(entry => entry.Weight > 0)
-            .Where(entry => entry.Item.ItemRarity == rarity)
-            .Where(entry => entry.Item.AcquisitionType == expectedAcquisition)
+        var expectedAcquisition = GetExpectedAcquisitionType(box.BoxType);
+        return LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(entry => entry.IsEnabled && entry.BlindBoxId == box.Id && entry.Weight > 0)
+            .Select(entry => (Item: LubanData.Tables.TbItem.GetOrDefault(entry.ItemId), entry.Weight))
+            .Where(entry => entry.Item != null)
+            .Where(entry => entry.Item!.ItemRarity == rarity)
+            .Where(entry => entry.Item!.AcquisitionType == expectedAcquisition)
+            .Select(entry => (entry.Item!, entry.Weight))
             .ToList();
-
-        if (candidates.Count == 0)
-        {
-            candidates = LubanData.Tables.TbItem.DataList
-                .Select(item => (Item: item, Weight: GetItemWeight(box.BoxType, item)))
-                .Where(entry => entry.Weight > 0)
-                .Where(entry => entry.Item.ItemRarity == rarity)
-                .ToList();
-        }
-
-        return candidates;
     }
+
+    private static EAcquisitionType GetExpectedAcquisitionType(EBlindBoxType boxType) => boxType switch
+    {
+        EBlindBoxType.Decoration => EAcquisitionType.DecorationBlindBox,
+        EBlindBoxType.NewbieDecoration => EAcquisitionType.DecorationBlindBox,
+        EBlindBoxType.Refreshment => EAcquisitionType.RefreshmentBlindBox,
+        EBlindBoxType.Event => EAcquisitionType.EventReward,
+        _ => EAcquisitionType.DebugOnly,
+    };
 
     private ERarity? RollRarity(int blindBoxId)
     {
@@ -1339,18 +1360,6 @@ public sealed class BlindBoxService
             return null;
 
         return PickWeighted(paths, path => path.Weight);
-    }
-
-    private static int GetItemWeight(EBlindBoxType boxType, Item item)
-    {
-        return boxType switch
-        {
-            EBlindBoxType.Decoration => item.StandardBoxWeight,
-            EBlindBoxType.NewbieDecoration => item.NewbieBoxWeight,
-            EBlindBoxType.Refreshment => item.RefreshmentBoxWeight,
-            EBlindBoxType.Event => item.EventBoxWeight,
-            _ => 0,
-        };
     }
 
     private T PickWeighted<T>(IReadOnlyList<T> entries, Func<T, int> getWeight)
