@@ -290,7 +290,7 @@ public partial class ModeManager : Control
 #if DEBUG
     private void ShowDeveloperLauncher()
     {
-        _developerLauncher = GD.Load<PackedScene>("res://Scenes/Debug/DeveloperLauncher.tscn")
+        _developerLauncher = GD.Load<PackedScene>("res://Scenes/Dev/Debug/DeveloperLauncher.tscn")
             .Instantiate<DeveloperLauncherController>();
         _developerLauncher.Name = "DeveloperLauncher";
         _developerLauncher.LaunchRequested += OnDeveloperLaunchRequested;
@@ -449,7 +449,7 @@ public partial class ModeManager : Control
                 _gameData.OnPlatformStatisticsSynchronized);
         }
 
-        _bossKeyContent = GD.Load<PackedScene>("res://Scenes/BossKeyContent.tscn").Instantiate<Node2D>();
+        _bossKeyContent = GD.Load<PackedScene>("res://Scenes/Desktop/BossKeyContent.tscn").Instantiate<Node2D>();
         _bossKeyContent.Name = "BossKeyContent";
         AddChild(_bossKeyContent);
         _bossContentA = _bossKeyContent.GetNode<Node2D>("ContentA");
@@ -485,7 +485,7 @@ public partial class ModeManager : Control
         RefreshBossBlindBoxHint();
 
         // 先实例化面板以读取实际尺寸
-        _settingsPanel = GD.Load<PackedScene>("res://Scenes/SystemPanel.tscn").Instantiate<SystemPanelController>();
+        _settingsPanel = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn").Instantiate<SystemPanelController>();
         _settingsPanel.Name = "SettingsPanel";
         _settingsPanel.Layer = 100;
         AddChild(_settingsPanel);
@@ -536,7 +536,7 @@ public partial class ModeManager : Control
         _steamMockController = _platformService as IDebugSteamMockController;
         if (_steamMockController != null)
         {
-            _steamMockPanel = GD.Load<PackedScene>("res://Scenes/Debug/SteamMockPanel.tscn")
+            _steamMockPanel = GD.Load<PackedScene>("res://Scenes/Dev/Debug/SteamMockPanel.tscn")
                 .Instantiate<SteamMockPanelController>();
             _steamMockPanel.Name = "SteamMockPanel";
             AddChild(_steamMockPanel);
@@ -550,7 +550,7 @@ public partial class ModeManager : Control
 
         if (BuildCapabilities.BlindBoxes)
         {
-            _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/DesktopBlindBoxRevealOverlay.tscn")
+            _bossBlindBoxOverlay = GD.Load<PackedScene>("res://Scenes/Desktop/DesktopBlindBoxRevealOverlay.tscn")
                 .Instantiate<BlindBoxRevealOverlayController>();
             _bossBlindBoxOverlay.Name = "DesktopBlindBoxRevealOverlay";
             _bossBlindBoxOverlay.RewardClaimRequested += OnBossBlindBoxRewardClaimRequested;
@@ -559,7 +559,7 @@ public partial class ModeManager : Control
             _bossKeyContent.AddChild(_bossBlindBoxOverlay);
         }
 
-        _bossRiseIntro = GD.Load<PackedScene>("res://Scenes/DesktopRiseIntro.tscn")
+        _bossRiseIntro = GD.Load<PackedScene>("res://Scenes/Desktop/DesktopRiseIntro.tscn")
             .Instantiate<DesktopRiseIntroController>();
         _bossRiseIntro.Name = "DesktopRiseIntro";
         _bossRiseIntro.StatusBarRevealRequested += OnBossRiseIntroStatusBarRevealRequested;
@@ -659,7 +659,7 @@ public partial class ModeManager : Control
 
     private void ShowAccountIdentityGate()
     {
-        _startupAccountGate = GD.Load<PackedScene>("res://Scenes/StartupAccountGate.tscn")
+        _startupAccountGate = GD.Load<PackedScene>("res://Scenes/App/StartupAccountGate.tscn")
             .Instantiate<StartupAccountGateController>();
         _startupAccountGate.Name = "StartupAccountGate";
         _startupAccountGate.RetryRequested += OnAccountIdentityRetryRequested;
@@ -922,7 +922,7 @@ public partial class ModeManager : Control
 
         if (_playRoot == null)
         {
-            _playRoot = GD.Load<PackedScene>("res://Scenes/PlayContent.tscn").Instantiate<Node2D>();
+            _playRoot = GD.Load<PackedScene>("res://Scenes/Poker/PlayContent.tscn").Instantiate<Node2D>();
             _playRoot.Name = "PlayRoot";
             AddChild(_playRoot);
             _playViewport = _playRoot.GetNode<SubViewportContainer>("SubViewportContainer");
@@ -930,7 +930,7 @@ public partial class ModeManager : Control
             _playViewport.Scale = Vector2.One * (0.5f * _otherUiScaleFactor);
 
             // 信息面板由 ModeManager 直接管理（需要动态定位+避让）
-            _infoPanel = GD.Load<PackedScene>("res://Scenes/InfoPanel.tscn").Instantiate<InfoPanelController>();
+            _infoPanel = GD.Load<PackedScene>("res://Scenes/Poker/InfoPanel.tscn").Instantiate<InfoPanelController>();
             _infoPanel.Name = "InfoPanel";
             AddChild(_infoPanel);
             _infoPanel.SetRenderScale(_otherUiScaleFactor);

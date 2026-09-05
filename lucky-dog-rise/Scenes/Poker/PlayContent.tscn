@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dwyovgqpbovdj"]
 
-[ext_resource type="PackedScene" uid="uid://dwfhbk6vuxql5" path="res://Scenes/Main.tscn" id="1_ketwd"]
+[ext_resource type="PackedScene" uid="uid://dwfhbk6vuxql5" path="res://Scenes/Poker/Main.tscn" id="1_ketwd"]
 
 [node name="PlayRoot" type="Node2D" unique_id=1172946148]
 

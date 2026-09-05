@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://i1sxw7eblt7v"]
 
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1_0222e"]
-[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/DogArea.tscn" id="1_dog"]
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/Shared/DogArea.tscn" id="1_dog"]
 [ext_resource type="PackedScene" uid="uid://c3sx2dvn6xwlc" path="res://Scenes/Prefabs/BalloonHint.tscn" id="2_balloon"]
 [ext_resource type="Texture2D" uid="uid://dkbbvhtj08unh" path="res://Assets/UI/Icon/Icon_Play_Dark.svg" id="3_play_dark"]
 [ext_resource type="Texture2D" uid="uid://1551dutjtqa5" path="res://Assets/UI/Icon/Icon_Menu_Dark.svg" id="4_menu_dark"]

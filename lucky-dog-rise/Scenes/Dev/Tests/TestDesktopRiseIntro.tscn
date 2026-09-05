@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://karu38bdriis"]
 
 [ext_resource type="Script" uid="uid://cjsi47xoj1db3" path="res://Scripts/Desktop/TestDesktopRiseIntroController.cs" id="1_test"]
-[ext_resource type="PackedScene" uid="uid://cj6per4gbtfxp" path="res://Scenes/DesktopRiseIntro.tscn" id="2_rise"]
+[ext_resource type="PackedScene" uid="uid://cj6per4gbtfxp" path="res://Scenes/Desktop/DesktopRiseIntro.tscn" id="2_rise"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_taskbar"]
 bg_color = Color(0.12, 0.14, 0.17, 1)

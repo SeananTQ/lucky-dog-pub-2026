@@ -34,7 +34,7 @@ public partial class DogSkinIconExportService : Node
     private const int DogTopMargin = 16;
     private const int TableOcclusionY = 677;
     private static readonly Vector2 DogCanvasOrigin = new(586f, 677f);
-    private static readonly PackedScene DogAreaScene = GD.Load<PackedScene>("res://Scenes/DogArea.tscn");
+    private static readonly PackedScene DogAreaScene = GD.Load<PackedScene>("res://Scenes/Shared/DogArea.tscn");
 
     public async Task<Image> ComposeIconAsync(DogSkinDraft draft, float cardboardOffsetX)
     {

@@ -91,19 +91,11 @@ lucky-dog-rise/
 │   ├── BGM/             # 背景音乐（OGG 格式）
 │   └── SFX/             # 音效文件（大驼峰命名，如 Knock.wav）
 ├── Scenes/
-│   ├── ModeManager.tscn     # 主入口场景，根节点 Control
-│   ├── BossKeyContent.tscn  # BossKey A 区（狗+按钮+气泡）
-│   ├── PlayContent.tscn     # 游玩模式布局（SubViewportContainer）
-│   ├── InfoPanel.tscn       # 信息面板（240×600）
-│   ├── BlindBoxRevealOverlay.tscn        # 扑克模式全屏盲盒表演外壳
-│   ├── DesktopBlindBoxRevealOverlay.tscn # 桌宠模式圆角气泡盲盒表演外壳
-│   ├── Main.tscn            # 扑克游戏内容（SubViewport 内渲染）
-│   ├── SystemPanel.tscn     # 系统功能面板（设置/装扮/Debug 页签）
-│   ├── DogArea.tscn         # 小狗场景（表情系统）
-│   ├── HandArea.tscn        # 手臂场景（敲桌交互）
-│   ├── ItemArea.tscn        # 道具展示场景（饮品等 Treat）
-│   ├── ChipStack.tscn       # 筹码堆场景（下注交互）
-│   ├── ChipReward.tscn      # 奖励筹码场景（收集动画）
+│   ├── App/                 # 主入口、账号门禁和系统面板
+│   ├── Desktop/             # 桌宠模式内容、Rise 和桌宠盲盒外壳
+│   ├── Poker/               # 扑克主场景、内容节点和扑克专用组件
+│   ├── Shared/              # 桌宠与扑克共用场景（如 DogArea）
+│   ├── Dev/                 # Debug、Tests 和 Labs；正式导出排除
 │   └── Prefabs/
 │       ├── ConfirmOverlay.tscn # 面板内确认遮罩（替代 Godot 原生弹窗）
 │       ├── BalloonHint.tscn # 气球提示（盲盒倒计时/消耗提示）
@@ -246,7 +238,7 @@ lucky-dog-rise/
 **启用透明背景**：
 - 项目设置 → Rendering → Viewport → Transparent Background → ON
 - 编辑器 F5 运行时不支持透明窗口（显示棋盘格），需切到独立窗口模式运行
-- 命令行独立运行：`godot --path lucky-dog-rise/ res://Scenes/ModeManager.tscn`
+- 命令行独立运行：`godot --path lucky-dog-rise/ res://Scenes/App/ModeManager.tscn`
 
 **Windows API**（lucky-dog-rise/Scripts/Desktop/WindowNative.cs）：
 - `WS_EX_LAYERED` — per-pixel alpha 层叠窗口

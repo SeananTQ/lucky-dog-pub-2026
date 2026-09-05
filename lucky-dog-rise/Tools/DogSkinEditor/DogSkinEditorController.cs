@@ -19,7 +19,7 @@ public partial class DogSkinEditorController : Control
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-    private static readonly PackedScene DogAreaScene = GD.Load<PackedScene>("res://Scenes/DogArea.tscn");
+    private static readonly PackedScene DogAreaScene = GD.Load<PackedScene>("res://Scenes/Shared/DogArea.tscn");
 
     private DogSkinCatalogDraft _catalog = new();
     private DogSkinAssetCatalog _assets = null!;

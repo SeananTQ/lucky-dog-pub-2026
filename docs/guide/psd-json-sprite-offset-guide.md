@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-06-18
+last_edit: 2026-09-05
 status: draft
 ---
 
@@ -20,9 +20,9 @@ Godot 中常用 `Sprite2D` 显示这些 PNG。默认情况下，`Sprite2D.Center
 
 已验证对象为主游戏场景中的酒类道具。
 
-- 场景：`lucky-dog-rise/Scenes/Main.tscn`
+- 场景：`lucky-dog-rise/Scenes/Poker/Main.tscn`
 - 道具实例：`ItemArea`
-- 道具子场景：`lucky-dog-rise/Scenes/ItemArea.tscn`
+- 道具子场景：`lucky-dog-rise/Scenes/Poker/ItemArea.tscn`
 - 显示节点：`Treat`
 - 参考图片：`Assets/v1/Treat/Whisky.png`
 - 坐标数据：`Assets/v1/layer_index.json`
@@ -287,4 +287,3 @@ Sprite2D.Position =
 - 父节点位置只负责整类物体整体落点。
 - 显示节点位置由公式统一计算。
 - 新增同类 PNG 和 JSON 记录后，不需要再次调整场景位置。
-

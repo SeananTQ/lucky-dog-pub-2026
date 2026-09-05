@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-29
+last_edit: 2026-09-05
 status: draft
 ---
 
@@ -50,7 +50,7 @@ lucky-dog-rise/
 │           └── ItemIcon/Dog_*.png
 ├── Scripts/DogAppearanceSpec.cs
 ├── Scripts/DogVisual.cs
-└── Scenes/DogArea.tscn
+└── Scenes/Shared/DogArea.tscn
 ```
 
 各文件职责如下：

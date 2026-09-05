@@ -20,13 +20,13 @@ dotnet build .\lucky-dog-rise\LuckyDogRise.csproj
 
 ## Wick Smoke Test
 
-Use `Scenes/TestDesktop.tscn` for a quick MCP smoke test:
+Use `Scenes/Dev/Tests/TestDesktop.tscn` for a quick MCP smoke test:
 
-1. `scene_get_tree` with `scenePath=G:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise/Scenes/TestDesktop.tscn`.
+1. `scene_get_tree` with `scenePath=G:/Workspace/godot-project/lucky-dog-pub-2026/lucky-dog-rise/Scenes/Dev/Tests/TestDesktop.tscn`.
 2. Confirm `nodeCount=7` and root `TestDesktop / Node2D`.
 3. `editor_status`; before live bridge use, expect `editorConnected=false, runtimeConnected=false` in a fresh idle thread.
 4. `editor_connect target=editor`.
-5. `editor_run_scene scenePath=res://Scenes/TestDesktop.tscn`.
+5. `editor_run_scene scenePath=res://Scenes/Dev/Tests/TestDesktop.tscn`.
 6. `runtime_get_exceptions limit=20 includeEnrichment=true`; expect `exceptions=[]` and `totalBuffered=0`.
 7. `editor_stop`.
 

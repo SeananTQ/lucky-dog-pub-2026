@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-23
+last_edit: 2026-09-05
 status: revised
 ---
 
@@ -39,7 +39,7 @@ Playtest 测试者可能来自 Godot 开发者群或其它半公开渠道，不�
 
 - `lucky-dog-rise/Scripts/BuildInfo.cs`
 - `lucky-dog-rise/Scripts/ModeManager.cs`
-- `lucky-dog-rise/Scenes/SystemPanel.tscn`
+- `lucky-dog-rise/Scenes/App/SystemPanel.tscn`
 
 ## Debug 隔离
 

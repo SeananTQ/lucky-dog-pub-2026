@@ -17,8 +17,8 @@ public enum GameState
 
 public partial class GameManager : Node2D
 {
-    private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/ChipReward.tscn");
-    private static readonly PackedScene BlindBoxRevealOverlayScene = GD.Load<PackedScene>("res://Scenes/BlindBoxRevealOverlay.tscn");
+    private static readonly PackedScene ChipRewardScene = GD.Load<PackedScene>("res://Scenes/Poker/ChipReward.tscn");
+    private static readonly PackedScene BlindBoxRevealOverlayScene = GD.Load<PackedScene>("res://Scenes/Poker/BlindBoxRevealOverlay.tscn");
 
     [Signal] public delegate void BlindBoxRewardClaimRequestedEventHandler();
     [Signal] public delegate void InsufficientBetAttemptedEventHandler();

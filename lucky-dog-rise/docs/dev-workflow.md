@@ -71,7 +71,7 @@ texture = ExtResource("2_tex")
 ### 场景实例化
 
 ```gdscene
-[ext_resource type="PackedScene" path="res://Scenes/DogArea.tscn" id="4_dog"]
+[ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="4_dog"]
 
 [node name="DogArea" parent="." instance=ExtResource("4_dog")]
 ```
