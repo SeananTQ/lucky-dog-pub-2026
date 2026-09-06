@@ -1,5 +1,7 @@
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using DataTables;
 using LuckyItemLootEditor.Models;
@@ -8,6 +10,11 @@ namespace LuckyItemLootEditor.Services;
 
 public sealed class LootDataStore
 {
+    private static readonly JsonSerializerOptions ProjectJsonOptions = new()
+    {
+        WriteIndented = true,
+    };
+
     public required string ProjectRoot { get; init; }
     public required string ItemPath { get; init; }
     public required string ItemWeightPath { get; init; }
@@ -86,6 +93,103 @@ public sealed class LootDataStore
         row.IsEnabled = weight > 0;
     }
 
+    public void SaveProject(string path, int? selectedBlindBoxId)
+    {
+        var project = new LootEditorProject
+        {
+            SavedAt = DateTimeOffset.Now,
+            SourceItemPath = ItemPath,
+            SourceItemSha256 = CalculateSha256(ItemPath),
+            SourceItemWeightPath = ItemWeightPath,
+            SourceItemWeightSha256 = CalculateSha256(ItemWeightPath),
+            SelectedBlindBoxId = selectedBlindBoxId,
+            Items = Items.OrderBy(item => item.Id).Select(item => new LootEditorItemState
+            {
+                ItemId = item.Id,
+                Rarity = (int)item.Rarity,
+                AcquisitionType = (int)item.AcquisitionType,
+            }).ToList(),
+            ItemWeights = ItemWeights.OrderBy(row => row.Id).Select(row => new LootEditorWeightState
+            {
+                Id = row.Id,
+                BlindBoxId = row.BlindBoxId,
+                ItemId = row.ItemId,
+                Weight = row.Weight,
+                IsEnabled = row.IsEnabled,
+            }).ToList(),
+        };
+
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+        var json = JsonSerializer.Serialize(project, ProjectJsonOptions) + Environment.NewLine;
+        var tempPath = path + ".tmp";
+        File.WriteAllText(tempPath, json, new UTF8Encoding(false));
+        File.Move(tempPath, path, true);
+    }
+
+    public LootEditorProjectLoadResult ApplyProject(string path)
+    {
+        var project = JsonSerializer.Deserialize<LootEditorProject>(File.ReadAllText(path, Encoding.UTF8), ProjectJsonOptions)
+            ?? throw new InvalidDataException($"无法解析工程文件：{path}");
+        if (project.Version != 1)
+            throw new InvalidDataException($"不支持的工程文件版本：{project.Version}");
+
+        var warnings = new List<string>();
+        if (!string.Equals(project.SourceItemSha256, CalculateSha256(ItemPath), StringComparison.OrdinalIgnoreCase))
+            warnings.Add("当前 tbitem.json 与工程保存时不同，已按 ItemId 尝试合并。");
+        if (!string.Equals(project.SourceItemWeightSha256, CalculateSha256(ItemWeightPath), StringComparison.OrdinalIgnoreCase))
+            warnings.Add("当前 tbblindboxitemweight.json 与工程保存时不同，已按 BlindBoxId + ItemId 尝试合并。");
+
+        var itemsById = Items.ToDictionary(item => item.Id);
+        foreach (var state in project.Items)
+        {
+            if (!itemsById.TryGetValue(state.ItemId, out var item))
+            {
+                warnings.Add($"工程中的 Item {state.ItemId} 在当前数据中不存在，已跳过。");
+                continue;
+            }
+            item.Rarity = (ERarity)state.Rarity;
+            item.AcquisitionType = (EAcquisitionType)state.AcquisitionType;
+        }
+
+        var blindBoxIds = BlindBoxes.Select(box => box.Id).ToHashSet();
+        var itemIds = Items.Select(item => item.Id).ToHashSet();
+        var weightsByKey = ItemWeights.ToDictionary(row => (row.BlindBoxId, row.ItemId));
+        var usedIds = ItemWeights.Select(row => row.Id).ToHashSet();
+        foreach (var state in project.ItemWeights)
+        {
+            if (weightsByKey.TryGetValue((state.BlindBoxId, state.ItemId), out var row))
+            {
+                row.Weight = Math.Max(0, state.Weight);
+                row.IsEnabled = state.IsEnabled;
+                continue;
+            }
+
+            if (!blindBoxIds.Contains(state.BlindBoxId) || !itemIds.Contains(state.ItemId))
+            {
+                warnings.Add($"工程中的奖池关系 {state.BlindBoxId}/{state.ItemId} 在当前数据中无法解析，已跳过。");
+                continue;
+            }
+
+            var id = state.Id > 0 && usedIds.Add(state.Id)
+                ? state.Id
+                : NextAvailableId(usedIds);
+            var newRow = new BlindBoxItemWeightRow
+            {
+                Id = id,
+                BlindBoxId = state.BlindBoxId,
+                ItemId = state.ItemId,
+                Weight = Math.Max(0, state.Weight),
+                IsEnabled = state.IsEnabled,
+            };
+            ItemWeights.Add(newRow);
+            weightsByKey[(newRow.BlindBoxId, newRow.ItemId)] = newRow;
+        }
+
+        return new LootEditorProjectLoadResult(project.SelectedBlindBoxId, warnings.Distinct().ToList());
+    }
+
     public IReadOnlyList<string> ExportCsv()
     {
         var outputDirectory = Path.Combine(ProjectRoot, "lucky-item-loot-editor", "output");
@@ -111,6 +215,17 @@ public sealed class LootDataStore
     private static JsonArray ReadArray(string path) =>
         JsonNode.Parse(File.ReadAllText(path, Encoding.UTF8))?.AsArray()
         ?? throw new InvalidDataException($"无法解析 {path}");
+
+    private static string CalculateSha256(string path) =>
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+    private static int NextAvailableId(HashSet<int> usedIds)
+    {
+        var id = 1;
+        while (!usedIds.Add(id))
+            id++;
+        return id;
+    }
 
     private static string EscapeCsv(string value) =>
         value.IndexOfAny([',', '"', '\r', '\n']) >= 0 ? $"\"{value.Replace("\"", "\"\"")}\"" : value;

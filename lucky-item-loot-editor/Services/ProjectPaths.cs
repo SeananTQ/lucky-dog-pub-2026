@@ -4,6 +4,24 @@ namespace LuckyItemLootEditor;
 
 public static class ProjectPaths
 {
+    public static string GetEditorSaveDirectory(string projectRoot) =>
+        Path.Combine(projectRoot, "lucky-item-loot-editor", "save");
+
+    public static string? TryFindLatestEditorProject()
+    {
+        var projectRoot = TryFindProjectRoot();
+        if (projectRoot is null)
+            return null;
+
+        var saveDirectory = GetEditorSaveDirectory(projectRoot);
+        if (!Directory.Exists(saveDirectory))
+            return null;
+
+        return Directory.EnumerateFiles(saveDirectory, "*.ldloot", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
+    }
+
     public static string? TryFindProjectRoot()
     {
         foreach (var start in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })

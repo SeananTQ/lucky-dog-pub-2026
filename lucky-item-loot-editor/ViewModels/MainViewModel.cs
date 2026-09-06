@@ -22,6 +22,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _randomResultText = "点击“随机一次”体验当前奖池。";
     private bool _isDirty;
     private bool _isSwitchingBlindBox;
+    private string? _currentProjectPath;
 
     public MainViewModel()
     {
@@ -131,35 +132,80 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _isDirty, value);
     }
 
+    public string? CurrentProjectPath
+    {
+        get => _currentProjectPath;
+        private set
+        {
+            if (SetField(ref _currentProjectPath, value))
+                OnPropertyChanged(nameof(WindowTitle));
+        }
+    }
+
+    public string WindowTitle => CurrentProjectPath is null
+        ? "Lucky Item Loot Editor"
+        : $"{Path.GetFileName(CurrentProjectPath)} - Lucky Item Loot Editor";
+
     public string ItemPath => _store?.ItemPath ?? string.Empty;
     public string ProjectRoot => _store?.ProjectRoot ?? string.Empty;
 
     public void Load()
     {
-        _store = LootDataStore.Load();
+        LoadStore(LootDataStore.Load(), null);
+        CurrentProjectPath = null;
+        IsDirty = false;
+        StatusText = $"已加载 {Items.Count} 个物品；数据源：{ItemPath}";
+    }
+
+    public IReadOnlyList<string> OpenProject(string path)
+    {
+        var store = LootDataStore.Load();
+        var result = store.ApplyProject(path);
+        LoadStore(store, result.SelectedBlindBoxId);
+        CurrentProjectPath = path;
+        IsDirty = false;
+        StatusText = result.Warnings.Count == 0
+            ? $"已打开工程：{path}"
+            : $"已打开工程，但有 {result.Warnings.Count} 条数据合并提示。";
+        return result.Warnings;
+    }
+
+    private void LoadStore(LootDataStore store, int? selectedBlindBoxId)
+    {
+        _store = store;
         foreach (var item in Items)
             item.PropertyChanged -= ItemOnPropertyChanged;
         Items.Clear();
-        foreach (var item in _store.Items)
+        foreach (var item in store.Items)
         {
             item.PropertyChanged += ItemOnPropertyChanged;
             Items.Add(item);
         }
 
-        BlindBoxes = _store.BlindBoxes;
+        BlindBoxes = store.BlindBoxes;
         OnPropertyChanged(nameof(BlindBoxes));
-        SelectedBlindBox = BlindBoxes.FirstOrDefault(box => box.IsEnabled) ?? BlindBoxes.FirstOrDefault();
-        IsDirty = false;
-        StatusText = $"已加载 {Items.Count} 个物品；数据源：{ItemPath}";
+        _selectedBlindBox = null;
+        SelectedBlindBox = BlindBoxes.FirstOrDefault(box => box.Id == selectedBlindBoxId)
+            ?? BlindBoxes.FirstOrDefault(box => box.IsEnabled)
+            ?? BlindBoxes.FirstOrDefault();
         RecalculateAll();
     }
 
-    public void Save()
+    public void SaveProject(string path)
+    {
+        if (_store is null)
+            return;
+        _store.SaveProject(path, SelectedBlindBox?.Id);
+        CurrentProjectPath = path;
+        IsDirty = false;
+        StatusText = $"工程已保存：{path}";
+    }
+
+    public void ExportCsv()
     {
         if (_store is null)
             return;
         var paths = _store.ExportCsv();
-        IsDirty = false;
         StatusText = $"已导出 {paths.Count} 个 CSV：{Path.GetDirectoryName(paths[0])}";
     }
 
@@ -223,9 +269,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void RecalculateAll()
     {
-        UpdateRarityCounts();
         if (_store is null || SelectedBlindBox is null)
+        {
+            RarityCounts.Clear();
             return;
+        }
 
         var rates = _store.RarityRates
             .Where(rate => rate.IsEnabled && rate.BlindBoxId == SelectedBlindBox.Id && rate.Weight > 0)
@@ -243,6 +291,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     && item.AcquisitionType == SelectedBlindBox.ExpectedAcquisitionType)
                 .ToList();
         }
+
+        UpdateRarityCounts(rarityProbabilities, effectiveCandidates);
 
         foreach (var item in Items)
         {
@@ -267,7 +317,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void UpdateRarityCounts()
+    private void UpdateRarityCounts(
+        IReadOnlyDictionary<ERarity, double> rarityProbabilities,
+        IReadOnlyDictionary<ERarity, IReadOnlyList<ItemRow>> effectiveCandidates)
     {
         var regularRarities = new[]
         {
@@ -278,38 +330,43 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ERarity.Uncommon,
             ERarity.Common,
         };
-        var counts = Items
-            .GroupBy(item => item.Rarity)
-            .ToDictionary(group => group.Key, group => group.Count());
-        var otherCount = counts
-            .Where(pair => !regularRarities.Contains(pair.Key))
-            .Sum(pair => pair.Value);
+        var otherRarities = effectiveCandidates.Keys
+            .Concat(rarityProbabilities.Keys)
+            .Where(rarity => !regularRarities.Contains(rarity))
+            .Distinct()
+            .ToList();
+        var otherCount = otherRarities.Sum(rarity => effectiveCandidates.GetValueOrDefault(rarity)?.Count ?? 0);
+        var otherProbability = otherRarities.Sum(rarity => rarityProbabilities.GetValueOrDefault(rarity));
         var maxCount = regularRarities
-            .Select(rarity => counts.GetValueOrDefault(rarity))
+            .Select(rarity => effectiveCandidates.GetValueOrDefault(rarity)?.Count ?? 0)
             .Append(otherCount)
-            .DefaultIfEmpty()
             .Max();
 
         RarityCounts.Clear();
         foreach (var rarity in regularRarities)
         {
-            var count = counts.GetValueOrDefault(rarity);
+            var count = effectiveCandidates.GetValueOrDefault(rarity)?.Count ?? 0;
+            var probability = rarityProbabilities.GetValueOrDefault(rarity);
             RarityCounts.Add(new RarityCountRow(
                 GetRarityLabel(rarity),
                 count,
-                GetCountBarWidth(count, maxCount),
-                CreateBrush(GetRarityColor(rarity))));
+                probability,
+                GetCountBarRatio(count, maxCount),
+                CreateBrush(GetRarityColor(rarity)),
+                (probability > 0 && count == 0) || (probability <= 0 && count > 0)));
         }
 
         RarityCounts.Add(new RarityCountRow(
             "其他",
             otherCount,
-            GetCountBarWidth(otherCount, maxCount),
-            CreateBrush("#9CA3AF")));
+            otherProbability,
+            GetCountBarRatio(otherCount, maxCount),
+            CreateBrush("#9CA3AF"),
+            (otherProbability > 0 && otherCount == 0) || (otherProbability <= 0 && otherCount > 0)));
     }
 
-    private static double GetCountBarWidth(int count, int maxCount) =>
-        maxCount <= 0 ? 0 : 160d * count / maxCount;
+    private static double GetCountBarRatio(int count, int maxCount) =>
+        maxCount <= 0 ? 0 : Math.Clamp(count / (double)maxCount, 0, 1);
 
     private static SolidColorBrush CreateBrush(string color)
     {
