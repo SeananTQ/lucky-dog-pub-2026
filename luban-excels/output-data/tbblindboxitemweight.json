@@ -2058,17 +2058,115 @@
     "IsEnabled": true
   },
   {
-    "Id": 20021001,
+    "Id": 20022003,
     "BlindBoxId": 2002,
-    "ItemId": 0,
-    "Weight": 0,
-    "IsEnabled": false
+    "ItemId": 2003,
+    "Weight": 100,
+    "IsEnabled": true
   },
   {
-    "Id": 20031001,
+    "Id": 20022009,
+    "BlindBoxId": 2002,
+    "ItemId": 2009,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20022013,
+    "BlindBoxId": 2002,
+    "ItemId": 2013,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20022022,
+    "BlindBoxId": 2002,
+    "ItemId": 2022,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20022029,
+    "BlindBoxId": 2002,
+    "ItemId": 2029,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20022032,
+    "BlindBoxId": 2002,
+    "ItemId": 2032,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20025004,
+    "BlindBoxId": 2002,
+    "ItemId": 5004,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20026006,
+    "BlindBoxId": 2002,
+    "ItemId": 6006,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20027016,
+    "BlindBoxId": 2002,
+    "ItemId": 7016,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20028005,
+    "BlindBoxId": 2002,
+    "ItemId": 8005,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20026008,
+    "BlindBoxId": 2002,
+    "ItemId": 6008,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20027008,
+    "BlindBoxId": 2002,
+    "ItemId": 7008,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20028012,
+    "BlindBoxId": 2002,
+    "ItemId": 8012,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20031012,
     "BlindBoxId": 2003,
-    "ItemId": 0,
-    "Weight": 0,
-    "IsEnabled": false
+    "ItemId": 1012,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20031008,
+    "BlindBoxId": 2003,
+    "ItemId": 1008,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 20031010,
+    "BlindBoxId": 2003,
+    "ItemId": 1010,
+    "Weight": 100,
+    "IsEnabled": true
   }
 ]

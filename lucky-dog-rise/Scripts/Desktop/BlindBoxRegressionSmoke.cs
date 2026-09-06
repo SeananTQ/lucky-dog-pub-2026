@@ -23,15 +23,89 @@ internal static class BlindBoxRegressionSmoke
             VerifyRetiredEyewearSaveCleanup();
             GD.Print("[BlindBoxRegressionSmoke] Passed retired eyewear save cleanup checks.");
             VerifySequenceProgressMigrationAndOrdering(service);
+            VerifyDemoScheduleAndNonRepeatingPools(service);
             VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
             VerifySaveSnapshotIsolation();
-            GD.Print("[BlindBoxRegressionSmoke] Passed linked sequence, progress migration, fallback advance, late reward, inventory visibility grace, save snapshot isolation, and retired eyewear cleanup checks.");
+            GD.Print("[BlindBoxRegressionSmoke] Passed channel schedules, Demo pricing and non-repeating pools, linked progress, fallback/late rewards, save isolation, and compatibility checks.");
         }
         finally
         {
             gameData.Free();
         }
+    }
+
+    private static void VerifyDemoScheduleAndNonRepeatingPools(BlindBoxService service)
+    {
+        const int normalDemoBlindBoxId = 2002;
+        const int goodDemoBlindBoxId = 2003;
+        var schedules = BlindBoxService.GetSequenceSchedules(DataTables.EBuildChannelMask.Demo);
+        Assert(schedules.Count == 16,
+            "The Demo first-run sequence does not contain the configured 16 Schedules.");
+        Assert(schedules.Count(schedule => schedule.BlindBoxId == normalDemoBlindBoxId) == 13,
+            "The Demo sequence does not contain 13 normal blind-box presentations.");
+        Assert(schedules.Count(schedule => schedule.BlindBoxId == goodDemoBlindBoxId) == 3,
+            "The Demo sequence does not contain 3 good blind-box presentations.");
+        Assert(!LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
+                schedule.IsEnabled
+                && schedule.IsLoopTrack
+                && (schedule.BuildChannelMask & DataTables.EBuildChannelMask.Demo) != 0),
+            "The finite Demo collection unexpectedly contains a loop Schedule.");
+
+        var normalDemoBox = LubanData.Tables.TbBlindBox.GetOrDefault(normalDemoBlindBoxId)
+            ?? throw new InvalidOperationException("Missing normal Demo blind box.");
+        var firstPrice = service.ResolvePrice(schedules[0], normalDemoBox, useScheduleOverride: true);
+        var secondPrice = service.ResolvePrice(schedules[1], normalDemoBox, useScheduleOverride: true);
+        Assert(firstPrice.ActualCost == 0 && firstPrice.StrikeThrough,
+            "The first Demo blind box is not using its configured free price override.");
+        Assert(secondPrice.ActualCost > 0 && !secondPrice.StrikeThrough,
+            "The second Demo blind box is not inheriting its normal chip cost.");
+        var poolItemIds = LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(entry => entry.IsEnabled
+                            && entry.BlindBoxId == normalDemoBlindBoxId
+                            && entry.Weight > 0)
+            .Select(entry => entry.ItemId)
+            .Distinct()
+            .ToList();
+        Assert(poolItemIds.Count == 13,
+            "The normal Demo blind box does not contain the configured 13-item collection.");
+
+        var remainingItemId = poolItemIds[^1];
+        var state = new BlindBoxRuntimeState
+        {
+            DrawnItemIdsByBlindBoxId = new Dictionary<int, List<int>>
+            {
+                [normalDemoBlindBoxId] = poolItemIds.Take(poolItemIds.Count - 1).ToList(),
+            },
+        };
+        Assert(service.RollRewardForTesting(normalDemoBox, state)?.Id == remainingItemId,
+            "ExcludeDrawnInThisBox did not renormalize rarity weights around the final remaining item.");
+        Assert(service.RecordClaimedReward(state, normalDemoBlindBoxId, remainingItemId),
+            "Claiming the final Demo item did not update the per-box draw history.");
+        Assert(service.RollRewardForTesting(normalDemoBox, state) == null,
+            "An exhausted ExcludeDrawnInThisBox pool still returned a reward.");
+
+        var goodDemoBox = LubanData.Tables.TbBlindBox.GetOrDefault(goodDemoBlindBoxId)
+            ?? throw new InvalidOperationException("Missing good Demo blind box.");
+        Assert(service.RollRewardForTesting(goodDemoBox, state) != null,
+            "Draw history from one Demo blind box leaked into another blind box.");
+
+        var normalRepeatableBox = LubanData.Tables.TbBlindBox.DataList.First(box =>
+            box.IsEnabled && box.RewardSelectionMode == DataTables.ERewardSelectionMode.Normal);
+        var repeatablePoolIds = LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(entry => entry.IsEnabled && entry.BlindBoxId == normalRepeatableBox.Id)
+            .Select(entry => entry.ItemId)
+            .Distinct()
+            .ToList();
+        var repeatableState = new BlindBoxRuntimeState
+        {
+            DrawnItemIdsByBlindBoxId = new Dictionary<int, List<int>>
+            {
+                [normalRepeatableBox.Id] = repeatablePoolIds,
+            },
+        };
+        Assert(service.RollRewardForTesting(normalRepeatableBox, repeatableState) != null,
+            "A Normal blind box incorrectly honored ExcludeDrawnInThisBox history.");
     }
 
     private static void VerifySequenceProgressMigrationAndOrdering(BlindBoxService service)
@@ -226,6 +300,10 @@ internal static class BlindBoxRegressionSmoke
                 IsLate = true,
                 StopRetryAfterFallback = true,
             },
+            DrawnItemIdsByBlindBoxId = new Dictionary<int, List<int>>
+            {
+                [2002] = [2003, 2009],
+            },
         };
         var liveProfile = new SaveProfile { BlindBoxRuntimeState = liveState };
 
@@ -249,10 +327,16 @@ internal static class BlindBoxRegressionSmoke
                 IsLate: true,
                 StopRetryAfterFallback: true,
             }, "Save normalization discarded the skipped-preparation no-retry state.");
+        Assert(normalizedSnapshot.BlindBoxRuntimeState.DrawnItemIdsByBlindBoxId?
+                   .GetValueOrDefault(2002)?.SequenceEqual([2003, 2009]) == true,
+            "Save normalization discarded valid per-box Demo draw history.");
 
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
+        normalizedSnapshot.BlindBoxRuntimeState.DrawnItemIdsByBlindBoxId![2002].Add(2013);
         Assert(liveState.LockedPresentation != null,
             "Mutating the persistence snapshot changed the live locked presentation.");
+        Assert(liveState.DrawnItemIdsByBlindBoxId[2002].SequenceEqual([2003, 2009]),
+            "Mutating the persistence snapshot changed the live per-box draw history.");
 
         var preparedProfile = new SaveProfile
         {
@@ -302,6 +386,9 @@ internal static class BlindBoxRegressionSmoke
     {
         const int redShibaItemId = 1001;
         const int retiredEyewearItemId = 3001;
+        if (LubanData.Tables.TbItem.GetOrDefault(retiredEyewearItemId) == null)
+            return;
+
         var profile = new SaveProfile
         {
             OwnedItemCounts = new Dictionary<int, int>

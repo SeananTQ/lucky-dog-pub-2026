@@ -408,7 +408,8 @@ public static class SaveManager
         state.GeneratorActivation.ActivatedAtTotalPlaySecondsByGenerator ??=
             new Dictionary<int, double>();
         var enabledSchedulesByGenerator = LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.IsEnabled && schedule.SteamPlaytimeGeneratorItemDefId > 0)
+            .Where(schedule => BlindBoxService.IsScheduleEnabledForCurrentChannel(schedule)
+                               && schedule.SteamPlaytimeGeneratorItemDefId > 0)
             .GroupBy(schedule => schedule.SteamPlaytimeGeneratorItemDefId)
             .ToDictionary(group => group.Key, group => group.First());
         state.GeneratorActivation.ActivatedAtTotalPlaySecondsByGenerator =
@@ -528,7 +529,8 @@ public static class SaveManager
             profile.PendingLinkTreeClaim = null;
         }
         var validCompletionReceiptIds = LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.SteamCompletionReceiptItemDefId > 0)
+            .Where(schedule => BlindBoxService.IsScheduleEnabledForCurrentChannel(schedule)
+                               && schedule.SteamCompletionReceiptItemDefId > 0)
             .Select(schedule => schedule.SteamCompletionReceiptItemDefId)
             .ToHashSet();
         if (profile.PendingBlindBoxCompletionReceiptItemDefId < 0
@@ -610,6 +612,7 @@ public static class SaveManager
         }
 
         var validScheduleIds = LubanData.Tables.TbBlindBoxSchedule.DataList
+            .Where(BlindBoxService.IsScheduleEnabledForCurrentChannel)
             .Select(schedule => schedule.Id)
             .ToHashSet();
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
@@ -623,8 +626,7 @@ public static class SaveManager
             profile.BlindBoxRuntimeState.NextLoopTriggerSeconds);
         profile.BlindBoxRuntimeState.ScheduleSeconds = Math.Max(0.0, profile.BlindBoxRuntimeState.ScheduleSeconds);
 
-        var newPlayerScheduleCount = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(
-            schedule => schedule.IsEnabled && !schedule.IsLoopTrack);
+        var newPlayerScheduleCount = BlindBoxService.GetSequenceSchedules().Count;
         if (profile.BlindBoxRuntimeState.SequenceIndex < newPlayerScheduleCount)
         {
             profile.BlindBoxRuntimeState.LoopStageStarted = false;
@@ -638,6 +640,8 @@ public static class SaveManager
         {
             profile.BlindBoxRuntimeState.LockedPresentation = null;
         }
+
+        NormalizeDrawnBlindBoxItems(profile.BlindBoxRuntimeState, validIds);
 
         NormalizeBlindBoxPreparationState(profile.BlindBoxRuntimeState, validScheduleIds, validIds);
         if (profile.BlindBoxRuntimeState.LockedPresentation is { } normalizedLock
@@ -688,6 +692,38 @@ public static class SaveManager
             profile.OwnedItemCounts,
             legacyRefreshmentItemId);
         return profile;
+    }
+
+    private static void NormalizeDrawnBlindBoxItems(
+        BlindBoxRuntimeState state,
+        IReadOnlySet<int> validItemIds)
+    {
+        state.DrawnItemIdsByBlindBoxId ??= new Dictionary<int, List<int>>();
+        state.DrawnItemIdsByBlindBoxId = state.DrawnItemIdsByBlindBoxId
+            .Where(pair => LubanData.Tables.TbBlindBox.GetOrDefault(pair.Key) is
+                {
+                    IsEnabled: true,
+                    RewardSelectionMode: DataTables.ERewardSelectionMode.ExcludeDrawnInThisBox,
+                })
+            .Select(pair => new
+            {
+                BlindBoxId = pair.Key,
+                ItemIds = (pair.Value ?? [])
+                    .Where(validItemIds.Contains)
+                    .Where(itemId => LubanData.Tables.TbBlindBoxItemWeight.DataList.Any(entry =>
+                        entry.IsEnabled
+                        && entry.BlindBoxId == pair.Key
+                        && entry.ItemId == itemId
+                        && entry.Weight > 0))
+                    .Distinct()
+                    .OrderBy(itemId => itemId)
+                    .ToList(),
+            })
+            .Where(entry => entry.ItemIds.Count > 0)
+            .OrderBy(entry => entry.BlindBoxId)
+            .ToDictionary(entry => entry.BlindBoxId, entry => entry.ItemIds);
+        if (state.DrawnItemIdsByBlindBoxId.Count == 0)
+            state.DrawnItemIdsByBlindBoxId = null;
     }
 
     private static int TryGetLegacyRefreshmentItemId(

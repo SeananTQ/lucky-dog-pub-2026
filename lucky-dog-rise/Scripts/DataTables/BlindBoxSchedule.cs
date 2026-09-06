@@ -20,6 +20,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["NextScheduleId"].IsNumber) { throw new SerializationException(); }  NextScheduleId = _buf["NextScheduleId"]; }
         { if(!_buf["ProgressCheckpoint"].IsNumber) { throw new SerializationException(); }  ProgressCheckpoint = _buf["ProgressCheckpoint"]; }
+        { if(!_buf["BuildChannelMask"].IsNumber) { throw new SerializationException(); }  BuildChannelMask = (EBuildChannelMask)_buf["BuildChannelMask"].AsInt; }
         { if(!_buf["BlindBoxId"].IsNumber) { throw new SerializationException(); }  BlindBoxId = _buf["BlindBoxId"]; }
         { if(!_buf["FallbackBlindBoxId"].IsNumber) { throw new SerializationException(); }  FallbackBlindBoxId = _buf["FallbackBlindBoxId"]; }
         { if(!_buf["IsLoopTrack"].IsBoolean) { throw new SerializationException(); }  IsLoopTrack = _buf["IsLoopTrack"]; }
@@ -49,6 +50,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
     /// 当前 Schedule 正式完成后写入 Steam Stat 的只增进度值；仅首轮奖励序列填写大于 0，循环 Schedule 填 0；沿 NextScheduleId 必须严格递增，发布后不得修改、降低或复用；建议步骤之间预留较大数值间隔，方便以后插入步骤。
     /// </summary>
     public readonly int ProgressCheckpoint;
+    public readonly EBuildChannelMask BuildChannelMask;
     /// <summary>
     /// 对应 BlindBox.Id
     /// </summary>
@@ -115,6 +117,7 @@ public sealed partial class BlindBoxSchedule : Luban.BeanBase
         + "Id:" + Id + ","
         + "NextScheduleId:" + NextScheduleId + ","
         + "ProgressCheckpoint:" + ProgressCheckpoint + ","
+        + "BuildChannelMask:" + BuildChannelMask + ","
         + "BlindBoxId:" + BlindBoxId + ","
         + "FallbackBlindBoxId:" + FallbackBlindBoxId + ","
         + "IsLoopTrack:" + IsLoopTrack + ","

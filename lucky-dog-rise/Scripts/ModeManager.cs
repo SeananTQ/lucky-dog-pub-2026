@@ -1973,13 +1973,16 @@ public partial class ModeManager : Control
         var state = _gameData.GetBlindBoxHintState();
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
-        var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward or BlindBoxHintStatus.Opening;
+        var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward
+            or BlindBoxHintStatus.Opening
+            or BlindBoxHintStatus.Completed;
         SetBossBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble);
 
         switch (state.Status)
         {
             case BlindBoxHintStatus.PendingReward:
             case BlindBoxHintStatus.Opening:
+            case BlindBoxHintStatus.Completed:
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:

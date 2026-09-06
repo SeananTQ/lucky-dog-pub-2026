@@ -348,18 +348,22 @@ public partial class InfoPanelController : CanvasLayer
 
         var state = _gameData.GetBlindBoxHintState();
         _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
+            or BlindBoxHintStatus.Completed
             or BlindBoxHintStatus.Opening
             or BlindBoxHintStatus.PendingReward;
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
             && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
-        var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward or BlindBoxHintStatus.Opening;
+        var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward
+            or BlindBoxHintStatus.Opening
+            or BlindBoxHintStatus.Completed;
         SetBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble);
 
         switch (state.Status)
         {
             case BlindBoxHintStatus.PendingReward:
             case BlindBoxHintStatus.Opening:
+            case BlindBoxHintStatus.Completed:
                 break;
             case BlindBoxHintStatus.Ready:
             case BlindBoxHintStatus.NotEnoughChips:

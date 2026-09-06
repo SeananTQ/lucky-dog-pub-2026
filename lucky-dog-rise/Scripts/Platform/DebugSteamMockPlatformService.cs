@@ -800,7 +800,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private static bool IsNewcomerCompletionReceiptGrant(int promoItemDefId, int receiptItemDefId) =>
         promoItemDefId == receiptItemDefId
         && LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
-            schedule.IsEnabled
+            BlindBoxService.IsScheduleEnabledForCurrentChannel(schedule)
             && schedule.SteamCompletionReceiptItemDefId == receiptItemDefId);
 
     private string GetPendingPromoOperationName() =>

@@ -147,6 +147,13 @@ internal static class SaveIntegrity
             PreparedReward = CanonicalizePreparedReward(state.PreparedReward),
             LockedPresentation = CanonicalizeLockedPresentation(state.LockedPresentation),
             GeneratorActivation = CanonicalizeGeneratorActivation(state.GeneratorActivation),
+            DrawnItemIdsByBlindBoxId = state.DrawnItemIdsByBlindBoxId == null
+                ? null
+                : state.DrawnItemIdsByBlindBoxId
+                    .OrderBy(pair => pair.Key)
+                    .ToDictionary(
+                        pair => pair.Key,
+                        pair => (pair.Value ?? []).Distinct().OrderBy(itemId => itemId).ToList()),
         };
     }
 

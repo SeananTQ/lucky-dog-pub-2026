@@ -177,11 +177,18 @@ public sealed class BlindBoxRuntimeState
     public LockedBlindBoxPresentation? LockedPresentation { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PlaytimeGeneratorActivationState? GeneratorActivation { get; set; }
+    /// <summary>
+    /// 按盲盒记录已经实际领取的道具。只供 ExcludeDrawnInThisBox 使用；
+    /// 同一道具从其他盲盒获得不会影响本盲盒的候选池。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<int, List<int>>? DrawnItemIdsByBlindBoxId { get; set; }
 }
 
 public enum BlindBoxHintStatus
 {
     Waiting,
+    Completed,
     Ready,
     NotEnoughChips,
     PendingReward,
@@ -601,6 +608,14 @@ public sealed class BlindBoxService
         if (TryGetLockedPresentation(runtimeState, out var schedule, out var box, out var locked))
             return CreateReadyHintState(schedule!, box!, locked!.Kind);
 
+        if (GetCurrentSequenceSchedule(runtimeState) == null && GetLoopSchedule() == null)
+        {
+            return new BlindBoxHintState
+            {
+                Status = BlindBoxHintStatus.Completed,
+            };
+        }
+
         return new BlindBoxHintState
         {
             Status = BlindBoxHintStatus.Waiting,
@@ -623,7 +638,7 @@ public sealed class BlindBoxService
             return null;
         }
 
-        var item = RollReward(box);
+        var item = RollReward(box, runtimeState);
         if (item == null)
         {
             GD.PushError($"[BlindBox] No reward candidate for box {box.Id} ({box.Name}).");
@@ -695,6 +710,29 @@ public sealed class BlindBoxService
             .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
             .SelectMany(rate => GetRewardCandidates(box, rate.Rarity))
             .Any(candidate => candidate.Item.Id == item.Id);
+
+    public bool RecordClaimedReward(
+        BlindBoxRuntimeState runtimeState,
+        int blindBoxId,
+        int itemId)
+    {
+        var box = LubanData.Tables.TbBlindBox.GetOrDefault(blindBoxId);
+        if (box?.RewardSelectionMode != ERewardSelectionMode.ExcludeDrawnInThisBox)
+            return false;
+
+        runtimeState.DrawnItemIdsByBlindBoxId ??= new Dictionary<int, List<int>>();
+        if (!runtimeState.DrawnItemIdsByBlindBoxId.TryGetValue(blindBoxId, out var drawnItemIds))
+        {
+            drawnItemIds = [];
+            runtimeState.DrawnItemIdsByBlindBoxId[blindBoxId] = drawnItemIds;
+        }
+
+        if (drawnItemIds.Contains(itemId))
+            return false;
+
+        drawnItemIds.Add(itemId);
+        return true;
+    }
 
     public bool TryGetLockedPresentation(
         BlindBoxRuntimeState runtimeState,
@@ -835,9 +873,13 @@ public sealed class BlindBoxService
     }
 
     internal static List<BlindBoxSchedule> GetSequenceSchedules()
+        => GetSequenceSchedules(GetCurrentScheduleChannelMask());
+
+    internal static List<BlindBoxSchedule> GetSequenceSchedules(EBuildChannelMask channelMask)
     {
         var enabled = LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.IsEnabled && !schedule.IsLoopTrack)
+            .Where(schedule => IsScheduleEnabledForChannel(schedule, channelMask)
+                               && !schedule.IsLoopTrack)
             .ToList();
         if (TryBuildSequenceChain(enabled, out var chain, out var failure))
             return chain;
@@ -845,6 +887,28 @@ public sealed class BlindBoxService
         throw new InvalidOperationException(
             $"Invalid first-run reward sequence configuration: {failure}.");
     }
+
+    internal static EBuildChannelMask GetCurrentScheduleChannelMask()
+    {
+        return BuildInfo.Channel switch
+        {
+            BuildChannel.Playtest => EBuildChannelMask.Playtest,
+            BuildChannel.Demo => EBuildChannelMask.Demo,
+            BuildChannel.Release => EBuildChannelMask.Release,
+            // Debug keeps the existing production sequence by default. The explicit
+            // argument makes the real Demo table available to local runtime checks.
+            _ when OS.GetCmdlineUserArgs().Contains("--demo-blind-boxes") => EBuildChannelMask.Demo,
+            _ => EBuildChannelMask.Release,
+        };
+    }
+
+    internal static bool IsScheduleEnabledForCurrentChannel(BlindBoxSchedule schedule) =>
+        IsScheduleEnabledForChannel(schedule, GetCurrentScheduleChannelMask());
+
+    private static bool IsScheduleEnabledForChannel(
+        BlindBoxSchedule schedule,
+        EBuildChannelMask channelMask) =>
+        schedule.IsEnabled && (schedule.BuildChannelMask & channelMask) != 0;
 
     public int NormalizeSequenceProgress(BlindBoxRuntimeState runtimeState) =>
         NormalizeSequenceProgress(runtimeState, GetSequenceSchedules());
@@ -1039,7 +1103,8 @@ public sealed class BlindBoxService
     private static BlindBoxSchedule? GetLoopSchedule()
     {
         return LubanData.Tables.TbBlindBoxSchedule.DataList
-            .Where(schedule => schedule.IsEnabled && schedule.IsLoopTrack)
+            .Where(schedule => IsScheduleEnabledForCurrentChannel(schedule)
+                               && schedule.IsLoopTrack)
             .OrderBy(schedule => schedule.Id)
             .FirstOrDefault();
     }
@@ -1072,15 +1137,31 @@ public sealed class BlindBoxService
         var enabledSchedules = LubanData.Tables.TbBlindBoxSchedule.DataList
             .Where(schedule => schedule.IsEnabled)
             .ToList();
-        if (!enabledSchedules.Any(schedule => !schedule.IsLoopTrack))
-            GD.PushError("[BlindBox] No enabled newbie schedules.");
-        if (enabledSchedules.Count(schedule => schedule.IsLoopTrack) != 1)
-            GD.PushError("[BlindBox] Exactly one enabled loop schedule is required.");
-        var enabledSequenceSchedules = enabledSchedules
-            .Where(schedule => !schedule.IsLoopTrack)
-            .ToList();
-        if (!TryBuildSequenceChain(enabledSequenceSchedules, out _, out var sequenceFailure))
-            GD.PushError($"[BlindBox] Invalid first-run reward sequence: {sequenceFailure}.");
+        foreach (var channelMask in new[]
+                 {
+                     EBuildChannelMask.Playtest,
+                     EBuildChannelMask.Demo,
+                     EBuildChannelMask.Release,
+                 })
+        {
+            var channelSchedules = enabledSchedules
+                .Where(schedule => (schedule.BuildChannelMask & channelMask) != 0)
+                .ToList();
+            var channelSequence = channelSchedules
+                .Where(schedule => !schedule.IsLoopTrack)
+                .ToList();
+            if (!TryBuildSequenceChain(channelSequence, out _, out var sequenceFailure))
+                GD.PushError($"[BlindBox] Invalid {channelMask} first-run reward sequence: {sequenceFailure}.");
+
+            var expectedLoopCount = channelMask == EBuildChannelMask.Demo ? 0 : 1;
+            var actualLoopCount = channelSchedules.Count(schedule => schedule.IsLoopTrack);
+            if (actualLoopCount != expectedLoopCount)
+            {
+                GD.PushError(
+                    $"[BlindBox] {channelMask} requires {expectedLoopCount} enabled loop Schedule(s), "
+                    + $"found {actualLoopCount}.");
+            }
+        }
 
         foreach (var duplicate in LubanData.Tables.TbBlindBoxItemWeight.DataList
                      .GroupBy(entry => (entry.BlindBoxId, entry.ItemId))
@@ -1308,8 +1389,11 @@ public sealed class BlindBoxService
     }
 #endif
 
-    private Item? RollReward(BlindBox box)
+    private Item? RollReward(BlindBox box, BlindBoxRuntimeState runtimeState)
     {
+        if (box.RewardSelectionMode == ERewardSelectionMode.ExcludeDrawnInThisBox)
+            return RollRewardExcludingDrawnItems(box, runtimeState);
+
         var rarity = RollRarity(box.Id);
         if (rarity == null)
             return null;
@@ -1318,7 +1402,41 @@ public sealed class BlindBoxService
         return PickWeighted(candidates, entry => entry.Weight).Item;
     }
 
-    private static List<(Item Item, int Weight)> GetRewardCandidates(BlindBox box, ERarity rarity)
+#if DEBUG
+    internal Item? RollRewardForTesting(BlindBox box, BlindBoxRuntimeState runtimeState) =>
+        RollReward(box, runtimeState);
+#endif
+
+    private Item? RollRewardExcludingDrawnItems(
+        BlindBox box,
+        BlindBoxRuntimeState runtimeState)
+    {
+        runtimeState.DrawnItemIdsByBlindBoxId ??= new Dictionary<int, List<int>>();
+        var excludedItemIds = runtimeState.DrawnItemIdsByBlindBoxId.TryGetValue(box.Id, out var drawn)
+            ? drawn.ToHashSet()
+            : [];
+        var viableRarities = LubanData.Tables.TbBlindBoxRarityRate.DataList
+            .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
+            .GroupBy(rate => rate.Rarity)
+            .Select(group => new
+            {
+                Rarity = group.Key,
+                Weight = group.Sum(rate => rate.Weight),
+                Candidates = GetRewardCandidates(box, group.Key, excludedItemIds),
+            })
+            .Where(group => group.Candidates.Count > 0)
+            .ToList();
+        if (viableRarities.Count == 0)
+            return null;
+
+        var rarity = PickWeighted(viableRarities, group => group.Weight);
+        return PickWeighted(rarity.Candidates, entry => entry.Weight).Item;
+    }
+
+    private static List<(Item Item, int Weight)> GetRewardCandidates(
+        BlindBox box,
+        ERarity rarity,
+        IReadOnlySet<int>? excludedItemIds = null)
     {
         var expectedAcquisition = GetExpectedAcquisitionType(box.BoxType);
         return LubanData.Tables.TbBlindBoxItemWeight.DataList
@@ -1327,6 +1445,7 @@ public sealed class BlindBoxService
             .Where(entry => entry.Item != null)
             .Where(entry => entry.Item!.ItemRarity == rarity)
             .Where(entry => entry.Item!.AcquisitionType == expectedAcquisition)
+            .Where(entry => excludedItemIds == null || !excludedItemIds.Contains(entry.Item!.Id))
             .Select(entry => (entry.Item!, entry.Weight))
             .ToList();
     }

@@ -164,7 +164,7 @@ public static class BuildCapabilities
 {
     private static bool IsReviewDemo => BuildInfo.Channel == BuildChannel.Demo;
 
-    public static bool BlindBoxes => !IsReviewDemo;
+    public static bool BlindBoxes => true;
     public static bool LinkTree => !IsReviewDemo;
     public static bool SteamInventory => !IsReviewDemo;
     public static bool PlatformStatistics => !IsReviewDemo;

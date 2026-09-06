@@ -846,8 +846,7 @@ public partial class GameData : Node
         LinkTreeRewardLedgerInitialized = true;
         _blindBoxLocalTestRuntimeState = new BlindBoxRuntimeState
         {
-            SequenceIndex = LubanData.Tables.TbBlindBoxSchedule.DataList.Count(schedule =>
-                schedule.IsEnabled && !schedule.IsLoopTrack),
+            SequenceIndex = BlindBoxService.GetSequenceSchedules().Count,
         };
         _blindBoxLocalTestPendingCompletionReceiptItemDefId = 0;
         _blindBoxLocalTestObservedSequenceProgressCheckpoint = 0;
@@ -2276,6 +2275,7 @@ public partial class GameData : Node
             return;
 
         var itemId = PendingBlindBoxReward.ItemId;
+        var blindBoxId = PendingBlindBoxReward.BlindBoxId;
         var scheduleId = PendingBlindBoxReward.ScheduleId;
         var completedSchedule = PendingBlindBoxReward.CompletesSchedule;
         var platformInstanceId = PendingBlindBoxReward.PlatformInstanceId;
@@ -2289,6 +2289,7 @@ public partial class GameData : Node
         var previousProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
+        _blindBoxService.RecordClaimedReward(ActiveBlindBoxRuntimeState, blindBoxId, itemId);
         if (recoveredFromInterruptedReveal)
             QueueRecoveredItem(itemId, 1, "interrupted_blindbox_reveal");
         _blindBoxService.CompleteClaimedPresentation(
