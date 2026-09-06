@@ -3,10 +3,11 @@
 [ext_resource type="Script" path="res://Scripts/Desktop/DeveloperLauncherController.cs" id="1_script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="2_theme"]
 
-[node name="DeveloperLauncher" type="CanvasLayer" node_paths=PackedStringArray("_environmentOption", "_mockScenarioSection", "_scenarioOption", "_environmentHint", "_launchButton", "_quitButton")]
+[node name="DeveloperLauncher" type="CanvasLayer" node_paths=PackedStringArray("_environmentOption", "_gameplayChannelOption", "_mockScenarioSection", "_scenarioOption", "_environmentHint", "_launchButton", "_quitButton")]
 layer = 200
 script = ExtResource("1_script")
 _environmentOption = NodePath("Backdrop/Center/Panel/Margin/Content/EnvironmentOption")
+_gameplayChannelOption = NodePath("Backdrop/Center/Panel/Margin/Content/GameplayChannelOption")
 _mockScenarioSection = NodePath("Backdrop/Center/Panel/Margin/Content/MockScenarioSection")
 _scenarioOption = NodePath("Backdrop/Center/Panel/Margin/Content/MockScenarioSection/ScenarioOption")
 _environmentHint = NodePath("Backdrop/Center/Panel/Margin/Content/EnvironmentHint")
@@ -76,6 +77,22 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.8, 0.82, 1)
 theme_override_font_sizes/font_size = 13
 text = "综合调试环境使用当前真实 Steam 与本地存档，并保留完整 Debug 工具。"
+autowrap_mode = 3
+
+[node name="GameplayChannelLabel" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+text = "游戏内容渠道"
+
+[node name="GameplayChannelOption" type="OptionButton" parent="Backdrop/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+tooltip_text = "Demo 调试渠道会隔离存档并应用 Demo 的本地测试能力边界。"
+
+[node name="GameplayChannelHint" type="Label" parent="Backdrop/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.82, 1)
+theme_override_font_sizes/font_size = 13
+text = "Demo 调试渠道不会读取常规 Debug / Playtest 存档，可在 Debug 页单独复位试玩流程。"
 autowrap_mode = 3
 
 [node name="MockScenarioSection" type="VBoxContainer" parent="Backdrop/Center/Panel/Margin/Content"]

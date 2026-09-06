@@ -228,6 +228,9 @@ public sealed class BlindBoxService
     public const double SteamPlaytimeDropMinimumAttemptIntervalSeconds = 65.0;
     private readonly GameData _gameData;
     private readonly Random _random = new();
+#if DEBUG
+    private static EBuildChannelMask _debugScheduleChannelMask = EBuildChannelMask.Release;
+#endif
 
     public BlindBoxService(GameData gameData)
     {
@@ -890,17 +893,32 @@ public sealed class BlindBoxService
 
     internal static EBuildChannelMask GetCurrentScheduleChannelMask()
     {
+#if DEBUG
+        if (OS.GetCmdlineUserArgs().Contains("--demo-blind-boxes"))
+            return EBuildChannelMask.Demo;
+        return _debugScheduleChannelMask;
+#else
         return BuildInfo.Channel switch
         {
             BuildChannel.Playtest => EBuildChannelMask.Playtest,
             BuildChannel.Demo => EBuildChannelMask.Demo,
             BuildChannel.Release => EBuildChannelMask.Release,
-            // Debug keeps the existing production sequence by default. The explicit
-            // argument makes the real Demo table available to local runtime checks.
-            _ when OS.GetCmdlineUserArgs().Contains("--demo-blind-boxes") => EBuildChannelMask.Demo,
+            _ => (EBuildChannelMask)0,
+        };
+#endif
+    }
+
+#if DEBUG
+    internal static void ConfigureDebugScheduleChannel(DebugGameplayChannel channel)
+    {
+        _debugScheduleChannelMask = channel switch
+        {
+            DebugGameplayChannel.Demo => EBuildChannelMask.Demo,
             _ => EBuildChannelMask.Release,
         };
+        GD.Print($"[BlindBox] Debug schedule channel: {_debugScheduleChannelMask}.");
     }
+#endif
 
     internal static bool IsScheduleEnabledForCurrentChannel(BlindBoxSchedule schedule) =>
         IsScheduleEnabledForChannel(schedule, GetCurrentScheduleChannelMask());

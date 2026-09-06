@@ -19,6 +19,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DogReactionRequestedEventHandler(int trigger);
     [Signal] public delegate void GlobalMouseListeningDisabledChangedEventHandler(bool disabled);
     [Signal] public delegate void SteamMockPanelVisibilityChangedEventHandler(bool visible);
+    [Signal] public delegate void DebugDemoExperienceResetRequestedEventHandler();
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -154,6 +155,12 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
     // Debug 页
     private ConfirmOverlayController _resetSaveConfirm = null!;
+    private enum DebugResetConfirmation
+    {
+        Save,
+        PlayerProgress,
+        DemoExperience,
+    }
     private Label _seedLabel = null!;
     private Label _playTimeLabel = null!;
     private Label _luckyDealBuffLabel = null!;
@@ -173,7 +180,7 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _reactionOption = null!;
     private int _currentSeed;
     private double _debugTimeRefreshTimer;
-    private bool _resetPlayerProgressPending;
+    private DebugResetConfirmation _resetConfirmation = DebugResetConfirmation.Save;
     private bool _steamMockActive;
     private CheckButton _showDeveloperLauncherNextStartupToggle = null!;
 #endif
@@ -455,7 +462,10 @@ public partial class SystemPanelController : CanvasLayer
         _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _saveDataModeOption.AddItem("调试全道具", (int)SettingsManager.SaveDataMode.DebugAllItems);
         _saveDataModeOption.AddItem("本地存档", (int)SettingsManager.SaveDataMode.LocalSave);
-        _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+        _saveDataModeOption.Select(BuildInfo.IsDebugDemo
+            ? (int)SettingsManager.SaveDataMode.LocalSave
+            : (int)SettingsManager.LoadSaveDataMode());
+        _saveDataModeOption.Disabled = BuildInfo.IsDebugDemo;
 #endif
 
         RefreshAudioControlsFromStorage();
@@ -585,6 +595,7 @@ public partial class SystemPanelController : CanvasLayer
         var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
+        var resetDemoExperienceBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/ResetDemoExperienceBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
@@ -625,6 +636,8 @@ public partial class SystemPanelController : CanvasLayer
         _playerProgressMultiplierOption.ItemSelected += _ =>
             _gameData.SetPlayerProgressDebugMultiplier(_playerProgressMultiplierOption.GetSelectedId());
         resetPlayerProgressBtn.Pressed += ConfirmResetPlayerProgress;
+        resetDemoExperienceBtn.Visible = BuildInfo.IsDebugDemo;
+        resetDemoExperienceBtn.Pressed += ConfirmResetDemoExperience;
         _blindBoxDebugToggle.Pressed += ToggleBlindBoxDebug;
         RefreshBlindBoxLocalTestControls();
         _blindBoxLocalTestModeToggle.Toggled += enabled =>
@@ -699,8 +712,8 @@ public partial class SystemPanelController : CanvasLayer
     public void SetSteamMockActive(bool active)
     {
         _steamMockActive = active;
-        _saveDataModeOption.Disabled = active;
-        _saveDataModeOption.Select(active
+        _saveDataModeOption.Disabled = active || BuildInfo.IsDebugDemo;
+        _saveDataModeOption.Select(active || BuildInfo.IsDebugDemo
             ? (int)SettingsManager.SaveDataMode.LocalSave
             : (int)SettingsManager.LoadSaveDataMode());
         foreach (var entry in _linkTreeRewardEntries)
@@ -3173,7 +3186,7 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
     private void ConfirmResetSave()
     {
-        _resetPlayerProgressPending = false;
+        _resetConfirmation = DebugResetConfirmation.Save;
         _resetSaveConfirm.ShowConfirmKey(
             L10nKey.Settings_ResetSaveData,
             L10nKey.Settings_ResetSaveMessage,
@@ -3193,10 +3206,23 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
     private void ConfirmResetPlayerProgress()
     {
-        _resetPlayerProgressPending = true;
+        _resetConfirmation = DebugResetConfirmation.PlayerProgress;
         _resetSaveConfirm.ShowConfirm(
             "重置本地成就与统计？",
             "仅清空当前帐号目录中的 player_progress_0.json。不会影响筹码、背包、装备或游戏存档。",
+            "重置",
+            "取消");
+    }
+
+    private void ConfirmResetDemoExperience()
+    {
+        if (!BuildInfo.IsDebugDemo)
+            return;
+
+        _resetConfirmation = DebugResetConfirmation.DemoExperience;
+        _resetSaveConfirm.ShowConfirm(
+            "重置 Demo 试玩流程？",
+            "将盲盒进度、已抽取记录、背包、装备、筹码、消耗品状态和新手引导恢复到 Demo 初始状态。不会重置系统设置、LinkTree 或玩家统计。",
             "重置",
             "取消");
     }
@@ -3205,11 +3231,24 @@ public partial class SystemPanelController : CanvasLayer
 #if DEBUG
     private void OnResetConfirmed()
     {
-        if (_resetPlayerProgressPending)
+        if (_resetConfirmation == DebugResetConfirmation.PlayerProgress)
         {
-            _resetPlayerProgressPending = false;
+            _resetConfirmation = DebugResetConfirmation.Save;
             _gameData.ResetPlayerProgress();
             RefreshGlobalInputChipsEarnedLabel();
+            RefreshDebugPlayTime();
+            return;
+        }
+
+        if (_resetConfirmation == DebugResetConfirmation.DemoExperience)
+        {
+            _resetConfirmation = DebugResetConfirmation.Save;
+            EmitSignal(SignalName.DebugDemoExperienceResetRequested);
+            _wardrobeBuilt = false;
+            if (_wardrobeContent.Visible)
+                BuildWardrobe();
+            RefreshBlindBoxLocalTestControls();
+            RefreshBlindBoxDebugStatus();
             RefreshDebugPlayTime();
             return;
         }
@@ -3281,7 +3320,9 @@ public partial class SystemPanelController : CanvasLayer
         BuildLanguageOptions();
         BuildDisplayOptions();
 #if DEBUG
-        _saveDataModeOption.Select((int)SettingsManager.LoadSaveDataMode());
+        _saveDataModeOption.Select(BuildInfo.IsDebugDemo
+            ? (int)SettingsManager.SaveDataMode.LocalSave
+            : (int)SettingsManager.LoadSaveDataMode());
         _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
 #endif

@@ -120,6 +120,7 @@ public partial class ModeManager : Control
     private SteamMockPanelController _steamMockPanel = null!;
     private IDebugSteamMockController _steamMockController = null!;
     private DeveloperLauncherController _developerLauncher = null!;
+    private DebugGameplayChannel _debugGameplayChannel = DebugGameplayChannel.Standard;
     private bool _steamMockPanelRequestedVisible;
     private bool _lastSteamMockActive;
 #endif
@@ -304,11 +305,12 @@ public partial class ModeManager : Control
         GD.Print("[Startup] Developer launcher is waiting for a runtime environment selection.");
     }
 
-    private void OnDeveloperLaunchRequested(int environment, int scenario)
+    private void OnDeveloperLaunchRequested(int environment, int scenario, int gameplayChannel)
     {
         var selection = new DebugLaunchSelection(
             (DebugRuntimeEnvironment)environment,
-            (DebugSteamScenario)scenario);
+            (DebugSteamScenario)scenario,
+            (DebugGameplayChannel)gameplayChannel);
         _developerLauncher.LaunchRequested -= OnDeveloperLaunchRequested;
         _developerLauncher.LayoutChanged -= OnDeveloperLauncherLayoutChanged;
         _developerLauncher.QueueFree();
@@ -340,6 +342,14 @@ public partial class ModeManager : Control
 
     private void ContinueStartup(DebugLaunchSelection selection)
     {
+        _debugGameplayChannel = selection.GameplayChannel;
+        BuildInfo.ConfigureDebugGameplayChannel(selection.GameplayChannel);
+        BlindBoxService.ConfigureDebugScheduleChannel(selection.GameplayChannel);
+        GD.Print(
+            $"[DebugCapabilities] GameplayChannel={selection.GameplayChannel}, " +
+            $"SteamInventory={BuildCapabilities.SteamInventory}, " +
+            $"PlatformStatistics={BuildCapabilities.PlatformStatistics}, " +
+            $"Achievements={BuildCapabilities.Achievements}, SteamCloud={BuildCapabilities.SteamCloud}");
         _platformService = GamePlatformServiceFactory.Create(selection);
         StartAccountAwareStartup(selection.Environment == DebugRuntimeEnvironment.SteamMock);
     }
@@ -376,17 +386,18 @@ public partial class ModeManager : Control
     {
 #if DEBUG
         if (!startInSteamMock
-            && string.Equals(storageContext.Provider, "steam", StringComparison.Ordinal))
+            && string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal))
         {
-            var access = DeveloperSteamAccountAllowlist.Check(storageContext.AccountId);
+            var steamAccountId = _platformService.AccountId;
+            var access = DeveloperSteamAccountAllowlist.Check(steamAccountId);
             if (!access.Allowed)
             {
-                ShowDeveloperAccountDenied(storageContext, access);
+                ShowDeveloperAccountDenied(steamAccountId, access);
                 return;
             }
 
             GD.Print(
-                $"[DeveloperAccountAllowlist] Authorized SteamID64={storageContext.AccountId}, Note={access.Note}");
+                $"[DeveloperAccountAllowlist] Authorized SteamID64={steamAccountId}, Note={access.Note}");
         }
 #endif
         CompleteStartup(startInSteamMock, storageContext);
@@ -508,6 +519,7 @@ public partial class ModeManager : Control
         _settingsPanel.DogReactionRequested += OnDogReactionRequested;
         _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
         _settingsPanel.SteamMockPanelVisibilityChanged += OnSteamMockPanelVisibilityChanged;
+        _settingsPanel.DebugDemoExperienceResetRequested += OnDebugDemoExperienceResetRequested;
         _steamMockPanelRequestedVisible = startInSteamMock;
         _settingsPanel.SetSteamMockPanelToggle(_steamMockPanelRequestedVisible);
 #endif
@@ -627,6 +639,15 @@ public partial class ModeManager : Control
 
         try
         {
+#if DEBUG
+            if (_debugGameplayChannel == DebugGameplayChannel.Demo)
+            {
+                storageContext = AccountStorageContext.ForDemoDebug(
+                    _platformService.AccountProvider,
+                    _platformService.AccountId);
+                return true;
+            }
+#endif
             storageContext = string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal)
                 ? AccountStorageContext.ForSteam(_platformService.AccountId)
                 : (BuildInfo.IsDevelopment || OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
@@ -678,7 +699,7 @@ public partial class ModeManager : Control
 
 #if DEBUG
     private void ShowDeveloperAccountDenied(
-        AccountStorageContext storageContext,
+        string steamAccountId,
         DeveloperSteamAccountAccessResult access)
     {
         var persona = string.IsNullOrWhiteSpace(_platformService.PersonaName)
@@ -686,19 +707,19 @@ public partial class ModeManager : Control
             : _platformService.PersonaName;
         var message = access.ConfigurationValid
             ? $"当前 Steam 帐号未获准用于编辑器开发版本。\n\n" +
-              $"帐号昵称：{persona}\nSteamID64：{storageContext.AccountId}\n\n" +
+              $"帐号昵称：{persona}\nSteamID64：{steamAccountId}\n\n" +
               $"如果这是获准的开发帐号，请将该 SteamID64 添加到 Build/Developer/steam-account-allowlist.json。\n" +
               $"本次启动未读取或修改玩家存档。"
             : $"开发用 Steam 帐号白名单配置无效。\n\n" +
               $"{access.ErrorMessage}\n\n" +
-              $"帐号昵称：{persona}\nSteamID64：{storageContext.AccountId}\n\n" +
+              $"帐号昵称：{persona}\nSteamID64：{steamAccountId}\n\n" +
               $"本次启动未读取或修改玩家存档。";
 
-        GD.PushWarning($"[DeveloperAccountAllowlist] Access denied. Persona={persona}, SteamID64={storageContext.AccountId}, ConfigurationValid={access.ConfigurationValid}, Error={access.ErrorMessage}");
+        GD.PushWarning($"[DeveloperAccountAllowlist] Access denied. Persona={persona}, SteamID64={steamAccountId}, ConfigurationValid={access.ConfigurationValid}, Error={access.ErrorMessage}");
         DiagnosticLog.Record("developer_steam_account_access_denied", new Dictionary<string, object>
         {
             ["persona"] = persona,
-            ["steamId64"] = storageContext.AccountId,
+            ["steamId64"] = steamAccountId,
             ["configurationValid"] = access.ConfigurationValid,
             ["configurationError"] = access.ErrorMessage,
         });
@@ -2165,6 +2186,25 @@ public partial class ModeManager : Control
     private void OnDebugGrantLuckyDeals()
     {
         _gameData.GrantLuckyDealBuff(10, 0.75f);
+    }
+
+    private void OnDebugDemoExperienceResetRequested()
+    {
+        if (!BuildInfo.IsDebugDemo)
+        {
+            GD.PushWarning("[DemoDebug] Ignored Demo experience reset outside the Demo debug channel.");
+            return;
+        }
+
+        CancelBlindBoxOpeningUi();
+        _gameManager?.HidePendingBlindBoxReward();
+        _bossBlindBoxOverlay?.HideOverlay();
+        if (!_gameData.ResetDemoExperienceForDebug())
+            return;
+
+        RefreshBossBlindBoxHint();
+        _infoPanel?.RefreshBlindBoxButton();
+        GD.Print("[DemoDebug] Demo experience reset completed.");
     }
 #endif
 

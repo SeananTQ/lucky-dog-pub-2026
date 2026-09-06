@@ -24,6 +24,7 @@ internal static class BlindBoxRegressionSmoke
             GD.Print("[BlindBoxRegressionSmoke] Passed retired eyewear save cleanup checks.");
             VerifySequenceProgressMigrationAndOrdering(service);
             VerifyDemoScheduleAndNonRepeatingPools(service);
+            VerifyDeveloperLauncherGameplayChannel();
             VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
             VerifySaveSnapshotIsolation();
@@ -33,6 +34,35 @@ internal static class BlindBoxRegressionSmoke
         {
             gameData.Free();
         }
+    }
+
+    private static void VerifyDeveloperLauncherGameplayChannel()
+    {
+        BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Demo);
+        BlindBoxService.ConfigureDebugScheduleChannel(DebugGameplayChannel.Demo);
+        try
+        {
+            var schedules = BlindBoxService.GetSequenceSchedules();
+            Assert(schedules.Count == 16 && schedules[0].Id == 3001,
+                "The developer launcher Demo selection did not activate the Demo schedule chain.");
+            Assert(BuildInfo.IsDebugDemo
+                   && !BuildCapabilities.SteamInventory
+                   && !BuildCapabilities.SteamCloud
+                   && !BuildCapabilities.PlatformStatistics
+                   && !BuildCapabilities.Achievements,
+                "The developer launcher Demo selection did not activate the isolated capability profile.");
+            var demoStorage = AccountStorageContext.ForDemoDebug("steam", "76561198000000000");
+            Assert(demoStorage.RootPath == "user://accounts/demo-debug/steam-76561198000000000",
+                "The Demo debug channel did not create an isolated account storage namespace.");
+        }
+        finally
+        {
+            BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Standard);
+            BlindBoxService.ConfigureDebugScheduleChannel(DebugGameplayChannel.Standard);
+        }
+
+        Assert(BlindBoxService.GetSequenceSchedules()[0].Id == FirstScheduleId,
+            "Restoring the developer launcher default did not reactivate the production schedule chain.");
     }
 
     private static void VerifyDemoScheduleAndNonRepeatingPools(BlindBoxService service)

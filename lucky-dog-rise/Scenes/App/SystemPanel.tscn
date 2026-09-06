@@ -1108,6 +1108,14 @@ visible = false
 custom_minimum_size = Vector2(0, 450)
 layout_mode = 2
 
+[node name="ResetDemoExperienceBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
+theme_override_font_sizes/font_size = 14
+text = "重置 Demo 试玩流程"
+tooltip_text = "只复位当前隔离 Demo 调试存档中的试玩流程；不重置系统设置、LinkTree 或玩家统计。"
+
 [node name="BlindBoxLocalTestModeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 layout_mode = 2
 

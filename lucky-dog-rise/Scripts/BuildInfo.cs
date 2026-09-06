@@ -39,6 +39,18 @@ public static class BuildInfo
     }
 
 #if DEBUG
+    public static DebugGameplayChannel SelectedDebugGameplayChannel { get; private set; } =
+        DebugGameplayChannel.Standard;
+    public static bool IsDebugDemo => SelectedDebugGameplayChannel == DebugGameplayChannel.Demo;
+
+    public static void ConfigureDebugGameplayChannel(DebugGameplayChannel channel)
+    {
+        SelectedDebugGameplayChannel = channel;
+        GD.Print($"[Build] Debug gameplay channel: {channel}.");
+    }
+#endif
+
+#if DEBUG
     public const bool IsDevelopment = true;
 #else
     public const bool IsDevelopment = false;
@@ -162,12 +174,37 @@ public static class BuildInfo
 
 public static class BuildCapabilities
 {
-    private static bool IsReviewDemo => BuildInfo.Channel == BuildChannel.Demo;
+    private static bool IsPackagedDemo => BuildInfo.Channel == BuildChannel.Demo;
+    private static bool IsDemoRuntime
+    {
+        get
+        {
+#if DEBUG
+            if (BuildInfo.IsDebugDemo)
+                return true;
+#endif
+            return IsPackagedDemo;
+        }
+    }
 
     public static bool BlindBoxes => true;
-    public static bool LinkTree => !IsReviewDemo;
-    public static bool SteamInventory => !IsReviewDemo;
-    public static bool PlatformStatistics => !IsReviewDemo;
-    public static bool Achievements => !IsReviewDemo;
-    public static bool SteamCloud => true;
+    // LinkTree remains outside the current Demo-debug work. The packaged review
+    // Demo keeps its existing closed state; Debug Demo leaves the page untouched.
+    public static bool LinkTree => !IsPackagedDemo;
+    public static bool SteamInventory => !IsDemoRuntime;
+    public static bool PlatformStatistics => !IsDemoRuntime;
+    public static bool Achievements => !IsDemoRuntime;
+    public static bool SteamCloud
+    {
+        get
+        {
+#if DEBUG
+            // The editor is connected through the local Playtest AppID. Never let
+            // a Demo simulation read or write that app's Cloud namespace.
+            if (BuildInfo.IsDebugDemo)
+                return false;
+#endif
+            return true;
+        }
+    }
 }

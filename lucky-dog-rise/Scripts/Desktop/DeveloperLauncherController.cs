@@ -10,17 +10,25 @@ public enum DebugRuntimeEnvironment
     SteamMock,
 }
 
+public enum DebugGameplayChannel
+{
+    Standard,
+    Demo,
+}
+
 public readonly record struct DebugLaunchSelection(
     DebugRuntimeEnvironment Environment,
-    DebugSteamScenario SteamScenario);
+    DebugSteamScenario SteamScenario,
+    DebugGameplayChannel GameplayChannel = DebugGameplayChannel.Standard);
 
 public partial class DeveloperLauncherController : CanvasLayer
 {
     [Signal]
-    public delegate void LaunchRequestedEventHandler(int environment, int scenario);
+    public delegate void LaunchRequestedEventHandler(int environment, int scenario, int gameplayChannel);
     public event Action LayoutChanged = null!;
 
     [Export] private OptionButton _environmentOption = null!;
+    [Export] private OptionButton _gameplayChannelOption = null!;
     [Export] private VBoxContainer _mockScenarioSection = null!;
     [Export] private OptionButton _scenarioOption = null!;
     [Export] private Label _environmentHint = null!;
@@ -31,6 +39,13 @@ public partial class DeveloperLauncherController : CanvasLayer
     {
         _environmentOption.AddItem("综合调试环境", (int)DebugRuntimeEnvironment.IntegratedDebug);
         _environmentOption.AddItem("Steam 模拟环境", (int)DebugRuntimeEnvironment.SteamMock);
+
+        _gameplayChannelOption.AddItem(
+            "常规 Debug / Playtest",
+            (int)DebugGameplayChannel.Standard);
+        _gameplayChannelOption.AddItem(
+            "Demo 调试渠道（独立存档）",
+            (int)DebugGameplayChannel.Demo);
 
         _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
         _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
@@ -43,6 +58,7 @@ public partial class DeveloperLauncherController : CanvasLayer
         _scenarioOption.AddItem("断联后恢复：断线 10 秒，复查 10 秒后成功", (int)DebugSteamScenario.DisconnectRecoverSuccess);
 
         _environmentOption.ItemSelected += _ => RefreshEnvironmentControls();
+        _gameplayChannelOption.ItemSelected += _ => RefreshEnvironmentControls();
         _launchButton.Pressed += OnLaunchPressed;
         _quitButton.Pressed += () => GetTree().Quit();
         RefreshEnvironmentControls();
@@ -51,8 +67,14 @@ public partial class DeveloperLauncherController : CanvasLayer
     private void RefreshEnvironmentControls()
     {
         var environment = (DebugRuntimeEnvironment)_environmentOption.GetSelectedId();
+        var gameplayChannel = (DebugGameplayChannel)_gameplayChannelOption.GetSelectedId();
         _mockScenarioSection.Visible = environment == DebugRuntimeEnvironment.SteamMock;
-        _environmentHint.Text = environment == DebugRuntimeEnvironment.SteamMock
+        _environmentHint.Text = gameplayChannel == DebugGameplayChannel.Demo
+                                && environment == DebugRuntimeEnvironment.SteamMock
+            ? "Demo 调度将在 Steam Mock 独立内存沙箱中运行；退出进程即恢复，不写入任何真实存档或 Steam 服务。"
+            : gameplayChannel == DebugGameplayChannel.Demo
+            ? "Demo 调试渠道使用独立持久化存档，并关闭 Playtest 库存、Cloud、统计与成就连接；盲盒使用 3001–3016 调度。"
+            : environment == DebugRuntimeEnvironment.SteamMock
             ? "Steam 模拟环境使用独立内存沙箱，不创建真实 Steam 会话，也不写入真实存档。"
             : "综合调试环境使用当前真实 Steam 与本地存档，并保留完整 Debug 工具。";
         CallDeferred(nameof(NotifyLayoutChanged));
@@ -70,11 +92,13 @@ public partial class DeveloperLauncherController : CanvasLayer
     {
         _launchButton.Disabled = true;
         _environmentOption.Disabled = true;
+        _gameplayChannelOption.Disabled = true;
         _scenarioOption.Disabled = true;
         EmitSignal(
             SignalName.LaunchRequested,
             _environmentOption.GetSelectedId(),
-            _scenarioOption.GetSelectedId());
+            _scenarioOption.GetSelectedId(),
+            _gameplayChannelOption.GetSelectedId());
     }
 }
 #endif

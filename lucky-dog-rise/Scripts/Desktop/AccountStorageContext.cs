@@ -50,6 +50,9 @@ public sealed class AccountStorageContext
     public static AccountStorageContext ForDevelopment(string name) =>
         new("dev", name);
 
+    public static AccountStorageContext ForDemoDebug(string platformProvider, string accountId) =>
+        new("demo-debug", $"{NormalizeComponent(platformProvider, nameof(platformProvider))}-{NormalizeComponent(accountId, nameof(accountId))}");
+
     public bool Owns(string? provider, string? accountId) =>
         string.Equals(Provider, provider, StringComparison.Ordinal)
         && string.Equals(AccountId, accountId, StringComparison.Ordinal);

@@ -205,7 +205,7 @@ public partial class GameData : Node
         ValidateRefreshmentConfigs();
         _blindBoxService = new BlindBoxService(this);
 #if DEBUG
-        _saveDataMode = StartInSteamMockSimulation
+        _saveDataMode = BuildInfo.IsDebugDemo || StartInSteamMockSimulation
             ? SettingsManager.SaveDataMode.LocalSave
             : SettingsManager.LoadSaveDataMode();
 #else
@@ -2893,7 +2893,11 @@ public partial class GameData : Node
 #if !DEBUG
         mode = SettingsManager.SaveDataMode.LocalSave;
 #else
-        if (_steamMockSimulationActive)
+        if (BuildInfo.IsDebugDemo)
+        {
+            mode = SettingsManager.SaveDataMode.LocalSave;
+        }
+        else if (_steamMockSimulationActive)
         {
             GD.PushWarning("[Steam Mock] Inventory source cannot change while the Mock sandbox is active.");
             return;
@@ -2976,6 +2980,59 @@ public partial class GameData : Node
             EmitSignal(SignalName.RefreshmentStateChanged);
             TryAutoRestoreFirstAvailableOutfitPreset();
         }
+    }
+
+    public bool ResetDemoExperienceForDebug()
+    {
+        if (!BuildInfo.IsDebugDemo || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
+        {
+            GD.PushWarning("[DemoDebug] Demo experience reset requires the isolated Demo debug channel and local-save mode.");
+            return false;
+        }
+
+        EndBlindBoxLocalTestMode(force: true, synchronizeInventory: false);
+        ResetPlaytimeDropTransientState();
+        var defaults = SaveManager.CreateDefaultProfile();
+
+        Chips = defaults.Chips;
+        PendingBlindBoxReward = null;
+        _blindBoxRuntimeState = new BlindBoxRuntimeState();
+        _pendingBlindBoxCompletionReceiptItemDefId = 0;
+        _observedPlatformSequenceProgressCheckpoint = 0;
+        _observedPlatformSequenceProgressSource = string.Empty;
+        _recoveredItemCounts.Clear();
+        _expectedPlatformItemIncreaseCounts.Clear();
+        _luckyDealBuffState = new LuckyDealBuffState();
+        _refreshmentRuntimeState = new RefreshmentRuntimeState();
+        Inventory.LoadState(
+            defaults.OwnedItemCounts,
+            defaults.EquippedItemIdsByType,
+            defaults.NewItemIds,
+            emitChanged: false);
+        EnsureDefaultTableRefreshment();
+        NeedsPokerBasicsGuidance = true;
+        SettingsManager.SavePokerGuideOverlayEnabled(true);
+        _pendingFreshSaveOutfitPresetRestore = false;
+
+        EmitSignal(SignalName.ChipsChanged, Chips);
+        EmitSignal(SignalName.EquipmentChanged);
+        EmitSignal(SignalName.InventoryChanged);
+        EmitSignal(SignalName.BlindBoxStateChanged);
+        EmitSignal(SignalName.RefreshmentStateChanged);
+        EmitSignal(SignalName.RecoveredItemsChanged);
+        EmitSignal(SignalName.PokerBasicsGuidanceChanged, true);
+
+        _saveDirty = true;
+        _saveTimer = 0.0;
+        FlushSave();
+        DiagnosticLog.Record("demo_debug_experience_reset", new Dictionary<string, object>
+        {
+            ["storage"] = _storageContext.ToString(),
+            ["chips"] = Chips,
+            ["initialItemCount"] = Inventory.GetOwnedItemCounts().Count,
+            ["totalPlaySecondsPreserved"] = TotalPlaySeconds,
+        });
+        return true;
     }
 #endif
 
@@ -3099,7 +3156,8 @@ public partial class GameData : Node
         get
         {
 #if DEBUG
-            return _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
+            return !BuildInfo.IsDebugDemo
+                   && _saveDataMode == SettingsManager.SaveDataMode.LocalSave;
 #else
             return true;
 #endif
