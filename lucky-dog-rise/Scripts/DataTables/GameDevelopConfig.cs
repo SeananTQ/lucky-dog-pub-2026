@@ -20,6 +20,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         { if(!_buf["BlindBoxCostScale"].IsNumber) { throw new SerializationException(); }  BlindBoxCostScale = _buf["BlindBoxCostScale"]; }
         { if(!_buf["PlayerStatisticScale"].IsNumber) { throw new SerializationException(); }  PlayerStatisticScale = _buf["PlayerStatisticScale"]; }
         { if(!_buf["LinkTreeVisibleBannerCount"].IsNumber) { throw new SerializationException(); }  LinkTreeVisibleBannerCount = _buf["LinkTreeVisibleBannerCount"]; }
+        { if(!_buf["WishlistCallToActionUrl"].IsString) { throw new SerializationException(); }  WishlistCallToActionUrl = _buf["WishlistCallToActionUrl"]; }
+        { if(!_buf["WishlistCallToActionDialogCooldownSeconds"].IsNumber) { throw new SerializationException(); }  WishlistCallToActionDialogCooldownSeconds = _buf["WishlistCallToActionDialogCooldownSeconds"]; }
     }
 
     public static GameDevelopConfig DeserializeGameDevelopConfig(JSONNode _buf)
@@ -39,6 +41,14 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
     /// LinkTree最佳显示条目数量
     /// </summary>
     public readonly int LinkTreeVisibleBannerCount;
+    /// <summary>
+    /// 跳转愿望单的链接
+    /// </summary>
+    public readonly string WishlistCallToActionUrl;
+    /// <summary>
+    /// 愿望单对话框冷却时间
+    /// </summary>
+    public readonly int WishlistCallToActionDialogCooldownSeconds;
    
     public const int __ID__ = -780791539;
     public override int GetTypeId() => __ID__;
@@ -53,6 +63,8 @@ public sealed partial class GameDevelopConfig : Luban.BeanBase
         + "BlindBoxCostScale:" + BlindBoxCostScale + ","
         + "PlayerStatisticScale:" + PlayerStatisticScale + ","
         + "LinkTreeVisibleBannerCount:" + LinkTreeVisibleBannerCount + ","
+        + "WishlistCallToActionUrl:" + WishlistCallToActionUrl + ","
+        + "WishlistCallToActionDialogCooldownSeconds:" + WishlistCallToActionDialogCooldownSeconds + ","
         + "}";
     }
 }
