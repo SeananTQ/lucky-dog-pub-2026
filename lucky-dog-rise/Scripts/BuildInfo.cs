@@ -188,6 +188,7 @@ public static class BuildCapabilities
     }
 
     public static bool BlindBoxes => true;
+    public static bool CollectionEvents => IsDemoRuntime;
     // LinkTree remains outside the current Demo-debug work. The packaged review
     // Demo keeps its existing closed state; Debug Demo leaves the page untouched.
     public static bool LinkTree => !IsPackagedDemo;

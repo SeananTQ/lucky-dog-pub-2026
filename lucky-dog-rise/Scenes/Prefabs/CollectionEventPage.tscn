@@ -1,0 +1,91 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/CollectionEventPageController.cs" id="1_controller"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventRewardCell.tscn" id="2_reward_cell"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_victory_placeholder"]
+bg_color = Color(0.94902, 0.886275, 0.729412, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid")]
+custom_minimum_size = Vector2(0, 500)
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+script = ExtResource("1_controller")
+_grandPrizeLeft = NodePath("GrandPrizeStage/GrandPrizeLeft")
+_grandPrizeCenter = NodePath("GrandPrizeStage/GrandPrizeCenter")
+_grandPrizeRight = NodePath("GrandPrizeStage/GrandPrizeRight")
+_collectionGrid = NodePath("CollectionGrid")
+
+[node name="TopGap" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PromotionSlotAbove" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GrandPrizeStage" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="GrandPrizeLeft" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+custom_minimum_size = Vector2(90, 90)
+layout_mode = 0
+offset_left = 22.0
+offset_top = 22.0
+offset_right = 112.0
+offset_bottom = 112.0
+
+[node name="GrandPrizeCenter" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+custom_minimum_size = Vector2(104, 104)
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -52.0
+offset_right = 52.0
+offset_bottom = 104.0
+grow_horizontal = 2
+
+[node name="GrandPrizeRight" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+custom_minimum_size = Vector2(90, 90)
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -112.0
+offset_top = 22.0
+offset_right = -22.0
+offset_bottom = 112.0
+grow_horizontal = 0
+
+[node name="CollectionGrid" type="GridContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 6
+
+[node name="VictoryRewardPlaceholder" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_victory_placeholder")
+
+[node name="PlaceholderLabel" type="Label" parent="VictoryRewardPlaceholder"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.333333, 0.282353, 0.2, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "胜利香槟奖励区域（占位）"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PromotionSlotBelow" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3

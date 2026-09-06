@@ -224,7 +224,7 @@ public partial class ModeManager : Control
 
         GD.Print(
             $"[BuildCapabilities] Channel={BuildInfo.Channel}, BlindBoxes={BuildCapabilities.BlindBoxes}, " +
-            $"LinkTree={BuildCapabilities.LinkTree}, SteamInventory={BuildCapabilities.SteamInventory}, " +
+            $"CollectionEvents={BuildCapabilities.CollectionEvents}, LinkTree={BuildCapabilities.LinkTree}, SteamInventory={BuildCapabilities.SteamInventory}, " +
             $"PlatformStatistics={BuildCapabilities.PlatformStatistics}, Achievements={BuildCapabilities.Achievements}, " +
             $"SteamCloud={BuildCapabilities.SteamCloud}");
 
@@ -347,7 +347,7 @@ public partial class ModeManager : Control
         BlindBoxService.ConfigureDebugScheduleChannel(selection.GameplayChannel);
         GD.Print(
             $"[DebugCapabilities] GameplayChannel={selection.GameplayChannel}, " +
-            $"SteamInventory={BuildCapabilities.SteamInventory}, " +
+            $"CollectionEvents={BuildCapabilities.CollectionEvents}, SteamInventory={BuildCapabilities.SteamInventory}, " +
             $"PlatformStatistics={BuildCapabilities.PlatformStatistics}, " +
             $"Achievements={BuildCapabilities.Achievements}, SteamCloud={BuildCapabilities.SteamCloud}");
         _platformService = GamePlatformServiceFactory.Create(selection);

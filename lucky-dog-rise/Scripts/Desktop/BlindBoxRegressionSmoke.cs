@@ -46,6 +46,7 @@ internal static class BlindBoxRegressionSmoke
             Assert(schedules.Count == 16 && schedules[0].Id == 3001,
                 "The developer launcher Demo selection did not activate the Demo schedule chain.");
             Assert(BuildInfo.IsDebugDemo
+                   && BuildCapabilities.CollectionEvents
                    && !BuildCapabilities.SteamInventory
                    && !BuildCapabilities.SteamCloud
                    && !BuildCapabilities.PlatformStatistics
@@ -335,7 +336,14 @@ internal static class BlindBoxRegressionSmoke
                 [2002] = [2003, 2009],
             },
         };
-        var liveProfile = new SaveProfile { BlindBoxRuntimeState = liveState };
+        var liveProfile = new SaveProfile
+        {
+            BlindBoxRuntimeState = liveState,
+            CollectionEventRevealedItemIdsByEvent = new Dictionary<string, List<int>>
+            {
+                ["event-smoke"] = [2009, 2009, -1],
+            },
+        };
 
         var normalizedSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(liveProfile);
         Assert(!ReferenceEquals(liveProfile, normalizedSnapshot),
@@ -360,13 +368,19 @@ internal static class BlindBoxRegressionSmoke
         Assert(normalizedSnapshot.BlindBoxRuntimeState.DrawnItemIdsByBlindBoxId?
                    .GetValueOrDefault(2002)?.SequenceEqual([2003, 2009]) == true,
             "Save normalization discarded valid per-box Demo draw history.");
+        Assert(normalizedSnapshot.CollectionEventRevealedItemIdsByEvent?
+                   .GetValueOrDefault("event-smoke")?.SequenceEqual([2009]) == true,
+            "Save normalization did not preserve the independent collection-event reveal history.");
 
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
         normalizedSnapshot.BlindBoxRuntimeState.DrawnItemIdsByBlindBoxId![2002].Add(2013);
+        normalizedSnapshot.CollectionEventRevealedItemIdsByEvent!["event-smoke"].Add(2013);
         Assert(liveState.LockedPresentation != null,
             "Mutating the persistence snapshot changed the live locked presentation.");
         Assert(liveState.DrawnItemIdsByBlindBoxId[2002].SequenceEqual([2003, 2009]),
             "Mutating the persistence snapshot changed the live per-box draw history.");
+        Assert(liveProfile.CollectionEventRevealedItemIdsByEvent["event-smoke"].SequenceEqual([2009, 2009, -1]),
+            "Mutating the collection-event persistence snapshot changed the live reveal history.");
 
         var preparedProfile = new SaveProfile
         {

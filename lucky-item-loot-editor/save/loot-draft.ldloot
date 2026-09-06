@@ -1,11 +1,11 @@
 {
   "Version": 1,
-  "SavedAt": "2026-09-06T01:37:49.9405838+08:00",
+  "SavedAt": "2026-09-06T22:39:56.545984+08:00",
   "SourceItemPath": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\luban-excels\\output-data\\tbitem.json",
-  "SourceItemSha256": "16CB4E5C0E7A7C3DF9743C655F4881AD8BE9BF36D01C2DAEB1929C0288119A1D",
+  "SourceItemSha256": "1934B29CAAAC9BE537CCBDFB37D013033BA9D8667EA17EDEB7A642C8E532D8AE",
   "SourceItemWeightPath": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\luban-excels\\output-data\\tbblindboxitemweight.json",
-  "SourceItemWeightSha256": "E4776269D8E1C85A5AAFC56B3C10454022E8DB88CEEA3D0BA51586CF8F89EC25",
-  "SelectedBlindBoxId": 2001,
+  "SourceItemWeightSha256": "CDCDAE8BB1EEEA837B7EA054A9F85224D8285B654B5368175AA225DD58DC90C6",
+  "SelectedBlindBoxId": 1001,
   "Items": [
     {
       "ItemId": 1001,
@@ -1989,18 +1989,116 @@
       "IsEnabled": true
     },
     {
-      "Id": 20021001,
+      "Id": 20022003,
       "BlindBoxId": 2002,
-      "ItemId": 0,
-      "Weight": 0,
-      "IsEnabled": false
+      "ItemId": 2003,
+      "Weight": 100,
+      "IsEnabled": true
     },
     {
-      "Id": 20031001,
+      "Id": 20022009,
+      "BlindBoxId": 2002,
+      "ItemId": 2009,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20022013,
+      "BlindBoxId": 2002,
+      "ItemId": 2013,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20022022,
+      "BlindBoxId": 2002,
+      "ItemId": 2022,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20022029,
+      "BlindBoxId": 2002,
+      "ItemId": 2029,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20022032,
+      "BlindBoxId": 2002,
+      "ItemId": 2032,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20025004,
+      "BlindBoxId": 2002,
+      "ItemId": 5004,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20026006,
+      "BlindBoxId": 2002,
+      "ItemId": 6006,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20026008,
+      "BlindBoxId": 2002,
+      "ItemId": 6008,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20027008,
+      "BlindBoxId": 2002,
+      "ItemId": 7008,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20027016,
+      "BlindBoxId": 2002,
+      "ItemId": 7016,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20028005,
+      "BlindBoxId": 2002,
+      "ItemId": 8005,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20028012,
+      "BlindBoxId": 2002,
+      "ItemId": 8012,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20031008,
       "BlindBoxId": 2003,
-      "ItemId": 0,
-      "Weight": 0,
-      "IsEnabled": false
+      "ItemId": 1008,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20031010,
+      "BlindBoxId": 2003,
+      "ItemId": 1010,
+      "Weight": 100,
+      "IsEnabled": true
+    },
+    {
+      "Id": 20031012,
+      "BlindBoxId": 2003,
+      "ItemId": 1012,
+      "Weight": 100,
+      "IsEnabled": true
     },
     {
       "Id": 30011001,
@@ -2679,125 +2777,6 @@
       "BlindBoxId": 4001,
       "ItemId": 12002,
       "Weight": 300,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011094,
-      "BlindBoxId": 2003,
-      "ItemId": 1012,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011095,
-      "BlindBoxId": 2003,
-      "ItemId": 1008,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011096,
-      "BlindBoxId": 2003,
-      "ItemId": 1010,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011097,
-      "BlindBoxId": 2002,
-      "ItemId": 2003,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011098,
-      "BlindBoxId": 2002,
-      "ItemId": 2009,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011099,
-      "BlindBoxId": 2002,
-      "ItemId": 2013,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011100,
-      "BlindBoxId": 2002,
-      "ItemId": 2022,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011101,
-      "BlindBoxId": 2002,
-      "ItemId": 2027,
-      "Weight": 0,
-      "IsEnabled": false
-    },
-    {
-      "Id": 40011102,
-      "BlindBoxId": 2002,
-      "ItemId": 2029,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011103,
-      "BlindBoxId": 2002,
-      "ItemId": 2032,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011104,
-      "BlindBoxId": 2002,
-      "ItemId": 5004,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011105,
-      "BlindBoxId": 2002,
-      "ItemId": 6006,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011106,
-      "BlindBoxId": 2002,
-      "ItemId": 7016,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011107,
-      "BlindBoxId": 2002,
-      "ItemId": 8005,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011108,
-      "BlindBoxId": 2002,
-      "ItemId": 6008,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011109,
-      "BlindBoxId": 2002,
-      "ItemId": 7008,
-      "Weight": 100,
-      "IsEnabled": true
-    },
-    {
-      "Id": 40011110,
-      "BlindBoxId": 2002,
-      "ItemId": 9002,
-      "Weight": 100,
       "IsEnabled": true
     }
   ]

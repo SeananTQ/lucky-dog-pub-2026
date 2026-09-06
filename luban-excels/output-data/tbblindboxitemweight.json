@@ -2114,13 +2114,6 @@
     "IsEnabled": true
   },
   {
-    "Id": 20027016,
-    "BlindBoxId": 2002,
-    "ItemId": 7016,
-    "Weight": 100,
-    "IsEnabled": true
-  },
-  {
     "Id": 20028005,
     "BlindBoxId": 2002,
     "ItemId": 8005,

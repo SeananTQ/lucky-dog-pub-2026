@@ -24,6 +24,7 @@ public partial class GameData : Node
     [Signal] public delegate void InventoryChangedEventHandler();
     [Signal] public delegate void RecoveredItemsChangedEventHandler();
     [Signal] public delegate void OutfitPresetsChangedEventHandler();
+    [Signal] public delegate void CollectionEventStateChangedEventHandler(string eventId);
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
     [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
@@ -61,6 +62,8 @@ public partial class GameData : Node
     private RefreshmentRuntimeState _refreshmentRuntimeState = new();
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
+    private readonly Dictionary<string, HashSet<int>> _collectionEventRevealedItemIdsByEvent =
+        new(StringComparer.Ordinal);
     private Dictionary<int, int> _recoveredItemCounts = new();
     private Dictionary<int, int> _expectedPlatformItemIncreaseCounts = new();
     public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
@@ -2879,10 +2882,12 @@ public partial class GameData : Node
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
+        _collectionEventRevealedItemIdsByEvent.Clear();
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
+        EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
         EmitSignal(SignalName.RecoveredItemsChanged);
         QueueSaveIfUsingLocalSave();
     }
@@ -2928,6 +2933,7 @@ public partial class GameData : Node
         }
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.EquipmentChanged);
+        EmitSignal(SignalName.InventoryChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
         EmitSignal(SignalName.RecoveredItemsChanged);
         if (mode == SettingsManager.SaveDataMode.LocalSave)
@@ -2971,11 +2977,13 @@ public partial class GameData : Node
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
             LoadRecoveredItemsState(profile);
+            LoadCollectionEventState(profile);
             _loadedExistingLocalSave = false;
             _pendingFreshSaveOutfitPresetRestore = true;
             PrepareOrRecoverChipLedger();
             EmitSignal(SignalName.ChipsChanged, Chips);
             EmitSignal(SignalName.EquipmentChanged);
+            EmitSignal(SignalName.InventoryChanged);
             EmitSignal(SignalName.BlindBoxStateChanged);
             EmitSignal(SignalName.RefreshmentStateChanged);
             TryAutoRestoreFirstAvailableOutfitPreset();
@@ -3004,6 +3012,7 @@ public partial class GameData : Node
         _expectedPlatformItemIncreaseCounts.Clear();
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
+        _collectionEventRevealedItemIdsByEvent.Clear();
         Inventory.LoadState(
             defaults.OwnedItemCounts,
             defaults.EquippedItemIdsByType,
@@ -3020,6 +3029,7 @@ public partial class GameData : Node
         EmitSignal(SignalName.BlindBoxStateChanged);
         EmitSignal(SignalName.RefreshmentStateChanged);
         EmitSignal(SignalName.RecoveredItemsChanged);
+        EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
         EmitSignal(SignalName.PokerBasicsGuidanceChanged, true);
 
         _saveDirty = true;
@@ -3052,6 +3062,7 @@ public partial class GameData : Node
         LoadRefreshmentState(profile);
         LoadPokerBasicsGuidanceState(profile);
         LoadRecoveredItemsState(profile);
+        LoadCollectionEventState(profile);
         QueueSaveIfUsingLocalSave();
 #else
         if (_saveDataMode == SettingsManager.SaveDataMode.LocalSave)
@@ -3068,6 +3079,7 @@ public partial class GameData : Node
             LoadRefreshmentState(profile);
             LoadPokerBasicsGuidanceState(profile);
             LoadRecoveredItemsState(profile);
+            LoadCollectionEventState(profile);
             QueueSaveIfUsingLocalSave();
             return;
         }
@@ -3086,6 +3098,7 @@ public partial class GameData : Node
         _blindBoxRuntimeState = new BlindBoxRuntimeState();
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
+        _collectionEventRevealedItemIdsByEvent.Clear();
         NeedsPokerBasicsGuidance = false;
         Inventory.ResetToDebugAllItems(emitChanged: false);
         EnsureDefaultTableRefreshment();
@@ -3114,6 +3127,42 @@ public partial class GameData : Node
         ClampRecoveredItemsToInventory();
         EmitSignal(SignalName.InventoryChanged);
         QueueSaveIfUsingLocalSave();
+    }
+
+    public IReadOnlySet<int> GetCollectionEventRevealedItemIds(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId)
+            || !_collectionEventRevealedItemIdsByEvent.TryGetValue(eventId, out var itemIds))
+            return new HashSet<int>();
+
+        return itemIds.ToHashSet();
+    }
+
+    public bool MarkCollectionEventItemsRevealed(string eventId, IEnumerable<int> itemIds)
+    {
+        if (string.IsNullOrWhiteSpace(eventId) || itemIds == null)
+            return false;
+#if DEBUG
+        if (_blindBoxLocalTestMode || _steamMockSimulationActive)
+            return false;
+#endif
+
+        var normalizedEventId = eventId.Trim();
+        if (!_collectionEventRevealedItemIdsByEvent.TryGetValue(normalizedEventId, out var revealedIds))
+        {
+            revealedIds = new HashSet<int>();
+            _collectionEventRevealedItemIdsByEvent[normalizedEventId] = revealedIds;
+        }
+
+        var changed = false;
+        foreach (var itemId in itemIds.Where(id => id > 0 && Inventory.Owns(id)))
+            changed |= revealedIds.Add(itemId);
+        if (!changed)
+            return false;
+
+        EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
     }
 
     private void ClampRecoveredItemsToInventory()
@@ -3194,6 +3243,15 @@ public partial class GameData : Node
                 ? null
                 : new Dictionary<int, int>(_expectedPlatformItemIncreaseCounts),
             AppliedLinkTreeRewardIds = _appliedLinkTreeRewardIds.OrderBy(id => id).ToList(),
+            CollectionEventRevealedItemIdsByEvent = _collectionEventRevealedItemIdsByEvent.Count == 0
+                ? null
+                : _collectionEventRevealedItemIdsByEvent
+                    .Where(pair => pair.Value.Count > 0)
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(
+                        pair => pair.Key,
+                        pair => pair.Value.OrderBy(id => id).ToList(),
+                        StringComparer.Ordinal),
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
@@ -3261,6 +3319,21 @@ public partial class GameData : Node
 
         if (_recoveredItemCounts.Count > 0)
             EmitSignal(SignalName.RecoveredItemsChanged);
+    }
+
+    private void LoadCollectionEventState(SaveProfile profile)
+    {
+        _collectionEventRevealedItemIdsByEvent.Clear();
+        foreach (var (eventId, itemIds) in profile.CollectionEventRevealedItemIdsByEvent
+                     ?? new Dictionary<string, List<int>>())
+        {
+            if (string.IsNullOrWhiteSpace(eventId) || itemIds == null)
+                continue;
+
+            _collectionEventRevealedItemIdsByEvent[eventId] = itemIds
+                .Where(id => id > 0)
+                .ToHashSet();
+        }
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

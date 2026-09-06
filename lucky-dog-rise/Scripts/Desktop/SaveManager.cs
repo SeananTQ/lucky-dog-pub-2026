@@ -34,6 +34,8 @@ public sealed class SaveProfile
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<int>? AppliedLinkTreeRewardIds { get; set; } = new();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, List<int>>? CollectionEventRevealedItemIdsByEvent { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
@@ -554,6 +556,23 @@ public static class SaveManager
         var validIds = LubanData.Tables.TbItem.DataList
             .Select(item => item.Id)
             .ToHashSet();
+        if (profile.CollectionEventRevealedItemIdsByEvent != null)
+        {
+            profile.CollectionEventRevealedItemIdsByEvent = profile.CollectionEventRevealedItemIdsByEvent
+                .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && pair.Value != null)
+                .Select(pair => new KeyValuePair<string, List<int>>(
+                    pair.Key.Trim(),
+                    pair.Value
+                        .Where(validIds.Contains)
+                        .Distinct()
+                        .OrderBy(id => id)
+                        .ToList()))
+                .Where(pair => pair.Value.Count > 0)
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            if (profile.CollectionEventRevealedItemIdsByEvent.Count == 0)
+                profile.CollectionEventRevealedItemIdsByEvent = null;
+        }
         var initialItemIds = LubanData.Tables.TbItem.DataList
             .Where(item => item.AcquisitionType == DataTables.EAcquisitionType.Initial)
             .Select(item => item.Id)

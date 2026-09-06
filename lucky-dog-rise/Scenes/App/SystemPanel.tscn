@@ -18,6 +18,7 @@
 [ext_resource type="LabelSettings" uid="uid://do7ayyq2nf5nh" path="res://Themes/Label_ValueText.tres" id="15_value_label"]
 [ext_resource type="LabelSettings" path="res://Themes/Label_ScaleValue.tres" id="16_scale_value"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/RecoveredItemsOverlay.tscn" id="17_recovered_items"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventPage.tscn" id="18_collection_event_page"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
@@ -79,6 +80,16 @@ icon_alignment = 1
 custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
 tooltip_text = "Settings_Tab_LinkTree"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("5_linktree")
+icon_alignment = 1
+
+[node name="CollectionEventTab" type="Button" parent="Panel/RootVBox/TitleRow"]
+visible = false
+custom_minimum_size = Vector2(68, 44)
+layout_mode = 2
+tooltip_text = "收集活动"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("5_linktree")
@@ -981,6 +992,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
+[node name="CollectionEventContent" parent="Panel/RootVBox/Scroll/ContentVBox" instance=ExtResource("18_collection_event_page")]
+visible = false
+layout_mode = 2
+
 [node name="LinkTreeTopGap" type="Control" parent="Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent" unique_id=1926647341]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
@@ -1070,6 +1085,14 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "重置系统设置"
 
+[node name="ResetDemoExperienceBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"DestructiveButton"
+theme_override_font_sizes/font_size = 14
+text = "重置 Demo 试玩流程"
+tooltip_text = "只复位当前隔离 Demo 调试存档中的试玩流程；不重置系统设置、LinkTree 或玩家统计。"
+
 [node name="PlayerProgressDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
@@ -1107,14 +1130,6 @@ text = "▶ BlindBox Debug"
 visible = false
 custom_minimum_size = Vector2(0, 450)
 layout_mode = 2
-
-[node name="ResetDemoExperienceBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
-visible = false
-layout_mode = 2
-theme_type_variation = &"DestructiveButton"
-theme_override_font_sizes/font_size = 14
-text = "重置 Demo 试玩流程"
-tooltip_text = "只复位当前隔离 Demo 调试存档中的试玩流程；不重置系统设置、LinkTree 或玩家统计。"
 
 [node name="BlindBoxLocalTestModeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent"]
 layout_mode = 2

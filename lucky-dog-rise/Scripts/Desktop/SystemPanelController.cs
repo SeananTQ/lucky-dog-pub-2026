@@ -97,6 +97,7 @@ public partial class SystemPanelController : CanvasLayer
     private Button _settingsTab = null!;
     private Button _wardrobeTab = null!;
     private Button _linkTreeTab = null!;
+    private Button _collectionEventTab = null!;
     private Button _outfitPresetTab = null!;
 #if DEBUG
     private Button _debugTab = null!;
@@ -106,6 +107,7 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _settingsContent = null!;
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _linkTreeContent = null!;
+    private CollectionEventPageController _collectionEventContent = null!;
     private VBoxContainer _outfitPresetContent = null!;
     private VBoxContainer _outfitPresetSlots = null!;
     private Control _linkTreeStatusCenter = null!;
@@ -236,6 +238,7 @@ public partial class SystemPanelController : CanvasLayer
             _gameData.BlindBoxStateChanged += OnSharedInventoryTransactionStateChanged;
             _gameData.OutfitPresetsChanged += RebuildOutfitPresetSlots;
             _gameData.RecoveredItemsChanged += RefreshRecoveredItemsOverlay;
+            ConfigureCollectionEventPage();
             EnsureCurrentTabReady();
             if (IsNodeReady())
             {
@@ -362,15 +365,18 @@ public partial class SystemPanelController : CanvasLayer
         _settingsTab = GetNode<Button>("Panel/RootVBox/TitleRow/SettingsTab");
         _wardrobeTab = GetNode<Button>("Panel/RootVBox/TitleRow/WardrobeTab");
         _linkTreeTab = GetNode<Button>("Panel/RootVBox/TitleRow/LinkTreeTab");
+        _collectionEventTab = GetNode<Button>("Panel/RootVBox/TitleRow/CollectionEventTab");
         _outfitPresetTab = GetNode<Button>("Panel/RootVBox/TitleRow/OutfitPresetTab");
         _tabs.Add(_wardrobeTab);
         _tabs.Add(_linkTreeTab);
         _tabs.Add(_outfitPresetTab);
+        _tabs.Add(_collectionEventTab);
         _tabs.Add(_settingsTab);
 
         _settingsContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent");
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
+        _collectionEventContent = GetNode<CollectionEventPageController>("Panel/RootVBox/Scroll/ContentVBox/CollectionEventContent");
         _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
         _outfitPresetSlots = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent/PresetSlots");
         _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
@@ -378,6 +384,7 @@ public partial class SystemPanelController : CanvasLayer
         _tabContents.Add(_wardrobeContent);
         _tabContents.Add(_linkTreeContent);
         _tabContents.Add(_outfitPresetContent);
+        _tabContents.Add(_collectionEventContent);
         _tabContents.Add(_settingsContent);
         _settingsActionTopGap = GetNode<Control>("Panel/RootVBox/ActionTopGap");
         _settingsActionRow = GetNode<Control>("Panel/RootVBox/SettingsActionRow");
@@ -387,7 +394,10 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeTab.Pressed += () => SwitchTab(0);
         _linkTreeTab.Pressed += () => SwitchTab(1);
         _outfitPresetTab.Pressed += () => SwitchTab(2);
-        _settingsTab.Pressed += () => SwitchTab(3);
+        _collectionEventTab.Pressed += () => SwitchTab(3);
+        _settingsTab.Pressed += () => SwitchTab(4);
+        _collectionEventTab.Visible = BuildCapabilities.CollectionEvents;
+        _collectionEventContent.Visible = false;
         if (BuildCapabilities.LinkTree)
         {
             BuildLinkTree();
@@ -404,7 +414,12 @@ public partial class SystemPanelController : CanvasLayer
         _debugContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
         _tabs.Add(_debugTab);
         _tabContents.Add(_debugContent);
-        _debugTab.Pressed += () => SwitchTab(4);
+        _debugTab.Pressed += () => SwitchTab(5);
+        if (BuildCapabilities.CollectionEvents)
+        {
+            foreach (var tab in _tabs)
+                tab.CustomMinimumSize = new Vector2(56f, tab.CustomMinimumSize.Y);
+        }
 #else
         GetNode("Panel/RootVBox/TitleRow/DebugTab").Free();
         GetNode("Panel/RootVBox/Scroll/ContentVBox/DebugContent").Free();
@@ -595,7 +610,7 @@ public partial class SystemPanelController : CanvasLayer
         var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
-        var resetDemoExperienceBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/BlindBoxDebugContent/ResetDemoExperienceBtn");
+        var resetDemoExperienceBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetDemoExperienceBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
         var randomizeDogBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeDogBtn");
         var randomAcquireItemBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomAcquireItemBtn");
@@ -902,10 +917,10 @@ public partial class SystemPanelController : CanvasLayer
             _tabContents[i].Visible = i == index;
             _tabs[i].ThemeTypeVariation = i == index ? PanelTopTabSelectedStyle : PanelTopTabStyle;
         }
-        _settingsActionTopGap.Visible = index == 3;
-        _settingsActionRow.Visible = index == 3;
-        _settingsActionBottomGap.Visible = index == 3;
-        _settingsActionSep.Visible = index == 3;
+        _settingsActionTopGap.Visible = index == 4;
+        _settingsActionRow.Visible = index == 4;
+        _settingsActionBottomGap.Visible = index == 4;
+        _settingsActionSep.Visible = index == 4;
         if (index == 0 && _gameData != null)
         {
             BuildWardrobe();
@@ -928,8 +943,10 @@ public partial class SystemPanelController : CanvasLayer
         }
         if (index == 2)
             RebuildOutfitPresetSlots();
+        if (index == 3)
+            _collectionEventContent.NotifyPageEntered();
         #if DEBUG
-        if (index == 4)
+        if (index == 5)
             RefreshDebugPlayTime();
         #endif
     }
@@ -943,10 +960,44 @@ public partial class SystemPanelController : CanvasLayer
             BuildWardrobe();
         if (_outfitPresetContent?.Visible == true)
             RebuildOutfitPresetSlots();
+        if (_collectionEventContent?.Visible == true)
+            _collectionEventContent.NotifyPageEntered();
 #if DEBUG
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
 #endif
+    }
+
+    private void ConfigureCollectionEventPage()
+    {
+        if (!BuildCapabilities.CollectionEvents || _collectionEventContent == null || _gameData == null)
+            return;
+
+        _collectionEventContent.Configure(_gameData, CreateCurrentCollectionEventDefinition());
+    }
+
+    private static CollectionEventDefinition CreateCurrentCollectionEventDefinition()
+    {
+        const string eventId = "demo-next-fest-2026";
+        const int grandPrizeBlindBoxId = 2003;
+        const int collectionBlindBoxId = 2002;
+        var enabledWeights = LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(weight => weight.IsEnabled && weight.Weight > 0)
+            .ToList();
+        var grandPrizeItemIds = enabledWeights
+            .Where(weight => weight.BlindBoxId == grandPrizeBlindBoxId)
+            .Select(weight => weight.ItemId)
+            .Distinct()
+            .ToArray();
+        var grandPrizeSet = grandPrizeItemIds.ToHashSet();
+        var collectionItemIds = enabledWeights
+            .Where(weight => weight.BlindBoxId == collectionBlindBoxId)
+            .Select(weight => weight.ItemId)
+            .Where(itemId => !grandPrizeSet.Contains(itemId))
+            .Distinct()
+            .ToArray();
+
+        return new CollectionEventDefinition(eventId, grandPrizeItemIds, collectionItemIds);
     }
 
     private void OnChipsChangedForGlobalInputLabel(int _)
