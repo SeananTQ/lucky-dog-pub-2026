@@ -10,15 +10,25 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_preview"]
+bg_color = Color(0.145098, 0.2, 0.215686, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_wishlistCallToActionModule", "_wishlistCallToActionButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 script = ExtResource("1_controller")
+_collectionModuleAnchor = NodePath("CollectionModuleAnchor")
 _grandPrizeLeft = NodePath("GrandPrizeStage/GrandPrizeLeft")
 _grandPrizeCenter = NodePath("GrandPrizeStage/GrandPrizeCenter")
 _grandPrizeRight = NodePath("GrandPrizeStage/GrandPrizeRight")
 _collectionGrid = NodePath("CollectionGrid")
+_wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
+_wishlistCallToActionButton = NodePath("WishlistCallToActionModule/Center/WishlistButton")
 
 [node name="TopGap" type="Control" parent="."]
 custom_minimum_size = Vector2(0, 12)
@@ -29,6 +39,10 @@ mouse_filter = 2
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="CollectionModuleAnchor" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
 
 [node name="GrandPrizeStage" type="Control" parent="."]
 custom_minimum_size = Vector2(0, 118)
@@ -71,13 +85,18 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 6
 
-[node name="VictoryRewardPlaceholder" type="PanelContainer" parent="."]
+[node name="VictoryRewardMargins" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+
+[node name="VictoryRewardPlaceholder" type="PanelContainer" parent="VictoryRewardMargins"]
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_victory_placeholder")
 
-[node name="PlaceholderLabel" type="Label" parent="VictoryRewardPlaceholder"]
+[node name="PlaceholderLabel" type="Label" parent="VictoryRewardMargins/VictoryRewardPlaceholder"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.333333, 0.282353, 0.2, 0.7)
 theme_override_font_sizes/font_size = 14
@@ -89,3 +108,23 @@ vertical_alignment = 1
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="WishlistCallToActionModule" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_scroll_preview")
+
+[node name="Center" type="CenterContainer" parent="WishlistCallToActionModule"]
+layout_mode = 2
+
+[node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center"]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+theme_type_variation = &"ActionButton"
+text = "Wishlist"
+
+[node name="ScrollPreviewFiller" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+mouse_filter = 2

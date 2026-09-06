@@ -11,16 +11,26 @@ public sealed record CollectionEventDefinition(
     IReadOnlyList<int> GrandPrizeItemIds,
     IReadOnlyList<int> CollectionItemIds);
 
+public enum CollectionEventEntryScrollTarget
+{
+    Default,
+    Collection,
+    CallToAction,
+}
+
 public partial class CollectionEventPageController : VBoxContainer
 {
     private const double RevealDelaySeconds = 1.0;
     private static readonly PackedScene RewardCellScene =
         GD.Load<PackedScene>("res://Scenes/Prefabs/CollectionEventRewardCell.tscn");
 
+    [Export] private Control _collectionModuleAnchor = null!;
     [Export] private CollectionEventRewardCellController _grandPrizeLeft = null!;
     [Export] private CollectionEventRewardCellController _grandPrizeCenter = null!;
     [Export] private CollectionEventRewardCellController _grandPrizeRight = null!;
     [Export] private GridContainer _collectionGrid = null!;
+    [Export] private Control _wishlistCallToActionModule = null!;
+    [Export] private Button _wishlistCallToActionButton = null!;
 
     private readonly Dictionary<int, CollectionEventRewardCellController> _cellsByItemId = new();
     private GameData _gameData;
@@ -30,6 +40,7 @@ public partial class CollectionEventPageController : VBoxContainer
     public override void _Ready()
     {
         VisibilityChanged += OnVisibilityChanged;
+        _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
     }
 
     public override void _ExitTree()
@@ -59,6 +70,28 @@ public partial class CollectionEventPageController : VBoxContainer
         RefreshPresentation();
         QueuePendingReveals();
     }
+
+    public CollectionEventEntryScrollTarget GetEntryScrollTarget()
+    {
+        if (_gameData == null || _definition == null)
+            return CollectionEventEntryScrollTarget.Default;
+
+        var ownedIds = _gameData.Inventory.GetOwnedIds().ToHashSet();
+        var revealedIds = _gameData.GetCollectionEventRevealedItemIds(_definition.EventId);
+        var rewardItemIds = _cellsByItemId.Keys.ToArray();
+        if (rewardItemIds.Any(itemId => ownedIds.Contains(itemId) && !revealedIds.Contains(itemId)))
+            return CollectionEventEntryScrollTarget.Collection;
+        if (rewardItemIds.Length > 0 && rewardItemIds.All(ownedIds.Contains))
+            return CollectionEventEntryScrollTarget.CallToAction;
+        return CollectionEventEntryScrollTarget.Default;
+    }
+
+    public Control GetScrollAnchor(CollectionEventEntryScrollTarget target) => target switch
+    {
+        CollectionEventEntryScrollTarget.Collection => _collectionModuleAnchor,
+        CollectionEventEntryScrollTarget.CallToAction => _wishlistCallToActionModule,
+        _ => this,
+    };
 
     private void UnbindGameData()
     {
@@ -139,6 +172,23 @@ public partial class CollectionEventPageController : VBoxContainer
             NotifyPageEntered();
         else
             _revealRequestVersion++;
+    }
+
+    private static void OpenWishlistCallToAction()
+    {
+        var config = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault();
+        var url = config?.GetType()
+            .GetField("WishlistCallToActionUrl")
+            ?.GetValue(config) as string;
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            GD.PushWarning("[CollectionEvent] GameDevelopConfig.WishlistCallToActionUrl is missing or empty.");
+            return;
+        }
+
+        var result = OS.ShellOpen(url);
+        if (result != Error.Ok)
+            GD.PushWarning($"[CollectionEvent] Failed to open wishlist URL ({result}).");
     }
 
     private async void QueuePendingReveals()

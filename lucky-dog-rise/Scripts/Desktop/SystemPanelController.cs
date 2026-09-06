@@ -944,7 +944,10 @@ public partial class SystemPanelController : CanvasLayer
         if (index == 2)
             RebuildOutfitPresetSlots();
         if (index == 3)
+        {
             _collectionEventContent.NotifyPageEntered();
+            Callable.From(ApplyCollectionEventEntryScroll).CallDeferred();
+        }
         #if DEBUG
         if (index == 5)
             RefreshDebugPlayTime();
@@ -961,7 +964,10 @@ public partial class SystemPanelController : CanvasLayer
         if (_outfitPresetContent?.Visible == true)
             RebuildOutfitPresetSlots();
         if (_collectionEventContent?.Visible == true)
+        {
             _collectionEventContent.NotifyPageEntered();
+            Callable.From(ApplyCollectionEventEntryScroll).CallDeferred();
+        }
 #if DEBUG
         if (_debugContent?.Visible == true)
             RefreshDebugPlayTime();
@@ -976,6 +982,30 @@ public partial class SystemPanelController : CanvasLayer
         _collectionEventContent.Configure(_gameData, CreateCurrentCollectionEventDefinition());
     }
 
+    private void ApplyCollectionEventEntryScroll()
+    {
+        if (_collectionEventContent?.Visible != true)
+            return;
+
+        var target = _collectionEventContent.GetEntryScrollTarget();
+        if (target == CollectionEventEntryScrollTarget.Default)
+        {
+            _panelScroll.ScrollVertical = 0;
+            return;
+        }
+
+        var anchor = _collectionEventContent.GetScrollAnchor(target);
+        var targetScroll = _panelScroll.ScrollVertical
+                           + Mathf.RoundToInt(
+                               anchor.GetGlobalRect().Position.Y
+                               - _panelScroll.GetGlobalRect().Position.Y);
+        var verticalScrollBar = _panelScroll.GetVScrollBar();
+        var maximumScroll = Mathf.Max(
+            0,
+            Mathf.RoundToInt(verticalScrollBar.MaxValue - verticalScrollBar.Page));
+        _panelScroll.ScrollVertical = Mathf.Clamp(targetScroll, 0, maximumScroll);
+    }
+
     private static CollectionEventDefinition CreateCurrentCollectionEventDefinition()
     {
         const string eventId = "demo-next-fest-2026";
@@ -984,14 +1014,31 @@ public partial class SystemPanelController : CanvasLayer
         var enabledWeights = LubanData.Tables.TbBlindBoxItemWeight.DataList
             .Where(weight => weight.IsEnabled && weight.Weight > 0)
             .ToList();
-        var grandPrizeItemIds = enabledWeights
+        var grandPrizePoolItemIds = enabledWeights
             .Where(weight => weight.BlindBoxId == grandPrizeBlindBoxId)
             .Select(weight => weight.ItemId)
             .Distinct()
             .ToArray();
+        var rankedGrandPrizeItemIds = grandPrizePoolItemIds
+            .Select(itemId => LubanData.Tables.TbItem.GetOrDefault(itemId))
+            .Where(item => item?.ItemType == EItemType.Dog)
+            .OrderBy(item => (int)item!.ItemRarity)
+            .ThenByDescending(item => item!.SortOrder)
+            .ThenBy(item => item!.Id)
+            .Select(item => item!.Id)
+            .ToArray();
+        var grandPrizeItemIds = rankedGrandPrizeItemIds.Length >= 3
+            ? new[]
+            {
+                rankedGrandPrizeItemIds[1],
+                rankedGrandPrizeItemIds[0],
+                rankedGrandPrizeItemIds[2],
+            }
+            : rankedGrandPrizeItemIds;
         var grandPrizeSet = grandPrizeItemIds.ToHashSet();
         var collectionItemIds = enabledWeights
-            .Where(weight => weight.BlindBoxId == collectionBlindBoxId)
+            .Where(weight => weight.BlindBoxId == collectionBlindBoxId
+                             || weight.BlindBoxId == grandPrizeBlindBoxId)
             .Select(weight => weight.ItemId)
             .Where(itemId => !grandPrizeSet.Contains(itemId))
             .Distinct()

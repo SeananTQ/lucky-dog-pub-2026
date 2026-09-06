@@ -30,6 +30,7 @@ public partial class CollectionEventRewardCellController : PanelContainer
     {
         _revealTween?.Kill();
         _revealTween = null;
+        SetRewardVisualsVisible(revealed);
         _revealedCover.Modulate = Colors.White;
         _revealedCover.Visible = revealed;
         _fullCover.Modulate = Colors.White;
@@ -39,6 +40,7 @@ public partial class CollectionEventRewardCellController : PanelContainer
     public Tween PlayReveal()
     {
         _revealTween?.Kill();
+        SetRewardVisualsVisible(true);
         _revealedCover.Visible = true;
         _revealedCover.Modulate = new Color(1f, 1f, 1f, 0f);
         _fullCover.Visible = true;
@@ -60,6 +62,13 @@ public partial class CollectionEventRewardCellController : PanelContainer
             _revealTween = null;
         };
         return _revealTween;
+    }
+
+    private void SetRewardVisualsVisible(bool visible)
+    {
+        _plate.Visible = visible;
+        _icon.Visible = visible;
+        _frame.Visible = visible;
     }
 
     private static Texture2D LoadRevealCover(int revealVariant)
