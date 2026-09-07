@@ -6,6 +6,7 @@ CardController
 CardTableController
 ChipRewardController
 ChipStackController
+CollectionEventRewardCellController
 ConfirmOverlayController
 DesktopRiseIntroController
 DeveloperLauncherController
@@ -36,6 +37,7 @@ TestGlobalRawInputController
 TutorialManager
 UIThemePreviewController
 WindowManager
+WishlistCallToActionOverlayController
 GodotPlugins.Game.Main
 SteamworksSmokeController
 SteamInventoryTestController
