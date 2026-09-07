@@ -2289,8 +2289,10 @@ public partial class ModeManager : Control
             _bossDogVisual.PlayDesktopTongueTap(count);
     }
 
-    private void OnGlobalMousePressed(Vector2I screenPosition)
+    private void OnGlobalMousePressed(Vector2I nativeScreenPosition)
     {
+        // Raw Input supplies Win32 coordinates; all gameplay hit tests use Godot coordinates.
+        var screenPosition = NativeScreenToGodotScreen(nativeScreenPosition);
         bool clickedOutsideInteractiveContent = !IsScreenPointOverInteractiveContent(screenPosition);
         _settingsPanel?.OnGlobalMousePressed(screenPosition, clickedOutsideInteractiveContent);
         AutoHideSettingsPanelIfClickedOutside(clickedOutsideInteractiveContent);
@@ -2526,22 +2528,17 @@ public partial class ModeManager : Control
 
     private static Vector2I ScreenToWindowLocal(Vector2I screenPosition)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
-            if (hWnd != IntPtr.Zero)
-            {
-                var point = new WindowNative.Point
-                {
-                    X = screenPosition.X,
-                    Y = screenPosition.Y,
-                };
-                if (WindowNative.ScreenToClient(hWnd, ref point))
-                    return new Vector2I(point.X, point.Y);
-            }
-        }
-
+        // Both positions use Godot's virtual-desktop origin. Passing either to
+        // Win32 ScreenToClient would apply the wrong origin on top/left monitors.
         return screenPosition - DisplayServer.WindowGetPosition();
+    }
+
+    private static Vector2I NativeScreenToGodotScreen(Vector2I nativeScreenPosition)
+    {
+        // Win32's primary monitor starts at (0, 0). Its Godot position is exactly
+        // the origin offset. Query it each time so display rearrangements are respected.
+        return nativeScreenPosition
+            + DisplayServer.ScreenGetPosition(DisplayServer.GetPrimaryScreen());
     }
 
     private void OnGlobalWinKeyPressed()
@@ -2695,11 +2692,8 @@ public partial class ModeManager : Control
             return false;
 
         var windowRect = new Rect2I(
-            rect.Left,
-            rect.Top,
-            Math.Max(0, rect.Right - rect.Left),
-            Math.Max(0, rect.Bottom - rect.Top)
-        );
+            NativeScreenToGodotScreen(new Vector2I(rect.Left, rect.Top)),
+            new Vector2I(Math.Max(0, rect.Right - rect.Left), Math.Max(0, rect.Bottom - rect.Top)));
 
         for (int i = 0; i < DisplayServer.GetScreenCount(); i++)
         {
