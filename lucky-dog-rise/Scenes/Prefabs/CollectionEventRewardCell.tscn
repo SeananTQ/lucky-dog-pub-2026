@@ -9,7 +9,7 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_root"]
 
-[node name="CollectionEventRewardCell" type="PanelContainer" node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_fullCover")]
+[node name="CollectionEventRewardCell" type="PanelContainer" node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_shineTransitionCover", "_fullCover")]
 custom_minimum_size = Vector2(58, 58)
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_root")
@@ -19,6 +19,7 @@ _icon = NodePath("Content/Icon")
 _frame = NodePath("Content/Frame")
 _revealedCover = NodePath("Content/RevealedCover")
 _shineCover = NodePath("Content/ShineCover")
+_shineTransitionCover = NodePath("Content/ShineTransitionCover")
 _fullCover = NodePath("Content/FullCover")
 
 [node name="Content" type="Control" parent="."]
@@ -82,6 +83,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="ShineTransitionCover" type="TextureRect" parent="Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
 expand_mode = 3
 stretch_mode = 5
 

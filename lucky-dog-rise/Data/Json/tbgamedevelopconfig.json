@@ -4,6 +4,6 @@
     "PlayerStatisticScale": 10,
     "LinkTreeVisibleBannerCount": 5,
     "WishlistCallToActionUrl": "https://store.steampowered.com/app/2583700/?utm_source=demo&utm_medium=in_game_client&utm_campaign=collection_event_wishlist&utm_content=collection_page",
-    "WishlistCallToActionDialogCooldownSeconds": 5
+    "WishlistCallToActionDialogCooldownSeconds": 300
   }
 ]
