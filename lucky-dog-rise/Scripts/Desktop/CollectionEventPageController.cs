@@ -37,6 +37,7 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private Button _victoryRewardButton = null!;
     [Export] private Control _wishlistCallToActionModule = null!;
     [Export] private Button _wishlistCallToActionButton = null!;
+    [Export] private Button _celebrationTestButton = null!;
 
     private readonly Dictionary<int, CollectionEventRewardCellController> _cellsByItemId = new();
     private GameData _gameData;
@@ -45,6 +46,7 @@ public partial class CollectionEventPageController : VBoxContainer
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
     public event Action VictoryRewardClaimed;
+    public event Action CelebrationTestRequested;
 
     public string EventId => _definition?.EventId ?? string.Empty;
 
@@ -53,6 +55,9 @@ public partial class CollectionEventPageController : VBoxContainer
         VisibilityChanged += OnVisibilityChanged;
         _victoryRewardButton.Pressed += ClaimVictoryReward;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
+        _celebrationTestButton.Visible = OS.IsDebugBuild();
+        if (_celebrationTestButton.Visible)
+            _celebrationTestButton.Pressed += () => CelebrationTestRequested?.Invoke();
     }
 
     public override void _ExitTree()

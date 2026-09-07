@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/RecoveredItemsOverlay.tscn" id="17_recovered_items"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventPage.tscn" id="18_collection_event_page"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/WishlistCallToActionOverlay.tscn" id="19_wishlist_cta"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionCelebrationConfetti.tscn" id="20_collection_confetti"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
@@ -1281,6 +1282,8 @@ text = "Settings_ResetSaveData"
 [node name="OtherUiScaleConfirm" parent="." instance=ExtResource("3_confirm")]
 
 [node name="RecoveredItemsOverlay" parent="." instance=ExtResource("17_recovered_items")]
+
+[node name="CollectionCelebrationConfetti" parent="." instance=ExtResource("20_collection_confetti")]
 
 [node name="WishlistCallToActionOverlay" parent="." instance=ExtResource("19_wishlist_cta")]
 

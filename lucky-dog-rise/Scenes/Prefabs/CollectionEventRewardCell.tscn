@@ -4,8 +4,8 @@
 [ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_plate"]
 [ext_resource type="Texture2D" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_icon"]
 [ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_frame"]
-[ext_resource type="Texture2D" path="res://Assets/Event/ItemUI_ScratchCover_Reveal1.png" id="5_revealed"]
-[ext_resource type="Texture2D" path="res://Assets/Event/ItemUI_ScratchCover_Full.png" id="6_full"]
+[ext_resource type="Texture2D" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Reveal1.png" id="5_revealed"]
+[ext_resource type="Texture2D" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Full.png" id="6_full"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_root"]
 

@@ -109,6 +109,7 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _linkTreeContent = null!;
     private CollectionEventPageController _collectionEventContent = null!;
+    private CollectionCelebrationConfettiController _collectionCelebrationConfetti = null!;
     private WishlistCallToActionOverlayController _wishlistCallToActionOverlay = null!;
     private WishlistCallToActionReason _wishlistCallToActionReason;
     private VBoxContainer _outfitPresetContent = null!;
@@ -388,10 +389,13 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
         _collectionEventContent = GetNode<CollectionEventPageController>("Panel/RootVBox/Scroll/ContentVBox/CollectionEventContent");
+        _collectionCelebrationConfetti = GetNode<CollectionCelebrationConfettiController>("CollectionCelebrationConfetti");
         _wishlistCallToActionOverlay = GetNode<WishlistCallToActionOverlayController>("WishlistCallToActionOverlay");
         _wishlistCallToActionOverlay.PrimaryPressed += OnWishlistCallToActionPrimaryPressed;
         _wishlistCallToActionOverlay.SecondaryPressed += OnWishlistCallToActionSecondaryPressed;
         _collectionEventContent.RewardsRevealed += OnCollectionEventRewardsRevealed;
+        _collectionEventContent.VictoryRewardClaimed += OnCollectionEventVictoryRewardClaimed;
+        _collectionEventContent.CelebrationTestRequested += OnCollectionEventCelebrationTestRequested;
         _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
         _outfitPresetSlots = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent/PresetSlots");
         _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
@@ -798,7 +802,11 @@ public partial class SystemPanelController : CanvasLayer
     {
         SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
         if (_collectionEventContent != null)
+        {
             _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
+            _collectionEventContent.VictoryRewardClaimed -= OnCollectionEventVictoryRewardClaimed;
+            _collectionEventContent.CelebrationTestRequested -= OnCollectionEventCelebrationTestRequested;
+        }
     }
 
     public override void _Process(double delta)
@@ -1128,6 +1136,16 @@ public partial class SystemPanelController : CanvasLayer
             _collectionEventContent.EventId) ?? 0;
         if (pendingDogItemId > 0 && itemIds.Contains(pendingDogItemId))
             ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
+    }
+
+    private void OnCollectionEventVictoryRewardClaimed()
+    {
+        _collectionCelebrationConfetti?.Play();
+    }
+
+    private void OnCollectionEventCelebrationTestRequested()
+    {
+        _collectionCelebrationConfetti?.TryPlay();
     }
 
     private void TryShowPendingFirstDogWishlistCallToAction()
@@ -2653,6 +2671,8 @@ public partial class SystemPanelController : CanvasLayer
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _recoveredItemsOverlay?.SetOverlayRect(pos, PanelDesignSize);
+        if (_collectionCelebrationConfetti != null)
+            _collectionCelebrationConfetti.Position = pos;
         _wishlistCallToActionOverlay?.SetOverlayRect(pos, PanelDesignSize);
 #if DEBUG
         _resetSaveConfirm?.SetOverlayRect(pos, PanelDesignSize);
@@ -2667,6 +2687,7 @@ public partial class SystemPanelController : CanvasLayer
         _desktopScaleConfirm.Scale = value;
         _otherUiScaleConfirm.Scale = value;
         _recoveredItemsOverlay.Scale = value;
+        _collectionCelebrationConfetti.Scale = value;
         _wishlistCallToActionOverlay.Scale = value;
 #if DEBUG
         _resetSaveConfirm.Scale = value;
@@ -2778,6 +2799,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();
+        _collectionCelebrationConfetti?.Stop();
         _wishlistCallToActionOverlay?.HideOverlay();
         _wishlistCallToActionReason = WishlistCallToActionReason.None;
         _tween = CreateTween();
@@ -2801,6 +2823,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();
+        _collectionCelebrationConfetti?.Stop();
         _wishlistCallToActionOverlay?.HideOverlay();
         _wishlistCallToActionReason = WishlistCallToActionReason.None;
         _panel.Modulate = Colors.White with { A = 0f };

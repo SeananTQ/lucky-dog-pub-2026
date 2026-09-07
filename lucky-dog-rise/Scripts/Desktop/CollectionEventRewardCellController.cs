@@ -22,9 +22,9 @@ public partial class CollectionEventRewardCellController : PanelContainer
 
     private static readonly Texture2D[] ShineTextures =
     {
-        GD.Load<Texture2D>("res://Assets/Event/ItemUI_Shine_1.png"),
-        GD.Load<Texture2D>("res://Assets/Event/ItemUI_Shine_2.png"),
-        GD.Load<Texture2D>("res://Assets/Event/ItemUI_Shine_3.png"),
+        GD.Load<Texture2D>("res://Assets/Event/Collection/ItemUI_Shine_1.png"),
+        GD.Load<Texture2D>("res://Assets/Event/Collection/ItemUI_Shine_2.png"),
+        GD.Load<Texture2D>("res://Assets/Event/Collection/ItemUI_Shine_3.png"),
     };
 
     private const double ShineCrossFadeStartRatio = 0.4;
@@ -51,7 +51,7 @@ public partial class CollectionEventRewardCellController : PanelContainer
         LoadTextureOrClear(_plate, $"res://Assets/UI/ItemUI/Plate_{item.ItemRarity}.png");
         LoadTextureOrClear(_frame, $"res://Assets/UI/ItemUI/Frame_{item.ItemRarity}.png");
         _revealedCover.Texture = GD.Load<Texture2D>(
-            $"res://Assets/Event/ItemUI_ScratchCover_Reveal{_revealVariant}.png");
+            $"res://Assets/Event/Collection/ItemUI_ScratchCover_Reveal{_revealVariant}.png");
         SetVisualState(state);
         TooltipText = item.Name;
     }

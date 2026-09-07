@@ -17,7 +17,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_wishlistCallToActionModule", "_wishlistCallToActionButton")]
+[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_wishlistCallToActionModule", "_wishlistCallToActionButton", "_celebrationTestButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -30,7 +30,8 @@ _collectionGrid = NodePath("CollectionGrid")
 _victoryRewardModule = NodePath("VictoryRewardMargins")
 _victoryRewardButton = NodePath("VictoryRewardMargins/VictoryRewardPlaceholder/ClaimButton")
 _wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
-_wishlistCallToActionButton = NodePath("WishlistCallToActionModule/Center/WishlistButton")
+_wishlistCallToActionButton = NodePath("WishlistCallToActionModule/Center/ButtonRow/WishlistButton")
+_celebrationTestButton = NodePath("WishlistCallToActionModule/Center/ButtonRow/CelebrationTestButton")
 
 [node name="TopGap" type="Control" parent="."]
 custom_minimum_size = Vector2(0, 12)
@@ -119,10 +120,21 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_scroll_preview")
 [node name="Center" type="CenterContainer" parent="WishlistCallToActionModule"]
 layout_mode = 2
 
-[node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center"]
-custom_minimum_size = Vector2(220, 44)
+[node name="ButtonRow" type="HBoxContainer" parent="WishlistCallToActionModule/Center"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow"]
+custom_minimum_size = Vector2(145, 44)
 layout_mode = 2
 text = "Wishlist"
+
+[node name="CelebrationTestButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow"]
+custom_minimum_size = Vector2(145, 44)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "测试礼花"
+tooltip_text = "播放一次收集活动胜利礼花；当前礼花结束前重复点击不会叠加。"
 
 [node name="ScrollPreviewFiller" type="Control" parent="."]
 custom_minimum_size = Vector2(0, 160)

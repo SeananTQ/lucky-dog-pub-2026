@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/CollectionCelebrationConfettiController.cs" id="1_controller"]
+
+[node name="CollectionCelebrationConfetti" type="Control"]
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 420.0
+offset_bottom = 600.0
+mouse_filter = 2
+clip_contents = true
+script = ExtResource("1_controller")
