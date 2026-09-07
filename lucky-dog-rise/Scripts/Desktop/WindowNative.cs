@@ -29,6 +29,9 @@ internal static class WindowNative
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
 
+    [DllImport("user32.dll")]
+    public static extern bool ScreenToClient(IntPtr hWnd, ref Point lpPoint);
+
     [DllImport("dwmapi.dll")]
     public static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref Margins pMarInset);
 
@@ -58,6 +61,13 @@ internal static class WindowNative
         public int Right;
         public int Top;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Point
+    {
+        public int X;
+        public int Y;
     }
 
     [StructLayout(LayoutKind.Sequential)]

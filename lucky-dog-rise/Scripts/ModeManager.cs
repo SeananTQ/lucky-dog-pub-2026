@@ -2291,8 +2291,9 @@ public partial class ModeManager : Control
 
     private void OnGlobalMousePressed(Vector2I screenPosition)
     {
-        _settingsPanel?.OnGlobalMousePressed(screenPosition, !IsScreenPointOverInteractiveContent(screenPosition));
-        AutoHideSettingsPanelIfClickedOutside(screenPosition);
+        bool clickedOutsideInteractiveContent = !IsScreenPointOverInteractiveContent(screenPosition);
+        _settingsPanel?.OnGlobalMousePressed(screenPosition, clickedOutsideInteractiveContent);
+        AutoHideSettingsPanelIfClickedOutside(clickedOutsideInteractiveContent);
 
         if (!SettingsManager.LoadEnhancedTopmostMode())
         {
@@ -2329,19 +2330,16 @@ public partial class ModeManager : Control
     }
 #endif
 
-    private void AutoHideSettingsPanelIfClickedOutside(Vector2I screenPosition)
+    private void AutoHideSettingsPanelIfClickedOutside(bool clickedOutsideInteractiveContent)
     {
         if (_settingsPanel == null
             || !_settingsPanel.IsOpen
-            || !SettingsManager.LoadAutoHidePanel())
+            || !SettingsManager.LoadAutoHidePanel()
+            || !clickedOutsideInteractiveContent)
             return;
 
         var now = Time.GetTicksMsec() / 1000.0;
         if (now - _settingsPanelOpenedAtSeconds < SettingsPanelAutoHideOpenGraceSeconds)
-            return;
-
-        var windowLocalPosition = screenPosition - DisplayServer.WindowGetPosition();
-        if (_settingsPanel.ContainsPoint(windowLocalPosition))
             return;
 
         _settingsPanel.CloseImmediate();
@@ -2492,7 +2490,7 @@ public partial class ModeManager : Control
 
     private bool IsScreenPointOverInteractiveContent(Vector2I screenPosition)
     {
-        var localPos = screenPosition - DisplayServer.WindowGetPosition();
+        var localPos = ScreenToWindowLocal(screenPosition);
         bool over = _settingsPanel != null && _settingsPanel.ContainsPoint(localPos);
 #if DEBUG
         over |= _steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos);
@@ -2524,6 +2522,26 @@ public partial class ModeManager : Control
         }
 
         return over;
+    }
+
+    private static Vector2I ScreenToWindowLocal(Vector2I screenPosition)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var hWnd = (IntPtr)DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+            if (hWnd != IntPtr.Zero)
+            {
+                var point = new WindowNative.Point
+                {
+                    X = screenPosition.X,
+                    Y = screenPosition.Y,
+                };
+                if (WindowNative.ScreenToClient(hWnd, ref point))
+                    return new Vector2I(point.X, point.Y);
+            }
+        }
+
+        return screenPosition - DisplayServer.WindowGetPosition();
     }
 
     private void OnGlobalWinKeyPressed()
@@ -3458,7 +3476,8 @@ public partial class ModeManager : Control
         {
             if (mb.Pressed)
             {
-                var localPos = DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition();
+                var mouseScreenPosition = DisplayServer.MouseGetPosition();
+                var localPos = ScreenToWindowLocal(mouseScreenPosition);
                 if (_settingsPanel.ContainsPoint(localPos)) return;
 #if DEBUG
                 if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;

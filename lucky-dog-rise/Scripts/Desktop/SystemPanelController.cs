@@ -2919,37 +2919,38 @@ public partial class SystemPanelController : CanvasLayer
         }
     }
 
-    public bool ContainsPoint(Vector2 windowPos)
+    public bool ContainsPoint(Vector2 windowPosition)
     {
         if (!_panel.Visible) return false;
-        return new Rect2(_panel.Position, PanelSize).HasPoint(windowPos)
-            || (_desktopScaleConfirm.Visible && new Rect2(_desktopScaleConfirm.Position, PanelSize).HasPoint(windowPos))
-            || (_otherUiScaleConfirm.Visible && new Rect2(_otherUiScaleConfirm.Position, PanelSize).HasPoint(windowPos))
-            || (_recoveredItemsOverlay.Visible && new Rect2(_recoveredItemsOverlay.Position, PanelSize).HasPoint(windowPos))
+        return new Rect2(_panel.Position, PanelSize).HasPoint(windowPosition)
+            || (_desktopScaleConfirm.Visible && new Rect2(_desktopScaleConfirm.Position, PanelSize).HasPoint(windowPosition))
+            || (_otherUiScaleConfirm.Visible && new Rect2(_otherUiScaleConfirm.Position, PanelSize).HasPoint(windowPosition))
+            || (_recoveredItemsOverlay.Visible && new Rect2(_recoveredItemsOverlay.Position, PanelSize).HasPoint(windowPosition))
+            || (_wishlistCallToActionOverlay.Visible && new Rect2(_wishlistCallToActionOverlay.Position, PanelSize).HasPoint(windowPosition))
 #if DEBUG
-            || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, PanelSize).HasPoint(windowPos))
+            || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, PanelSize).HasPoint(windowPosition))
 #endif
-            || PopupContainsPoint(_languageOption.GetPopup(), windowPos)
-            || PopupContainsPoint(_displayOption.GetPopup(), windowPos)
-            || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPos)
+            || PopupContainsPoint(_languageOption.GetPopup(), windowPosition)
+            || PopupContainsPoint(_displayOption.GetPopup(), windowPosition)
+            || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPosition)
 #if DEBUG
-            || PopupContainsPoint(_reactionOption.GetPopup(), windowPos)
-            || PopupContainsPoint(_playerProgressMultiplierOption.GetPopup(), windowPos)
+            || PopupContainsPoint(_reactionOption.GetPopup(), windowPosition)
+            || PopupContainsPoint(_playerProgressMultiplierOption.GetPopup(), windowPosition)
 #endif
             ;
     }
 
-    private static bool PopupContainsPoint(PopupMenu popup, Vector2 windowPos)
+    private static bool PopupContainsPoint(PopupMenu popup, Vector2 windowPosition)
     {
         if (popup == null || !popup.Visible)
             return false;
 
         var popupRect = new Rect2(popup.Position, popup.Size);
-        if (popupRect.HasPoint(windowPos))
+        if (popupRect.HasPoint(windowPosition))
             return true;
 
         var screenRelativePosition = popup.Position - DisplayServer.WindowGetPosition();
-        return new Rect2(screenRelativePosition, popup.Size).HasPoint(windowPos);
+        return new Rect2(screenRelativePosition, popup.Size).HasPoint(windowPosition);
     }
 
 #if DEBUG
