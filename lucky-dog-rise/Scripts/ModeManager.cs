@@ -509,6 +509,8 @@ public partial class ModeManager : Control
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.QuitRequested += RequestGracefulQuit;
+        _settingsPanel.QuitAfterWishlistRequested += PerformGracefulQuit;
+        _gameData.BlindBoxRewardClaimed += OnBlindBoxRewardClaimedForCollectionEvent;
         _settingsPanel.DesktopBgmPlaybackChanged += OnDesktopBgmPlaybackChanged;
 #if DEBUG
         _settingsPanel.RandomizeRequested += OnRandomizeScene;
@@ -1144,7 +1146,7 @@ public partial class ModeManager : Control
             "The active Steam account changed while Lucky Dog Rise was running. " +
             "Local saves and platform writes have been stopped. The game will now exit; launch it again from the intended Steam account.",
             "Steam Account Changed");
-        RequestGracefulQuit();
+        PerformGracefulQuit();
     }
 
     private bool OnExternalActivationRequested()
@@ -1258,6 +1260,26 @@ public partial class ModeManager : Control
         if (_shutdownRequested)
             return;
 
+        if (_settingsPanel?.TryShowWishlistCallToActionForExit() == true)
+        {
+            if (!_settingsPanel.IsOpen)
+            {
+                RefreshSettingsPanelModeActions();
+                PositionPanelInBestSlot();
+                _settingsPanel.Open();
+                _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+            }
+            return;
+        }
+
+        PerformGracefulQuit();
+    }
+
+    private void PerformGracefulQuit()
+    {
+        if (_shutdownRequested)
+            return;
+
         _settingsPanel?.CancelPendingDesktopPetScaleChange();
         _settingsPanel?.CancelPendingOtherUiScaleChange();
         _shutdownRequested = true;
@@ -1291,6 +1313,23 @@ public partial class ModeManager : Control
         GD.Print($"[Shutdown] Platform cleanup completed in {platformStopwatch.ElapsedMilliseconds} ms.");
         GD.Print($"[Shutdown] Explicit shutdown preparation completed in {totalStopwatch.ElapsedMilliseconds} ms; quitting scene tree.");
         GetTree().Quit();
+    }
+
+    private void OnBlindBoxRewardClaimedForCollectionEvent(
+        int blindBoxId,
+        int itemId,
+        bool firstOwnership)
+    {
+        if (_settingsPanel?.TryHandleCollectionEventBlindBoxReward(
+                blindBoxId,
+                itemId,
+                firstOwnership) != true)
+            return;
+
+        RefreshSettingsPanelModeActions();
+        PositionPanelInBestSlot();
+        _settingsPanel.ShowCollectionEventPage();
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
 
     private void DisposePlatformService()
@@ -1747,6 +1786,8 @@ public partial class ModeManager : Control
         if (_startupState == StartupState.IntroPlaying)
             _startupState = StartupState.Interactive;
         _bossRiseIntroSuppressesBlindBoxHint = false;
+        if (_settingsPanel?.HasPendingCollectionEventFirstDogCallToAction() == true)
+            Callable.From(OpenPendingCollectionEventFirstDogCallToAction).CallDeferred();
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp)
             return;
 
@@ -1756,6 +1797,19 @@ public partial class ModeManager : Control
         RefreshBossCounterVisibilityAfterContentShown();
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
+    }
+
+    private void OpenPendingCollectionEventFirstDogCallToAction()
+    {
+        if (_shutdownRequested
+            || _startupState != StartupState.Interactive
+            || _settingsPanel?.HasPendingCollectionEventFirstDogCallToAction() != true)
+            return;
+
+        RefreshSettingsPanelModeActions();
+        PositionPanelInBestSlot();
+        _settingsPanel.ShowCollectionEventPage();
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
 
     private void SetBossStatusBarInteractable(bool interactable)

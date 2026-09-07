@@ -24,6 +24,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
     [Signal] public delegate void QuitRequestedEventHandler();
+    [Signal] public delegate void QuitAfterWishlistRequestedEventHandler();
     [Signal] public delegate void DesktopBgmPlaybackChangedEventHandler(bool enabled);
     [Signal] public delegate void BlindBoxBubbleVisibilityChangedEventHandler();
     [Signal] public delegate void CounterLayoutChangedEventHandler();
@@ -108,6 +109,8 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _wardrobeContent = null!;
     private VBoxContainer _linkTreeContent = null!;
     private CollectionEventPageController _collectionEventContent = null!;
+    private WishlistCallToActionOverlayController _wishlistCallToActionOverlay = null!;
+    private WishlistCallToActionReason _wishlistCallToActionReason;
     private VBoxContainer _outfitPresetContent = null!;
     private VBoxContainer _outfitPresetSlots = null!;
     private Control _linkTreeStatusCenter = null!;
@@ -121,6 +124,14 @@ public partial class SystemPanelController : CanvasLayer
     private Control _settingsActionSep = null!;
     private Button _switchToPlayBtn = null!;
     private Button _switchToBossKeyBtn = null!;
+
+    private enum WishlistCallToActionReason
+    {
+        None,
+        FirstDog,
+        CollectionCompleted,
+        Exit,
+    }
 
     // Settings 页
     private HSlider _sfxVolumeSlider = null!;
@@ -377,6 +388,10 @@ public partial class SystemPanelController : CanvasLayer
         _wardrobeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/WardrobeContent");
         _linkTreeContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent");
         _collectionEventContent = GetNode<CollectionEventPageController>("Panel/RootVBox/Scroll/ContentVBox/CollectionEventContent");
+        _wishlistCallToActionOverlay = GetNode<WishlistCallToActionOverlayController>("WishlistCallToActionOverlay");
+        _wishlistCallToActionOverlay.PrimaryPressed += OnWishlistCallToActionPrimaryPressed;
+        _wishlistCallToActionOverlay.SecondaryPressed += OnWishlistCallToActionSecondaryPressed;
+        _collectionEventContent.RewardsRevealed += OnCollectionEventRewardsRevealed;
         _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
         _outfitPresetSlots = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent/PresetSlots");
         _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
@@ -782,6 +797,8 @@ public partial class SystemPanelController : CanvasLayer
     public override void _ExitTree()
     {
         SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
+        if (_collectionEventContent != null)
+            _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
     }
 
     public override void _Process(double delta)
@@ -947,6 +964,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _collectionEventContent.NotifyPageEntered();
             Callable.From(ApplyCollectionEventEntryScroll).CallDeferred();
+            Callable.From(TryShowCollectionCompletedWishlistCallToAction).CallDeferred();
         }
         #if DEBUG
         if (index == 5)
@@ -967,6 +985,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _collectionEventContent.NotifyPageEntered();
             Callable.From(ApplyCollectionEventEntryScroll).CallDeferred();
+            Callable.From(TryShowCollectionCompletedWishlistCallToAction).CallDeferred();
         }
 #if DEBUG
         if (_debugContent?.Visible == true)
@@ -1044,7 +1063,132 @@ public partial class SystemPanelController : CanvasLayer
             .Distinct()
             .ToArray();
 
-        return new CollectionEventDefinition(eventId, grandPrizeItemIds, collectionItemIds);
+        return new CollectionEventDefinition(
+            eventId,
+            [collectionBlindBoxId, grandPrizeBlindBoxId],
+            grandPrizeItemIds,
+            collectionItemIds,
+            VictoryRewardItemId: 9004,
+            VictoryRewardQuantity: 7);
+    }
+
+    public bool TryHandleCollectionEventBlindBoxReward(
+        int blindBoxId,
+        int itemId,
+        bool firstOwnership)
+    {
+        if (!BuildCapabilities.CollectionEvents
+            || !firstOwnership
+            || _gameData == null
+            || !_collectionEventContent.ContainsBlindBox(blindBoxId)
+            || !_collectionEventContent.ContainsRewardItem(itemId)
+            || LubanData.Tables.TbItem.GetOrDefault(itemId)?.ItemType != EItemType.Dog)
+            return false;
+
+        return _gameData.TryQueueCollectionEventFirstDogCallToAction(
+            _collectionEventContent.EventId,
+            itemId);
+    }
+
+    public bool HasPendingCollectionEventFirstDogCallToAction() =>
+        BuildCapabilities.CollectionEvents
+        && _gameData != null
+        && _gameData.GetPendingCollectionEventFirstDogItemId(
+            _collectionEventContent.EventId) > 0;
+
+    public void ShowCollectionEventPage()
+    {
+        if (!BuildCapabilities.CollectionEvents)
+            return;
+
+        SwitchTab(3);
+        if (!_panel.Visible)
+            Open();
+        Callable.From(TryShowPendingFirstDogWishlistCallToAction).CallDeferred();
+    }
+
+    public bool TryShowWishlistCallToActionForExit()
+    {
+        if (!BuildCapabilities.CollectionEvents || _gameData == null)
+            return false;
+        if (_wishlistCallToActionOverlay.Visible)
+            return _wishlistCallToActionReason == WishlistCallToActionReason.Exit;
+        if (_gameData.WishlistExitCallToActionSuppressed
+            || !_gameData.IsWishlistCallToActionCooldownReady(
+                WishlistCallToAction.CooldownSeconds))
+            return false;
+
+        ShowWishlistCallToAction(WishlistCallToActionReason.Exit);
+        return true;
+    }
+
+    private void OnCollectionEventRewardsRevealed(IReadOnlyList<int> itemIds)
+    {
+        var pendingDogItemId = _gameData?.GetPendingCollectionEventFirstDogItemId(
+            _collectionEventContent.EventId) ?? 0;
+        if (pendingDogItemId > 0 && itemIds.Contains(pendingDogItemId))
+            ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
+    }
+
+    private void TryShowPendingFirstDogWishlistCallToAction()
+    {
+        if (_gameData == null || !_collectionEventContent.Visible)
+            return;
+
+        var pendingDogItemId = _gameData.GetPendingCollectionEventFirstDogItemId(
+            _collectionEventContent.EventId);
+        if (pendingDogItemId > 0 && _collectionEventContent.IsItemRevealed(pendingDogItemId))
+            ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
+    }
+
+    private void TryShowCollectionCompletedWishlistCallToAction()
+    {
+        if (_gameData == null
+            || !_collectionEventContent.Visible
+            || !_collectionEventContent.IsVictoryRewardClaimed()
+            || !_gameData.IsWishlistCallToActionCooldownReady(
+                WishlistCallToAction.CooldownSeconds))
+            return;
+
+        ShowWishlistCallToAction(WishlistCallToActionReason.CollectionCompleted);
+    }
+
+    private void ShowWishlistCallToAction(WishlistCallToActionReason reason)
+    {
+        if (_gameData == null || reason == WishlistCallToActionReason.None)
+            return;
+        if (_wishlistCallToActionOverlay.Visible)
+            return;
+
+        _wishlistCallToActionReason = reason;
+        _gameData.MarkWishlistCallToActionShown();
+        if (reason == WishlistCallToActionReason.FirstDog)
+            _gameData.MarkCollectionEventFirstDogCallToActionShown(
+                _collectionEventContent.EventId);
+        _wishlistCallToActionOverlay.ShowCallToAction(
+            isExitPrompt: reason == WishlistCallToActionReason.Exit);
+    }
+
+    private void OnWishlistCallToActionPrimaryPressed(bool suppressFutureExitPrompts)
+    {
+        FinishWishlistCallToAction(suppressFutureExitPrompts, openWishlist: true);
+    }
+
+    private void OnWishlistCallToActionSecondaryPressed(bool suppressFutureExitPrompts)
+    {
+        FinishWishlistCallToAction(suppressFutureExitPrompts, openWishlist: false);
+    }
+
+    private void FinishWishlistCallToAction(bool suppressFutureExitPrompts, bool openWishlist)
+    {
+        var reason = _wishlistCallToActionReason;
+        _wishlistCallToActionReason = WishlistCallToActionReason.None;
+        if (reason == WishlistCallToActionReason.Exit && suppressFutureExitPrompts)
+            _gameData?.SetWishlistExitCallToActionSuppressed(true);
+        if (openWishlist)
+            WishlistCallToAction.OpenConfiguredUrl("dialog");
+        if (reason == WishlistCallToActionReason.Exit)
+            EmitSignal(SignalName.QuitAfterWishlistRequested);
     }
 
     private void OnChipsChangedForGlobalInputLabel(int _)
@@ -2509,6 +2653,7 @@ public partial class SystemPanelController : CanvasLayer
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _recoveredItemsOverlay?.SetOverlayRect(pos, PanelDesignSize);
+        _wishlistCallToActionOverlay?.SetOverlayRect(pos, PanelDesignSize);
 #if DEBUG
         _resetSaveConfirm?.SetOverlayRect(pos, PanelDesignSize);
 #endif
@@ -2522,6 +2667,7 @@ public partial class SystemPanelController : CanvasLayer
         _desktopScaleConfirm.Scale = value;
         _otherUiScaleConfirm.Scale = value;
         _recoveredItemsOverlay.Scale = value;
+        _wishlistCallToActionOverlay.Scale = value;
 #if DEBUG
         _resetSaveConfirm.Scale = value;
 #endif
@@ -2632,6 +2778,8 @@ public partial class SystemPanelController : CanvasLayer
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();
+        _wishlistCallToActionOverlay?.HideOverlay();
+        _wishlistCallToActionReason = WishlistCallToActionReason.None;
         _tween = CreateTween();
         _tween.TweenProperty(_panel, "modulate:a", 0f, 0.1f).SetEase(Tween.EaseType.In);
         _tween.TweenCallback(Callable.From(() =>
@@ -2653,6 +2801,8 @@ public partial class SystemPanelController : CanvasLayer
 #endif
         if (_tween != null && _tween.IsRunning()) _tween.Kill();
         _recoveredItemsOverlay?.HideOverlay();
+        _wishlistCallToActionOverlay?.HideOverlay();
+        _wishlistCallToActionReason = WishlistCallToActionReason.None;
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = false;
         if (wasOpen)

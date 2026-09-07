@@ -79,6 +79,20 @@ internal static class SaveIntegrity
                 ? null
                 : SortDictionary(profile.ExpectedPlatformItemIncreaseCounts),
             AppliedLinkTreeRewardIds = (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList(),
+            CollectionEventVictoryRewardClaimedEventIds = CanonicalizeEventIds(
+                profile.CollectionEventVictoryRewardClaimedEventIds),
+            CollectionEventFirstDogCallToActionShownEventIds = CanonicalizeEventIds(
+                profile.CollectionEventFirstDogCallToActionShownEventIds),
+            CollectionEventPendingFirstDogItemIdsByEvent =
+                profile.CollectionEventPendingFirstDogItemIdsByEvent == null
+                    ? null
+                    : profile.CollectionEventPendingFirstDogItemIdsByEvent
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            WishlistCallToActionLastShownAtUnixSeconds = Math.Max(
+                0,
+                profile.WishlistCallToActionLastShownAtUnixSeconds),
+            WishlistExitCallToActionSuppressed = profile.WishlistExitCallToActionSuppressed,
             LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? false,
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),
@@ -130,6 +144,17 @@ internal static class SaveIntegrity
         return (source ?? new Dictionary<int, int>())
             .OrderBy(pair => pair.Key)
             .ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+
+    private static List<string>? CanonicalizeEventIds(IEnumerable<string>? source)
+    {
+        var normalized = (source ?? [])
+            .Where(eventId => !string.IsNullOrWhiteSpace(eventId))
+            .Select(eventId => eventId.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(eventId => eventId, StringComparer.Ordinal)
+            .ToList();
+        return normalized.Count == 0 ? null : normalized;
     }
 
     private static BlindBoxRuntimeState CanonicalizeRuntimeState(BlindBoxRuntimeState? state)

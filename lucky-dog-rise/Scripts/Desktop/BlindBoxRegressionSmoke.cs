@@ -343,6 +343,15 @@ internal static class BlindBoxRegressionSmoke
             {
                 ["event-smoke"] = [2009, 2009, -1],
             },
+            CollectionEventVictoryRewardClaimedEventIds = [" event-smoke ", "event-smoke"],
+            CollectionEventFirstDogCallToActionShownEventIds = ["event-smoke"],
+            CollectionEventPendingFirstDogItemIdsByEvent = new Dictionary<string, int>
+            {
+                ["event-pending"] = 2009,
+                ["event-invalid"] = -1,
+            },
+            WishlistCallToActionLastShownAtUnixSeconds = -1,
+            WishlistExitCallToActionSuppressed = true,
         };
 
         var normalizedSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(liveProfile);
@@ -371,16 +380,35 @@ internal static class BlindBoxRegressionSmoke
         Assert(normalizedSnapshot.CollectionEventRevealedItemIdsByEvent?
                    .GetValueOrDefault("event-smoke")?.SequenceEqual([2009]) == true,
             "Save normalization did not preserve the independent collection-event reveal history.");
+        Assert(normalizedSnapshot.CollectionEventVictoryRewardClaimedEventIds?
+                   .SequenceEqual(["event-smoke"]) == true,
+            "Save normalization did not preserve unique collection-event victory claims.");
+        Assert(normalizedSnapshot.CollectionEventFirstDogCallToActionShownEventIds?
+                   .SequenceEqual(["event-smoke"]) == true,
+            "Save normalization did not preserve collection-event first-dog promotion state.");
+        Assert(normalizedSnapshot.CollectionEventPendingFirstDogItemIdsByEvent?
+                   .GetValueOrDefault("event-pending") == 2009
+               && normalizedSnapshot.CollectionEventPendingFirstDogItemIdsByEvent.Count == 1,
+            "Save normalization did not preserve valid pending first-dog promotion state.");
+        Assert(normalizedSnapshot.WishlistCallToActionLastShownAtUnixSeconds == 0
+               && normalizedSnapshot.WishlistExitCallToActionSuppressed,
+            "Save normalization did not normalize wishlist promotion state.");
 
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;
         normalizedSnapshot.BlindBoxRuntimeState.DrawnItemIdsByBlindBoxId![2002].Add(2013);
         normalizedSnapshot.CollectionEventRevealedItemIdsByEvent!["event-smoke"].Add(2013);
+        normalizedSnapshot.CollectionEventVictoryRewardClaimedEventIds!.Add("other-event");
+        normalizedSnapshot.CollectionEventPendingFirstDogItemIdsByEvent!["other-event"] = 2013;
         Assert(liveState.LockedPresentation != null,
             "Mutating the persistence snapshot changed the live locked presentation.");
         Assert(liveState.DrawnItemIdsByBlindBoxId[2002].SequenceEqual([2003, 2009]),
             "Mutating the persistence snapshot changed the live per-box draw history.");
         Assert(liveProfile.CollectionEventRevealedItemIdsByEvent["event-smoke"].SequenceEqual([2009, 2009, -1]),
             "Mutating the collection-event persistence snapshot changed the live reveal history.");
+        Assert(liveProfile.CollectionEventVictoryRewardClaimedEventIds.Count == 2,
+            "Mutating victory-claim persistence state changed the live save state.");
+        Assert(!liveProfile.CollectionEventPendingFirstDogItemIdsByEvent.ContainsKey("other-event"),
+            "Mutating pending first-dog persistence state changed the live save state.");
 
         var preparedProfile = new SaveProfile
         {

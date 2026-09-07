@@ -17,7 +17,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_wishlistCallToActionModule", "_wishlistCallToActionButton")]
+[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_wishlistCallToActionModule", "_wishlistCallToActionButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -27,6 +27,8 @@ _grandPrizeLeft = NodePath("GrandPrizeStage/GrandPrizeLeft")
 _grandPrizeCenter = NodePath("GrandPrizeStage/GrandPrizeCenter")
 _grandPrizeRight = NodePath("GrandPrizeStage/GrandPrizeRight")
 _collectionGrid = NodePath("CollectionGrid")
+_victoryRewardModule = NodePath("VictoryRewardMargins")
+_victoryRewardButton = NodePath("VictoryRewardMargins/VictoryRewardPlaceholder/ClaimButton")
 _wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
 _wishlistCallToActionButton = NodePath("WishlistCallToActionModule/Center/WishlistButton")
 
@@ -96,13 +98,12 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_victory_placeholder")
 
-[node name="PlaceholderLabel" type="Label" parent="VictoryRewardMargins/VictoryRewardPlaceholder"]
+[node name="ClaimButton" type="Button" parent="VictoryRewardMargins/VictoryRewardPlaceholder"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.333333, 0.282353, 0.2, 0.7)
 theme_override_font_sizes/font_size = 14
-text = "胜利香槟奖励区域（占位）"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_type_variation = &"ActionButton"
+text = "集齐全部奖励后可领取"
+disabled = true
 
 [node name="PromotionSlotBelow" type="VBoxContainer" parent="."]
 visible = false
@@ -121,7 +122,6 @@ layout_mode = 2
 [node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center"]
 custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
-theme_type_variation = &"ActionButton"
 text = "Wishlist"
 
 [node name="ScrollPreviewFiller" type="Control" parent="."]

@@ -36,6 +36,16 @@ public sealed class SaveProfile
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, List<int>>? CollectionEventRevealedItemIdsByEvent { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? CollectionEventVictoryRewardClaimedEventIds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? CollectionEventFirstDogCallToActionShownEventIds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, int>? CollectionEventPendingFirstDogItemIdsByEvent { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public long WishlistCallToActionLastShownAtUnixSeconds { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool WishlistExitCallToActionSuppressed { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();
     public PendingBlindBoxReward? PendingBlindBoxReward { get; set; }
@@ -573,6 +583,27 @@ public static class SaveManager
             if (profile.CollectionEventRevealedItemIdsByEvent.Count == 0)
                 profile.CollectionEventRevealedItemIdsByEvent = null;
         }
+        profile.CollectionEventVictoryRewardClaimedEventIds = NormalizeEventIds(
+            profile.CollectionEventVictoryRewardClaimedEventIds);
+        profile.CollectionEventFirstDogCallToActionShownEventIds = NormalizeEventIds(
+            profile.CollectionEventFirstDogCallToActionShownEventIds);
+        if (profile.CollectionEventPendingFirstDogItemIdsByEvent != null)
+        {
+            profile.CollectionEventPendingFirstDogItemIdsByEvent =
+                profile.CollectionEventPendingFirstDogItemIdsByEvent
+                    .Where(pair => !string.IsNullOrWhiteSpace(pair.Key)
+                                   && validIds.Contains(pair.Value))
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(
+                        pair => pair.Key.Trim(),
+                        pair => pair.Value,
+                        StringComparer.Ordinal);
+            if (profile.CollectionEventPendingFirstDogItemIdsByEvent.Count == 0)
+                profile.CollectionEventPendingFirstDogItemIdsByEvent = null;
+        }
+        profile.WishlistCallToActionLastShownAtUnixSeconds = Math.Max(
+            0,
+            profile.WishlistCallToActionLastShownAtUnixSeconds);
         var initialItemIds = LubanData.Tables.TbItem.DataList
             .Where(item => item.AcquisitionType == DataTables.EAcquisitionType.Initial)
             .Select(item => item.Id)
@@ -711,6 +742,17 @@ public static class SaveManager
             profile.OwnedItemCounts,
             legacyRefreshmentItemId);
         return profile;
+    }
+
+    private static List<string>? NormalizeEventIds(IEnumerable<string>? eventIds)
+    {
+        var normalized = (eventIds ?? [])
+            .Where(eventId => !string.IsNullOrWhiteSpace(eventId))
+            .Select(eventId => eventId.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(eventId => eventId, StringComparer.Ordinal)
+            .ToList();
+        return normalized.Count == 0 ? null : normalized;
     }
 
     private static void NormalizeDrawnBlindBoxItems(

@@ -25,6 +25,10 @@ public partial class GameData : Node
     [Signal] public delegate void RecoveredItemsChangedEventHandler();
     [Signal] public delegate void OutfitPresetsChangedEventHandler();
     [Signal] public delegate void CollectionEventStateChangedEventHandler(string eventId);
+    [Signal] public delegate void BlindBoxRewardClaimedEventHandler(
+        int blindBoxId,
+        int itemId,
+        bool firstOwnership);
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
     [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
@@ -64,6 +68,14 @@ public partial class GameData : Node
     private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
     private readonly Dictionary<string, HashSet<int>> _collectionEventRevealedItemIdsByEvent =
         new(StringComparer.Ordinal);
+    private readonly HashSet<string> _collectionEventVictoryRewardClaimedEventIds =
+        new(StringComparer.Ordinal);
+    private readonly HashSet<string> _collectionEventFirstDogCallToActionShownEventIds =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _collectionEventPendingFirstDogItemIdsByEvent =
+        new(StringComparer.Ordinal);
+    public long WishlistCallToActionLastShownAtUnixSeconds { get; private set; }
+    public bool WishlistExitCallToActionSuppressed { get; private set; }
     private Dictionary<int, int> _recoveredItemCounts = new();
     private Dictionary<int, int> _expectedPlatformItemIncreaseCounts = new();
     public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
@@ -2290,6 +2302,7 @@ public partial class GameData : Node
                 ? "Fallback"
                 : "ScheduledLocal";
         var previousProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
+        var firstOwnership = !Inventory.Owns(itemId);
         PendingBlindBoxReward = null;
         AddItem(itemId, count: 1, markNew: true, source: PlayerProgressSource.BlindBox);
         _blindBoxService.RecordClaimedReward(ActiveBlindBoxRuntimeState, blindBoxId, itemId);
@@ -2347,6 +2360,7 @@ public partial class GameData : Node
                 isPlatformReward,
                 completedSchedule);
         }
+        EmitSignal(SignalName.BlindBoxRewardClaimed, blindBoxId, itemId, firstOwnership);
         EmitSignal(SignalName.BlindBoxStateChanged);
         if (recoveredFromInterruptedReveal)
             SaveImmediatelyIfUsingLocalSave();
@@ -2883,6 +2897,11 @@ public partial class GameData : Node
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
         _collectionEventRevealedItemIdsByEvent.Clear();
+        _collectionEventVictoryRewardClaimedEventIds.Clear();
+        _collectionEventFirstDogCallToActionShownEventIds.Clear();
+        _collectionEventPendingFirstDogItemIdsByEvent.Clear();
+        WishlistCallToActionLastShownAtUnixSeconds = 0;
+        WishlistExitCallToActionSuppressed = false;
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -3013,6 +3032,11 @@ public partial class GameData : Node
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
         _collectionEventRevealedItemIdsByEvent.Clear();
+        _collectionEventVictoryRewardClaimedEventIds.Clear();
+        _collectionEventFirstDogCallToActionShownEventIds.Clear();
+        _collectionEventPendingFirstDogItemIdsByEvent.Clear();
+        WishlistCallToActionLastShownAtUnixSeconds = 0;
+        WishlistExitCallToActionSuppressed = false;
         Inventory.LoadState(
             defaults.OwnedItemCounts,
             defaults.EquippedItemIdsByType,
@@ -3165,6 +3189,100 @@ public partial class GameData : Node
         return true;
     }
 
+    public bool IsCollectionEventVictoryRewardClaimed(string eventId) =>
+        !string.IsNullOrWhiteSpace(eventId)
+        && _collectionEventVictoryRewardClaimedEventIds.Contains(eventId.Trim());
+
+    public bool TryClaimCollectionEventVictoryReward(
+        string eventId,
+        int rewardItemId,
+        int rewardQuantity)
+    {
+        if (string.IsNullOrWhiteSpace(eventId)
+            || rewardQuantity <= 0
+            || LubanData.Tables.TbItem.GetOrDefault(rewardItemId) == null)
+            return false;
+
+        var normalizedEventId = eventId.Trim();
+        if (_collectionEventVictoryRewardClaimedEventIds.Contains(normalizedEventId))
+            return false;
+
+        AddItem(
+            rewardItemId,
+            rewardQuantity,
+            markNew: true,
+            source: PlayerProgressSource.Gameplay);
+        _collectionEventVictoryRewardClaimedEventIds.Add(normalizedEventId);
+        EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
+    public int GetPendingCollectionEventFirstDogItemId(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+            return 0;
+        return _collectionEventPendingFirstDogItemIdsByEvent.GetValueOrDefault(eventId.Trim());
+    }
+
+    public bool TryQueueCollectionEventFirstDogCallToAction(string eventId, int itemId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId)
+            || itemId <= 0
+            || !Inventory.Owns(itemId))
+            return false;
+
+        var normalizedEventId = eventId.Trim();
+        if (_collectionEventFirstDogCallToActionShownEventIds.Contains(normalizedEventId)
+            || _collectionEventPendingFirstDogItemIdsByEvent.ContainsKey(normalizedEventId))
+            return false;
+
+        _collectionEventPendingFirstDogItemIdsByEvent[normalizedEventId] = itemId;
+        EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
+    public bool MarkCollectionEventFirstDogCallToActionShown(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+            return false;
+
+        var normalizedEventId = eventId.Trim();
+        var changed = _collectionEventFirstDogCallToActionShownEventIds.Add(normalizedEventId);
+        changed |= _collectionEventPendingFirstDogItemIdsByEvent.Remove(normalizedEventId);
+        if (!changed)
+            return false;
+
+        EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
+    public bool IsWishlistCallToActionCooldownReady(int cooldownSeconds)
+    {
+        if (WishlistCallToActionLastShownAtUnixSeconds <= 0)
+            return true;
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        return now - WishlistCallToActionLastShownAtUnixSeconds >= Math.Max(0, cooldownSeconds);
+    }
+
+    public void MarkWishlistCallToActionShown()
+    {
+        WishlistCallToActionLastShownAtUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
+    public void SetWishlistExitCallToActionSuppressed(bool suppressed)
+    {
+        if (WishlistExitCallToActionSuppressed == suppressed)
+            return;
+
+        WishlistExitCallToActionSuppressed = suppressed;
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
     private void ClampRecoveredItemsToInventory()
     {
         var changed = false;
@@ -3252,6 +3370,26 @@ public partial class GameData : Node
                         pair => pair.Key,
                         pair => pair.Value.OrderBy(id => id).ToList(),
                         StringComparer.Ordinal),
+            CollectionEventVictoryRewardClaimedEventIds =
+                _collectionEventVictoryRewardClaimedEventIds.Count == 0
+                    ? null
+                    : _collectionEventVictoryRewardClaimedEventIds
+                        .OrderBy(eventId => eventId, StringComparer.Ordinal)
+                        .ToList(),
+            CollectionEventFirstDogCallToActionShownEventIds =
+                _collectionEventFirstDogCallToActionShownEventIds.Count == 0
+                    ? null
+                    : _collectionEventFirstDogCallToActionShownEventIds
+                        .OrderBy(eventId => eventId, StringComparer.Ordinal)
+                        .ToList(),
+            CollectionEventPendingFirstDogItemIdsByEvent =
+                _collectionEventPendingFirstDogItemIdsByEvent.Count == 0
+                    ? null
+                    : _collectionEventPendingFirstDogItemIdsByEvent
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            WishlistCallToActionLastShownAtUnixSeconds = WishlistCallToActionLastShownAtUnixSeconds,
+            WishlistExitCallToActionSuppressed = WishlistExitCallToActionSuppressed,
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
@@ -3334,6 +3472,23 @@ public partial class GameData : Node
                 .Where(id => id > 0)
                 .ToHashSet();
         }
+
+        _collectionEventVictoryRewardClaimedEventIds.Clear();
+        foreach (var eventId in profile.CollectionEventVictoryRewardClaimedEventIds ?? [])
+            _collectionEventVictoryRewardClaimedEventIds.Add(eventId);
+
+        _collectionEventFirstDogCallToActionShownEventIds.Clear();
+        foreach (var eventId in profile.CollectionEventFirstDogCallToActionShownEventIds ?? [])
+            _collectionEventFirstDogCallToActionShownEventIds.Add(eventId);
+
+        _collectionEventPendingFirstDogItemIdsByEvent.Clear();
+        foreach (var (eventId, itemId) in profile.CollectionEventPendingFirstDogItemIdsByEvent
+                     ?? new Dictionary<string, int>())
+            _collectionEventPendingFirstDogItemIdsByEvent[eventId] = itemId;
+
+        WishlistCallToActionLastShownAtUnixSeconds =
+            profile.WishlistCallToActionLastShownAtUnixSeconds;
+        WishlistExitCallToActionSuppressed = profile.WishlistExitCallToActionSuppressed;
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)

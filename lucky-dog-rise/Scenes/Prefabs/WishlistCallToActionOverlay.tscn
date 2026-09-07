@@ -1,0 +1,122 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Desktop/WishlistCallToActionOverlayController.cs" id="1_controller"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
+[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="5_inter_regular"]
+[ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="6_misans_regular"]
+
+[sub_resource type="FontVariation" id="font_title"]
+fallbacks = Array[Font]([ExtResource("4_misans_bold")])
+base_font = ExtResource("3_inter_bold")
+
+[sub_resource type="FontVariation" id="font_message"]
+fallbacks = Array[Font]([ExtResource("6_misans_regular")])
+base_font = ExtResource("5_inter_regular")
+
+[sub_resource type="StyleBoxFlat" id="overlay_bg"]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0, 0, 0, 0.92156863)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="message_bg"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 0.08)
+draw_center = false
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="WishlistCallToActionOverlay" type="Control"]
+visible = false
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_controller")
+
+[node name="OverlayPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("overlay_bg")
+
+[node name="Margin" type="MarginContainer" parent="OverlayPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="OverlayPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TopSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 22
+text = "喜欢这只小狗吗？"
+horizontal_alignment = 1
+
+[node name="MessageBg" type="PanelContainer" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("message_bg")
+
+[node name="Message" type="Label" parent="OverlayPanel/Margin/Content/MessageBg"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_fonts/font = SubResource("font_message")
+theme_override_font_sizes/font_size = 16
+theme_override_constants/line_spacing = 3
+text = "把《小狗来啦》加入愿望单吧！正式版上线时，Steam 会第一时间提醒你。"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="SuppressExitCheckBox" type="CheckBox" parent="OverlayPanel/Margin/Content"]
+visible = false
+layout_mode = 2
+text = "以后退出时不再提醒"
+
+[node name="ButtonRow" type="HBoxContainer" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="SecondaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(138, 42)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "稍后再说"
+
+[node name="PrimaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(168, 42)
+layout_mode = 2
+text = "加入愿望单"
+
+[node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
