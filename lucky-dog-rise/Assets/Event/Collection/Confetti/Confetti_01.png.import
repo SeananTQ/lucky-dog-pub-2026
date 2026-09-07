@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://obv7w71k7xsv"
-path="res://.godot/imported/ItemUI_ScratchCover_Reveal1.png-30ca0267aba683ccbf3c966f65e2ebe8.ctex"
+uid="uid://2x1vyt1cvwo5"
+path="res://.godot/imported/Confetti_01.png-ce7f5f1352500b53a29f1ce240887060.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Event/ItemUI_ScratchCover_Reveal1.png"
-dest_files=["res://.godot/imported/ItemUI_ScratchCover_Reveal1.png-30ca0267aba683ccbf3c966f65e2ebe8.ctex"]
+source_file="res://Assets/Event/Collection/Confetti/Confetti_01.png"
+dest_files=["res://.godot/imported/Confetti_01.png-ce7f5f1352500b53a29f1ce240887060.ctex"]
 
 [params]
 
