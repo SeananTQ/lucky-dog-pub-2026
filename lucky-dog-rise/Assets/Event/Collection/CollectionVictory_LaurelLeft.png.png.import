@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bgid0ngpvplfr"
-path="res://.godot/imported/ItemUI_ScratchCcover_Reveal1.png-50a3024e0607b3b7cd44d2686eac22d6.ctex"
+uid="uid://b5tuyamgxo3gu"
+path="res://.godot/imported/CollectionVictory_LaurelLeft.png.png-a7653e6f20dc64568f105b8888fa1566.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Event/ItemUI_ScratchCcover_Reveal1.png"
-dest_files=["res://.godot/imported/ItemUI_ScratchCcover_Reveal1.png-50a3024e0607b3b7cd44d2686eac22d6.ctex"]
+source_file="res://Assets/Event/Collection/CollectionVictory_LaurelLeft.png.png"
+dest_files=["res://.godot/imported/CollectionVictory_LaurelLeft.png.png-a7653e6f20dc64568f105b8888fa1566.ctex"]
 
 [params]
 

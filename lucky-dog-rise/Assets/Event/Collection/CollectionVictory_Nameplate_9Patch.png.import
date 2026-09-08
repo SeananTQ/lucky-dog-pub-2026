@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c00haccy7hhr3"
-path="res://.godot/imported/ItemUI_ScratchCcover_Full.png-177ffeb05d207aa85d846952900f6d62.ctex"
+uid="uid://cif30j5qjypme"
+path="res://.godot/imported/CollectionVictory_Nameplate_9Patch.png-508ae0eeae5107c4b46047c7c9cd5e7b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Event/ItemUI_ScratchCcover_Full.png"
-dest_files=["res://.godot/imported/ItemUI_ScratchCcover_Full.png-177ffeb05d207aa85d846952900f6d62.ctex"]
+source_file="res://Assets/Event/Collection/CollectionVictory_Nameplate_9Patch.png"
+dest_files=["res://.godot/imported/CollectionVictory_Nameplate_9Patch.png-508ae0eeae5107c4b46047c7c9cd5e7b.ctex"]
 
 [params]
 

@@ -43,7 +43,7 @@ internal static class BlindBoxRegressionSmoke
         try
         {
             var schedules = BlindBoxService.GetSequenceSchedules();
-            Assert(schedules.Count == 16 && schedules[0].Id == 3001,
+            Assert(schedules.Count == 15 && schedules[0].Id == 3001,
                 "The developer launcher Demo selection did not activate the Demo schedule chain.");
             Assert(BuildInfo.IsDebugDemo
                    && BuildCapabilities.CollectionEvents
@@ -71,10 +71,10 @@ internal static class BlindBoxRegressionSmoke
         const int normalDemoBlindBoxId = 2002;
         const int goodDemoBlindBoxId = 2003;
         var schedules = BlindBoxService.GetSequenceSchedules(DataTables.EBuildChannelMask.Demo);
-        Assert(schedules.Count == 16,
-            "The Demo first-run sequence does not contain the configured 16 Schedules.");
-        Assert(schedules.Count(schedule => schedule.BlindBoxId == normalDemoBlindBoxId) == 13,
-            "The Demo sequence does not contain 13 normal blind-box presentations.");
+        Assert(schedules.Count == 15,
+            "The Demo first-run sequence does not contain the configured 15 Schedules.");
+        Assert(schedules.Count(schedule => schedule.BlindBoxId == normalDemoBlindBoxId) == 12,
+            "The Demo sequence does not contain 12 normal blind-box presentations.");
         Assert(schedules.Count(schedule => schedule.BlindBoxId == goodDemoBlindBoxId) == 3,
             "The Demo sequence does not contain 3 good blind-box presentations.");
         Assert(!LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
@@ -85,12 +85,14 @@ internal static class BlindBoxRegressionSmoke
 
         var normalDemoBox = LubanData.Tables.TbBlindBox.GetOrDefault(normalDemoBlindBoxId)
             ?? throw new InvalidOperationException("Missing normal Demo blind box.");
-        var firstPrice = service.ResolvePrice(schedules[0], normalDemoBox, useScheduleOverride: true);
-        var secondPrice = service.ResolvePrice(schedules[1], normalDemoBox, useScheduleOverride: true);
-        Assert(firstPrice.ActualCost == 0 && firstPrice.StrikeThrough,
-            "The first Demo blind box is not using its configured free price override.");
-        Assert(secondPrice.ActualCost > 0 && !secondPrice.StrikeThrough,
-            "The second Demo blind box is not inheriting its normal chip cost.");
+        foreach (var schedule in schedules)
+        {
+            var scheduledBox = LubanData.Tables.TbBlindBox.GetOrDefault(schedule.BlindBoxId)
+                ?? throw new InvalidOperationException($"Missing Demo blind box {schedule.BlindBoxId}.");
+            var price = service.ResolvePrice(schedule, scheduledBox, useScheduleOverride: true);
+            Assert(price.ActualCost == 0 && price.StrikeThrough,
+                $"Demo Schedule {schedule.Id} is not using its configured free price override.");
+        }
         var poolItemIds = LubanData.Tables.TbBlindBoxItemWeight.DataList
             .Where(entry => entry.IsEnabled
                             && entry.BlindBoxId == normalDemoBlindBoxId
@@ -98,8 +100,8 @@ internal static class BlindBoxRegressionSmoke
             .Select(entry => entry.ItemId)
             .Distinct()
             .ToList();
-        Assert(poolItemIds.Count == 13,
-            "The normal Demo blind box does not contain the configured 13-item collection.");
+        Assert(poolItemIds.Count == 12,
+            "The normal Demo blind box does not contain the configured 12-item collection.");
 
         var remainingItemId = poolItemIds[^1];
         var state = new BlindBoxRuntimeState
