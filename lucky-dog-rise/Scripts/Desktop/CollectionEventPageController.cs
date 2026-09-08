@@ -35,6 +35,8 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private GridContainer _collectionGrid = null!;
     [Export] private Control _victoryRewardModule = null!;
     [Export] private Button _victoryRewardButton = null!;
+    [Export] private Label _victoryRewardTitle = null!;
+    [Export] private Label _victoryRewardDetail = null!;
     [Export] private Control _wishlistCallToActionModule = null!;
     [Export] private Button _wishlistCallToActionButton = null!;
     [Export] private Button _celebrationTestButton = null!;
@@ -45,6 +47,7 @@ public partial class CollectionEventPageController : VBoxContainer
     private int _revealRequestVersion;
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
+    public event Action VictoryRewardClaimRequested;
     public event Action VictoryRewardClaimed;
     public event Action CelebrationTestRequested;
 
@@ -53,7 +56,7 @@ public partial class CollectionEventPageController : VBoxContainer
     public override void _Ready()
     {
         VisibilityChanged += OnVisibilityChanged;
-        _victoryRewardButton.Pressed += ClaimVictoryReward;
+        _victoryRewardButton.Pressed += RequestVictoryRewardClaim;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
         _celebrationTestButton.Visible = OS.IsDebugBuild();
         if (_celebrationTestButton.Visible)
@@ -280,19 +283,50 @@ public partial class CollectionEventPageController : VBoxContainer
                        && rewardItemIds.All(_gameData.Inventory.Owns);
         var allRevealed = allOwned && rewardItemIds.All(revealedIds.Contains);
         _victoryRewardButton.Disabled = victoryClaimed || !allRevealed;
-        _victoryRewardButton.Text = victoryClaimed
-            ? $"已领取胜利香槟 ×{_definition.VictoryRewardQuantity}"
-            : allOwned && !allRevealed
-                ? "正在揭晓最后的奖励…"
-                : allRevealed
-                    ? $"领取胜利香槟 ×{_definition.VictoryRewardQuantity}"
-                    : "集齐全部奖励后可领取";
+        _victoryRewardButton.TooltipText = victoryClaimed
+            ? "本期庆典奖励已经领取"
+            : allRevealed
+                ? "点击领取庆典奖励"
+                : "集齐并揭晓全部活动奖励后即可领取";
+
+        if (victoryClaimed)
+        {
+            _victoryRewardTitle.Text = "Demo 庆典已完成";
+            _victoryRewardDetail.Text = $"已领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+        }
+        else if (allOwned && !allRevealed)
+        {
+            _victoryRewardTitle.Text = "Demo 庆典即将完成";
+            _victoryRewardDetail.Text = "正在揭晓最后的奖励…";
+        }
+        else if (allRevealed)
+        {
+            _victoryRewardTitle.Text = "Demo 庆典已完成";
+            _victoryRewardDetail.Text = $"点击领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+        }
+        else
+        {
+            _victoryRewardTitle.Text = "Demo 庆典活动";
+            _victoryRewardDetail.Text = $"集齐全部奖励，领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+        }
     }
 
-    private void ClaimVictoryReward()
+    private void RequestVictoryRewardClaim()
     {
         if (_gameData == null || _definition == null || _victoryRewardButton.Disabled)
             return;
+
+        _victoryRewardButton.Disabled = true;
+        if (VictoryRewardClaimRequested == null)
+            CompleteVictoryRewardClaim();
+        else
+            VictoryRewardClaimRequested.Invoke();
+    }
+
+    public bool CompleteVictoryRewardClaim()
+    {
+        if (_gameData == null || _definition == null)
+            return false;
 
         if (!_gameData.TryClaimCollectionEventVictoryReward(
                 _definition.EventId,
@@ -300,10 +334,12 @@ public partial class CollectionEventPageController : VBoxContainer
                 _definition.VictoryRewardQuantity))
         {
             GD.PushWarning("[CollectionEvent] Victory reward claim was rejected.");
-            return;
+            RefreshPresentation();
+            return false;
         }
 
         RefreshPresentation();
         VictoryRewardClaimed?.Invoke();
+        return true;
     }
 }

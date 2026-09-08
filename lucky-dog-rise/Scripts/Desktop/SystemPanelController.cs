@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using DataTables;
 
 namespace LuckyDogRise;
@@ -110,6 +111,9 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _linkTreeContent = null!;
     private CollectionEventPageController _collectionEventContent = null!;
     private CollectionCelebrationConfettiController _collectionCelebrationConfetti = null!;
+    private Tween _collectionEventRewardScrollTween;
+    private bool _collectionEventRewardClaimInProgress;
+    private bool _collectionEventCelebrationTestInProgress;
     private WishlistCallToActionOverlayController _wishlistCallToActionOverlay = null!;
     private WishlistCallToActionReason _wishlistCallToActionReason;
     private VBoxContainer _outfitPresetContent = null!;
@@ -396,6 +400,7 @@ public partial class SystemPanelController : CanvasLayer
         _wishlistCallToActionOverlay.PrimaryPressed += OnWishlistCallToActionPrimaryPressed;
         _wishlistCallToActionOverlay.SecondaryPressed += OnWishlistCallToActionSecondaryPressed;
         _collectionEventContent.RewardsRevealed += OnCollectionEventRewardsRevealed;
+        _collectionEventContent.VictoryRewardClaimRequested += OnCollectionEventVictoryRewardClaimRequested;
         _collectionEventContent.VictoryRewardClaimed += OnCollectionEventVictoryRewardClaimed;
         _collectionEventContent.CelebrationTestRequested += OnCollectionEventCelebrationTestRequested;
         _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
@@ -812,6 +817,7 @@ public partial class SystemPanelController : CanvasLayer
         if (_collectionEventContent != null)
         {
             _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
+            _collectionEventContent.VictoryRewardClaimRequested -= OnCollectionEventVictoryRewardClaimRequested;
             _collectionEventContent.VictoryRewardClaimed -= OnCollectionEventVictoryRewardClaimed;
             _collectionEventContent.CelebrationTestRequested -= OnCollectionEventCelebrationTestRequested;
         }
@@ -1032,6 +1038,11 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
+        _panelScroll.ScrollVertical = CalculateCollectionEventScroll(target);
+    }
+
+    private int CalculateCollectionEventScroll(CollectionEventEntryScrollTarget target)
+    {
         var anchor = _collectionEventContent.GetScrollAnchor(target);
         var targetScroll = _panelScroll.ScrollVertical
                            + Mathf.RoundToInt(
@@ -1041,7 +1052,7 @@ public partial class SystemPanelController : CanvasLayer
         var maximumScroll = Mathf.Max(
             0,
             Mathf.RoundToInt(verticalScrollBar.MaxValue - verticalScrollBar.Page));
-        _panelScroll.ScrollVertical = Mathf.Clamp(targetScroll, 0, maximumScroll);
+        return Mathf.Clamp(targetScroll, 0, maximumScroll);
     }
 
     private static CollectionEventDefinition CreateCurrentCollectionEventDefinition()
@@ -1153,14 +1164,66 @@ public partial class SystemPanelController : CanvasLayer
             ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
     }
 
+    private async void OnCollectionEventVictoryRewardClaimRequested()
+    {
+        if (_collectionEventRewardClaimInProgress || _collectionEventCelebrationTestInProgress)
+            return;
+
+        _collectionEventRewardClaimInProgress = true;
+        try
+        {
+            await ScrollCollectionEventToCelebrationPositionAsync();
+            _collectionEventContent.CompleteVictoryRewardClaim();
+        }
+        finally
+        {
+            _collectionEventRewardClaimInProgress = false;
+        }
+    }
+
     private void OnCollectionEventVictoryRewardClaimed()
     {
         _collectionCelebrationConfetti?.Play();
     }
 
-    private void OnCollectionEventCelebrationTestRequested()
+    private async void OnCollectionEventCelebrationTestRequested()
     {
-        _collectionCelebrationConfetti?.TryPlay();
+        if (_collectionEventCelebrationTestInProgress || _collectionEventRewardClaimInProgress)
+            return;
+
+        _collectionEventCelebrationTestInProgress = true;
+        try
+        {
+            await ScrollCollectionEventToCelebrationPositionAsync();
+            _collectionCelebrationConfetti?.TryPlay();
+        }
+        finally
+        {
+            _collectionEventCelebrationTestInProgress = false;
+        }
+    }
+
+    private async Task ScrollCollectionEventToCelebrationPositionAsync()
+    {
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var targetScroll = CalculateCollectionEventScroll(
+            CollectionEventEntryScrollTarget.Collection);
+        if (Math.Abs(_panelScroll.ScrollVertical - targetScroll) > 1)
+        {
+            _collectionEventRewardScrollTween?.Kill();
+            _collectionEventRewardScrollTween = CreateTween()
+                .SetTrans(Tween.TransitionType.Cubic)
+                .SetEase(Tween.EaseType.Out);
+            _collectionEventRewardScrollTween.TweenProperty(
+                _panelScroll,
+                "scroll_vertical",
+                targetScroll,
+                0.35);
+            await ToSignal(_collectionEventRewardScrollTween, Tween.SignalName.Finished);
+            _collectionEventRewardScrollTween = null;
+        }
+
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
     private void TryShowPendingFirstDogWishlistCallToAction()

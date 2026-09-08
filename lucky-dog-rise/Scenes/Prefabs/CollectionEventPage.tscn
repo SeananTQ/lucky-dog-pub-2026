@@ -1,14 +1,28 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://bps8mk4cg7sgo"]
 
-[ext_resource type="Script" path="res://Scripts/Desktop/CollectionEventPageController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://ychxs1h3dgtc" path="res://Scripts/Desktop/CollectionEventPageController.cs" id="1_controller"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventRewardCell.tscn" id="2_reward_cell"]
+[ext_resource type="Texture2D" uid="uid://cif30j5qjypme" path="res://Assets/Event/Collection/CollectionVictory_Nameplate_9Patch.png" id="3_nameplate"]
+[ext_resource type="Texture2D" uid="uid://b0261mrwng4un" path="res://Assets/Event/Collection/CollectionVictory_LaurelLeft.png" id="4_glss8"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="6_inter_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="7_misans_bold"]
+[ext_resource type="Texture2D" uid="uid://dxisyy18xlv8i" path="res://Assets/Event/Collection/CollectionVictory_LaurelRight.png" id="7_yribo"]
+[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="8_inter_regular"]
+[ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="9_misans_regular"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_victory_placeholder"]
-bg_color = Color(0.94902, 0.886275, 0.729412, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="FontVariation" id="FontVariation_victory_title"]
+fallbacks = Array[Font]([ExtResource("7_misans_bold")])
+base_font = ExtResource("6_inter_bold")
+
+[sub_resource type="FontVariation" id="FontVariation_victory_detail"]
+fallbacks = Array[Font]([ExtResource("7_misans_bold")])
+base_font = ExtResource("6_inter_bold")
+
+[sub_resource type="FontVariation" id="FontVariation_activity_body"]
+fallbacks = Array[Font]([ExtResource("9_misans_regular")])
+base_font = ExtResource("8_inter_regular")
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_victory_button"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_preview"]
 bg_color = Color(0.145098, 0.2, 0.215686, 1)
@@ -17,7 +31,19 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_wishlistCallToActionModule", "_wishlistCallToActionButton", "_celebrationTestButton")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_activity_info"]
+bg_color = Color(0.0823529, 0.137255, 0.14902, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.211765, 0.32549, 0.345098, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionButton", "_celebrationTestButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -28,31 +54,33 @@ _grandPrizeCenter = NodePath("GrandPrizeStage/GrandPrizeCenter")
 _grandPrizeRight = NodePath("GrandPrizeStage/GrandPrizeRight")
 _collectionGrid = NodePath("CollectionGrid")
 _victoryRewardModule = NodePath("VictoryRewardMargins")
-_victoryRewardButton = NodePath("VictoryRewardMargins/VictoryRewardPlaceholder/ClaimButton")
+_victoryRewardButton = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ClaimButton")
+_victoryRewardTitle = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow/Copy/Title")
+_victoryRewardDetail = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow/Copy/Detail")
 _wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
 _wishlistCallToActionButton = NodePath("WishlistCallToActionModule/Center/ButtonRow/WishlistButton")
 _celebrationTestButton = NodePath("WishlistCallToActionModule/Center/ButtonRow/CelebrationTestButton")
 
-[node name="TopGap" type="Control" parent="."]
+[node name="TopGap" type="Control" parent="." unique_id=1017763785]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="PromotionSlotAbove" type="VBoxContainer" parent="."]
+[node name="PromotionSlotAbove" type="VBoxContainer" parent="." unique_id=1393487961]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CollectionModuleAnchor" type="Control" parent="."]
+[node name="CollectionModuleAnchor" type="Control" parent="." unique_id=1018644744]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="GrandPrizeStage" type="Control" parent="."]
+[node name="GrandPrizeStage" type="Control" parent="." unique_id=878847875]
 custom_minimum_size = Vector2(0, 118)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="GrandPrizeLeft" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+[node name="GrandPrizeLeft" parent="GrandPrizeStage" unique_id=1603418988 instance=ExtResource("2_reward_cell")]
 custom_minimum_size = Vector2(90, 90)
 layout_mode = 0
 offset_left = 22.0
@@ -60,7 +88,7 @@ offset_top = 22.0
 offset_right = 112.0
 offset_bottom = 112.0
 
-[node name="GrandPrizeCenter" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+[node name="GrandPrizeCenter" parent="GrandPrizeStage" unique_id=1531132987 instance=ExtResource("2_reward_cell")]
 custom_minimum_size = Vector2(104, 104)
 layout_mode = 0
 anchor_left = 0.5
@@ -70,7 +98,7 @@ offset_right = 52.0
 offset_bottom = 104.0
 grow_horizontal = 2
 
-[node name="GrandPrizeRight" parent="GrandPrizeStage" instance=ExtResource("2_reward_cell")]
+[node name="GrandPrizeRight" parent="GrandPrizeStage" unique_id=1774004260 instance=ExtResource("2_reward_cell")]
 custom_minimum_size = Vector2(90, 90)
 layout_mode = 0
 anchor_left = 1.0
@@ -81,62 +109,167 @@ offset_right = -22.0
 offset_bottom = 112.0
 grow_horizontal = 0
 
-[node name="CollectionGrid" type="GridContainer" parent="."]
+[node name="CollectionGrid" type="GridContainer" parent="." unique_id=255761351]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 6
 
-[node name="VictoryRewardMargins" type="MarginContainer" parent="."]
+[node name="VictoryRewardMargins" type="MarginContainer" parent="." unique_id=536671248]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_right = 10
 
-[node name="VictoryRewardPlaceholder" type="PanelContainer" parent="VictoryRewardMargins"]
-custom_minimum_size = Vector2(0, 110)
+[node name="CollectionVictoryNameplate" type="NinePatchRect" parent="VictoryRewardMargins" unique_id=384316616]
+custom_minimum_size = Vector2(0, 108)
+layout_mode = 2
+texture = ExtResource("3_nameplate")
+patch_margin_left = 34
+patch_margin_top = 26
+patch_margin_right = 34
+patch_margin_bottom = 26
+
+[node name="ContentMargins" type="MarginContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate" unique_id=2128866170]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 16
+
+[node name="ContentRow" type="HBoxContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins" unique_id=1624673243]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_victory_placeholder")
+theme_override_constants/separation = 6
 
-[node name="ClaimButton" type="Button" parent="VictoryRewardMargins/VictoryRewardPlaceholder"]
+[node name="LaurelLeft" type="TextureRect" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow" unique_id=1773119671]
+custom_minimum_size = Vector2(44, 68)
 layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_glss8")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow" unique_id=704812857]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow/Copy" unique_id=1516602019]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.403922, 0.231373, 0.117647, 1)
+theme_override_colors/font_outline_color = Color(1, 0.870588, 0.568627, 0.7)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = SubResource("FontVariation_victory_title")
+theme_override_font_sizes/font_size = 18
+text = "Demo 庆典活动"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="Detail" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow/Copy" unique_id=1655836239]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.494118, 0.282353, 0.12549, 1)
+theme_override_fonts/font = SubResource("FontVariation_victory_detail")
 theme_override_font_sizes/font_size = 14
-theme_type_variation = &"ActionButton"
 text = "集齐全部奖励后可领取"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="LaurelRight" type="TextureRect" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentRow" unique_id=1904844780]
+custom_minimum_size = Vector2(44, 68)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("7_yribo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClaimButton" type="Button" parent="VictoryRewardMargins/CollectionVictoryNameplate" unique_id=1189140237]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_victory_button")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_victory_button")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_victory_button")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_victory_button")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_victory_button")
 disabled = true
 
-[node name="PromotionSlotBelow" type="VBoxContainer" parent="."]
+[node name="PromotionSlotBelow" type="VBoxContainer" parent="." unique_id=1994696205]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="WishlistCallToActionModule" type="PanelContainer" parent="."]
+[node name="WishlistCallToActionModule" type="PanelContainer" parent="." unique_id=175081191]
 custom_minimum_size = Vector2(0, 132)
 layout_mode = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_scroll_preview")
 
-[node name="Center" type="CenterContainer" parent="WishlistCallToActionModule"]
+[node name="Center" type="CenterContainer" parent="WishlistCallToActionModule" unique_id=2084537075]
 layout_mode = 2
 
-[node name="ButtonRow" type="HBoxContainer" parent="WishlistCallToActionModule/Center"]
+[node name="ButtonRow" type="HBoxContainer" parent="WishlistCallToActionModule/Center" unique_id=278369327]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow"]
+[node name="WishlistButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow" unique_id=935988656]
 custom_minimum_size = Vector2(145, 44)
 layout_mode = 2
 text = "Wishlist"
 
-[node name="CelebrationTestButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow"]
+[node name="CelebrationTestButton" type="Button" parent="WishlistCallToActionModule/Center/ButtonRow" unique_id=1900603752]
 custom_minimum_size = Vector2(145, 44)
 layout_mode = 2
+tooltip_text = "播放一次收集活动胜利礼花；当前礼花结束前重复点击不会叠加。"
 theme_type_variation = &"SecondaryButton"
 text = "测试礼花"
-tooltip_text = "播放一次收集活动胜利礼花；当前礼花结束前重复点击不会叠加。"
 
-[node name="ScrollPreviewFiller" type="Control" parent="."]
-custom_minimum_size = Vector2(0, 160)
+[node name="ActivityInfoModule" type="PanelContainer" parent="."]
 layout_mode = 2
 mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_activity_info")
+
+[node name="Margins" type="MarginContainer" parent="ActivityInfoModule"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="ActivityInfoModule/Margins"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 7
+
+[node name="Title" type="Label" parent="ActivityInfoModule/Margins/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.807843, 0.87451, 0.878431, 1)
+theme_override_fonts/font = SubResource("FontVariation_victory_detail")
+theme_override_font_sizes/font_size = 14
+text = "活动说明"
+
+[node name="Body" type="Label" parent="ActivityInfoModule/Margins/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.619608, 0.698039, 0.709804, 1)
+theme_override_fonts/font = SubResource("FontVariation_activity_body")
+theme_override_font_sizes/font_size = 12
+theme_override_constants/line_spacing = 3
+text = "本次 Demo 中的盲盒属于“Demo 庆典”活动收集盲盒，用于展示试玩期间的收集体验。\n\n盲盒内容、获取节奏和奖励范围仅适用于本次 Demo，正式版上线时可能有所调整。\n\nDemo 收集进度与正式版相互独立；参与过 Demo 的玩家可在正式版中领取一份专属参与礼包。"
+autowrap_mode = 3
