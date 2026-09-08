@@ -228,9 +228,10 @@ public partial class CollectionEventPageController : VBoxContainer
             _revealRequestVersion++;
     }
 
-    private static void OpenWishlistCallToAction()
+    private void OpenWishlistCallToAction()
     {
-        WishlistCallToAction.OpenConfiguredUrl("collection_page");
+        if (WishlistCallToAction.OpenConfiguredUrl("collection_page") == Error.Ok)
+            _gameData?.SetWishlistCallToActionPageOpened(true);
     }
 
     private async void QueuePendingReveals()

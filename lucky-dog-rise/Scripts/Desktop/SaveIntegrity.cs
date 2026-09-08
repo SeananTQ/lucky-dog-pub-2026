@@ -93,6 +93,7 @@ internal static class SaveIntegrity
                 0,
                 profile.WishlistCallToActionLastShownAtUnixSeconds),
             WishlistExitCallToActionSuppressed = profile.WishlistExitCallToActionSuppressed,
+            WishlistCallToActionPageOpened = profile.WishlistCallToActionPageOpened,
             LinkTreeRewardLedgerInitialized = profile.LinkTreeRewardLedgerInitialized ?? false,
             BlindBoxRuntimeState = CanonicalizeRuntimeState(profile.BlindBoxRuntimeState),
             PendingBlindBoxReward = CanonicalizePendingReward(profile.PendingBlindBoxReward),

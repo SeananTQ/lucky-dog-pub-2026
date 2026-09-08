@@ -45,6 +45,8 @@ public sealed class SaveProfile
     public long WishlistCallToActionLastShownAtUnixSeconds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool WishlistExitCallToActionSuppressed { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool WishlistCallToActionPageOpened { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? LinkTreeRewardLedgerInitialized { get; set; } = true;
     public BlindBoxRuntimeState BlindBoxRuntimeState { get; set; } = new();

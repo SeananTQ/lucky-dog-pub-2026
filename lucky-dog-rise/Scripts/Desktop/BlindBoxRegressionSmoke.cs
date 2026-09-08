@@ -352,6 +352,7 @@ internal static class BlindBoxRegressionSmoke
             },
             WishlistCallToActionLastShownAtUnixSeconds = -1,
             WishlistExitCallToActionSuppressed = true,
+            WishlistCallToActionPageOpened = true,
         };
 
         var normalizedSnapshot = SaveManager.CreateNormalizedDetachedSnapshotForTesting(liveProfile);
@@ -391,7 +392,8 @@ internal static class BlindBoxRegressionSmoke
                && normalizedSnapshot.CollectionEventPendingFirstDogItemIdsByEvent.Count == 1,
             "Save normalization did not preserve valid pending first-dog promotion state.");
         Assert(normalizedSnapshot.WishlistCallToActionLastShownAtUnixSeconds == 0
-               && normalizedSnapshot.WishlistExitCallToActionSuppressed,
+               && normalizedSnapshot.WishlistExitCallToActionSuppressed
+               && normalizedSnapshot.WishlistCallToActionPageOpened,
             "Save normalization did not normalize wishlist promotion state.");
 
         normalizedSnapshot.BlindBoxRuntimeState.LockedPresentation = null;

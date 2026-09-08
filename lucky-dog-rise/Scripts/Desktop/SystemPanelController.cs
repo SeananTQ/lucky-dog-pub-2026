@@ -197,6 +197,7 @@ public partial class SystemPanelController : CanvasLayer
     private DebugResetConfirmation _resetConfirmation = DebugResetConfirmation.Save;
     private bool _steamMockActive;
     private CheckButton _showDeveloperLauncherNextStartupToggle = null!;
+    private CheckButton _wishlistPageOpenedDebugToggle = null!;
 #endif
 
     // Wardrobe 页
@@ -259,6 +260,7 @@ public partial class SystemPanelController : CanvasLayer
                 RefreshRecoveredItemsOverlay();
 #if DEBUG
                 RefreshBlindBoxLocalTestControls();
+                RefreshWishlistPageOpenedDebugToggle();
 #endif
             }
         }
@@ -625,6 +627,8 @@ public partial class SystemPanelController : CanvasLayer
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         _showDeveloperLauncherNextStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow/DeveloperLauncherToggle");
+        _wishlistPageOpenedDebugToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow/WishlistPageOpenedDebugToggle");
+        var wishlistPageOpenedDebugRow = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
@@ -649,6 +653,10 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
         _showDeveloperLauncherNextStartupToggle.Toggled += SettingsManager.SaveShowDeveloperLauncherOnStartup;
+        wishlistPageOpenedDebugRow.Visible = BuildCapabilities.CollectionEvents;
+        _wishlistPageOpenedDebugToggle.Toggled += opened =>
+            _gameData?.SetWishlistCallToActionPageOpened(opened);
+        RefreshWishlistPageOpenedDebugToggle();
         _disableGlobalMouseListeningToggle.SetPressedNoSignal(false);
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
@@ -997,7 +1005,10 @@ public partial class SystemPanelController : CanvasLayer
         }
 #if DEBUG
         if (_debugContent?.Visible == true)
+        {
             RefreshDebugPlayTime();
+            RefreshWishlistPageOpenedDebugToggle();
+        }
 #endif
     }
 
@@ -1088,6 +1099,7 @@ public partial class SystemPanelController : CanvasLayer
         if (!BuildCapabilities.CollectionEvents
             || !firstOwnership
             || _gameData == null
+            || _gameData.WishlistCallToActionPageOpened
             || !_collectionEventContent.ContainsBlindBox(blindBoxId)
             || !_collectionEventContent.ContainsRewardItem(itemId)
             || LubanData.Tables.TbItem.GetOrDefault(itemId)?.ItemType != EItemType.Dog)
@@ -1101,6 +1113,7 @@ public partial class SystemPanelController : CanvasLayer
     public bool HasPendingCollectionEventFirstDogCallToAction() =>
         BuildCapabilities.CollectionEvents
         && _gameData != null
+        && !_gameData.WishlistCallToActionPageOpened
         && _gameData.GetPendingCollectionEventFirstDogItemId(
             _collectionEventContent.EventId) > 0;
 
@@ -1117,7 +1130,9 @@ public partial class SystemPanelController : CanvasLayer
 
     public bool TryShowWishlistCallToActionForExit()
     {
-        if (!BuildCapabilities.CollectionEvents || _gameData == null)
+        if (!BuildCapabilities.CollectionEvents
+            || _gameData == null
+            || _gameData.WishlistCallToActionPageOpened)
             return false;
         if (_wishlistCallToActionOverlay.Visible)
             return _wishlistCallToActionReason == WishlistCallToActionReason.Exit;
@@ -1175,6 +1190,8 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (_gameData == null || reason == WishlistCallToActionReason.None)
             return;
+        if (_gameData.WishlistCallToActionPageOpened)
+            return;
         if (_wishlistCallToActionOverlay.Visible)
             return;
 
@@ -1203,8 +1220,9 @@ public partial class SystemPanelController : CanvasLayer
         _wishlistCallToActionReason = WishlistCallToActionReason.None;
         if (reason == WishlistCallToActionReason.Exit && suppressFutureExitPrompts)
             _gameData?.SetWishlistExitCallToActionSuppressed(true);
-        if (openWishlist)
-            WishlistCallToAction.OpenConfiguredUrl("dialog");
+        if (openWishlist
+            && WishlistCallToAction.OpenConfiguredUrl("dialog") == Error.Ok)
+            _gameData?.SetWishlistCallToActionPageOpened(true);
         if (reason == WishlistCallToActionReason.Exit)
             EmitSignal(SignalName.QuitAfterWishlistRequested);
     }
@@ -3522,6 +3540,7 @@ public partial class SystemPanelController : CanvasLayer
             RefreshBlindBoxLocalTestControls();
             RefreshBlindBoxDebugStatus();
             RefreshDebugPlayTime();
+            RefreshWishlistPageOpenedDebugToggle();
             return;
         }
         OnResetSaveConfirmed();
@@ -3529,6 +3548,12 @@ public partial class SystemPanelController : CanvasLayer
 #endif
 
 #if DEBUG
+    private void RefreshWishlistPageOpenedDebugToggle()
+    {
+        _wishlistPageOpenedDebugToggle?.SetPressedNoSignal(
+            _gameData?.WishlistCallToActionPageOpened ?? false);
+    }
+
     private void ResetSettingsToDefaults()
     {
         SettingsManager.ResetToDefaults();

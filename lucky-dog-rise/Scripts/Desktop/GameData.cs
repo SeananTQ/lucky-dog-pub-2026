@@ -76,6 +76,7 @@ public partial class GameData : Node
         new(StringComparer.Ordinal);
     public long WishlistCallToActionLastShownAtUnixSeconds { get; private set; }
     public bool WishlistExitCallToActionSuppressed { get; private set; }
+    public bool WishlistCallToActionPageOpened { get; private set; }
     private Dictionary<int, int> _recoveredItemCounts = new();
     private Dictionary<int, int> _expectedPlatformItemIncreaseCounts = new();
     public bool LinkTreeRewardLedgerInitialized { get; private set; } = true;
@@ -2902,6 +2903,7 @@ public partial class GameData : Node
         _collectionEventPendingFirstDogItemIdsByEvent.Clear();
         WishlistCallToActionLastShownAtUnixSeconds = 0;
         WishlistExitCallToActionSuppressed = false;
+        WishlistCallToActionPageOpened = false;
         Progression.Reset();
         EmitSignal(SignalName.ChipsChanged, Chips);
         EmitSignal(SignalName.BlindBoxStateChanged);
@@ -3037,6 +3039,7 @@ public partial class GameData : Node
         _collectionEventPendingFirstDogItemIdsByEvent.Clear();
         WishlistCallToActionLastShownAtUnixSeconds = 0;
         WishlistExitCallToActionSuppressed = false;
+        WishlistCallToActionPageOpened = false;
         Inventory.LoadState(
             defaults.OwnedItemCounts,
             defaults.EquippedItemIdsByType,
@@ -3283,6 +3286,20 @@ public partial class GameData : Node
         SaveImmediatelyIfUsingLocalSave();
     }
 
+    public void SetWishlistCallToActionPageOpened(bool opened)
+    {
+        if (WishlistCallToActionPageOpened == opened)
+            return;
+
+        WishlistCallToActionPageOpened = opened;
+        if (opened)
+        {
+            _collectionEventPendingFirstDogItemIdsByEvent.Clear();
+            EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
+        }
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
     private void ClampRecoveredItemsToInventory()
     {
         var changed = false;
@@ -3390,6 +3407,7 @@ public partial class GameData : Node
                         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             WishlistCallToActionLastShownAtUnixSeconds = WishlistCallToActionLastShownAtUnixSeconds,
             WishlistExitCallToActionSuppressed = WishlistExitCallToActionSuppressed,
+            WishlistCallToActionPageOpened = WishlistCallToActionPageOpened,
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
             BlindBoxRuntimeState = _blindBoxRuntimeState,
             PendingBlindBoxReward = PendingBlindBoxReward,
@@ -3489,6 +3507,7 @@ public partial class GameData : Node
         WishlistCallToActionLastShownAtUnixSeconds =
             profile.WishlistCallToActionLastShownAtUnixSeconds;
         WishlistExitCallToActionSuppressed = profile.WishlistExitCallToActionSuppressed;
+        WishlistCallToActionPageOpened = profile.WishlistCallToActionPageOpened;
     }
 
     private void LoadLuckyDealBuffState(SaveProfile profile)
