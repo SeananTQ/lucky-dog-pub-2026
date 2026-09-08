@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://qrso37san66q" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="3_confirm"]
 [ext_resource type="Texture2D" uid="uid://4upal3vc8wlb" path="res://Assets/UI/Icon/TabIcon_Wardrobe.svg" id="4_wardrobe"]
 [ext_resource type="Texture2D" uid="uid://y8vkbcba3ytw" path="res://Assets/UI/Icon/TabIcon_LinkTree.svg" id="5_linktree"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Party.svg" id="21_party"]
 [ext_resource type="Texture2D" uid="uid://c37thix5jp8ea" path="res://Assets/UI/Icon/TabIcon_OutfitPreset.svg" id="5_preset"]
 [ext_resource type="Texture2D" uid="uid://cwilhq5lum061" path="res://Assets/UI/Icon/TabIcon_Settings.svg" id="6_settings"]
 [ext_resource type="Texture2D" uid="uid://c57j24ybcnqrk" path="res://Assets/UI/Icon/TabIcon_Debug.svg" id="7_debug"]
@@ -94,7 +95,7 @@ layout_mode = 2
 tooltip_text = "收集活动"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
-icon = ExtResource("5_linktree")
+icon = ExtResource("21_party")
 icon_alignment = 1
 
 [node name="OutfitPresetTab" type="Button" parent="Panel/RootVBox/TitleRow"]
@@ -1094,6 +1095,20 @@ theme_type_variation = &"DestructiveButton"
 theme_override_font_sizes/font_size = 14
 text = "重置 Demo 试玩流程"
 tooltip_text = "只复位当前隔离 Demo 调试存档中的试玩流程；不重置系统设置、LinkTree 或玩家统计。"
+
+[node name="WishlistPageOpenedDebugRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+tooltip_text = "对应当前账号的持久记录。开启后禁止三个主动愿望单弹窗；关闭可清除记录并继续测试。"
+
+[node name="WishlistPageOpenedDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "已打开愿望单页面"
+
+[node name="WishlistPageOpenedDebugToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow"]
+layout_mode = 2
+size_flags_vertical = 4
 
 [node name="PlayerProgressDebugLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 custom_minimum_size = Vector2(0, 54)
