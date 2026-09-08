@@ -38,13 +38,18 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private Label _victoryRewardTitle = null!;
     [Export] private Label _victoryRewardDetail = null!;
     [Export] private Control _wishlistCallToActionModule = null!;
+    [Export] private Button _wishlistCallToActionBannerButton = null!;
     [Export] private Button _wishlistCallToActionButton = null!;
+    [Export] private Label _wishlistCallToActionMessage = null!;
+    [Export] private Control _debugToolsModule = null!;
     [Export] private Button _celebrationTestButton = null!;
+    [Export] private Button _nameplateStateTestButton = null!;
 
     private readonly Dictionary<int, CollectionEventRewardCellController> _cellsByItemId = new();
     private GameData _gameData;
     private CollectionEventDefinition _definition;
     private int _revealRequestVersion;
+    private int _debugNameplateState = -1;
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
     public event Action VictoryRewardClaimRequested;
@@ -55,16 +60,23 @@ public partial class CollectionEventPageController : VBoxContainer
 
     public override void _Ready()
     {
+        L10n.Changed += RefreshPresentation;
         VisibilityChanged += OnVisibilityChanged;
         _victoryRewardButton.Pressed += RequestVictoryRewardClaim;
+        _wishlistCallToActionBannerButton.Pressed += OpenWishlistCallToAction;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
-        _celebrationTestButton.Visible = OS.IsDebugBuild();
-        if (_celebrationTestButton.Visible)
+        _debugToolsModule.Visible = OS.IsDebugBuild();
+        if (_debugToolsModule.Visible)
+        {
             _celebrationTestButton.Pressed += () => CelebrationTestRequested?.Invoke();
+            _nameplateStateTestButton.Pressed += CycleDebugNameplateState;
+        }
+        RefreshPresentation();
     }
 
     public override void _ExitTree()
     {
+        L10n.Changed -= RefreshPresentation;
         UnbindGameData();
     }
 
@@ -189,6 +201,10 @@ public partial class CollectionEventPageController : VBoxContainer
 
     private void RefreshPresentation()
     {
+        _wishlistCallToActionMessage.AddThemeFontSizeOverride("font_size", 14);
+        _wishlistCallToActionMessage.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
+        _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
+
         if (_gameData == null || _definition == null)
             return;
 
@@ -282,6 +298,12 @@ public partial class CollectionEventPageController : VBoxContainer
         var allOwned = rewardItemIds.Length > 0
                        && rewardItemIds.All(_gameData.Inventory.Owns);
         var allRevealed = allOwned && rewardItemIds.All(revealedIds.Contains);
+        var isFrench = string.Equals(
+            L10n.CurrentLocale,
+            L10n.FrenchLocale,
+            StringComparison.OrdinalIgnoreCase);
+        _victoryRewardTitle.AddThemeFontSizeOverride("font_size", isFrench ? 15 : 18);
+        _victoryRewardDetail.AddThemeFontSizeOverride("font_size", isFrench ? 12 : 14);
         _victoryRewardButton.Disabled = victoryClaimed || !allRevealed;
         _victoryRewardButton.TooltipText = victoryClaimed
             ? "本期庆典奖励已经领取"
@@ -291,23 +313,70 @@ public partial class CollectionEventPageController : VBoxContainer
 
         if (victoryClaimed)
         {
-            _victoryRewardTitle.Text = "Demo 庆典已完成";
-            _victoryRewardDetail.Text = $"已领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle);
+            _victoryRewardDetail.Text = L10n.Format(
+                L10nKey.CollectionEvent_VictoryClaimedDetail,
+                _definition.VictoryRewardQuantity);
         }
         else if (allOwned && !allRevealed)
         {
-            _victoryRewardTitle.Text = "Demo 庆典即将完成";
-            _victoryRewardDetail.Text = "正在揭晓最后的奖励…";
+            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryRevealingTitle);
+            _victoryRewardDetail.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryRevealingDetail);
         }
         else if (allRevealed)
         {
-            _victoryRewardTitle.Text = "Demo 庆典已完成";
-            _victoryRewardDetail.Text = $"点击领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryReadyTitle);
+            _victoryRewardDetail.Text = L10n.Format(
+                L10nKey.CollectionEvent_VictoryReadyDetail,
+                _definition.VictoryRewardQuantity);
         }
         else
         {
-            _victoryRewardTitle.Text = "Demo 庆典活动";
-            _victoryRewardDetail.Text = $"集齐全部奖励，领取胜利香槟 ×{_definition.VictoryRewardQuantity}";
+            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryInProgressTitle);
+            _victoryRewardDetail.Text = L10n.Format(
+                L10nKey.CollectionEvent_VictoryInProgressDetail,
+                _definition.VictoryRewardQuantity);
+        }
+
+        ApplyDebugNameplateStateIfNeeded();
+    }
+
+    private void CycleDebugNameplateState()
+    {
+        _debugNameplateState = (_debugNameplateState + 1) % 3;
+        ApplyDebugNameplateStateIfNeeded();
+    }
+
+    private void ApplyDebugNameplateStateIfNeeded()
+    {
+        if (!OS.IsDebugBuild() || _debugNameplateState < 0 || _definition == null)
+            return;
+
+        _victoryRewardButton.Disabled = true;
+        _victoryRewardButton.TooltipText = "当前为调试预览，不会发放奖励";
+        switch (_debugNameplateState)
+        {
+            case 0:
+                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryInProgressTitle);
+                _victoryRewardDetail.Text = L10n.Format(
+                    L10nKey.CollectionEvent_VictoryInProgressDetail,
+                    _definition.VictoryRewardQuantity);
+                _nameplateStateTestButton.Text = "铭牌：收集中";
+                break;
+            case 1:
+                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryReadyTitle);
+                _victoryRewardDetail.Text = L10n.Format(
+                    L10nKey.CollectionEvent_VictoryReadyDetail,
+                    _definition.VictoryRewardQuantity);
+                _nameplateStateTestButton.Text = "铭牌：可领取";
+                break;
+            default:
+                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle);
+                _victoryRewardDetail.Text = L10n.Format(
+                    L10nKey.CollectionEvent_VictoryClaimedDetail,
+                    _definition.VictoryRewardQuantity);
+                _nameplateStateTestButton.Text = "铭牌：已领取";
+                break;
         }
     }
 

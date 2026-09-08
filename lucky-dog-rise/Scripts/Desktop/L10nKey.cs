@@ -121,4 +121,16 @@ public static class L10nKey
     public const string BlindBox_TapToClaim = nameof(BlindBox_TapToClaim);
     public const string BlindBox_AutoClaimingInSeconds = nameof(BlindBox_AutoClaimingInSeconds);
     public const string BlindBox_Free = nameof(BlindBox_Free);
+    public const string CollectionEvent_VictoryInProgressTitle = nameof(CollectionEvent_VictoryInProgressTitle);
+    public const string CollectionEvent_VictoryInProgressDetail = nameof(CollectionEvent_VictoryInProgressDetail);
+    public const string CollectionEvent_VictoryRevealingTitle = nameof(CollectionEvent_VictoryRevealingTitle);
+    public const string CollectionEvent_VictoryRevealingDetail = nameof(CollectionEvent_VictoryRevealingDetail);
+    public const string CollectionEvent_VictoryReadyTitle = nameof(CollectionEvent_VictoryReadyTitle);
+    public const string CollectionEvent_VictoryReadyDetail = nameof(CollectionEvent_VictoryReadyDetail);
+    public const string CollectionEvent_VictoryClaimedTitle = nameof(CollectionEvent_VictoryClaimedTitle);
+    public const string CollectionEvent_VictoryClaimedDetail = nameof(CollectionEvent_VictoryClaimedDetail);
+    public const string CollectionEvent_ActivityInfoTitle = nameof(CollectionEvent_ActivityInfoTitle);
+    public const string CollectionEvent_ActivityInfoBody = nameof(CollectionEvent_ActivityInfoBody);
+    public const string CollectionEvent_WishlistShyRequest = nameof(CollectionEvent_WishlistShyRequest);
+    public const string CollectionEvent_WishlistButton = nameof(CollectionEvent_WishlistButton);
 }
