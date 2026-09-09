@@ -6,29 +6,48 @@ public partial class WishlistCallToActionOverlayController : Control
 {
     [Signal] public delegate void PrimaryPressedEventHandler(bool suppressFutureExitPrompts);
     [Signal] public delegate void SecondaryPressedEventHandler(bool suppressFutureExitPrompts);
+    [Signal] public delegate void ClosedEventHandler();
 
     private Button _primaryButton = null!;
     private Button _secondaryButton = null!;
+    private Button _closeButton = null!;
+    private Button _promptButton = null!;
+    private Control _suppressExitArea = null!;
     private CheckBox _suppressExitCheckBox = null!;
+    private Label _message = null!;
 
     public override void _Ready()
     {
-        _primaryButton = GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/PrimaryButton");
-        _secondaryButton = GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/SecondaryButton");
-        _suppressExitCheckBox = GetNode<CheckBox>("OverlayPanel/Margin/Content/SuppressExitCheckBox");
+        _primaryButton = GetNode<Button>("OverlayPanel/Margin/Content/ButtonColumn/PrimaryButton");
+        _secondaryButton = GetNode<Button>("OverlayPanel/Margin/Content/ButtonColumn/SecondaryButton");
+        _closeButton = GetNode<Button>("CloseButton");
+        _promptButton = GetNode<Button>("OverlayPanel/Margin/Content/WishlistPrompt/HitArea");
+        _suppressExitArea = GetNode<Control>("OverlayPanel/Margin/Content/SuppressExitArea");
+        _suppressExitCheckBox = GetNode<CheckBox>("OverlayPanel/Margin/Content/SuppressExitArea/CheckBox");
+        _message = GetNode<Label>("OverlayPanel/Margin/Content/WishlistPrompt/Balloon/CopyMargins/Message");
         _primaryButton.Pressed += () => EmitAndHide(primary: true);
+        _promptButton.Pressed += () => EmitAndHide(primary: true);
         _secondaryButton.Pressed += () => EmitAndHide(primary: false);
+        _closeButton.Pressed += CloseWithoutAction;
+        L10n.Changed += RefreshPresentation;
+        RefreshPresentation();
         Visible = false;
+    }
+
+    public override void _ExitTree()
+    {
+        L10n.Changed -= RefreshPresentation;
     }
 
     public void ShowCallToAction(bool isExitPrompt)
     {
-        _suppressExitCheckBox.Visible = isExitPrompt;
+        _suppressExitArea.Visible = isExitPrompt;
         _suppressExitCheckBox.SetPressedNoSignal(false);
         _primaryButton.Text = isExitPrompt ? "加入愿望单并退出" : "加入愿望单";
         _secondaryButton.Text = isExitPrompt ? "直接退出" : "稍后再说";
+        RefreshPresentation();
         Visible = true;
-        _primaryButton.GrabFocus();
+        GetViewport().GuiReleaseFocus();
     }
 
     public void HideOverlay()
@@ -46,10 +65,24 @@ public partial class WishlistCallToActionOverlayController : Control
     private void EmitAndHide(bool primary)
     {
         var suppressFutureExitPrompts =
-            _suppressExitCheckBox.Visible && _suppressExitCheckBox.ButtonPressed;
+            _suppressExitArea.Visible && _suppressExitCheckBox.ButtonPressed;
         HideOverlay();
         EmitSignal(
             primary ? SignalName.PrimaryPressed : SignalName.SecondaryPressed,
             suppressFutureExitPrompts);
+    }
+
+    private void CloseWithoutAction()
+    {
+        HideOverlay();
+        EmitSignal(SignalName.Closed);
+    }
+
+    private void RefreshPresentation()
+    {
+        _message.AddThemeFontSizeOverride(
+            "font_size",
+            WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
+        _message.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
     }
 }

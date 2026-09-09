@@ -11,6 +11,17 @@ public static class WishlistCallToAction
         LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()
             ?.WishlistCallToActionDialogCooldownSeconds ?? 0);
 
+    public static int GetShyRequestFontSize(string locale)
+    {
+        return locale switch
+        {
+            L10n.SimplifiedChineseLocale => 14,
+            L10n.TraditionalChineseLocale => 14,
+            L10n.KoreanLocale => 13,
+            _ => 12,
+        };
+    }
+
     public static Error OpenConfiguredUrl(string source)
     {
         var url = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()

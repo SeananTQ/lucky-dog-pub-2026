@@ -204,7 +204,7 @@ public partial class CollectionEventPageController : VBoxContainer
     {
         _wishlistCallToActionMessage.AddThemeFontSizeOverride(
             "font_size",
-            GetWishlistCallToActionFontSize(L10n.CurrentLocale));
+            WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
         _wishlistCallToActionMessage.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
         _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
         _roadmapBody.Text = FormatRoadmapBody(L10n.Tr(L10nKey.CollectionEvent_RoadmapBody));
@@ -246,17 +246,6 @@ public partial class CollectionEventPageController : VBoxContainer
         RefreshPresentation();
         if (IsVisibleInTree())
             QueuePendingReveals();
-    }
-
-    private static int GetWishlistCallToActionFontSize(string locale)
-    {
-        return locale switch
-        {
-            L10n.SimplifiedChineseLocale => 14,
-            L10n.TraditionalChineseLocale => 14,
-            L10n.KoreanLocale => 13,
-            _ => 12,
-        };
     }
 
     private void OnCollectionEventStateChanged(string eventId)

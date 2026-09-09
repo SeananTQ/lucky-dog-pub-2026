@@ -3274,7 +3274,6 @@ public partial class GameData : Node
     public void MarkWishlistCallToActionShown()
     {
         WishlistCallToActionLastShownAtUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        SaveImmediatelyIfUsingLocalSave();
     }
 
     public void SetWishlistExitCallToActionSuppressed(bool suppressed)
@@ -3405,7 +3404,6 @@ public partial class GameData : Node
                     : _collectionEventPendingFirstDogItemIdsByEvent
                         .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
-            WishlistCallToActionLastShownAtUnixSeconds = WishlistCallToActionLastShownAtUnixSeconds,
             WishlistExitCallToActionSuppressed = WishlistExitCallToActionSuppressed,
             WishlistCallToActionPageOpened = WishlistCallToActionPageOpened,
             LinkTreeRewardLedgerInitialized = LinkTreeRewardLedgerInitialized,
@@ -3504,8 +3502,9 @@ public partial class GameData : Node
                      ?? new Dictionary<string, int>())
             _collectionEventPendingFirstDogItemIdsByEvent[eventId] = itemId;
 
-        WishlistCallToActionLastShownAtUnixSeconds =
-            profile.WishlistCallToActionLastShownAtUnixSeconds;
+        // The shared CTA cooldown is intentionally session-only. The legacy profile
+        // field remains in SaveProfile/SaveIntegrity so existing signed saves still load.
+        WishlistCallToActionLastShownAtUnixSeconds = 0;
         WishlistExitCallToActionSuppressed = profile.WishlistExitCallToActionSuppressed;
         WishlistCallToActionPageOpened = profile.WishlistCallToActionPageOpened;
     }

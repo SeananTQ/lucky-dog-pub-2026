@@ -4,16 +4,15 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
-[ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="5_inter_regular"]
-[ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="6_misans_regular"]
+[ext_resource type="Texture2D" uid="uid://b5l2jgbq7uee8" path="res://Assets/UI/Icon/Icon_Exit.svg" id="7_close"]
+[ext_resource type="Texture2D" uid="uid://cxfyrbugb84j3" path="res://Assets/Event/Collection/Wishlist_ShyDog.png" id="8_wishlist_dog"]
+[ext_resource type="Texture2D" uid="uid://krt0qtxoxxmr" path="res://Assets/Event/Collection/Wishlist_Balloon_Left_9Rect2x.png" id="9_wishlist_balloon"]
 
 [sub_resource type="FontVariation" id="font_title"]
 fallbacks = Array[Font]([ExtResource("4_misans_bold")])
 base_font = ExtResource("3_inter_bold")
 
-[sub_resource type="FontVariation" id="font_message"]
-fallbacks = Array[Font]([ExtResource("6_misans_regular")])
-base_font = ExtResource("5_inter_regular")
+[sub_resource type="StyleBoxEmpty" id="prompt_hit_area"]
 
 [sub_resource type="StyleBoxFlat" id="overlay_bg"]
 content_margin_left = 18.0
@@ -25,18 +24,6 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="message_bg"]
-content_margin_left = 14.0
-content_margin_top = 12.0
-content_margin_right = 14.0
-content_margin_bottom = 12.0
-bg_color = Color(1, 1, 1, 0.08)
-draw_center = false
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [node name="WishlistCallToActionOverlay" type="Control"]
 visible = false
@@ -58,9 +45,9 @@ theme_override_styles/panel = SubResource("overlay_bg")
 
 [node name="Margin" type="MarginContainer" parent="OverlayPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 18
+theme_override_constants/margin_left = 0
 theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
+theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 18
 
 [node name="Content" type="VBoxContainer" parent="OverlayPanel/Margin"]
@@ -78,45 +65,173 @@ theme_override_font_sizes/font_size = 22
 text = "喜欢这只小狗吗？"
 horizontal_alignment = 1
 
-[node name="MessageBg" type="PanelContainer" parent="OverlayPanel/Margin/Content"]
+[node name="WishlistPrompt" type="Control" parent="OverlayPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("message_bg")
+mouse_filter = 2
 
-[node name="Message" type="Label" parent="OverlayPanel/Margin/Content/MessageBg"]
-custom_minimum_size = Vector2(0, 150)
+[node name="HitArea" type="Button" parent="OverlayPanel/Margin/Content/WishlistPrompt"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("prompt_hit_area")
+theme_override_styles/pressed = SubResource("prompt_hit_area")
+theme_override_styles/hover = SubResource("prompt_hit_area")
+theme_override_styles/focus = SubResource("prompt_hit_area")
+
+[node name="Balloon" type="TextureRect" parent="OverlayPanel/Margin/Content/WishlistPrompt"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -246.0
+offset_top = 5.0
+offset_right = -9.0
+offset_bottom = 95.0
+grow_horizontal = 0
+mouse_filter = 2
+texture = ExtResource("9_wishlist_balloon")
+expand_mode = 1
+
+[node name="CopyMargins" type="MarginContainer" parent="OverlayPanel/Margin/Content/WishlistPrompt/Balloon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="Message" type="Label" parent="OverlayPanel/Margin/Content/WishlistPrompt/Balloon/CopyMargins"]
+custom_minimum_size = Vector2(191, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_fonts/font = SubResource("font_message")
-theme_override_font_sizes/font_size = 16
-theme_override_constants/line_spacing = 3
-text = "把《小狗来啦》加入愿望单吧！正式版上线时，Steam 会第一时间提醒你。"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/outline_size = 0
+theme_override_constants/line_spacing = -3
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 14
+text = "CollectionEvent_WishlistShyRequest"
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="SuppressExitCheckBox" type="CheckBox" parent="OverlayPanel/Margin/Content"]
-visible = false
-layout_mode = 2
-text = "以后退出时不再提醒"
+[node name="Arrow" type="Label" parent="OverlayPanel/Margin/Content/WishlistPrompt/Balloon"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = 11.0
+offset_right = -5.0
+offset_bottom = 44.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.364706, 0.294118, 0.239216, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 24
+text = ">"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="ButtonRow" type="HBoxContainer" parent="OverlayPanel/Margin/Content"]
+[node name="ShyDog" type="TextureRect" parent="OverlayPanel/Margin/Content/WishlistPrompt"]
+layout_mode = 1
+offset_left = 11.0
+offset_top = -6.0
+offset_right = 143.0
+offset_bottom = 116.0
+mouse_filter = 2
+texture = ExtResource("8_wishlist_dog")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ButtonColumn" type="VBoxContainer" parent="OverlayPanel/Margin/Content"]
 layout_mode = 2
 theme_override_constants/separation = 10
-alignment = 1
 
-[node name="SecondaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow"]
-custom_minimum_size = Vector2(138, 42)
+[node name="PrimaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonColumn"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"SecondaryButton"
-text = "稍后再说"
-
-[node name="PrimaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonRow"]
-custom_minimum_size = Vector2(168, 42)
-layout_mode = 2
+size_flags_horizontal = 3
 text = "加入愿望单"
+
+[node name="SecondaryButton" type="Button" parent="OverlayPanel/Margin/Content/ButtonColumn"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SecondaryButton"
+theme_override_colors/font_color = Color(0.62, 0.68, 0.7, 0.86)
+theme_override_colors/font_hover_color = Color(0.9, 0.94, 0.95, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.9, 0.94, 0.95, 1)
+theme_override_colors/font_pressed_color = Color(0.78, 0.84, 0.86, 1)
+theme_override_colors/font_focus_color = Color(0.9, 0.94, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+flat = true
+text = "稍后再说"
 
 [node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="SuppressExitArea" type="VBoxContainer" parent="OverlayPanel/Margin/Content"]
+visible = false
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Separator" type="HSeparator" parent="OverlayPanel/Margin/Content/SuppressExitArea"]
+layout_mode = 2
+
+[node name="CheckBox" type="CheckBox" parent="OverlayPanel/Margin/Content/SuppressExitArea"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.68, 0.74, 0.76, 0.86)
+theme_override_colors/font_hover_color = Color(0.82, 0.87, 0.88, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.82, 0.87, 0.88, 1)
+theme_override_colors/font_pressed_color = Color(0.76, 0.82, 0.84, 0.95)
+theme_override_colors/font_focus_color = Color(0.82, 0.87, 0.88, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_constants/outline_size = 0
+text = "以后退出时不再提醒"
+autowrap_mode = 3
+
+[node name="CloseButton" type="Button" parent="."]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -50.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = 50.0
+grow_horizontal = 0
+theme_type_variation = &"PanelCloseButton"
+theme_override_constants/icon_max_width = 20
+tooltip_text = "返回游戏"
+icon = ExtResource("7_close")
+icon_alignment = 1

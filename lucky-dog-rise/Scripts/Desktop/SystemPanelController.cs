@@ -399,6 +399,7 @@ public partial class SystemPanelController : CanvasLayer
         _wishlistCallToActionOverlay = GetNode<WishlistCallToActionOverlayController>("WishlistCallToActionOverlay");
         _wishlistCallToActionOverlay.PrimaryPressed += OnWishlistCallToActionPrimaryPressed;
         _wishlistCallToActionOverlay.SecondaryPressed += OnWishlistCallToActionSecondaryPressed;
+        _wishlistCallToActionOverlay.Closed += OnWishlistCallToActionClosed;
         _collectionEventContent.RewardsRevealed += OnCollectionEventRewardsRevealed;
         _collectionEventContent.VictoryRewardClaimRequested += OnCollectionEventVictoryRewardClaimRequested;
         _collectionEventContent.VictoryRewardClaimed += OnCollectionEventVictoryRewardClaimed;
@@ -857,7 +858,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
-        if (!_panel.Visible)
+        if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true)
         {
             ResetPanelScrollDrag();
             return;
@@ -1259,6 +1260,7 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         _wishlistCallToActionReason = reason;
+        ResetPanelScrollDrag();
         _gameData.MarkWishlistCallToActionShown();
         if (reason == WishlistCallToActionReason.FirstDog)
             _gameData.MarkCollectionEventFirstDogCallToActionShown(
@@ -1275,6 +1277,11 @@ public partial class SystemPanelController : CanvasLayer
     private void OnWishlistCallToActionSecondaryPressed(bool suppressFutureExitPrompts)
     {
         FinishWishlistCallToAction(suppressFutureExitPrompts, openWishlist: false);
+    }
+
+    private void OnWishlistCallToActionClosed()
+    {
+        _wishlistCallToActionReason = WishlistCallToActionReason.None;
     }
 
     private void FinishWishlistCallToAction(bool suppressFutureExitPrompts, bool openWishlist)
