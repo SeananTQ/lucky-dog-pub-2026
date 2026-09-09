@@ -135,4 +135,5 @@ public static class L10nKey
     public const string CollectionEvent_WishlistButton = nameof(CollectionEvent_WishlistButton);
     public const string CollectionEvent_RoadmapTitle = nameof(CollectionEvent_RoadmapTitle);
     public const string CollectionEvent_RoadmapBody = nameof(CollectionEvent_RoadmapBody);
+    public const string WishlistCallToAction_ExitAndOpenSteamButton = nameof(WishlistCallToAction_ExitAndOpenSteamButton);
 }

@@ -13,8 +13,9 @@ public partial class WishlistCallToActionOverlayController : Control
     private Button _closeButton = null!;
     private Button _promptButton = null!;
     private Control _suppressExitArea = null!;
-    private CheckBox _suppressExitCheckBox = null!;
+    private CheckButton _suppressExitCheckBox = null!;
     private Label _message = null!;
+    private bool _isExitPrompt;
 
     public override void _Ready()
     {
@@ -23,7 +24,7 @@ public partial class WishlistCallToActionOverlayController : Control
         _closeButton = GetNode<Button>("CloseButton");
         _promptButton = GetNode<Button>("OverlayPanel/Margin/Content/WishlistPrompt/HitArea");
         _suppressExitArea = GetNode<Control>("OverlayPanel/Margin/Content/SuppressExitArea");
-        _suppressExitCheckBox = GetNode<CheckBox>("OverlayPanel/Margin/Content/SuppressExitArea/CheckBox");
+        _suppressExitCheckBox = GetNode<CheckButton>("OverlayPanel/Margin/Content/SuppressExitArea/CheckBox");
         _message = GetNode<Label>("OverlayPanel/Margin/Content/WishlistPrompt/Balloon/CopyMargins/Message");
         _primaryButton.Pressed += () => EmitAndHide(primary: true);
         _promptButton.Pressed += () => EmitAndHide(primary: true);
@@ -41,9 +42,10 @@ public partial class WishlistCallToActionOverlayController : Control
 
     public void ShowCallToAction(bool isExitPrompt)
     {
+        _isExitPrompt = isExitPrompt;
         _suppressExitArea.Visible = isExitPrompt;
+        _closeButton.Visible = isExitPrompt;
         _suppressExitCheckBox.SetPressedNoSignal(false);
-        _primaryButton.Text = isExitPrompt ? "加入愿望单并退出" : "加入愿望单";
         _secondaryButton.Text = isExitPrompt ? "直接退出" : "稍后再说";
         RefreshPresentation();
         Visible = true;
@@ -84,5 +86,8 @@ public partial class WishlistCallToActionOverlayController : Control
             "font_size",
             WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
         _message.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
+        _primaryButton.Text = _isExitPrompt
+            ? L10n.Tr(L10nKey.WishlistCallToAction_ExitAndOpenSteamButton)
+            : "加入愿望单";
     }
 }

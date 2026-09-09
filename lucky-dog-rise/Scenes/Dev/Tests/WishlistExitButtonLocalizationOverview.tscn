@@ -1,0 +1,59 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Tests/WishlistExitButtonLocalizationOverviewController.cs" id="1_controller"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[node name="WishlistExitButtonLocalizationOverview" type="ColorRect" node_paths=PackedStringArray("_previewGrid", "_previewTemplate")]
+offset_right = 850.0
+offset_bottom = 620.0
+color = Color(0.0588235, 0.0941176, 0.105882, 1)
+theme = ExtResource("2_theme")
+script = ExtResource("1_controller")
+_previewGrid = NodePath("PageMargin/PreviewScroll/PreviewGrid")
+_previewTemplate = NodePath("PreviewTemplate")
+
+[node name="PageMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 14
+
+[node name="PreviewScroll" type="ScrollContainer" parent="PageMargin"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="PreviewGrid" type="GridContainer" parent="PageMargin/PreviewScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="PreviewTemplate" type="Control" parent="."]
+visible = false
+custom_minimum_size = Vector2(382, 62)
+offset_right = 382.0
+offset_bottom = 62.0
+
+[node name="LocaleCode" type="Label" parent="PreviewTemplate"]
+layout_mode = 0
+offset_right = 382.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.721569, 0.8, 0.815686, 1)
+theme_override_font_sizes/font_size = 12
+text = "locale"
+
+[node name="ExitButton" type="Button" parent="PreviewTemplate"]
+layout_mode = 0
+offset_top = 18.0
+offset_right = 382.0
+offset_bottom = 62.0
+focus_mode = 0
+mouse_filter = 2
+text = "WishlistCallToAction_ExitAndOpenSteamButton"

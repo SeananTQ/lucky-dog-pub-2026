@@ -4,7 +4,6 @@
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
-[ext_resource type="Texture2D" uid="uid://b5l2jgbq7uee8" path="res://Assets/UI/Icon/Icon_Exit.svg" id="7_close"]
 [ext_resource type="Texture2D" uid="uid://cxfyrbugb84j3" path="res://Assets/Event/Collection/Wishlist_ShyDog.png" id="8_wishlist_dog"]
 [ext_resource type="Texture2D" uid="uid://krt0qtxoxxmr" path="res://Assets/Event/Collection/Wishlist_Balloon_Left_9Rect2x.png" id="9_wishlist_balloon"]
 
@@ -55,8 +54,8 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="TopSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="Title" type="Label" parent="OverlayPanel/Margin/Content"]
 layout_mode = 2
@@ -64,6 +63,11 @@ theme_override_fonts/font = SubResource("font_title")
 theme_override_font_sizes/font_size = 22
 text = "喜欢这只小狗吗？"
 horizontal_alignment = 1
+
+[node name="BodySpace" type="Control" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
 
 [node name="WishlistPrompt" type="Control" parent="OverlayPanel/Margin/Content"]
 custom_minimum_size = Vector2(0, 96)
@@ -193,19 +197,15 @@ text = "稍后再说"
 
 [node name="BottomSpacer" type="Control" parent="OverlayPanel/Margin/Content"]
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="SuppressExitArea" type="VBoxContainer" parent="OverlayPanel/Margin/Content"]
 visible = false
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="Separator" type="HSeparator" parent="OverlayPanel/Margin/Content/SuppressExitArea"]
-layout_mode = 2
-
-[node name="CheckBox" type="CheckBox" parent="OverlayPanel/Margin/Content/SuppressExitArea"]
+[node name="CheckBox" type="CheckButton" parent="OverlayPanel/Margin/Content/SuppressExitArea"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -217,6 +217,7 @@ theme_override_colors/font_focus_color = Color(0.82, 0.87, 0.88, 1)
 theme_override_font_sizes/font_size = 11
 theme_override_constants/outline_size = 0
 text = "以后退出时不再提醒"
+alignment = 2
 autowrap_mode = 3
 
 [node name="CloseButton" type="Button" parent="."]
@@ -230,8 +231,13 @@ offset_top = 14.0
 offset_right = -14.0
 offset_bottom = 50.0
 grow_horizontal = 0
-theme_type_variation = &"PanelCloseButton"
-theme_override_constants/icon_max_width = 20
+theme_override_colors/font_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
+theme_override_colors/font_hover_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
+theme_override_colors/font_pressed_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
+theme_override_colors/font_focus_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
+theme_override_fonts/font = SubResource("font_title")
+theme_override_font_sizes/font_size = 28
 tooltip_text = "返回游戏"
-icon = ExtResource("7_close")
-icon_alignment = 1
+flat = true
+text = "×"
