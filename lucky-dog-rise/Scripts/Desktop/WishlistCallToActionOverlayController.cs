@@ -88,6 +88,6 @@ public partial class WishlistCallToActionOverlayController : Control
         _message.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
         _primaryButton.Text = _isExitPrompt
             ? L10n.Tr(L10nKey.WishlistCallToAction_ExitAndOpenSteamButton)
-            : "加入愿望单";
+            : L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
     }
 }

@@ -65,6 +65,7 @@ public partial class GameManager : Node2D
     private Marker2D _rewardSpawnPoint = null!;
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
+    private PokerCollectionProgressDialogController _collectionProgressDialog = null!;
     private bool _isPokerModeActive;
     public SystemPanelController SettingsPanel { get; set; } = null!;
 
@@ -104,6 +105,8 @@ public partial class GameManager : Node2D
         _blindBoxOverlay.RevealStepChanged += step => _gameData.SetPendingBlindBoxRevealStep(step);
         _blindBoxOverlay.RewardShown += () => _gameData.MarkPendingBlindBoxRewardShown();
         _pokerHandShowcase.ShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
+        _collectionProgressDialog = GetNode<PokerCollectionProgressDialogController>("CollectionProgressDialog");
+        _collectionProgressDialog.OverlayVisibilityChanged += OnCollectionProgressDialogVisibilityChanged;
 
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
@@ -126,6 +129,8 @@ public partial class GameManager : Node2D
             _tutorial.OverlayVisibilityChanged -= OnTutorialOverlayVisibilityChanged;
         if (_pokerHandShowcase != null)
             _pokerHandShowcase.ShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
+        if (_collectionProgressDialog != null)
+            _collectionProgressDialog.OverlayVisibilityChanged -= OnCollectionProgressDialogVisibilityChanged;
         if (_itemArea != null && _interactionHints != null)
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
@@ -178,6 +183,15 @@ public partial class GameManager : Node2D
     public void HidePendingBlindBoxReward()
     {
         _blindBoxOverlay.HideOverlay();
+        RefreshOverlayInteractionContexts();
+    }
+
+    public void ShowCollectionEventFirstDogProgressNotice()
+    {
+        if (!_isPokerModeActive || _collectionProgressDialog == null)
+            return;
+
+        _collectionProgressDialog.ShowNotice();
         RefreshOverlayInteractionContexts();
     }
 
@@ -467,17 +481,30 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
+    private void OnCollectionProgressDialogVisibilityChanged(bool _)
+    {
+        RefreshOverlayInteractionContexts();
+    }
+
     private void RefreshOverlayInteractionContexts()
     {
-        if (_interactionHints == null || _blindBoxOverlay == null || _tutorial == null || _pokerHandShowcase == null)
+        if (_interactionHints == null
+            || _blindBoxOverlay == null
+            || _tutorial == null
+            || _pokerHandShowcase == null
+            || _collectionProgressDialog == null)
             return;
 
         var blindBoxVisible = _blindBoxOverlay.Visible;
         var showcaseVisible = _pokerHandShowcase.IsOverlayVisible;
-        _tutorial.SetPokerContext(_isPokerModeActive, blindBoxVisible || showcaseVisible);
+        var collectionProgressVisible = _collectionProgressDialog.IsOverlayVisible;
+        _tutorial.SetPokerContext(
+            _isPokerModeActive,
+            blindBoxVisible || showcaseVisible || collectionProgressVisible);
         var pokerInputAvailable = _isPokerModeActive
             && !blindBoxVisible
             && !showcaseVisible
+            && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
         _interactionHints.SetInputContextActive(pokerInputAvailable);
         _interactionHints.SetProactiveHintContextActive(pokerInputAvailable);

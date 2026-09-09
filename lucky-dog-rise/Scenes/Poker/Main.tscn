@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/Poker/ItemArea.tscn" id="14_items"]
 [ext_resource type="Script" uid="uid://bj45cgrcpjeor" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandShowcase.tscn" id="16_hand_showcase"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerCollectionProgressDialog.tscn" id="17_collection_progress_dialog"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -102,6 +103,8 @@ expand_mode = 1
 script = ExtResource("15_interaction_hints")
 
 [node name="PokerHandShowcase" parent="." instance=ExtResource("16_hand_showcase")]
+
+[node name="CollectionProgressDialog" parent="." instance=ExtResource("17_collection_progress_dialog")]
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582022331]
 script = ExtResource("10_hud")

@@ -510,6 +510,8 @@ public partial class ModeManager : Control
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.QuitRequested += RequestGracefulQuit;
         _settingsPanel.QuitAfterWishlistRequested += PerformGracefulQuit;
+        _settingsPanel.CollectionEventFirstDogProgressNoticeRequested +=
+            OnCollectionEventFirstDogProgressNoticeRequested;
         _gameData.BlindBoxRewardClaimed += OnBlindBoxRewardClaimedForCollectionEvent;
         _settingsPanel.DesktopBgmPlaybackChanged += OnDesktopBgmPlaybackChanged;
 #if DEBUG
@@ -1330,6 +1332,12 @@ public partial class ModeManager : Control
         PositionPanelInBestSlot();
         _settingsPanel.ShowCollectionEventPage();
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+    }
+
+    private void OnCollectionEventFirstDogProgressNoticeRequested()
+    {
+        if (CurrentMode == Mode.Play)
+            _gameManager?.ShowCollectionEventFirstDogProgressNotice();
     }
 
     private void DisposePlatformService()

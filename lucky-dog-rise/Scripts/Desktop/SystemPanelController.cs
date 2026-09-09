@@ -36,6 +36,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void OtherUiScaleConfirmedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleCanceledEventHandler();
     [Signal] public delegate void OpenStateChangedEventHandler(bool open);
+    [Signal] public delegate void CollectionEventFirstDogProgressNoticeRequestedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private Label _globalInputChipsEarnedLabel = null!;
@@ -133,7 +134,6 @@ public partial class SystemPanelController : CanvasLayer
     private enum WishlistCallToActionReason
     {
         None,
-        FirstDog,
         CollectionCompleted,
         Exit,
     }
@@ -1137,7 +1137,7 @@ public partial class SystemPanelController : CanvasLayer
         SwitchTab(3);
         if (!_panel.Visible)
             Open();
-        Callable.From(TryShowPendingFirstDogWishlistCallToAction).CallDeferred();
+        Callable.From(TryHandlePendingFirstDogProgressNotice).CallDeferred();
     }
 
     public bool TryShowWishlistCallToActionForExit()
@@ -1162,7 +1162,7 @@ public partial class SystemPanelController : CanvasLayer
         var pendingDogItemId = _gameData?.GetPendingCollectionEventFirstDogItemId(
             _collectionEventContent.EventId) ?? 0;
         if (pendingDogItemId > 0 && itemIds.Contains(pendingDogItemId))
-            ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
+            HandleFirstDogProgressNotice(pendingDogItemId);
     }
 
     private async void OnCollectionEventVictoryRewardClaimRequested()
@@ -1227,7 +1227,7 @@ public partial class SystemPanelController : CanvasLayer
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
-    private void TryShowPendingFirstDogWishlistCallToAction()
+    private void TryHandlePendingFirstDogProgressNotice()
     {
         if (_gameData == null || !_collectionEventContent.Visible)
             return;
@@ -1235,7 +1235,18 @@ public partial class SystemPanelController : CanvasLayer
         var pendingDogItemId = _gameData.GetPendingCollectionEventFirstDogItemId(
             _collectionEventContent.EventId);
         if (pendingDogItemId > 0 && _collectionEventContent.IsItemRevealed(pendingDogItemId))
-            ShowWishlistCallToAction(WishlistCallToActionReason.FirstDog);
+            HandleFirstDogProgressNotice(pendingDogItemId);
+    }
+
+    private void HandleFirstDogProgressNotice(int pendingDogItemId)
+    {
+        if (_gameData == null || pendingDogItemId <= 0)
+            return;
+
+        _gameData.MarkCollectionEventFirstDogCallToActionShown(
+            _collectionEventContent.EventId);
+        if (!_isBossKeyMode)
+            EmitSignal(SignalName.CollectionEventFirstDogProgressNoticeRequested);
     }
 
     private void TryShowCollectionCompletedWishlistCallToAction()
@@ -1262,9 +1273,6 @@ public partial class SystemPanelController : CanvasLayer
         _wishlistCallToActionReason = reason;
         ResetPanelScrollDrag();
         _gameData.MarkWishlistCallToActionShown();
-        if (reason == WishlistCallToActionReason.FirstDog)
-            _gameData.MarkCollectionEventFirstDogCallToActionShown(
-                _collectionEventContent.EventId);
         _wishlistCallToActionOverlay.ShowCallToAction(
             isExitPrompt: reason == WishlistCallToActionReason.Exit);
     }

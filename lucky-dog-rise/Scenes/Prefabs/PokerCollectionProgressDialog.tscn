@@ -1,0 +1,92 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://Scripts/PokerCollectionProgressDialogController.cs" id="1_controller"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="3_inter_bold"]
+[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="4_misans_bold"]
+
+[sub_resource type="FontVariation" id="FontVariation_title"]
+fallbacks = Array[Font]([ExtResource("4_misans_bold")])
+base_font = ExtResource("3_inter_bold")
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.07058824, 0.08235294, 0.08627451, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[node name="PokerCollectionProgressDialog" type="CanvasLayer"]
+visible = false
+layer = 20
+script = ExtResource("1_controller")
+
+[node name="Overlay" type="ColorRect" parent="."]
+offset_right = 1200.0
+offset_bottom = 1200.0
+mouse_filter = 0
+color = Color(0, 0, 0, 0.76)
+theme = ExtResource("2_theme")
+
+[node name="Center" type="CenterContainer" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Overlay/Center"]
+custom_minimum_size = Vector2(760, 440)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_panel")
+
+[node name="Margin" type="MarginContainer" parent="Overlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 58
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 58
+theme_override_constants/margin_bottom = 44
+
+[node name="Content" type="VBoxContainer" parent="Overlay/Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 28
+alignment = 1
+
+[node name="Title" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = SubResource("FontVariation_title")
+theme_override_font_sizes/font_size = 36
+text = "庆典收集取得重大进展！"
+horizontal_alignment = 1
+
+[node name="Message" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+theme_override_constants/line_spacing = 6
+text = "你正在参与 Demo 庆典装扮收集活动！刚刚获得的新狗狗，让你的收藏取得了重大进展。\n\n庆典页面已经为你打开，快去看看吧。继续加油，收集更多庆典装扮！"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="Overlay/Center/Panel/Margin/Content"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="Overlay/Center/Panel/Margin/Content/ConfirmRow"]
+custom_minimum_size = Vector2(280, 68)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "确认"
