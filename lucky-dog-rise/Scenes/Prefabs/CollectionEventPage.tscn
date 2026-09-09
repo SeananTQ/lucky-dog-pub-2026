@@ -403,6 +403,48 @@ theme_override_font_sizes/font_size = 12
 text = "CollectionEvent_ActivityInfoBody"
 autowrap_mode = 3
 
+[node name="RoadmapSpacing" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="RoadmapModule" type="PanelContainer" parent="RoadmapSpacing"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_activity_info")
+
+[node name="Margins" type="MarginContainer" parent="RoadmapSpacing/RoadmapModule"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="RoadmapSpacing/RoadmapModule/Margins"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 7
+
+[node name="Title" type="Label" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.807843, 0.87451, 0.878431, 1)
+theme_override_fonts/font = SubResource("FontVariation_victory_detail")
+theme_override_font_sizes/font_size = 16
+text = "CollectionEvent_RoadmapTitle"
+autowrap_mode = 3
+
+[node name="Body" type="Label" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.619608, 0.698039, 0.709804, 1)
+theme_override_constants/line_spacing = 3
+theme_override_fonts/font = SubResource("FontVariation_activity_body")
+theme_override_font_sizes/font_size = 12
+text = "CollectionEvent_RoadmapBody"
+autowrap_mode = 3
+
 [node name="DebugToolsModule" type="PanelContainer" parent="." unique_id=58497082]
 visible = false
 layout_mode = 2
