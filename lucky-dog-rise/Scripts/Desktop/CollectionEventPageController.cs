@@ -41,6 +41,7 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private Button _wishlistCallToActionBannerButton = null!;
     [Export] private Button _wishlistCallToActionButton = null!;
     [Export] private Label _wishlistCallToActionMessage = null!;
+    [Export] private RichTextLabel _roadmapBody = null!;
     [Export] private Control _debugToolsModule = null!;
     [Export] private Button _celebrationTestButton = null!;
     [Export] private Button _nameplateStateTestButton = null!;
@@ -206,6 +207,7 @@ public partial class CollectionEventPageController : VBoxContainer
             GetWishlistCallToActionFontSize(L10n.CurrentLocale));
         _wishlistCallToActionMessage.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
         _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
+        _roadmapBody.Text = FormatRoadmapBody(L10n.Tr(L10nKey.CollectionEvent_RoadmapBody));
 
         if (_gameData == null || _definition == null)
             return;
@@ -222,6 +224,21 @@ public partial class CollectionEventPageController : VBoxContainer
             cell.SetVisualState(state);
         }
         RefreshVictoryRewardPresentation(revealedIds, victoryClaimed);
+    }
+
+    private static string FormatRoadmapBody(string text)
+    {
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Contains(" | ", StringComparison.Ordinal)
+                || lines[i].Contains('｜'))
+            {
+                lines[i] = $"[color=#CEE0E0][font_size=13][b]{lines[i]}[/b][/font_size][/color]";
+            }
+        }
+
+        return string.Join('\n', lines);
     }
 
     private void OnInventoryChanged()

@@ -45,7 +45,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistCallToActionMessage", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
+[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistCallToActionMessage", "_roadmapBody", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -63,6 +63,7 @@ _wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
 _wishlistCallToActionBannerButton = NodePath("WishlistCallToActionModule/ModuleHitArea")
 _wishlistCallToActionButton = NodePath("WishlistCallToActionModule/WishlistButton")
 _wishlistCallToActionMessage = NodePath("WishlistCallToActionModule/Balloon/CopyMargins/Message")
+_roadmapBody = NodePath("RoadmapSpacing/RoadmapModule/Margins/Content/Body")
 _debugToolsModule = NodePath("DebugToolsModule")
 _celebrationTestButton = NodePath("DebugToolsModule/Center/ButtonRow/CelebrationTestButton")
 _nameplateStateTestButton = NodePath("DebugToolsModule/Center/ButtonRow/NameplateStateTestButton")
@@ -434,15 +435,27 @@ theme_override_font_sizes/font_size = 16
 text = "CollectionEvent_RoadmapTitle"
 autowrap_mode = 3
 
-[node name="Body" type="Label" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
+[node name="Body" type="RichTextLabel" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.619608, 0.698039, 0.709804, 1)
-theme_override_constants/line_spacing = 3
-theme_override_fonts/font = SubResource("FontVariation_activity_body")
-theme_override_font_sizes/font_size = 12
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.619608, 0.698039, 0.709804, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/line_separation = 3
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/normal_font = SubResource("FontVariation_activity_body")
+theme_override_fonts/bold_font = SubResource("FontVariation_victory_detail")
+theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/bold_font_size = 13
+bbcode_enabled = true
 text = "CollectionEvent_RoadmapBody"
+fit_content = true
+scroll_active = false
 autowrap_mode = 3
 
 [node name="DebugToolsModule" type="PanelContainer" parent="." unique_id=58497082]
