@@ -29,10 +29,10 @@ shadow_size = 2
 shadow_offset = Vector2(0, 8)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_value_scaled"]
-content_margin_left = 24.0
-content_margin_top = 16.0
-content_margin_right = 24.0
-content_margin_bottom = 16.0
+content_margin_left = 32.0
+content_margin_top = 28.0
+content_margin_right = 32.0
+content_margin_bottom = 28.0
 bg_color = Color(0.18039216, 0.22745098, 0.23529412, 1)
 corner_radius_top_left = 16
 corner_radius_top_right = 16
@@ -120,47 +120,67 @@ theme_override_styles/panel = SubResource("StyleBox_panel_scaled")
 
 [node name="Margin" type="MarginContainer" parent="Overlay/Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 46
-theme_override_constants/margin_top = 42
-theme_override_constants/margin_right = 46
-theme_override_constants/margin_bottom = 38
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
 
 [node name="Content" type="VBoxContainer" parent="Overlay/Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 30
+theme_override_constants/separation = 32
 alignment = 1
 
 [node name="Title" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
 layout_mode = 2
 theme_override_fonts/font = SubResource("FontVariation_title")
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 48
 text = "小狗来啦 Demo 庆典进行中"
 horizontal_alignment = 1
+autowrap_mode = 3
 
-[node name="MessageBg" type="PanelContainer" parent="Overlay/Center/Panel/Margin/Content"]
+[node name="MessageScroll" type="ScrollContainer" parent="Overlay/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 320)
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="MessageBg" type="PanelContainer" parent="Overlay/Center/Panel/Margin/Content/MessageScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBox_value_scaled")
 
-[node name="Message" type="Label" parent="Overlay/Center/Panel/Margin/Content/MessageBg"]
+[node name="Message" type="Label" parent="Overlay/Center/Panel/Margin/Content/MessageScroll/MessageBg"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 32
 theme_override_constants/line_spacing = 8
 text = "感谢您参与《小狗来啦》Demo 试玩！目前，庆典装扮收集活动正在进行中。\n恭喜您刚刚获得了一只小狗，这也让您的庆典收藏取得了重大进展！\n我们已经为您打开庆典页面，快去看看这位新伙伴和您的收集进度吧。\n继续加油，争取收集更多庆典装扮吧！"
-horizontal_alignment = 1
+horizontal_alignment = 0
 vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="ConfirmRow" type="HBoxContainer" parent="Overlay/Center/Panel/Margin/Content"]
 layout_mode = 2
+theme_override_constants/separation = 24
 alignment = 1
+
+[node name="SecondaryButton" type="Button" parent="Overlay/Center/Panel/Margin/Content/ConfirmRow"]
+visible = false
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBox_button_disabled_scaled")
+theme_override_styles/hover = SubResource("StyleBox_button_hover_scaled")
+theme_override_styles/pressed = SubResource("StyleBox_button_pressed_scaled")
+autowrap_mode = 3
 
 [node name="ConfirmButton" type="Button" parent="Overlay/Center/Panel/Margin/Content/ConfirmRow"]
 custom_minimum_size = Vector2(480, 112)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 36
 theme_override_styles/normal = SubResource("StyleBox_button_normal_scaled")
 theme_override_styles/hover = SubResource("StyleBox_button_hover_scaled")
 theme_override_styles/pressed = SubResource("StyleBox_button_pressed_scaled")
@@ -168,3 +188,4 @@ theme_override_styles/disabled = SubResource("StyleBox_button_disabled_scaled")
 theme_override_styles/focus = SubResource("StyleBox_button_normal_scaled")
 theme_override_styles/hover_pressed = SubResource("StyleBox_button_pressed_scaled")
 text = "确认"
+autowrap_mode = 3
