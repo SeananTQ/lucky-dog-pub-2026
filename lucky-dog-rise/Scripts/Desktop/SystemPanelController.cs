@@ -36,7 +36,6 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void OtherUiScaleConfirmedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleCanceledEventHandler();
     [Signal] public delegate void OpenStateChangedEventHandler(bool open);
-    [Signal] public delegate void CollectionEventFirstDogProgressNoticeRequestedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private Label _globalInputChipsEarnedLabel = null!;
@@ -1025,15 +1024,32 @@ public partial class SystemPanelController : CanvasLayer
             return;
 
         _collectionEventContent.Configure(_gameData, CreateCurrentCollectionEventDefinition());
+        _collectionEventContent.PreparePendingRevealAsync = () =>
+            PositionCollectionEventEntryAsync(CollectionEventEntryScrollTarget.Collection);
     }
 
-    private void ApplyCollectionEventEntryScroll()
+    private async void ApplyCollectionEventEntryScroll()
     {
         if (_collectionEventContent?.Visible != true)
             return;
 
+        // Capture before the reveal changes the persisted entry target.
         var target = _collectionEventContent.GetEntryScrollTarget();
-        if (target == CollectionEventEntryScrollTarget.Default)
+        await PositionCollectionEventEntryAsync(target);
+    }
+
+    private async Task PositionCollectionEventEntryAsync(CollectionEventEntryScrollTarget target)
+    {
+        // Tab visibility and panel opening both enqueue container layout passes.
+        // Wait through a full layout frame before reading anchors and scroll limits.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (!_panel.Visible || !_collectionEventContent.IsVisibleInTree())
+            return;
+
+        _collectionEventRewardScrollTween?.Kill();
+        // Pending rewards should show the whole collection from the page top.
+        if (target is CollectionEventEntryScrollTarget.Default or CollectionEventEntryScrollTarget.Collection)
         {
             _panelScroll.ScrollVertical = 0;
             return;
@@ -1045,10 +1061,13 @@ public partial class SystemPanelController : CanvasLayer
     private int CalculateCollectionEventScroll(CollectionEventEntryScrollTarget target)
     {
         var anchor = _collectionEventContent.GetScrollAnchor(target);
-        var targetScroll = _panelScroll.ScrollVertical
-                           + Mathf.RoundToInt(
-                               anchor.GetGlobalRect().Position.Y
-                               - _panelScroll.GetGlobalRect().Position.Y);
+        // Use an absolute position in the scroll content. Multiple entry callbacks
+        // can run before ScrollContainer applies its new offset; adding the current
+        // scroll value to a stale global position would scroll twice.
+        var content = _panelScroll.GetNode<Control>("ContentVBox");
+        var localAnchor = content.GetGlobalTransform().AffineInverse()
+                          * anchor.GetGlobalTransform().Origin;
+        var targetScroll = Mathf.RoundToInt(localAnchor.Y);
         var verticalScrollBar = _panelScroll.GetVScrollBar();
         var maximumScroll = Mathf.Max(
             0,
@@ -1240,13 +1259,19 @@ public partial class SystemPanelController : CanvasLayer
 
     private void HandleFirstDogProgressNotice(int pendingDogItemId)
     {
-        if (_gameData == null || pendingDogItemId <= 0)
+        // Poker acknowledges from the dialog, independently of collection-page reveals.
+        if (!_isBossKeyMode || _gameData == null || pendingDogItemId <= 0)
             return;
 
+        AcknowledgeFirstDogProgressNotice();
+    }
+
+    public void AcknowledgeFirstDogProgressNotice()
+    {
+        if (!HasPendingCollectionEventFirstDogCallToAction())
+            return;
         _gameData.MarkCollectionEventFirstDogCallToActionShown(
             _collectionEventContent.EventId);
-        if (!_isBossKeyMode)
-            EmitSignal(SignalName.CollectionEventFirstDogProgressNoticeRequested);
     }
 
     private void TryShowCollectionCompletedWishlistCallToAction()

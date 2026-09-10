@@ -3,6 +3,7 @@ using DataTables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace LuckyDogRise;
 
@@ -53,6 +54,7 @@ public partial class CollectionEventPageController : VBoxContainer
     private int _debugNameplateState = -1;
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
+    public Func<Task> PreparePendingRevealAsync { get; set; }
     public event Action VictoryRewardClaimRequested;
     public event Action VictoryRewardClaimed;
     public event Action CelebrationTestRequested;
@@ -286,7 +288,10 @@ public partial class CollectionEventPageController : VBoxContainer
             return;
 
         var requestVersion = ++_revealRequestVersion;
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (PreparePendingRevealAsync != null)
+            await PreparePendingRevealAsync();
+        else
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (requestVersion != _revealRequestVersion || !IsVisibleInTree() || _gameData == null)
             return;
 

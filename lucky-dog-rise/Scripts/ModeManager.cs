@@ -510,8 +510,6 @@ public partial class ModeManager : Control
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.QuitRequested += RequestGracefulQuit;
         _settingsPanel.QuitAfterWishlistRequested += PerformGracefulQuit;
-        _settingsPanel.CollectionEventFirstDogProgressNoticeRequested +=
-            OnCollectionEventFirstDogProgressNoticeRequested;
         _gameData.BlindBoxRewardClaimed += OnBlindBoxRewardClaimedForCollectionEvent;
         _settingsPanel.DesktopBgmPlaybackChanged += OnDesktopBgmPlaybackChanged;
 #if DEBUG
@@ -968,6 +966,7 @@ public partial class ModeManager : Control
             _gameManager.SettingsPanel = _settingsPanel;
             _infoPanel.PaytableRequested += _gameManager.TogglePokerHandShowcase;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
+            _gameManager.CollectionProgressConfirmed += OnCollectionProgressConfirmed;
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
 
             // InfoPanel 绑定 GameData
@@ -1328,16 +1327,35 @@ public partial class ModeManager : Control
                 firstOwnership) != true)
             return;
 
+        PresentFirstDogProgress();
+    }
+
+    private void PresentFirstDogProgress()
+    {
+        if (CurrentMode == Mode.Play)
+        {
+            // The host system panel renders above the poker SubViewport.
+            // Only retract an overlapping panel; a side panel keeps its current tab.
+            if (IsSettingsPanelOverlappingPoker())
+                _settingsPanel.CloseImmediate();
+            _gameManager?.ShowCollectionEventFirstDogProgressNotice();
+            return;
+        }
+        OpenCollectionProgressPage();
+    }
+
+    private void OnCollectionProgressConfirmed()
+    {
+        _settingsPanel.AcknowledgeFirstDogProgressNotice();
+        OpenCollectionProgressPage();
+    }
+
+    private void OpenCollectionProgressPage()
+    {
         RefreshSettingsPanelModeActions();
         PositionPanelInBestSlot();
         _settingsPanel.ShowCollectionEventPage();
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
-    }
-
-    private void OnCollectionEventFirstDogProgressNoticeRequested()
-    {
-        if (CurrentMode == Mode.Play)
-            _gameManager?.ShowCollectionEventFirstDogProgressNotice();
     }
 
     private void DisposePlatformService()
@@ -1814,10 +1832,7 @@ public partial class ModeManager : Control
             || _settingsPanel?.HasPendingCollectionEventFirstDogCallToAction() != true)
             return;
 
-        RefreshSettingsPanelModeActions();
-        PositionPanelInBestSlot();
-        _settingsPanel.ShowCollectionEventPage();
-        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+        PresentFirstDogProgress();
     }
 
     private void SetBossStatusBarInteractable(bool interactable)
@@ -2843,6 +2858,8 @@ public partial class ModeManager : Control
 
     private void ToggleSettingsPanel()
     {
+        if (CurrentMode == Mode.Play && _gameManager?.IsCollectionProgressNoticeVisible == true)
+            return;
         if (_settingsPanel.IsOpen)
         {
             _settingsPanel.Close();
@@ -2874,8 +2891,22 @@ public partial class ModeManager : Control
         _settingsPanel?.Close();
     }
 
+    private bool IsSettingsPanelOverlappingPoker() =>
+        CurrentMode == Mode.Play
+        && _playViewport != null
+        && _settingsPanel?.IsOpen == true
+        && _settingsPanel.PanelRect.Intersects(new Rect2(
+            _playViewport.Position, _playViewport.Size * _playViewport.Scale));
+
     private void UpdatePlayPanelDismissOverlay()
     {
+        // Recheck after opening or repositioning: a side panel may move over poker.
+        if (_gameManager?.IsCollectionProgressNoticeVisible == true
+            && IsSettingsPanelOverlappingPoker())
+        {
+            _settingsPanel.CloseImmediate();
+            return;
+        }
         if (_playPanelDismissOverlay == null
             || CurrentMode != Mode.Play
             || _playViewport == null
@@ -2889,7 +2920,7 @@ public partial class ModeManager : Control
         var gameRect = new Rect2(
             _playViewport.Position,
             _playViewport.Size * _playViewport.Scale);
-        bool overlapsGame = _settingsPanel.PanelRect.Intersects(gameRect);
+        bool overlapsGame = IsSettingsPanelOverlappingPoker();
         _playPanelDismissOverlay.Position = gameRect.Position;
         _playPanelDismissOverlay.Size = gameRect.Size;
         _playPanelDismissOverlay.Visible = overlapsGame;

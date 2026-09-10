@@ -22,6 +22,9 @@ public partial class GameManager : Node2D
 
     [Signal] public delegate void BlindBoxRewardClaimRequestedEventHandler();
     [Signal] public delegate void InsufficientBetAttemptedEventHandler();
+    [Signal] public delegate void CollectionProgressConfirmedEventHandler();
+
+    public bool IsCollectionProgressNoticeVisible => _collectionProgressDialog?.IsOverlayVisible == true;
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
@@ -107,6 +110,7 @@ public partial class GameManager : Node2D
         _pokerHandShowcase.ShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
         _collectionProgressDialog = GetNode<PokerCollectionProgressDialogController>("CollectionProgressDialog");
         _collectionProgressDialog.OverlayVisibilityChanged += OnCollectionProgressDialogVisibilityChanged;
+        _collectionProgressDialog.Confirmed += OnCollectionProgressConfirmed;
 
         // 信号连接
         _dogVisual.DogClicked += OnDogClicked;
@@ -130,7 +134,10 @@ public partial class GameManager : Node2D
         if (_pokerHandShowcase != null)
             _pokerHandShowcase.ShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
         if (_collectionProgressDialog != null)
+        {
             _collectionProgressDialog.OverlayVisibilityChanged -= OnCollectionProgressDialogVisibilityChanged;
+            _collectionProgressDialog.Confirmed -= OnCollectionProgressConfirmed;
+        }
         if (_itemArea != null && _interactionHints != null)
         {
             _itemArea.InteractionActivated -= _interactionHints.NotifyInteractionHandled;
@@ -153,11 +160,6 @@ public partial class GameManager : Node2D
         _isPokerModeActive = active;
         if (!active)
             _pokerHandShowcase?.HideOverlay();
-#if DEBUG
-        // 临时 UI 调整入口：Debug 下进入扑克模式后常驻首次狗狗庆典进展弹窗。
-        else
-            _collectionProgressDialog?.ShowPinnedUiPreview();
-#endif
         RefreshOverlayInteractionContexts();
     }
 
@@ -199,6 +201,8 @@ public partial class GameManager : Node2D
         _collectionProgressDialog.ShowNotice();
         RefreshOverlayInteractionContexts();
     }
+
+    private void OnCollectionProgressConfirmed() => EmitSignal(SignalName.CollectionProgressConfirmed);
 
     // === 信号处理 ===
 

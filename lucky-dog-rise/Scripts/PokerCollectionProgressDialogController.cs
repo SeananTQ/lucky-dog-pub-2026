@@ -6,6 +6,7 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
 {
     [Signal] public delegate void OverlayVisibilityChangedEventHandler(bool visible);
     [Signal] public delegate void SecondaryActionRequestedEventHandler();
+    [Signal] public delegate void ConfirmedEventHandler();
 
     private Label _title = null!;
     private Label _message = null!;
@@ -14,7 +15,6 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
     private ScrollContainer _messageScroll = null!;
     private PanelContainer _messageBackground = null!;
     private bool _layoutQueued;
-    private bool _uiPreviewPinned;
 
     public bool IsOverlayVisible => Visible;
 
@@ -93,19 +93,13 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
         QueueBodyLayout();
     }
 
-    public void ShowPinnedUiPreview()
-    {
-        _uiPreviewPinned = true;
-        if (!Visible)
-            ShowNotice();
-    }
-
     private void HideNotice()
     {
-        if (!Visible || _uiPreviewPinned)
+        if (!Visible)
             return;
 
         Visible = false;
         EmitSignal(SignalName.OverlayVisibilityChanged, false);
+        EmitSignal(SignalName.Confirmed);
     }
 }
