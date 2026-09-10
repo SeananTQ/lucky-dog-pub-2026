@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://Scripts/PokerCollectionProgressDialogController.cs" id="1_controller"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="2_theme"]
@@ -9,17 +9,83 @@
 fallbacks = Array[Font]([ExtResource("4_misans_bold")])
 base_font = ExtResource("3_inter_bold")
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-bg_color = Color(0.07058824, 0.08235294, 0.08627451, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 1, 1, 0.12)
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel_scaled"]
+content_margin_left = 24.0
+content_margin_top = 24.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.60446244, 0.7101088, 0.7392709, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+shadow_color = Color(0.02745098, 0.03529412, 0.039215688, 1)
+shadow_size = 2
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_value_scaled"]
+content_margin_left = 24.0
+content_margin_top = 16.0
+content_margin_right = 24.0
+content_margin_bottom = 16.0
+bg_color = Color(0.18039216, 0.22745098, 0.23529412, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_normal_scaled"]
+content_margin_left = 32.0
+content_margin_top = 26.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
+bg_color = Color(0, 0.78039217, 0.40392157, 1)
+border_width_bottom = 6
+border_color = Color(0, 0.4103878, 0.19912711, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_hover_scaled"]
+content_margin_left = 32.0
+content_margin_top = 26.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
+bg_color = Color(1.9011646e-06, 0.53670263, 0.26810202, 1)
+border_width_bottom = 6
+border_color = Color(0, 0.2775012, 0.12656373, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_pressed_scaled"]
+content_margin_left = 32.0
+content_margin_top = 32.0
+content_margin_right = 32.0
+content_margin_bottom = 26.0
+bg_color = Color(1.9011646e-06, 0.53670263, 0.26810202, 1)
+border_width_top = 6
+border_color = Color(0.8, 0.8, 0.8, 0)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_disabled_scaled"]
+content_margin_left = 32.0
+content_margin_top = 26.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
+bg_color = Color(0.26666668, 0.28627452, 0.3019608, 1)
+border_width_bottom = 6
+border_color = Color(0.17, 0.17, 0.17, 1)
 corner_radius_top_left = 24
 corner_radius_top_right = 24
 corner_radius_bottom_right = 24
@@ -34,7 +100,7 @@ script = ExtResource("1_controller")
 offset_right = 1200.0
 offset_bottom = 1200.0
 mouse_filter = 0
-color = Color(0, 0, 0, 0.76)
+color = Color(0, 0, 0, 0.72)
 theme = ExtResource("2_theme")
 
 [node name="Center" type="CenterContainer" parent="Overlay"]
@@ -47,36 +113,41 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Overlay/Center"]
-custom_minimum_size = Vector2(760, 440)
+custom_minimum_size = Vector2(1040, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_panel")
+theme_override_styles/panel = SubResource("StyleBox_panel_scaled")
 
 [node name="Margin" type="MarginContainer" parent="Overlay/Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 58
-theme_override_constants/margin_top = 48
-theme_override_constants/margin_right = 58
-theme_override_constants/margin_bottom = 44
+theme_override_constants/margin_left = 46
+theme_override_constants/margin_top = 42
+theme_override_constants/margin_right = 46
+theme_override_constants/margin_bottom = 38
 
 [node name="Content" type="VBoxContainer" parent="Overlay/Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 28
+theme_override_constants/separation = 30
 alignment = 1
 
 [node name="Title" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
 layout_mode = 2
 theme_override_fonts/font = SubResource("FontVariation_title")
-theme_override_font_sizes/font_size = 36
-text = "庆典收集取得重大进展！"
+theme_override_font_sizes/font_size = 40
+text = "小狗来啦 Demo 庆典进行中"
 horizontal_alignment = 1
 
-[node name="Message" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
-custom_minimum_size = Vector2(0, 190)
+[node name="MessageBg" type="PanelContainer" parent="Overlay/Center/Panel/Margin/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-theme_override_constants/line_spacing = 6
-text = "你正在参与 Demo 庆典装扮收集活动！刚刚获得的新狗狗，让你的收藏取得了重大进展。\n\n庆典页面已经为你打开，快去看看吧。继续加油，收集更多庆典装扮！"
+theme_override_styles/panel = SubResource("StyleBox_value_scaled")
+
+[node name="Message" type="Label" parent="Overlay/Center/Panel/Margin/Content/MessageBg"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+theme_override_constants/line_spacing = 8
+text = "感谢您参与《小狗来啦》Demo 试玩！目前，庆典装扮收集活动正在进行中。\n恭喜您刚刚获得了一只小狗，这也让您的庆典收藏取得了重大进展！\n我们已经为您打开庆典页面，快去看看这位新伙伴和您的收集进度吧。\n继续加油，争取收集更多庆典装扮吧！"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -86,7 +157,14 @@ layout_mode = 2
 alignment = 1
 
 [node name="ConfirmButton" type="Button" parent="Overlay/Center/Panel/Margin/Content/ConfirmRow"]
-custom_minimum_size = Vector2(280, 68)
+custom_minimum_size = Vector2(480, 112)
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+focus_mode = 0
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBox_button_normal_scaled")
+theme_override_styles/hover = SubResource("StyleBox_button_hover_scaled")
+theme_override_styles/pressed = SubResource("StyleBox_button_pressed_scaled")
+theme_override_styles/disabled = SubResource("StyleBox_button_disabled_scaled")
+theme_override_styles/focus = SubResource("StyleBox_button_normal_scaled")
+theme_override_styles/hover_pressed = SubResource("StyleBox_button_pressed_scaled")
 text = "确认"

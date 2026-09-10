@@ -153,6 +153,11 @@ public partial class GameManager : Node2D
         _isPokerModeActive = active;
         if (!active)
             _pokerHandShowcase?.HideOverlay();
+#if DEBUG
+        // 临时 UI 调整入口：Debug 下进入扑克模式后常驻首次狗狗庆典进展弹窗。
+        else
+            _collectionProgressDialog?.ShowPinnedUiPreview();
+#endif
         RefreshOverlayInteractionContexts();
     }
 

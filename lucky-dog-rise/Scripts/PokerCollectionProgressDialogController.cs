@@ -6,21 +6,24 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
 {
     [Signal] public delegate void OverlayVisibilityChangedEventHandler(bool visible);
 
-    private const string ChineseTitle = "庆典收集取得重大进展！";
+    private const string ChineseTitle = "小狗来啦 Demo 庆典进行中";
     private const string ChineseMessage =
-        "你正在参与 Demo 庆典装扮收集活动！刚刚获得的新狗狗，让你的收藏取得了重大进展。\n\n" +
-        "庆典页面已经为你打开，快去看看吧。继续加油，收集更多庆典装扮！";
+        "感谢您参与《小狗来啦》Demo 试玩！目前，庆典装扮收集活动正在进行中。\n" +
+        "恭喜您刚刚获得了一只小狗，这也让您的庆典收藏取得了重大进展！\n" +
+        "我们已经为您打开庆典页面，快去看看这位新伙伴和您的收集进度吧。\n" +
+        "继续加油，争取收集更多庆典装扮吧！";
 
     private Label _title = null!;
     private Label _message = null!;
     private Button _confirmButton = null!;
+    private bool _uiPreviewPinned;
 
     public bool IsOverlayVisible => Visible;
 
     public override void _Ready()
     {
         _title = GetNode<Label>("Overlay/Center/Panel/Margin/Content/Title");
-        _message = GetNode<Label>("Overlay/Center/Panel/Margin/Content/Message");
+        _message = GetNode<Label>("Overlay/Center/Panel/Margin/Content/MessageBg/Message");
         _confirmButton = GetNode<Button>("Overlay/Center/Panel/Margin/Content/ConfirmRow/ConfirmButton");
         _confirmButton.Pressed += HideNotice;
         Visible = false;
@@ -33,12 +36,19 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
         _confirmButton.Text = L10n.Tr(L10nKey.Common_Confirm);
         Visible = true;
         EmitSignal(SignalName.OverlayVisibilityChanged, true);
-        _confirmButton.GrabFocus();
+        GetViewport().GuiReleaseFocus();
+    }
+
+    public void ShowPinnedUiPreview()
+    {
+        _uiPreviewPinned = true;
+        if (!Visible)
+            ShowNotice();
     }
 
     private void HideNotice()
     {
-        if (!Visible)
+        if (!Visible || _uiPreviewPinned)
             return;
 
         Visible = false;
