@@ -1027,9 +1027,14 @@ public partial class SystemPanelController : CanvasLayer
             _gameData,
             CreateCurrentCollectionEventDefinition(),
             () => _platformService?.PersonaName ?? string.Empty);
+#if DEBUG
         _collectionEventContent.ScreenshotServiceProvider = () =>
             _gameData.IsBlindBoxLocalTestMode || _gameData.IsSteamMockSimulationActive
                 ? null : _platformService as IPlatformScreenshotService;
+#else
+        _collectionEventContent.ScreenshotServiceProvider = () =>
+            _platformService as IPlatformScreenshotService;
+#endif
         _collectionEventContent.PreparePendingRevealAsync = () =>
             PositionCollectionEventEntryAsync(CollectionEventEntryScrollTarget.Collection);
     }

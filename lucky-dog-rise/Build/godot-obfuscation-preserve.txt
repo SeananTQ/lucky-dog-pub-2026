@@ -7,6 +7,9 @@ CardTableController
 ChipRewardController
 ChipStackController
 CollectionEventRewardCellController
+CollectionEventPageController
+CollectionCelebrationConfettiController
+CollectionNameplateLayoutSmoke
 ConfirmOverlayController
 DesktopRiseIntroController
 DeveloperLauncherController
@@ -28,6 +31,7 @@ LoadingIndicatorController
 SteamMockPanelController
 ModeManager
 PokerHandShowcaseController
+PokerCollectionProgressDialogController
 SingleInstanceGuard
 SystemPanelController
 TaskbarSnap
