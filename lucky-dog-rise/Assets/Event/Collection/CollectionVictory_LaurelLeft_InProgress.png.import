@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7u2fbvid8tcx"
-path="res://.godot/imported/CollectionVictory_Nameplate_2x_Claimed.png-8ab7d70b3f51e0a9158792fc27ab07af.ctex"
+uid="uid://b454iovfafcnv"
+path="res://.godot/imported/CollectionVictory_LaurelLeft_InProgress.png-62c256101cf5659f1cf4d10d1452934f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_Claimed.png"
-dest_files=["res://.godot/imported/CollectionVictory_Nameplate_2x_Claimed.png-8ab7d70b3f51e0a9158792fc27ab07af.ctex"]
+source_file="res://Assets/Event/Collection/CollectionVictory_LaurelLeft_InProgress.png"
+dest_files=["res://.godot/imported/CollectionVictory_LaurelLeft_InProgress.png-62c256101cf5659f1cf4d10d1452934f.ctex"]
 
 [params]
 
