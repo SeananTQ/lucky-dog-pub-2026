@@ -24,7 +24,7 @@ public partial class CollectionNameplateLayoutSmoke : Node
             var stateType = render.GetParameters()[0].ParameterType;
             var plaque = page.GetNode<Control>("VictoryRewardMargins/CollectionVictoryNameplate");
             string[] names = { "Copy", "ClaimableCopy", "ClaimedCopy" };
-            foreach (var locale in new[] { "zh_CN", "en", "fr" })
+            foreach (var locale in new[] { "en", "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT", "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk" })
             {
             L10n.SetLocale(locale, save: false);
             string previousLongText = null;
@@ -54,6 +54,16 @@ public partial class CollectionNameplateLayoutSmoke : Node
                         previousLongText = title.Text;
                     }
                     Require(detail.GetLineCount() <= 2, "Detail exceeds two lines");
+                    if (state == 1)
+                    {
+                        var underlineLines = (System.Collections.Generic.List<Rect2>)typeof(CollectionEventPageController)
+                            .GetMethod("GetClaimableUnderlineLines", BindingFlags.NonPublic | BindingFlags.Instance)!
+                            .Invoke(page, null)!;
+                        Require(underlineLines.Count == detail.GetLineCount(), "Underline line count differs from text");
+                        foreach (var line in underlineLines)
+                            Require(line.Position.X >= -0.1f && line.End.X <= detail.Size.X + 0.1f,
+                                "Underline exceeds text area");
+                    }
                     GD.Print($"[NameplateSmoke] locale={locale} pass={pass} state={state} titleHeight={title.Size.Y} detailLines={detail.GetLineCount()} font={title.GetThemeFontSize("font_size")}");
                 }
             }
@@ -66,6 +76,10 @@ public partial class CollectionNameplateLayoutSmoke : Node
             page.Show(); // Reset the gesture clock after asynchronous layout tests.
             Require(page.IsProcessing(), "Claimable sway did not start");
             page._Process(0.275);
+            var opacity = typeof(CollectionEventPageController).GetField(
+                "_nameplateUnderlineOpacity", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            Require(Math.Abs((float)opacity.GetValue(page)! - 1f) < 0.001f,
+                "Underline not visible at sway peak");
             Require(Math.Abs(left.RotationDegrees - 7) < 0.01f
                 && Math.Abs(left.Rotation + right.Rotation) < 0.0001f,
                 "First inward sway is not mirrored");
@@ -74,8 +88,9 @@ public partial class CollectionNameplateLayoutSmoke : Node
                 && Math.Abs(left.Rotation + right.Rotation) < 0.0001f,
                 "Second inward sway is not mirrored");
             page._Process(0.3);
+            Require((float)opacity.GetValue(page)! == 0f, "Underline remains during rest");
             Require(left.Rotation == 0 && right.Rotation == 0, "No rest after two sways");
-            page._Process(2);
+            page._Process(1);
             Require(left.Rotation == 0 && right.Rotation == 0, "Rest is too short");
             Require(background.SelfModulate == Colors.White, "Old brightness animation remains");
             Require(plaque.GetGlobalRect() == before && plaque.Scale == Vector2.One,

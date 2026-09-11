@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace LuckyDogRise;
@@ -33,6 +34,7 @@ public partial class CollectionEventPageController : VBoxContainer
     private const int NameplateTitleFrenchFontSize = 15;
     private const int NameplateTitleMinimumFontSize = 12;
     private const float NameplateTitleHorizontalInset = 66f;
+    private const double NameplateSwayRestSeconds = 1.5;
 #if DEBUG
     private const string DebugLongPersonaName =
         "Captain Lucky Paws and Friends";
@@ -78,6 +80,8 @@ public partial class CollectionEventPageController : VBoxContainer
     private double _nameplateSwaySeconds;
     private Control _laurelLeftPivot;
     private Control _laurelRightPivot;
+    private Label _claimableUnderlineLabel;
+    private float _nameplateUnderlineOpacity;
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
     public Func<Task> PreparePendingRevealAsync { get; set; }
@@ -93,6 +97,8 @@ public partial class CollectionEventPageController : VBoxContainer
         var contentLayer = _victoryRewardNameplate.GetNode<Control>("ContentMargins/ContentLayer");
         _laurelLeftPivot = contentLayer.GetNode<Control>("LaurelLeftPivot");
         _laurelRightPivot = contentLayer.GetNode<Control>("LaurelRightPivot");
+        _claimableUnderlineLabel = contentLayer.GetNode<Label>("ClaimableCopy/Detail");
+        _claimableUnderlineLabel.Draw += DrawClaimableUnderline;
         L10n.Changed += RefreshPresentation;
         VisibilityChanged += OnVisibilityChanged;
         _victoryRewardNameplate.Resized += OnVictoryRewardNameplateResized;
@@ -696,25 +702,62 @@ public partial class CollectionEventPageController : VBoxContainer
     private void ResetNameplateSway()
     {
         _nameplateSwaySeconds = 0;
+        _nameplateUnderlineOpacity = 0;
+        _claimableUnderlineLabel?.QueueRedraw();
         if (_laurelLeftPivot != null) _laurelLeftPivot.Rotation = 0;
         if (_laurelRightPivot != null) _laurelRightPivot.Rotation = 0;
     }
 
     public override void _Process(double delta)
     {
-        // Two inward-and-back gestures (7°, then 5°), followed by 2.5 seconds at rest.
+        // Two inward-and-back gestures (7°, then 5°), followed by a configurable rest.
         // Bottom pivots and mirrored angles preserve the plaque/text/hitbox geometry.
-        _nameplateSwaySeconds = (_nameplateSwaySeconds + delta) % 3.6;
+        _nameplateSwaySeconds = (_nameplateSwaySeconds + delta) % (1.1 + NameplateSwayRestSeconds);
         var angle = 0f;
+        _nameplateUnderlineOpacity = 0;
         if (_nameplateSwaySeconds < 1.1)
         {
             var second = _nameplateSwaySeconds >= 0.55;
             var phase = (_nameplateSwaySeconds - (second ? 0.55 : 0)) / 0.55;
             var ease = (1f - (float)Math.Cos(phase * Math.Tau)) * 0.5f;
+            _nameplateUnderlineOpacity = ease;
             angle = Mathf.DegToRad(second ? 5f : 7f) * ease;
         }
         _laurelLeftPivot.Rotation = angle;
         _laurelRightPivot.Rotation = -angle;
+        _claimableUnderlineLabel.QueueRedraw();
+    }
+
+    // Draw on the existing Label: decoration never contributes to minimum size or wrapping.
+    // Character bounds come from Godot's actual shaping, including automatic line breaks.
+    private List<Rect2> GetClaimableUnderlineLines()
+    {
+        var lines = new SortedDictionary<float, Rect2>();
+        var index = 0;
+        foreach (var rune in _claimableUnderlineLabel.Text.EnumerateRunes())
+        {
+            var bounds = _claimableUnderlineLabel.GetCharacterBounds(index++);
+            if (Rune.IsWhiteSpace(rune) || !bounds.HasArea())
+                continue;
+            var y = bounds.Position.Y;
+            lines[y] = lines.TryGetValue(y, out var line) ? line.Merge(bounds) : bounds;
+        }
+        return lines.Values.ToList();
+    }
+
+    private void DrawClaimableUnderline()
+    {
+        if (_currentNameplateVisualState != VictoryNameplateVisualState.Claimable
+            || _nameplateUnderlineOpacity <= 0)
+            return;
+        var color = _claimableUnderlineLabel.GetThemeColor("font_color");
+        color.A *= _nameplateUnderlineOpacity;
+        foreach (var line in GetClaimableUnderlineLines())
+        {
+            var y = line.End.Y - 0.5f;
+            _claimableUnderlineLabel.DrawLine(new Vector2(line.Position.X, y),
+                new Vector2(line.End.X, y), color, 1f, antialiased: true);
+        }
     }
 
     private enum VictoryNameplateVisualState
