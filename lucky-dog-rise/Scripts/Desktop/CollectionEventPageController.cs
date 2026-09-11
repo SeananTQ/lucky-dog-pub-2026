@@ -75,6 +75,9 @@ public partial class CollectionEventPageController : VBoxContainer
     private VictoryNameplateVisualState _currentNameplateVisualState;
     private int _revealRequestVersion;
     private int _debugNameplateState = -1;
+    private double _nameplateSwaySeconds;
+    private Control _laurelLeftPivot;
+    private Control _laurelRightPivot;
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
     public Func<Task> PreparePendingRevealAsync { get; set; }
@@ -86,6 +89,10 @@ public partial class CollectionEventPageController : VBoxContainer
 
     public override void _Ready()
     {
+        SetProcess(false);
+        var contentLayer = _victoryRewardNameplate.GetNode<Control>("ContentMargins/ContentLayer");
+        _laurelLeftPivot = contentLayer.GetNode<Control>("LaurelLeftPivot");
+        _laurelRightPivot = contentLayer.GetNode<Control>("LaurelRightPivot");
         L10n.Changed += RefreshPresentation;
         VisibilityChanged += OnVisibilityChanged;
         _victoryRewardNameplate.Resized += OnVictoryRewardNameplateResized;
@@ -297,6 +304,7 @@ public partial class CollectionEventPageController : VBoxContainer
             NotifyPageEntered();
         else
             _revealRequestVersion++;
+        UpdateNameplateAttention();
     }
 
     private void OpenWishlistCallToAction()
@@ -671,6 +679,42 @@ public partial class CollectionEventPageController : VBoxContainer
         _wishlistCallToActionModule.CustomMinimumSize = new Vector2(
             _wishlistCallToActionModule.CustomMinimumSize.X,
             showShareButton ? WishlistModuleWithShareHeight : WishlistModuleDefaultHeight);
+        UpdateNameplateAttention();
+    }
+
+    private void UpdateNameplateAttention()
+    {
+        var active = _currentNameplateVisualState == VictoryNameplateVisualState.Claimable
+                     && IsVisibleInTree();
+        if (active == IsProcessing())
+            return; // Ordinary inventory/localization refreshes must not restart the gesture.
+
+        SetProcess(active);
+        ResetNameplateSway();
+    }
+
+    private void ResetNameplateSway()
+    {
+        _nameplateSwaySeconds = 0;
+        if (_laurelLeftPivot != null) _laurelLeftPivot.Rotation = 0;
+        if (_laurelRightPivot != null) _laurelRightPivot.Rotation = 0;
+    }
+
+    public override void _Process(double delta)
+    {
+        // Two inward-and-back gestures (7°, then 5°), followed by 2.5 seconds at rest.
+        // Bottom pivots and mirrored angles preserve the plaque/text/hitbox geometry.
+        _nameplateSwaySeconds = (_nameplateSwaySeconds + delta) % 3.6;
+        var angle = 0f;
+        if (_nameplateSwaySeconds < 1.1)
+        {
+            var second = _nameplateSwaySeconds >= 0.55;
+            var phase = (_nameplateSwaySeconds - (second ? 0.55 : 0)) / 0.55;
+            var ease = (1f - (float)Math.Cos(phase * Math.Tau)) * 0.5f;
+            angle = Mathf.DegToRad(second ? 5f : 7f) * ease;
+        }
+        _laurelLeftPivot.Rotation = angle;
+        _laurelRightPivot.Rotation = -angle;
     }
 
     private enum VictoryNameplateVisualState
@@ -686,6 +730,8 @@ public partial class CollectionEventPageController : VBoxContainer
             return;
 
         _victoryRewardButton.Disabled = true;
+        SetProcess(false);
+        ResetNameplateSway();
         if (VictoryRewardClaimRequested == null)
             CompleteVictoryRewardClaim();
         else

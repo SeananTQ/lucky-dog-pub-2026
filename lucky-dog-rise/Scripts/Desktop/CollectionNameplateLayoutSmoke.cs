@@ -58,6 +58,37 @@ public partial class CollectionNameplateLayoutSmoke : Node
                 }
             }
             }
+            var background = plaque.GetNode<NinePatchRect>("NameplateBackground");
+            var left = plaque.GetNode<Control>("ContentMargins/ContentLayer/LaurelLeftPivot");
+            var right = plaque.GetNode<Control>("ContentMargins/ContentLayer/LaurelRightPivot");
+            var before = plaque.GetGlobalRect();
+            page.Hide();
+            page.Show(); // Reset the gesture clock after asynchronous layout tests.
+            Require(page.IsProcessing(), "Claimable sway did not start");
+            page._Process(0.275);
+            Require(Math.Abs(left.RotationDegrees - 7) < 0.01f
+                && Math.Abs(left.Rotation + right.Rotation) < 0.0001f,
+                "First inward sway is not mirrored");
+            page._Process(0.55);
+            Require(Math.Abs(left.RotationDegrees - 5) < 0.01f
+                && Math.Abs(left.Rotation + right.Rotation) < 0.0001f,
+                "Second inward sway is not mirrored");
+            page._Process(0.3);
+            Require(left.Rotation == 0 && right.Rotation == 0, "No rest after two sways");
+            page._Process(2);
+            Require(left.Rotation == 0 && right.Rotation == 0, "Rest is too short");
+            Require(background.SelfModulate == Colors.White, "Old brightness animation remains");
+            Require(plaque.GetGlobalRect() == before && plaque.Scale == Vector2.One,
+                "Sway changed plaque geometry");
+            page.Hide();
+            Require(!page.IsProcessing() && left.Rotation == 0 && right.Rotation == 0,
+                "Hidden page retained animation");
+            page.Show();
+            Require(page.IsProcessing(), "Sway did not resume on show");
+            page._Process(0.275);
+            render.Invoke(page, new[] { Enum.ToObject(stateType, 2), (object)true, false });
+            Require(!page.IsProcessing() && left.Rotation == 0 && right.Rotation == 0,
+                "Claimed plaque retained animation");
             GD.Print("[NameplateSmoke] PASS");
             GetTree().Quit();
         }
