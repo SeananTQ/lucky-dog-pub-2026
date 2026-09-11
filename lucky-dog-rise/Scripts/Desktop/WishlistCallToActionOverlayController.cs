@@ -14,6 +14,7 @@ public partial class WishlistCallToActionOverlayController : Control
     private Button _promptButton = null!;
     private Control _suppressExitArea = null!;
     private CheckButton _suppressExitCheckBox = null!;
+    private Label _title = null!;
     private Label _message = null!;
     private bool _isExitPrompt;
 
@@ -25,6 +26,7 @@ public partial class WishlistCallToActionOverlayController : Control
         _promptButton = GetNode<Button>("OverlayPanel/Margin/Content/WishlistPrompt/HitArea");
         _suppressExitArea = GetNode<Control>("OverlayPanel/Margin/Content/SuppressExitArea");
         _suppressExitCheckBox = GetNode<CheckButton>("OverlayPanel/Margin/Content/SuppressExitArea/CheckBox");
+        _title = GetNode<Label>("OverlayPanel/Margin/Content/Title");
         _message = GetNode<Label>("OverlayPanel/Margin/Content/WishlistPrompt/Balloon/CopyMargins/Message");
         _primaryButton.Pressed += () => EmitAndHide(primary: true);
         _promptButton.Pressed += () => EmitAndHide(primary: true);
@@ -46,7 +48,6 @@ public partial class WishlistCallToActionOverlayController : Control
         _suppressExitArea.Visible = isExitPrompt;
         _closeButton.Visible = isExitPrompt;
         _suppressExitCheckBox.SetPressedNoSignal(false);
-        _secondaryButton.Text = isExitPrompt ? "直接退出" : "稍后再说";
         RefreshPresentation();
         Visible = true;
         GetViewport().GuiReleaseFocus();
@@ -82,6 +83,7 @@ public partial class WishlistCallToActionOverlayController : Control
 
     private void RefreshPresentation()
     {
+        _title.Text = L10n.Tr(L10nKey.WishlistCallToAction_Title);
         _message.AddThemeFontSizeOverride(
             "font_size",
             WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
@@ -89,5 +91,9 @@ public partial class WishlistCallToActionOverlayController : Control
         _primaryButton.Text = _isExitPrompt
             ? L10n.Tr(L10nKey.WishlistCallToAction_ExitAndOpenSteamButton)
             : L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
+        _secondaryButton.Text = _isExitPrompt
+            ? L10n.Tr(L10nKey.WishlistCallToAction_ExitGameButton)
+            : "稍后再说";
+        _suppressExitCheckBox.Text = L10n.Tr(L10nKey.WishlistCallToAction_SuppressExitReminder);
     }
 }

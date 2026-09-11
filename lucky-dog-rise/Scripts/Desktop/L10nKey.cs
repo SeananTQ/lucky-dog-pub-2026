@@ -139,4 +139,7 @@ public static class L10nKey
     public const string CollectionEvent_FirstDogProgressBody = nameof(CollectionEvent_FirstDogProgressBody);
     public const string CollectionEvent_FirstDogProgressConfirm = nameof(CollectionEvent_FirstDogProgressConfirm);
     public const string WishlistCallToAction_ExitAndOpenSteamButton = nameof(WishlistCallToAction_ExitAndOpenSteamButton);
+    public const string WishlistCallToAction_Title = nameof(WishlistCallToAction_Title);
+    public const string WishlistCallToAction_ExitGameButton = nameof(WishlistCallToAction_ExitGameButton);
+    public const string WishlistCallToAction_SuppressExitReminder = nameof(WishlistCallToAction_SuppressExitReminder);
 }
