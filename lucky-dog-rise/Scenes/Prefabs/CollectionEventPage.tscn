@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ychxs1h3dgtc" path="res://Scripts/Desktop/CollectionEventPageController.cs" id="1_controller"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventRewardCell.tscn" id="2_reward_cell"]
-[ext_resource type="Texture2D" uid="uid://cif30j5qjypme" path="res://Assets/Event/Collection/CollectionVictory_Nameplate_9Patch.png" id="3_nameplate"]
+[ext_resource type="Texture2D" uid="uid://i5baq7jm44sl" path="res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_InProgress.png" id="3_nameplate_in_progress"]
 [ext_resource type="Texture2D" uid="uid://b0261mrwng4un" path="res://Assets/Event/Collection/CollectionVictory_LaurelLeft.png" id="4_glss8"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="6_inter_bold"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="7_misans_bold"]
@@ -46,7 +46,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistCallToActionMessage", "_roadmapBody", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
+[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardNameplate", "_victoryRewardNameplateBackground", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistShareButton", "_wishlistCallToActionMessage", "_roadmapBody", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -57,12 +57,15 @@ _grandPrizeCenter = NodePath("GrandPrizeStage/GrandPrizeCenter")
 _grandPrizeRight = NodePath("GrandPrizeStage/GrandPrizeRight")
 _collectionGrid = NodePath("CollectionGrid")
 _victoryRewardModule = NodePath("VictoryRewardMargins")
+_victoryRewardNameplate = NodePath("VictoryRewardMargins/CollectionVictoryNameplate")
+_victoryRewardNameplateBackground = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/NameplateBackground")
 _victoryRewardButton = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ClaimButton")
 _victoryRewardTitle = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/Copy/Title")
 _victoryRewardDetail = NodePath("VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/Copy/Detail")
 _wishlistCallToActionModule = NodePath("WishlistCallToActionModule")
 _wishlistCallToActionBannerButton = NodePath("WishlistCallToActionModule/ModuleHitArea")
 _wishlistCallToActionButton = NodePath("WishlistCallToActionModule/WishlistButton")
+_wishlistShareButton = NodePath("WishlistCallToActionModule/ShareButton")
 _wishlistCallToActionMessage = NodePath("WishlistCallToActionModule/Balloon/CopyMargins/Message")
 _roadmapBody = NodePath("RoadmapSpacing/RoadmapModule/Margins/Content/Body")
 _debugToolsModule = NodePath("DebugToolsModule")
@@ -129,14 +132,25 @@ layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_right = 10
 
-[node name="CollectionVictoryNameplate" type="NinePatchRect" parent="VictoryRewardMargins" unique_id=384316616]
+[node name="CollectionVictoryNameplate" type="Control" parent="VictoryRewardMargins" unique_id=384316616]
 custom_minimum_size = Vector2(0, 116)
 layout_mode = 2
-texture = ExtResource("3_nameplate")
-patch_margin_left = 35
-patch_margin_top = 52
-patch_margin_right = 35
-patch_margin_bottom = 52
+clip_contents = true
+
+[node name="NameplateBackground" type="NinePatchRect" parent="VictoryRewardMargins/CollectionVictoryNameplate"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 2.0
+anchor_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.5, 0.5)
+mouse_filter = 2
+texture = ExtResource("3_nameplate_in_progress")
+patch_margin_left = 70
+patch_margin_top = 104
+patch_margin_right = 70
+patch_margin_bottom = 104
 
 [node name="ContentMargins" type="MarginContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate" unique_id=2128866170]
 layout_mode = 1
@@ -174,8 +188,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_right = -40.0
+offset_left = 52.0
+offset_right = -52.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -200,6 +214,100 @@ vertical_alignment = 2
 autowrap_mode = 3
 
 [node name="Detail" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/Copy" unique_id=1655836239]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.494118, 0.282353, 0.12549, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("FontVariation_victory_detail")
+theme_override_font_sizes/font_size = 14
+text = "CollectionEvent_VictoryInProgressDetail"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ClaimableCopy" type="VBoxContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 52.0
+offset_right = -52.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/ClaimableCopy"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.403922, 0.231373, 0.117647, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("FontVariation_victory_title")
+theme_override_font_sizes/font_size = 18
+text = "CollectionEvent_VictoryInProgressTitle"
+horizontal_alignment = 1
+vertical_alignment = 2
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/ClaimableCopy"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.494118, 0.282353, 0.12549, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("FontVariation_victory_detail")
+theme_override_font_sizes/font_size = 14
+text = "CollectionEvent_VictoryInProgressDetail"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ClaimedCopy" type="VBoxContainer" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 52.0
+offset_right = -52.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/ClaimedCopy"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.403922, 0.231373, 0.117647, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/outline_size = 0
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = SubResource("FontVariation_victory_title")
+theme_override_font_sizes/font_size = 18
+text = "CollectionEvent_VictoryInProgressTitle"
+horizontal_alignment = 1
+vertical_alignment = 2
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/ClaimedCopy"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.494118, 0.282353, 0.12549, 1)
@@ -254,7 +362,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="WishlistCallToActionModule" type="Control" parent="." unique_id=175081191]
-custom_minimum_size = Vector2(0, 184)
+custom_minimum_size = Vector2(0, 176)
 layout_mode = 2
 mouse_filter = 1
 
@@ -352,15 +460,22 @@ stretch_mode = 5
 [node name="WishlistButton" type="Button" parent="WishlistCallToActionModule" unique_id=935988656]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -60.0
-offset_bottom = -16.0
+offset_top = 116.0
+offset_bottom = 160.0
 grow_horizontal = 2
-grow_vertical = 0
 text = "CollectionEvent_WishlistButton"
+
+[node name="ShareButton" type="Button" parent="WishlistCallToActionModule"]
+visible = false
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 172.0
+offset_bottom = 216.0
+grow_horizontal = 2
+theme_type_variation = &"SecondaryButton"
+text = "CollectionEvent_ShareJoyOnX"
 
 [node name="ActivityInfoModule" type="PanelContainer" parent="." unique_id=1396590039]
 layout_mode = 2

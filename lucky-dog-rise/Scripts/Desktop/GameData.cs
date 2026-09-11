@@ -70,6 +70,8 @@ public partial class GameData : Node
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _collectionEventVictoryRewardClaimedEventIds =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> _collectionEventVictoryCompletedAtUnixSecondsByEvent =
+        new(StringComparer.Ordinal);
     private readonly HashSet<string> _collectionEventFirstDogCallToActionShownEventIds =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _collectionEventPendingFirstDogItemIdsByEvent =
@@ -2899,6 +2901,7 @@ public partial class GameData : Node
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
         _collectionEventRevealedItemIdsByEvent.Clear();
         _collectionEventVictoryRewardClaimedEventIds.Clear();
+        _collectionEventVictoryCompletedAtUnixSecondsByEvent.Clear();
         _collectionEventFirstDogCallToActionShownEventIds.Clear();
         _collectionEventPendingFirstDogItemIdsByEvent.Clear();
         WishlistCallToActionLastShownAtUnixSeconds = 0;
@@ -3035,6 +3038,7 @@ public partial class GameData : Node
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
         _collectionEventRevealedItemIdsByEvent.Clear();
         _collectionEventVictoryRewardClaimedEventIds.Clear();
+        _collectionEventVictoryCompletedAtUnixSecondsByEvent.Clear();
         _collectionEventFirstDogCallToActionShownEventIds.Clear();
         _collectionEventPendingFirstDogItemIdsByEvent.Clear();
         WishlistCallToActionLastShownAtUnixSeconds = 0;
@@ -3196,6 +3200,25 @@ public partial class GameData : Node
         !string.IsNullOrWhiteSpace(eventId)
         && _collectionEventVictoryRewardClaimedEventIds.Contains(eventId.Trim());
 
+    public long GetOrCreateCollectionEventVictoryCompletedAtUnixSeconds(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+            return 0;
+
+        var normalizedEventId = eventId.Trim();
+        if (!_collectionEventVictoryRewardClaimedEventIds.Contains(normalizedEventId))
+            return 0;
+        if (_collectionEventVictoryCompletedAtUnixSecondsByEvent.TryGetValue(
+                normalizedEventId,
+                out var completedAtUnixSeconds))
+            return completedAtUnixSeconds;
+
+        completedAtUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        _collectionEventVictoryCompletedAtUnixSecondsByEvent[normalizedEventId] = completedAtUnixSeconds;
+        SaveImmediatelyIfUsingLocalSave();
+        return completedAtUnixSeconds;
+    }
+
     public bool TryClaimCollectionEventVictoryReward(
         string eventId,
         int rewardItemId,
@@ -3216,6 +3239,8 @@ public partial class GameData : Node
             markNew: true,
             source: PlayerProgressSource.Gameplay);
         _collectionEventVictoryRewardClaimedEventIds.Add(normalizedEventId);
+        _collectionEventVictoryCompletedAtUnixSecondsByEvent[normalizedEventId] =
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);
         SaveImmediatelyIfUsingLocalSave();
         return true;
@@ -3392,6 +3417,12 @@ public partial class GameData : Node
                     : _collectionEventVictoryRewardClaimedEventIds
                         .OrderBy(eventId => eventId, StringComparer.Ordinal)
                         .ToList(),
+            CollectionEventVictoryCompletedAtUnixSecondsByEvent =
+                _collectionEventVictoryCompletedAtUnixSecondsByEvent.Count == 0
+                    ? null
+                    : _collectionEventVictoryCompletedAtUnixSecondsByEvent
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             CollectionEventFirstDogCallToActionShownEventIds =
                 _collectionEventFirstDogCallToActionShownEventIds.Count == 0
                     ? null
@@ -3492,6 +3523,12 @@ public partial class GameData : Node
         _collectionEventVictoryRewardClaimedEventIds.Clear();
         foreach (var eventId in profile.CollectionEventVictoryRewardClaimedEventIds ?? [])
             _collectionEventVictoryRewardClaimedEventIds.Add(eventId);
+
+        _collectionEventVictoryCompletedAtUnixSecondsByEvent.Clear();
+        foreach (var (eventId, completedAtUnixSeconds) in
+                 profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent
+                 ?? new Dictionary<string, long>())
+            _collectionEventVictoryCompletedAtUnixSecondsByEvent[eventId] = completedAtUnixSeconds;
 
         _collectionEventFirstDogCallToActionShownEventIds.Clear();
         foreach (var eventId in profile.CollectionEventFirstDogCallToActionShownEventIds ?? [])

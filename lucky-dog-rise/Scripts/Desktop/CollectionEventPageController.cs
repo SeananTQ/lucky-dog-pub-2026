@@ -2,6 +2,7 @@ using Godot;
 using DataTables;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,8 +27,24 @@ public enum CollectionEventEntryScrollTarget
 public partial class CollectionEventPageController : VBoxContainer
 {
     private const double RevealTransitionSeconds = 1.0;
+    private const float WishlistModuleDefaultHeight = 176f;
+    private const float WishlistModuleWithShareHeight = 232f;
+    private const int NameplateTitleDefaultFontSize = 18;
+    private const int NameplateTitleFrenchFontSize = 15;
+    private const int NameplateTitleMinimumFontSize = 12;
+    private const float NameplateTitleHorizontalInset = 66f;
+#if DEBUG
+    private const string DebugLongPersonaName =
+        "Captain Lucky Paws and Friends";
+#endif
     private static readonly PackedScene RewardCellScene =
         GD.Load<PackedScene>("res://Scenes/Prefabs/CollectionEventRewardCell.tscn");
+    private static readonly Texture2D NameplateInProgressTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_InProgress.png");
+    private static readonly Texture2D NameplateClaimableTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_Claimable.png");
+    private static readonly Texture2D NameplateClaimedTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_Claimed.png");
 
     [Export] private Control _collectionModuleAnchor = null!;
     [Export] private CollectionEventRewardCellController _grandPrizeLeft = null!;
@@ -35,12 +52,15 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private CollectionEventRewardCellController _grandPrizeRight = null!;
     [Export] private GridContainer _collectionGrid = null!;
     [Export] private Control _victoryRewardModule = null!;
+    [Export] private Control _victoryRewardNameplate = null!;
+    [Export] private NinePatchRect _victoryRewardNameplateBackground = null!;
     [Export] private Button _victoryRewardButton = null!;
     [Export] private Label _victoryRewardTitle = null!;
     [Export] private Label _victoryRewardDetail = null!;
     [Export] private Control _wishlistCallToActionModule = null!;
     [Export] private Button _wishlistCallToActionBannerButton = null!;
     [Export] private Button _wishlistCallToActionButton = null!;
+    [Export] private Button _wishlistShareButton = null!;
     [Export] private Label _wishlistCallToActionMessage = null!;
     [Export] private RichTextLabel _roadmapBody = null!;
     [Export] private Control _debugToolsModule = null!;
@@ -50,6 +70,9 @@ public partial class CollectionEventPageController : VBoxContainer
     private readonly Dictionary<int, CollectionEventRewardCellController> _cellsByItemId = new();
     private GameData _gameData;
     private CollectionEventDefinition _definition;
+    private Func<string> _playerDisplayNameProvider = static () => string.Empty;
+    private string _pendingClaimedTitle = string.Empty;
+    private VictoryNameplateVisualState _currentNameplateVisualState;
     private int _revealRequestVersion;
     private int _debugNameplateState = -1;
 
@@ -65,9 +88,11 @@ public partial class CollectionEventPageController : VBoxContainer
     {
         L10n.Changed += RefreshPresentation;
         VisibilityChanged += OnVisibilityChanged;
+        _victoryRewardNameplate.Resized += OnVictoryRewardNameplateResized;
         _victoryRewardButton.Pressed += RequestVictoryRewardClaim;
         _wishlistCallToActionBannerButton.Pressed += OpenWishlistCallToAction;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
+        _wishlistShareButton.Pressed += OnWishlistSharePressed;
         _debugToolsModule.Visible = OS.IsDebugBuild();
         if (_debugToolsModule.Visible)
         {
@@ -80,10 +105,14 @@ public partial class CollectionEventPageController : VBoxContainer
     public override void _ExitTree()
     {
         L10n.Changed -= RefreshPresentation;
+        _victoryRewardNameplate.Resized -= OnVictoryRewardNameplateResized;
         UnbindGameData();
     }
 
-    public void Configure(GameData gameData, CollectionEventDefinition definition)
+    public void Configure(
+        GameData gameData,
+        CollectionEventDefinition definition,
+        Func<string> playerDisplayNameProvider = null)
     {
         ArgumentNullException.ThrowIfNull(gameData);
         ArgumentNullException.ThrowIfNull(definition);
@@ -91,6 +120,7 @@ public partial class CollectionEventPageController : VBoxContainer
         UnbindGameData();
         _gameData = gameData;
         _definition = definition;
+        _playerDisplayNameProvider = playerDisplayNameProvider ?? (() => string.Empty);
         _gameData.InventoryChanged += OnInventoryChanged;
         _gameData.CollectionEventStateChanged += OnCollectionEventStateChanged;
         RebuildRewardCells();
@@ -209,6 +239,7 @@ public partial class CollectionEventPageController : VBoxContainer
             WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
         _wishlistCallToActionMessage.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
         _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
+        _wishlistShareButton.Text = L10n.Tr(L10nKey.CollectionEvent_ShareJoyOnX);
         _roadmapBody.Text = FormatRoadmapBody(L10n.Tr(L10nKey.CollectionEvent_RoadmapBody));
 
         if (_gameData == null || _definition == null)
@@ -274,6 +305,11 @@ public partial class CollectionEventPageController : VBoxContainer
             _gameData?.SetWishlistCallToActionPageOpened(true);
     }
 
+    private static void OnWishlistSharePressed()
+    {
+        GD.Print("[CollectionEvent] Sharing to X is not implemented yet.");
+    }
+
     private async void QueuePendingReveals()
     {
         if (_gameData == null || _definition == null || !IsVisibleInTree())
@@ -322,86 +358,326 @@ public partial class CollectionEventPageController : VBoxContainer
         var allOwned = rewardItemIds.Length > 0
                        && rewardItemIds.All(_gameData.Inventory.Owns);
         var allRevealed = allOwned && rewardItemIds.All(revealedIds.Contains);
-        var isFrench = string.Equals(
-            L10n.CurrentLocale,
-            L10n.FrenchLocale,
-            StringComparison.OrdinalIgnoreCase);
-        _victoryRewardTitle.AddThemeFontSizeOverride("font_size", isFrench ? 15 : 18);
-        _victoryRewardDetail.AddThemeFontSizeOverride("font_size", isFrench ? 12 : 14);
-        _victoryRewardButton.Disabled = victoryClaimed || !allRevealed;
-        _victoryRewardButton.TooltipText = victoryClaimed
-            ? "本期庆典奖励已经领取"
-            : allRevealed
-                ? "点击领取庆典奖励"
-                : "集齐并揭晓全部活动奖励后即可领取";
-
-        if (victoryClaimed)
-        {
-            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle);
-            _victoryRewardDetail.Text = L10n.Format(
-                L10nKey.CollectionEvent_VictoryClaimedDetail,
-                _definition.VictoryRewardQuantity);
-        }
-        else if (allOwned && !allRevealed)
-        {
-            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryRevealingTitle);
-            _victoryRewardDetail.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryRevealingDetail);
-        }
-        else if (allRevealed)
-        {
-            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryReadyTitle);
-            _victoryRewardDetail.Text = L10n.Format(
-                L10nKey.CollectionEvent_VictoryReadyDetail,
-                _definition.VictoryRewardQuantity);
-        }
-        else
-        {
-            _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryInProgressTitle);
-            _victoryRewardDetail.Text = L10n.Format(
-                L10nKey.CollectionEvent_VictoryInProgressDetail,
-                _definition.VictoryRewardQuantity);
-        }
-
-        ApplyDebugNameplateStateIfNeeded();
+        var state = victoryClaimed ? VictoryNameplateVisualState.Claimed
+            : allRevealed ? VictoryNameplateVisualState.Claimable
+            : VictoryNameplateVisualState.InProgress;
+        var preview = OS.IsDebugBuild() && _debugNameplateState >= 0;
+        if (preview)
+            state = (VictoryNameplateVisualState)_debugNameplateState;
+        RenderNameplate(state, preview, !preview && allOwned && !allRevealed);
     }
 
     private void CycleDebugNameplateState()
     {
         _debugNameplateState = (_debugNameplateState + 1) % 3;
-        ApplyDebugNameplateStateIfNeeded();
+        RefreshPresentation();
     }
 
-    private void ApplyDebugNameplateStateIfNeeded()
+    private void RenderNameplate(
+        VictoryNameplateVisualState state, bool preview, bool revealing)
     {
-        if (!OS.IsDebugBuild() || _debugNameplateState < 0 || _definition == null)
+        var contentLayer = _victoryRewardNameplate.GetNode<Control>("ContentMargins/ContentLayer");
+        var groupNames = new[] { "Copy", "ClaimableCopy", "ClaimedCopy" };
+        for (var index = 0; index < groupNames.Length; index++)
+            contentLayer.GetNode<Control>(groupNames[index]).Visible = index == (int)state;
+        var copy = contentLayer.GetNode<Control>(groupNames[(int)state]);
+        _victoryRewardTitle = copy.GetNode<Label>("Title");
+        _victoryRewardDetail = copy.GetNode<Label>("Detail");
+
+        ApplyNameplateVisualState(state);
+        _victoryRewardButton.Disabled = preview || state != VictoryNameplateVisualState.Claimable;
+        _victoryRewardButton.TooltipText = preview
+            ? "当前为调试预览，不会发放奖励"
+            : state == VictoryNameplateVisualState.Claimable ? "点击铭牌，一起欢庆" : string.Empty;
+
+        if (state == VictoryNameplateVisualState.Claimed)
+        {
+            string previewName = null;
+#if DEBUG
+            if (preview)
+                previewName = DebugLongPersonaName;
+#endif
+            ApplyClaimedNameplateCopy(
+                preview ? DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                    : _gameData.GetOrCreateCollectionEventVictoryCompletedAtUnixSeconds(_definition.EventId),
+                previewName);
+        }
+        else
+        {
+            var titleKey = state == VictoryNameplateVisualState.Claimable
+                ? L10nKey.CollectionEvent_VictoryReadyTitle
+                : L10nKey.CollectionEvent_VictoryInProgressTitle;
+            var detailKey = state == VictoryNameplateVisualState.Claimable
+                ? L10nKey.CollectionEvent_VictoryReadyDetail
+                : revealing ? L10nKey.CollectionEvent_VictoryRevealingDetail
+                : L10nKey.CollectionEvent_VictoryInProgressDetail;
+            ApplyStandardNameplateCopy(L10n.Tr(titleKey), L10n.Tr(detailKey));
+        }
+        if (preview)
+            _nameplateStateTestButton.Text = state switch
+            {
+                VictoryNameplateVisualState.InProgress => "铭牌：未完成",
+                VictoryNameplateVisualState.Claimable => "铭牌：待点亮",
+                _ => "铭牌：已点亮",
+            };
+    }
+
+    private void ApplyStandardNameplateCopy(string title, string detail)
+    {
+        ResetNameplateCopyLayout();
+        _victoryRewardTitle.Text = title;
+        _victoryRewardDetail.Text = detail;
+    }
+
+    private void ResetNameplateCopyLayout()
+    {
+        _pendingClaimedTitle = string.Empty;
+        // Clipping a wrapped Label can collapse its minimum height in a VBox.
+        // Keep natural text height; the fixed outer plaque provides the final boundary.
+        _victoryRewardTitle.ClipText = false;
+        _victoryRewardTitle.MaxLinesVisible = -1;
+        _victoryRewardDetail.ClipText = false;
+        _victoryRewardTitle.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _victoryRewardTitle.AddThemeFontSizeOverride(
+            "font_size",
+            GetDefaultNameplateTitleFontSize());
+        _victoryRewardDetail.AddThemeFontSizeOverride(
+            "font_size",
+            string.Equals(
+                L10n.CurrentLocale,
+                L10n.FrenchLocale,
+                StringComparison.OrdinalIgnoreCase)
+                ? 12
+                : 14);
+    }
+
+    private void ApplyClaimedNameplateCopy(
+        long completedAtUnixSeconds,
+        string personaNameOverride = null)
+    {
+        var personaName = (personaNameOverride ?? _playerDisplayNameProvider()).Trim();
+        ResetNameplateCopyLayout();
+        _pendingClaimedTitle = string.IsNullOrWhiteSpace(personaName)
+            ? L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle)
+            : personaName;
+        _victoryRewardTitle.Text = _pendingClaimedTitle;
+
+        var completedAt = completedAtUnixSeconds > 0
+            ? DateTimeOffset.FromUnixTimeSeconds(completedAtUnixSeconds).ToLocalTime()
+            : DateTimeOffset.Now;
+        _victoryRewardDetail.Text = L10n.Format(
+            L10nKey.CollectionEvent_VictoryClaimedDetail,
+            completedAt.ToString("yyyy.M.d", CultureInfo.InvariantCulture));
+
+        Callable.From(FitClaimedNameplateTitle).CallDeferred();
+    }
+
+    private void OnVictoryRewardNameplateResized()
+    {
+        if (_currentNameplateVisualState == VictoryNameplateVisualState.Claimed
+            && !string.IsNullOrEmpty(_pendingClaimedTitle))
+            Callable.From(FitClaimedNameplateTitle).CallDeferred();
+    }
+
+    private void FitClaimedNameplateTitle()
+    {
+        if (_currentNameplateVisualState != VictoryNameplateVisualState.Claimed
+            || string.IsNullOrEmpty(_pendingClaimedTitle)
+            || !IsInstanceValid(_victoryRewardTitle))
             return;
 
-        _victoryRewardButton.Disabled = true;
-        _victoryRewardButton.TooltipText = "当前为调试预览，不会发放奖励";
-        switch (_debugNameplateState)
+        var availableWidth = _victoryRewardNameplate.Size.X
+                             - NameplateTitleHorizontalInset * 2f;
+        if (availableWidth < _victoryRewardTitle.CustomMinimumSize.X)
+            return;
+        var font = _victoryRewardTitle.GetThemeFont("font");
+        var initialFontSize = GetDefaultNameplateTitleFontSize();
+
+        for (var fontSize = initialFontSize;
+             fontSize >= NameplateTitleMinimumFontSize;
+             fontSize--)
         {
-            case 0:
-                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryInProgressTitle);
-                _victoryRewardDetail.Text = L10n.Format(
-                    L10nKey.CollectionEvent_VictoryInProgressDetail,
-                    _definition.VictoryRewardQuantity);
-                _nameplateStateTestButton.Text = "铭牌：收集中";
-                break;
-            case 1:
-                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryReadyTitle);
-                _victoryRewardDetail.Text = L10n.Format(
-                    L10nKey.CollectionEvent_VictoryReadyDetail,
-                    _definition.VictoryRewardQuantity);
-                _nameplateStateTestButton.Text = "铭牌：可领取";
-                break;
-            default:
-                _victoryRewardTitle.Text = L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle);
-                _victoryRewardDetail.Text = L10n.Format(
-                    L10nKey.CollectionEvent_VictoryClaimedDetail,
-                    _definition.VictoryRewardQuantity);
-                _nameplateStateTestButton.Text = "铭牌：已领取";
-                break;
+            if (TryFitNameplateTitle(
+                    _pendingClaimedTitle,
+                    font,
+                    fontSize,
+                    availableWidth,
+                    out var fittedText))
+            {
+                ApplyFittedNameplateTitle(fittedText, fontSize);
+                return;
+            }
         }
+
+        ApplyFittedNameplateTitle(
+            TruncateNameplateTitle(
+                _pendingClaimedTitle,
+                font,
+                NameplateTitleMinimumFontSize,
+                availableWidth),
+            NameplateTitleMinimumFontSize);
+    }
+
+    private void ApplyFittedNameplateTitle(string text, int fontSize)
+    {
+        _victoryRewardTitle.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _victoryRewardTitle.AddThemeFontSizeOverride("font_size", fontSize);
+        _victoryRewardTitle.Text = text;
+    }
+
+    private static int GetDefaultNameplateTitleFontSize() =>
+        string.Equals(
+            L10n.CurrentLocale,
+            L10n.FrenchLocale,
+            StringComparison.OrdinalIgnoreCase)
+            ? NameplateTitleFrenchFontSize
+            : NameplateTitleDefaultFontSize;
+
+    private static bool TryFitNameplateTitle(
+        string text,
+        Font font,
+        int fontSize,
+        float availableWidth,
+        out string fittedText)
+    {
+        if (MeasureTextWidth(font, text, fontSize) <= availableWidth)
+        {
+            fittedText = text;
+            return true;
+        }
+
+        var elementOffsets = StringInfo.ParseCombiningCharacters(text);
+        var bestText = string.Empty;
+        var bestScore = float.MaxValue;
+        for (var elementIndex = 1; elementIndex < elementOffsets.Length; elementIndex++)
+        {
+            var splitOffset = elementOffsets[elementIndex];
+            var firstLine = text[..splitOffset].TrimEnd();
+            var secondLine = text[splitOffset..].TrimStart();
+            if (firstLine.Length == 0 || secondLine.Length == 0)
+                continue;
+
+            var firstWidth = MeasureTextWidth(font, firstLine, fontSize);
+            var secondWidth = MeasureTextWidth(font, secondLine, fontSize);
+            if (firstWidth > availableWidth || secondWidth > availableWidth)
+                continue;
+
+            var breaksAtWhitespace = char.IsWhiteSpace(text[splitOffset - 1])
+                                     || char.IsWhiteSpace(text[splitOffset]);
+            var score = Math.Abs(firstWidth - secondWidth)
+                        + (breaksAtWhitespace ? 0f : availableWidth);
+            if (score >= bestScore)
+                continue;
+
+            bestScore = score;
+            bestText = $"{firstLine}\n{secondLine}";
+        }
+
+        fittedText = bestText;
+        return bestText.Length > 0;
+    }
+
+    private static string TruncateNameplateTitle(
+        string text,
+        Font font,
+        int fontSize,
+        float availableWidth)
+    {
+        const string ellipsis = "…";
+        var elementOffsets = StringInfo.ParseCombiningCharacters(text);
+        var firstLineEnd = FindFittingElementCount(
+            text,
+            elementOffsets,
+            0,
+            font,
+            fontSize,
+            availableWidth,
+            string.Empty);
+        if (firstLineEnd >= elementOffsets.Length)
+            return text;
+
+        var firstLine = SliceTextElements(text, elementOffsets, 0, firstLineEnd).TrimEnd();
+        var secondLineEnd = FindFittingElementCount(
+            text,
+            elementOffsets,
+            firstLineEnd,
+            font,
+            fontSize,
+            availableWidth,
+            ellipsis);
+        var secondLine = SliceTextElements(
+            text,
+            elementOffsets,
+            firstLineEnd,
+            secondLineEnd).TrimStart();
+        return $"{firstLine}\n{secondLine}{ellipsis}";
+    }
+
+    private static int FindFittingElementCount(
+        string text,
+        int[] elementOffsets,
+        int startElement,
+        Font font,
+        int fontSize,
+        float availableWidth,
+        string suffix)
+    {
+        var endElement = startElement;
+        for (var candidate = startElement + 1; candidate <= elementOffsets.Length; candidate++)
+        {
+            var candidateText = SliceTextElements(
+                text,
+                elementOffsets,
+                startElement,
+                candidate) + suffix;
+            if (MeasureTextWidth(font, candidateText, fontSize) > availableWidth)
+                break;
+            endElement = candidate;
+        }
+
+        return endElement;
+    }
+
+    private static string SliceTextElements(
+        string text,
+        int[] elementOffsets,
+        int startElement,
+        int endElement)
+    {
+        var startOffset = startElement < elementOffsets.Length
+            ? elementOffsets[startElement]
+            : text.Length;
+        var endOffset = endElement < elementOffsets.Length
+            ? elementOffsets[endElement]
+            : text.Length;
+        return text[startOffset..endOffset];
+    }
+
+    private static float MeasureTextWidth(Font font, string text, int fontSize) =>
+        font.GetStringSize(text, fontSize: fontSize).X;
+
+    private void ApplyNameplateVisualState(VictoryNameplateVisualState state)
+    {
+        _currentNameplateVisualState = state;
+        _victoryRewardNameplateBackground.Texture = state switch
+        {
+            VictoryNameplateVisualState.Claimable => NameplateClaimableTexture,
+            VictoryNameplateVisualState.Claimed => NameplateClaimedTexture,
+            _ => NameplateInProgressTexture,
+        };
+
+        var showShareButton = state == VictoryNameplateVisualState.Claimed;
+        _wishlistShareButton.Visible = showShareButton;
+        _wishlistCallToActionModule.CustomMinimumSize = new Vector2(
+            _wishlistCallToActionModule.CustomMinimumSize.X,
+            showShareButton ? WishlistModuleWithShareHeight : WishlistModuleDefaultHeight);
+    }
+
+    private enum VictoryNameplateVisualState
+    {
+        InProgress,
+        Claimable,
+        Claimed,
     }
 
     private void RequestVictoryRewardClaim()

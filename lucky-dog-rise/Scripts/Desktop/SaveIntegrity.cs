@@ -81,6 +81,12 @@ internal static class SaveIntegrity
             AppliedLinkTreeRewardIds = (profile.AppliedLinkTreeRewardIds ?? []).OrderBy(id => id).ToList(),
             CollectionEventVictoryRewardClaimedEventIds = CanonicalizeEventIds(
                 profile.CollectionEventVictoryRewardClaimedEventIds),
+            CollectionEventVictoryCompletedAtUnixSecondsByEvent =
+                profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent == null
+                    ? null
+                    : profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             CollectionEventFirstDogCallToActionShownEventIds = CanonicalizeEventIds(
                 profile.CollectionEventFirstDogCallToActionShownEventIds),
             CollectionEventPendingFirstDogItemIdsByEvent =

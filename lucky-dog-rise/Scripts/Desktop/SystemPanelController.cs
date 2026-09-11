@@ -1023,7 +1023,10 @@ public partial class SystemPanelController : CanvasLayer
         if (!BuildCapabilities.CollectionEvents || _collectionEventContent == null || _gameData == null)
             return;
 
-        _collectionEventContent.Configure(_gameData, CreateCurrentCollectionEventDefinition());
+        _collectionEventContent.Configure(
+            _gameData,
+            CreateCurrentCollectionEventDefinition(),
+            () => _platformService?.PersonaName ?? string.Empty);
         _collectionEventContent.PreparePendingRevealAsync = () =>
             PositionCollectionEventEntryAsync(CollectionEventEntryScrollTarget.Collection);
     }

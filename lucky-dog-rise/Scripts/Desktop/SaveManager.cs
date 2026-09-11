@@ -38,6 +38,8 @@ public sealed class SaveProfile
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? CollectionEventVictoryRewardClaimedEventIds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, long>? CollectionEventVictoryCompletedAtUnixSecondsByEvent { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? CollectionEventFirstDogCallToActionShownEventIds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, int>? CollectionEventPendingFirstDogItemIdsByEvent { get; set; }
@@ -587,6 +589,28 @@ public static class SaveManager
         }
         profile.CollectionEventVictoryRewardClaimedEventIds = NormalizeEventIds(
             profile.CollectionEventVictoryRewardClaimedEventIds);
+        var claimedCollectionEventIds = profile.CollectionEventVictoryRewardClaimedEventIds?
+            .ToHashSet(StringComparer.Ordinal) ?? [];
+        if (profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent != null)
+        {
+            profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent =
+                profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent
+                    .Where(pair => !string.IsNullOrWhiteSpace(pair.Key)
+                                   && pair.Value > 0
+                                   && pair.Value <= 253402300799L
+                                   && claimedCollectionEventIds.Contains(pair.Key.Trim()))
+                    .Select(pair => new KeyValuePair<string, long>(
+                        pair.Key.Trim(),
+                        pair.Value))
+                    .GroupBy(pair => pair.Key, StringComparer.Ordinal)
+                    .OrderBy(group => group.Key, StringComparer.Ordinal)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Min(pair => pair.Value),
+                        StringComparer.Ordinal);
+            if (profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent.Count == 0)
+                profile.CollectionEventVictoryCompletedAtUnixSecondsByEvent = null;
+        }
         profile.CollectionEventFirstDogCallToActionShownEventIds = NormalizeEventIds(
             profile.CollectionEventFirstDogCallToActionShownEventIds);
         if (profile.CollectionEventPendingFirstDogItemIdsByEvent != null)
