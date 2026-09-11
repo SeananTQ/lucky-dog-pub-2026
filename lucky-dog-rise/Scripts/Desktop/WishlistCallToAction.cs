@@ -6,6 +6,8 @@ namespace LuckyDogRise;
 
 public static class WishlistCallToAction
 {
+    private static string SteamStoreUri => $"steam://store/{BuildInfo.ReleaseSteamAppId}";
+
     public static int CooldownSeconds => Math.Max(
         0,
         LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()
@@ -26,17 +28,30 @@ public static class WishlistCallToAction
     {
         var url = LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()
             ?.WishlistCallToActionUrl;
+
+        var steamResult = OS.ShellOpen(SteamStoreUri);
+        if (steamResult == Error.Ok)
+        {
+            GD.Print($"[WishlistCallToAction] Opened {source} in Steam client: {SteamStoreUri}");
+            return Error.Ok;
+        }
+
+        GD.PushWarning(
+            $"[WishlistCallToAction] Failed to open {source} in Steam client: " +
+            $"{SteamStoreUri} ({steamResult}). Falling back to the web store.");
+
         if (string.IsNullOrWhiteSpace(url))
         {
-            GD.PushWarning($"[WishlistCallToAction] {source} clicked, but no URL has been configured.");
+            GD.PushWarning(
+                $"[WishlistCallToAction] {source} clicked, but no fallback URL has been configured.");
             return Error.Unconfigured;
         }
 
-        var result = OS.ShellOpen(url);
-        if (result == Error.Ok)
-            GD.Print($"[WishlistCallToAction] Opened {source}: {url}");
+        var webResult = OS.ShellOpen(url);
+        if (webResult == Error.Ok)
+            GD.Print($"[WishlistCallToAction] Opened {source} in web browser: {url}");
         else
-            GD.PushWarning($"[WishlistCallToAction] Failed to open {source}: {url} ({result}).");
-        return result;
+            GD.PushWarning($"[WishlistCallToAction] Failed to open {source}: {url} ({webResult}).");
+        return webResult;
     }
 }
