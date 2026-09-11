@@ -11,6 +11,7 @@
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="9_misans_regular"]
 [ext_resource type="Texture2D" uid="uid://cxfyrbugb84j3" path="res://Assets/Event/Collection/Wishlist_ShyDog.png" id="10_wishlist_dog"]
 [ext_resource type="Texture2D" uid="uid://krt0qtxoxxmr" path="res://Assets/Event/Collection/Wishlist_Balloon_Left_9Rect2x.png" id="11_wishlist_balloon"]
+[ext_resource type="Texture2D" uid="uid://5pqjd02an1wo" path="res://Assets/UI/Icon/Icon_ExternalLink.svg" id="12_external_link"]
 
 [sub_resource type="FontVariation" id="FontVariation_victory_title"]
 fallbacks = Array[Font]([ExtResource("7_misans_bold")])
@@ -21,10 +22,6 @@ fallbacks = Array[Font]([ExtResource("7_misans_bold")])
 base_font = ExtResource("6_inter_bold")
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_victory_button"]
-
-[sub_resource type="FontVariation" id="FontVariation_activity_body"]
-fallbacks = Array[Font]([ExtResource("9_misans_regular")])
-base_font = ExtResource("8_inter_regular")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_activity_info"]
 bg_color = Color(0.0823529, 0.137255, 0.14902, 1)
@@ -37,6 +34,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
+[sub_resource type="FontVariation" id="FontVariation_activity_body"]
+fallbacks = Array[Font]([ExtResource("9_misans_regular")])
+base_font = ExtResource("8_inter_regular")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_preview"]
 bg_color = Color(0.145098, 0.2, 0.215686, 1)
@@ -305,12 +306,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_constants/outline_size = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/line_spacing = -3
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 0
+theme_override_constants/outline_size = 0
 theme_override_constants/shadow_outline_size = 0
 theme_override_fonts/font = SubResource("FontVariation_victory_detail")
 theme_override_font_sizes/font_size = 14
@@ -318,7 +319,8 @@ text = "CollectionEvent_WishlistShyRequest"
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Arrow" type="Label" parent="WishlistCallToActionModule/Balloon" unique_id=1023442027]
+[node name="Arrow" type="TextureRect" parent="WishlistCallToActionModule/Balloon" unique_id=1023442027]
+self_modulate = Color(0.568627, 0.317647, 0.27451, 1)
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -326,23 +328,15 @@ anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
 offset_left = -25.0
-offset_top = 11.0
-offset_right = -5.0
-offset_bottom = 44.0
+offset_top = 21.0
+offset_right = -9.0
+offset_bottom = 37.0
 grow_horizontal = 0
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.364706, 0.294118, 0.239216, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_constants/outline_size = 0
-theme_override_constants/shadow_offset_x = 0
-theme_override_constants/shadow_offset_y = 0
-theme_override_constants/shadow_outline_size = 0
-theme_override_fonts/font = SubResource("FontVariation_victory_title")
-theme_override_font_sizes/font_size = 24
-text = ">"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+texture = ExtResource("12_external_link")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ShyDog" type="TextureRect" parent="WishlistCallToActionModule" unique_id=637596592]
 layout_mode = 1
@@ -404,17 +398,17 @@ theme_override_font_sizes/font_size = 12
 text = "CollectionEvent_ActivityInfoBody"
 autowrap_mode = 3
 
-[node name="RoadmapSpacing" type="MarginContainer" parent="."]
+[node name="RoadmapSpacing" type="MarginContainer" parent="." unique_id=609000067]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_top = 8
 
-[node name="RoadmapModule" type="PanelContainer" parent="RoadmapSpacing"]
+[node name="RoadmapModule" type="PanelContainer" parent="RoadmapSpacing" unique_id=991945769]
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_activity_info")
 
-[node name="Margins" type="MarginContainer" parent="RoadmapSpacing/RoadmapModule"]
+[node name="Margins" type="MarginContainer" parent="RoadmapSpacing/RoadmapModule" unique_id=1008797005]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 14
@@ -422,12 +416,12 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 14
 
-[node name="Content" type="VBoxContainer" parent="RoadmapSpacing/RoadmapModule/Margins"]
+[node name="Content" type="VBoxContainer" parent="RoadmapSpacing/RoadmapModule/Margins" unique_id=804487590]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 7
 
-[node name="Title" type="Label" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
+[node name="Title" type="Label" parent="RoadmapSpacing/RoadmapModule/Margins/Content" unique_id=522936729]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.807843, 0.87451, 0.878431, 1)
 theme_override_fonts/font = SubResource("FontVariation_victory_detail")
@@ -435,7 +429,7 @@ theme_override_font_sizes/font_size = 16
 text = "CollectionEvent_RoadmapTitle"
 autowrap_mode = 3
 
-[node name="Body" type="RichTextLabel" parent="RoadmapSpacing/RoadmapModule/Margins/Content"]
+[node name="Body" type="RichTextLabel" parent="RoadmapSpacing/RoadmapModule/Margins/Content" unique_id=230809269]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -444,10 +438,10 @@ theme_override_colors/default_color = Color(0.619608, 0.698039, 0.709804, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
 theme_override_constants/line_separation = 3
-theme_override_constants/outline_size = 0
+theme_override_constants/shadow_outline_size = 0
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 0
-theme_override_constants/shadow_outline_size = 0
+theme_override_constants/outline_size = 0
 theme_override_fonts/normal_font = SubResource("FontVariation_activity_body")
 theme_override_fonts/bold_font = SubResource("FontVariation_victory_detail")
 theme_override_font_sizes/normal_font_size = 12
@@ -456,7 +450,6 @@ bbcode_enabled = true
 text = "CollectionEvent_RoadmapBody"
 fit_content = true
 scroll_active = false
-autowrap_mode = 3
 
 [node name="DebugToolsModule" type="PanelContainer" parent="." unique_id=58497082]
 visible = false
