@@ -85,6 +85,9 @@ public partial class CollectionEventPageController : VBoxContainer
 
     public event Action<IReadOnlyList<int>> RewardsRevealed;
     public Func<Task> PreparePendingRevealAsync { get; set; }
+    public Func<IPlatformScreenshotService> ScreenshotServiceProvider { get; set; }
+    private bool _savingScreenshot;
+    private string _screenshotResultKey;
     public event Action VictoryRewardClaimRequested;
     public event Action VictoryRewardClaimed;
     public event Action CelebrationTestRequested;
@@ -252,7 +255,7 @@ public partial class CollectionEventPageController : VBoxContainer
             WishlistCallToAction.GetShyRequestFontSize(L10n.CurrentLocale));
         _wishlistCallToActionMessage.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistShyRequest);
         _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
-        _wishlistShareButton.Text = L10n.Tr(L10nKey.CollectionEvent_ShareJoyOnX);
+        _wishlistShareButton.Text = L10n.Tr(_screenshotResultKey ?? L10nKey.CollectionEvent_SaveScreenshot);
         _roadmapBody.Text = FormatRoadmapBody(L10n.Tr(L10nKey.CollectionEvent_RoadmapBody));
 
         if (_gameData == null || _definition == null)
@@ -319,9 +322,41 @@ public partial class CollectionEventPageController : VBoxContainer
             _gameData?.SetWishlistCallToActionPageOpened(true);
     }
 
-    private static void OnWishlistSharePressed()
+    private async void OnWishlistSharePressed()
     {
-        GD.Print("[CollectionEvent] Sharing to X is not implemented yet.");
+        if (_savingScreenshot || _currentNameplateVisualState != VictoryNameplateVisualState.Claimed)
+            return;
+        _savingScreenshot = true;
+        _screenshotResultKey = null;
+        _wishlistShareButton.Text = L10n.Tr(L10nKey.CollectionEvent_SaveScreenshot);
+        _wishlistShareButton.Disabled = true;
+        var saved = false;
+        try
+        {
+            var service = ScreenshotServiceProvider?.Invoke();
+            if (service != null)
+            {
+                using var image = await CollectionCelebrationScreenshot.CaptureAsync(this);
+                // Recheck provider after rendering; never send to a replacement account/session.
+                if (ReferenceEquals(service, ScreenshotServiceProvider?.Invoke()))
+                    saved = await service.SaveScreenshotAsync(image.GetData(), image.GetWidth(), image.GetHeight());
+            }
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning("[CollectionEvent] Screenshot was not confirmed: " + ex.Message);
+        }
+        finally
+        {
+            _savingScreenshot = false;
+            if (IsInstanceValid(_wishlistShareButton))
+            {
+                _wishlistShareButton.Disabled = false;
+                _screenshotResultKey = saved
+                    ? "CollectionEvent_ScreenshotSaved" : "CollectionEvent_ScreenshotUnconfirmed";
+                _wishlistShareButton.Text = L10n.Tr(_screenshotResultKey);
+            }
+        }
     }
 
     private async void QueuePendingReveals()

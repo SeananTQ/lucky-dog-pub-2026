@@ -495,7 +495,7 @@ offset_top = 172.0
 offset_bottom = 216.0
 grow_horizontal = 2
 theme_type_variation = &"SecondaryButton"
-text = "CollectionEvent_ShareJoyOnX"
+text = "CollectionEvent_SaveScreenshot"
 
 [node name="ActivityInfoModule" type="PanelContainer" parent="." unique_id=1396590039]
 layout_mode = 2

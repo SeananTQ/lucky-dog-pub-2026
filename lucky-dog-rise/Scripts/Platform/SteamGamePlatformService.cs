@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Steamworks;
+using System.Threading.Tasks;
 
 namespace LuckyDogRise;
 
 public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
     IPlatformAchievementSyncOperations, IPlatformStatisticSyncOperations, IPlatformInventoryService,
-    IPlatformUpdateService, IPlatformCloudStorageService
+    IPlatformUpdateService, IPlatformCloudStorageService, IPlatformScreenshotService
 {
     private enum InventoryRequestKind
     {
@@ -88,6 +89,38 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         return true;
     }
     public bool OpenFriendsOverlay() => _runtime.OpenFriendsOverlay();
+
+    private TaskCompletionSource<bool> _pendingScreenshot;
+    private Callback<ScreenshotReady_t> _screenshotReadyCallback;
+
+    public async Task<bool> SaveScreenshotAsync(byte[] rgb, int width, int height)
+    {
+        if (!IsAvailable || _pendingScreenshot != null || width <= 0 || height <= 0
+            || rgb == null || (long)width * height * 3 != rgb.LongLength)
+            return false;
+        var completion = new TaskCompletionSource<bool>();
+        _pendingScreenshot = completion;
+        ScreenshotHandle handle = default;
+        try
+        {
+            _screenshotReadyCallback = Callback<ScreenshotReady_t>.Create(result =>
+            {
+                if (result.m_hLocal == handle)
+                    completion.TrySetResult(result.m_eResult == EResult.k_EResultOK);
+            });
+            handle = SteamScreenshots.WriteScreenshot(rgb, (uint)rgb.Length, width, height);
+            if ((uint)handle == 0)
+                return false;
+            var finished = await Task.WhenAny(completion.Task, Task.Delay(20000));
+            return finished == completion.Task && await completion.Task;
+        }
+        finally
+        {
+            _screenshotReadyCallback?.Dispose();
+            _screenshotReadyCallback = null;
+            _pendingScreenshot = null;
+        }
+    }
 
     public PlatformCloudFileReadResult ReadCloudTextFile(string fileName)
     {
@@ -549,6 +582,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     public void Dispose()
     {
+        _pendingScreenshot?.TrySetResult(false);
+        _screenshotReadyCallback?.Dispose();
+        _screenshotReadyCallback = null;
         foreach (var handleValue in _inventoryRequests.Keys.ToArray())
             SteamInventory.DestroyResult((SteamInventoryResult_t)handleValue);
         _inventoryRequests.Clear();

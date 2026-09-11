@@ -105,6 +105,26 @@ public partial class CollectionNameplateLayoutSmoke : Node
             Require(!page.IsProcessing() && left.Rotation == 0 && right.Rotation == 0,
                 "Claimed plaque retained animation");
             GD.Print("[NameplateSmoke] PASS");
+            var stagePosition = page.GetNode<Control>("GrandPrizeStage").Position;
+            var snapshot = CollectionCelebrationScreenshot.CreateSnapshot(page);
+            try
+            {
+                Require(snapshot.GetNode<Control>("GrandPrizeStage").Position.Y == 0,
+                    "Screenshot does not begin at the reward icons");
+                var wish = snapshot.GetNode<Control>("WishlistCallToActionModule");
+                Require(!wish.HasNode("WishlistButton") && !wish.HasNode("ShareButton"),
+                    "Screenshot includes action buttons");
+                Require(Math.Abs(snapshot.Size.Y - wish.Position.Y
+                    - wish.GetNode<Control>("ShyDog").GetRect().End.Y) < 0.1f,
+                    "Screenshot does not end at the shy dog");
+                Require(!snapshot.HasNode("DebugToolsModule") && !snapshot.HasNode("RoadmapSpacing"),
+                    "Screenshot includes unrelated content");
+                VerifyVisualOnly(snapshot);
+            }
+            finally { snapshot.Free(); }
+            Require(page.GetNode<Control>("GrandPrizeStage").Position == stagePosition,
+                "Capture changed live layout");
+            GD.Print("[CelebrationScreenshotStructure] PASS (no pixels captured, no Steam write)");
             GetTree().Quit();
         }
         catch (Exception ex)
@@ -123,6 +143,12 @@ public partial class CollectionNameplateLayoutSmoke : Node
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static void VerifyVisualOnly(Node node)
+    {
+        Require(node.GetScript().VariantType == Variant.Type.Nil, "Screenshot copy retained a script");
+        foreach (var child in node.GetChildren()) VerifyVisualOnly(child);
     }
 }
 #endif

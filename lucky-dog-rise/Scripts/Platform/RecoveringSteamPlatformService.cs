@@ -6,7 +6,7 @@ namespace LuckyDogRise;
 
 public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
-    IPlatformStatisticSyncOperations, IPlatformUpdateService, IPlatformCloudStorageService
+    IPlatformStatisticSyncOperations, IPlatformUpdateService, IPlatformCloudStorageService, IPlatformScreenshotService
 {
     private const double InventoryTimeoutSeconds = 10.0;
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
@@ -42,6 +42,13 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public string ProviderName => "Steam";
     public string StatusMessage => _statusMessage;
     public bool IsAvailable => _session?.IsAvailable == true;
+    public System.Threading.Tasks.Task<bool> SaveScreenshotAsync(byte[] rgb, int width, int height)
+    {
+        if (_disposed || HasAccountIdentityConflict || _session == null
+            || !_session.TryGetLiveAccountId(out var liveId) || liveId != _accountId)
+            return System.Threading.Tasks.Task.FromResult(false);
+        return _session.SaveScreenshotAsync(rgb, width, height);
+    }
     public uint AppId => _session?.AppId ?? 0;
     public string PersonaName => _session?.PersonaName ?? string.Empty;
     public string AccountProvider => "steam";
