@@ -76,6 +76,7 @@ public partial class ModeManager : Control
     private Node2D _bossContentA = null!;
     private CanvasLayer _bossCanvasLayer = null!;
     private CanvasLayer _bossBubbleLayer = null!;
+    private bool _openSettingsAfterDesktopPetScaleModeSwitch;
     private int _desktopPetScaleStep = SettingsManager.DefaultDesktopPetScaleStep;
     private float _desktopPetScaleFactor = 1f;
     private bool _desktopPetScalePreviewActive;
@@ -531,6 +532,7 @@ public partial class ModeManager : Control
         _settingsPanel.DesktopPetScalePreviewRequested += OnDesktopPetScalePreviewRequested;
         _settingsPanel.DesktopPetScaleConfirmed += OnDesktopPetScaleConfirmed;
         _settingsPanel.DesktopPetScaleCanceled += OnDesktopPetScaleCanceled;
+        _settingsPanel.DesktopPetScaleModeSwitchRequested += OnDesktopPetScaleModeSwitchRequested;
         _settingsPanel.OtherUiScalePreviewRequested += OnOtherUiScalePreviewRequested;
         _settingsPanel.OtherUiScaleConfirmed += OnOtherUiScaleConfirmed;
         _settingsPanel.OtherUiScaleCanceled += OnOtherUiScaleCanceled;
@@ -936,6 +938,7 @@ public partial class ModeManager : Control
     private void SwitchToPlay()
     {
         if (CurrentMode == Mode.Play) return;
+        _openSettingsAfterDesktopPetScaleModeSwitch = false;
         _modeSwitchRevision++;
         _settingsPanel.CancelPendingDesktopPetScaleChange();
         _settingsPanel.CancelPendingOtherUiScaleChange();
@@ -1056,6 +1059,15 @@ public partial class ModeManager : Control
         RefreshSettingsPanelModeActions();
 
         RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
+    }
+
+    private void OnDesktopPetScaleModeSwitchRequested()
+    {
+        if (CurrentMode == Mode.BossKey)
+            return;
+
+        _openSettingsAfterDesktopPetScaleModeSwitch = true;
+        SwitchToBossKey();
     }
 
     public override void _ExitTree()
@@ -1390,6 +1402,15 @@ public partial class ModeManager : Control
 
         PositionBossKeyForRightPlayPanel(screen);
         ShowBossKeyContent();
+
+        if (_openSettingsAfterDesktopPetScaleModeSwitch)
+        {
+            _openSettingsAfterDesktopPetScaleModeSwitch = false;
+            RefreshSettingsPanelModeActions();
+            PositionPanelInBestSlot();
+            _settingsPanel.Open();
+            _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+        }
 
         // 让桌宠画面在 Cloak 状态下真正进入交换链，再交还给 DWM 显示。
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);

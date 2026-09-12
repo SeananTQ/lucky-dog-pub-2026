@@ -71,11 +71,15 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Title" type="Label" parent="OverlayPanel/Margin/Content" unique_id=1274910269]
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_fonts/font = SubResource("font_title")
 theme_override_font_sizes/font_size = 22
 text = "确认操作"
 horizontal_alignment = 1
+autowrap_mode = 3
+max_lines_visible = 2
 
 [node name="MessageBg" type="PanelContainer" parent="OverlayPanel/Margin/Content" unique_id=2116035730]
 layout_mode = 2

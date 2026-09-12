@@ -1294,6 +1294,8 @@ text = "Settings_ResetSaveData"
 
 [node name="DesktopScaleConfirm" parent="." instance=ExtResource("3_confirm")]
 
+[node name="DesktopScaleModeSwitchConfirm" parent="." instance=ExtResource("3_confirm")]
+
 [node name="OtherUiScaleConfirm" parent="." instance=ExtResource("3_confirm")]
 
 [node name="RecoveredItemsOverlay" parent="." instance=ExtResource("17_recovered_items")]

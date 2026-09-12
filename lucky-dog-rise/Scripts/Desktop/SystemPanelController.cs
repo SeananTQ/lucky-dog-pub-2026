@@ -32,6 +32,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void DesktopPetScalePreviewRequestedEventHandler(int step);
     [Signal] public delegate void DesktopPetScaleConfirmedEventHandler(int step);
     [Signal] public delegate void DesktopPetScaleCanceledEventHandler();
+    [Signal] public delegate void DesktopPetScaleModeSwitchRequestedEventHandler();
     [Signal] public delegate void OtherUiScalePreviewRequestedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleConfirmedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleCanceledEventHandler();
@@ -151,6 +152,7 @@ public partial class SystemPanelController : CanvasLayer
     private Label _desktopPetScaleValueLabel = null!;
     private Button _desktopPetScaleApplyButton = null!;
     private ConfirmOverlayController _desktopScaleConfirm = null!;
+    private ConfirmOverlayController _desktopScaleModeSwitchConfirm = null!;
     private int _confirmedDesktopPetScaleStep = SettingsManager.DefaultDesktopPetScaleStep;
     private int _pendingDesktopPetScaleStep = -1;
     private HSlider _otherUiScaleSlider = null!;
@@ -470,12 +472,14 @@ public partial class SystemPanelController : CanvasLayer
         _desktopPetScaleSlider = GetNode<HSlider>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/Slider");
         _desktopPetScaleApplyButton = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/DesktopPetScaleControl/ControlRow/ApplyButton");
         _desktopScaleConfirm = GetNode<ConfirmOverlayController>("DesktopScaleConfirm");
+        _desktopScaleModeSwitchConfirm = GetNode<ConfirmOverlayController>("DesktopScaleModeSwitchConfirm");
         _confirmedDesktopPetScaleStep = SettingsManager.LoadDesktopPetScaleStep();
         _desktopPetScaleSlider.SetValueNoSignal(_confirmedDesktopPetScaleStep);
         _desktopPetScaleSlider.ValueChanged += _ => RefreshDesktopPetScaleApplyState();
         _desktopPetScaleApplyButton.Pressed += ApplySelectedDesktopPetScale;
         _desktopScaleConfirm.Confirmed += ConfirmDesktopPetScale;
         _desktopScaleConfirm.Canceled += RestoreDesktopPetScale;
+        _desktopScaleModeSwitchConfirm.Confirmed += () => EmitSignal(SignalName.DesktopPetScaleModeSwitchRequested);
         _desktopPetScaleApplyButton.Text = L10n.Tr(L10nKey.Settings_DesktopPetScaleApply);
         RefreshDesktopPetScaleApplyState();
         _otherUiScaleValueLabel = GetNode<Label>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OtherUiScaleHeader/OtherUiScaleValueLabel");
@@ -2818,6 +2822,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         _panel.Position = pos;
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
+        _desktopScaleModeSwitchConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _recoveredItemsOverlay?.SetOverlayRect(pos, PanelDesignSize);
         if (_collectionCelebrationConfetti != null)
@@ -2834,6 +2839,7 @@ public partial class SystemPanelController : CanvasLayer
         var value = Vector2.One * _renderScale;
         _panel.Scale = value;
         _desktopScaleConfirm.Scale = value;
+        _desktopScaleModeSwitchConfirm.Scale = value;
         _otherUiScaleConfirm.Scale = value;
         _recoveredItemsOverlay.Scale = value;
         _collectionCelebrationConfetti.Scale = value;
@@ -2941,6 +2947,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
+        _desktopScaleModeSwitchConfirm?.Hide();
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
@@ -2965,6 +2972,7 @@ public partial class SystemPanelController : CanvasLayer
         bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
+        _desktopScaleModeSwitchConfirm?.Hide();
 #if DEBUG
         if (_resetSaveConfirm != null)
             _resetSaveConfirm.Visible = false;
@@ -3396,7 +3404,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ApplySelectedDesktopPetScale()
     {
-        if (!_isBossKeyMode || _pendingDesktopPetScaleStep >= 0)
+        if (_pendingDesktopPetScaleStep >= 0)
             return;
 
         var selectedStep = Mathf.Clamp(
@@ -3405,6 +3413,17 @@ public partial class SystemPanelController : CanvasLayer
             SettingsManager.DesktopPetScaleStepMax);
         if (selectedStep == _confirmedDesktopPetScaleStep)
             return;
+
+        if (!_isBossKeyMode)
+        {
+            _desktopScaleModeSwitchConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
+            _desktopScaleModeSwitchConfirm.ShowConfirmKey(
+                L10nKey.Settings_DesktopPetScaleSwitchModeTitle,
+                L10nKey.Settings_DesktopPetScaleSwitchModeMessage,
+                L10nKey.Settings_DesktopPetScaleSwitchModeNow,
+                L10nKey.Common_Cancel);
+            return;
+        }
 
         _pendingDesktopPetScaleStep = selectedStep;
         EmitSignal(SignalName.DesktopPetScalePreviewRequested, selectedStep);
@@ -3463,9 +3482,8 @@ public partial class SystemPanelController : CanvasLayer
             SettingsManager.GetDesktopPetScaleFactor(selectedStep),
             selectedStep == _confirmedDesktopPetScaleStep);
         var confirmationPending = _pendingDesktopPetScaleStep >= 0;
-        _desktopPetScaleSlider.Editable = _isBossKeyMode && !confirmationPending;
-        _desktopPetScaleApplyButton.Disabled = !_isBossKeyMode
-            || confirmationPending
+        _desktopPetScaleSlider.Editable = !confirmationPending;
+        _desktopPetScaleApplyButton.Disabled = confirmationPending
             || selectedStep == _confirmedDesktopPetScaleStep;
     }
 
