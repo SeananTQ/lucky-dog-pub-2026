@@ -21,6 +21,8 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private Button _blindBoxBtn = null!;
     [Export] private Button _paytableBtn = null!;
     [Export] private BalloonHintController _blindBoxHint = null!;
+    [Export] private PanelContainer _payoutPanel = null!;
+    [Export] private TextureRect _oddsTableGuideHint = null!;
 
     // ===== 动画参数 =====
     public static readonly Vector2 BasePanelSize = new(246, 600);
@@ -69,6 +71,7 @@ public partial class InfoPanelController : CanvasLayer
     public override void _Ready()
     {
         LockPanelSize();
+        SetProcess(false); // 教学提示不可见时不需要每帧贴合
         // 复制专用设置，避免运行时闪烁污染场景资源；阴影参数会原样保留。
         _chipsLabelSettings = _chipsLabel.LabelSettings?.Duplicate() as LabelSettings;
         if (_chipsLabelSettings != null)
@@ -318,6 +321,34 @@ public partial class InfoPanelController : CanvasLayer
     public void SetRenderScale(float scale)
     {
         _panel.Scale = Vector2.One * Mathf.Max(0.01f, scale);
+    }
+
+    // 赔率表教学提示：可见性完全跟随扑克教学引导图。
+    public void SetOddsTableGuideVisible(bool visible)
+    {
+        _oddsTableGuideHint.Visible = visible;
+        SetProcess(visible);
+        if (visible)
+            SyncOddsTableGuideRect();
+    }
+
+    public override void _Process(double delta)
+    {
+        SyncOddsTableGuideRect();
+    }
+
+    // 卡片按 PayoutPanel 的“外框”全局矩形铺满：作为它的子节点会被主题样式盒的 12px
+    // 内容边距收进去，视觉上就小一大圈。虚线到白边框的距离由美术稿四周的透明边距决定，
+    // 代码不做任何内缩微调；改动位置只需重出图，不用动这里。
+    private void SyncOddsTableGuideRect()
+    {
+        var rect = _payoutPanel.GetGlobalRect();
+        if (_oddsTableGuideHint.GlobalPosition == rect.Position
+            && _oddsTableGuideHint.Size == rect.Size)
+            return;
+
+        _oddsTableGuideHint.GlobalPosition = rect.Position;
+        _oddsTableGuideHint.Size = rect.Size;
     }
 
     private void LockPanelSize()

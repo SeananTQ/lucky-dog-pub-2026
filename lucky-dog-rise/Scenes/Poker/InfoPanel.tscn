@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Menu.svg" id="6_menu"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_BlindBox.svg" id="7_blindbox"]
 [ext_resource type="PackedScene" uid="uid://c3sx2dvn6xwlc" path="res://Scenes/Prefabs/BalloonHint.tscn" id="8_balloon"]
+[ext_resource type="Texture2D" uid="uid://h1gdkef0pywr" path="res://Assets/UI/Hint/TutorialStepGuide_OddsTable.png" id="9_odds_guide"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0dj43"]
 content_margin_left = 12.0
@@ -58,7 +59,7 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_paytableBtn", "_blindBoxHint")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_paytableBtn", "_blindBoxHint", "_payoutPanel", "_oddsTableGuideHint")]
 script = ExtResource("1_ctrl")
 _panel = NodePath("Panel")
 _chipsKeyLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsKey")
@@ -70,6 +71,8 @@ _settingsBtn = NodePath("Panel/RootVBox/ButtonRow/SettingsBtn")
 _blindBoxBtn = NodePath("Panel/RootVBox/ButtonRow/BlindBoxBtn")
 _paytableBtn = NodePath("Panel/RootVBox/PayoutPanel/PaytableBtn")
 _blindBoxHint = NodePath("Panel/RootVBox/BlindBoxHint")
+_payoutPanel = NodePath("Panel/RootVBox/PayoutPanel")
+_oddsTableGuideHint = NodePath("OddsTableGuideHint")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1220554571]
 custom_minimum_size = Vector2(246, 600)
@@ -305,3 +308,11 @@ text = "InfoPanel_Menu"
 clip_text = true
 text_overrun_behavior = 3
 icon = ExtResource("6_menu")
+
+[node name="OddsTableGuideHint" type="TextureRect" parent="."]
+visible = false
+offset_right = 238.0
+offset_bottom = 245.0
+mouse_filter = 2
+texture = ExtResource("9_odds_guide")
+expand_mode = 1

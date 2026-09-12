@@ -25,6 +25,9 @@ public partial class GameManager : Node2D
     [Signal] public delegate void CollectionProgressConfirmedEventHandler();
 
     public bool IsCollectionProgressNoticeVisible => _collectionProgressDialog?.IsOverlayVisible == true;
+    public bool IsTutorialOverlayVisible => _tutorial?.IsOverlayVisible == true;
+
+    public event Action<bool> TutorialOverlayVisibilityChanged;
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
@@ -480,8 +483,9 @@ public partial class GameManager : Node2D
         RefreshInteractionHintTargets();
     }
 
-    private void OnTutorialOverlayVisibilityChanged(bool _)
+    private void OnTutorialOverlayVisibilityChanged(bool visible)
     {
+        TutorialOverlayVisibilityChanged?.Invoke(visible);
         RefreshOverlayInteractionContexts();
     }
 

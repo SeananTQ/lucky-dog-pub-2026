@@ -968,6 +968,9 @@ public partial class ModeManager : Control
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
             _gameManager.CollectionProgressConfirmed += OnCollectionProgressConfirmed;
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
+            // 赔率表提示在 InfoPanel（SubViewport 之外），只能由外层转发教学引导图的显隐。
+            _gameManager.TutorialOverlayVisibilityChanged += _infoPanel.SetOddsTableGuideVisible;
+            _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
             _infoPanel.Bind(_gameData);
