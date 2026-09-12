@@ -558,6 +558,21 @@ layout_mode = 2
 text = "Settings_Gameplay"
 label_settings = ExtResource("8_group_title")
 
+[node name="QuickStartAfterWinRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="QuickStartAfterWinLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_QuickStartAfterWin"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="QuickStartAfterWinToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
 layout_mode = 2
 

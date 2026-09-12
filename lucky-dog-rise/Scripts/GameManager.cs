@@ -345,7 +345,10 @@ public partial class GameManager : Node2D
         _pendingPayout = 0;
         RefreshUI();
         SetState(GameState.WaitingForBet);
-        StartNewHand();
+        if (SettingsManager.LoadQuickStartAfterWin())
+            StartNewHand();
+        else
+            _chipStack.ShowHint("Click to bet");
     }
 
     // === 游戏逻辑 ===

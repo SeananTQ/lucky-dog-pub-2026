@@ -48,6 +48,7 @@ public static class L10nKey
     public const string Settings_OtherUiScaleConfirmTitle = nameof(Settings_OtherUiScaleConfirmTitle);
     public const string Settings_OtherUiScaleConfirmMessage = nameof(Settings_OtherUiScaleConfirmMessage);
     public const string Settings_Gameplay = nameof(Settings_Gameplay);
+    public const string Settings_QuickStartAfterWin = nameof(Settings_QuickStartAfterWin);
     public const string Settings_AutoHidePanelOnFocusLoss = nameof(Settings_AutoHidePanelOnFocusLoss);
     public const string Settings_TongueInstantMode = nameof(Settings_TongueInstantMode);
     public const string Settings_AlwaysShowBlindBoxBubble = nameof(Settings_AlwaysShowBlindBoxBubble);

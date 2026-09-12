@@ -167,6 +167,7 @@ public partial class SystemPanelController : CanvasLayer
 #endif
     private CheckButton _blindBoxBubbleToggle = null!;
     private CheckButton _pokerGuideOverlayToggle = null!;
+    private CheckButton _quickStartAfterWinToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
     private bool _refreshingArmAppearanceOption;
@@ -544,6 +545,10 @@ public partial class SystemPanelController : CanvasLayer
         var proactiveInteractionHintsToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle");
         proactiveInteractionHintsToggle.ButtonPressed = SettingsManager.LoadProactiveInteractionHints();
         proactiveInteractionHintsToggle.Toggled += enabled => SettingsManager.SaveProactiveInteractionHints(enabled);
+
+        _quickStartAfterWinToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow/QuickStartAfterWinToggle");
+        _quickStartAfterWinToggle.ButtonPressed = SettingsManager.LoadQuickStartAfterWin();
+        _quickStartAfterWinToggle.Toggled += SettingsManager.SaveQuickStartAfterWin;
 
         _pokerGuideOverlayToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow/PokerGuideOverlayToggle");
         _pokerGuideOverlayToggle.ButtonPressed = SettingsManager.LoadPokerGuideOverlayEnabled();
@@ -3743,6 +3748,7 @@ public partial class SystemPanelController : CanvasLayer
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
         _pokerGuideOverlayToggle.SetPressedNoSignal(SettingsManager.LoadPokerGuideOverlayEnabled());
+        _quickStartAfterWinToggle.SetPressedNoSignal(SettingsManager.LoadQuickStartAfterWin());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
