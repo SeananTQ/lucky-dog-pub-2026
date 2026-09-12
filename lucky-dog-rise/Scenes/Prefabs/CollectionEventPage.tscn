@@ -44,7 +44,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardNameplate", "_victoryRewardNameplateBackground", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistShareButton", "_wishlistCallToActionMessage", "_roadmapBody", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
+[node name="CollectionEventPage" type="VBoxContainer" unique_id=2127149765 node_paths=PackedStringArray("_collectionModuleAnchor", "_grandPrizeLeft", "_grandPrizeCenter", "_grandPrizeRight", "_collectionGrid", "_victoryRewardModule", "_victoryRewardNameplate", "_victoryRewardNameplateBackground", "_victoryRewardButton", "_victoryRewardTitle", "_victoryRewardDetail", "_wishlistCallToActionModule", "_wishlistCallToActionBannerButton", "_wishlistCallToActionButton", "_wishlistShareButton", "_wishlistCallToActionMessage", "_roadmapBody", "_backToTopButton", "_debugToolsModule", "_celebrationTestButton", "_nameplateStateTestButton")]
 custom_minimum_size = Vector2(0, 500)
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
@@ -66,6 +66,7 @@ _wishlistCallToActionButton = NodePath("WishlistCallToActionModule/WishlistButto
 _wishlistShareButton = NodePath("WishlistCallToActionModule/ShareButton")
 _wishlistCallToActionMessage = NodePath("WishlistCallToActionModule/Balloon/CopyMargins/Message")
 _roadmapBody = NodePath("RoadmapSpacing/RoadmapModule/Margins/Content/Body")
+_backToTopButton = NodePath("BackToTopModule/Margins/BackToTopButton")
 _debugToolsModule = NodePath("DebugToolsModule")
 _celebrationTestButton = NodePath("DebugToolsModule/Center/ButtonRow/CelebrationTestButton")
 _nameplateStateTestButton = NodePath("DebugToolsModule/Center/ButtonRow/NameplateStateTestButton")
@@ -580,6 +581,25 @@ bbcode_enabled = true
 text = "CollectionEvent_RoadmapBody"
 fit_content = true
 scroll_active = false
+
+[node name="BackToTopModule" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_scroll_preview")
+
+[node name="Margins" type="MarginContainer" parent="BackToTopModule"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 10
+
+[node name="BackToTopButton" type="Button" parent="BackToTopModule/Margins"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "CollectionEvent_BackToTop"
 
 [node name="DebugToolsModule" type="PanelContainer" parent="." unique_id=58497082]
 visible = false

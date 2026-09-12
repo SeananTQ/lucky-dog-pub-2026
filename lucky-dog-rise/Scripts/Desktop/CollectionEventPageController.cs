@@ -77,6 +77,7 @@ public partial class CollectionEventPageController : VBoxContainer
     [Export] private Button _wishlistShareButton = null!;
     [Export] private Label _wishlistCallToActionMessage = null!;
     [Export] private RichTextLabel _roadmapBody = null!;
+    [Export] private Button _backToTopButton = null!;
     [Export] private Control _debugToolsModule = null!;
     [Export] private Button _celebrationTestButton = null!;
     [Export] private Button _nameplateStateTestButton = null!;
@@ -105,6 +106,7 @@ public partial class CollectionEventPageController : VBoxContainer
     public event Action VictoryRewardClaimRequested;
     public event Action VictoryRewardClaimed;
     public event Action CelebrationTestRequested;
+    public event Action BackToTopRequested;
 
     public string EventId => _definition?.EventId ?? string.Empty;
 
@@ -129,6 +131,7 @@ public partial class CollectionEventPageController : VBoxContainer
         _wishlistCallToActionBannerButton.Pressed += OpenWishlistCallToAction;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
         _wishlistShareButton.Pressed += OnWishlistSharePressed;
+        _backToTopButton.Pressed += () => BackToTopRequested?.Invoke();
         _debugToolsModule.Visible = OS.IsDebugBuild();
         if (_debugToolsModule.Visible)
         {
@@ -278,6 +281,7 @@ public partial class CollectionEventPageController : VBoxContainer
         _wishlistCallToActionButton.Text = L10n.Tr(L10nKey.CollectionEvent_WishlistButton);
         _wishlistShareButton.Text = L10n.Tr(_screenshotResultKey ?? L10nKey.CollectionEvent_SaveScreenshot);
         _roadmapBody.Text = FormatRoadmapBody(L10n.Tr(L10nKey.CollectionEvent_RoadmapBody));
+        _backToTopButton.Text = L10n.Tr(L10nKey.CollectionEvent_BackToTop);
 
         if (_gameData == null || _definition == null)
             return;

@@ -136,6 +136,7 @@ public static class L10nKey
     public const string CollectionEvent_SaveScreenshot = nameof(CollectionEvent_SaveScreenshot);
     public const string CollectionEvent_RoadmapTitle = nameof(CollectionEvent_RoadmapTitle);
     public const string CollectionEvent_RoadmapBody = nameof(CollectionEvent_RoadmapBody);
+    public const string CollectionEvent_BackToTop = nameof(CollectionEvent_BackToTop);
     public const string CollectionEvent_FirstDogProgressTitle = nameof(CollectionEvent_FirstDogProgressTitle);
     public const string CollectionEvent_FirstDogProgressBody = nameof(CollectionEvent_FirstDogProgressBody);
     public const string CollectionEvent_FirstDogProgressConfirm = nameof(CollectionEvent_FirstDogProgressConfirm);

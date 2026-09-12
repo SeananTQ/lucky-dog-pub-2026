@@ -403,6 +403,7 @@ public partial class SystemPanelController : CanvasLayer
         _collectionEventContent.VictoryRewardClaimRequested += OnCollectionEventVictoryRewardClaimRequested;
         _collectionEventContent.VictoryRewardClaimed += OnCollectionEventVictoryRewardClaimed;
         _collectionEventContent.CelebrationTestRequested += OnCollectionEventCelebrationTestRequested;
+        _collectionEventContent.BackToTopRequested += OnCollectionEventBackToTopRequested;
         _outfitPresetContent = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent");
         _outfitPresetSlots = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/OutfitPresetContent/PresetSlots");
         _linkTreeStatusCenter = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/LinkTreeContent/LinkTreeStatusCenter");
@@ -820,6 +821,7 @@ public partial class SystemPanelController : CanvasLayer
             _collectionEventContent.VictoryRewardClaimRequested -= OnCollectionEventVictoryRewardClaimRequested;
             _collectionEventContent.VictoryRewardClaimed -= OnCollectionEventVictoryRewardClaimed;
             _collectionEventContent.CelebrationTestRequested -= OnCollectionEventCelebrationTestRequested;
+            _collectionEventContent.BackToTopRequested -= OnCollectionEventBackToTopRequested;
         }
     }
 
@@ -1067,6 +1069,21 @@ public partial class SystemPanelController : CanvasLayer
         }
 
         _panelScroll.ScrollVertical = CalculateCollectionEventScroll(target);
+    }
+
+    private void OnCollectionEventBackToTopRequested()
+    {
+        _collectionEventRewardScrollTween?.Kill();
+        _collectionEventRewardScrollTween = CreateTween()
+            .SetTrans(Tween.TransitionType.Cubic)
+            .SetEase(Tween.EaseType.Out);
+        _collectionEventRewardScrollTween.TweenProperty(
+            _panelScroll,
+            "scroll_vertical",
+            0,
+            0.35);
+        _collectionEventRewardScrollTween.TweenCallback(
+            Callable.From(() => _collectionEventRewardScrollTween = null));
     }
 
     private int CalculateCollectionEventScroll(CollectionEventEntryScrollTarget target)
