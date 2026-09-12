@@ -964,7 +964,7 @@ public partial class ModeManager : Control
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             _gameManager.GameData = _gameData;
             _gameManager.SettingsPanel = _settingsPanel;
-            _infoPanel.PaytableRequested += _gameManager.TogglePokerHandShowcase;
+            _infoPanel.PaytableRequested += OnPaytableRequested;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
             _gameManager.CollectionProgressConfirmed += OnCollectionProgressConfirmed;
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
@@ -2299,6 +2299,17 @@ public partial class ModeManager : Control
         else if (state.Status == BlindBoxHintStatus.PendingReward
                  && _gameData.PendingBlindBoxReward != null)
             _gameManager?.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
+    }
+
+    private void OnPaytableRequested()
+    {
+        if (_gameManager == null)
+            return;
+
+        // The InfoPanel lives outside the poker SubViewport, so this entry intentionally
+        // bypasses the tutorial's two-second dismissal lock. Opening the layer-19 showcase
+        // must not dismiss the layer-18 tutorial; closing it reveals the same tutorial again.
+        _gameManager.TogglePokerHandShowcase();
     }
 
     private void OnBlindBoxRewardClaimRequested()

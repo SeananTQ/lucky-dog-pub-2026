@@ -863,6 +863,7 @@ public partial class CollectionEventPageController : VBoxContainer
 
         _victoryRewardButton.Disabled = true;
         SetVictoryRewardCursor(false);
+        SetRewardCellsClaimable(false);
         SetProcess(false);
         ResetNameplateSway();
         if (VictoryRewardClaimRequested == null)
