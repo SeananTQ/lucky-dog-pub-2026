@@ -35,10 +35,6 @@ public partial class CollectionEventPageController : VBoxContainer
     private const int NameplateTitleMinimumFontSize = 12;
     private const float NameplateTitleHorizontalInset = 66f;
     private const double NameplateSwayRestSeconds = 1.5;
-#if DEBUG
-    private const string DebugLongPersonaName =
-        "Captain Lucky Paws and Friends";
-#endif
     private static readonly PackedScene RewardCellScene =
         GD.Load<PackedScene>("res://Scenes/Prefabs/CollectionEventRewardCell.tscn");
     private static readonly Texture2D NameplateInProgressTexture =
@@ -471,15 +467,9 @@ public partial class CollectionEventPageController : VBoxContainer
 
         if (state == VictoryNameplateVisualState.Claimed)
         {
-            string previewName = null;
-#if DEBUG
-            if (preview)
-                previewName = DebugLongPersonaName;
-#endif
             ApplyClaimedNameplateCopy(
                 preview ? DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                    : _gameData.GetOrCreateCollectionEventVictoryCompletedAtUnixSeconds(_definition.EventId),
-                previewName);
+                    : _gameData.GetOrCreateCollectionEventVictoryCompletedAtUnixSeconds(_definition.EventId));
         }
         else
         {
@@ -546,11 +536,9 @@ public partial class CollectionEventPageController : VBoxContainer
                 : 14);
     }
 
-    private void ApplyClaimedNameplateCopy(
-        long completedAtUnixSeconds,
-        string personaNameOverride = null)
+    private void ApplyClaimedNameplateCopy(long completedAtUnixSeconds)
     {
-        var personaName = (personaNameOverride ?? _playerDisplayNameProvider()).Trim();
+        var personaName = _playerDisplayNameProvider().Trim();
         ResetNameplateCopyLayout();
         _pendingClaimedTitle = string.IsNullOrWhiteSpace(personaName)
             ? L10n.Tr(L10nKey.CollectionEvent_VictoryClaimedTitle)

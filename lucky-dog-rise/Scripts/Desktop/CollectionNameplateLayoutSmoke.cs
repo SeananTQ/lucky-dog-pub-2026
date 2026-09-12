@@ -19,6 +19,10 @@ public partial class CollectionNameplateLayoutSmoke : Node
             page.Theme = GD.Load<Theme>("res://Themes/DefaultTheme.tres");
             page.Size = new Vector2(382, 900);
             AddChild(page);
+            const string layoutTestPersonaName = "Nameplate Layout Smoke Test Persona";
+            typeof(CollectionEventPageController).GetField(
+                "_playerDisplayNameProvider", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .SetValue(page, (Func<string>)(() => layoutTestPersonaName));
             var render = typeof(CollectionEventPageController).GetMethod(
                 "RenderNameplate", BindingFlags.NonPublic | BindingFlags.Instance)!;
             var stateType = render.GetParameters()[0].ParameterType;
@@ -48,7 +52,8 @@ public partial class CollectionNameplateLayoutSmoke : Node
                         Require(title.GetThemeFontSize("font_size") == (locale == "fr" ? 15 : 18), "Standard title shrank");
                     else
                     {
-                        Require(title.Text.Replace("\n", " ").Contains("Captain Lucky Paws"), "Preview nickname missing");
+                        Require(title.Text.Replace("\n", " ").Contains(layoutTestPersonaName),
+                            "Injected layout-test nickname missing");
                         Require(previousLongText == null || previousLongText == title.Text,
                             "Repeated preview changed wrapping");
                         previousLongText = title.Text;
