@@ -28,7 +28,13 @@ public static class CollectionCelebrationScreenshot
         var wish = page.GetNode<Control>("WishlistCallToActionModule");
         var bottom = Math.Max(wish.GetNode<Control>("ShyDog").GetRect().End.Y,
             wish.GetNode<Control>("Balloon").GetRect().End.Y) + wish.Position.Y;
-        var size = new Vector2(page.Size.X, bottom - stage.Position.Y);
+        // Leave room above the tallest grand-prize icon equal to the first-row height offset.
+        // The side prizes currently start 22 logical pixels below the centered prize.
+        var topPadding = 0f;
+        foreach (var child in stage.GetChildren())
+            if (child is Control prize)
+                topPadding = Mathf.Max(topPadding, prize.Position.Y);
+        var size = new Vector2(page.Size.X, bottom - stage.Position.Y + topPadding);
         if (size.X <= 0 || size.Y <= 0)
             throw new InvalidOperationException("Celebration layout is not ready.");
         var snapshot = new Control { Name = "CelebrationSnapshot", Size = size,
@@ -48,7 +54,7 @@ public static class CollectionCelebrationScreenshot
             var copy = (Control)source.Duplicate(0);
             snapshot.AddChild(copy);
             copy.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-            copy.Position = source.Position - new Vector2(0, stage.Position.Y);
+            copy.Position = source.Position - new Vector2(0, stage.Position.Y) + new Vector2(0, topPadding);
             copy.Size = source.Size;
             copy.MouseFilter = Control.MouseFilterEnum.Ignore;
             if (path == "WishlistCallToActionModule")

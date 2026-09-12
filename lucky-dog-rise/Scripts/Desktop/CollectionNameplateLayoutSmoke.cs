@@ -114,8 +114,12 @@ public partial class CollectionNameplateLayoutSmoke : Node
             var snapshot = CollectionCelebrationScreenshot.CreateSnapshot(page);
             try
             {
-                Require(snapshot.GetNode<Control>("GrandPrizeStage").Position.Y == 0,
-                    "Screenshot does not begin at the reward icons");
+                var snapshotStage = snapshot.GetNode<Control>("GrandPrizeStage");
+                var leftPrize = snapshotStage.GetNode<Control>("GrandPrizeLeft");
+                var centerPrize = snapshotStage.GetNode<Control>("GrandPrizeCenter");
+                Require(snapshotStage.Position.Y > 0
+                    && Math.Abs(snapshotStage.Position.Y - (leftPrize.Position.Y - centerPrize.Position.Y)) < 0.1f,
+                    "Screenshot does not leave room above the tallest reward icon");
                 var wish = snapshot.GetNode<Control>("WishlistCallToActionModule");
                 Require(!wish.HasNode("WishlistButton") && !wish.HasNode("ShareButton"),
                     "Screenshot includes action buttons");
