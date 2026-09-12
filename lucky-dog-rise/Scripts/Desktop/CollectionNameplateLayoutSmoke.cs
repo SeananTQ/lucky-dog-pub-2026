@@ -130,6 +130,20 @@ public partial class CollectionNameplateLayoutSmoke : Node
             Require(page.GetNode<Control>("GrandPrizeStage").Position == stagePosition,
                 "Capture changed live layout");
             GD.Print("[CelebrationScreenshotStructure] PASS (no pixels captured, no Steam write)");
+            if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-celebration-preview"))
+            {
+                L10n.SetLocale("zh_CN", save: false);
+                var output = ProjectSettings.GlobalizePath("res://../.local-build/celebration-preview");
+                System.IO.Directory.CreateDirectory(output);
+                foreach (var state in new[] { 0, 1, 2 })
+                {
+                    render.Invoke(page, new[] { Enum.ToObject(stateType, state), (object)true, false });
+                    await Frames();
+                    using var image = await CollectionCelebrationScreenshot.CaptureAsync(page);
+                    Require(image.SavePng($"{output}/state-{state}.png") == Error.Ok, "Preview save failed");
+                    GD.Print($"[CelebrationScreenshotPixels] state={state} size={image.GetWidth()}x{image.GetHeight()}");
+                }
+            }
             GetTree().Quit();
         }
         catch (Exception ex)

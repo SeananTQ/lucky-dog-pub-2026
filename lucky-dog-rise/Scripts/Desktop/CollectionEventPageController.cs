@@ -353,6 +353,7 @@ public partial class CollectionEventPageController : VBoxContainer
         if (_savingScreenshot || _currentNameplateVisualState != VictoryNameplateVisualState.Claimed)
             return;
         _savingScreenshot = true;
+        AudioManager.Instance?.PlaySfx("Collection_Screenshot");
         _screenshotResultKey = null;
         _wishlistShareButton.Text = L10n.Tr(L10nKey.CollectionEvent_SaveScreenshot);
         _wishlistShareButton.Disabled = true;

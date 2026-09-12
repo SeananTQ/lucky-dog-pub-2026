@@ -6,6 +6,20 @@ namespace LuckyDogRise;
 
 public static class CollectionCelebrationScreenshot
 {
+    private const float PhotoBorderShortSideRatio = 0.025f;
+    private static readonly Color PhotoPaperColor = new("f2efe7");
+
+    internal static Image AddPhotoBorder(Image source)
+    {
+        var width = source.GetWidth();
+        var height = source.GetHeight();
+        var border = Math.Max(1, Mathf.RoundToInt(Math.Min(width, height) * PhotoBorderShortSideRatio));
+        var photo = Image.CreateEmpty(width + border * 2, height + border * 2, false, Image.Format.Rgb8);
+        photo.Fill(PhotoPaperColor);
+        photo.BlitRect(source, new Rect2I(0, 0, width, height), new Vector2I(border, border));
+        return photo;
+    }
+
     // Freeze only the visual branches. No scripts, signals, account state, or reward logic
     // are copied, and the live page is never reparented, resized, scrolled, or hidden.
     internal static Control CreateSnapshot(Control page)
@@ -57,6 +71,8 @@ public static class CollectionCelebrationScreenshot
         var viewport = new SubViewport { Size = new Vector2I(
             Mathf.CeilToInt(snapshot.Size.X * 2), Mathf.CeilToInt(snapshot.Size.Y * 2)),
             Disable3D = true, TransparentBg = false,
+            // Control.Scale does not raise font rasterization resolution automatically.
+            Oversampling = true, OversamplingOverride = 2f,
             RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
         snapshot.Scale = Vector2.One * 2;
         try
@@ -67,11 +83,11 @@ public static class CollectionCelebrationScreenshot
             for (var i = 0; i < 2; i++)
                 await page.ToSignal(page.GetTree(), SceneTree.SignalName.ProcessFrame);
             await page.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            var image = viewport.GetTexture().GetImage();
+            using var image = viewport.GetTexture().GetImage();
             if (image == null || image.IsEmpty())
                 throw new InvalidOperationException("Celebration render is empty.");
             image.Convert(Image.Format.Rgb8);
-            return image;
+            return AddPhotoBorder(image);
         }
         finally
         {
