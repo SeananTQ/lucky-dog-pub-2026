@@ -371,9 +371,10 @@ public partial class SystemPanelController : CanvasLayer
         [1006] = GD.Load<Texture2D>("res://Assets/UI/Icon/TabIcon_Refreshment.svg"),
     };
     private const string ArmColorChipPathPrefix = "res://Assets/UI/Icon/Arm_ColorChip_";
-    private const float OutfitPresetRowHeight = 50f;
-    private const float OutfitPresetItemCellSize = 34f;
+    private const float OutfitPresetRowHeight = 60f;
+    private const float OutfitPresetItemCellSize = 44f;
     private const float OutfitPresetDeleteButtonSize = 32f;
+    private const float OutfitPresetSeparatorRightInset = 10f;
     private static readonly Texture2D OutfitPresetDeleteIcon =
         GD.Load<Texture2D>("res://Assets/UI/Icon/Icon_OutfitPresetDelete.svg");
 
@@ -2572,9 +2573,18 @@ public partial class SystemPanelController : CanvasLayer
             _outfitPresetSlots.AddChild(CreateOutfitPresetRow(slot));
             if (slot.SlotIndex < OutfitPresetCloudSynchronizer.SlotCount - 1)
             {
-                var separator = new HSeparator();
-                separator.MouseFilter = Control.MouseFilterEnum.Ignore;
-                _outfitPresetSlots.AddChild(separator);
+                var separatorMargin = new MarginContainer
+                {
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                };
+                separatorMargin.AddThemeConstantOverride(
+                    "margin_right", Mathf.RoundToInt(OutfitPresetSeparatorRightInset));
+                var separator = new HSeparator
+                {
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                };
+                separatorMargin.AddChild(separator);
+                _outfitPresetSlots.AddChild(separatorMargin);
             }
         }
     }
@@ -2614,7 +2624,12 @@ public partial class SystemPanelController : CanvasLayer
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             };
             addLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-            addLabel.AddThemeFontSizeOverride("font_size", 22);
+            addLabel.AddThemeFontSizeOverride("font_size", 30);
+            addLabel.AddThemeColorOverride("font_color", new Color("d7edf0"));
+            addLabel.AddThemeColorOverride("font_outline_color", new Color("173f47"));
+            addLabel.AddThemeConstantOverride("outline_size", 2);
+            addLabel.AddThemeFontOverride("font",
+                GD.Load<Font>("res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf"));
             presetButton.AddChild(addLabel);
             presetButton.Pressed += () => HandleSaveOutfitPreset(slot.SlotIndex);
         }
@@ -2622,19 +2637,21 @@ public partial class SystemPanelController : CanvasLayer
 
         if (slot.IsOccupied)
         {
-            var deleteButton = new Button
+            var deleteButton = new TextureButton
             {
                 CustomMinimumSize = new Vector2(
                     OutfitPresetDeleteButtonSize,
                     OutfitPresetDeleteButtonSize),
                 SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-                ThemeTypeVariation = "PanelCloseButton",
-                Icon = OutfitPresetDeleteIcon,
-                IconAlignment = HorizontalAlignment.Center,
+                TextureNormal = OutfitPresetDeleteIcon,
+                IgnoreTextureSize = true,
+                StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = Control.MouseFilterEnum.Pass,
                 MouseDefaultCursorShape = Control.CursorShape.PointingHand,
                 TooltipText = L10n.Tr(L10nKey.OutfitPreset_DeleteSlot),
             };
-            deleteButton.AddThemeConstantOverride("icon_max_width", 16);
+            deleteButton.MouseEntered += () => deleteButton.Modulate = new Color(1.15f, 1.15f, 1.15f);
+            deleteButton.MouseExited += () => deleteButton.Modulate = Colors.White;
             deleteButton.Pressed += () => HandleDeleteOutfitPreset(slot.SlotIndex);
             row.AddChild(deleteButton);
         }
@@ -2648,6 +2665,13 @@ public partial class SystemPanelController : CanvasLayer
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             });
         }
+
+        // Keep the icon clear of the shared vertical scrollbar, including on empty rows.
+        row.AddChild(new Control
+        {
+            CustomMinimumSize = new Vector2(8f, 0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
 
         return row;
     }
