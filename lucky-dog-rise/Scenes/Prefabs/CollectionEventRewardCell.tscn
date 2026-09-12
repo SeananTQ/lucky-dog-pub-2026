@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Desktop/CollectionEventRewardCellController.cs" id="1_controller"]
 [ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_plate"]
@@ -9,7 +9,9 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_root"]
 
-[node name="CollectionEventRewardCell" type="PanelContainer" node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_shineTransitionCover", "_fullCover")]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_claim_button"]
+
+[node name="CollectionEventRewardCell" type="PanelContainer" node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_shineTransitionCover", "_fullCover", "_claimButton")]
 custom_minimum_size = Vector2(58, 58)
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_root")
@@ -21,6 +23,7 @@ _revealedCover = NodePath("Content/RevealedCover")
 _shineCover = NodePath("Content/ShineCover")
 _shineTransitionCover = NodePath("Content/ShineTransitionCover")
 _fullCover = NodePath("Content/FullCover")
+_claimButton = NodePath("ClaimButton")
 
 [node name="Content" type="Control" parent="."]
 layout_mode = 2
@@ -110,3 +113,13 @@ mouse_filter = 2
 texture = ExtResource("6_full")
 expand_mode = 3
 stretch_mode = 5
+
+[node name="ClaimButton" type="Button" parent="."]
+layout_mode = 2
+focus_mode = 0
+disabled = true
+theme_override_styles/normal = SubResource("StyleBoxEmpty_claim_button")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_claim_button")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_claim_button")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_claim_button")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_claim_button")

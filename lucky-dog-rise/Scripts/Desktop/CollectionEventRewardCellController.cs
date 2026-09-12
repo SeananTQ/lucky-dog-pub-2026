@@ -1,5 +1,6 @@
 using Godot;
 using DataTables;
+using System;
 
 namespace LuckyDogRise;
 
@@ -19,6 +20,7 @@ public partial class CollectionEventRewardCellController : PanelContainer
     [Export] private TextureRect _shineCover = null!;
     [Export] private TextureRect _shineTransitionCover = null!;
     [Export] private TextureRect _fullCover = null!;
+    [Export] private Button _claimButton = null!;
 
     private static readonly Texture2D[] ShineTextures =
     {
@@ -38,6 +40,25 @@ public partial class CollectionEventRewardCellController : PanelContainer
 
     public int ItemId { get; private set; }
 
+    public event Action ClaimRequested;
+
+    public override void _Ready()
+    {
+        // A real Button so the panel's scroll-drag suppression applies; a raw _GuiInput
+        // would claim on press, before the drag threshold is known.
+        _claimButton.Pressed += () => ClaimRequested?.Invoke();
+    }
+
+    // Mirrors the nameplate: the cell must not read as clickable unless the reward is claimable.
+    public void SetClaimable(bool claimable)
+    {
+        _claimButton.Disabled = !claimable;
+        _claimButton.MouseDefaultCursorShape = claimable
+            ? Control.CursorShape.PointingHand
+            : Control.CursorShape.Arrow;
+    }
+
+
     public void Setup(
         Item item,
         CollectionEventRewardVisualState state,
@@ -53,7 +74,6 @@ public partial class CollectionEventRewardCellController : PanelContainer
         _revealedCover.Texture = GD.Load<Texture2D>(
             $"res://Assets/Event/Collection/ItemUI_ScratchCover_Reveal{_revealVariant}.png");
         SetVisualState(state);
-        TooltipText = item.Name;
     }
 
     public override void _Process(double delta)

@@ -2,11 +2,9 @@
 
 [ext_resource type="Script" uid="uid://ychxs1h3dgtc" path="res://Scripts/Desktop/CollectionEventPageController.cs" id="1_controller"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionEventRewardCell.tscn" id="2_reward_cell"]
-[ext_resource type="Texture2D" uid="uid://i5baq7jm44sl" path="res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_InProgress.png" id="3_nameplate_in_progress"]
-[ext_resource type="Texture2D" uid="uid://b0261mrwng4un" path="res://Assets/Event/Collection/CollectionVictory_LaurelLeft.png" id="4_glss8"]
+[ext_resource type="Texture2D" uid="uid://donh5oawxnepa" path="res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_InProgress.png" id="3_nameplate_in_progress"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="6_inter_bold"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="7_misans_bold"]
-[ext_resource type="Texture2D" uid="uid://dxisyy18xlv8i" path="res://Assets/Event/Collection/CollectionVictory_LaurelRight.png" id="7_yribo"]
 [ext_resource type="FontFile" uid="uid://cgx8e0k12nd3y" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="8_inter_regular"]
 [ext_resource type="FontFile" uid="uid://bjtpwxlw2esre" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="9_misans_regular"]
 [ext_resource type="Texture2D" uid="uid://cxfyrbugb84j3" path="res://Assets/Event/Collection/Wishlist_ShyDog.png" id="10_wishlist_dog"]
@@ -189,7 +187,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("4_glss8")
 expand_mode = 1
 stretch_mode = 5
 
@@ -209,7 +206,7 @@ alignment = 1
 [node name="Title" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/Copy" unique_id=1516602019]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.403922, 0.231373, 0.117647, 1)
+theme_override_colors/font_color = Color(0.243137, 0.278431, 0.298039, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/shadow_offset_x = 0
@@ -226,7 +223,7 @@ autowrap_mode = 3
 [node name="Detail" type="Label" parent="VictoryRewardMargins/CollectionVictoryNameplate/ContentMargins/ContentLayer/Copy" unique_id=1655836239]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.494118, 0.282353, 0.12549, 1)
+theme_override_colors/font_color = Color(0.337255, 0.368627, 0.396078, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/shadow_offset_x = 0
@@ -356,7 +353,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("7_yribo")
 expand_mode = 1
 stretch_mode = 5
 
@@ -368,7 +364,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 focus_mode = 0
-mouse_default_cursor_shape = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_victory_button")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_victory_button")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_victory_button")

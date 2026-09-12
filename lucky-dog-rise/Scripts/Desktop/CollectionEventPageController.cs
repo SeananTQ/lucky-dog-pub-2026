@@ -47,6 +47,18 @@ public partial class CollectionEventPageController : VBoxContainer
         GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_Claimable.png");
     private static readonly Texture2D NameplateClaimedTexture =
         GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_Nameplate_2x_Claimed.png");
+    private static readonly Texture2D LaurelLeftInProgressTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelLeft_InProgress.png");
+    private static readonly Texture2D LaurelLeftClaimableTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelLeft_Claimable.png");
+    private static readonly Texture2D LaurelLeftClaimedTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelLeft_Claimed.png");
+    private static readonly Texture2D LaurelRightInProgressTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelRight_InProgress.png");
+    private static readonly Texture2D LaurelRightClaimableTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelRight_Claimable.png");
+    private static readonly Texture2D LaurelRightClaimedTexture =
+        GD.Load<Texture2D>("res://Assets/Event/Collection/CollectionVictory_LaurelRight_Claimed.png");
 
     [Export] private Control _collectionModuleAnchor = null!;
     [Export] private CollectionEventRewardCellController _grandPrizeLeft = null!;
@@ -80,6 +92,8 @@ public partial class CollectionEventPageController : VBoxContainer
     private double _nameplateSwaySeconds;
     private Control _laurelLeftPivot;
     private Control _laurelRightPivot;
+    private TextureRect _laurelLeft;
+    private TextureRect _laurelRight;
     private Label _claimableUnderlineLabel;
     private float _nameplateUnderlineOpacity;
 
@@ -100,12 +114,18 @@ public partial class CollectionEventPageController : VBoxContainer
         var contentLayer = _victoryRewardNameplate.GetNode<Control>("ContentMargins/ContentLayer");
         _laurelLeftPivot = contentLayer.GetNode<Control>("LaurelLeftPivot");
         _laurelRightPivot = contentLayer.GetNode<Control>("LaurelRightPivot");
+        _laurelLeft = _laurelLeftPivot.GetNode<TextureRect>("LaurelLeft");
+        _laurelRight = _laurelRightPivot.GetNode<TextureRect>("LaurelRight");
         _claimableUnderlineLabel = contentLayer.GetNode<Label>("ClaimableCopy/Detail");
         _claimableUnderlineLabel.Draw += DrawClaimableUnderline;
         L10n.Changed += RefreshPresentation;
         VisibilityChanged += OnVisibilityChanged;
         _victoryRewardNameplate.Resized += OnVictoryRewardNameplateResized;
         _victoryRewardButton.Pressed += RequestVictoryRewardClaim;
+        // Grid cells are rebuilt on every Configure, so only the persistent prize cells bind here.
+        _grandPrizeLeft.ClaimRequested += RequestVictoryRewardClaim;
+        _grandPrizeCenter.ClaimRequested += RequestVictoryRewardClaim;
+        _grandPrizeRight.ClaimRequested += RequestVictoryRewardClaim;
         _wishlistCallToActionBannerButton.Pressed += OpenWishlistCallToAction;
         _wishlistCallToActionButton.Pressed += OpenWishlistCallToAction;
         _wishlistShareButton.Pressed += OnWishlistSharePressed;
@@ -244,6 +264,7 @@ public partial class CollectionEventPageController : VBoxContainer
                 revealVariant: i + 1,
                 shineVariant: i + 1);
             _collectionGrid.AddChild(cell);
+            cell.ClaimRequested += RequestVictoryRewardClaim;
             _cellsByItemId[item.Id] = cell;
         }
     }
@@ -434,10 +455,15 @@ public partial class CollectionEventPageController : VBoxContainer
         _victoryRewardDetail = copy.GetNode<Label>("Detail");
 
         ApplyNameplateVisualState(state);
-        _victoryRewardButton.Disabled = preview || state != VictoryNameplateVisualState.Claimable;
+        var claimable = state == VictoryNameplateVisualState.Claimable;
+        // The debug preview must not become claimable, but it still shows the real affordance;
+        // only the cursor follows the plaque state.
+        _victoryRewardButton.Disabled = preview || !claimable;
+        SetVictoryRewardCursor(claimable);
+        SetRewardCellsClaimable(claimable);
         _victoryRewardButton.TooltipText = preview
             ? "当前为调试预览，不会发放奖励"
-            : state == VictoryNameplateVisualState.Claimable ? "点击铭牌，一起欢庆" : string.Empty;
+            : claimable ? "点击铭牌，一起欢庆" : string.Empty;
 
         if (state == VictoryNameplateVisualState.Claimed)
         {
@@ -469,6 +495,22 @@ public partial class CollectionEventPageController : VBoxContainer
                 VictoryNameplateVisualState.Claimable => "铭牌：待点亮",
                 _ => "铭牌：已点亮",
             };
+    }
+
+    // The reward icons claim through the same path as the plaque, so they share its affordance.
+    private void SetRewardCellsClaimable(bool claimable)
+    {
+        foreach (var cell in _cellsByItemId.Values)
+            cell.SetClaimable(claimable);
+    }
+
+    // A disabled Button still reports mouse_default_cursor_shape, so the hand cursor
+    // must be driven explicitly instead of being baked into the scene.
+    private void SetVictoryRewardCursor(bool claimable)
+    {
+        _victoryRewardButton.MouseDefaultCursorShape = claimable
+            ? Control.CursorShape.PointingHand
+            : Control.CursorShape.Arrow;
     }
 
     private void ApplyStandardNameplateCopy(string title, string detail)
@@ -714,6 +756,18 @@ public partial class CollectionEventPageController : VBoxContainer
             VictoryNameplateVisualState.Claimed => NameplateClaimedTexture,
             _ => NameplateInProgressTexture,
         };
+        _laurelLeft.Texture = state switch
+        {
+            VictoryNameplateVisualState.Claimable => LaurelLeftClaimableTexture,
+            VictoryNameplateVisualState.Claimed => LaurelLeftClaimedTexture,
+            _ => LaurelLeftInProgressTexture,
+        };
+        _laurelRight.Texture = state switch
+        {
+            VictoryNameplateVisualState.Claimable => LaurelRightClaimableTexture,
+            VictoryNameplateVisualState.Claimed => LaurelRightClaimedTexture,
+            _ => LaurelRightInProgressTexture,
+        };
 
         var showShareButton = state == VictoryNameplateVisualState.Claimed;
         _wishlistShareButton.Visible = showShareButton;
@@ -808,6 +862,7 @@ public partial class CollectionEventPageController : VBoxContainer
             return;
 
         _victoryRewardButton.Disabled = true;
+        SetVictoryRewardCursor(false);
         SetProcess(false);
         ResetNameplateSway();
         if (VictoryRewardClaimRequested == null)
