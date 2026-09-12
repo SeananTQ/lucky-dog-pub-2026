@@ -1178,6 +1178,17 @@ public partial class SystemPanelController : CanvasLayer
             itemId);
     }
 
+    public bool DidBlindBoxRewardCompleteCollectionEvent(
+        int blindBoxId,
+        int itemId,
+        bool firstOwnership) =>
+        BuildCapabilities.CollectionEvents
+        && firstOwnership
+        && _gameData != null
+        && _collectionEventContent.ContainsBlindBox(blindBoxId)
+        && _collectionEventContent.ContainsRewardItem(itemId)
+        && _collectionEventContent.AreAllRewardItemsOwned();
+
     public bool HasPendingCollectionEventFirstDogCallToAction() =>
         BuildCapabilities.CollectionEvents
         && _gameData != null

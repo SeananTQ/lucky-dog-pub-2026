@@ -1336,13 +1336,20 @@ public partial class ModeManager : Control
         int itemId,
         bool firstOwnership)
     {
-        if (_settingsPanel?.TryHandleCollectionEventBlindBoxReward(
+        var completedCollection = _settingsPanel?.DidBlindBoxRewardCompleteCollectionEvent(
+            blindBoxId,
+            itemId,
+            firstOwnership) == true;
+        var queuedFirstDogProgress = _settingsPanel?.TryHandleCollectionEventBlindBoxReward(
                 blindBoxId,
                 itemId,
-                firstOwnership) != true)
-            return;
+                firstOwnership) == true;
 
-        PresentFirstDogProgress();
+        // Preserve the existing first-dog notice if both conditions ever coincide.
+        if (queuedFirstDogProgress)
+            PresentFirstDogProgress();
+        else if (completedCollection)
+            OpenCollectionProgressPage();
     }
 
     private void PresentFirstDogProgress()

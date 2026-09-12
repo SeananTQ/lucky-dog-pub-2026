@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dfmf8apyokrwn"
-path="res://.godot/imported/TutorialStepGuide.svg-6a62a31cdb1cd35463ed78078274fa63.ctex"
+uid="uid://bdmgogmjr4ddw"
+path="res://.godot/imported/TutorialStepGuide_Main_1.png-5096f9a5d79d7872613fa064d5041375.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/Hint/TutorialStepGuide.svg"
-dest_files=["res://.godot/imported/TutorialStepGuide.svg-6a62a31cdb1cd35463ed78078274fa63.ctex"]
+source_file="res://Assets/UI/Hint/TutorialStepGuide_Main_1.png"
+dest_files=["res://.godot/imported/TutorialStepGuide_Main_1.png-5096f9a5d79d7872613fa064d5041375.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

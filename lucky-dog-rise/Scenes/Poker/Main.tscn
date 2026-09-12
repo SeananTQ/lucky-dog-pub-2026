@@ -10,7 +10,7 @@
 [ext_resource type="Script" uid="uid://bma2lvl6am624" path="res://Scripts/HUDController.cs" id="10_hud"]
 [ext_resource type="Script" uid="uid://c6jpbincd432h" path="res://Scripts/CardTableController.cs" id="12_cardtable"]
 [ext_resource type="Script" uid="uid://cnl60o3mgcu23" path="res://Scripts/TutorialManager.cs" id="13_tutorial"]
-[ext_resource type="Texture2D" uid="uid://dfmf8apyokrwn" path="res://Assets/UI/Hint/TutorialStepGuide.svg" id="14_tutorial_guide"]
+[ext_resource type="Texture2D" uid="uid://dn72mo8disbav" path="res://Assets/UI/Hint/TutorialStepGuide_Main_1.svg" id="14_tutorial_guide"]
 [ext_resource type="PackedScene" uid="uid://cfxjc8nfx8d3h" path="res://Scenes/Poker/ItemArea.tscn" id="14_items"]
 [ext_resource type="Script" uid="uid://bj45cgrcpjeor" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandShowcase.tscn" id="16_hand_showcase"]
@@ -92,9 +92,8 @@ script = ExtResource("13_tutorial")
 _overlayInput = NodePath("OverlayInput")
 
 [node name="OverlayInput" type="TextureRect" parent="TutorialManager"]
-offset_left = -488.0
 offset_right = 1200.0
-offset_bottom = 1202.0
+offset_bottom = 1200.0
 mouse_filter = 0
 texture = ExtResource("14_tutorial_guide")
 expand_mode = 1

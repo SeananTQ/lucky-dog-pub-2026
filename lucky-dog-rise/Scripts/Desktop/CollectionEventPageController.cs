@@ -200,6 +200,11 @@ public partial class CollectionEventPageController : VBoxContainer
 
     public bool ContainsRewardItem(int itemId) => _cellsByItemId.ContainsKey(itemId);
 
+    public bool AreAllRewardItemsOwned() =>
+        _gameData != null
+        && _cellsByItemId.Count > 0
+        && _cellsByItemId.Keys.All(_gameData.Inventory.Owns);
+
     public bool ContainsBlindBox(int blindBoxId) =>
         _definition?.BlindBoxIds.Contains(blindBoxId) == true;
 
