@@ -200,6 +200,35 @@ function playtimeGenerator(overrides = {}) {
     });
 }
 
+test("Demo local rewards need no Steam definitions and do not weaken other channels", () => {
+    const demo = linkTree({ BuildChannelMask: 4, SteamReceiptItemDefId: 0, SteamClaimBundleItemDefId: 0 });
+    const consumable = gameItem({ ItemType: 9, AcquisitionType: 3, SteamItemDefId: 0 });
+    const result = buildArtifacts([], [demo], [consumable]);
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.checkedReferenceCount, 0);
+    assert.deepEqual(result.items, []);
+    assert.deepEqual(buildArtifacts([], [demo], [consumable], [], [], [], [], idRanges()).errors, []);
+    assert.deepEqual(buildArtifacts([], [{ ...demo, RewardType: 2, RewardItemId: 0, RewardChips: 2500 }]).errors, []);
+    for (const mask of [2, 8, 6, 12, 14]) {
+        assert.ok(buildArtifacts([], [{ ...demo, BuildChannelMask: mask }], [consumable])
+            .errors.some(error => error.includes("SteamReceiptItemDefId")));
+    }
+});
+
+test("Demo rejects invalid rewards and Steam-backed claims", () => {
+    const demo = linkTree({ BuildChannelMask: 4, SteamReceiptItemDefId: 0, SteamClaimBundleItemDefId: 0 });
+    const consumable = gameItem({ ItemType: 9, AcquisitionType: 3, SteamItemDefId: 0 });
+    for (const change of [
+        { RewardItemId: 999999 }, { RewardType: 4 },
+        { RewardType: 2, RewardItemId: 0, RewardChips: 0 },
+        { RewardType: 2, RewardChips: 100 },
+        { SteamReceiptItemDefId: 401001 }, { SteamClaimBundleItemDefId: 406001 },
+    ]) {
+        assert.ok(buildArtifacts([], [{ ...demo, ...change }], [consumable]).errors.length > 0);
+    }
+    assert.ok(buildArtifacts([], [demo], [gameItem()]).errors.some(error => error.includes("Refreshment")));
+});
+
 test("builds a Steam schema item from a valid permanent receipt", () => {
     const result = buildArtifacts([receipt(), claimBundle()], [linkTree()], [gameItem()]);
 

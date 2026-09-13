@@ -2590,6 +2590,44 @@ public partial class GameData : Node
         SaveImmediatelyIfUsingLocalSave();
     }
 
+    public bool TryApplyDemoLinkTreeRewardOnce(LinkTree data)
+    {
+        // Local rewards are an explicit Demo capability, never a Steam outage fallback.
+        if (!BuildCapabilities.LocalLinkTreeRewards || _accountStorageFrozen
+            || data == null || data.Id <= 0 || !data.IsEnabled
+            || data.BuildChannelMask != EBuildChannelMask.Demo
+            || data.SteamReceiptItemDefId != 0 || data.SteamClaimBundleItemDefId != 0)
+            return false;
+
+        if (_appliedLinkTreeRewardIds.Contains(data.Id))
+            return true;
+
+        switch (data.RewardType)
+        {
+            case ELinkTreeRewardType.FixedItem:
+                if (LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId)
+                    is not { ItemType: EItemType.Refreshment, AcquisitionType: EAcquisitionType.RefreshmentBlindBox }
+                    || data.RewardChips != 0)
+                    return false;
+                break;
+            case ELinkTreeRewardType.FixedChips:
+                if (data.RewardChips <= 0 || data.RewardItemId != 0)
+                    return false;
+                break;
+            default:
+                return false;
+        }
+
+        // Mark before notifications can re-enter; flush the reward and ledger together.
+        _appliedLinkTreeRewardIds.Add(data.Id);
+        if (data.RewardType == ELinkTreeRewardType.FixedItem)
+            AddItem(data.RewardItemId);
+        else
+            ModifyChips(data.RewardChips, PlayerProgressSource.Gameplay);
+        SaveImmediatelyIfUsingLocalSave();
+        return true;
+    }
+
     public bool TryApplyLinkTreeRewardOnce(int linkTreeId, int chipDelta)
     {
         if (linkTreeId <= 0)

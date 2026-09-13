@@ -189,9 +189,8 @@ public static class BuildCapabilities
 
     public static bool BlindBoxes => true;
     public static bool CollectionEvents => IsDemoRuntime;
-    // LinkTree remains outside the current Demo-debug work. The packaged review
-    // Demo keeps its existing closed state; Debug Demo leaves the page untouched.
-    public static bool LinkTree => !IsPackagedDemo;
+    public static bool LinkTree => true;
+    public static bool LocalLinkTreeRewards => IsDemoRuntime;
     public static bool SteamInventory => !IsDemoRuntime;
     public static bool PlatformStatistics => !IsDemoRuntime;
     public static bool Achievements => !IsDemoRuntime;

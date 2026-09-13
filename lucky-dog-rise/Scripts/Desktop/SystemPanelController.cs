@@ -264,6 +264,8 @@ public partial class SystemPanelController : CanvasLayer
                 BuildArmAppearanceOptions();
                 RefreshGlobalInputChipsEarnedLabel();
                 RefreshRecoveredItemsOverlay();
+                if (BuildCapabilities.LocalLinkTreeRewards)
+                    RefreshLinkTreePageFromPlatformState();
 #if DEBUG
                 RefreshBlindBoxLocalTestControls();
                 RefreshWishlistPageOpenedDebugToggle();
@@ -292,7 +294,7 @@ public partial class SystemPanelController : CanvasLayer
             _inventoryService = BuildCapabilities.SteamInventory
                 ? value as IPlatformInventoryService
                 : null;
-            _recoverablePlatformService = BuildCapabilities.LinkTree
+            _recoverablePlatformService = BuildCapabilities.LinkTree && !BuildCapabilities.LocalLinkTreeRewards
                 ? value as IRecoverablePlatformService
                 : null;
             if (_inventoryService != null)
@@ -1449,7 +1451,10 @@ public partial class SystemPanelController : CanvasLayer
         _linkTreeRewardEntries.Clear();
 
         var entries = LubanData.Tables.TbLinkTree.DataList
-            .Where(entry => entry.IsEnabled && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask))
+            .Where(entry => entry.IsEnabled && (BuildCapabilities.LocalLinkTreeRewards
+                ? entry.BuildChannelMask == EBuildChannelMask.Demo
+                : entry.BuildChannelMask != EBuildChannelMask.Demo
+                    && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask)))
             .OrderBy(entry => entry.SortOrder)
             .ThenBy(entry => entry.Id);
 
@@ -1585,6 +1590,23 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
+        if (BuildCapabilities.LocalLinkTreeRewards)
+        {
+            var alreadyApplied = _gameData?.HasAppliedLinkTreeReward(entry.Data.Id) == true;
+            if (_gameData?.TryApplyDemoLinkTreeRewardOnce(entry.Data) != true)
+            {
+                GD.PushWarning($"[LinkTree] Invalid local Demo reward for {entry.Data.Key} ({entry.Data.Id}).");
+                return;
+            }
+            MarkLinkTreeEntryClaimed(entry);
+            if (!alreadyApplied)
+            {
+                SetupLinkTreeRewardPreview(entry);
+                QueueLinkTreeRewardFeedback(entry);
+            }
+            return;
+        }
+
         if (_inventoryService != null)
         {
             entry.ClaimPending = true;
@@ -1600,6 +1622,12 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (!IsNodeReady())
             return;
+
+        if (BuildCapabilities.LocalLinkTreeRewards)
+        {
+            RefreshLinkTreePageFromPlatformState();
+            return;
+        }
         if (_platformService == null)
         {
             SetLinkTreePageState(LinkTreePageState.Loading);
@@ -1682,6 +1710,26 @@ public partial class SystemPanelController : CanvasLayer
 
     private void RefreshLinkTreePageFromPlatformState()
     {
+        if (BuildCapabilities.LocalLinkTreeRewards)
+        {
+            foreach (var entry in _linkTreeRewardEntries)
+            {
+                if (_gameData?.HasAppliedLinkTreeReward(entry.Data.Id) == true)
+                    entry.State = LinkTreeRewardState.Claimed;
+                else if (entry.State == LinkTreeRewardState.Claimed)
+                {
+                    entry.State = LinkTreeRewardState.Unopened;
+                    entry.RewardFeedbackTween?.Kill();
+                    entry.RewardFeedbackPending = false;
+                    entry.RewardFeedbackPlaying = false;
+                    entry.RewardVisualRoot.Visible = false;
+                }
+            }
+            RefreshLinkTreeInteractionPresentation();
+            SetLinkTreePageState(_gameData != null ? LinkTreePageState.Ready : LinkTreePageState.Loading);
+            return;
+        }
+
         if (_inventoryService == null || _recoverablePlatformService == null)
         {
             SetLinkTreePageState(LinkTreePageState.Unavailable);
@@ -1698,8 +1746,9 @@ public partial class SystemPanelController : CanvasLayer
         if (_linkTreeRewardEntries.Count == 0)
             return;
 
-        var configuredCount = LubanData.Tables.TbGameDevelopConfig.DataList
-            .FirstOrDefault()?.LinkTreeVisibleBannerCount ?? 0;
+        var configuredCount = BuildCapabilities.LocalLinkTreeRewards
+            ? _linkTreeRewardEntries.Count
+            : LubanData.Tables.TbGameDevelopConfig.DataList.FirstOrDefault()?.LinkTreeVisibleBannerCount ?? 0;
         var visibleCount = configuredCount > 0 ? configuredCount : _linkTreeRewardEntries.Count;
         if (configuredCount <= 0)
             GD.PushWarning("[LinkTree] LinkTreeVisibleBannerCount must be positive; showing all enabled banners.");
@@ -2200,7 +2249,7 @@ public partial class SystemPanelController : CanvasLayer
     private void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
     {
         var showLoading = entry.ClaimPending && entry.State != LinkTreeRewardState.Claimed;
-        var inventoryWritePending = IsSharedInventoryWritePending();
+        var inventoryWritePending = !BuildCapabilities.LocalLinkTreeRewards && IsSharedInventoryWritePending();
         entry.Banner.Disabled = inventoryWritePending;
         entry.BannerImage.Modulate = inventoryWritePending ? LinkTreeBusyImageModulate : Colors.White;
         entry.LoadingIndicator.SetLoading(showLoading);

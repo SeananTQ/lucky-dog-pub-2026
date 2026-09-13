@@ -329,6 +329,7 @@ function validateIdPlanning(
     }
 
     for (const entry of linkTreeRecords.filter(record => record.IsEnabled === true)) {
+        if (entry.BuildChannelMask === BUILD_CHANNEL_MASKS.demo) continue;
         if (!idInRange(plan, ID_RANGE_ROWS.playtestOnly, entry.SteamReceiptItemDefId)
             && !idInRange(plan, ID_RANGE_ROWS.linkTreeReceipt, entry.SteamReceiptItemDefId)) {
             errors.push(`LinkTree ${entry.Id}：永久回执 ${entry.SteamReceiptItemDefId} 不在 LinkTree 回执正式段内。`);
@@ -708,6 +709,30 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         }
         if (!Number.isInteger(claimBundleItemDefId) || claimBundleItemDefId < 0) {
             errors.push(`${key}：SteamClaimBundleItemDefId 必须是大于等于 0 的整数。`);
+            continue;
+        }
+
+        // Demo-only activities settle in the local save and never create Steam rewards.
+        if (buildChannelMask === BUILD_CHANNEL_MASKS.demo) {
+            if (receiptItemDefId !== 0 || claimBundleItemDefId !== 0) {
+                errors.push(`${key}：Demo 本地入口的 Steam 回执和 Bundle 必须为 0。`);
+            }
+            if (isEnabled) {
+                if (record.RewardType === 1) {
+                    const item = itemsById.get(record.RewardItemId);
+                    if (!item || item.ItemType !== 9 || item.AcquisitionType !== 3
+                        || (record.RewardChips ?? 0) !== 0) {
+                        errors.push(`${key}：Demo 固定物品奖励必须是有效的本地 Refreshment 消耗品，RewardChips 必须为 0。`);
+                    }
+                } else if (record.RewardType === 2) {
+                    if (!Number.isInteger(record.RewardChips) || record.RewardChips <= 0
+                        || (record.RewardItemId ?? 0) !== 0) {
+                        errors.push(`${key}：Demo 筹码奖励必须为正整数，RewardItemId 必须为 0。`);
+                    }
+                } else {
+                    errors.push(`${key}：Demo 本地入口只支持固定消耗品或筹码奖励。`);
+                }
+            }
             continue;
         }
 
