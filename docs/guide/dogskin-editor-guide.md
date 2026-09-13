@@ -33,14 +33,15 @@ status: draft
 lucky-dog-rise/
 ├── Tools/DogSkinEditor/
 │   ├── DogSkinEditor.tscn
-│   ├── DogSkinEditorController.cs
-│   ├── DogSkinDraft.cs
-│   ├── DogSkinAssetCatalog.cs
-│   ├── DogSkinIconComposerWindow.cs
-│   ├── DogSkinIconExportService.cs
-│   ├── DogSkinEditorTheme.tres
-│   ├── Assets/IconComposer/CardboardBox.png
-│   └── output/
+│   └── EditorFiles/
+│       ├── DogSkinEditorController.cs
+│       ├── DogSkinDraft.cs
+│       ├── DogSkinAssetCatalog.cs
+│       ├── DogSkinIconComposerWindow.cs
+│       ├── DogSkinIconExportService.cs
+│       ├── DogSkinEditorTheme.tres
+│       ├── Assets/IconComposer/CardboardBox.png
+│       └── output/
 │       ├── .gdignore
 │       ├── DogSkinCatalogDraft.json
 │       ├── DogSkin.csv
@@ -299,7 +300,7 @@ flowchart TD
 输出固定写入工具目录：
 
 ```text
-Tools/DogSkinEditor/output/IconComposer/
+Tools/DogSkinEditor/EditorFiles/output/IconComposer/
 ├── ItemIcon/
 │   ├── Dog_1001.png
 │   └── Dog_1002.png

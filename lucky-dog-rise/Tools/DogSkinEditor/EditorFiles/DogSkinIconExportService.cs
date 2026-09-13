@@ -22,10 +22,10 @@ public sealed record DogSkinIconExportResult(
 /// </summary>
 public partial class DogSkinIconExportService : Node
 {
-    public const string OutputResourceDirectory = "res://Tools/DogSkinEditor/output/IconComposer";
+    public const string OutputResourceDirectory = "res://Tools/DogSkinEditor/EditorFiles/output/IconComposer";
     public const string ItemIconResourceDirectory = OutputResourceDirectory + "/ItemIcon";
     public const string ItemPatchCsvResourcePath = OutputResourceDirectory + "/tbitem_dog_icon_patch.csv";
-    public const string CardboardResourcePath = "res://Tools/DogSkinEditor/Assets/IconComposer/CardboardBox.png";
+    public const string CardboardResourcePath = "res://Tools/DogSkinEditor/EditorFiles/Assets/IconComposer/CardboardBox.png";
 
     private const int SourceCanvasSize = 1200;
     private const int OutputCanvasSize = 256;

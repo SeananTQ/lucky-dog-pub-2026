@@ -11,7 +11,7 @@ namespace LuckyDogRise.Tools;
 
 public partial class DogSkinIconComposerWindow : Window
 {
-    private const string SettingsResourcePath = "res://Tools/DogSkinEditor/output/IconComposer/settings.json";
+    private const string SettingsResourcePath = "res://Tools/DogSkinEditor/EditorFiles/output/IconComposer/settings.json";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,

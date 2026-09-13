@@ -12,8 +12,8 @@ namespace LuckyDogRise.Tools;
 
 public partial class DogSkinEditorController : Control
 {
-    private const string DraftResourcePath = "res://Tools/DogSkinEditor/output/DogSkinCatalogDraft.json";
-    private const string CsvResourcePath = "res://Tools/DogSkinEditor/output/DogSkin.csv";
+    private const string DraftResourcePath = "res://Tools/DogSkinEditor/EditorFiles/output/DogSkinCatalogDraft.json";
+    private const string CsvResourcePath = "res://Tools/DogSkinEditor/EditorFiles/output/DogSkin.csv";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -52,7 +52,7 @@ public partial class DogSkinEditorController : Control
 
     public override void _Ready()
     {
-        Theme = GD.Load<Theme>("res://Tools/DogSkinEditor/DogSkinEditorTheme.tres");
+        Theme = GD.Load<Theme>("res://Tools/DogSkinEditor/EditorFiles/DogSkinEditorTheme.tres");
         GetWindow().Title = "Lucky Dog Rise - DogSkin Editor";
         GetWindow().MinSize = new Vector2I(1180, 720);
         var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen()).Size;
