@@ -1,8 +1,7 @@
 {
-    "_说明": "道具图标导出配置",
+    "_说明": "普通道具图标导出配置",
     "psd路径": "LuckyDogPub-Test02.psd",
     "道具表路径": "tbitem.json",
-    "狗皮肤表路径": "tbdogskin.json",
     "输出目录": "output/UI/ItemIcon",
     "画布尺寸": 256,
     "内容尺寸": 240,

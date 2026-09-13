@@ -5,7 +5,6 @@
 - LuckyDogPub 总 PSD 导出
 - LuckyDogPub 装扮资源一体化导出
 - 普通道具图标生成
-- 狗皮肤图标生成
 
 导出脚本和 gui_state.json 格式保持不变。窗口使用 Windows 原生标题栏，
 不实现自定义鼠标拖拽逻辑。
@@ -51,7 +50,6 @@ STATE_FILE = os.path.join(SCRIPT_DIR, "gui_state.json")
 
 DEFAULT_MAIN_PSD = os.path.join(SCRIPT_DIR, "LuckyDogPub-Test02.psd")
 DEFAULT_ITEM_JSON = os.path.join(SCRIPT_DIR, "tbitem.json")
-DEFAULT_DOG_JSON = os.path.join(SCRIPT_DIR, "tbdogskin.json")
 DEFAULT_OUTPUT = os.path.join(SCRIPT_DIR, "output")
 DEFAULT_ICON_OUTPUT = os.path.join(SCRIPT_DIR, "output", "UI", "ItemIcon")
 
@@ -316,7 +314,6 @@ class App(QMainWindow):
         self.tabs.addTab(self._build_lucky_tab(), "LuckyDogPub 总 PSD")
         self.tabs.addTab(self._build_wearable_tab(), "LuckyDogPub 装扮一体化")
         self.tabs.addTab(self._build_item_icons_tab(), "普通道具图标")
-        self.tabs.addTab(self._build_dog_icons_tab(), "狗皮肤图标")
         root_layout.addWidget(self.tabs, 1)
 
         bottom = QFrame()
@@ -382,7 +379,7 @@ class App(QMainWindow):
         layout.addWidget(self._check_box("lucky.crop", "裁剪空白区域", True))
         layout.addWidget(self._check_box("lucky.composite", "使用合成渲染（慢12倍，仅需图层效果时开启）", False))
         self._group_row(layout, "lucky")
-        note = QLabel("选择部分组时，只限制 PNG 输出；layer_index_版本号.json 仍记录完整 PSD（未填版本号时为 layer_index.json）。")
+        note = QLabel("自动忽略名称含中文的图层及其子图层。选择部分组时，只限制 PNG 输出；layer_index_版本号.json 仍记录其他有效图层（未填版本号时为 layer_index.json）。")
         note.setWordWrap(True)
         layout.addWidget(note)
         layout.addStretch(1)
@@ -437,17 +434,6 @@ class App(QMainWindow):
         self._file_row(layout, "item_icons.item_json", "道具表", "选择 tbitem.json")
         self._file_row(layout, "item_icons.out", "输出目录", "选择图标输出目录", directory=True)
         self._icon_settings(layout, "item_icons")
-        layout.addStretch(1)
-        return page
-
-    def _build_dog_icons_tab(self) -> QWidget:
-        page, layout = self._page()
-        self._section(layout, "狗皮肤图标生成")
-        self._file_row(layout, "dog_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
-        self._file_row(layout, "dog_icons.item_json", "道具表", "选择 tbitem.json")
-        self._file_row(layout, "dog_icons.dog_json", "狗皮肤表", "选择 tbdogskin.json")
-        self._file_row(layout, "dog_icons.out", "输出目录", "选择图标输出目录", directory=True)
-        self._icon_settings(layout, "dog_icons")
         layout.addStretch(1)
         return page
 
@@ -544,24 +530,13 @@ class App(QMainWindow):
                 "margin": "16",
                 "short_groups": "Background,Table",
             },
-            "dog_icons": {
-                "psd": DEFAULT_MAIN_PSD,
-                "item_json": DEFAULT_ITEM_JSON,
-                "dog_json": DEFAULT_DOG_JSON,
-                "out": DEFAULT_ICON_OUTPUT,
-                "canvas": "256",
-                "content": "240",
-                "margin": "16",
-                "short_groups": "Background,Table",
-            },
         }
 
         if "icons" in self.app_state:
             old_icons = self.app_state["icons"]
-            for section in ("item_icons", "dog_icons"):
-                migrated = defaults[section].copy()
-                migrated.update({k: v for k, v in old_icons.items() if k in migrated})
-                defaults[section] = migrated
+            migrated = defaults["item_icons"].copy()
+            migrated.update({k: v for k, v in old_icons.items() if k in migrated})
+            defaults["item_icons"] = migrated
 
         for section, values in defaults.items():
             saved = self.app_state.get(section, {})
@@ -623,16 +598,6 @@ class App(QMainWindow):
                 "content": self._get("item_icons.content"),
                 "margin": self._get("item_icons.margin"),
                 "short_groups": self._get("item_icons.short_groups"),
-            },
-            "dog_icons": {
-                "psd": self._get("dog_icons.psd"),
-                "item_json": self._get("dog_icons.item_json"),
-                "dog_json": self._get("dog_icons.dog_json"),
-                "out": self._get("dog_icons.out"),
-                "canvas": self._get("dog_icons.canvas"),
-                "content": self._get("dog_icons.content"),
-                "margin": self._get("dog_icons.margin"),
-                "short_groups": self._get("dog_icons.short_groups"),
             },
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }
@@ -788,10 +753,8 @@ class App(QMainWindow):
             job = "lucky"
         elif tab_name == "LuckyDogPub 装扮一体化":
             job = "wearable"
-        elif tab_name == "普通道具图标":
-            job = "item_icons"
         else:
-            job = "dog_icons"
+            job = "item_icons"
 
         self._save_current_state()
         job_config = self._snapshot_job(job)
@@ -823,17 +786,14 @@ class App(QMainWindow):
                 "margin": self._get("wearable.margin"),
                 "short_rules": self._get_textbox("wearable.short_rules"),
             }
-        is_dog = job == "dog_icons"
         return {
-            "psd": self._get(f"{job}.psd"),
-            "item_json": self._get(f"{job}.item_json"),
-            "dog_json": self._get("dog_icons.dog_json") if is_dog else "",
-            "out": self._get(f"{job}.out"),
-            "canvas": self._get(f"{job}.canvas"),
-            "content": self._get(f"{job}.content"),
-            "margin": self._get(f"{job}.margin"),
-            "short_groups": split_csv(self._get(f"{job}.short_groups")),
-            "is_dog": is_dog,
+            "psd": self._get("item_icons.psd"),
+            "item_json": self._get("item_icons.item_json"),
+            "out": self._get("item_icons.out"),
+            "canvas": self._get("item_icons.canvas"),
+            "content": self._get("item_icons.content"),
+            "margin": self._get("item_icons.margin"),
+            "short_groups": split_csv(self._get("item_icons.short_groups")),
         }
 
     def _run_job(self, job: str, config: dict):
@@ -865,6 +825,7 @@ class App(QMainWindow):
                 "裁剪空白": config["crop"],
                 "使用合成渲染": config["composite"],
                 "排除组": ",".join(config["excluded"]),
+                "忽略中文图层": mode == "lucky",
             }, f, ensure_ascii=False)
 
         title = "通用 PSD 导出" if mode == "generic" else "LuckyDogPub 总 PSD 导出"
@@ -911,24 +872,19 @@ class App(QMainWindow):
         if not os.path.exists(item_json):
             raise FileNotFoundError(f"道具表不存在: {item_json}")
 
-        is_dog_mode = config["is_dog"]
         tmp_cfg = os.path.join(SCRIPT_DIR, f"_tmp_{mode}_export.json")
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
                 "道具表路径": item_json,
-                "狗皮肤表路径": config["dog_json"],
                 "输出目录": config["out"],
                 "画布尺寸": parse_int(config["canvas"], 256),
                 "内容尺寸": parse_int(config["content"], 240),
                 "边框留白": parse_int(config["margin"], 16),
                 "短边缩放组": config["short_groups"],
-                "导出普通道具": not is_dog_mode,
-                "导出狗皮肤": is_dog_mode,
             }, f, ensure_ascii=False)
 
-        title = "狗皮肤图标生成" if is_dog_mode else "普通道具图标生成"
-        self.signals.log.emit(f"\n--- {title} ---")
+        self.signals.log.emit("\n--- 普通道具图标生成 ---")
         try:
             self._run_script("export_icons.py", ["--config", tmp_cfg])
             self.signals.progress.emit(85)

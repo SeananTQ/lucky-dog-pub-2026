@@ -42,6 +42,21 @@ def should_skip(layer):
     return has_skip_ancestor(layer)
 
 
+def contains_chinese(text: str) -> bool:
+    """检查名称是否包含 CJK 统一表意文字。"""
+    return any("\u4e00" <= char <= "\u9fff" for char in str(text or ""))
+
+
+def has_chinese_name_or_ancestor(layer) -> bool:
+    """检查图层自身或任一祖先组名称是否包含中文。"""
+    current = layer
+    while current is not None:
+        if contains_chinese(getattr(current, "name", "")):
+            return True
+        current = getattr(current, "parent", None)
+    return False
+
+
 def has_content(layer) -> bool:
     bbox = layer.bbox
     if bbox is None:
@@ -84,7 +99,7 @@ def is_in_excluded_group(layer, excluded: set):
 
 def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
                       use_composite: bool = False, excluded_groups: str = "",
-                      asset_version: str = ""):
+                      asset_version: str = "", ignore_chinese_layers: bool = False):
     psd_name = Path(psd_path).stem
     psd = PSDImage.open(psd_path)
     excluded = set(g.strip() for g in excluded_groups.split(",") if g.strip()) if excluded_groups else set()
@@ -93,6 +108,8 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
     print(f"打开 PSD: {psd_path} ({psd.width}x{psd.height})")
     if excluded:
         print(f"排除组: {', '.join(sorted(excluded))}")
+    if ignore_chinese_layers:
+        print("忽略中文图层: 是（包含中文名称的图层或组均跳过）")
 
     all_layers = list(psd.descendants())
     exported = []
@@ -104,6 +121,9 @@ def export_all_layers(psd_path: str, out_dir: str, crop_blank: bool = True,
             continue
         # 辅助图层及其子孙图层完全不进入索引，也不参与渲染。
         if should_skip(layer):
+            skipped_count += 1
+            continue
+        if ignore_chinese_layers and has_chinese_name_or_ancestor(layer):
             skipped_count += 1
             continue
         if not has_content(layer):
@@ -267,6 +287,7 @@ def main():
         crop_blank = cfg.get("裁剪空白", True)
         use_composite = cfg.get("使用合成渲染", False)
         excluded_groups = cfg.get("排除组", "")
+        ignore_chinese_layers = bool(cfg.get("忽略中文图层", False))
         asset_version = cfg.get("美术资源版本号", cfg.get("asset_version", ""))
     else:
         if not args.psd:
@@ -278,13 +299,22 @@ def main():
         crop_blank = True
         use_composite = False
         excluded_groups = ""
+        ignore_chinese_layers = False
         asset_version = args.version or ""
 
     if not os.path.exists(psd_path):
         print(f"错误: PSD 文件不存在 - {psd_path}")
         sys.exit(1)
 
-    export_all_layers(psd_path, out_dir, crop_blank, use_composite, excluded_groups, asset_version)
+    export_all_layers(
+        psd_path,
+        out_dir,
+        crop_blank,
+        use_composite,
+        excluded_groups,
+        asset_version,
+        ignore_chinese_layers,
+    )
 
 
 if __name__ == "__main__":

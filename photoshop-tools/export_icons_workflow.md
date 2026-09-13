@@ -23,16 +23,15 @@ python export_icons.py --config my_config.json
 {
     "psd路径": "LuckyDogPub-Test02.psd",
     "道具表路径": "tbitem.json",
-    "狗皮肤表路径": "tbdogskin.json",
     "输出目录": "output",
     "画布尺寸": 256,
     "内容尺寸": 240,
-    "圆角半径": 16,
-    "短边物品类型": [6, 7]
+    "边框留白": 16,
+    "短边缩放组": ["Background", "Table"]
 }
 ```
 
-- `短边物品类型`：以短边为准缩放后居中裁剪（桌布、背景等需要填满画面的物品）
+- `短边缩放组`：以短边为准缩放后居中裁剪（桌布、背景等需要填满画面的物品）
 - 其他物品以长边为准缩放，短边居中留白
 
 ## 核心流程
@@ -40,11 +39,9 @@ python export_icons.py --config my_config.json
 ```
 tbitem.json ──→ 遍历每个物品
                      │
-                     ├─ ItemType=1 (狗)
-                     │   └─ tbdogskin.json 读取 DefaultEars/DefaultEyes
-                     │   └─ psd.composite() 全图渲染（狗需要多图层合成）
+                     ├─ ItemType=1 (狗) → 跳过（狗图标由游戏内编辑器生成）
                      │
-                     └─ 其他 → 从 AssetPathList 提取 {文件夹}/{文件名}
+                     └─ 普通道具 → 从 AssetPathList 提取 {文件夹}/{文件名}
                                 │
                                 ├─ 映射到 PSD 组名 → 找到图层对象
                                 │
@@ -64,17 +61,14 @@ tbitem.json ──→ 遍历每个物品
 
 ## 关键注意事项
 
-### 1. 普通道具用 `topil()`，狗用 `composite()`
+### 1. 普通道具使用 `topil()`
 
 ```python
 # ✅ 普通道具：直接获取图层原始像素，颜色准确
 img = layer.topil()
-
-# ✅ 狗皮肤：全图合成才能正确渲染多个图层的叠加
-full = psd.composite()  # 只显示需要的狗部位，其他全部隐藏
 ```
 
-**原因**：普通道具是单个图层，`topil()` 直接读取嵌入像素数据，颜色准确。狗皮肤需要多图层合成（皮肤+头+耳朵+眼睛+爪子），必须在 PSD 上下文里用 `composite()` 渲染。如果对狗用 `topil()` 再手动叠加，边缘会虚。
+普通道具是单个图层，`topil()` 可直接读取嵌入像素数据并保持颜色准确。狗皮肤图标不再由此工具生成。
 
 ### 2. 圆角用 alpha 相乘，不是替换
 
@@ -124,7 +118,6 @@ photoshop-tools-test/
 ├── export_icons.py               # 一键导出脚本
 ├── export_icons_workflow.md      # 本文档
 ├── tbitem.json                   # 道具表（含 AssetPathList）
-├── tbdogskin.json                # 狗皮肤表（含默认表情）
 ├── LuckyDogPub-Test02.psd        # PSD 源文件（经重命名）
 └── output/                       # 导出的 PNG 图标
 ```

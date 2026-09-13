@@ -64,7 +64,6 @@ class UiProbeWindow(QMainWindow):
             ("LuckyDogPub 总 PSD", self._build_lucky_page),
             ("LuckyDogPub 装扮一体化", self._build_wearable_page),
             ("普通道具图标", self._build_item_icon_page),
-            ("狗皮肤图标", self._build_dog_icon_page),
         ):
             page = QWidget()
             builder(page)
@@ -141,17 +140,6 @@ class UiProbeWindow(QMainWindow):
         layout.addRow(QLabel("普通道具图标生成"))
         layout.addRow("总 PSD", QLineEdit())
         layout.addRow("道具表", QLineEdit())
-        layout.addRow("输出目录", QLineEdit())
-        layout.addRow("画布尺寸", QLineEdit("256"))
-        layout.addRow("内容尺寸", QLineEdit("240"))
-        layout.addRow("短边缩放组", QLineEdit("Background,Table"))
-
-    def _build_dog_icon_page(self, page: QWidget) -> None:
-        layout = QFormLayout(page)
-        layout.addRow(QLabel("狗皮肤图标生成"))
-        layout.addRow("总 PSD", QLineEdit())
-        layout.addRow("道具表", QLineEdit())
-        layout.addRow("狗皮肤表", QLineEdit())
         layout.addRow("输出目录", QLineEdit())
         layout.addRow("画布尺寸", QLineEdit("256"))
         layout.addRow("内容尺寸", QLineEdit("240"))

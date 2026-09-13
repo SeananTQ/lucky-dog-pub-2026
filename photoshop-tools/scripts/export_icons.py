@@ -1,8 +1,7 @@
 """
-一键导出道具图标。
+一键导出普通道具图标。
 
 从 PSD 按道具表逐图层导出，缩放到统一尺寸。
-狗皮肤从狗皮肤表读取显隐规则，用 PSD 合成渲染。
 
 用法:
     python export_icons.py [--config export_config.json]
@@ -69,58 +68,6 @@ def parse_path(ap):
     return group, fname
 
 
-# ─── 狗皮肤导出 ──────────────────────────────────────────
-
-def _hide_all(container):
-    for l in container:
-        if hasattr(l, 'visible'):
-            l.visible = False
-        if hasattr(l, '__iter__'):
-            _hide_all(l)
-
-
-def _layer_name(value):
-    if not value:
-        return ""
-    return os.path.splitext(os.path.basename(value))[0]
-
-
-def _first_layer_name(skin, *keys):
-    for key in keys:
-        name = _layer_name(skin.get(key, ""))
-        if name:
-            return name
-    return ""
-
-
-def _replacement_name(layer_names, name):
-    replacement = f"~{name}"
-    return replacement if replacement in layer_names else name
-
-
-def export_dog(psd, color_name, parts):
-    _hide_all(psd)
-    for layer in psd.descendants():
-        if layer.is_group() and layer.name == "Shiba":
-            layer.visible = True
-            for sub in layer:
-                if hasattr(sub, 'is_group') and sub.is_group() and sub.name == color_name:
-                    sub.visible = True
-                    layer_names = {child.name for child in sub if not child.is_group()}
-                    required_parts = {_replacement_name(layer_names, part) for part in parts}
-                    for child in sub:
-                        if child.is_group():
-                            continue
-                        n = child.name
-                        if n.startswith("Skin_") or n in required_parts:
-                            child.visible = True
-    full = psd.composite()
-    if full is None:
-        return None
-    bbox = full.getbbox()
-    return full.crop(bbox) if bbox else None
-
-
 # ─── 单图层渲染 ──────────────────────────────────────────
 
 def render_layer(lo):
@@ -182,7 +129,6 @@ def main():
 
     psd_path = resolve(cfg["psd路径"])
     item_json = resolve(cfg["道具表路径"])
-    dog_json = resolve(cfg.get("狗皮肤表路径", ""))
     out_dir = resolve(cfg["输出目录"])
 
     for p in [psd_path, item_json]:
@@ -194,8 +140,6 @@ def main():
     content = cfg.get("内容尺寸", 240)
     margin = cfg.get("边框留白", 16)
     short_side_groups = set(cfg.get("短边缩放组", []))
-    export_items = cfg.get("导出普通道具", True)
-    export_dogs = cfg.get("导出狗皮肤", True)
 
     psd = PSDImage.open(psd_path)
     index = build_index(psd)
@@ -206,70 +150,37 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     ok = 0
 
-    if export_items:
-        for item in items:
-            item_id = item["Id"]
-            item_name = item["Name"]
-            icon_name = os.path.basename(item.get("IconPath", f"item_{item_id}.png"))
-            out_path = os.path.join(out_dir, icon_name)
+    for item in items:
+        item_id = item["Id"]
+        item_name = item["Name"]
+        icon_name = os.path.basename(item.get("IconPath", f"item_{item_id}.png"))
+        out_path = os.path.join(out_dir, icon_name)
 
-            if item["ItemType"] == 1:
-                continue
+        if item["ItemType"] == 1:
+            continue
 
-            for ap in item["AssetPathList"]:
-                hint_group, fname = parse_path(ap)
-                if not fname:
-                    break
-
-                entry = find_layer(index, fname, hint_group)
-                if not entry:
-                    print(f"  [MISS] [{item_id}] {item_name}: '{fname}'")
-                    break
-
-                lo, actual_group = entry
-                use_short = actual_group in short_side_groups
-
-                img = render_layer(lo)
-                if not img:
-                    print(f"  [FAIL] [{item_id}] {item_name}")
-                    break
-
-                canvas = postprocess(img, use_short, size, content, margin)
-                canvas.save(out_path)
-                ok += 1
+        for ap in item["AssetPathList"]:
+            hint_group, fname = parse_path(ap)
+            if not fname:
                 break
-    else:
-        print("跳过普通道具图标")
 
-    # 狗皮肤
-    if export_dogs and dog_json and os.path.exists(dog_json):
-        with open(dog_json, encoding="utf-8") as f:
-            skins = json.load(f)
+            entry = find_layer(index, fname, hint_group)
+            if not entry:
+                print(f"  [MISS] [{item_id}] {item_name}: '{fname}'")
+                break
 
-        for skin in skins:
-            color_name = os.path.basename(skin["FolderPath"])
-            parts = [
-                _first_layer_name(skin, "Head"),
-                _first_layer_name(skin, "DefaultEars", "Ears_Happy"),
-                _first_layer_name(skin, "DefaultEyes", "Eyes_Happy"),
-                _first_layer_name(skin, "DefaultTongue", "Tongue_Regular"),
-                _first_layer_name(skin, "Claw_Left_Back"),
-                _first_layer_name(skin, "Claw_Right_Palms"),
-            ]
-            icon_name = skin.get("IconName", f"dog_{skin['Id']}.png")
-            out_path = os.path.join(out_dir, icon_name)
+            lo, actual_group = entry
+            use_short = actual_group in short_side_groups
 
-            img = export_dog(psd, color_name, [p for p in parts if p])
-            if img:
-                postprocess(img, False, size, content, margin).save(out_path)
-                ok += 1
-                print(f"  [OK]   [{skin['Id']}] {color_name}/{_first_layer_name(skin, 'Head')} {icon_name}")
-            else:
-                print(f"  [FAIL] [{skin['Id']}] {color_name}")
-    elif export_dogs:
-        print("跳过狗皮肤图标：狗皮肤表不存在")
-    else:
-        print("跳过狗皮肤图标")
+            img = render_layer(lo)
+            if not img:
+                print(f"  [FAIL] [{item_id}] {item_name}")
+                break
+
+            canvas = postprocess(img, use_short, size, content, margin)
+            canvas.save(out_path)
+            ok += 1
+            break
 
     print(f"\n完成: 共导出 {ok} 张图标")
 
