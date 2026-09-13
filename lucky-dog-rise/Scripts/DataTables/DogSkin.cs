@@ -29,6 +29,8 @@ public sealed partial class DogSkin : Luban.BeanBase
         { if(!_buf["Claw_Left_Back"].IsString) { throw new SerializationException(); }  ClawLeftBack = _buf["Claw_Left_Back"]; }
         { if(!_buf["Claw_Right_Palms"].IsString) { throw new SerializationException(); }  ClawRightPalms = _buf["Claw_Right_Palms"]; }
         { if(!_buf["Tongue_Regular"].IsString) { throw new SerializationException(); }  TongueRegular = _buf["Tongue_Regular"]; }
+        { if(!_buf["Nose"].IsString) { throw new SerializationException(); }  Nose = _buf["Nose"]; }
+        { if(!_buf["Mouse"].IsString) { throw new SerializationException(); }  Mouse = _buf["Mouse"]; }
         { if(!_buf["Ears_Happy"].IsString) { throw new SerializationException(); }  EarsHappy = _buf["Ears_Happy"]; }
         { if(!_buf["Ears_Plane"].IsString) { throw new SerializationException(); }  EarsPlane = _buf["Ears_Plane"]; }
         { if(!_buf["Eyes_Bored"].IsString) { throw new SerializationException(); }  EyesBored = _buf["Eyes_Bored"]; }
@@ -62,6 +64,8 @@ public sealed partial class DogSkin : Luban.BeanBase
     public readonly string ClawLeftBack;
     public readonly string ClawRightPalms;
     public readonly string TongueRegular;
+    public readonly string Nose;
+    public readonly string Mouse;
     public readonly string EarsHappy;
     public readonly string EarsPlane;
     public readonly string EyesBored;
@@ -93,6 +97,8 @@ public sealed partial class DogSkin : Luban.BeanBase
         + "ClawLeftBack:" + ClawLeftBack + ","
         + "ClawRightPalms:" + ClawRightPalms + ","
         + "TongueRegular:" + TongueRegular + ","
+        + "Nose:" + Nose + ","
+        + "Mouse:" + Mouse + ","
         + "EarsHappy:" + EarsHappy + ","
         + "EarsPlane:" + EarsPlane + ","
         + "EyesBored:" + EyesBored + ","
