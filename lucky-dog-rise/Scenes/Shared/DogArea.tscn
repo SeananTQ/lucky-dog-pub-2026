@@ -9,11 +9,25 @@
 [ext_resource type="Texture2D" uid="uid://cynyioj5isqrp" path="res://Assets/v1/Eyewear/Sunglasses_Blade.png" id="8_3ms1v"]
 [ext_resource type="Texture2D" uid="uid://bgy6rp2ii45lp" path="res://Assets/v1/Headwear/FedoraHat_Maroon.png" id="9_e0wpe"]
 
+[sub_resource type="Shader" id="Shader_head_clip"]
+code = "shader_type canvas_item;
+uniform float cutoff_y = 189.0;
+varying float local_y;
+void vertex() { local_y = VERTEX.y; }
+void fragment() { if (local_y > cutoff_y) { discard; } }
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_head_clip"]
+resource_local_to_scene = true
+shader = SubResource("Shader_head_clip")
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
 
 [node name="DogArea" type="Node2D" unique_id=164694611]
 script = ExtResource("1_script")
+
+[node name="HeadClipBoundary" type="Marker2D" parent="."]
 
 [node name="HeadRoot" type="Node2D" parent="." unique_id=1431558642]
 
@@ -22,8 +36,15 @@ position = Vector2(-1, -320)
 texture = ExtResource("2_d5sjk")
 
 [node name="Head" type="Sprite2D" parent="HeadRoot" unique_id=297302336]
+material = SubResource("ShaderMaterial_head_clip")
 position = Vector2(-2, -189)
 texture = ExtResource("3_kw0np")
+
+[node name="Mouth" type="Sprite2D" parent="HeadRoot"]
+visible = false
+
+[node name="Nose" type="Sprite2D" parent="HeadRoot"]
+visible = false
 
 [node name="Tonghe" type="Sprite2D" parent="HeadRoot" unique_id=1192264822]
 z_index = 3

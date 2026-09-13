@@ -8,7 +8,8 @@ namespace LuckyDogRise.Tools;
 
 public sealed class DogSkinAssetCatalog
 {
-    private const string ShibaRoot = "res://Assets/v1/Shiba";
+    private static readonly string[] ShibaRoots =
+        { "res://Assets/v0/Shiba", "res://Assets/v1/Shiba", "res://Assets/v2/Shiba" };
     private const string EyewearRoot = "res://Assets/v1/Eyewear";
 
     public IReadOnlyList<string> FolderPaths { get; }
@@ -16,7 +17,7 @@ public sealed class DogSkinAssetCatalog
 
     public DogSkinAssetCatalog()
     {
-        FolderPaths = EnumerateDirectories(ShibaRoot)
+        FolderPaths = ShibaRoots.SelectMany(EnumerateDirectories)
             .Select(path => path.Replace("res://Assets/", "").Replace('/', '\\'))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();

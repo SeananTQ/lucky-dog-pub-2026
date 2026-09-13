@@ -11,6 +11,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     public delegate void DogClickedEventHandler();
 
     private Sprite2D _head = null!;
+    private Sprite2D _nose = null!;
+    private Sprite2D _mouth = null!;
+    private Marker2D _headClipBoundary = null!;
+    private readonly Dictionary<Sprite2D, (string Path, Vector2 Position)> _partReferences = new();
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
     private Sprite2D _tongue = null!;
@@ -64,11 +68,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         }
     }
 
-    // 小狗本体的 PSD → DogArea 本地坐标转换参数。
-    private const float OffsetX = 586f;
-    private const float OffsetY = 677f;
 
-    private Dictionary<string, Vector2> _positionCache = null!;
     private Dictionary<string, Vector2> _psdCenterCache = null!;
     private Vector2 _headwearReferenceLocalPosition;
     private Vector2 _eyewearReferenceLocalPosition;
@@ -78,6 +78,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     public override void _Ready()
     {
         _head = GetNode<Sprite2D>("HeadRoot/Head");
+        _nose = GetNode<Sprite2D>("HeadRoot/Nose");
+        _mouth = GetNode<Sprite2D>("HeadRoot/Mouth");
+        _headClipBoundary = GetNode<Marker2D>("HeadClipBoundary");
         _eyes = GetNode<Sprite2D>("HeadRoot/Eyes");
         _ears = GetNode<Sprite2D>("HeadRoot/Ears");
         _tongue = GetNodeOrNull<Sprite2D>("HeadRoot/Tonghe");
@@ -95,6 +98,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         RegisterHitButton(GetNodeOrNull<Button>("ClawRightHitButton"));
 
         EnsurePositionCache();
+        foreach (var sprite in new[] { _head, _eyes, _ears, _tongue,
+            _clawLeft.GetNode<Sprite2D>("Claw_Back_Left"), _clawLeft.GetNode<Sprite2D>("Claw_Palm_Left"),
+            _clawRight.GetNode<Sprite2D>("Claw_Back_Left"), _clawRight.GetNode<Sprite2D>("Claw_Palm_Left") })
+            _partReferences[sprite] = (GetLayerPath(sprite.Texture), sprite.Position);
         RefreshEquippedVisuals();
     }
 
@@ -147,29 +154,20 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
-    /// 从资源所属版本的 layer_index_v*.json 读取小狗本体的绝对 PSD 坐标。
+    /// 以场景中的默认狗头为参照，将资源所属版本的 PSD 中心点换算到 HeadRoot。
     /// </summary>
     public Vector2 GetScenePosition(string assetPath)
     {
-        var key = NormalizeLayerPath(assetPath);
-        if (_positionCache.TryGetValue(key, out var pos))
-            return pos;
-
-        var fileName = key.Split('/')[^1];
-        var version = key.StartsWith("v2/") ? "v2" : "v1";
-        if (_positionCache.TryGetValue($"{version}/{fileName}", out pos))
-            return pos;
-
-        GD.PushWarning($"[DogVisual] Position not found for: {assetPath}");
-        return Vector2.Zero;
+        EnsurePositionCache();
+        return GetAdornmentScenePosition(assetPath, _partReferences[_head].Path, _partReferences[_head].Position);
     }
 
     private void EnsurePositionCache()
     {
-        if (_positionCache != null) return;
-        _positionCache = new Dictionary<string, Vector2>();
+        if (_psdCenterCache != null) return;
         _psdCenterCache = new Dictionary<string, Vector2>();
 
+        LoadPositionCache("res://Assets/v0/layer_index_v0.json", "v0");
         LoadPositionCache("res://Assets/v1/layer_index_v1.json", "v1");
         LoadPositionCache("res://Assets/v2/layer_index_v2.json", "v2");
     }
@@ -192,10 +190,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             var cy = ReadFloat(d, "doc_y", "y") + ReadFloat(d, "height", "h") / 2f;
 
             var center = new Vector2(cx, cy);
-            var pos = center - new Vector2(OffsetX, OffsetY);
-
-            _positionCache[path] = pos;
-            _positionCache.TryAdd($"{assetVersion}/{fileOnly}", pos);
             _psdCenterCache[path] = center;
             _psdCenterCache.TryAdd($"{assetVersion}/{fileOnly}", center);
         }
@@ -228,7 +222,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             return true;
 
         var fileName = key.Split('/')[^1];
-        var version = key.StartsWith("v2/") ? "v2" : "v1";
+        var version = key.Split('/')[0];
         return _psdCenterCache.TryGetValue($"{version}/{fileName}", out center);
     }
 
@@ -414,6 +408,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _ears.Visible = showHeadParts;
         _head.Visible = showHeadParts;
         _eyes.Visible = showHeadParts;
+        _nose.Visible = showHeadParts && _nose.Texture != null;
+        _mouth.Visible = showHeadParts && _mouth.Texture != null;
         if (!showHeadParts)
         {
             _eyewear.Visible = false;
@@ -581,16 +577,32 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         return PlayerInventory.ToResPath($"{CurrentDogSkin.FolderPath}\\{fileName}");
     }
 
-    private Vector2 GetDogScenePosition(string fileName)
-    {
-        return GetScenePosition($"{CurrentDogSkin.FolderPath}\\{fileName}");
-    }
-
     private void SetDogTexture(Sprite2D sprite, string fileName)
     {
         var texture = GD.Load<Texture2D>(DogResPath(fileName));
         if (texture != null)
+        {
             sprite.Texture = texture;
+            var reference = _partReferences[sprite];
+            sprite.Position = GetAdornmentScenePosition(DogResPath(fileName), reference.Path, reference.Position);
+        }
+    }
+
+    private void ApplyFaceParts()
+    {
+        ApplyOptionalFacePart(_nose, CurrentDogSkin.Nose);
+        ApplyOptionalFacePart(_mouth, CurrentDogSkin.Mouse);
+        // Crop only the head; tongue and paws keep their existing foreground layers.
+        ((ShaderMaterial)_head.Material).SetShaderParameter("cutoff_y",
+            _head.GetParent<Node2D>().ToLocal(_headClipBoundary.GlobalPosition).Y - _head.Position.Y);
+    }
+
+    private void ApplyOptionalFacePart(Sprite2D sprite, string fileName)
+    {
+        sprite.Texture = string.IsNullOrWhiteSpace(fileName) ? null : GD.Load<Texture2D>(DogResPath(fileName));
+        sprite.Visible = sprite.Texture != null;
+        if (sprite.Visible)
+            sprite.Position = GetScenePosition(DogResPath(fileName));
     }
 
     private void ReapplyCurrentReaction()
@@ -647,13 +659,11 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         var earAsset = ResolveDogAsset(visual.EarAsset, skin.DefaultEars);
 
         SetDogTexture(_head, skin.Head);
-        _head.Position = GetDogScenePosition(skin.Head);
+        ApplyFaceParts();
 
         SetDogTexture(_eyes, eyeAsset);
-        _eyes.Position = GetDogScenePosition(eyeAsset);
 
         SetDogTexture(_ears, earAsset);
-        _ears.Position = GetDogScenePosition(earAsset);
 
         if (_tongue != null)
         {
@@ -665,7 +675,6 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             _desktopTongueBurstCount = 0;
             _desktopTongueExtended = false;
             SetDogTexture(_tongue, skin.TongueRegular);
-            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
 
         // _head.ZIndex = 1;
@@ -693,18 +702,15 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         var skin = CurrentDogSkin;
 
         SetDogTexture(_head, skin.Head);
-        _head.Position = GetDogScenePosition(skin.Head);
+        ApplyFaceParts();
 
         SetDogTexture(_eyes, eyesFileName);
-        _eyes.Position = GetDogScenePosition(eyesFileName);
 
         SetDogTexture(_ears, earsFileName);
-        _ears.Position = GetDogScenePosition(earsFileName);
 
         if (_tongue != null)
         {
             SetDogTexture(_tongue, skin.TongueRegular);
-            _tongue.Position = GetDogScenePosition(skin.TongueRegular);
         }
 
         // // 狗身体层级：背景(0) < 狗(1) < 桌子(2)

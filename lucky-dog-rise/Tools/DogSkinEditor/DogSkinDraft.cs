@@ -21,6 +21,8 @@ public sealed class DogSkinDraft
     public string DefaultTongue { get; set; } = "";
     public string FixedEyewear { get; set; } = "";
     public string FolderPath { get; set; } = "";
+    public string Nose { get; set; } = "";
+    public string Mouse { get; set; } = "";
     public string Head { get; set; } = "";
     public string ClawLeftBack { get; set; } = "";
     public string ClawRightPalms { get; set; } = "";
@@ -47,6 +49,8 @@ public sealed class DogSkinDraft
             FixedEyewear = skin.FixedEyewear,
             FolderPath = skin.FolderPath,
             Head = skin.Head,
+            Nose = skin.Nose,
+            Mouse = skin.Mouse,
             ClawLeftBack = skin.ClawLeftBack,
             ClawRightPalms = skin.ClawRightPalms,
             TongueRegular = skin.TongueRegular,
@@ -74,6 +78,8 @@ public sealed class DogSkinDraft
             FixedEyewear = FixedEyewear,
             FolderPath = FolderPath,
             Head = Head,
+            Nose = Nose,
+            Mouse = Mouse,
             ClawLeftBack = ClawLeftBack,
             ClawRightPalms = ClawRightPalms,
             TongueRegular = TongueRegular,
@@ -100,6 +106,8 @@ public sealed class DogSkinDraft
             FixedEyewear = FixedEyewear,
             FolderPath = FolderPath,
             Head = Head,
+            Nose = Nose,
+            Mouse = Mouse,
             ClawLeftBack = ClawLeftBack,
             ClawRightPalms = ClawRightPalms,
             TongueRegular = TongueRegular,
