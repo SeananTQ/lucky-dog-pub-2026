@@ -35,6 +35,26 @@ public partial class TestDogSkinParts : Node
             Check(dog.ToLocal(dog.GetNode<Sprite2D>("ClawRight/Claw_Palm_Left").GlobalPosition)
                 .IsEqualApprox(new Vector2(304.5f, 32f)), "right palm mirrored reference delta");
             var material = (ShaderMaterial)head.Material;
+            var tongue = dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
+            copy.MouseSilent = "Mouse_Shy.png";
+            copy.EyesNormalMood = copy.EyesBored;
+            dog.SetPreviewAppearance(copy.ToAppearanceSpec());
+            dog.ApplyReaction(EDogReactionTrigger.Serious);
+            Check(dog.GetNode<Sprite2D>("HeadRoot/Eyes").Texture.ResourcePath.EndsWith(copy.EyesBored), "eye field resolves configured filename");
+            dog.ApplyReaction(EDogReactionTrigger.Silent);
+            Check(mouth.Texture.ResourcePath.EndsWith("Mouse_Shy.png") && !tongue.Visible, "silent mouth and hidden tongue");
+            dog.ApplyReaction(EDogReactionTrigger.HintExhausted);
+            Check(mouth.Texture.ResourcePath.EndsWith("Mouse_Shy.png") && !tongue.Visible, "inherited silent mouth");
+            dog.SetIntroPartVisibility(true, true, true);
+            Check(!tongue.Visible, "Rise cannot reveal silent tongue");
+            dog.ApplyReaction(EDogReactionTrigger.Default);
+            Check(mouth.Texture.ResourcePath.EndsWith(copy.DefaultMouse) && tongue.Visible, "default mouth and tongue restored");
+            copy.MouseSilent = "";
+            dog.SetPreviewAppearance(copy.ToAppearanceSpec());
+            dog.ApplyReaction(EDogReactionTrigger.Silent);
+            Check(mouth.Texture.ResourcePath.EndsWith(copy.DefaultMouse) && tongue.Visible, "empty silent mouth fallback");
+            dog.ApplyReaction(EDogReactionTrigger.Default);
+            copy.MouseSilent = draft.MouseSilent;
             Check(Mathf.IsEqualApprox(material.GetShaderParameter("cutoff_y").AsSingle(), 137f), "head clip plane");
             dog.SetIntroPartVisibility(false, false, true);
             Check(!nose.Visible && !mouth.Visible, "Rise claw-only face hiding");

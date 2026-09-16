@@ -18,6 +18,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
     private Sprite2D _tongue = null!;
+    private bool _reactionShowsTongue = true;
+    private bool _introShowsTongue = true;
     private Node2D _clawLeft = null!;
     private Node2D _clawRight = null!;
     private Sprite2D _eyewear = null!;
@@ -263,7 +265,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
     public void PlayDesktopTongueTap(int inputCount = 1)
     {
-        if (!IsNodeReady() || _tongue == null) return;
+        if (!IsNodeReady() || _tongue == null || !_reactionShowsTongue) return;
 
         if (_desktopTongueTimer <= 0f && _desktopTongueActiveTimer <= 0f)
             _desktopTongueBasePosition = _tongue.Position;
@@ -416,8 +418,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             _headwear.Visible = false;
         }
 
+        _introShowsTongue = showTongue;
         if (_tongue != null)
-            _tongue.Visible = showTongue;
+            _tongue.Visible = showTongue && _reactionShowsTongue;
 
         _clawLeft.Visible = showClaws;
         _clawRight.Visible = showClaws;
@@ -632,6 +635,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             result.EarAsset = reaction.EarAsset;
         if (!string.IsNullOrEmpty(reaction.EyeAsset))
             result.EyeAsset = reaction.EyeAsset;
+        if (!string.IsNullOrEmpty(reaction.MouseAsset))
+            result.MouseAsset = reaction.MouseAsset;
         if (!string.IsNullOrEmpty(reaction.OverrideHeadwear))
             result.OverrideHeadwear = reaction.OverrideHeadwear;
         if (!string.IsNullOrEmpty(reaction.LeftPawAnimation))
@@ -660,11 +665,17 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private void ApplyReactionVisual(DogReactionVisual visual)
     {
         var skin = CurrentDogSkin;
-        var eyeAsset = ResolveDogAsset(visual.EyeAsset, skin.DefaultEyes);
-        var earAsset = ResolveDogAsset(visual.EarAsset, skin.DefaultEars);
+        var eyeAsset = ResolveDogAsset(visual.EyeAsset, skin.DefaultEyes, "EyeAsset");
+        var earAsset = ResolveDogAsset(visual.EarAsset, skin.DefaultEars, "EarAsset");
+        var mouseAsset = ResolveDogAsset(visual.MouseAsset, skin.DefaultMouse, "MouseAsset");
 
         SetDogTexture(_head, skin.Head);
         ApplyFaceParts();
+
+        ApplyOptionalFacePart(_mouth, mouseAsset);
+        _reactionShowsTongue = visual.MouseAsset != "Mouse_Silent" || string.IsNullOrWhiteSpace(skin.MouseSilent);
+        if (_tongue != null)
+            _tongue.Visible = _introShowsTongue && _reactionShowsTongue;
 
         SetDogTexture(_eyes, eyeAsset);
 
@@ -705,6 +716,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private void ApplyBaseAppearance(string eyesFileName, string earsFileName)
     {
         var skin = CurrentDogSkin;
+        _reactionShowsTongue = true;
+        if (_tongue != null)
+            _tongue.Visible = _introShowsTongue;
 
         SetDogTexture(_head, skin.Head);
         ApplyFaceParts();
@@ -804,7 +818,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
     private void ApplyTongueVisual(DogReactionVisual visual)
     {
-        if (_tongue == null) return;
+        if (_tongue == null || !_reactionShowsTongue) return;
 
         if (visual.TongueAnimation.Contains("哈气"))
             PlayTonguePant();
@@ -840,12 +854,30 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _clawRight.Rotation = 0f;
     }
 
-    private string ResolveDogAsset(string asset, string defaultAsset)
+    private string ResolveDogAsset(string asset, string defaultAsset, string column)
     {
         if (string.IsNullOrEmpty(asset) || asset == "默认")
             return defaultAsset;
-
-        return asset.EndsWith(".png") ? asset : $"{asset}.png";
+        var skin = CurrentDogSkin;
+        string value = (column, asset) switch
+        {
+            ("EarAsset", "DefaultEars") => skin.DefaultEars,
+            ("EarAsset", "Ears_Normal") => skin.EarsNormal,
+            ("EarAsset", "Ears_Drooped") => skin.EarsDrooped,
+            ("EyeAsset", "DefaultEyes") => skin.DefaultEyes,
+            ("EyeAsset", "Eyes_NormalMood") => skin.EyesNormalMood,
+            ("EyeAsset", "Eyes_Bored") => skin.EyesBored,
+            ("EyeAsset", "Eyes_Happy") => skin.EyesHappy,
+            ("EyeAsset", "Eyes_Admiring") => skin.EyesAdmiring,
+            ("EyeAsset", "Eyes_Stunned") => skin.EyesStunned,
+            ("EyeAsset", "Eyes_Signaling") => skin.EyesSignaling,
+            ("MouseAsset", "DefaultMouse") => skin.DefaultMouse,
+            ("MouseAsset", "Mouse_Silent") => skin.MouseSilent,
+            _ => null,
+        };
+        if (value == null)
+            GD.PushWarning($"[小狗表情] {column} 引用了无效字段“{asset}”，使用默认素材。");
+        return string.IsNullOrWhiteSpace(value) ? defaultAsset : value;
     }
 
     private void ApplyClawTextures()
@@ -880,6 +912,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         public string EarAsset;
         public string EyeAsset;
+        public string MouseAsset;
         public string OverrideHeadwear;
         public string LeftPawAnimation;
         public string RightPawAnimation;
@@ -890,6 +923,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         {
             EarAsset = "默认",
             EyeAsset = "默认",
+            MouseAsset = "默认",
             OverrideHeadwear = "",
             LeftPawAnimation = "手背",
             RightPawAnimation = "手背",
