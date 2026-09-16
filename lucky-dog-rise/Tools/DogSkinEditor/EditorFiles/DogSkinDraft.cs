@@ -6,7 +6,7 @@ namespace LuckyDogRise.Tools;
 
 public sealed class DogSkinCatalogDraft
 {
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 3;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public List<DogSkinDraft> DogSkins { get; set; } = new();
 }
@@ -21,20 +21,21 @@ public sealed class DogSkinDraft
     public string DefaultTongue { get; set; } = "";
     public string FixedEyewear { get; set; } = "";
     public string FolderPath { get; set; } = "";
-    public string Nose { get; set; } = "";
-    public string Mouse { get; set; } = "";
+    public string DefaultNose { get; set; } = "";
+    public string DefaultMouse { get; set; } = "";
+    public string MouseSilent { get; set; } = "";
     public string Head { get; set; } = "";
     public string ClawLeftBack { get; set; } = "";
     public string ClawRightPalms { get; set; } = "";
     public string TongueRegular { get; set; } = "";
-    public string EarsHappy { get; set; } = "";
-    public string EarsPlane { get; set; } = "";
+    public string EarsNormal { get; set; } = "";
+    public string EarsDrooped { get; set; } = "";
     public string EyesBored { get; set; } = "";
-    public string EyesCute { get; set; } = "";
+    public string EyesNormalMood { get; set; } = "";
     public string EyesHappy { get; set; } = "";
-    public string EyesLucky { get; set; } = "";
-    public string EyesNeutral { get; set; } = "";
-    public string EyesWink { get; set; } = "";
+    public string EyesAdmiring { get; set; } = "";
+    public string EyesStunned { get; set; } = "";
+    public string EyesSignaling { get; set; } = "";
 
     public static DogSkinDraft FromDogSkin(DogSkin skin)
     {
@@ -49,19 +50,20 @@ public sealed class DogSkinDraft
             FixedEyewear = skin.FixedEyewear,
             FolderPath = skin.FolderPath,
             Head = skin.Head,
-            Nose = skin.Nose,
-            Mouse = skin.Mouse,
+            DefaultNose = skin.DefaultNose,
+            DefaultMouse = skin.DefaultMouse,
+            MouseSilent = skin.MouseSilent,
             ClawLeftBack = skin.ClawLeftBack,
             ClawRightPalms = skin.ClawRightPalms,
             TongueRegular = skin.TongueRegular,
-            EarsHappy = skin.EarsHappy,
-            EarsPlane = skin.EarsPlane,
+            EarsNormal = skin.EarsNormal,
+            EarsDrooped = skin.EarsDrooped,
             EyesBored = skin.EyesBored,
-            EyesCute = skin.EyesCute,
+            EyesNormalMood = skin.EyesNormalMood,
             EyesHappy = skin.EyesHappy,
-            EyesLucky = skin.EyesLucky,
-            EyesNeutral = skin.EyesNeutral,
-            EyesWink = skin.EyesWink,
+            EyesAdmiring = skin.EyesAdmiring,
+            EyesStunned = skin.EyesStunned,
+            EyesSignaling = skin.EyesSignaling,
         };
     }
 
@@ -78,19 +80,20 @@ public sealed class DogSkinDraft
             FixedEyewear = FixedEyewear,
             FolderPath = FolderPath,
             Head = Head,
-            Nose = Nose,
-            Mouse = Mouse,
+            DefaultNose = DefaultNose,
+            DefaultMouse = DefaultMouse,
+            MouseSilent = MouseSilent,
             ClawLeftBack = ClawLeftBack,
             ClawRightPalms = ClawRightPalms,
             TongueRegular = TongueRegular,
-            EarsHappy = EarsHappy,
-            EarsPlane = EarsPlane,
+            EarsNormal = EarsNormal,
+            EarsDrooped = EarsDrooped,
             EyesBored = EyesBored,
-            EyesCute = EyesCute,
+            EyesNormalMood = EyesNormalMood,
             EyesHappy = EyesHappy,
-            EyesLucky = EyesLucky,
-            EyesNeutral = EyesNeutral,
-            EyesWink = EyesWink,
+            EyesAdmiring = EyesAdmiring,
+            EyesStunned = EyesStunned,
+            EyesSignaling = EyesSignaling,
         };
     }
 
@@ -106,19 +109,20 @@ public sealed class DogSkinDraft
             FixedEyewear = FixedEyewear,
             FolderPath = FolderPath,
             Head = Head,
-            Nose = Nose,
-            Mouse = Mouse,
+            DefaultNose = DefaultNose,
+            DefaultMouse = DefaultMouse,
+            MouseSilent = MouseSilent,
             ClawLeftBack = ClawLeftBack,
             ClawRightPalms = ClawRightPalms,
             TongueRegular = TongueRegular,
-            EarsHappy = EarsHappy,
-            EarsPlane = EarsPlane,
+            EarsNormal = EarsNormal,
+            EarsDrooped = EarsDrooped,
             EyesBored = EyesBored,
-            EyesCute = EyesCute,
+            EyesNormalMood = EyesNormalMood,
             EyesHappy = EyesHappy,
-            EyesLucky = EyesLucky,
-            EyesNeutral = EyesNeutral,
-            EyesWink = EyesWink,
+            EyesAdmiring = EyesAdmiring,
+            EyesStunned = EyesStunned,
+            EyesSignaling = EyesSignaling,
         };
     }
 }

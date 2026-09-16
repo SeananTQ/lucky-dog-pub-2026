@@ -595,8 +595,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
     private void ApplyFaceParts()
     {
-        ApplyOptionalFacePart(_nose, CurrentDogSkin.Nose);
-        ApplyOptionalFacePart(_mouth, CurrentDogSkin.Mouse);
+        ApplyOptionalFacePart(_nose, CurrentDogSkin.DefaultNose);
+        ApplyOptionalFacePart(_mouth, CurrentDogSkin.DefaultMouse);
         // Crop only the head; tongue and paws keep their existing foreground layers.
         ((ShaderMaterial)_head.Material).SetShaderParameter("cutoff_y",
             _head.GetParent<Node2D>().ToLocal(_headClipBoundary.GlobalPosition).Y - _head.Position.Y);
@@ -868,11 +868,11 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         var skin = CurrentDogSkin;
         return signal switch
         {
-            DogSignal.Bored => (skin.EyesBored, skin.EarsPlane),
-            DogSignal.Happy => (skin.EyesHappy, skin.EarsHappy),
-            DogSignal.LuckyEye => (skin.EyesLucky, skin.EarsHappy),
-            DogSignal.TopTier => (skin.EyesLucky, skin.EarsHappy),
-            _ => (skin.EyesCute, skin.EarsHappy),
+            DogSignal.Bored => (skin.EyesBored, skin.EarsDrooped),
+            DogSignal.Happy => (skin.EyesHappy, skin.EarsNormal),
+            DogSignal.LuckyEye => (skin.EyesAdmiring, skin.EarsNormal),
+            DogSignal.TopTier => (skin.EyesAdmiring, skin.EarsNormal),
+            _ => (skin.EyesNormalMood, skin.EarsNormal),
         };
     }
 

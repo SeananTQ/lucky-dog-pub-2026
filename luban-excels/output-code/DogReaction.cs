@@ -22,6 +22,7 @@ public sealed partial class DogReaction : Luban.BeanBase
         { if(!_buf["AssetRef"].IsNumber) { throw new SerializationException(); }  AssetRef = (EDogReactionTrigger)_buf["AssetRef"].AsInt; }
         { if(!_buf["EarAsset"].IsString) { throw new SerializationException(); }  EarAsset = _buf["EarAsset"]; }
         { if(!_buf["EyeAsset"].IsString) { throw new SerializationException(); }  EyeAsset = _buf["EyeAsset"]; }
+        { if(!_buf["MouseAsset"].IsString) { throw new SerializationException(); }  MouseAsset = _buf["MouseAsset"]; }
         { if(!_buf["OverrideHeadwear"].IsString) { throw new SerializationException(); }  OverrideHeadwear = _buf["OverrideHeadwear"]; }
         { if(!_buf["WearGlasses"].IsBoolean) { throw new SerializationException(); }  WearGlasses = _buf["WearGlasses"]; }
         { if(!_buf["LeftPawAnimation"].IsString) { throw new SerializationException(); }  LeftPawAnimation = _buf["LeftPawAnimation"]; }
@@ -43,6 +44,7 @@ public sealed partial class DogReaction : Luban.BeanBase
     public readonly EDogReactionTrigger AssetRef;
     public readonly string EarAsset;
     public readonly string EyeAsset;
+    public readonly string MouseAsset;
     /// <summary>
     /// 有些表情需要临时更换头饰，例如被打晕的时候头上转的星星。但目前版本没有
     /// </summary>
@@ -74,6 +76,7 @@ public sealed partial class DogReaction : Luban.BeanBase
         + "AssetRef:" + AssetRef + ","
         + "EarAsset:" + EarAsset + ","
         + "EyeAsset:" + EyeAsset + ","
+        + "MouseAsset:" + MouseAsset + ","
         + "OverrideHeadwear:" + OverrideHeadwear + ","
         + "WearGlasses:" + WearGlasses + ","
         + "LeftPawAnimation:" + LeftPawAnimation + ","

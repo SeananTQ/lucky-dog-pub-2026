@@ -29,16 +29,17 @@ public sealed partial class DogSkin : Luban.BeanBase
         { if(!_buf["Claw_Left_Back"].IsString) { throw new SerializationException(); }  ClawLeftBack = _buf["Claw_Left_Back"]; }
         { if(!_buf["Claw_Right_Palms"].IsString) { throw new SerializationException(); }  ClawRightPalms = _buf["Claw_Right_Palms"]; }
         { if(!_buf["Tongue_Regular"].IsString) { throw new SerializationException(); }  TongueRegular = _buf["Tongue_Regular"]; }
-        { if(!_buf["Nose"].IsString) { throw new SerializationException(); }  Nose = _buf["Nose"]; }
-        { if(!_buf["Mouse"].IsString) { throw new SerializationException(); }  Mouse = _buf["Mouse"]; }
-        { if(!_buf["Ears_Happy"].IsString) { throw new SerializationException(); }  EarsHappy = _buf["Ears_Happy"]; }
-        { if(!_buf["Ears_Plane"].IsString) { throw new SerializationException(); }  EarsPlane = _buf["Ears_Plane"]; }
+        { if(!_buf["DefaultNose"].IsString) { throw new SerializationException(); }  DefaultNose = _buf["DefaultNose"]; }
+        { if(!_buf["DefaultMouse"].IsString) { throw new SerializationException(); }  DefaultMouse = _buf["DefaultMouse"]; }
+        { if(!_buf["Mouse_Silent"].IsString) { throw new SerializationException(); }  MouseSilent = _buf["Mouse_Silent"]; }
+        { if(!_buf["Ears_Normal"].IsString) { throw new SerializationException(); }  EarsNormal = _buf["Ears_Normal"]; }
+        { if(!_buf["Ears_Drooped"].IsString) { throw new SerializationException(); }  EarsDrooped = _buf["Ears_Drooped"]; }
+        { if(!_buf["Eyes_NormalMood"].IsString) { throw new SerializationException(); }  EyesNormalMood = _buf["Eyes_NormalMood"]; }
         { if(!_buf["Eyes_Bored"].IsString) { throw new SerializationException(); }  EyesBored = _buf["Eyes_Bored"]; }
-        { if(!_buf["Eyes_Cute"].IsString) { throw new SerializationException(); }  EyesCute = _buf["Eyes_Cute"]; }
         { if(!_buf["Eyes_Happy"].IsString) { throw new SerializationException(); }  EyesHappy = _buf["Eyes_Happy"]; }
-        { if(!_buf["Eyes_Lucky"].IsString) { throw new SerializationException(); }  EyesLucky = _buf["Eyes_Lucky"]; }
-        { if(!_buf["Eyes_Neutral"].IsString) { throw new SerializationException(); }  EyesNeutral = _buf["Eyes_Neutral"]; }
-        { if(!_buf["Eyes_Wink"].IsString) { throw new SerializationException(); }  EyesWink = _buf["Eyes_Wink"]; }
+        { if(!_buf["Eyes_Admiring"].IsString) { throw new SerializationException(); }  EyesAdmiring = _buf["Eyes_Admiring"]; }
+        { if(!_buf["Eyes_Stunned"].IsString) { throw new SerializationException(); }  EyesStunned = _buf["Eyes_Stunned"]; }
+        { if(!_buf["Eyes_Signaling"].IsString) { throw new SerializationException(); }  EyesSignaling = _buf["Eyes_Signaling"]; }
     }
 
     public static DogSkin DeserializeDogSkin(JSONNode _buf)
@@ -64,16 +65,20 @@ public sealed partial class DogSkin : Luban.BeanBase
     public readonly string ClawLeftBack;
     public readonly string ClawRightPalms;
     public readonly string TongueRegular;
-    public readonly string Nose;
-    public readonly string Mouse;
-    public readonly string EarsHappy;
-    public readonly string EarsPlane;
+    public readonly string DefaultNose;
+    public readonly string DefaultMouse;
+    public readonly string MouseSilent;
+    public readonly string EarsNormal;
+    public readonly string EarsDrooped;
+    public readonly string EyesNormalMood;
     public readonly string EyesBored;
-    public readonly string EyesCute;
     public readonly string EyesHappy;
-    public readonly string EyesLucky;
-    public readonly string EyesNeutral;
-    public readonly string EyesWink;
+    public readonly string EyesAdmiring;
+    /// <summary>
+    /// 震惊呆住，例如看见置闰搞砸了事情
+    /// </summary>
+    public readonly string EyesStunned;
+    public readonly string EyesSignaling;
    
     public const int __ID__ = -798721863;
     public override int GetTypeId() => __ID__;
@@ -97,16 +102,17 @@ public sealed partial class DogSkin : Luban.BeanBase
         + "ClawLeftBack:" + ClawLeftBack + ","
         + "ClawRightPalms:" + ClawRightPalms + ","
         + "TongueRegular:" + TongueRegular + ","
-        + "Nose:" + Nose + ","
-        + "Mouse:" + Mouse + ","
-        + "EarsHappy:" + EarsHappy + ","
-        + "EarsPlane:" + EarsPlane + ","
+        + "DefaultNose:" + DefaultNose + ","
+        + "DefaultMouse:" + DefaultMouse + ","
+        + "MouseSilent:" + MouseSilent + ","
+        + "EarsNormal:" + EarsNormal + ","
+        + "EarsDrooped:" + EarsDrooped + ","
+        + "EyesNormalMood:" + EyesNormalMood + ","
         + "EyesBored:" + EyesBored + ","
-        + "EyesCute:" + EyesCute + ","
         + "EyesHappy:" + EyesHappy + ","
-        + "EyesLucky:" + EyesLucky + ","
-        + "EyesNeutral:" + EyesNeutral + ","
-        + "EyesWink:" + EyesWink + ","
+        + "EyesAdmiring:" + EyesAdmiring + ","
+        + "EyesStunned:" + EyesStunned + ","
+        + "EyesSignaling:" + EyesSignaling + ","
         + "}";
     }
 }

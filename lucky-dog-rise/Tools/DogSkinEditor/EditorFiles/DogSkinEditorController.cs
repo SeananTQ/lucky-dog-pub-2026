@@ -376,19 +376,20 @@ public partial class DogSkinEditorController : Control
         var bodySection = CreateFormSection(form, "爪子与舌头", "身体部件的常规素材");
         AddChoiceField(bodySection, "Claw_Left_Back", draft.ClawLeftBack, _assets.GetFiles(draft.FolderPath, "Claw_"), value => draft.ClawLeftBack = value);
         AddChoiceField(bodySection, "Claw_Right_Palms", draft.ClawRightPalms, _assets.GetFiles(draft.FolderPath, "Claw_"), value => draft.ClawRightPalms = value);
-        AddChoiceField(bodySection, "鼻子（Nose）", draft.Nose, new[] { "" }.Concat(_assets.GetFiles(draft.FolderPath, "Nose_")), value => draft.Nose = value, "（无）");
-        AddChoiceField(bodySection, "嘴巴（Mouse）", draft.Mouse, new[] { "" }.Concat(_assets.GetFiles(draft.FolderPath, "Mouse_")), value => draft.Mouse = value, "（无）");
+        AddChoiceField(bodySection, "鼻子（DefaultNose）", draft.DefaultNose, new[] { "" }.Concat(_assets.GetFiles(draft.FolderPath, "Nose_")), value => draft.DefaultNose = value, "（无）");
+        AddChoiceField(bodySection, "嘴巴（DefaultMouse）", draft.DefaultMouse, new[] { "" }.Concat(_assets.GetFiles(draft.FolderPath, "Mouse_")), value => draft.DefaultMouse = value, "（无）");
         AddChoiceField(bodySection, "Tongue_Regular", draft.TongueRegular, _assets.GetFiles(draft.FolderPath, "Tongue_"), value => draft.TongueRegular = value);
 
         var reactionSection = CreateFormSection(form, "表情素材", "DogReaction 切换时使用的耳朵与眼睛");
-        AddChoiceField(reactionSection, "Ears_Happy", draft.EarsHappy, _assets.GetFiles(draft.FolderPath, "Ears_"), value => draft.EarsHappy = value);
-        AddChoiceField(reactionSection, "Ears_Plane", draft.EarsPlane, _assets.GetFiles(draft.FolderPath, "Ears_"), value => draft.EarsPlane = value);
+        AddChoiceField(reactionSection, "沉默嘴部（Mouse_Silent）", draft.MouseSilent, new[] { "" }.Concat(_assets.GetFiles(draft.FolderPath, "Mouse_")), value => draft.MouseSilent = value, "（使用默认嘴部）");
+        AddChoiceField(reactionSection, "Ears_Normal", draft.EarsNormal, _assets.GetFiles(draft.FolderPath, "Ears_"), value => draft.EarsNormal = value);
+        AddChoiceField(reactionSection, "Ears_Drooped", draft.EarsDrooped, _assets.GetFiles(draft.FolderPath, "Ears_"), value => draft.EarsDrooped = value);
         AddChoiceField(reactionSection, "Eyes_Bored", draft.EyesBored, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesBored = value);
-        AddChoiceField(reactionSection, "Eyes_Cute", draft.EyesCute, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesCute = value);
+        AddChoiceField(reactionSection, "Eyes_NormalMood", draft.EyesNormalMood, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesNormalMood = value);
         AddChoiceField(reactionSection, "Eyes_Happy", draft.EyesHappy, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesHappy = value);
-        AddChoiceField(reactionSection, "Eyes_Lucky", draft.EyesLucky, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesLucky = value);
-        AddChoiceField(reactionSection, "Eyes_Neutral", draft.EyesNeutral, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesNeutral = value);
-        AddChoiceField(reactionSection, "Eyes_Wink", draft.EyesWink, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesWink = value);
+        AddChoiceField(reactionSection, "Eyes_Admiring", draft.EyesAdmiring, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesAdmiring = value);
+        AddChoiceField(reactionSection, "Eyes_Stunned", draft.EyesStunned, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesStunned = value);
+        AddChoiceField(reactionSection, "Eyes_Signaling", draft.EyesSignaling, _assets.GetFiles(draft.FolderPath, "Eyes_"), value => draft.EyesSignaling = value);
 
         form.AddChild(CreateSaveActions());
     }
@@ -943,9 +944,10 @@ public partial class DogSkinEditorController : Control
         {
             if (File.Exists(path))
             {
-                _catalog = JsonSerializer.Deserialize<DogSkinCatalogDraft>(File.ReadAllText(path), JsonOptions)
+                _catalog = JsonSerializer.Deserialize<DogSkinCatalogDraft>(MigrateDraftFieldNames(File.ReadAllText(path)), JsonOptions)
                     ?? CreateCatalogFromTable();
                 MigrateCatalog();
+                _catalog.Version = 3;
                 return;
             }
         }
@@ -954,6 +956,32 @@ public partial class DogSkinEditorController : Control
             GD.PushWarning($"[DogSkin 编辑器] 草稿载入失败。技术详情：{exception.Message}");
         }
         _catalog = CreateCatalogFromTable();
+    }
+
+    private static string MigrateDraftFieldNames(string json)
+    {
+        var root = System.Text.Json.Nodes.JsonNode.Parse(json);
+        if (root?["DogSkins"] is System.Text.Json.Nodes.JsonArray skins)
+        {
+            var renames = new Dictionary<string, string>
+            {
+                ["Nose"] = "DefaultNose", ["Mouse"] = "DefaultMouse",
+                ["EarsHappy"] = "EarsNormal", ["EarsPlane"] = "EarsDrooped",
+                ["EyesCute"] = "EyesNormalMood", ["EyesLucky"] = "EyesAdmiring",
+                ["EyesNeutral"] = "EyesStunned", ["EyesWink"] = "EyesSignaling",
+            };
+            foreach (var node in skins)
+            {
+                if (node is not System.Text.Json.Nodes.JsonObject skin) continue;
+                foreach (var pair in renames)
+                {
+                    if (!skin.ContainsKey(pair.Value) && skin.TryGetPropertyValue(pair.Key, out var value))
+                        skin[pair.Value] = value?.DeepClone();
+                    skin.Remove(pair.Key);
+                }
+            }
+        }
+        return root?.ToJsonString() ?? json;
     }
 
     private void MigrateCatalog()
@@ -1104,23 +1132,25 @@ public partial class DogSkinEditorController : Control
                 errors.Add($"#{draft.Id} 缺少图标名称（IconName）。");
             if (string.IsNullOrWhiteSpace(draft.FolderPath)) errors.Add($"#{draft.Id} 缺少素材目录（FolderPath）。");
             ValidateDogAsset(errors, draft, nameof(draft.Head), draft.Head);
-            if (!string.IsNullOrWhiteSpace(draft.Nose))
-                ValidateDogAsset(errors, draft, nameof(draft.Nose), draft.Nose);
-            if (!string.IsNullOrWhiteSpace(draft.Mouse))
-                ValidateDogAsset(errors, draft, nameof(draft.Mouse), draft.Mouse);
+            if (!string.IsNullOrWhiteSpace(draft.DefaultNose))
+                ValidateDogAsset(errors, draft, nameof(draft.DefaultNose), draft.DefaultNose);
+            if (!string.IsNullOrWhiteSpace(draft.DefaultMouse))
+                ValidateDogAsset(errors, draft, nameof(draft.DefaultMouse), draft.DefaultMouse);
             ValidateDogAsset(errors, draft, nameof(draft.DefaultEars), draft.DefaultEars);
             ValidateDogAsset(errors, draft, nameof(draft.DefaultEyes), draft.DefaultEyes);
+            if (!string.IsNullOrWhiteSpace(draft.MouseSilent))
+                ValidateDogAsset(errors, draft, nameof(draft.MouseSilent), draft.MouseSilent);
             ValidateDogAsset(errors, draft, nameof(draft.TongueRegular), draft.TongueRegular);
             ValidateDogAsset(errors, draft, nameof(draft.ClawLeftBack), draft.ClawLeftBack);
             ValidateDogAsset(errors, draft, nameof(draft.ClawRightPalms), draft.ClawRightPalms);
-            ValidateDogAsset(errors, draft, nameof(draft.EarsHappy), draft.EarsHappy);
-            ValidateDogAsset(errors, draft, nameof(draft.EarsPlane), draft.EarsPlane);
+            ValidateDogAsset(errors, draft, nameof(draft.EarsNormal), draft.EarsNormal);
+            ValidateDogAsset(errors, draft, nameof(draft.EarsDrooped), draft.EarsDrooped);
             ValidateDogAsset(errors, draft, nameof(draft.EyesBored), draft.EyesBored);
-            ValidateDogAsset(errors, draft, nameof(draft.EyesCute), draft.EyesCute);
+            ValidateDogAsset(errors, draft, nameof(draft.EyesNormalMood), draft.EyesNormalMood);
             ValidateDogAsset(errors, draft, nameof(draft.EyesHappy), draft.EyesHappy);
-            ValidateDogAsset(errors, draft, nameof(draft.EyesLucky), draft.EyesLucky);
-            ValidateDogAsset(errors, draft, nameof(draft.EyesNeutral), draft.EyesNeutral);
-            ValidateDogAsset(errors, draft, nameof(draft.EyesWink), draft.EyesWink);
+            ValidateDogAsset(errors, draft, nameof(draft.EyesAdmiring), draft.EyesAdmiring);
+            ValidateDogAsset(errors, draft, nameof(draft.EyesStunned), draft.EyesStunned);
+            ValidateDogAsset(errors, draft, nameof(draft.EyesSignaling), draft.EyesSignaling);
             if (!_assets.EyewearExists(draft.FixedEyewear))
                 errors.Add($"#{draft.Id} 的固定眼镜（FixedEyewear）素材不存在：{draft.FixedEyewear}");
         }
@@ -1135,22 +1165,23 @@ public partial class DogSkinEditorController : Control
 
     private static string FieldDisplayName(string field) => field switch
     {
-        nameof(DogSkinDraft.Nose) => "鼻子（Nose）",
-        nameof(DogSkinDraft.Mouse) => "嘴巴（Mouse）",
+        nameof(DogSkinDraft.DefaultNose) => "鼻子（DefaultNose）",
+        nameof(DogSkinDraft.MouseSilent) => "沉默嘴部（Mouse_Silent）",
+        nameof(DogSkinDraft.DefaultMouse) => "嘴巴（DefaultMouse）",
         nameof(DogSkinDraft.Head) => "狗头（Head）",
         nameof(DogSkinDraft.DefaultEars) => "默认耳朵（DefaultEars）",
         nameof(DogSkinDraft.DefaultEyes) => "默认眼睛（DefaultEyes）",
         nameof(DogSkinDraft.ClawLeftBack) => "左爪背面（Claw_Left_Back）",
         nameof(DogSkinDraft.ClawRightPalms) => "右爪掌面（Claw_Right_Palms）",
         nameof(DogSkinDraft.TongueRegular) => "常规舌头（Tongue_Regular）",
-        nameof(DogSkinDraft.EarsHappy) => "开心耳朵（Ears_Happy）",
-        nameof(DogSkinDraft.EarsPlane) => "放平耳朵（Ears_Plane）",
+        nameof(DogSkinDraft.EarsNormal) => "正常耳朵（Ears_Normal）",
+        nameof(DogSkinDraft.EarsDrooped) => "耷拉耳朵（Ears_Drooped）",
         nameof(DogSkinDraft.EyesBored) => "无聊眼睛（Eyes_Bored）",
-        nameof(DogSkinDraft.EyesCute) => "可爱眼睛（Eyes_Cute）",
+        nameof(DogSkinDraft.EyesNormalMood) => "平常心情眼睛（Eyes_NormalMood）",
         nameof(DogSkinDraft.EyesHappy) => "开心眼睛（Eyes_Happy）",
-        nameof(DogSkinDraft.EyesLucky) => "幸运眼睛（Eyes_Lucky）",
-        nameof(DogSkinDraft.EyesNeutral) => "平静眼睛（Eyes_Neutral）",
-        nameof(DogSkinDraft.EyesWink) => "眨眼眼睛（Eyes_Wink）",
+        nameof(DogSkinDraft.EyesAdmiring) => "崇拜眼睛（Eyes_Admiring）",
+        nameof(DogSkinDraft.EyesStunned) => "呆住眼睛（Eyes_Stunned）",
+        nameof(DogSkinDraft.EyesSignaling) => "示意眼睛（Eyes_Signaling）",
         _ => $"字段“{field}”",
     };
 
@@ -1164,9 +1195,9 @@ public partial class DogSkinEditorController : Control
         {
             draft.Id.ToString(), draft.Alias, draft.IconName, draft.DefaultEars, draft.DefaultEyes,
             draft.DefaultTongue, draft.FixedEyewear, draft.FolderPath, draft.Head,
-            draft.ClawLeftBack, draft.ClawRightPalms, draft.TongueRegular, draft.Nose, draft.Mouse, draft.EarsHappy,
-            draft.EarsPlane, draft.EyesBored, draft.EyesCute, draft.EyesHappy,
-            draft.EyesLucky, draft.EyesNeutral, draft.EyesWink,
+            draft.ClawLeftBack, draft.ClawRightPalms, draft.TongueRegular, draft.DefaultNose, draft.DefaultMouse, draft.MouseSilent, draft.EarsNormal,
+            draft.EarsDrooped, draft.EyesNormalMood, draft.EyesBored, draft.EyesHappy,
+            draft.EyesAdmiring, draft.EyesStunned, draft.EyesSignaling,
         }.Select(Csv))));
         return string.Join("\r\n", rows) + "\r\n";
     }
@@ -1174,9 +1205,9 @@ public partial class DogSkinEditorController : Control
     private static readonly string[] CsvHeaders =
     {
         "Id", "Alias", "IconName", "DefaultEars", "DefaultEyes", "DefaultTongue", "FixedEyewear",
-        "FolderPath", "Head", "Claw_Left_Back", "Claw_Right_Palms", "Tongue_Regular", "Nose", "Mouse",
-        "Ears_Happy", "Ears_Plane", "Eyes_Bored", "Eyes_Cute", "Eyes_Happy",
-        "Eyes_Lucky", "Eyes_Neutral", "Eyes_Wink",
+        "FolderPath", "Head", "Claw_Left_Back", "Claw_Right_Palms", "Tongue_Regular", "DefaultNose", "DefaultMouse", "Mouse_Silent",
+        "Ears_Normal", "Ears_Drooped", "Eyes_NormalMood", "Eyes_Bored", "Eyes_Happy",
+        "Eyes_Admiring", "Eyes_Stunned", "Eyes_Signaling",
     };
 
     private static string Csv(string value)
@@ -1284,16 +1315,17 @@ public partial class DogSkinEditorController : Control
         draft.ClawLeftBack,
         draft.ClawRightPalms,
         draft.TongueRegular,
-        draft.Nose,
-        draft.Mouse,
-        draft.EarsHappy,
-        draft.EarsPlane,
+        draft.DefaultNose,
+        draft.DefaultMouse,
+        draft.MouseSilent,
+        draft.EarsNormal,
+        draft.EarsDrooped,
         draft.EyesBored,
-        draft.EyesCute,
+        draft.EyesNormalMood,
         draft.EyesHappy,
-        draft.EyesLucky,
-        draft.EyesNeutral,
-        draft.EyesWink,
+        draft.EyesAdmiring,
+        draft.EyesStunned,
+        draft.EyesSignaling,
     });
 
     private static string DisplayEyewear(string value) =>
