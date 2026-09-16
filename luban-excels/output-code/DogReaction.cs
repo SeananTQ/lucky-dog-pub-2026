@@ -24,7 +24,6 @@ public sealed partial class DogReaction : Luban.BeanBase
         { if(!_buf["EyeAsset"].IsString) { throw new SerializationException(); }  EyeAsset = _buf["EyeAsset"]; }
         { if(!_buf["MouseAsset"].IsString) { throw new SerializationException(); }  MouseAsset = _buf["MouseAsset"]; }
         { if(!_buf["OverrideHeadwear"].IsString) { throw new SerializationException(); }  OverrideHeadwear = _buf["OverrideHeadwear"]; }
-        { if(!_buf["WearGlasses"].IsBoolean) { throw new SerializationException(); }  WearGlasses = _buf["WearGlasses"]; }
         { if(!_buf["LeftPawAnimation"].IsString) { throw new SerializationException(); }  LeftPawAnimation = _buf["LeftPawAnimation"]; }
         { if(!_buf["RightPawAnimation"].IsString) { throw new SerializationException(); }  RightPawAnimation = _buf["RightPawAnimation"]; }
         { if(!_buf["TongueAnimation"].IsString) { throw new SerializationException(); }  TongueAnimation = _buf["TongueAnimation"]; }
@@ -50,10 +49,6 @@ public sealed partial class DogReaction : Luban.BeanBase
     /// </summary>
     public readonly string OverrideHeadwear;
     /// <summary>
-    /// 该功能处于改版器，暂时禁用效果。bool字段保留后续用其他方式表示狗狗沉默。
-    /// </summary>
-    public readonly bool WearGlasses;
-    /// <summary>
     /// 左指画面左侧，而非狗自己的左
     /// </summary>
     public readonly string LeftPawAnimation;
@@ -78,7 +73,6 @@ public sealed partial class DogReaction : Luban.BeanBase
         + "EyeAsset:" + EyeAsset + ","
         + "MouseAsset:" + MouseAsset + ","
         + "OverrideHeadwear:" + OverrideHeadwear + ","
-        + "WearGlasses:" + WearGlasses + ","
         + "LeftPawAnimation:" + LeftPawAnimation + ","
         + "RightPawAnimation:" + RightPawAnimation + ","
         + "TongueAnimation:" + TongueAnimation + ","

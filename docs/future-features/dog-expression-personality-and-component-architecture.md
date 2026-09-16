@@ -1,10 +1,18 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-30
+last_edit: 2026-09-16
 status: draft
 ---
 
 # 狗狗表情、性格与美术部件架构构想
+
+## 当前实现与历史构想的边界
+
+2026-09-16 已选择继续通过 DogSkin 配置各只狗的语义化部件素材，并由 DogSkinEditor 管理，不因宽表维护成本而新增性格映射表。DogReaction 的 EarAsset、EyeAsset、MouseAsset 引用 DogSkin 字段，再读取该狗的具体 PNG；沉默通过 Mouse_Silent 接入，WearGlasses 已删除。鼻子与嘴部也已成为独立运行时部件。
+
+下文关于“DogSkin 仅保存固定身份信息”“移除 Eyes_Happy 等字段”“PersonalityReactionMap 独立长表”和“反应直接填写逻辑文件名”的内容保留为历史候选方案，不是当前实施要求。不得依据这些段落重构现有表或绕开当前字段映射。当前规则见 [小狗系统参考](../game-design/小狗系统参考.md)。
+
+有限情绪、性格样稿、附加表情效果和美术生产复用仍可继续讨论；本轮只完成现有字段规范化和沉默表现，不代表完整性格系统已实现。视觉检查后续扩展到 DogSkinEditor。
 
 ## 文档定位
 
@@ -393,4 +401,3 @@ DogSkin 建议增加或等价表达 `IconReactionId`：
 - 省略号应属于 ExpressionFX，还是继续使用独立 Emoji 气泡系统。
 - DogSkin 的招牌表情是否需要独立的 IconReactionId。
 - 性格到反应的映射采用独立长表，还是合并到未来的 ReactionProfile 数据结构中。
-

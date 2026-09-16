@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-09-05
+last_edit: 2026-09-16
 status: draft
 ---
 
@@ -79,7 +79,7 @@ flowchart TD
     D[DogSkinCatalogDraft.json] --> E[DogSkinCatalogDraft]
     C --> E
     E --> F[总览与编辑界面]
-    G[Assets/v1/Shiba 与 Eyewear] --> H[DogSkinAssetCatalog]
+    G[Assets/v3、v1、v2 的 Shiba 与 v1 Eyewear] --> H[DogSkinAssetCatalog]
     H --> F
     F --> I[DogAppearanceSpec]
     I --> J[DogVisual 实际渲染]
@@ -150,7 +150,7 @@ flowchart LR
 
 ## 草稿模型与版本迁移
 
-`DogSkinCatalogDraft` 当前版本为 V2，包含：
+`DogSkinCatalogDraft` 当前版本为 V3，包含：
 
 - `Version`：草稿结构版本。
 - `UpdatedAtUtc`：最近一次保存时间。
@@ -168,12 +168,20 @@ flowchart LR
 
 V1 → V2 的现有迁移会按 `Id` 从正式表补齐 `Alias`。后续不得删除该迁移，除非项目明确不再支持任何 V1 草稿。
 
+V3 同步 DogSkin 的语义化字段名。LoadCatalog 在反序列化前调用 MigrateDraftFieldNames，把旧 JSON 键转换成新键，避免旧字段被忽略后丢失素材选择。仅在新键不存在时复制旧值，不覆盖已有新值；磁盘文件等待正常保存才更新。
+
+草稿属性改名包括 Nose / Mouse 为 DefaultNose / DefaultMouse，EarsHappy / EarsPlane 为 EarsNormal / EarsDrooped，EyesCute / EyesLucky / EyesNeutral / EyesWink 为 EyesNormalMood / EyesAdmiring / EyesStunned / EyesSignaling。正式表对应语义字段仍使用 Eyes_NormalMood 等下划线名称。
+
+MouseSilent 对应正式 Mouse_Silent，已同步正式数据映射、克隆、共享渲染模型、可选素材校验、CSV 和完全重复检查。旧草稿没有该字段时保留空值，运行时回退默认嘴部，不强制回填。
+
+三个 DogReaction Asset 列现在引用 DogSkin 字段，而非文件名。解析与沉默表现详见 [小狗系统参考](../game-design/小狗系统参考.md)。选择器隐藏扩展名不得改变引用规则。
+
 ## 素材扫描边界
 
 `DogSkinAssetCatalog` 当前只扫描：
 
-- `res://Assets/v1/Shiba` 的一级子目录，形成 `FolderPath` 候选。
-- 当前狗狗目录顶层的 `*.png`，按前缀筛选 Head、Ears、Eyes、Claw 和 Tongue。
+- `res://Assets/v3/Shiba`、`res://Assets/v1/Shiba`、`res://Assets/v2/Shiba` 的一级子目录，形成 `FolderPath` 候选。
+- 当前狗狗目录顶层的 `*.png`，按前缀筛选 Head、Ears、Eyes、Claw、Tongue、Nose 和 Mouse。
 - `res://Assets/v1/Eyewear` 顶层的 `*.png`，并额外加入空字符串表示无眼镜。
 
 扫描不会递归进入更深层目录。若未来改变美术目录层级，应先明确新的唯一资源标识，再修改扫描逻辑、路径校验、CSV 表达和游戏运行时路径解析，不能只让选择器递归显示文件。
@@ -261,6 +269,8 @@ Id, Alias, IconName, DefaultEars, DefaultEyes, ...
 ```
 
 字段包含逗号、双引号或换行时，通过 `Csv()` 按标准 CSV 规则转义。
+
+当前导出为 23 列，包含 DefaultNose、DefaultMouse、Mouse_Silent 及语义化眼睛、耳朵字段。列序以最新 tbdogskin.json 为准，不能只改列名而遗漏值数组顺序。
 
 导出前 `ValidateCatalog()` 会检查：
 
@@ -420,6 +430,10 @@ Id,SkinId,AssetPathList,IconPath
 9. 将 CSV 数据进入 Excel 后重新运行 Luban，并在游戏中验证实际 DogSkin。
 
 “编译通过”只证明 C# 语法和类型正确；“场景无异常”只证明启动阶段没有捕获到运行时错误。预览构图、窗口布局和 Excel 数据闭环仍需人工验收。
+
+TestDogSkinParts 是独立 Godot 集成回归入口，覆盖真实节点、正式表遍历及部分关键断言，不依赖完整游戏或 Steam 会话。新增部件及表结构时应同步扩充该测试，实际运行结果必须单独记录，不能用编译结果代替。
+
+后续视觉验收能力集中扩展到 DogSkinEditor，用于人工观察不同狗狗在各反应下的搭配、遮挡与穿帮。当前表情下拉预览不是完整视觉测试套件，也没有自动判定画面正确的能力。
 
 ## 当前限制与后续扩展方向
 
