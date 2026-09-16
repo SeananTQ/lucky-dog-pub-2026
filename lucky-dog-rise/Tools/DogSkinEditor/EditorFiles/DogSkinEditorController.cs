@@ -37,6 +37,40 @@ public partial class DogSkinEditorController : Control
     private DogVisual _editorPreview = null!;
     private DogSkinIconExportService _iconExportService = null!;
     private EDogReactionTrigger _editorReaction = EDogReactionTrigger.Default;
+    private EDogReactionTrigger _overviewReaction = EDogReactionTrigger.Default;
+    private int _overviewReactionRevision;
+    private readonly List<OverviewPreview> _overviewPreviews = new();
+
+    private sealed class OverviewPreview
+    {
+        public SubViewportContainer Container;
+        public SubViewport Viewport;
+        public DogVisual Dog;
+        public int AppliedRevision = -1;
+        public bool WasVisible;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_editingDraft != null || !GodotObject.IsInstanceValid(_overviewScroll)) return;
+        var visibleRect = _overviewScroll.GetGlobalRect();
+        foreach (var preview in _overviewPreviews)
+        {
+            if (!GodotObject.IsInstanceValid(preview.Container) || !preview.Dog.IsNodeReady()) continue;
+            var visible = preview.Container.IsVisibleInTree()
+                && visibleRect.Intersects(preview.Container.GetGlobalRect());
+            preview.Dog.ProcessMode = visible ? ProcessModeEnum.Inherit : ProcessModeEnum.Disabled;
+            preview.Viewport.RenderTargetUpdateMode = visible ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
+            if (visible && (!preview.WasVisible || preview.AppliedRevision != _overviewReactionRevision))
+            {
+                preview.Dog.ApplyReaction(_overviewReaction);
+                if (_overviewReaction == EDogReactionTrigger.Default)
+                    preview.Dog.ShowInspectionClaws();
+                preview.AppliedRevision = _overviewReactionRevision;
+            }
+            preview.WasVisible = visible;
+        }
+    }
     private bool _hasUnsavedChanges;
     private readonly List<Label> _dirtyIndicators = new();
 
@@ -117,6 +151,8 @@ public partial class DogSkinEditorController : Control
     private void ShowOverview()
     {
         _editingDraft = null;
+        _editorPreview = null;
+        _overviewPreviews.Clear();
         _dirtyIndicators.Clear();
         ClearChildren(_content);
 
@@ -156,6 +192,32 @@ public partial class DogSkinEditorController : Control
         _overviewSummary = new Label { Modulate = new Color("c7cfda") };
         body.AddChild(_overviewSummary);
 
+        var reactionRow = new HBoxContainer();
+        reactionRow.AddChild(new Label { Text = "统一预览表情：", VerticalAlignment = VerticalAlignment.Center });
+        var reactionOption = new OptionButton { CustomMinimumSize = new Vector2(230, 38) };
+        foreach (var trigger in Enum.GetValues<EDogReactionTrigger>())
+        {
+            reactionOption.AddItem(trigger.ToString(), (int)trigger);
+            if (trigger == _overviewReaction) reactionOption.Select(reactionOption.ItemCount - 1);
+        }
+        void SelectReaction(int index)
+        {
+            reactionOption.Select(index);
+            _overviewReaction = (EDogReactionTrigger)reactionOption.GetItemId(index);
+            _overviewReactionRevision++;
+        }
+        void StepReaction(int direction)
+        {
+            if (reactionOption.ItemCount == 0) return;
+            SelectReaction((reactionOption.Selected + direction + reactionOption.ItemCount) % reactionOption.ItemCount);
+        }
+        reactionRow.AddChild(CreateButton("上一个", () => StepReaction(-1)));
+        reactionRow.AddChild(CreateButton("下一个", () => StepReaction(1)));
+        reactionRow.AddChild(reactionOption);
+        reactionRow.AddChild(CreateButton("重新播放", () => _overviewReactionRevision++));
+        reactionOption.ItemSelected += index => SelectReaction((int)index);
+        body.AddChild(reactionRow);
+
         _overviewScroll = new ScrollContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -192,6 +254,7 @@ public partial class DogSkinEditorController : Control
         if (_overviewGrid == null)
             return;
 
+        _overviewPreviews.Clear();
         ClearChildren(_overviewGrid);
         var query = _searchInput?.Text.Trim() ?? "";
         var head = SelectedFilter(_headFilter, "全部头型");
@@ -274,7 +337,7 @@ public partial class DogSkinEditorController : Control
                 TooltipText = $"完整视觉配置相同：{string.Join("、", duplicateIds.Select(id => $"#{id}"))}",
             });
         }
-        box.AddChild(CreateDogViewport(draft, thumbnail: true));
+        box.AddChild(CreateDogViewport(draft, thumbnail: true, overview: true));
         box.AddChild(new Label
         {
             Text = $"#{draft.Id}  {draft.Alias}",
@@ -307,6 +370,7 @@ public partial class DogSkinEditorController : Control
 
     private void ShowEditor(DogSkinDraft draft)
     {
+        _overviewPreviews.Clear();
         _editingDraft = draft;
         _dirtyIndicators.Clear();
         ClearChildren(_content);
@@ -330,12 +394,22 @@ public partial class DogSkinEditorController : Control
             if (trigger == _editorReaction)
                 reactionOption.Select(reactionOption.ItemCount - 1);
         }
-        reactionOption.ItemSelected += index =>
+        void SelectReaction(int index)
         {
-            _editorReaction = (EDogReactionTrigger)reactionOption.GetItemId((int)index);
+            reactionOption.Select(index);
+            _editorReaction = (EDogReactionTrigger)reactionOption.GetItemId(index);
             ApplyEditorPreviewReaction();
-        };
+        }
+        void StepReaction(int direction)
+        {
+            if (reactionOption.ItemCount == 0) return;
+            var index = (reactionOption.Selected + direction + reactionOption.ItemCount) % reactionOption.ItemCount;
+            SelectReaction(index);
+        }
+        reactionOption.ItemSelected += index => SelectReaction((int)index);
         previewHeader.AddChild(new Label { Text = "表情：", VerticalAlignment = VerticalAlignment.Center });
+        previewHeader.AddChild(CreateButton("上一个", () => StepReaction(-1)));
+        previewHeader.AddChild(CreateButton("下一个", () => StepReaction(1)));
         previewHeader.AddChild(reactionOption);
         previewColumn.AddChild(previewHeader);
 
@@ -508,7 +582,7 @@ public partial class DogSkinEditorController : Control
         return section;
     }
 
-    private SubViewportContainer CreateDogViewport(DogSkinDraft draft, bool thumbnail)
+    private SubViewportContainer CreateDogViewport(DogSkinDraft draft, bool thumbnail, bool overview = false)
     {
         var container = new SubViewportContainer
         {
@@ -543,7 +617,13 @@ public partial class DogSkinEditorController : Control
         viewport.AddChild(dog);
         dog.SetHitButtonEnabled(false);
         dog.CallDeferred(nameof(DogVisual.SetHitButtonEnabled), false);
-        dog.CallDeferred(nameof(DogVisual.ShowInspectionClaws));
+        if (thumbnail && !overview)
+            dog.CallDeferred(nameof(DogVisual.ShowInspectionClaws));
+        if (overview)
+        {
+            viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
+            _overviewPreviews.Add(new OverviewPreview { Container = container, Viewport = viewport, Dog = dog });
+        }
         void UpdatePreviewTransform()
         {
             var size = container.Size;
@@ -909,7 +989,10 @@ public partial class DogSkinEditorController : Control
             return;
 
         _editorPreview.ApplyReaction(_editorReaction);
-        _editorPreview.ShowInspectionClaws();
+        // Only the default asset-inspection pose overrides paws. Reaction
+        // previews must retain the real pose and any running paw animation.
+        if (_editorReaction == EDogReactionTrigger.Default)
+            _editorPreview.ShowInspectionClaws();
     }
 
     private void CreateNewDraft()
