@@ -9,7 +9,7 @@ namespace LuckyDogRise.Tools;
 public sealed class DogSkinAssetCatalog
 {
     private static readonly string[] ShibaRoots =
-        { "res://Assets/v0/Shiba", "res://Assets/v1/Shiba", "res://Assets/v2/Shiba" };
+        { "res://Assets/v3/Shiba", "res://Assets/v1/Shiba", "res://Assets/v2/Shiba" };
     private const string EyewearRoot = "res://Assets/v1/Eyewear";
 
     public IReadOnlyList<string> FolderPaths { get; }

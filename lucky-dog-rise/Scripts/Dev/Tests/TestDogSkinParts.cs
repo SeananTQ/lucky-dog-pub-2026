@@ -27,9 +27,9 @@ public partial class TestDogSkinParts : Node
             var copy = JsonSerializer.Deserialize<DogSkinDraft>(JsonSerializer.Serialize(draft.CloneWithId(1012)))!;
             dog.SetPreviewAppearance(copy.ToAppearanceSpec());
             Check(nose.Visible && mouth.Visible, "new face visibility");
-            Check(head.Position.IsEqualApprox(new Vector2(10.5f, -137f)), "v0 head PSD reference offset");
+            Check(head.Position.IsEqualApprox(new Vector2(10.5f, -137f)), "v3 head PSD reference offset");
             Check(nose.Position.IsEqualApprox(new Vector2(11f, -223.5f)), "nose relative to reference head");
-            Check(mouth.Position.IsEqualApprox(new Vector2(10.5f, -93f)), "mouth relative to reference head");
+            Check(mouth.Position.IsEqualApprox(new Vector2(10f, -93f)), "mouth relative to reference head");
             var material = (ShaderMaterial)head.Material;
             Check(Mathf.IsEqualApprox(material.GetShaderParameter("cutoff_y").AsSingle(), 137f), "head clip plane");
             dog.SetIntroPartVisibility(false, false, true);
@@ -53,7 +53,7 @@ public partial class TestDogSkinParts : Node
             }
 
             var assets = new DogSkinAssetCatalog();
-            Check(assets.FolderPaths.Contains("v0\\Shiba\\Sesame"), "editor v0 folder");
+            Check(assets.FolderPaths.Contains("v3\\Shiba\\Sesame"), "editor v3 folder");
             Check(assets.GetFiles(draft.FolderPath, "Nose_").Contains(draft.Nose), "editor nose choices");
             var editor = new DogSkinEditorController();
             var flags = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -70,7 +70,7 @@ public partial class TestDogSkinParts : Node
             dog.QueueFree();
             other.QueueFree();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            GD.Print("DOG_SKIN_PARTS_PASS: v0 coordinates, optional parts, skin/reaction switches, Rise visibility, isolated clip materials, editor choices, draft round-trip and CSV.");
+            GD.Print("DOG_SKIN_PARTS_PASS: v3 coordinates, optional parts, skin/reaction switches, Rise visibility, isolated clip materials, editor choices, draft round-trip and CSV.");
             GetTree().Quit();
         }
         catch (Exception exception)

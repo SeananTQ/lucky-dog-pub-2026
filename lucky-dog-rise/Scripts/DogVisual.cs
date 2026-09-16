@@ -167,7 +167,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (_psdCenterCache != null) return;
         _psdCenterCache = new Dictionary<string, Vector2>();
 
-        LoadPositionCache("res://Assets/v0/layer_index_v0.json", "v0");
+        LoadPositionCache("res://Assets/v3/layer_index_v3.json", "v3");
         LoadPositionCache("res://Assets/v1/layer_index_v1.json", "v1");
         LoadPositionCache("res://Assets/v2/layer_index_v2.json", "v2");
     }

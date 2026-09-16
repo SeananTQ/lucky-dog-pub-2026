@@ -263,7 +263,7 @@ public partial class DogSkinIconExportService : Node
                 item.Id,
                 item.SkinId,
                 EnsureTrailingBackslash(draft.FolderPath),
-                $"v0\\ItemIcon\\{IconFileName(draft.Id)}"));
+                $"v3\\ItemIcon\\{IconFileName(draft.Id)}"));
         }
         return rows;
     }

@@ -65,7 +65,7 @@ public partial class DogSkinIconComposerWindow : Window
         root.AddChild(title);
         root.AddChild(new Label
         {
-            Text = "图片只输出到工具目录。审阅通过后，再手动复制到 Assets/v0/ItemIcon。",
+            Text = "图片只输出到工具目录。审阅通过后，再手动复制到 Assets/v3/ItemIcon。",
             Modulate = new Color("aeb8c7"),
         });
 
@@ -267,7 +267,7 @@ public partial class DogSkinIconComposerWindow : Window
                 + $"tbitem 补丁 CSV 共 {result.ItemRowCount} 行。\n\n"
                 + $"图标：{result.ItemIconDirectory}\n"
                 + $"CSV：{result.ItemPatchCsvPath}\n\n"
-                + "确认图标后，请手动复制到项目的 Assets/v0/ItemIcon。",
+                + "确认图标后，请手动复制到项目的 Assets/v3/ItemIcon。",
         };
         var openFolderButton = dialog.AddButton("打开输出文件夹", true);
         openFolderButton.Pressed += () => OpenOutputFolder(result.OutputDirectory);
