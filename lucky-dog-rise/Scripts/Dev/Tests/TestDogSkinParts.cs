@@ -27,9 +27,13 @@ public partial class TestDogSkinParts : Node
             var copy = JsonSerializer.Deserialize<DogSkinDraft>(JsonSerializer.Serialize(draft.CloneWithId(1012)))!;
             dog.SetPreviewAppearance(copy.ToAppearanceSpec());
             Check(nose.Visible && mouth.Visible, "new face visibility");
-            Check(head.Position.IsEqualApprox(new Vector2(10.5f, -137f)), "v3 head PSD reference offset");
-            Check(nose.Position.IsEqualApprox(new Vector2(11f, -223.5f)), "nose relative to reference head");
-            Check(mouth.Position.IsEqualApprox(new Vector2(10f, -93f)), "mouth relative to reference head");
+            Check(head.Position.IsEqualApprox(new Vector2(-0.5f, -137f)), "v3 head PSD reference offset");
+            Check(nose.Position.IsEqualApprox(new Vector2(0f, -223.5f)), "nose relative to reference head");
+            Check(mouth.Position.IsEqualApprox(new Vector2(-1f, -93f)), "mouth relative to reference head");
+            Check(dog.ToLocal(dog.GetNode<Sprite2D>("ClawLeft/Claw_Back_Left").GlobalPosition)
+                .IsEqualApprox(new Vector2(-319.5f, -15f)), "left back paw PSD plane");
+            Check(dog.ToLocal(dog.GetNode<Sprite2D>("ClawRight/Claw_Palm_Left").GlobalPosition)
+                .IsEqualApprox(new Vector2(304.5f, 32f)), "right palm mirrored reference delta");
             var material = (ShaderMaterial)head.Material;
             Check(Mathf.IsEqualApprox(material.GetShaderParameter("cutoff_y").AsSingle(), 137f), "head clip plane");
             dog.SetIntroPartVisibility(false, false, true);

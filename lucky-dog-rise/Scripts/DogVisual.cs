@@ -584,7 +584,12 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         {
             sprite.Texture = texture;
             var reference = _partReferences[sprite];
-            sprite.Position = GetAdornmentScenePosition(DogResPath(fileName), reference.Path, reference.Position);
+            var position = GetAdornmentScenePosition(DogResPath(fileName), reference.Path, reference.Position);
+            // The shared left palm mirrors the PSD right-palm image; mirror its
+            // center delta too. ClawRight then mirrors the whole prefab back.
+            if (sprite.FlipH)
+                position.X = 2f * reference.Position.X - position.X;
+            sprite.Position = position;
         }
     }
 
