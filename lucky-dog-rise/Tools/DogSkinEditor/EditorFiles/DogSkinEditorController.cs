@@ -602,11 +602,11 @@ public partial class DogSkinEditorController : Control
         SetFullRect(background);
         viewport.AddChild(background);
 
-        // Mirror Main.tscn's table layer without introducing a distracting
-        // table texture into the asset editor: palm(1) < mask/table(2) < back(3).
+        // A visible desktop/table placeholder grounds the dog while retaining
+        // the real occlusion order: palm(1) < table(2) < back/tongue(3).
         var tableMask = new ColorRect
         {
-            Color = background.Color,
+            Color = new Color("e7eaf0"),
             ZIndex = 2,
             MouseFilter = MouseFilterEnum.Ignore,
         };
