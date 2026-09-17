@@ -1,17 +1,17 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene format=3 uid="uid://dns1ik3w2rers"]
 
-[ext_resource type="Script" path="res://Scripts/Desktop/CollectionEventRewardCellController.cs" id="1_controller"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_plate"]
-[ext_resource type="Texture2D" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_icon"]
-[ext_resource type="Texture2D" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_frame"]
-[ext_resource type="Texture2D" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Reveal1.png" id="5_revealed"]
-[ext_resource type="Texture2D" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Full.png" id="6_full"]
+[ext_resource type="Script" uid="uid://cwglnxac734rr" path="res://Scripts/Desktop/CollectionEventRewardCellController.cs" id="1_controller"]
+[ext_resource type="Texture2D" uid="uid://bucc0k8foyvtv" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_plate"]
+[ext_resource type="Texture2D" uid="uid://cu4e5ka6ob2qo" path="res://Assets/v1/Fallback/ItemIcon_Fallback.png" id="3_w5ueh"]
+[ext_resource type="Texture2D" uid="uid://cexiau3fabmyy" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_frame"]
+[ext_resource type="Texture2D" uid="uid://ya2usfykpu8c" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Reveal1.png" id="5_revealed"]
+[ext_resource type="Texture2D" uid="uid://bl6xoxjove34b" path="res://Assets/Event/Collection/ItemUI_ScratchCover_Full.png" id="6_full"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_root"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_claim_button"]
 
-[node name="CollectionEventRewardCell" type="PanelContainer" node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_shineTransitionCover", "_fullCover", "_claimButton")]
+[node name="CollectionEventRewardCell" type="PanelContainer" unique_id=1856140147 node_paths=PackedStringArray("_plate", "_icon", "_frame", "_revealedCover", "_shineCover", "_shineTransitionCover", "_fullCover", "_claimButton")]
 custom_minimum_size = Vector2(58, 58)
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_root")
@@ -25,11 +25,11 @@ _shineTransitionCover = NodePath("Content/ShineTransitionCover")
 _fullCover = NodePath("Content/FullCover")
 _claimButton = NodePath("ClaimButton")
 
-[node name="Content" type="Control" parent="."]
+[node name="Content" type="Control" parent="." unique_id=1353536537]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Plate" type="TextureRect" parent="Content"]
+[node name="Plate" type="TextureRect" parent="Content" unique_id=342574530]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -41,7 +41,7 @@ texture = ExtResource("2_plate")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="Icon" type="TextureRect" parent="Content"]
+[node name="Icon" type="TextureRect" parent="Content" unique_id=1414502685]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -49,11 +49,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("3_icon")
+texture = ExtResource("3_w5ueh")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="Frame" type="TextureRect" parent="Content"]
+[node name="Frame" type="TextureRect" parent="Content" unique_id=467368564]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -65,7 +65,7 @@ texture = ExtResource("4_frame")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="RevealedCover" type="TextureRect" parent="Content"]
+[node name="RevealedCover" type="TextureRect" parent="Content" unique_id=158375112]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -77,7 +77,7 @@ texture = ExtResource("5_revealed")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="ShineCover" type="TextureRect" parent="Content"]
+[node name="ShineCover" type="TextureRect" parent="Content" unique_id=2063341900]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -89,20 +89,20 @@ mouse_filter = 2
 expand_mode = 3
 stretch_mode = 5
 
-[node name="ShineTransitionCover" type="TextureRect" parent="Content"]
+[node name="ShineTransitionCover" type="TextureRect" parent="Content" unique_id=137007081]
 visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 expand_mode = 3
 stretch_mode = 5
 
-[node name="FullCover" type="TextureRect" parent="Content"]
+[node name="FullCover" type="TextureRect" parent="Content" unique_id=676107205]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -114,12 +114,12 @@ texture = ExtResource("6_full")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="ClaimButton" type="Button" parent="."]
+[node name="ClaimButton" type="Button" parent="." unique_id=1872793530]
 layout_mode = 2
 focus_mode = 0
-disabled = true
 theme_override_styles/normal = SubResource("StyleBoxEmpty_claim_button")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_claim_button")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_claim_button")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_claim_button")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_claim_button")
+disabled = true

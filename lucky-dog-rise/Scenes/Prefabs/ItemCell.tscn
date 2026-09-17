@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bad2jhr24ohsl" path="res://Scripts/Desktop/ItemCellController.cs" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bucc0k8foyvtv" path="res://Assets/UI/ItemUI/Plate_Common.png" id="2_ep3ge"]
 [ext_resource type="Texture2D" uid="uid://6lntwacy3nxl" path="res://Assets/UI/ItemUI/Mark_Equipped.png" id="2_mark"]
-[ext_resource type="Texture2D" uid="uid://cgbhbfglpnwll" path="res://Assets/v1/ItemIcon/Headwear_FedoraHat_Gray.png" id="3_lrxce"]
+[ext_resource type="Texture2D" uid="uid://cu4e5ka6ob2qo" path="res://Assets/v1/Fallback/ItemIcon_Fallback.png" id="3_lt10t"]
 [ext_resource type="Texture2D" uid="uid://cexiau3fabmyy" path="res://Assets/UI/ItemUI/Frame_Common.png" id="4_lt10t"]
 [ext_resource type="Texture2D" uid="uid://dvfaahskvire7" path="res://Assets/UI/ItemUI/Mark_New.png" id="6_260rb"]
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="7_count_inter"]
@@ -52,7 +52,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("3_lrxce")
+texture = ExtResource("3_lt10t")
 expand_mode = 3
 stretch_mode = 5
 
