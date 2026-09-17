@@ -3,7 +3,7 @@
   "version": "v2",
   "canvas_width": 1200,
   "canvas_height": 1200,
-  "total_layers": 51,
+  "total_layers": 52,
   "layers": [
     {
       "name": "EyePatch",
@@ -314,15 +314,26 @@
       "doc_y": 143
     },
     {
-      "name": "矢量智能对象",
-      "file": "Headwear/矢量智能对象.png",
+      "name": "PartyHat_CottonCandy",
+      "file": "Headwear/PartyHat_CottonCandy.png",
       "group": "Headwear",
-      "x": 483,
-      "y": 52,
-      "width": 228,
-      "height": 281,
-      "doc_x": 483,
-      "doc_y": 52
+      "x": 472,
+      "y": 22,
+      "width": 258,
+      "height": 319,
+      "doc_x": 472,
+      "doc_y": 22
+    },
+    {
+      "name": "PartyHat_Classic",
+      "file": "Headwear/PartyHat_Classic.png",
+      "group": "Headwear",
+      "x": 472,
+      "y": 22,
+      "width": 258,
+      "height": 319,
+      "doc_x": 472,
+      "doc_y": 22
     },
     {
       "name": "SailorCap_Harbor",
