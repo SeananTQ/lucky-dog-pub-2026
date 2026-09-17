@@ -19,6 +19,7 @@ public sealed partial class Item : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
+        { if(!_buf["Alias"].IsString) { throw new SerializationException(); }  Alias = _buf["Alias"]; }
         { if(!_buf["ItemType"].IsNumber) { throw new SerializationException(); }  ItemType = (EItemType)_buf["ItemType"].AsInt; }
         { if(!_buf["HiddenRegionFlag"].IsNumber) { throw new SerializationException(); }  HiddenRegionFlag = (EHiddenRegionFlag)_buf["HiddenRegionFlag"].AsInt; }
         { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
@@ -50,6 +51,10 @@ public sealed partial class Item : Luban.BeanBase
 
     public readonly int Id;
     public readonly string Name;
+    /// <summary>
+    /// 内部名称方便记忆
+    /// </summary>
+    public readonly string Alias;
     public readonly EItemType ItemType;
     /// <summary>
     /// 在哪些国家无法抽到
@@ -136,6 +141,7 @@ public sealed partial class Item : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "Name:" + Name + ","
+        + "Alias:" + Alias + ","
         + "ItemType:" + ItemType + ","
         + "HiddenRegionFlag:" + HiddenRegionFlag + ","
         + "SafeResourceId:" + SafeResourceId + ","
