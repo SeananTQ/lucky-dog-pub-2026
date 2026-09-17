@@ -197,6 +197,9 @@ public sealed class LootDataStore
         Directory.CreateDirectory(outputDirectory);
         var itemPatchPath = Path.Combine(outputDirectory, "ItemLootPatch.csv");
         var itemWeightPath = Path.Combine(outputDirectory, "BlindBoxItemWeight.csv");
+        var snapshotPath = Path.Combine(outputDirectory, "LootValidationSnapshot.json");
+        // An interrupted export must not leave an older snapshot looking current.
+        File.Delete(snapshotPath);
         var encoding = new UTF8Encoding(true);
 
         var itemLines = new List<string> { "ItemId,ItemRarity,AcquisitionType" };
@@ -210,6 +213,33 @@ public sealed class LootDataStore
         weightLines.AddRange(ItemWeights.OrderBy(row => row.Id).Select(row => string.Join(",",
             row.Id, row.BlindBoxId, row.ItemId, row.Weight, row.IsEnabled ? "TRUE" : "FALSE")));
         File.WriteAllLines(itemWeightPath, weightLines, encoding);
+        var snapshot = new
+        {
+            Version = 1,
+            ExportedAtUtc = DateTimeOffset.UtcNow,
+            CsvSha256 = new Dictionary<string, string>
+            {
+                [Path.GetFileName(itemPatchPath)] = CalculateSha256(itemPatchPath),
+                [Path.GetFileName(itemWeightPath)] = CalculateSha256(itemWeightPath),
+            },
+            Items = Items.OrderBy(item => item.Id).Select(item => new
+            {
+                item.Id, ItemRarity = (int)item.Rarity, AcquisitionType = (int)item.AcquisitionType,
+            }),
+            ItemWeights = ItemWeights.OrderBy(row => row.Id).Select(row => new
+            {
+                row.Id, row.BlindBoxId, row.ItemId, row.Weight, row.IsEnabled,
+            }),
+            RarityRates = RarityRates.Select(row => new
+            {
+                row.BlindBoxId, Rarity = (int)row.Rarity, row.Weight, row.IsEnabled,
+            }),
+            BlindBoxes = BlindBoxes.Select(box => new
+            {
+                box.Id, BoxType = (int)box.BoxType, box.IsEnabled,
+            }),
+        };
+        File.WriteAllText(snapshotPath, JsonSerializer.Serialize(snapshot, ProjectJsonOptions), new UTF8Encoding(false));
         return new[] { itemPatchPath, itemWeightPath };
     }
 

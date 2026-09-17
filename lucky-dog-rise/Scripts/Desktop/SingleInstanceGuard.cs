@@ -52,6 +52,14 @@ public partial class SingleInstanceGuard : Node
     public override void _EnterTree()
     {
         _instance = this;
+#if DEBUG
+        // The read-only configuration test must not acquire the game's mutex or
+        // replace its published account identity when launched with F6.
+        if (OS.GetCmdlineArgs().Any(argument => argument.Replace('\\', '/').EndsWith(
+                "/LootConfigurationValidation.tscn", StringComparison.OrdinalIgnoreCase))
+            || OS.GetCmdlineUserArgs().Contains("--loot-validation-headless"))
+            return;
+#endif
         if (!OperatingSystem.IsWindows())
             return;
 

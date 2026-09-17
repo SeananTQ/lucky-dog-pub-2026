@@ -1421,6 +1421,12 @@ public sealed class BlindBoxService
     }
 
 #if DEBUG
+    internal BlindBoxService(int testSeed)
+    {
+        _gameData = null!;
+        _random = new Random(testSeed);
+    }
+
     internal Item? RollRewardForTesting(BlindBox box, BlindBoxRuntimeState runtimeState) =>
         RollReward(box, runtimeState);
 #endif
