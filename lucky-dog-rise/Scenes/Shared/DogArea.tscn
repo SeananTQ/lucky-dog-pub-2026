@@ -6,8 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://cnwnetunvufkk" path="res://Assets/v3/Shiba/Red/Tongue_Regular.png" id="4_d5sjk"]
 [ext_resource type="Texture2D" uid="uid://221vmbn3f52" path="res://Assets/v3/Shiba/Red/Eyes_Cute.png" id="5_a4wju"]
 [ext_resource type="PackedScene" uid="uid://ck4rk70dmgfjw" path="res://Scenes/Prefabs/DogClaw.tscn" id="6_cm54h"]
-[ext_resource type="Texture2D" uid="uid://cynyioj5isqrp" path="res://Assets/v1/Eyewear/Sunglasses_Blade.png" id="8_3ms1v"]
-[ext_resource type="Texture2D" uid="uid://bgy6rp2ii45lp" path="res://Assets/v1/Headwear/FedoraHat_Maroon.png" id="9_e0wpe"]
+[ext_resource type="Texture2D" uid="uid://cuiwlv12m8bc7" path="res://Assets/v2/Eyewear/PixelDealShades.png" id="8_3ms1v"]
+[ext_resource type="Texture2D" uid="uid://cgdkw6fxfwwdj" path="res://Assets/v2/Headwear/FedoraHat_Gray.png" id="9_e0wpe"]
 [ext_resource type="Texture2D" uid="uid://nhpdunhdi4ft" path="res://Assets/v3/Shiba/Red/Nose_Brown.png" id="10_nose"]
 [ext_resource type="Texture2D" uid="uid://onf5c7ayehg7" path="res://Assets/v3/Shiba/Red/Mouse_Natural.png" id="11_mouth"]
 
@@ -63,12 +63,12 @@ texture = ExtResource("5_a4wju")
 
 [node name="Eyewear" type="Sprite2D" parent="HeadRoot" unique_id=1858841942]
 visible = false
-position = Vector2(0, -262)
+position = Vector2(0.5, -265.5)
 texture = ExtResource("8_3ms1v")
 
 [node name="Headwear" type="Sprite2D" parent="HeadRoot" unique_id=268961892]
 visible = false
-position = Vector2(0, -440)
+position = Vector2(0, -438)
 texture = ExtResource("9_e0wpe")
 
 [node name="ClawLeft" parent="." unique_id=829141221 instance=ExtResource("6_cm54h")]
