@@ -241,7 +241,7 @@ public partial class DogSkinIconComposerWindow : Window
                     false));
 
             SetStatus(
-                $"已生成 {result.IconCount} 张图标和 {result.ItemRowCount} 条 tbitem 补丁数据。",
+                $"已生成 {result.IconCount} 张图标和 {result.ItemRowCount} 条 Item 美术数据（含新增）。",
                 false);
             ShowCompleted(result);
         }
@@ -264,7 +264,9 @@ public partial class DogSkinIconComposerWindow : Window
         {
             Title = "图标与 CSV 已生成",
             DialogText = $"已生成 {result.IconCount} 张 DogSkin 图标。\n"
-                + $"tbitem 补丁 CSV 共 {result.ItemRowCount} 行。\n\n"
+                + $"Item 美术 CSV 共 {result.ItemRowCount} 行，包含已有道具与新增皮肤。\n"
+                + "列：Id、Alias、SkinId、AssetPathList、IconPath。\n"
+                + "请按列合并；新增道具的其他配置需在 Excel 补齐，不修改 Name。\n\n"
                 + $"图标：{result.ItemIconDirectory}\n"
                 + $"CSV：{result.ItemPatchCsvPath}\n\n"
                 + "确认图标后，请手动复制到项目的 Assets/v3/ItemIcon。",

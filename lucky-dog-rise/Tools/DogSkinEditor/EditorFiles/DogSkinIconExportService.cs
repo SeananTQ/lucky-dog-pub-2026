@@ -148,6 +148,7 @@ public partial class DogSkinIconExportService : Node
         var duplicateId = drafts.GroupBy(draft => draft.Id).FirstOrDefault(group => group.Count() > 1);
         if (duplicateId != null)
             throw new InvalidDataException($"DogSkin 编号 {duplicateId.Key} 重复，无法安全生成图标。");
+        var patchRows = BuildItemPatchRows(drafts);
 
         var outputDirectory = ProjectSettings.GlobalizePath(OutputResourceDirectory);
         var itemIconDirectory = ProjectSettings.GlobalizePath(ItemIconResourceDirectory);
@@ -166,7 +167,6 @@ public partial class DogSkinIconExportService : Node
                 throw new IOException($"保存 DogSkin #{draft.Id} 图标失败，Godot 错误代码：{(int)error}。");
         }
 
-        var patchRows = BuildItemPatchRows(orderedDrafts);
         File.WriteAllText(itemPatchCsvPath, BuildItemPatchCsv(patchRows), new UTF8Encoding(true));
         return new DogSkinIconExportResult(
             outputDirectory,
@@ -266,10 +266,16 @@ public partial class DogSkinIconExportService : Node
     }
 
     private static List<ItemPatchRow> BuildItemPatchRows(IReadOnlyCollection<DogSkinDraft> drafts)
+        => BuildItemRows(drafts, LubanData.Tables.TbItem.DataList.Select(item => (item.Id, item.SkinId)));
+
+    internal static List<ItemPatchRow> BuildItemRows(
+        IReadOnlyCollection<DogSkinDraft> drafts, IEnumerable<(int Id, int SkinId)> items)
     {
         var draftsById = drafts.ToDictionary(draft => draft.Id);
+        var itemsById = items.ToDictionary(item => item.Id);
+        var referencedSkins = new HashSet<int>();
         var rows = new List<ItemPatchRow>();
-        foreach (var item in LubanData.Tables.TbItem.DataList.Where(item => item.SkinId > 0).OrderBy(item => item.Id))
+        foreach (var item in itemsById.Values.Where(item => item.SkinId > 0).OrderBy(item => item.Id))
         {
             if (!draftsById.TryGetValue(item.SkinId, out var draft))
             {
@@ -279,19 +285,32 @@ public partial class DogSkinIconExportService : Node
 
             rows.Add(new ItemPatchRow(
                 item.Id,
+                draft.Alias,
                 item.SkinId,
                 EnsureTrailingBackslash(draft.FolderPath),
                 $"v3\\ItemIcon\\{IconFileName(draft.Id)}"));
+            referencedSkins.Add(item.SkinId);
         }
-        return rows;
+        foreach (var draft in drafts.OrderBy(draft => draft.Id))
+        {
+            if (referencedSkins.Contains(draft.Id))
+                continue;
+            if (itemsById.ContainsKey(draft.Id))
+                throw new InvalidDataException(
+                    $"新增 DogSkin #{draft.Id} 的同号 Item 已被其他道具占用，请先调整编号。未生成图标或 CSV。");
+            rows.Add(new ItemPatchRow(draft.Id, draft.Alias, draft.Id,
+                EnsureTrailingBackslash(draft.FolderPath), $"v3\\ItemIcon\\{IconFileName(draft.Id)}"));
+        }
+        return rows.OrderBy(row => row.Id).ToList();
     }
 
-    private static string BuildItemPatchCsv(IEnumerable<ItemPatchRow> rows)
+    internal static string BuildItemPatchCsv(IEnumerable<ItemPatchRow> rows)
     {
-        var lines = new List<string> { "Id,SkinId,AssetPathList,IconPath" };
+        var lines = new List<string> { "Id,Alias,SkinId,AssetPathList,IconPath" };
         lines.AddRange(rows.Select(row => string.Join(',', new[]
         {
             row.Id.ToString(),
+            Csv(row.Alias),
             row.SkinId.ToString(),
             Csv(row.AssetPathList),
             Csv(row.IconPath),
@@ -313,5 +332,5 @@ public partial class DogSkinIconExportService : Node
             : value;
     }
 
-    private sealed record ItemPatchRow(int Id, int SkinId, string AssetPathList, string IconPath);
+    internal sealed record ItemPatchRow(int Id, string Alias, int SkinId, string AssetPathList, string IconPath);
 }

@@ -99,6 +99,28 @@ public partial class TestDogSkinParts : Node
                 && migrated.EyesNormalMood == "old-eyes.png" && migrated.EarsNormal == "old-ears.png", "old draft field migration");
             Check(values[Array.IndexOf(headers, "DefaultNose")] == draft.DefaultNose, "CSV nose column");
             Check(values[Array.IndexOf(headers, "DefaultMouse")] == draft.DefaultMouse, "CSV mouth column");
+            var newDraft = draft.CloneWithId(999999);
+            newDraft.Alias = "中文别名,\"测试\"";
+            var itemRows = DogSkinIconExportService.BuildItemRows(new[] { draft, newDraft },
+                new[] { (Id: 51001, SkinId: draft.Id), (Id: 91012, SkinId: draft.Id) });
+            Check(itemRows.Count == 3 && itemRows.Count(row => row.SkinId == draft.Id) == 2,
+                "item CSV preserves multiple existing item references");
+            Check(itemRows.Single(row => row.Id == newDraft.Id).SkinId == newDraft.Id,
+                "new item ID equals skin ID");
+            var itemCsv = DogSkinIconExportService.BuildItemPatchCsv(itemRows);
+            Check(itemCsv.StartsWith("Id,Alias,SkinId,AssetPathList,IconPath\r\n")
+                && itemCsv.Contains("\"中文别名,\"\"测试\"\"\""), "item CSV alias escaping and no Name column");
+            var conflictDetected = false;
+            try
+            {
+                DogSkinIconExportService.BuildItemRows(new[] { newDraft },
+                    new[] { (Id: newDraft.Id, SkinId: 0) });
+            }
+            catch (System.IO.InvalidDataException)
+            {
+                conflictDetected = true;
+            }
+            Check(conflictDetected, "new item ID conflict blocks export");
             editor.Free();
             dog.QueueFree();
             other.QueueFree();
