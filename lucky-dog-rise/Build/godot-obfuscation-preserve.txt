@@ -47,3 +47,5 @@ GodotPlugins.Game.Main
 SteamworksSmokeController
 SteamInventoryTestController
 StartupAccountGateController
+LootConfigurationValidationRunner
+TestDogSkinParts
