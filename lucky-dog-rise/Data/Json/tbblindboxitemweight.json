@@ -3,252 +3,252 @@
     "Id": 100101002,
     "BlindBoxId": 1001,
     "ItemId": 1002,
-    "Weight": 200,
+    "Weight": 300,
     "IsEnabled": true
   },
   {
     "Id": 100101003,
     "BlindBoxId": 1001,
     "ItemId": 1003,
-    "Weight": 200,
+    "Weight": 90,
     "IsEnabled": true
   },
   {
     "Id": 100101004,
     "BlindBoxId": 1001,
     "ItemId": 1004,
-    "Weight": 200,
+    "Weight": 90,
     "IsEnabled": true
   },
   {
     "Id": 100101005,
     "BlindBoxId": 1001,
     "ItemId": 1005,
-    "Weight": 100,
+    "Weight": 190,
     "IsEnabled": true
   },
   {
     "Id": 100101006,
     "BlindBoxId": 1001,
     "ItemId": 1006,
-    "Weight": 100,
+    "Weight": 150,
     "IsEnabled": true
   },
   {
     "Id": 100101007,
     "BlindBoxId": 1001,
     "ItemId": 1007,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101008,
     "BlindBoxId": 1001,
     "ItemId": 1008,
-    "Weight": 100,
+    "Weight": 2,
     "IsEnabled": true
   },
   {
     "Id": 100101009,
     "BlindBoxId": 1001,
     "ItemId": 1009,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101010,
     "BlindBoxId": 1001,
     "ItemId": 1010,
-    "Weight": 100,
+    "Weight": 150,
     "IsEnabled": true
   },
   {
     "Id": 100101011,
     "BlindBoxId": 1001,
     "ItemId": 1011,
-    "Weight": 100,
+    "Weight": 2,
     "IsEnabled": true
   },
   {
     "Id": 100101012,
     "BlindBoxId": 1001,
     "ItemId": 1012,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101013,
     "BlindBoxId": 1001,
     "ItemId": 1013,
-    "Weight": 100,
+    "Weight": 2,
     "IsEnabled": true
   },
   {
     "Id": 100101014,
     "BlindBoxId": 1001,
     "ItemId": 1014,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101015,
     "BlindBoxId": 1001,
     "ItemId": 1015,
-    "Weight": 100,
+    "Weight": 99,
     "IsEnabled": true
   },
   {
     "Id": 100101016,
     "BlindBoxId": 1001,
     "ItemId": 1016,
-    "Weight": 100,
+    "Weight": 150,
     "IsEnabled": true
   },
   {
     "Id": 100101017,
     "BlindBoxId": 1001,
     "ItemId": 1017,
-    "Weight": 100,
+    "Weight": 80,
     "IsEnabled": true
   },
   {
     "Id": 100101018,
     "BlindBoxId": 1001,
     "ItemId": 1018,
-    "Weight": 100,
+    "Weight": 80,
     "IsEnabled": true
   },
   {
     "Id": 100101019,
     "BlindBoxId": 1001,
     "ItemId": 1019,
-    "Weight": 100,
+    "Weight": 60,
     "IsEnabled": true
   },
   {
     "Id": 100101020,
     "BlindBoxId": 1001,
     "ItemId": 1020,
-    "Weight": 100,
+    "Weight": 50,
     "IsEnabled": true
   },
   {
     "Id": 100101021,
     "BlindBoxId": 1001,
     "ItemId": 1021,
-    "Weight": 100,
+    "Weight": 99,
     "IsEnabled": true
   },
   {
     "Id": 100101022,
     "BlindBoxId": 1001,
     "ItemId": 1022,
-    "Weight": 100,
+    "Weight": 80,
     "IsEnabled": true
   },
   {
     "Id": 100101023,
     "BlindBoxId": 1001,
     "ItemId": 1023,
-    "Weight": 100,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
     "Id": 100101024,
     "BlindBoxId": 1001,
     "ItemId": 1024,
-    "Weight": 100,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
     "Id": 100101025,
     "BlindBoxId": 1001,
     "ItemId": 1025,
-    "Weight": 100,
+    "Weight": 80,
     "IsEnabled": true
   },
   {
     "Id": 100101026,
     "BlindBoxId": 1001,
     "ItemId": 1026,
-    "Weight": 100,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
     "Id": 100101027,
     "BlindBoxId": 1001,
     "ItemId": 1027,
-    "Weight": 100,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
     "Id": 100101028,
     "BlindBoxId": 1001,
     "ItemId": 1028,
-    "Weight": 100,
+    "Weight": 70,
     "IsEnabled": true
   },
   {
     "Id": 100101029,
     "BlindBoxId": 1001,
     "ItemId": 1029,
-    "Weight": 100,
+    "Weight": 90,
     "IsEnabled": true
   },
   {
     "Id": 100101030,
     "BlindBoxId": 1001,
     "ItemId": 1030,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101031,
     "BlindBoxId": 1001,
     "ItemId": 1031,
-    "Weight": 100,
+    "Weight": 50,
     "IsEnabled": true
   },
   {
     "Id": 100101032,
     "BlindBoxId": 1001,
     "ItemId": 1032,
-    "Weight": 100,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100101033,
     "BlindBoxId": 1001,
     "ItemId": 1033,
-    "Weight": 100,
+    "Weight": 90,
     "IsEnabled": true
   },
   {
     "Id": 100101034,
     "BlindBoxId": 1001,
     "ItemId": 1034,
-    "Weight": 100,
+    "Weight": 49,
     "IsEnabled": true
   },
   {
     "Id": 100101035,
     "BlindBoxId": 1001,
     "ItemId": 1035,
-    "Weight": 100,
+    "Weight": 99,
     "IsEnabled": true
   },
   {
     "Id": 100101036,
     "BlindBoxId": 1001,
     "ItemId": 1036,
-    "Weight": 100,
+    "Weight": 49,
     "IsEnabled": true
   },
   {
     "Id": 100101037,
     "BlindBoxId": 1001,
     "ItemId": 1037,
-    "Weight": 100,
+    "Weight": 99,
     "IsEnabled": true
   },
   {
@@ -808,21 +808,21 @@
     "Id": 100108013,
     "BlindBoxId": 1001,
     "ItemId": 8013,
-    "Weight": 300,
+    "Weight": 200,
     "IsEnabled": true
   },
   {
     "Id": 100112001,
     "BlindBoxId": 1001,
     "ItemId": 12001,
-    "Weight": 300,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
     "Id": 100112002,
     "BlindBoxId": 1001,
     "ItemId": 12002,
-    "Weight": 300,
+    "Weight": 120,
     "IsEnabled": true
   },
   {
@@ -2492,13 +2492,6 @@
     "IsEnabled": true
   },
   {
-    "Id": 200301012,
-    "BlindBoxId": 2003,
-    "ItemId": 1012,
-    "Weight": 100,
-    "IsEnabled": true
-  },
-  {
     "Id": 200301008,
     "BlindBoxId": 2003,
     "ItemId": 1008,
@@ -2506,9 +2499,16 @@
     "IsEnabled": true
   },
   {
-    "Id": 200301010,
+    "Id": 200301011,
     "BlindBoxId": 2003,
-    "ItemId": 1010,
+    "ItemId": 1011,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200301013,
+    "BlindBoxId": 2003,
+    "ItemId": 1013,
     "Weight": 100,
     "IsEnabled": true
   }
