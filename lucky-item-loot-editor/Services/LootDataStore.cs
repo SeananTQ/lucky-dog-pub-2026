@@ -37,7 +37,7 @@ public sealed class LootDataStore
         var rarityRateJson = ReadArray(rarityRatePath);
         var itemWeightJson = ReadArray(itemWeightPath);
 
-        return new LootDataStore
+        var store = new LootDataStore
         {
             ProjectRoot = projectRoot,
             ItemPath = itemPath,
@@ -64,6 +64,8 @@ public sealed class LootDataStore
                 IsEnabled = GetBool(obj, "IsEnabled"),
             }).ToList(),
         };
+        store.NormalizeWeightIds();
+        return store;
     }
 
     public int GetWeight(int blindBoxId, int itemId) => ItemWeights
@@ -80,7 +82,7 @@ public sealed class LootDataStore
                 return;
             ItemWeights.Add(new BlindBoxItemWeightRow
             {
-                Id = ItemWeights.Count == 0 ? 1 : ItemWeights.Max(candidate => candidate.Id) + 1,
+                Id = GetAvailableWeightId(blindBoxId, itemId),
                 BlindBoxId = blindBoxId,
                 ItemId = itemId,
                 Weight = weight,
@@ -95,6 +97,7 @@ public sealed class LootDataStore
 
     public void SaveProject(string path, int? selectedBlindBoxId)
     {
+        NormalizeWeightIds();
         var project = new LootEditorProject
         {
             SavedAt = DateTimeOffset.Now,
@@ -156,7 +159,6 @@ public sealed class LootDataStore
         var blindBoxIds = BlindBoxes.Select(box => box.Id).ToHashSet();
         var itemIds = Items.Select(item => item.Id).ToHashSet();
         var weightsByKey = ItemWeights.ToDictionary(row => (row.BlindBoxId, row.ItemId));
-        var usedIds = ItemWeights.Select(row => row.Id).ToHashSet();
         foreach (var state in project.ItemWeights)
         {
             if (weightsByKey.TryGetValue((state.BlindBoxId, state.ItemId), out var row))
@@ -172,9 +174,7 @@ public sealed class LootDataStore
                 continue;
             }
 
-            var id = state.Id > 0 && usedIds.Add(state.Id)
-                ? state.Id
-                : NextAvailableId(usedIds);
+            var id = GetAvailableWeightId(state.BlindBoxId, state.ItemId);
             var newRow = new BlindBoxItemWeightRow
             {
                 Id = id,
@@ -192,6 +192,7 @@ public sealed class LootDataStore
 
     public IReadOnlyList<string> ExportCsv()
     {
+        NormalizeWeightIds();
         var outputDirectory = Path.Combine(ProjectRoot, "lucky-item-loot-editor", "output");
         Directory.CreateDirectory(outputDirectory);
         var itemPatchPath = Path.Combine(outputDirectory, "ItemLootPatch.csv");
@@ -219,12 +220,32 @@ public sealed class LootDataStore
     private static string CalculateSha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
 
-    private static int NextAvailableId(HashSet<int> usedIds)
+    private static int CalculateWeightId(int blindBoxId, int itemId)
     {
-        var id = 1;
-        while (!usedIds.Add(id))
-            id++;
+        var id = (long)blindBoxId * 100000 + itemId;
+        if (blindBoxId <= 0 || itemId <= 0 || id > int.MaxValue)
+            throw new InvalidDataException($"奖池关系 {blindBoxId}/{itemId} 无法按“盲盒 ID × 100000 + 物品 ID”生成有效编号。");
+        return (int)id;
+    }
+
+    private int GetAvailableWeightId(int blindBoxId, int itemId)
+    {
+        var id = CalculateWeightId(blindBoxId, itemId);
+        var conflict = ItemWeights.FirstOrDefault(row => row.Id == id);
+        if (conflict != null)
+            throw new InvalidDataException($"奖池编号 {id} 冲突：{blindBoxId}/{itemId} 与 {conflict.BlindBoxId}/{conflict.ItemId}，请调整编号配置。");
         return id;
+    }
+
+    private void NormalizeWeightIds()
+    {
+        var calculated = ItemWeights.Select(row => (Row: row, Id: CalculateWeightId(row.BlindBoxId, row.ItemId))).ToArray();
+        var duplicate = calculated.GroupBy(entry => entry.Id).FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+            throw new InvalidDataException($"按新规则计算后奖池编号 {duplicate.Key} 重复："
+                + string.Join("、", duplicate.Select(entry => $"{entry.Row.BlindBoxId}/{entry.Row.ItemId}")));
+        foreach (var entry in calculated)
+            entry.Row.Id = entry.Id;
     }
 
     private static string EscapeCsv(string value) =>
