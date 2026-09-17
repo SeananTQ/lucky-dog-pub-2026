@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Microsoft.Win32;
@@ -60,7 +61,61 @@ public partial class MainWindow : Window
 
     private void SaveProjectAsButton_Click(object sender, RoutedEventArgs e) => SaveCurrentProject(true);
 
-    private void ExportCsvButton_Click(object sender, RoutedEventArgs e) => TryRun(_viewModel.ExportCsv);
+    private void ExportCsvButton_Click(object sender, RoutedEventArgs e) => TryRun(() =>
+    {
+        var paths = _viewModel.ExportCsv();
+        if (paths.Count == 0)
+            return;
+        var directory = Path.GetDirectoryName(Path.GetFullPath(paths[0]))!;
+        var dialog = new Window
+        {
+            Title = "CSV 导出成功",
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SizeToContent = SizeToContent.Height,
+            Width = 480,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+        };
+        var content = new System.Windows.Controls.StackPanel { Margin = new Thickness(20) };
+        content.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"成功导出 {paths.Count} 个 CSV。\n\n所在文件夹：\n{directory}",
+            TextWrapping = TextWrapping.Wrap,
+        });
+        var buttons = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 20, 0, 0),
+        };
+        var okButton = new System.Windows.Controls.Button
+        {
+            Content = "OK", MinWidth = 75, Padding = new Thickness(12, 5, 12, 5), IsDefault = true, IsCancel = true,
+        };
+        okButton.Click += (_, _) => dialog.Close();
+        var openButton = new System.Windows.Controls.Button
+        {
+            Content = "打开所在文件夹", Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(10, 0, 0, 0),
+        };
+        openButton.Click += (_, _) =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(directory) { UseShellExecute = true });
+                dialog.Close();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(dialog, exception.Message, "打开文件夹失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        };
+        buttons.Children.Add(okButton);
+        buttons.Children.Add(openButton);
+        content.Children.Add(buttons);
+        dialog.Content = content;
+        dialog.ShowDialog();
+    });
 
     private void RandomButton_Click(object sender, RoutedEventArgs e) => TryRun(_viewModel.RollRandom);
 

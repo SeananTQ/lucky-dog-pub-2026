@@ -26,6 +26,7 @@ public sealed class ItemRow : INotifyPropertyChanged
     {
         Id = GetInt(source, "Id");
         Name = GetString(source, "Name");
+        Alias = GetString(source, "Alias");
         ItemTypeValue = GetInt(source, "ItemType");
         IconPath = GetString(source, "IconPath");
         _rarity = (ERarity)GetInt(source, "ItemRarity");
@@ -40,6 +41,7 @@ public sealed class ItemRow : INotifyPropertyChanged
 
     public int Id { get; }
     public string Name { get; }
+    public string Alias { get; }
     public int ItemTypeValue { get; }
     public string IconPath { get; }
     public ImageSource? Icon { get; }

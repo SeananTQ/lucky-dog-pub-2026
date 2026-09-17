@@ -89,7 +89,7 @@
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
           <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" IsReadOnly="True" />
-          <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="190" IsReadOnly="True" />
+          <DataGridTextColumn Header="别名" Binding="{Binding Alias}" Width="190" IsReadOnly="True" />
           <DataGridTemplateColumn Header="稀有度" Width="110" SortMemberPath="RarityValue">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
@@ -166,7 +166,7 @@
                 <Image Source="{Binding SelectedItem.Icon}" Width="132" Height="132" Stretch="Uniform" />
                 <Image Source="{Binding SelectedItem.RarityFrame}" Width="150" Height="150" Stretch="Uniform" />
               </Grid>
-              <TextBlock Text="{Binding SelectedItem.Name}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding SelectedItem.Alias}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
               <TextBlock Margin="0,5,0,0" Style="{StaticResource MutedText}"
                          Text="{Binding SelectedItem.IconPath}" TextWrapping="Wrap" />
               <Separator Margin="0,12" />

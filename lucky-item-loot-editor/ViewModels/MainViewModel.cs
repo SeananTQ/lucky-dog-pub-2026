@@ -201,12 +201,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StatusText = $"工程已保存：{path}";
     }
 
-    public void ExportCsv()
+    public IReadOnlyList<string> ExportCsv()
     {
         if (_store is null)
-            return;
+            return Array.Empty<string>();
         var paths = _store.ExportCsv();
         StatusText = $"已导出 {paths.Count} 个 CSV：{Path.GetDirectoryName(paths[0])}";
+        return paths;
     }
 
     public void RollRandom()
