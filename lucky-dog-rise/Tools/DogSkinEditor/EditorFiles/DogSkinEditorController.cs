@@ -755,6 +755,7 @@ public partial class DogSkinEditorController : Control
             var displayName = DisplayEyewear(draft.FixedEyewear);
             var usage = _catalog.DogSkins.Count(item => item.FixedEyewear == draft.FixedEyewear);
             selected.Text = $"{displayName}  ×{usage}";
+            selected.TooltipText = DogSkinAssetCatalog.NormalizeEyewearPath(draft.FixedEyewear);
         }
         RefreshSelectedLabel();
         row.AddChild(selected);
@@ -956,7 +957,7 @@ public partial class DogSkinEditorController : Control
                 });
                 choose.TooltipText = string.IsNullOrEmpty(eyewear)
                     ? "清除固定眼镜"
-                    : $"素材：v1\\Eyewear\\{eyewear}";
+                    : $"素材：{eyewear}";
                 cardLayout.AddChild(choose);
                 grid.AddChild(card);
             }
@@ -1069,6 +1070,8 @@ public partial class DogSkinEditorController : Control
 
     private void MigrateCatalog()
     {
+        foreach (var draft in _catalog.DogSkins)
+            draft.FixedEyewear = DogSkinAssetCatalog.NormalizeEyewearPath(draft.FixedEyewear);
         if (_catalog.Version >= 2)
             return;
 
@@ -1411,8 +1414,7 @@ public partial class DogSkinEditorController : Control
         draft.EyesSignaling,
     });
 
-    private static string DisplayEyewear(string value) =>
-        string.IsNullOrEmpty(value) ? "（无眼镜）" : DisplayAssetName(value);
+    private string DisplayEyewear(string value) => _assets.DisplayEyewear(value);
 
     private static string DisplayAssetName(string value) =>
         string.Equals(Path.GetExtension(value), ".png", StringComparison.OrdinalIgnoreCase)

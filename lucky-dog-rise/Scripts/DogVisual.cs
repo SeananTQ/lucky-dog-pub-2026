@@ -471,7 +471,11 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             return;
         }
 
-        var assetPath = $"v1\\Eyewear\\{fileName}";
+        // New rows store an Assets-relative, versioned path. Only legacy
+        // filename-only values need the former v1 directory prefix.
+        var assetPath = fileName.Replace('/', '\\');
+        if (!assetPath.Contains('\\'))
+            assetPath = $"v1\\Eyewear\\{assetPath}";
         var path = PlayerInventory.ToResPath(assetPath);
         var texture = GD.Load<Texture2D>(path);
         if (texture == null)
