@@ -93,6 +93,7 @@ public partial class DogSkinIconExportService : Node
             dog.SetHitButtonEnabled(false);
             dog.ApplyReaction(EDogReactionTrigger.Default);
             dog.ShowInspectionClaws();
+            ClipPalmsBelowTable(dog);
 
             await WaitForViewportFramesAsync();
             var dogOnly = viewport.GetTexture().GetImage();
@@ -109,6 +110,23 @@ public partial class DogSkinIconExportService : Node
         finally
         {
             viewport.QueueFree();
+        }
+    }
+
+    private static void ClipPalmsBelowTable(DogVisual dog)
+    {
+        // The cardboard silhouette is not a full-width table mask. Trim the
+        // hidden arm before measuring or composing, regardless of box offset.
+        // Reuse the runtime head's local-Y clip shader with per-palm uniforms;
+        // never alter its material or the shared DogClaw prefab.
+        var shader = ((ShaderMaterial)dog.GetNode<Sprite2D>("HeadRoot/Head").Material).Shader;
+        foreach (var path in new[] { "ClawLeft/Claw_Palm_Left", "ClawRight/Claw_Palm_Left" })
+        {
+            var palm = dog.GetNode<Sprite2D>(path);
+            var material = new ShaderMaterial { Shader = shader };
+            var boundary = new Vector2(palm.GlobalPosition.X, TableOcclusionY);
+            material.SetShaderParameter("cutoff_y", palm.ToLocal(boundary).Y);
+            palm.Material = material;
         }
     }
 
