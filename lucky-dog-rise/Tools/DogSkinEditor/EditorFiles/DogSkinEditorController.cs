@@ -882,7 +882,7 @@ public partial class DogSkinEditorController : Control
         var picker = new Window
         {
             Title = "选择固定眼镜",
-            Size = new Vector2I(820, 680),
+            Size = new Vector2I(940, 680),
             MinSize = new Vector2I(620, 480),
             Transient = true,
             Exclusive = true,
@@ -907,6 +907,7 @@ public partial class DogSkinEditorController : Control
         {
             Text = "眼镜不依赖 Item 表、道具图标或中文名称；预览直接使用原始素材和游戏实际渲染。",
             Modulate = new Color("aab2bf"),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         });
         var search = new LineEdit { PlaceholderText = "按素材文件名筛选" };
         layout.AddChild(search);
@@ -925,6 +926,16 @@ public partial class DogSkinEditorController : Control
         grid.AddThemeConstantOverride("h_separation", 8);
         grid.AddThemeConstantOverride("v_separation", 8);
         scroll.AddChild(grid);
+
+        void UpdateEyewearColumns()
+        {
+            const float cardWidth = 245f;
+            const float separation = 8f;
+            var width = Mathf.Max(cardWidth, scroll.Size.X - 20f);
+            grid.Columns = Mathf.Max(1, Mathf.FloorToInt((width + separation) / (cardWidth + separation)));
+        }
+        scroll.Resized += UpdateEyewearColumns;
+        Callable.From(UpdateEyewearColumns).CallDeferred();
 
         void RebuildChoices()
         {
@@ -958,6 +969,8 @@ public partial class DogSkinEditorController : Control
                 choose.TooltipText = string.IsNullOrEmpty(eyewear)
                     ? "清除固定眼镜"
                     : $"素材：{eyewear}";
+                choose.ClipText = true;
+                choose.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
                 cardLayout.AddChild(choose);
                 grid.AddChild(card);
             }
