@@ -18,8 +18,14 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     private const float SequentialPitchStartMinimum = 0.98f;
     private const float SequentialPitchStartMaximum = 1.0f;
     private const float SequentialPitchStep = 0.015f;
+    private const double ClearDuration = 0.32;
+    private const float ClearSlideDistance = CardWidth * 0.5f;
+    private const double ClearCardDelay = 0.04;
+    private const double ClearFadeDelayRatio = 0.20;
 
     private CardController[] _cards = new CardController[5];
+    private readonly Vector2[] _cardRestPositions = new Vector2[CardCount];
+    private Tween _clearTween;
 
     public bool CanPlayInteractionHint => _cards.All(card => card != null && card.Visible);
     public bool IsInteractionHintPlaying => _cards.Any(card => card != null && card.IsInteractionHintPlaying);
@@ -36,10 +42,32 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
             card.Clicked += OnCardClicked;
             AddChild(card);
             card.Position = new Vector2(startX + i * (CardWidth + CardGap), 0);
+            _cardRestPositions[i] = card.Position;
             _cards[i] = card;
         }
 
         SetCardsVisible(false);
+    }
+
+    /// <summary>收奖后从左到右错拍向左滑动半张牌的距离并淡出。</summary>
+    public void ClearCards()
+    {
+        _clearTween?.Kill();
+        _clearTween = CreateTween().SetParallel(true);
+        for (int i = 0; i < CardCount; i++)
+        {
+            var card = _cards[i];
+            double delay = i * ClearCardDelay;
+            var target = _cardRestPositions[i] + Vector2.Left * ClearSlideDistance;
+            _clearTween.TweenProperty(card, "position", target, ClearDuration)
+                .SetDelay(delay)
+                .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            // 每张牌先滑动，再淡出；各自的动作时长由 ClearDuration 控制。
+            _clearTween.TweenProperty(card, "modulate:a", 0f, ClearDuration * (1.0 - ClearFadeDelayRatio))
+                .SetDelay(delay + ClearDuration * ClearFadeDelayRatio)
+                .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        }
+        _clearTween.Chain().TweenCallback(Callable.From(() => SetCardsVisible(false)));
     }
 
     private void SetCardsVisible(bool visible)
@@ -55,6 +83,14 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
     public void DealCards(int[] hand)
     {
+        // 快速开始下一局时取消旧清桌回调，避免新牌被隐藏或继承淡出状态。
+        _clearTween?.Kill();
+        for (int i = 0; i < CardCount; i++)
+        {
+            _cards[i].Position = _cardRestPositions[i];
+            _cards[i].Scale = Vector2.One;
+            _cards[i].Modulate = Colors.White;
+        }
         SetCardsVisible(true);
         float perCardDuration = 0.2f;
         var handPitchStart = GetSequentialPitchStart();

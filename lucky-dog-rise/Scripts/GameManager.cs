@@ -348,7 +348,15 @@ public partial class GameManager : Node2D
         if (SettingsManager.LoadQuickStartAfterWin())
             StartNewHand();
         else
-            _chipStack.ShowHint("Click to bet");
+            FinishCollectedHand();
+    }
+
+    private void FinishCollectedHand()
+    {
+        // 收奖才是赢牌局的结束点。保留信息面板结果，牌桌回到空桌待下注。
+        _cardTable.ClearCards();
+        _dogVisual.ApplyReaction(EDogReactionTrigger.WaitingForBet);
+        _chipStack.ShowAfterRewardCollected();
     }
 
     // === 游戏逻辑 ===

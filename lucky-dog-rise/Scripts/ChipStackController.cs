@@ -18,6 +18,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
     private Tween _bottomChipHintTween = null!;
     private Tween _topChipHintTween = null!;
     private const bool ShowBetHintText = false;
+    private string _appearanceSound = "Chip_BetStackLanding";
 
     private static readonly Vector2 BottomChipRestPosition = Vector2.Zero;
     private static readonly Vector2 TopChipRestPosition = new(0f, -6f);
@@ -66,8 +67,9 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         EmitSignal(SignalName.BetRequested);
     }
 
-    public void PlayAppear()
+    public void PlayAppear(string landingSound = "Chip_BetStackLanding")
     {
+        _appearanceSound = landingSound;
         _appearTween?.Kill();
         _secondChipAppearTween?.Kill();
         _secondChipLandingTween?.Kill();
@@ -91,7 +93,7 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _appearTween.TweenProperty(_chipSprite, "rotation", 0f, FirstChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _appearTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("Chip_BetStackLanding")));
+        _appearTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx(_appearanceSound)));
 
         _secondChipAppearTween = CreateTween();
         _secondChipAppearTween.TweenInterval(SecondChipDelay);
@@ -163,8 +165,15 @@ public partial class ChipStackController : Node2D, IInteractionHintTarget
         _secondChipLandingTween.TweenProperty(_chipSprite2, "rotation", 0f, SecondChipDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
-        _secondChipLandingTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx("Chip_BetStackLanding")));
+        _secondChipLandingTween.Chain().TweenCallback(Callable.From(() => AudioManager.Instance.PlaySfx(_appearanceSound)));
         _secondChipLandingTween.TweenCallback(Callable.From(() => _clickButton.Disabled = false));
+    }
+
+    public void ShowAfterRewardCollected()
+    {
+        _hintLabel.Text = "Click to bet";
+        _hintLabel.Visible = ShowBetHintText;
+        PlayAppear("Chip_BetStackAfterWin");
     }
 
     public void ShowHint(string text)
