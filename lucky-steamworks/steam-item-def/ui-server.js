@@ -7,6 +7,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 const converter = require("./build-steam-item-defs");
+const history = require("./artifact-history");
 
 const TOOL_ROOT = __dirname;
 const PROJECT_ROOT = path.resolve(TOOL_ROOT, "..", "..");
@@ -167,6 +168,9 @@ function loadPreview() {
             name,
             appid: configuration.appId,
             fileName: configuration.fileName,
+            upload: history.status(OUTPUT_ROOT, configuration.fileName, {
+                appid: configuration.appId, items: artifact.items,
+            }),
             output: {
                 ...output,
                 current: output.exists && output.modifiedMs >= latestSourceMs,
@@ -203,6 +207,7 @@ function loadPreview() {
         sources,
         rows,
         channels,
+        history: history.list(OUTPUT_ROOT),
         errors,
         warnings: result.warnings,
         loadedAt: new Date().toISOString(),
@@ -275,6 +280,17 @@ function createServer({ idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS } = {}) {
                     return;
                 }
                 sendJson(response, 200, { ...loadPreview(), message: "Playtest 与 Release schema 已生成。" });
+                return;
+            }
+
+            if (request.method === "POST" && url.pathname === "/api/confirm-upload") {
+                const channelName = url.searchParams.get("channel");
+                const configuration = Object.hasOwn(converter.CHANNELS, channelName)
+                    ? converter.CHANNELS[channelName] : null;
+                if (!configuration) throw new Error("未知渠道。");
+                history.confirmUploaded(OUTPUT_ROOT, configuration.fileName, configuration.appId,
+                    url.searchParams.get("hash"));
+                sendJson(response, 200, loadPreview());
                 return;
             }
 

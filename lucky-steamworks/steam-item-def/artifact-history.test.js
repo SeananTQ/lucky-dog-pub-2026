@@ -1,0 +1,38 @@
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const history = require("./artifact-history");
+test("prediction compares IDs and fields independently of property order", () => {
+    const old = { appid: 1, items: [{ itemdefid: 1, name: "a" }, { itemdefid: 2, name: "b" }, { itemdefid: 4 }] };
+    const next = { appid: 1, items: [{ name: "a", itemdefid: 1 }, { itemdefid: 2, name: "c" }, { itemdefid: 3 }] };
+    const result = history.predict(next, old);
+    assert.equal(result.modified, 2);
+    assert.deepEqual(result.added, [3]);
+    assert.deepEqual(result.changed, [2]);
+    assert.deepEqual(result.omitted, [4]);
+    assert.equal(history.predict(old, old).modified, 0);
+    assert.equal(history.predict(next, null).known, false);
+    assert.throws(() => history.predict(next, { ...old, appid: 2 }), /AppID/);
+});
+test("snapshots retain exact files and confirmed baseline survives later generation", t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "itemdef-history-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const name = "steam-itemdefs.release.json";
+    const first = { appid: 1, items: [{ itemdefid: 1 }] };
+    fs.writeFileSync(path.join(root, name), JSON.stringify(first));
+    const id = history.archive(root, [name]);
+    history.confirmUploaded(root, name, 1, history.hash(first));
+    const second = { appid: 1, items: [{ itemdefid: 1, name: "new" }] };
+    fs.writeFileSync(path.join(root, name), JSON.stringify(second));
+    history.archive(root, [name]);
+    assert.equal(history.list(root).length, 2);
+    assert.equal(fs.readFileSync(path.join(root, "history", id, name), "utf8"), JSON.stringify(first));
+    assert.equal(history.status(root, name, second).prediction.modified, 1);
+    assert.throws(() => history.confirmUploaded(root, name, 1, history.hash(first)), /已变化/);
+    history.confirmUploaded(root, name, 1, history.hash(second));
+    assert.equal(history.status(root, name, second).prediction.modified, 0);
+    assert.equal(history.list(path.join(root, "uploaded")).length, 1);
+});

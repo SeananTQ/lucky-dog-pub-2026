@@ -3,6 +3,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const history = require("./artifact-history");
 
 const TOOL_ROOT = __dirname;
 const PROJECT_ROOT = path.resolve(TOOL_ROOT, "..", "..");
@@ -1544,6 +1545,8 @@ function main(argv = process.argv.slice(2)) {
     const allErrors = [...result.errors, ...channelErrors];
 
     fs.mkdirSync(options.outputRoot, { recursive: true });
+    const historyFiles = [...Object.values(CHANNELS).map(channel => channel.fileName), "validation-report.json"];
+    history.archive(options.outputRoot, historyFiles);
     const reportPath = path.join(options.outputRoot, "validation-report.json");
     writeJson(reportPath, {
         sources: {
@@ -1604,6 +1607,7 @@ function main(argv = process.argv.slice(2)) {
         console.log(`- ${channel} (${configuration.appId})：${outputPath}`);
     }
     console.log(`- 校验报告：${reportPath}`);
+    history.archive(options.outputRoot, historyFiles);
 
     if (result.warnings.length) {
         console.warn(`警告：${result.warnings.length} 条。`);

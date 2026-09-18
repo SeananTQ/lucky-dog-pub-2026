@@ -77,6 +77,7 @@ function setBusy(isBusy) {
     elements.reloadButton.disabled = isBusy;
     elements.openOutputButton.disabled = isBusy;
     elements.generateButton.disabled = isBusy || !state.preview?.ok;
+    document.querySelector("#confirm-upload-button").disabled = isBusy || !currentChannel()?.upload.generatedHash;
 }
 
 async function loadPreview({ announce = false } = {}) {
@@ -159,6 +160,32 @@ function renderChannels() {
     elements.channelAppid.textContent = channel?.appid ?? "-";
     elements.metricDefinitions.textContent = channel?.schema.items.length ?? 0;
     elements.outputState.className = "output-state";
+    const prediction = channel?.upload.prediction;
+    document.querySelector("#upload-prediction").textContent = prediction?.known
+        ? prediction.message : `尚未确认上传基线，无法预估修改条数 / 本次 ${prediction?.total ?? 0} 条`;
+    document.querySelector("#upload-explanation").textContent = prediction?.known
+        ? `新增 ${prediction.added.length}，修改 ${prediction.changed.length}，未变 ${prediction.unchanged.length}，本次缺席 ${prediction.omitted.length}。新增 ID：${prediction.added.join(", ") || "无"}；修改 ID：${prediction.changed.join(", ") || "无"}。`
+        : "不要将未上传的生成版本当作 Steam 后台状态。";
+    document.querySelector("#confirm-upload-button").disabled = !channel?.upload.generatedHash;
+    const historyList = document.querySelector("#artifact-history");
+    historyList.replaceChildren();
+    document.querySelector("#history-count").textContent = `${state.preview.history?.length || 0} 个版本`;
+    for (const snapshot of state.preview.history || []) {
+        const line = document.createElement("div");
+        line.className = "snapshot-row";
+        const time = document.createElement("time");
+        time.dateTime = snapshot.createdAt;
+        time.textContent = formatTime(snapshot.createdAt);
+        const folder = document.createElement("code");
+        folder.className = "snapshot-path";
+        folder.textContent = `history/${snapshot.id.slice(0, 12)}…/`;
+        folder.title = `generated/history/${snapshot.id}/`;
+        const files = document.createElement("span");
+        files.className = "snapshot-files";
+        files.textContent = snapshot.files.join(" · ");
+        line.append(time, folder, files);
+        historyList.append(line);
+    }
     if (!channel?.output.exists) {
         elements.outputState.textContent = "尚未生成";
     } else if (channel.output.current) {
@@ -369,6 +396,18 @@ elements.generateButton.addEventListener("click", generate);
 elements.openOutputButton.addEventListener("click", openOutput);
 elements.copyJsonButton.addEventListener("click", copySelectedJson);
 elements.shutdownButton.addEventListener("click", shutdown);
+document.querySelector("#confirm-upload-button").addEventListener("click", async () => {
+    const channel = currentChannel();
+    if (!channel?.upload.generatedHash || !window.confirm(
+        `确认已经向 ${channel.name}（AppID ${channel.appid}）成功上传了当前生成文件 ${channel.fileName}？这不是上传操作。`)) return;
+    setBusy(true);
+    try {
+        state.preview = await request(`/api/confirm-upload?channel=${encodeURIComponent(channel.name)}&hash=${channel.upload.generatedHash}`, { method: "POST" });
+        render();
+        showToast("已记录上传基线");
+    } catch (error) { showToast(error.message); }
+    finally { setBusy(false); }
+});
 
 loadPreview();
 const heartbeatTimer = setInterval(heartbeat, 30000);

@@ -60,6 +60,27 @@
             </div>
         </section>
 
+        <section class="validation-pane upload-panel">
+            <div class="pane-heading">
+                <h2>上传对照</h2>
+                <button id="confirm-upload-button" class="button button-compact" type="button" title="将当前渠道的生成文件记录为实际上传成功的版本">确认当前文件已上传</button>
+            </div>
+            <div class="upload-body">
+                <div id="upload-prediction" class="upload-prediction">未建立上传基线</div>
+                <p class="upload-hint">对比当前源数据与已确认上传的版本 · 不会自动上传</p>
+                <details class="upload-details">
+                    <summary>对比详情与使用说明</summary>
+                    <p id="upload-explanation"></p>
+                    <p>仅在实际上传成功后确认；首次使用可用刚上传的生成文件建立基线。预估按 ItemDef ID 与字段内容对比，不保证 Steam 的字段规范化、后台人工修改与缓存刷新结果。</p>
+                </details>
+                <details class="upload-details">
+                    <summary>回滚文件快照 <span id="history-count" class="history-count"></span></summary>
+                    <p>生成前后自动保留，不自动清理。通过“打开输出目录”进入 history，选择对应版本的同渠道 JSON 手动上传。旧文件不能自动撤销首次新增的定义。</p>
+                    <div id="artifact-history" class="artifact-history"></div>
+                </details>
+            </div>
+        </section>
+
         <section class="workspace">
             <div class="table-pane">
                 <div class="pane-heading">

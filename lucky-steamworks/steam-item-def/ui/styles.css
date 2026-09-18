@@ -238,6 +238,23 @@ pre {
 }
 
 .validation-list { max-height: 180px; overflow: auto; }
+.upload-body { padding: 12px 14px; }
+.upload-prediction { padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-muted); color: var(--ink); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.upload-hint { margin: 7px 0 10px; color: var(--text-muted); font-size: 12px; }
+.upload-details { border-top: 1px solid #e7e9e6; font-size: 12px; }
+.upload-details summary { padding: 9px 0; color: var(--ink); font-weight: 650; cursor: pointer; }
+.upload-details summary:focus-visible { outline: 2px solid #3a8f65; outline-offset: 2px; }
+.upload-details p { margin: 0 0 10px; color: var(--text-muted); line-height: 1.6; overflow-wrap: anywhere; }
+.history-count { margin-left: 6px; color: var(--text-muted); font-weight: 400; }
+.artifact-history { max-height: 220px; overflow: auto; }
+.snapshot-row { padding: 9px 0; border-top: 1px solid #e7e9e6; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 4px 14px; }
+.snapshot-row time { color: var(--ink); font-weight: 650; }
+.snapshot-path { color: var(--text-muted); overflow-wrap: anywhere; }
+.snapshot-files { grid-column: 2; color: var(--text-muted); overflow-wrap: anywhere; }
+@media (max-width: 620px) {
+    .snapshot-row { grid-template-columns: minmax(0, 1fr); }
+    .snapshot-files { grid-column: 1; }
+}
 .validation-empty { padding: 14px; color: var(--green); font-weight: 650; }
 .validation-item { padding: 10px 14px; border-bottom: 1px solid #e7e9e6; }
 .validation-item:last-child { border-bottom: 0; }
