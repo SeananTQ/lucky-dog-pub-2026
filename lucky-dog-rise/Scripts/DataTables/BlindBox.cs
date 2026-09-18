@@ -19,6 +19,7 @@ public sealed partial class BlindBox : Luban.BeanBase
     {
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
+        { if(!_buf["BuildChannelMask"].IsNumber) { throw new SerializationException(); }  BuildChannelMask = (EBuildChannelMask)_buf["BuildChannelMask"].AsInt; }
         { if(!_buf["BoxType"].IsNumber) { throw new SerializationException(); }  BoxType = (EBlindBoxType)_buf["BoxType"].AsInt; }
         { if(!_buf["RewardSelectionMode"].IsNumber) { throw new SerializationException(); }  RewardSelectionMode = (ERewardSelectionMode)_buf["RewardSelectionMode"].AsInt; }
         { if(!_buf["DisplayMode"].IsNumber) { throw new SerializationException(); }  DisplayMode = (EBlindBoxDisplayMode)_buf["DisplayMode"].AsInt; }
@@ -44,6 +45,7 @@ public sealed partial class BlindBox : Luban.BeanBase
     /// 策划/显示名称
     /// </summary>
     public readonly string Name;
+    public readonly EBuildChannelMask BuildChannelMask;
     /// <summary>
     /// 盲盒的奖励内容类别。用于约束奖池物品的投放类型；具体候选物品及权重由 BlindBoxItemWeight 按 BlindBoxId 配置。
     /// </summary>
@@ -94,6 +96,7 @@ public sealed partial class BlindBox : Luban.BeanBase
         return "{ "
         + "Id:" + Id + ","
         + "Name:" + Name + ","
+        + "BuildChannelMask:" + BuildChannelMask + ","
         + "BoxType:" + BoxType + ","
         + "RewardSelectionMode:" + RewardSelectionMode + ","
         + "DisplayMode:" + DisplayMode + ","

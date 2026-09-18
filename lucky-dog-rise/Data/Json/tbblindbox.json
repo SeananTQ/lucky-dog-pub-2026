@@ -2,6 +2,7 @@
   {
     "Id": 1001,
     "Name": "标准盲盒",
+    "BuildChannelMask": 10,
     "BoxType": 1,
     "RewardSelectionMode": 1,
     "DisplayMode": 1,
@@ -16,6 +17,7 @@
   {
     "Id": 1002,
     "Name": "新手盲盒",
+    "BuildChannelMask": 10,
     "BoxType": 2,
     "RewardSelectionMode": 1,
     "DisplayMode": 1,
@@ -30,6 +32,7 @@
   {
     "Id": 2001,
     "Name": "消耗品盲盒",
+    "BuildChannelMask": 10,
     "BoxType": 3,
     "RewardSelectionMode": 1,
     "DisplayMode": 1,
@@ -44,6 +47,7 @@
   {
     "Id": 2002,
     "Name": "DEMO本地普通盲盒",
+    "BuildChannelMask": 4,
     "BoxType": 1,
     "RewardSelectionMode": 2,
     "DisplayMode": 1,
@@ -58,6 +62,7 @@
   {
     "Id": 2003,
     "Name": "DEMO本地好奖励盲盒",
+    "BuildChannelMask": 4,
     "BoxType": 1,
     "RewardSelectionMode": 2,
     "DisplayMode": 1,
@@ -72,6 +77,7 @@
   {
     "Id": 3001,
     "Name": "测试活动盲盒",
+    "BuildChannelMask": 2,
     "BoxType": 4,
     "RewardSelectionMode": 1,
     "DisplayMode": 2,
@@ -81,11 +87,12 @@
     "AutoCollectSeconds": 3,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
-    "IsEnabled": true
+    "IsEnabled": false
   },
   {
     "Id": 4001,
     "Name": "Old盲盒招待券专用（归档）",
+    "BuildChannelMask": 0,
     "BoxType": 1,
     "RewardSelectionMode": 1,
     "DisplayMode": 1,

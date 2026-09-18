@@ -1,10 +1,10 @@
 {
   "Version": 1,
-  "SavedAt": "2026-09-18T19:27:36.7517647+08:00",
+  "SavedAt": "2026-09-18T19:30:48.8481877+08:00",
   "SourceItemPath": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\luban-excels\\output-data\\tbitem.json",
   "SourceItemSha256": "A1B1593DAC078D82979E785C060748615DF2D0D9917C7E104478B65AD0B149A0",
   "SourceItemWeightPath": "G:\\Workspace\\godot-project\\lucky-dog-pub-2026\\luban-excels\\output-data\\tbblindboxitemweight.json",
-  "SourceItemWeightSha256": "705A30B18DF2CA9A65011033C0D4C07B3E62F31BDDB8CF17C08CDBFDFA9CDEF0",
+  "SourceItemWeightSha256": "0FA852EDAF97ED495B22A38F3257047AED6C6714525244D57278AD3823E9B893",
   "SelectedBlindBoxId": 1002,
   "Items": [
     {
