@@ -1,0 +1,30 @@
+0.4.18 Playtest Update: Cuter Dogs, Cooler Looks!
+
+Thank you for playing and sharing your feedback! The 0.4.18 Playtest update for Lucky Dog Rise brings fresh details to our dogs, along with improvements to poker interactions and the interface.
+Even Cuter Dogs
+
+- Refined the artwork for ears, paws, and other details to give our dogs a more polished look.
+- Fixed eyes being positioned too far to the left, along with the resulting misalignment of glasses and hats.
+- Updated the chubby Shiba's face—now even rounder and cuter!
+- Added several new dog looks, giving you more styles to collect.
+- Updated dog icons and some outfit item icons, making different looks easier to recognize in your inventory.
+
+Play Poker at Your Own Pace
+
+- Adjusted the flow between hands to help new players understand betting, playing a hand, and collecting rewards.
+- Added the “Quick Start After a Win” setting. Once you're familiar with the game, turn it on to move into the next hand faster and play at your own pace.
+- Improved the table visuals and sound effects after collecting rewards, making the end of each hand clearer.
+- Adjusted tutorial prompts to make the steps easier for first-time players to follow.
+
+Interface Improvements
+
+- Refined the outfit preset layout and button designs to make saving, switching, and managing looks easier.
+- The size adjustment prompt now makes it clear that you need to switch to desktop pet mode before changing your dog's display size.
+
+The First Playtest Phase Is Coming to a Close
+The first public Playtest phase will end on September 25, and the Playtest will then be paused. Players who already have Playtest access will keep their access entitlement; it will not be revoked. Next, we'll focus on preparing Lucky Dog Rise Demo for launch and supporting it afterward.
+The timing of the next Playtest phase will depend on our development and support schedule after the Demo launches. We'll share the reopening date in a future announcement once it's decided.
+Thank you for helping Lucky Dog grow. Your feedback helps us find issues and make the game better, one step at a time. We hope you'll try out the new looks, outfits, and poker interactions during the remaining days of this phase.
+If you run into any issues while testing, please use the template in our Steam Community bug reporting thread and create a separate discussion post:
+Open the Steam Community Bug Reporting Thread (https://steamcommunity.com/app/2583700/discussions/0/594062684485409967/)
+
