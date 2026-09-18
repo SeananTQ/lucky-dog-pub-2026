@@ -1,0 +1,4 @@
+interface:
+  display_name: "小狗来啦公告"
+  short_description: "整理游戏改动，迭代 Steam 中文公告，制作 BBCode 与多语言复制稿并留档"
+  default_prompt: "使用 $lucky-dog-announcement 整理本次游戏改动，先给我中文公告审阅稿。"
