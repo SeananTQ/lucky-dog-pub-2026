@@ -1028,6 +1028,35 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, itemWeigh
     return weights.map(entry => `${entry.itemDefId}x${entry.weight}`).join(";");
 }
 
+function validateBlindBoxChannels(boxes, schedules) {
+    const errors = [];
+    const allowed = BUILD_CHANNEL_MASKS.playtest | BUILD_CHANNEL_MASKS.demo | BUILD_CHANNEL_MASKS.release;
+    const valid = mask => Number.isInteger(mask) && mask >= 0 && mask <= allowed && (mask & ~allowed) === 0;
+    const boxesById = new Map(boxes.map(box => [box.Id, box]));
+    for (const box of boxes) {
+        if (!valid(box.BuildChannelMask))
+            errors.push(`BlindBox ${box.Id}：BuildChannelMask 必须只包含 Playtest、Demo、Release。`);
+        else if (box.IsEnabled === true && box.BuildChannelMask === 0)
+            errors.push(`BlindBox ${box.Id}：启用的盲盒必须至少配置一个 BuildChannelMask。`);
+    }
+    for (const schedule of schedules.filter(row => row.IsEnabled === true)) {
+        const mask = schedule.BuildChannelMask;
+        if (!valid(mask) || mask === 0) {
+            errors.push(`BlindBoxSchedule ${schedule.Id}：启用的投放必须配置有效的 BuildChannelMask。`);
+            continue;
+        }
+        for (const [field, label] of [["BlindBoxId", "奖励盲盒"], ["FallbackBlindBoxId", "Fallback 盲盒"]]) {
+            if (field === "FallbackBlindBoxId" && !schedule[field]) continue;
+            const box = boxesById.get(schedule[field]);
+            if (!box || box.IsEnabled !== true)
+                errors.push(`BlindBoxSchedule ${schedule.Id}：${label} ${schedule[field]} 不存在或未启用。`);
+            else if (valid(box.BuildChannelMask) && (mask & box.BuildChannelMask) !== mask)
+                errors.push(`BlindBoxSchedule ${schedule.Id}：${label} ${box.Id} 的 BuildChannelMask 未覆盖投放渠道。`);
+        }
+    }
+    return errors;
+}
+
 function validateBlindBoxItemWeights(records, boxes, items) {
     const errors = [];
     const boxesById = new Map(boxes.map(box => [box.Id, box]));
@@ -1426,6 +1455,7 @@ function buildArtifacts(
             ...itemDefs.errors,
             ...gameItems.errors,
             ...merged.errors,
+            ...validateBlindBoxChannels(blindBoxRecords, blindBoxScheduleRecords),
             ...blindBoxItemWeightErrors,
             ...blindBoxes.errors,
             ...playtime.errors,

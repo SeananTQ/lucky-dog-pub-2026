@@ -1181,6 +1181,24 @@ public sealed class BlindBoxService
             }
         }
 
+        var allowedBoxChannels = EBuildChannelMask.Playtest | EBuildChannelMask.Demo | EBuildChannelMask.Release;
+        foreach (var box in LubanData.Tables.TbBlindBox.DataList)
+        {
+            if ((box.BuildChannelMask & ~allowedBoxChannels) != 0
+                || (box.IsEnabled && box.BuildChannelMask == 0))
+                GD.PushError($"[BlindBox] 盲盒 {box.Id} 的 BuildChannelMask 无效，启用盲盒必须配置适用渠道。");
+        }
+        foreach (var schedule in enabledSchedules)
+        {
+            foreach (var boxId in new[] { schedule.BlindBoxId, schedule.FallbackBlindBoxId })
+            {
+                if (boxId == 0) continue;
+                var box = LubanData.Tables.TbBlindBox.GetOrDefault(boxId);
+                if (box != null && (schedule.BuildChannelMask & box.BuildChannelMask) != schedule.BuildChannelMask)
+                    GD.PushError($"[BlindBox] 投放 {schedule.Id} 的渠道未被盲盒 {boxId} 的 BuildChannelMask 完整覆盖（含 Fallback）。");
+            }
+        }
+
         foreach (var duplicate in LubanData.Tables.TbBlindBoxItemWeight.DataList
                      .GroupBy(entry => (entry.BlindBoxId, entry.ItemId))
                      .Where(group => group.Count() > 1))

@@ -107,12 +107,31 @@ function blindBox(overrides = {}) {
     return {
         Id: 4001,
         Name: "标准盲盒",
+        BuildChannelMask: 10,
         BoxType: 1,
         IsPlatformInventoryRequired: true,
         IsEnabled: true,
         ...overrides,
     };
 }
+
+test("validates BlindBox channel masks including local Demo and fallback references", () => {
+    const build = (boxes, schedules = []) => buildArtifacts([], [], [], boxes, schedules);
+    for (const mask of [undefined, -1, 1, 16, 0]) {
+        assert.ok(build([blindBox({ BuildChannelMask: mask })]).errors
+            .some(error => error.includes("BuildChannelMask")));
+    }
+    assert.ok(!build([blindBox({ IsEnabled: false, BuildChannelMask: 0 })]).errors
+        .some(error => error.includes("BuildChannelMask")));
+    const localSchedule = schedule({ BuildChannelMask: 4, SteamPlaytimeGeneratorItemDefId: 0, FallbackBlindBoxId: 0 });
+    assert.ok(build([blindBox({ IsPlatformInventoryRequired: false })], [localSchedule]).errors
+        .some(error => error.includes("未覆盖投放渠道")));
+    const validDemo = blindBox({ BuildChannelMask: 4, IsPlatformInventoryRequired: false });
+    assert.ok(!build([validDemo], [localSchedule]).errors
+        .some(error => error.includes("BuildChannelMask")));
+    assert.ok(build([blindBox(), fallbackBlindBox({ BuildChannelMask: 2 })], [schedule()]).errors
+        .some(error => error.includes("Fallback 盲盒") && error.includes("未覆盖投放渠道")));
+});
 
 function fallbackBlindBox(overrides = {}) {
     return blindBox({
@@ -149,6 +168,7 @@ function itemWeight(overrides = {}) {
 function schedule(overrides = {}) {
     return {
         Id: 1001,
+        BuildChannelMask: 10,
         BlindBoxId: 4001,
         FallbackBlindBoxId: 4002,
         IsLoopTrack: false,
@@ -621,8 +641,9 @@ test("validates a blind-box Schedule completion receipt", () => {
         [completionReceipt],
         [],
         [],
-        [],
+        [blindBox({ IsPlatformInventoryRequired: false })],
         [schedule({
+            FallbackBlindBoxId: 0,
             SteamPlaytimeGeneratorItemDefId: 0,
             SteamCompletionReceiptItemDefId: 500005,
         })],
