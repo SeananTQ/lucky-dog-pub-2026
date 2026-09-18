@@ -11,14 +11,14 @@
     "steamItemDefIdRange": "lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json"
   },
   "sourceItemDefCount": 75,
-  "sourceGameItemCount": 120,
-  "sourceBlindBoxCount": 5,
-  "sourceBlindBoxScheduleCount": 13,
-  "sourceBlindBoxRarityRateCount": 25,
-  "sourceBlindBoxItemWeightCount": 294,
+  "sourceGameItemCount": 145,
+  "sourceBlindBoxCount": 7,
+  "sourceBlindBoxScheduleCount": 28,
+  "sourceBlindBoxRarityRateCount": 37,
+  "sourceBlindBoxItemWeightCount": 266,
   "exportedItemDefCountByChannel": {
-    "playtest": 186,
-    "release": 152
+    "playtest": 211,
+    "release": 177
   },
   "checkedLinkTreeReferenceCount": 8,
   "checkedBlindBoxReferenceCount": 2,

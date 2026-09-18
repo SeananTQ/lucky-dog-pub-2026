@@ -4,7 +4,7 @@
     {
       "itemdefid": 101002,
       "type": "item",
-      "name": "Black and Tan Shiba Inu",
+      "name": "Chubby Black Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -16,31 +16,31 @@
     {
       "itemdefid": 101003,
       "type": "item",
-      "name": "Cream Shiba Inu",
+      "name": "Chubby Cream Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:uncommon"
     },
     {
       "itemdefid": 101004,
       "type": "item",
-      "name": "Sesame Shiba Inu",
+      "name": "Chubby Sesame Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:uncommon"
     },
     {
       "itemdefid": 101005,
       "type": "item",
-      "name": "Skinny Red Shiba Inu",
+      "name": "Chubby Red Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -52,19 +52,19 @@
     {
       "itemdefid": 101006,
       "type": "item",
-      "name": "Unshaven Red Shiba Inu",
+      "name": "Arcade Gamer Red Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 101007,
       "type": "item",
-      "name": "Sharp-faced Black and Tan Shiba Inu",
+      "name": "Esports Pro Black Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -76,19 +76,19 @@
     {
       "itemdefid": 101008,
       "type": "item",
-      "name": "Sharp-faced Black and Tan Shiba Inu",
+      "name": "Gamer Girl Cream Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 101009,
       "type": "item",
-      "name": "Skinny Cream Shiba Inu",
+      "name": "Scholar Black Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -100,7 +100,7 @@
     {
       "itemdefid": 101010,
       "type": "item",
-      "name": "Unshaven Cream Shiba Inu",
+      "name": "Aristocrat Cream Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -112,7 +112,19 @@
     {
       "itemdefid": 101011,
       "type": "item",
-      "name": "Sharp-faced Sesame Shiba Inu",
+      "name": "Top Student Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 101012,
+      "type": "item",
+      "name": "Gentleman Red Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -122,9 +134,9 @@
       "tags": "rarity:epic"
     },
     {
-      "itemdefid": 101012,
+      "itemdefid": 101013,
       "type": "item",
-      "name": "Unshaven Sesame Shiba Inu",
+      "name": "Upperclassman Red Shiba",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,
@@ -132,6 +144,294 @@
       "auto_stack": false,
       "hidden": false,
       "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101014,
+      "type": "item",
+      "name": "Nerdy Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101015,
+      "type": "item",
+      "name": "Schoolgirl Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 101016,
+      "type": "item",
+      "name": "Goofy Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101017,
+      "type": "item",
+      "name": "Ace Red Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101018,
+      "type": "item",
+      "name": "Biker Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101019,
+      "type": "item",
+      "name": "Socialite Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101020,
+      "type": "item",
+      "name": "Five-Star General Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 101021,
+      "type": "item",
+      "name": "Five-Star General Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 101022,
+      "type": "item",
+      "name": "Tough Guy Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101023,
+      "type": "item",
+      "name": "Manager Red Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101024,
+      "type": "item",
+      "name": "Director Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 101025,
+      "type": "item",
+      "name": "Secretary Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:mythic"
+    },
+    {
+      "itemdefid": 101026,
+      "type": "item",
+      "name": "Senior Advisor Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101027,
+      "type": "item",
+      "name": "Legal Counsel Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101028,
+      "type": "item",
+      "name": "Trendsetter Red Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:uncommon"
+    },
+    {
+      "itemdefid": 101029,
+      "type": "item",
+      "name": "Movie Buff Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 101030,
+      "type": "item",
+      "name": "Trendsetter Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101031,
+      "type": "item",
+      "name": "Raider Red Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:uncommon"
+    },
+    {
+      "itemdefid": 101032,
+      "type": "item",
+      "name": "One-Eyed Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101033,
+      "type": "item",
+      "name": "Pirate Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:rare"
+    },
+    {
+      "itemdefid": 101034,
+      "type": "item",
+      "name": "Cyber Red Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
+    },
+    {
+      "itemdefid": 101035,
+      "type": "item",
+      "name": "Hacker Black Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101036,
+      "type": "item",
+      "name": "Cool Girl Cream Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:epic"
+    },
+    {
+      "itemdefid": 101037,
+      "type": "item",
+      "name": "Night Owl Sesame Shiba",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 102001,
@@ -395,7 +695,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 102023,
@@ -407,7 +707,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:rare"
+      "tags": "rarity:epic"
     },
     {
       "itemdefid": 102024,
@@ -923,7 +1223,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:rare"
     },
     {
       "itemdefid": 107009,
@@ -1115,7 +1415,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:mythic"
     },
     {
       "itemdefid": 108008,
@@ -1127,7 +1427,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:mythic"
     },
     {
       "itemdefid": 108009,
@@ -1187,7 +1487,7 @@
       "game_only": true,
       "auto_stack": false,
       "hidden": false,
-      "tags": "rarity:legendary"
+      "tags": "rarity:mythic"
     },
     {
       "itemdefid": 109001,
@@ -1307,7 +1607,7 @@
       "game_only": true,
       "auto_stack": true,
       "hidden": false,
-      "tags": "rarity:epic"
+      "tags": "rarity:legendary"
     },
     {
       "itemdefid": 109011,
@@ -1476,7 +1776,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x8302;101003x1385;101004x4500;101005x2250;101006x2250;101007x2250;101008x2250;101009x692;101010x692;101011x2250;101012x2250;102001x36546;102002x12453;102003x36546;102004x12453;102005x2077;102006x12453;102007x36546;102008x6750;102009x36546;102010x6750;102011x12453;102012x36545;102013x2250;102014x692;102015x2250;102016x235;102017x235;102018x235;102019x235;102020x692;102021x692;102022x2250;102023x4151;102024x2250;102025x12182;102026x4151;102027x4151;102028x692;102029x4151;102030x692;102031x4151;102032x2250;102033x692;105001x12182;105002x2250;105003x4151;105004x2250;105005x2250;105006x12182;105007x4151;105008x12182;106002x4500;106003x4500;106004x8302;106005x8302;106006x4500;106007x471;106008x36545;106009x36545;106010x36545;106011x2077;107001x36545;107002x36545;107003x12182;107005x4151;107006x12453;107007x12182;107008x6750;107009x12453;107010x471;107011x12453;107012x2077;107013x12453;107014x36545;107015x12182;107016x12453;107017x6750;107018x36545;107019x6750;108001x12453;108003x12453;108004x6750;108005x36545;108007x1385;108008x1385;108009x36545;108010x36545;108011x118;108012x12453;108013x2077;112001x12453;112002x36545"
+      "bundle": "101002x11381;101003x10730;101004x10730;101005x3922;101006x951;101007x4128;101008x13;101009x1268;101010x951;101011x2;101012x4128;101013x41;101014x4128;101015x3756;101016x951;101017x507;101018x507;101019x380;101020x56;101021x110;101022x507;101023x2477;101024x133;101025x89;101026x761;101027x761;101028x8345;101029x3414;101030x4128;101031x5961;101032x4128;101033x3414;101034x311;101035x2044;101036x1012;101037x628;102001x35765;102002x11381;102003x35765;102004x11381;102005x1901;102006x11381;102007x35765;102008x6193;102009x35765;102010x6193;102011x11381;102012x35765;102013x2064;102014x634;102015x2064;102016x111;102017x111;102018x111;102019x111;102020x634;102021x634;102022x3794;102023x2064;102024x2064;102025x11922;102026x3794;102027x3794;102028x634;102029x3794;102030x634;102031x3794;102032x2064;102033x634;105001x11922;105002x2064;105003x3794;105004x2064;105005x2064;105006x11922;105007x3794;105008x11922;106002x4128;106003x4128;106004x7588;106005x7588;106006x4128;106007x222;106008x35765;106009x35765;106010x35765;106011x1901;107001x35765;107002x35765;107003x11922;107005x3794;107006x11381;107007x11922;107008x11381;107009x11381;107010x222;107011x11381;107012x1901;107013x11381;107014x35765;107015x11922;107016x11381;107017x6193;107018x35765;107019x6193;108001x11381;108003x11381;108004x6193;108005x35765;108007x222;108008x222;108009x35765;108010x35765;108011x56;108012x11381;108013x222;112001x4553;112002x14306"
     },
     {
       "itemdefid": 301002,
@@ -1489,7 +1789,7 @@
       "game_only": true,
       "store_hidden": true,
       "auto_stack": false,
-      "bundle": "101002x29474;101003x4750;101004x14167;101005x7083;101006x7083;101007x7083;101008x7083;101009x2375;101010x2375;101011x7083;101012x7083;102001x18197;102002x22105;102003x18197;102004x22105;102005x3562;102006x22105;102007x18197;102008x10625;102009x18197;102010x10625;102011x22105;102012x18197;102013x3542;102014x1188;102015x3542;102016x235;102017x235;102018x235;102019x235;102020x1188;102021x1188;102022x3542;102023x7368;102024x3542;102025x6066;102026x7368;102027x7368;102028x1188;102029x7368;102030x1188;102031x7368;102032x3542;102033x1187;105001x6066;105002x3542;105003x7368;105004x3542;105005x3542;105006x6066;105007x7368;105008x6066;106002x7083;106003x7083;106004x14737;106005x14737;106006x7083;106007x471;106008x18197;106009x18197;106010x18197;106011x3562;107001x18197;107002x18197;107003x18197;107005x22105;107006x22105;107007x18197;107008x10625;107009x22105;107010x471;107011x22105;107012x3562;107013x22105;107014x18197;107015x18197;107016x22105;107017x10625;107018x18197;107019x10625;108001x22105;108003x22105;108004x10625;108005x18197;108007x3562;108008x3562;108009x18197;108010x18197;108011x118;108012x22105;108013x3562;112001x22105;112002x18197"
+      "bundle": "101002x59072;101003x5925;101004x5925;101005x6843;101006x2007;101007x7203;101008x27;101009x2676;101010x2007;101011x2;101012x7203;101013x72;101014x7203;101015x6498;101016x2007;101017x1070;101018x1070;101019x803;101020x55;101021x110;101022x1070;101023x17288;101024x133;101025x89;101026x1606;101027x1606;101028x4608;101029x5907;101030x7203;101031x3292;101032x7203;101033x5907;101034x656;101035x3566;101036x1765;101037x1325;102001x19751;102002x19691;102003x19751;102004x19691;102005x4014;102006x19691;102007x19751;102008x10805;102009x19751;102010x10805;102011x19691;102012x19751;102013x3602;102014x1338;102015x3602;102016x111;102017x111;102018x111;102019x111;102020x1338;102021x1338;102022x6563;102023x3602;102024x3602;102025x6584;102026x6563;102027x6563;102028x1338;102029x6563;102030x1338;102031x6563;102032x3602;102033x1338;105001x6584;105002x3602;105003x6563;105004x3602;105005x3602;105006x6584;105007x6563;105008x6584;106002x7203;106003x7203;106004x13127;106005x13127;106006x7203;106007x222;106008x19751;106009x19751;106010x19751;106011x4014;107001x19751;107002x19751;107003x6584;107005x6563;107006x19691;107007x6584;107008x19691;107009x19691;107010x222;107011x19691;107012x4014;107013x19691;107014x19751;107015x6584;107016x19691;107017x10805;107018x19751;107019x10805;108001x19691;108003x19691;108004x10805;108005x19751;108007x222;108008x222;108009x19751;108010x19751;108011x55;108012x19690;108013x222;112001x7876;112002x7900"
     },
     {
       "itemdefid": 500005,

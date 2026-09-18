@@ -15,6 +15,8 @@ Steam 库存物品动态属性
 
 首次启动游戏，Steam覆盖提示
 
+Modified 45/211 item definitions. Flushed Econ caches: yes.  
+
 
 
 Windows 代码签名证书：证明 LuckyDogRise.exe 来自 Seanan Studio，降低 SmartScreen 和杀毒软件警告。尚未完成。
