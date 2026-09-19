@@ -963,6 +963,13 @@ public partial class SystemPanelController : CanvasLayer
         return null;
     }
 
+    public void ShowSettingsPage()
+    {
+        SwitchTab(4);
+        if (!IsOpen)
+            Open();
+    }
+
     private void SwitchTab(int index)
     {
         for (int i = 0; i < _tabs.Count; i++)

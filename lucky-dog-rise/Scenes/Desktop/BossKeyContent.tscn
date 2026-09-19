@@ -128,6 +128,7 @@ theme_override_styles/normal = SubResource("bar_icon_normal")
 theme_override_styles/pressed = SubResource("bar_icon_pressed")
 theme_override_styles/hover = SubResource("bar_icon_hover")
 theme_override_styles/focus = SubResource("bar_icon_hover")
+icon_alignment = 2
 icon = ExtResource("4_menu_dark")
 
 [node name="BlindBoxHint" parent="CanvasLayer" unique_id=169206824 instance=ExtResource("2_balloon")]

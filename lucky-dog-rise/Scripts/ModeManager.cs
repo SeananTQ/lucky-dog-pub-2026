@@ -51,18 +51,10 @@ public partial class ModeManager : Control
     private PanelContainer _bossStatusPanel = null!;
     private Button _bossModeButton = null!;
     // Seconds after startup becomes interactive before the poker-entry hint begins.
-    private const double PokerEntryHintDelaySeconds = 5.0;
+    private const double PokerEntryHintDelaySeconds = 35.0;
     private const double PokerEntryHintBreathSeconds = 1.2;
-    private const double MenuEntryHintDelaySeconds = 5.0;
+    private const double MenuEntryHintDelaySeconds = 15.0;
     private const double MenuEntryHintBreathSeconds = 1.2;
-#if DEBUG
-    // Temporary Dev-only override so the hint can be retested on an already-used save.
-    private const bool IgnorePokerEntryHintDismissalForTesting = true;
-    private const bool IgnoreMenuEntryHintDismissalForTesting = true;
-#else
-    private const bool IgnorePokerEntryHintDismissalForTesting = false;
-    private const bool IgnoreMenuEntryHintDismissalForTesting = false;
-#endif
     private double _pokerEntryHintElapsed;
     private bool _enteredPokerThisSession;
     private StyleBoxFlat _pokerEntryHintStyle = null!;
@@ -986,8 +978,7 @@ public partial class ModeManager : Control
             && !_hiddenByFullscreenApp && !_bossCounterAutoHidden
             && _bossCanvasLayer.Visible && _bossModeButton.IsVisibleInTree();
         var breathing = visible
-            && (IgnorePokerEntryHintDismissalForTesting
-                || (!_enteredPokerThisSession && !_gameData.HasEnteredPokerMode))
+            && !_enteredPokerThisSession && !_gameData.HasEnteredPokerMode
             && _pokerEntryHintElapsed >= PokerEntryHintDelaySeconds;
         var blend = breathing
             ? (float)GetEntryHintBreathBlend(
@@ -1010,8 +1001,7 @@ public partial class ModeManager : Control
             && !_hiddenByFullscreenApp && !_bossCounterAutoHidden
             && _bossCanvasLayer.Visible && _bossSystemButton.IsVisibleInTree();
         var breathing = visible
-            && (IgnoreMenuEntryHintDismissalForTesting
-                || (!_openedMenuThisSession && !_gameData.HasOpenedDesktopMenu))
+            && !_openedMenuThisSession && !_gameData.HasOpenedDesktopMenu
             && _menuEntryHintElapsed >= MenuEntryHintDelaySeconds;
         var blend = breathing
             ? (float)GetEntryHintBreathBlend(
@@ -3002,6 +2992,36 @@ public partial class ModeManager : Control
 
     // ===== 面板切换 =====
 
+    private bool TryOpenSettingsFromDesktopDog(Vector2I screenPosition)
+    {
+        if (CurrentMode != Mode.BossKey || _startupState != StartupState.Interactive
+            || _hiddenByFullscreenApp || !_bossDogVisual.IsVisibleInTree()
+            || _potentialDrag || _isDragging)
+            return false;
+
+        var localPos = ScreenToWindowLocal(screenPosition);
+        // Use the existing scaled dog hit area, excluding UI drawn in front of it.
+        if (!_dogHitRect.HasPoint(localPos) || _settingsPanel.ContainsPoint(localPos)
+            || GetBossStatusPanelRect().HasPoint(localPos)
+            || (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible
+                && GetBossBlindBoxHintRect().HasPoint(localPos))
+            || (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible
+                && GetBossBlindBoxOverlayRect().HasPoint(localPos)))
+            return false;
+#if DEBUG
+        if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos))
+            return false;
+#endif
+
+        RefreshSettingsPanelModeActions();
+        PositionPanelInBestSlot();
+        _settingsPanel.ShowSettingsPage();
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+        _openedMenuThisSession = true;
+        _gameData.MarkDesktopMenuOpened();
+        return true;
+    }
+
     private void ToggleSettingsPanel()
     {
         if (CurrentMode == Mode.Play && _gameManager?.IsCollectionProgressNoticeVisible == true)
@@ -3607,6 +3627,12 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
+            && TryOpenSettingsFromDesktopDog(DisplayServer.MouseGetPosition()))
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 #if DEBUG
         if (@event is InputEventKey { Pressed: true, Echo: false } key
             && !_settingsPanel.IsOpen)
