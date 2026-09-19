@@ -907,7 +907,12 @@ public partial class ModeManager : Control
 
         if (what == NotificationWMCloseRequest)
         {
-            RequestGracefulQuit();
+            // Closing the poker window (including Alt+F4) returns to the desktop pet.
+            // Explicit in-game Quit actions still use RequestGracefulQuit directly.
+            if (CurrentMode == Mode.Play || CurrentMode == Mode.Immersive)
+                SwitchToBossKey();
+            else
+                RequestGracefulQuit();
             return;
         }
 
