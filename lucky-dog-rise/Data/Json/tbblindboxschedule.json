@@ -270,7 +270,7 @@
     "NextScheduleId": 3003,
     "ProgressCheckpoint": 2000,
     "BuildChannelMask": 4,
-    "BlindBoxId": 2002,
+    "BlindBoxId": 2003,
     "FallbackBlindBoxId": 0,
     "IsLoopTrack": false,
     "StartSeconds": 12,

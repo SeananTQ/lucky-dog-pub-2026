@@ -1771,13 +1771,6 @@
     "IsEnabled": true
   },
   {
-    "Id": 200202013,
-    "BlindBoxId": 2002,
-    "ItemId": 2013,
-    "Weight": 100,
-    "IsEnabled": true
-  },
-  {
     "Id": 200202022,
     "BlindBoxId": 2002,
     "ItemId": 2022,
@@ -1859,6 +1852,13 @@
     "BlindBoxId": 2003,
     "ItemId": 1013,
     "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 200302013,
+    "BlindBoxId": 2003,
+    "ItemId": 2013,
+    "Weight": 300,
     "IsEnabled": true
   }
 ]
