@@ -9,7 +9,7 @@ public partial class TutorialManager : CanvasLayer
     [Export] private Control _overlayInput = null!;
 
     private const double AutomaticShowIdleSeconds = 20.0;
-    private const double DismissLockSeconds = 2.0;
+    private const double DismissLockSeconds = 1.0;
 
     private GameData _gameData = null!;
     private InteractionHintController _interactionHints = null!;
@@ -18,12 +18,24 @@ public partial class TutorialManager : CanvasLayer
     private bool _manualShowPending;
     private double _secondsSinceEffectiveInteraction;
     private double _dismissLockRemaining;
+    private bool _guideEnabled;
+
+    public bool NeedsInterfaceActivity => _pokerModeActive
+        && _gameData?.NeedsPokerBasicsGuidance == true && _guideEnabled && !Visible;
+
+    // UI exploration delays only the full tutorial, never poker mistake/idle hints.
+    public void NotifyInterfaceActivity()
+    {
+        if (NeedsInterfaceActivity)
+            _secondsSinceEffectiveInteraction = 0.0;
+    }
 
     public bool IsOverlayVisible => Visible;
 
     public override void _Ready()
     {
         Visible = false;
+        _guideEnabled = SettingsManager.LoadPokerGuideOverlayEnabled();
         _overlayInput.GuiInput += OnOverlayGuiInput;
         SettingsManager.PokerGuideOverlayEnabledChanged += OnPokerGuideOverlayEnabledChanged;
     }
@@ -69,6 +81,7 @@ public partial class TutorialManager : CanvasLayer
 
         _gameData.PokerBasicsGuidanceChanged += OnPokerBasicsGuidanceChanged;
         SettingsManager.InitializePokerGuideOverlaySetting(_gameData.NeedsPokerBasicsGuidance);
+        _guideEnabled = SettingsManager.LoadPokerGuideOverlayEnabled();
     }
 
     public void BindInteractionHints(InteractionHintController interactionHints)
@@ -119,6 +132,7 @@ public partial class TutorialManager : CanvasLayer
 
     private void OnPokerGuideOverlayEnabledChanged(bool enabled)
     {
+        _guideEnabled = enabled;
         if (!enabled)
         {
             _manualShowPending = false;
@@ -162,7 +176,7 @@ public partial class TutorialManager : CanvasLayer
             })
             return;
 
-        // 两秒锁定期内仍然吃掉输入，避免点穿牌桌，但不关闭教程。
+        // 一秒锁定期内仍然吃掉输入，避免点穿牌桌，但不关闭教程。
         _overlayInput.AcceptEvent();
         if (_dismissLockRemaining > 0.0)
             return;

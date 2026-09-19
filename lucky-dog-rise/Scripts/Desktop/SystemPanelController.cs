@@ -51,6 +51,7 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
+    public TutorialManager TutorialActivityTarget { private get; set; }
     public Rect2 PanelRect => new(_panel.Position, PanelSize);
 
     public float TopActionAreaHeight
@@ -382,6 +383,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Ready()
     {
+        BindTutorialPopupActivity(this);
         _panel = GetNode<PanelContainer>("Panel");
         _panelScroll = GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
 
@@ -871,6 +873,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
+        TrackTutorialInterfaceActivity(@event);
         if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true)
         {
             ResetPanelScrollDrag();
@@ -905,6 +908,35 @@ public partial class SystemPanelController : CanvasLayer
 
         _panelScroll.ScrollVertical = _panelScrollDragStartValue - Mathf.RoundToInt(delta.Y);
         GetViewport().SetInputAsHandled();
+    }
+
+    private void BindTutorialPopupActivity(Node node)
+    {
+        // PopupMenu is a separate Viewport; its input does not reach this _Input.
+        if (node is OptionButton option)
+            option.GetPopup().WindowInput += input => TrackTutorialInterfaceActivity(input, true);
+        foreach (var child in node.GetChildren())
+            BindTutorialPopupActivity(child);
+    }
+
+    private void TrackTutorialInterfaceActivity(InputEvent input, bool fromPopup = false)
+    {
+        // No hit tests, focus queries or settings reads once beginner guidance ends.
+        if (TutorialActivityTarget?.NeedsInterfaceActivity != true || !IsOpen)
+            return;
+
+        bool activity = input switch
+        {
+            InputEventMouseButton mouse => mouse.Pressed && (fromPopup || ContainsPoint(mouse.Position)),
+            InputEventMouseMotion motion => motion.ButtonMask != 0
+                && motion.Relative != Vector2.Zero && (fromPopup || ContainsPoint(motion.Position)),
+            InputEventKey key => key.Pressed && (fromPopup
+                || (GetViewport().GuiGetFocusOwner() is Control focus
+                    && focus.IsVisibleInTree() && IsAncestorOf(focus))),
+            _ => false,
+        };
+        if (activity)
+            TutorialActivityTarget.NotifyInterfaceActivity();
     }
 
     private void BeginPanelScrollDrag(Vector2 mousePosition)

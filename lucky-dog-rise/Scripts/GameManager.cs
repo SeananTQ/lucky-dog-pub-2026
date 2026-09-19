@@ -73,7 +73,19 @@ public partial class GameManager : Node2D
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     private PokerCollectionProgressDialogController _collectionProgressDialog = null!;
     private bool _isPokerModeActive;
-    public SystemPanelController SettingsPanel { get; set; } = null!;
+    private SystemPanelController _settingsPanel;
+    public SystemPanelController SettingsPanel
+    {
+        get => _settingsPanel;
+        set
+        {
+            if (_settingsPanel != null)
+                _settingsPanel.TutorialActivityTarget = null;
+            _settingsPanel = value;
+            if (_settingsPanel != null)
+                _settingsPanel.TutorialActivityTarget = _tutorial;
+        }
+    }
 
     public override void _Ready()
     {
@@ -88,6 +100,8 @@ public partial class GameManager : Node2D
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
         _tutorial = GetNode<TutorialManager>("TutorialManager");
+        if (SettingsPanel != null)
+            SettingsPanel.TutorialActivityTarget = _tutorial;
         _tutorial.BindInteractionHints(_interactionHints);
         _tutorial.BindGameData(_gameData);
         _tutorial.OverlayVisibilityChanged += OnTutorialOverlayVisibilityChanged;
@@ -131,6 +145,7 @@ public partial class GameManager : Node2D
 
     public override void _ExitTree()
     {
+        SettingsPanel = null;
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_tutorial != null)
             _tutorial.OverlayVisibilityChanged -= OnTutorialOverlayVisibilityChanged;
