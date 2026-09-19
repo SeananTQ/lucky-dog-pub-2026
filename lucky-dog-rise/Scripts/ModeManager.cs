@@ -50,7 +50,28 @@ public partial class ModeManager : Control
     private Marker2D _bossTaskBarAnchor = null!;
     private PanelContainer _bossStatusPanel = null!;
     private Button _bossModeButton = null!;
+    // Seconds after startup becomes interactive before the poker-entry hint begins.
+    private const double PokerEntryHintDelaySeconds = 5.0;
+    private const double PokerEntryHintBreathSeconds = 1.2;
+    private const double MenuEntryHintDelaySeconds = 5.0;
+    private const double MenuEntryHintBreathSeconds = 1.2;
+#if DEBUG
+    // Temporary Dev-only override so the hint can be retested on an already-used save.
+    private const bool IgnorePokerEntryHintDismissalForTesting = true;
+    private const bool IgnoreMenuEntryHintDismissalForTesting = true;
+#else
+    private const bool IgnorePokerEntryHintDismissalForTesting = false;
+    private const bool IgnoreMenuEntryHintDismissalForTesting = false;
+#endif
+    private double _pokerEntryHintElapsed;
+    private bool _enteredPokerThisSession;
+    private StyleBoxFlat _pokerEntryHintStyle = null!;
+    private Color _pokerEntryNormalColor;
+    private Color _pokerEntryHoverColor;
     private Button _bossSystemButton = null!;
+    private double _menuEntryHintElapsed;
+    private bool _openedMenuThisSession;
+    private StyleBoxFlat _menuEntryHintStyle = null!;
     private Vector2 _bossStatusPanelBasePosition;
     private Vector2 _bossStatusPanelBaseSize;
     private StyleBoxFlat _bossStatusPanelStyle = null!;
@@ -487,7 +508,17 @@ public partial class ModeManager : Control
         CaptureBossStatusPanelStyle();
         _blindBoxIcon = GD.Load<Texture2D>("res://Assets/UI/BlindBox/BlindBox_Common_Closed.png");
         _bossModeButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/ModeSwitch");
+        _pokerEntryHintStyle = (StyleBoxFlat)_bossModeButton.GetThemeStylebox("normal").Duplicate();
+        // The normal style is transparent over the counter panel. Use the visible panel
+        // color as an opaque animation start so alpha compositing does not create a muddy
+        // gray phase before reaching the Steam-like green target.
+        _pokerEntryNormalColor = new Color(0.8588f, 0.8941f, 0.9137f, 1.0f);
+        // Steam-like green, intentionally opaque so the transition is a direct color blend.
+        _pokerEntryHoverColor = new Color(0.16f, 0.76f, 0.22f, 1.0f);
+        _bossModeButton.AddThemeStyleboxOverride("normal", _pokerEntryHintStyle);
         _bossSystemButton = _bossKeyContent.GetNode<Button>("CanvasLayer/Panel/HBoxContainer/SystemButton");
+        _menuEntryHintStyle = (StyleBoxFlat)_bossSystemButton.GetThemeStylebox("normal").Duplicate();
+        _bossSystemButton.AddThemeStyleboxOverride("normal", _menuEntryHintStyle);
         _bossModeButton.Pressed += OnBossModeButtonPressed;
         _bossSystemButton.Pressed += OnBossSystemButtonPressed;
         if (BuildCapabilities.BlindBoxes)
@@ -847,6 +878,8 @@ public partial class ModeManager : Control
         _achievementSynchronizer?.Tick(_);
         _statisticSynchronizer?.Tick(_);
         UpdateStartup(_);
+        UpdatePokerEntryHint(_);
+        UpdateMenuEntryHint(_);
         UpdateBlindBoxOpeningUi(_);
 #if DEBUG
         UpdateSteamMockPresentation();
@@ -940,6 +973,64 @@ public partial class ModeManager : Control
     // 游玩模式布局状态：false=信息面板在左(默认), true=信息面板在右
     private bool _infoPanelOnRight;
 
+    private void UpdatePokerEntryHint(double delta)
+    {
+        if (_pokerEntryHintStyle == null)
+            return;
+
+        if (_startupState == StartupState.Interactive)
+            _pokerEntryHintElapsed += delta;
+
+        var visible = CurrentMode == Mode.BossKey
+            && _startupState == StartupState.Interactive
+            && !_hiddenByFullscreenApp && !_bossCounterAutoHidden
+            && _bossCanvasLayer.Visible && _bossModeButton.IsVisibleInTree();
+        var breathing = visible
+            && (IgnorePokerEntryHintDismissalForTesting
+                || (!_enteredPokerThisSession && !_gameData.HasEnteredPokerMode))
+            && _pokerEntryHintElapsed >= PokerEntryHintDelaySeconds;
+        var blend = breathing
+            ? (float)GetEntryHintBreathBlend(
+                (_pokerEntryHintElapsed - PokerEntryHintDelaySeconds) / PokerEntryHintBreathSeconds)
+            : 0f;
+        // Only the private normal style changes; native hover/pressed styles still win.
+        _pokerEntryHintStyle.BgColor = _pokerEntryNormalColor.Lerp(_pokerEntryHoverColor, blend);
+    }
+
+    private void UpdateMenuEntryHint(double delta)
+    {
+        if (_menuEntryHintStyle == null)
+            return;
+
+        if (_startupState == StartupState.Interactive)
+            _menuEntryHintElapsed += delta;
+
+        var visible = CurrentMode == Mode.BossKey
+            && _startupState == StartupState.Interactive
+            && !_hiddenByFullscreenApp && !_bossCounterAutoHidden
+            && _bossCanvasLayer.Visible && _bossSystemButton.IsVisibleInTree();
+        var breathing = visible
+            && (IgnoreMenuEntryHintDismissalForTesting
+                || (!_openedMenuThisSession && !_gameData.HasOpenedDesktopMenu))
+            && _menuEntryHintElapsed >= MenuEntryHintDelaySeconds;
+        var blend = breathing
+            ? (float)GetEntryHintBreathBlend(
+                (_menuEntryHintElapsed - MenuEntryHintDelaySeconds) / MenuEntryHintBreathSeconds)
+            : 0f;
+        _menuEntryHintStyle.BgColor = _pokerEntryNormalColor.Lerp(_pokerEntryHoverColor, blend);
+    }
+
+    private static double GetEntryHintBreathBlend(double cycle)
+    {
+        // Ping-pong a quintic smootherstep. It has zero velocity and zero acceleration
+        // at both ends, reducing the visible turn when the color changes direction.
+        var phase = cycle - 2.0 * Math.Floor(cycle / 2.0);
+        var normalized = phase <= 1.0 ? phase : 2.0 - phase;
+        normalized = Math.Clamp(normalized, 0.0, 1.0);
+        return normalized * normalized * normalized
+            * (normalized * (normalized * 6.0 - 15.0) + 10.0);
+    }
+
     private void SwitchToPlay()
     {
         if (CurrentMode == Mode.Play) return;
@@ -998,6 +1089,9 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+        _enteredPokerThisSession = true;
+        _gameData.MarkPokerModeEntered();
+        _pokerEntryHintStyle.BgColor = _pokerEntryNormalColor;
 #if DEBUG
         RefreshSteamMockPanelVisibility();
 #endif
@@ -2073,6 +2167,11 @@ public partial class ModeManager : Control
             return;
 
         ToggleSettingsPanel();
+        if (_settingsPanel.IsOpen)
+        {
+            _openedMenuThisSession = true;
+            _gameData.MarkDesktopMenuOpened();
+        }
     }
 
     private void RefreshBossBlindBoxHint()

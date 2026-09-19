@@ -23,6 +23,10 @@ public sealed class SaveProfile
     public double TotalPlaySeconds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool NeedsPokerBasicsGuidance { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HasEnteredPokerMode { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HasOpenedDesktopMenu { get; set; }
     public List<int> OwnedItemIds { get; set; } = new();
     public Dictionary<int, int> OwnedItemCounts { get; set; } = new();
     public Dictionary<string, int> EquippedItemIdsByType { get; set; } = new();

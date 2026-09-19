@@ -48,6 +48,34 @@ public partial class GameData : Node
     public int Chips { get; private set; } = StartingChips;
     public double TotalPlaySeconds { get; private set; }
     public bool NeedsPokerBasicsGuidance { get; private set; }
+    public bool HasEnteredPokerMode { get; private set; }
+    public bool HasOpenedDesktopMenu { get; private set; }
+
+    public void MarkDesktopMenuOpened()
+    {
+#if DEBUG
+        if (_blindBoxLocalTestMode || _steamMockSimulationActive
+            || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
+            return;
+#endif
+        if (HasOpenedDesktopMenu)
+            return;
+        HasOpenedDesktopMenu = true;
+        SaveImmediatelyIfUsingLocalSave();
+    }
+
+    public void MarkPokerModeEntered()
+    {
+#if DEBUG
+        if (_blindBoxLocalTestMode || _steamMockSimulationActive
+            || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
+            return;
+#endif
+        if (HasEnteredPokerMode)
+            return;
+        HasEnteredPokerMode = true;
+        SaveImmediatelyIfUsingLocalSave();
+    }
     public PendingBlindBoxReward PendingBlindBoxReward { get; private set; }
     public bool HasRecoveredItems => _recoveredItemCounts.Count > 0;
     public int PendingBlindBoxCompletionReceiptItemDefId =>
@@ -3484,6 +3512,8 @@ public partial class GameData : Node
             LuckyDealBuffState = _luckyDealBuffState,
             RefreshmentRuntimeState = _refreshmentRuntimeState,
             NeedsPokerBasicsGuidance = NeedsPokerBasicsGuidance,
+            HasEnteredPokerMode = HasEnteredPokerMode,
+            HasOpenedDesktopMenu = HasOpenedDesktopMenu,
         });
         _saveDirty = false;
         _profileAutosaveTimer = ProfileAutosaveSeconds;
@@ -3599,6 +3629,8 @@ public partial class GameData : Node
     private void LoadPokerBasicsGuidanceState(SaveProfile profile)
     {
         NeedsPokerBasicsGuidance = profile.NeedsPokerBasicsGuidance;
+        HasEnteredPokerMode = profile.HasEnteredPokerMode;
+        HasOpenedDesktopMenu = profile.HasOpenedDesktopMenu;
         EmitSignal(SignalName.PokerBasicsGuidanceChanged, NeedsPokerBasicsGuidance);
     }
 
