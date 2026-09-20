@@ -23,6 +23,8 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     [Export] private TextureRect _useCheckIcon = null!;
     [Export] private Control _statusBalloon = null!;
     [Export] private Label _statusHandsLabel = null!;
+    [Export] private float _refreshmentDropHeight = 140f;
+    [Export] private float _refreshmentDropSeconds = 0.38f;
 
     private readonly Dictionary<string, Vector2> _localCache = new();
     private readonly Dictionary<string, float> _balloonVerticalOffsetCache = new();
@@ -30,6 +32,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private GameData _gameData;
     private Tween _hintTween;
     private Tween _refreshmentFadeTween;
+    private Tween _refreshmentDropTween;
     private Tween _useFeedbackTween;
     private Tween _useBalloonTween;
     private Tween _useCheckTween;
@@ -47,6 +50,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
     private int _statusBalloonHideToken;
     private int _refreshmentFadeToken;
     private int _displayedRefreshmentItemId;
+    private bool _refreshmentDisplayInitialized;
     private TableRefreshmentStatus _lastRefreshmentStatus = TableRefreshmentStatus.Empty;
     private bool _cacheBuilt;
 
@@ -124,9 +128,14 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         HideUseBalloon();
     }
 
-    public void SetRefreshment(Texture2D texture, string assetPath, int configuredBalloonOffsetY)
+    public void SetRefreshment(
+        Texture2D texture,
+        string assetPath,
+        int configuredBalloonOffsetY,
+        bool animateDrop = false)
     {
         StopRefreshmentFade();
+        StopRefreshmentDrop();
         ResetHintAnimation();
         ResetUseFeedbackTransform();
         _refreshmentSprite.Texture = texture;
@@ -144,11 +153,15 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         _clickButton.Visible = true;
         _clickButton.Disabled = false;
         _clickButton.MouseFilter = Control.MouseFilterEnum.Stop;
+
+        if (animateDrop)
+            PlayRefreshmentDrop();
     }
 
     public void ClearRefreshment()
     {
         StopRefreshmentFade();
+        StopRefreshmentDrop();
         ResetHintAnimation();
         ResetUseFeedbackTransform();
         _displayedRefreshmentItemId = 0;
@@ -321,6 +334,7 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
             || item.ItemType != EItemType.Refreshment
             || item.AssetPathList.Count == 0)
         {
+            _refreshmentDisplayInitialized = true;
             ClearRefreshment();
             return;
         }
@@ -328,12 +342,20 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         var texture = GD.Load<Texture2D>(PlayerInventory.ToResPath(item.AssetPathList[0]));
         if (texture == null)
         {
+            _refreshmentDisplayInitialized = true;
             ClearRefreshment();
             return;
         }
 
+        var shouldAnimateDrop = _refreshmentDisplayInitialized
+            && itemId != _displayedRefreshmentItemId;
         _displayedRefreshmentItemId = itemId;
-        SetRefreshment(texture, item.AssetPathList[0], config.BalloonOffsetY);
+        _refreshmentDisplayInitialized = true;
+        SetRefreshment(
+            texture,
+            item.AssetPathList[0],
+            config.BalloonOffsetY,
+            shouldAnimateDrop);
         RefreshStatusBalloonText();
         if (state.Status != TableRefreshmentStatus.BuffActive)
             HideStatusBalloon(animate: false);
@@ -484,6 +506,28 @@ public partial class ItemAreaController : Node2D, IInteractionHintTarget
         _refreshmentFadeToken++;
         _refreshmentFadeTween?.Kill();
         _refreshmentFadeTween = null;
+    }
+
+    private void PlayRefreshmentDrop()
+    {
+        StopRefreshmentDrop();
+        _refreshmentAnchor.Position = _refreshmentRestPosition
+            + Vector2.Up * Mathf.Max(0f, _refreshmentDropHeight);
+        _refreshmentDropTween = CreateTween();
+        _refreshmentDropTween.TweenProperty(
+                _refreshmentAnchor,
+                "position",
+                _refreshmentRestPosition,
+                Mathf.Max(0.01f, _refreshmentDropSeconds))
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _refreshmentDropTween.TweenCallback(Callable.From(() => _refreshmentDropTween = null));
+    }
+
+    private void StopRefreshmentDrop()
+    {
+        _refreshmentDropTween?.Kill();
+        _refreshmentDropTween = null;
     }
 
     private void PlayUseFeedback()

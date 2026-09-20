@@ -33,6 +33,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     private Tween _tongueTween = null!;
     private Tween _pawTween = null!;
+    private Tween _headwearDropTween = null!;
+    private string _equippedHeadwearAssetPath = "";
+    private bool _headwearStateInitialized;
     private Vector2 _desktopTongueBasePosition;
     private float _desktopTongueTimer;
     private float _desktopTongueActiveTimer;
@@ -55,6 +58,8 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     [Export] private float _desktopTongueBeatSeconds = 0.12f;
     [Export] private float _desktopTongueBurstWindowSeconds = 0.25f;
     [Export] private int _desktopTongueBurstThreshold = 2;
+    [Export] private float _headwearDropHeight = 140f;
+    [Export] private float _headwearDropSeconds = 0.38f;
     public bool CanPlayInteractionHint => IsNodeReady()
         && _hitButtons.Any(button => button.Visible && !button.Disabled);
     public bool IsInteractionHintPlaying => (_pawTween?.IsRunning() ?? false)
@@ -437,27 +442,76 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (!IsNodeReady()) return;
 
-        var item = _gameData?.Inventory.GetEquipped(EItemType.Headwear);
-        if (item == null || item.AssetPathList.Count == 0)
+        if (_gameData == null)
         {
+            StopHeadwearDropAnimation();
             _headwear.Visible = false;
             return;
         }
 
-        var path = PlayerInventory.ToResPath(item.AssetPathList[0]);
+        var item = _gameData.Inventory.GetEquipped(EItemType.Headwear);
+        if (item == null || item.AssetPathList.Count == 0)
+        {
+            StopHeadwearDropAnimation();
+            _equippedHeadwearAssetPath = "";
+            _headwearStateInitialized = true;
+            _headwear.Visible = false;
+            return;
+        }
+
+        var assetPath = item.AssetPathList[0];
+        var path = PlayerInventory.ToResPath(assetPath);
         var texture = GD.Load<Texture2D>(path);
         if (texture == null)
         {
+            StopHeadwearDropAnimation();
+            _equippedHeadwearAssetPath = assetPath;
+            _headwearStateInitialized = true;
             _headwear.Visible = false;
             return;
         }
 
-        _headwear.Texture = texture;
-        _headwear.Position = GetAdornmentScenePosition(
-            item.AssetPathList[0],
+        var targetPosition = GetAdornmentScenePosition(
+            assetPath,
             _headwearReferenceLayerPath,
             _headwearReferenceLocalPosition);
+        var shouldAnimateDrop = _headwearStateInitialized
+            && !string.Equals(_equippedHeadwearAssetPath, assetPath, System.StringComparison.Ordinal);
+
+        _equippedHeadwearAssetPath = assetPath;
+        _headwearStateInitialized = true;
+        _headwear.Texture = texture;
         _headwear.Visible = true;
+
+        if (shouldAnimateDrop)
+        {
+            PlayHeadwearDrop(targetPosition);
+            return;
+        }
+
+        if (!(_headwearDropTween?.IsRunning() ?? false))
+            _headwear.Position = targetPosition;
+    }
+
+    private void PlayHeadwearDrop(Vector2 targetPosition)
+    {
+        StopHeadwearDropAnimation();
+        _headwear.Position = targetPosition + Vector2.Up * Mathf.Max(0f, _headwearDropHeight);
+        _headwearDropTween = CreateTween();
+        _headwearDropTween.TweenProperty(
+                _headwear,
+                "position",
+                targetPosition,
+                Mathf.Max(0.01f, _headwearDropSeconds))
+            .SetTrans(Tween.TransitionType.Bounce)
+            .SetEase(Tween.EaseType.Out);
+        _headwearDropTween.TweenCallback(Callable.From(() => _headwearDropTween = null!));
+    }
+
+    private void StopHeadwearDropAnimation()
+    {
+        _headwearDropTween?.Kill();
+        _headwearDropTween = null!;
     }
 
     private void RefreshFixedEyewear()
@@ -756,6 +810,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         var texture = GD.Load<Texture2D>(PlayerInventory.ToResPath(assetPath));
         if (texture == null) return;
 
+        StopHeadwearDropAnimation();
         _headwear.Texture = texture;
         _headwear.Position = GetAdornmentScenePosition(
             assetPath,
