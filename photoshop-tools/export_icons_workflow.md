@@ -22,6 +22,7 @@ python export_icons.py --config my_config.json
 ```json
 {
     "psd路径": "LuckyDogPub-Test02.psd",
+    "背景图标模板PSD": "../assets/psd/BackgroundItemDemo.psd",
     "道具表路径": "tbitem.json",
     "输出目录": "output",
     "画布尺寸": 256,
@@ -33,6 +34,8 @@ python export_icons.py --config my_config.json
 
 - `短边缩放组`：以短边为准缩放后居中裁剪（桌布、背景等需要填满画面的物品）
 - 其他物品以长边为准缩放，短边居中留白
+- `Background` 组不再使用普通短边缩放，而是自动使用背景图标模板：源图层先按 PSD 原始坐标取顶部 `1200×834`，不拉伸，再复用模板 `_Postion` 的旋转和定位，按 `_Shadow → 背景 → _Frame` 合成。
+- 背景模板必须是 `1200×1200` PSD，并包含顶层 `_Shadow`、`_Frame` 和 `_Postion`（也兼容正确拼写 `_Position`）智能对象。最终缩到图标画布后，会清空内容尺寸之外的透明边缘；默认 `256/240` 即四周 8 像素。
 
 ## 核心流程
 
@@ -51,7 +54,8 @@ tbitem.json ──→ 遍历每个物品
                                 │
                                 ├─ 缩放
                                 │   ├─ 普通物品：以长边为准缩放到 content_size
-                                │   └─ 短边物品：以短边为准缩放后居中裁剪到 content_size²
+                                │   ├─ 短边物品：以短边为准缩放后居中裁剪到 content_size²
+                                │   └─ Background：1200×834 裁切后套用相纸模板
                                 │
                                 ├─ 居中粘贴到 canvas_size² 画布
                                 │

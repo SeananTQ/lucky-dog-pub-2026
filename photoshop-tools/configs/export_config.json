@@ -1,6 +1,7 @@
 {
     "_说明": "普通道具图标导出配置",
     "psd路径": "LuckyDogPub-Test02.psd",
+    "背景图标模板PSD": "../assets/psd/BackgroundItemDemo.psd",
     "道具表路径": "tbitem.json",
     "输出目录": "output/UI/ItemIcon",
     "画布尺寸": 256,

@@ -52,6 +52,8 @@ DEFAULT_MAIN_PSD = os.path.join(SCRIPT_DIR, "LuckyDogPub-Test02.psd")
 DEFAULT_ITEM_JSON = os.path.join(SCRIPT_DIR, "tbitem.json")
 DEFAULT_OUTPUT = os.path.join(SCRIPT_DIR, "output")
 DEFAULT_ICON_OUTPUT = os.path.join(SCRIPT_DIR, "output", "UI", "ItemIcon")
+DEFAULT_BACKGROUND_ICON_TEMPLATE = os.path.normpath(os.path.join(
+    SCRIPT_DIR, "..", "assets", "psd", "BackgroundItemDemo.psd"))
 
 
 def load_state() -> dict:
@@ -431,9 +433,17 @@ class App(QMainWindow):
         page, layout = self._page()
         self._section(layout, "普通道具图标生成")
         self._file_row(layout, "item_icons.psd", "总 PSD", "选择 LuckyDogPub 总 PSD")
+        self._file_row(
+            layout,
+            "item_icons.background_template",
+            "背景图标模板",
+            "选择 BackgroundItemDemo.psd")
         self._file_row(layout, "item_icons.item_json", "道具表", "选择 tbitem.json")
         self._file_row(layout, "item_icons.out", "输出目录", "选择图标输出目录", directory=True)
         self._icon_settings(layout, "item_icons")
+        note = QLabel("Background 组自动使用相纸模板与 1200×834 裁切；Table 等其他组继续使用普通图标流程。")
+        note.setWordWrap(True)
+        layout.addWidget(note)
         layout.addStretch(1)
         return page
 
@@ -523,6 +533,7 @@ class App(QMainWindow):
             },
             "item_icons": {
                 "psd": DEFAULT_MAIN_PSD,
+                "background_template": DEFAULT_BACKGROUND_ICON_TEMPLATE,
                 "item_json": DEFAULT_ITEM_JSON,
                 "out": DEFAULT_ICON_OUTPUT,
                 "canvas": "256",
@@ -592,6 +603,7 @@ class App(QMainWindow):
             },
             "item_icons": {
                 "psd": self._get("item_icons.psd"),
+                "background_template": self._get("item_icons.background_template"),
                 "item_json": self._get("item_icons.item_json"),
                 "out": self._get("item_icons.out"),
                 "canvas": self._get("item_icons.canvas"),
@@ -788,6 +800,7 @@ class App(QMainWindow):
             }
         return {
             "psd": self._get("item_icons.psd"),
+            "background_template": self._get("item_icons.background_template"),
             "item_json": self._get("item_icons.item_json"),
             "out": self._get("item_icons.out"),
             "canvas": self._get("item_icons.canvas"),
@@ -866,9 +879,12 @@ class App(QMainWindow):
 
     def _run_icon_export(self, mode: str, config: dict):
         psd = config["psd"]
+        background_template = config["background_template"]
         item_json = config["item_json"]
         if not os.path.exists(psd):
             raise FileNotFoundError(f"PSD 文件不存在: {psd}")
+        if not os.path.exists(background_template):
+            raise FileNotFoundError(f"背景图标模板 PSD 不存在: {background_template}")
         if not os.path.exists(item_json):
             raise FileNotFoundError(f"道具表不存在: {item_json}")
 
@@ -876,6 +892,7 @@ class App(QMainWindow):
         with open(tmp_cfg, "w", encoding="utf-8") as f:
             json.dump({
                 "psd路径": psd,
+                "背景图标模板PSD": background_template,
                 "道具表路径": item_json,
                 "输出目录": config["out"],
                 "画布尺寸": parse_int(config["canvas"], 256),
