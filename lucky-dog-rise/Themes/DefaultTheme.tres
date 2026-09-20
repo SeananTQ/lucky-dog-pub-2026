@@ -12,7 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://cavh1d2gudd1n" path="res://Assets/UI/CheckBox_Checked.png" id="5_p0un0"]
 [ext_resource type="Texture2D" uid="uid://di2w7hic7hktg" path="res://Assets/UI/CheckBox_Unchecked.png" id="6_eevlq"]
 [ext_resource type="StyleBox" uid="uid://d2ymvqwrpsnvf" path="res://Themes/Buttons/Primary_Normal.tres" id="6_xhhvy"]
-[ext_resource type="Texture2D" uid="uid://bplmi2istmila" path="res://Assets/UI/Grabber.png" id="8_avwua"]
+[ext_resource type="Texture2D" uid="uid://b03tii44mtilg" path="res://Assets/UI/UI_Grabber_Chip.svg" id="8_avwua"]
 [ext_resource type="StyleBox" uid="uid://b7v7v4bri36fj" path="res://Themes/Buttons/Destructive_Normal.tres" id="10_14jnw"]
 [ext_resource type="StyleBox" uid="uid://cuqxqlmy6njxj" path="res://Themes/Buttons/Destructive_Disabled.tres" id="10_bcron"]
 [ext_resource type="StyleBox" uid="uid://bpcaxomtuehly" path="res://Themes/Buttons/Action_Hover.tres" id="10_kaug1"]
@@ -783,7 +783,7 @@ DestructiveButton/styles/normal = ExtResource("10_14jnw")
 DestructiveButton/styles/pressed = ExtResource("16_5gcxy")
 HSeparator/constants/separation = 6
 HSeparator/styles/separator = SubResource("StyleBoxLine_avwua")
-HSlider/constants/center_grabber = 0
+HSlider/constants/center_grabber = 1
 HSlider/constants/grabber_offset = 0
 HSlider/constants/tick_offset = 0
 HSlider/icons/grabber = ExtResource("8_avwua")
