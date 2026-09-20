@@ -7,6 +7,8 @@ namespace LuckyDogRise;
 
 public partial class DogVisual : Node2D, IInteractionHintTarget
 {
+    private const int HeadwearBaseZIndex = 1;
+
     [Signal]
     public delegate void DogClickedEventHandler();
 
@@ -445,6 +447,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (_gameData == null)
         {
             StopHeadwearDropAnimation();
+            _headwear.ZIndex = HeadwearBaseZIndex;
             _headwear.Visible = false;
             return;
         }
@@ -455,6 +458,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             StopHeadwearDropAnimation();
             _equippedHeadwearAssetPath = "";
             _headwearStateInitialized = true;
+            _headwear.ZIndex = HeadwearBaseZIndex;
             _headwear.Visible = false;
             return;
         }
@@ -480,6 +484,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
         _equippedHeadwearAssetPath = assetPath;
         _headwearStateInitialized = true;
+        _headwear.ZIndex = HeadwearBaseZIndex + item.VisualZOffset;
         _headwear.Texture = texture;
         _headwear.Visible = true;
 

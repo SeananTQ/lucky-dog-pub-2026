@@ -27,6 +27,7 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["SortOrder"].IsNumber) { throw new SerializationException(); }  SortOrder = _buf["SortOrder"]; }
         { if(!_buf["IsHiddenInBag"].IsBoolean) { throw new SerializationException(); }  IsHiddenInBag = _buf["IsHiddenInBag"]; }
         { if(!_buf["AcquisitionType"].IsNumber) { throw new SerializationException(); }  AcquisitionType = (EAcquisitionType)_buf["AcquisitionType"].AsInt; }
+        { if(!_buf["VisualZOffset"].IsNumber) { throw new SerializationException(); }  VisualZOffset = _buf["VisualZOffset"]; }
         { var __json0 = _buf["AssetPathList"]; if(!__json0.IsArray) { throw new SerializationException(); } AssetPathList = new System.Collections.Generic.List<string>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { string __v0;  { if(!__e0.IsString) { throw new SerializationException(); }  __v0 = __e0; }  AssetPathList.Add(__v0); }   }
         { if(!_buf["IconPath"].IsString) { throw new SerializationException(); }  IconPath = _buf["IconPath"]; }
         { if(!_buf["SkinId"].IsNumber) { throw new SerializationException(); }  SkinId = _buf["SkinId"]; }
@@ -71,6 +72,10 @@ public sealed partial class Item : Luban.BeanBase
     public readonly int SortOrder;
     public readonly bool IsHiddenInBag;
     public readonly EAcquisitionType AcquisitionType;
+    /// <summary>
+    /// 调整物品相对于所属装备位默认层级的本地 Z 值。0 保持默认层级，正数向前，负数向后。仅对已接入该字段的装扮类型生效。帽子填写 0 时挡住眼镜，填写 -1 时被眼镜挡住。
+    /// </summary>
+    public readonly int VisualZOffset;
     /// <summary>
     /// 由于部件拆的比较碎，因此需要文件夹路径如 `Assets\Eyewear\EyePatch.png`<br/>拿到字符串后需要自行转义<br/>该字段为列表，可以跨行填写多个<br/>要注意，也可以是tres文件<br/>由于小狗皮肤由多个文件组成，因此直接填写文件夹目录，卡面也是填文件夹
     /// </summary>
@@ -149,6 +154,7 @@ public sealed partial class Item : Luban.BeanBase
         + "SortOrder:" + SortOrder + ","
         + "IsHiddenInBag:" + IsHiddenInBag + ","
         + "AcquisitionType:" + AcquisitionType + ","
+        + "VisualZOffset:" + VisualZOffset + ","
         + "AssetPathList:" + Luban.StringUtil.CollectionToString(AssetPathList) + ","
         + "IconPath:" + IconPath + ","
         + "SkinId:" + SkinId + ","

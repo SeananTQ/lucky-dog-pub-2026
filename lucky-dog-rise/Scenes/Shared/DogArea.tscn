@@ -59,15 +59,18 @@ texture = ExtResource("5_a4wju")
 
 [node name="Eyewear" type="Sprite2D" parent="HeadRoot" unique_id=1858841942]
 visible = false
+z_index = 1
 position = Vector2(0.5, -265.5)
 texture = ExtResource("8_3ms1v")
 
 [node name="Nose" type="Sprite2D" parent="HeadRoot" unique_id=1449448902]
+z_index = 1
 position = Vector2(0, -223.5)
 texture = ExtResource("10_nose")
 
 [node name="Headwear" type="Sprite2D" parent="HeadRoot" unique_id=268961892]
 visible = false
+z_index = 1
 position = Vector2(0, -438)
 texture = ExtResource("9_e0wpe")
 

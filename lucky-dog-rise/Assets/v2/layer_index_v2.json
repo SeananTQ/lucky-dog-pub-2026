@@ -413,37 +413,37 @@
       "doc_y": 51
     },
     {
-      "name": "PainterBeret_Classic",
-      "file": "Headwear/PainterBeret_Classic.png",
-      "group": "Headwear",
-      "x": 479,
-      "y": 154,
-      "width": 354,
-      "height": 228,
-      "doc_x": 479,
-      "doc_y": 154
-    },
-    {
       "name": "PainterBeret_Cream",
       "file": "Headwear/PainterBeret_Cream.png",
       "group": "Headwear",
       "x": 479,
-      "y": 154,
-      "width": 354,
-      "height": 228,
+      "y": 139,
+      "width": 362,
+      "height": 221,
       "doc_x": 479,
-      "doc_y": 154
+      "doc_y": 139
+    },
+    {
+      "name": "PainterBeret_Classic",
+      "file": "Headwear/PainterBeret_Classic.png",
+      "group": "Headwear",
+      "x": 479,
+      "y": 139,
+      "width": 363,
+      "height": 222,
+      "doc_x": 479,
+      "doc_y": 139
     },
     {
       "name": "PainterBeret_OrangeDutch",
       "file": "Headwear/PainterBeret_OrangeDutch.png",
       "group": "Headwear",
       "x": 479,
-      "y": 154,
-      "width": 354,
-      "height": 228,
+      "y": 139,
+      "width": 363,
+      "height": 221,
       "doc_x": 479,
-      "doc_y": 154
+      "doc_y": 139
     },
     {
       "name": "MagicHat_Black",
