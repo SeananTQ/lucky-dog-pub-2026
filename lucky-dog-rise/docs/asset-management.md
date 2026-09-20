@@ -152,14 +152,18 @@ region = Rect2(0, 0, 100, 100)
 | 元素 | ZIndex | 说明 |
 |------|--------|------|
 | Background | 0 | 最底层 |
-| 狗身体 | 1 | Head/Eyes/Ears |
+| 狗普通脸部 | 0 | Head/Eyes/Ears；依靠节点顺序显示在背景之后 |
+| 帽子 | 1 + Item.VisualZOffset | 当前 0 保持帽子挡住固定眼镜，-1 使帽子被固定眼镜和鼻子挡住 |
+| 固定眼镜/鼻子 | 1 | 同层按场景树顺序绘制 |
 | 爪子（手心） | 1 | 被桌子挡住 |
 | 桌子 | 2 | Table |
-| 爪子（手背） | 3 | 挡住桌子 |
+| 舌头/爪子（手背） | 3 | 挡住桌子 |
 | 卡牌/筹码堆 | 4 | 在桌子上 |
 | 手臂 | 5 | 最顶层 |
 
-爪子需要设 `z_as_relative = false` 使用绝对 ZIndex。
+爪子和舌头前景使用 `z_as_relative = false` 的绝对 ZIndex。普通装扮默认使用相对层级；`Item.VisualZOffset` 是相对于所属装备位基础 Z 的偏移，不是全场景绝对值。当前只在 `DogVisual` 中为 Headwear 接入，其它物品类型保持原有层级，直到对应控制器明确支持。
+
+详细配表语义见 [Item 表字段说明](../../docs/numerical/Item表字段说明.md)，小狗节点关系见 [小狗系统参考](../../docs/game-design/小狗系统参考.md)。
 
 ## 随机换装
 

@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-28
+last_edit: 2026-09-21
 status: draft
 ---
 
@@ -18,6 +18,7 @@ status: draft
 | SortOrder | int | 排序权重，数字越小约靠前 |
 | IsHiddenInBag | bool | 是否在背包中隐藏 |
 | AcquisitionType | EAcquisitionType | 物品的主要获取来源；Initial 表示永久基础物品 |
+| VisualZOffset | int | 物品相对于所属装备位默认层级的本地 Z 偏移；0 保持默认，正数向前，负数向后 |
 | StandardBoxWeight | int | 标准装扮盲盒中的品质内权重 |
 | NewbieBoxWeight | int | 新手装扮盲盒中的品质内权重 |
 | RefreshmentBoxWeight | int | 消耗品盲盒中的品质内权重 |
@@ -42,6 +43,27 @@ status: draft
 相同道具允许重复获得并累计数量。Steam Generator 不会根据玩家已有库存动态排除候选物品。
 
 Dev 调试工具同样遵守下架边界：全物品随机穿戴、已拥有物品随机穿戴和轮换获得道具都排除 `Retired`。轮换获得道具仍按 `EItemType` 枚举轮换，并允许获得 Dog。该入口继续只选择 `IsHiddenInBag=FALSE` 的普通可见物品；这是调试候选的可见性限制，不承担下架语义。
+
+### VisualZOffset
+
+`VisualZOffset` 是数值型的本地视觉层级偏移，不是全场景绝对 Z 值。运行时由已接入该字段的装备位控制器把它加到该装备位的基础 Z 值上：
+
+```csharp
+sprite.ZIndex = slotBaseZIndex + item.VisualZOffset;
+```
+
+`0` 必须表示保持该装备位的既有默认层级，保证旧物品和未专门配置的物品在新增字段后不改变画面。正数使物品在所属显示区域内前移，负数使物品后移；不同装备位拥有各自的父节点和基础层级，相同偏移量不代表相同的全局绘制层级。
+
+当前只接入 `Headwear`。帽子基础 Z 值为 `1`，固定眼镜和鼻子也位于 Z=1；同 Z 时继续按场景树顺序绘制，因此：
+
+- `VisualZOffset=0`：帽子最终位于 Z=1，并因节点排在眼镜和鼻子之后而遮挡它们，保持历史表现。
+- `VisualZOffset=-1`：帽子最终位于 Z=0，固定眼镜和鼻子遮挡帽子；帽子仍排在普通眼睛之后，不会沉到狗脸底层。
+
+目前三顶 Painter Beret 使用 `-1`，其它帽子使用 `0`。其它 ItemType 即使已有该字段，运行时仍保持原有层级，直到对应显示控制器明确接入并定义基础 Z 值。不得在通用物品加载入口把该值直接当作全局 ZIndex 使用。
+
+该字段属于静态显示配置，不写入玩家存档。存档只保存装备物品 ID；表配置更新后，已装备物品会在刷新视觉时直接使用新偏移。
+
+一个 Item 级偏移只能移动该物品的整体显示节点。如果同一件复合装扮需要同时出现在另一个部件的前后两侧，应使用多 Sprite 的复合场景或后续逐资源层级配置，不能依靠单个 `VisualZOffset` 拆分素材内部层级。
 
 ### 盲盒权重
 

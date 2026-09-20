@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-09-16
+last_edit: 2026-09-21
 status: draft
 ---
 
@@ -443,7 +443,7 @@ TestDogSkinParts 是独立 Godot 集成回归入口，覆盖真实节点、正�
 - 不直接修改 Luban 正式 JSON。
 - 不自动把生成的 DogSkin 背包图标复制到正式 `Assets/v0`。
 - 不编辑 PSD 或批量导出 PSD 素材。
-- 不处理帽子与眼镜的前后层级配置。
+- 不编辑帽子与固定眼镜的前后层级配置；该配置由 `Item.VisualZOffset` 保存，并由运行时 `DogVisual` 应用。
 - 不提供单只 DogSkin 的撤销/重做。
 - 不自动遍历全部帽子检查兼容性。
 - 不生成盲盒或 Steam ItemDef 数据。

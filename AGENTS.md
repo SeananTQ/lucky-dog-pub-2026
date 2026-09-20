@@ -166,6 +166,8 @@ lucky-dog-rise/
 
 **小狗表现：** `DogVisual` 通过 `DogReaction` 表应用眼睛、耳朵、舌头、爪子、眼镜等表现。`Bespoke` 行需要在代码中按行 id 约定特殊逻辑，不要硬改 Luban 生成的 C# 文件。
 
+**装扮视觉层级：** `Item.VisualZOffset`是物品相对于所属装备位基础层级的本地 Z 偏移，不是全场景绝对 Z，具体需要各显示功能按需接入；未接入的 ItemType 必须忽略该字段。具体配表含义与效果以 Item 表字段备注为准，不得在通用物品加载入口统一应用。
+
 **桌宠输入状态：** `GlobalInputTracker` 监听全局键鼠事件，`ModeManager` 根据 `DesktopActivityState` 表统计输入频率并切换小狗表情。桌宠吐舌头支持平滑模式和即时模式，设置项由 `SettingsManager` 持久化。
 
 **盲盒系统：** `BlindBoxService` 根据 `BlindBoxSchedule`、`BlindBox`、`BlindBoxRarityRate`、`BlindBoxRevealPath`、`BlindBoxVisual` 和 `Item` 权重列计算盲盒投放、消耗、品质、奖励与表演路径。`BlindBoxRevealStage.tscn` 是扑克模式和桌宠模式共用的开盒舞台；`BlindBoxRevealOverlay.tscn` 是扑克模式全屏外壳，`DesktopBlindBoxRevealOverlay.tscn` 是桌宠模式圆角气泡外壳。桌宠开盒外壳的位置由 `BossKeyContent.tscn` 中的 `ContentA/DesktopBlindBoxRevealAnchor` 作为 0 点参照。
