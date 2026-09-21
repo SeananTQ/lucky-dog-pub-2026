@@ -2170,6 +2170,37 @@
     "SteamIconUrlLarge": ""
   },
   {
+    "Id": 2034,
+    "Name": "Autumn 2026 Graduation Cap",
+    "Alias": "2026秋季 学士帽",
+    "ItemType": 2,
+    "BuildChannelMask": 14,
+    "HiddenRegionFlag": 0,
+    "SafeResourceId": 0,
+    "ItemRarity": 21,
+    "SortOrder": 100,
+    "IsHiddenInBag": false,
+    "AcquisitionType": 4,
+    "VisualZOffset": 0,
+    "AssetPathList": [
+      "v2\\Headwear\\GraduationCap_Autumn2026.png"
+    ],
+    "IconPath": "v2\\ItemIcon\\Headwear_GraduationCap_Autumn2026.png",
+    "SkinId": 0,
+    "SteamItemDefId": 102034,
+    "SteamItemDefType": 1,
+    "SteamDescription": "",
+    "SteamGameOnly": true,
+    "SteamTradable": false,
+    "SteamMarketable": false,
+    "SteamAutoStack": false,
+    "SteamHidden": false,
+    "SteamDisplayType": "",
+    "SteamTags": "",
+    "SteamIconUrl": "",
+    "SteamIconUrlLarge": ""
+  },
+  {
     "Id": 4001,
     "Name": "Type 1",
     "Alias": "手臂颜色类型1",

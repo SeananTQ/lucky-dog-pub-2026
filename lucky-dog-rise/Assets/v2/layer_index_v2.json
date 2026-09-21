@@ -3,7 +3,7 @@
   "version": "v2",
   "canvas_width": 1200,
   "canvas_height": 1200,
-  "total_layers": 52,
+  "total_layers": 56,
   "layers": [
     {
       "name": "EyePatch",
@@ -433,6 +433,50 @@
       "height": 222,
       "doc_x": 479,
       "doc_y": 139
+    },
+    {
+      "name": "GraduationCap_Autumn2026_ItemIcon",
+      "file": "Headwear/GraduationCap_Autumn2026_ItemIcon.png",
+      "group": "Headwear",
+      "x": 370,
+      "y": 137,
+      "width": 460,
+      "height": 198,
+      "doc_x": 370,
+      "doc_y": 137
+    },
+    {
+      "name": "GraduationCap_Autumn2026",
+      "file": "Headwear/GraduationCap_Autumn2026.png",
+      "group": "Headwear",
+      "x": 216,
+      "y": 137,
+      "width": 614,
+      "height": 574,
+      "doc_x": 216,
+      "doc_y": 137
+    },
+    {
+      "name": "GraduationCap_Navy",
+      "file": "Headwear/GraduationCap_Navy.png",
+      "group": "Headwear",
+      "x": 370,
+      "y": 137,
+      "width": 460,
+      "height": 198,
+      "doc_x": 370,
+      "doc_y": 137
+    },
+    {
+      "name": "GraduationCap_Burgundy",
+      "file": "Headwear/GraduationCap_Burgundy.png",
+      "group": "Headwear",
+      "x": 370,
+      "y": 137,
+      "width": 460,
+      "height": 198,
+      "doc_x": 370,
+      "doc_y": 137
     },
     {
       "name": "PainterBeret_OrangeDutch",
