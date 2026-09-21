@@ -44,6 +44,15 @@ $dirty = [bool](& git -C $workspace status --porcelain)
 if ($Channel -eq 'Release' -and $dirty) { throw 'Release builds require a clean worktree.' }
 if ($dirty) { $commit = "$commit-dirty" }
 
+# Demo is exported from a freshly filtered copy, never from the development cache.
+if ($Channel -eq 'Demo') {
+    $demoProject = Join-Path $localBuild 'demo-project'
+    & python (Join-Path $PSScriptRoot 'prepare_demo.py') --source $projectRoot --output $demoProject
+    if ($LASTEXITCODE -ne 0) { throw 'Demo content preparation failed.' }
+    $projectRoot = Resolve-Path -LiteralPath $demoProject
+    $exportPresetPath = Join-Path $projectRoot 'export_presets.cfg'
+}
+
 $channelSlug = $Channel.ToLowerInvariant()
 $staging = Join-Path $localBuild "staging\$channelSlug"
 $executableBaseName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo' } else { 'LuckyDogRise' }
@@ -69,13 +78,17 @@ else {
 }
 
 try {
-    & (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe -Version $version
+    & (Join-Path $PSScriptRoot 'New-ExportPresets.ps1') -Channel $Channel -TemplatePath $templatePath -ExportPath $outputExe -Version $version -ProjectDirectory $projectRoot
     Write-Host '[Build] Temporary export preset generated.'
     $env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
     $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
     $env:LUCKYDOG_BUILD_COMMIT = $commit
     $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
     try {
+        if ($Channel -eq 'Demo') {
+            $import = Start-Process -FilePath $GodotEditor -ArgumentList @('--headless', '--path', $projectRoot, '--editor', '--import') -WindowStyle Hidden -PassThru -Wait
+            if ($import.ExitCode -ne 0) { throw 'Demo clean resource import failed.' }
+        }
         & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
         Write-Host "[Build] Godot export exit code: $LASTEXITCODE"
         if ($LASTEXITCODE -ne 0) { throw 'Godot release export failed.' }
@@ -151,7 +164,8 @@ Get-ChildItem -LiteralPath $staging -Recurse -File | Where-Object { $_.Extension
     Remove-Item -Force
 
 & (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel $Channel -Version $version
-& (Join-Path $PSScriptRoot 'Test-ExportedRuntime.ps1') -ExecutablePath $outputExe -Channel $Channel
+$demoManifest = if ($Channel -eq 'Demo') { Join-Path $localBuild 'demo-content-manifest.json' } else { '' }
+& (Join-Path $PSScriptRoot 'Test-ExportedRuntime.ps1') -ExecutablePath $outputExe -Channel $Channel -DemoContentManifest $demoManifest -RunSeconds 30
 if (Test-Path -LiteralPath $packagePath) { Remove-Item -Force -LiteralPath $packagePath }
 Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $packagePath -CompressionLevel Optimal
 Write-Host "Package ready: $packagePath"

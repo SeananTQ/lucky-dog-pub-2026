@@ -1349,6 +1349,7 @@ public partial class ModeManager : Control
 
         try
         {
+            VerifyDemoContentSmoke();
             var path = DiagnosticLog.ExportPackage(_gameData, _platformService, exportDirectory);
             GD.Print($"[DiagnosticsSmoke] Export passed: {path}");
             GetTree().Quit();
@@ -1358,6 +1359,46 @@ public partial class ModeManager : Control
             GD.PushError($"[DiagnosticsSmoke] Export failed: {exception}");
             GetTree().Quit(3);
         }
+    }
+
+    private static void VerifyDemoContentSmoke()
+    {
+        var manifestPath = System.Environment.GetEnvironmentVariable("LUCKYDOG_DEMO_CONTENT_MANIFEST");
+        if (BuildInfo.Channel != BuildChannel.Demo || string.IsNullOrEmpty(manifestPath))
+            return;
+        using var manifest = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(manifestPath));
+        var root = manifest.RootElement;
+        foreach (var table in root.GetProperty("table_counts").EnumerateObject())
+        {
+            using var data = System.Text.Json.JsonDocument.Parse(
+                Godot.FileAccess.GetFileAsString($"res://Data/Json/{table.Name}.json"));
+            if (data.RootElement.GetArrayLength() != table.Value.GetInt32())
+                throw new InvalidOperationException($"Demo table count mismatch: {table.Name}");
+            foreach (var row in data.RootElement.EnumerateArray())
+                if ((table.Name is "tbitem" or "tbdogskin" or "tbblindbox" or "tbblindboxschedule" or "tblinktree")
+                    && (row.GetProperty("BuildChannelMask").GetInt32() & 4) == 0)
+                    throw new InvalidOperationException($"Non-Demo row in {table.Name}");
+        }
+        foreach (var asset in root.GetProperty("retained_assets").EnumerateObject())
+        {
+            var path = "res://" + asset.Name;
+            if (asset.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                || asset.Name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            {
+                if (GD.Load<Texture2D>(path) == null)
+                    throw new InvalidOperationException($"Demo texture cannot load: {path}");
+            }
+            else if (!ResourceLoader.Exists(path) && !Godot.FileAccess.FileExists(path))
+                throw new InvalidOperationException($"Demo asset missing: {path}");
+        }
+        foreach (var key in new[] { "excluded_assets", "excluded_imports" })
+            foreach (var asset in root.GetProperty(key).EnumerateArray())
+            {
+                var path = "res://" + asset.GetString();
+                if (ResourceLoader.Exists(path) || Godot.FileAccess.FileExists(path))
+                    throw new InvalidOperationException($"Excluded Demo asset still shipped: {path}");
+            }
+        GD.Print("[DemoContentSmoke] Packaged tables and assets verified.");
     }
 
     private void RequestGracefulQuit()

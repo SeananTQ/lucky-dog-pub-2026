@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)] [string]$ExecutablePath,
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
-    [int]$RunSeconds = 10
+    [int]$RunSeconds = 10,
+    [string]$DemoContentManifest = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,7 +20,7 @@ $diagnosticExportDirectory = Join-Path $logDirectory ("diagnostic-exports-" + [G
 New-Item -ItemType Directory -Force -Path $isolatedAppData, $isolatedLocalAppData, $diagnosticExportDirectory | Out-Null
 
 $process = Start-Process -FilePath $executable.Path -ArgumentList @('--headless', '--', '--disable-steam', '--diagnostics-export-smoke') -WindowStyle Hidden -PassThru `
-    -Environment @{ APPDATA = $isolatedAppData; LOCALAPPDATA = $isolatedLocalAppData; LUCKYDOG_DIAGNOSTICS_SMOKE_DIR = $diagnosticExportDirectory } `
+    -Environment @{ APPDATA = $isolatedAppData; LOCALAPPDATA = $isolatedLocalAppData; LUCKYDOG_DIAGNOSTICS_SMOKE_DIR = $diagnosticExportDirectory; LUCKYDOG_DEMO_CONTENT_MANIFEST = $DemoContentManifest } `
     -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 try {
     if (!$process.WaitForExit($RunSeconds * 1000)) {
@@ -57,6 +58,9 @@ if ($output -notmatch '\[DiagnosticsSmoke\] Export passed:') {
 }
 
 if ($Channel -eq 'Demo') {
+    if ($DemoContentManifest -and !$output.Contains('[DemoContentSmoke] Packaged tables and assets verified.')) {
+        throw 'Packaged Demo content verification did not pass.'
+    }
     $expectedCapabilities = '[BuildCapabilities] Channel=Demo, BlindBoxes=True, CollectionEvents=True, LinkTree=True, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=True'
     if (!$output.Contains($expectedCapabilities, [StringComparison]::Ordinal)) {
         throw "Exported Demo did not report the expected capability profile. See $logDirectory"

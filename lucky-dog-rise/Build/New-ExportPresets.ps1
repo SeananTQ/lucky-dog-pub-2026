@@ -3,11 +3,13 @@ param(
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$TemplatePath,
     [Parameter(Mandatory)] [string]$ExportPath,
-    [Parameter(Mandatory)] [string]$Version
+    [Parameter(Mandatory)] [string]$Version,
+    [string]$ProjectDirectory
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+if ($ProjectDirectory) { $projectRoot = Resolve-Path -LiteralPath $ProjectDirectory }
 $feature = switch ($Channel) {
     'Playtest' { 'lucky_playtest' }
     'Demo' { 'lucky_demo' }
