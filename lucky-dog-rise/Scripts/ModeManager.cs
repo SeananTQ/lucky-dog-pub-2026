@@ -531,6 +531,7 @@ public partial class ModeManager : Control
         _settingsPanel.GameData = _gameData;
         _settingsPanel.PlatformService = _platformService;
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
+        _settingsPanel.CollectionVictoryCelebrated += OnCollectionVictoryCelebrated;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
         _settingsPanel.QuitRequested += RequestGracefulQuit;
         _settingsPanel.QuitAfterWishlistRequested += PerformGracefulQuit;
@@ -2530,12 +2531,38 @@ public partial class ModeManager : Control
         _gameManager?.HidePendingBlindBoxReward();
     }
 
+    private bool _desktopCelebrationReactionActive;
+
+    private void OnCollectionVictoryCelebrated()
+    {
+        if (CurrentMode == Mode.BossKey)
+        {
+            _desktopCelebrationReactionActive = true;
+            _bossDogVisual.ApplyReaction(EDogReactionTrigger.Starstruck);
+        }
+        else
+            _gameManager?.OnPlayDogReaction((int)EDogReactionTrigger.SawRoyalFlush);
+    }
+
     private void OnTypingInputOccurred(int count)
     {
         _desktopInputEvents.Enqueue((Time.GetTicksMsec() / 1000.0, count));
 
+        if (_desktopCelebrationReactionActive && CurrentMode == Mode.BossKey)
+            EndDesktopCelebrationReaction();
+
         if (CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp && _desktopTongueFeedbackEnabled)
             _bossDogVisual.PlayDesktopTongueTap(count);
+    }
+
+    private void EndDesktopCelebrationReaction()
+    {
+        if (!_desktopCelebrationReactionActive)
+            return;
+        _desktopCelebrationReactionActive = false;
+        var state = _currentDesktopActivityState
+            ?? ResolveDesktopActivityState(GetDesktopInputEventsPerMinute(Time.GetTicksMsec() / 1000.0));
+        _bossDogVisual.ApplyReaction(state?.DogReactionTrigger ?? EDogReactionTrigger.Default);
     }
 
     private void OnGlobalMousePressed(Vector2I nativeScreenPosition)
@@ -2971,9 +2998,13 @@ public partial class ModeManager : Control
 
         if (CurrentMode != Mode.BossKey)
         {
+            EndDesktopCelebrationReaction();
             ResetDesktopActivityCandidate();
             return;
         }
+
+        if (_desktopCelebrationReactionActive)
+            return;
 
         var state = ResolveDesktopActivityState(GetDesktopInputEventsPerMinute(now));
         if (state == null)

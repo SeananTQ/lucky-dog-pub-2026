@@ -37,6 +37,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void OtherUiScaleConfirmedEventHandler(int step);
     [Signal] public delegate void OtherUiScaleCanceledEventHandler();
     [Signal] public delegate void OpenStateChangedEventHandler(bool open);
+    [Signal] public delegate void CollectionVictoryCelebratedEventHandler();
 
     [Export] private Label _buildVersionLabel = null!;
     [Export] private Label _globalInputChipsEarnedLabel = null!;
@@ -1198,7 +1199,8 @@ public partial class SystemPanelController : CanvasLayer
             grandPrizeItemIds,
             collectionItemIds,
             VictoryRewardItemId: 9004,
-            VictoryRewardQuantity: 7);
+            VictoryRewardQuantity: 7,
+            VictoryHeadwearItemId: 2034);
     }
 
     public bool TryHandleCollectionEventBlindBoxReward(
@@ -1294,6 +1296,7 @@ public partial class SystemPanelController : CanvasLayer
     private void OnCollectionEventVictoryRewardClaimed()
     {
         _collectionCelebrationConfetti?.Play();
+        EmitSignal(SignalName.CollectionVictoryCelebrated);
     }
 
     private async void OnCollectionEventCelebrationTestRequested()

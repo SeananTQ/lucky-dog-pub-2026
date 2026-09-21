@@ -3288,23 +3288,31 @@ public partial class GameData : Node
     public bool TryClaimCollectionEventVictoryReward(
         string eventId,
         int rewardItemId,
-        int rewardQuantity)
+        int rewardQuantity,
+        int headwearItemId = 0)
     {
         if (string.IsNullOrWhiteSpace(eventId)
             || rewardQuantity <= 0
-            || LubanData.Tables.TbItem.GetOrDefault(rewardItemId) == null)
+            || LubanData.Tables.TbItem.GetOrDefault(rewardItemId) == null
+            || (headwearItemId != 0 && LubanData.Tables.TbItem.GetOrDefault(headwearItemId)?.ItemType != EItemType.Headwear))
             return false;
 
         var normalizedEventId = eventId.Trim();
         if (_collectionEventVictoryRewardClaimedEventIds.Contains(normalizedEventId))
             return false;
 
+        // Mark claimed before inventory callbacks so reentrant UI cannot grant twice.
+        _collectionEventVictoryRewardClaimedEventIds.Add(normalizedEventId);
         AddItem(
             rewardItemId,
             rewardQuantity,
             markNew: true,
             source: PlayerProgressSource.Gameplay);
-        _collectionEventVictoryRewardClaimedEventIds.Add(normalizedEventId);
+        if (headwearItemId != 0)
+        {
+            AddItem(headwearItemId, 1, markNew: true, source: PlayerProgressSource.Gameplay);
+            EquipItem(headwearItemId);
+        }
         _collectionEventVictoryCompletedAtUnixSecondsByEvent[normalizedEventId] =
             DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         EmitSignal(SignalName.CollectionEventStateChanged, normalizedEventId);

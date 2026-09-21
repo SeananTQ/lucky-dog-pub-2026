@@ -15,7 +15,8 @@ public sealed record CollectionEventDefinition(
     IReadOnlyList<int> GrandPrizeItemIds,
     IReadOnlyList<int> CollectionItemIds,
     int VictoryRewardItemId,
-    int VictoryRewardQuantity);
+    int VictoryRewardQuantity,
+    int VictoryHeadwearItemId = 0);
 
 public enum CollectionEventEntryScrollTarget
 {
@@ -878,7 +879,8 @@ public partial class CollectionEventPageController : VBoxContainer
         if (!_gameData.TryClaimCollectionEventVictoryReward(
                 _definition.EventId,
                 _definition.VictoryRewardItemId,
-                _definition.VictoryRewardQuantity))
+                _definition.VictoryRewardQuantity,
+                _definition.VictoryHeadwearItemId))
         {
             GD.PushWarning("[CollectionEvent] Victory reward claim was rejected.");
             RefreshPresentation();
