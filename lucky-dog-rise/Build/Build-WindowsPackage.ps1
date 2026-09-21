@@ -23,6 +23,27 @@ function Read-LocalDataFile([string]$Path) {
     return & ([scriptblock]::Create([System.IO.File]::ReadAllText($Path)))
 }
 
+function Invoke-GodotBuildStep([string]$Step, [string[]]$Arguments) {
+    $logs = Join-Path $localBuild 'build-logs'
+    New-Item -ItemType Directory -Force -Path $logs | Out-Null
+    $stdout = Join-Path $logs "$($Channel.ToLowerInvariant())-$Step.stdout.log"
+    $stderr = Join-Path $logs "$($Channel.ToLowerInvariant())-$Step.stderr.log"
+    $process = Start-Process -FilePath $GodotEditor -ArgumentList $Arguments -WindowStyle Hidden -PassThru -Wait `
+        -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    Write-Host "[Build] Godot $Step exit code: $($process.ExitCode). Logs: $logs"
+    if ($process.ExitCode -ne 0) { throw "Godot $Step failed. See $stderr" }
+    # Godot may return zero even when resources failed to import or instantiate.
+    $errors = @(Select-String -LiteralPath $stdout, $stderr -Pattern '^\s*(ERROR:|SCRIPT ERROR:|.*\berror (CS|MSB|NU)\d+:)')
+    # Headless renderer cleanup after export; not a missing texture/import failure.
+    $cleanup = @($errors | Where-Object { $Step -eq 'export' -and $_.Line -match "^ERROR: \d+ RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit\.$" })
+    if ($cleanup) { Write-Warning 'Godot headless export reported DummyTexture cleanup leaks at exit; retained in export log.' }
+    $errors = @($errors | Where-Object { $_ -notin $cleanup })
+    if ($errors) { throw "Godot $Step reported errors despite exit code zero. See $stdout and $stderr" }
+    if ((Test-Path -LiteralPath $stderr) -and (Get-Item -LiteralPath $stderr).Length -gt 0) {
+        Write-Warning "Godot $Step emitted diagnostics. See $stderr"
+    }
+}
+
 if (!(Test-Path -LiteralPath $secretPath)) { throw 'Run Initialize-BuildSecrets.ps1 first.' }
 if (!(Test-Path -LiteralPath $templatePath)) { throw 'Run Build-CustomTemplate.ps1 first.' }
 if (!(Test-Path -LiteralPath $steamworksManaged)) { throw "Steamworks.NET.dll is missing: $steamworksManaged" }
@@ -86,12 +107,13 @@ try {
     $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
     try {
         if ($Channel -eq 'Demo') {
-            $import = Start-Process -FilePath $GodotEditor -ArgumentList @('--headless', '--path', $projectRoot, '--editor', '--import') -WindowStyle Hidden -PassThru -Wait
-            if ($import.ExitCode -ne 0) { throw 'Demo clean resource import failed.' }
+            # A cache-free C# project needs its editor assembly before scene import.
+            # Otherwise autoloads and exported C# properties cannot be instantiated.
+            & dotnet build (Join-Path $projectRoot 'LuckyDogRise.csproj') -c Debug
+            if ($LASTEXITCODE -ne 0) { throw 'Demo editor assembly build failed.' }
+            Invoke-GodotBuildStep 'import' @('--headless', '--path', "`"$projectRoot`"", '--editor', '--import')
         }
-        & $GodotEditor --headless --path $projectRoot --export-release "Windows $Channel" $outputExe
-        Write-Host "[Build] Godot export exit code: $LASTEXITCODE"
-        if ($LASTEXITCODE -ne 0) { throw 'Godot release export failed.' }
+        Invoke-GodotBuildStep 'export' @('--headless', '--path', "`"$projectRoot`"", '--export-release', "`"Windows $Channel`"", "`"$outputExe`"")
 
         # When the editor already owns the project, the command-line process can
         # return before the editor-side export finishes. Keep the temporary

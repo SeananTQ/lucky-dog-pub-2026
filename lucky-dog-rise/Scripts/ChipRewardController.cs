@@ -161,7 +161,9 @@ public partial class ChipRewardController : Node2D
     private static Texture2D LoadChipTexture(string color, int layer)
     {
         var variant = layer % 2 == 0 ? "A" : "B";
-        var path = $"{ChipPathPrefix}{color}_{variant}.png";
+        // Blue and Black use the original asset naming without a variant separator.
+        var separator = color is "Blue" or "Black" ? "" : "_";
+        var path = $"{ChipPathPrefix}{color}{separator}{variant}.png";
         return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
     }
 

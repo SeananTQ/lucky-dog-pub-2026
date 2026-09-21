@@ -1337,7 +1337,7 @@ public partial class ModeManager : Control
         _playSubViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
     }
 
-    private void RunDiagnosticsExportSmoke()
+    private async void RunDiagnosticsExportSmoke()
     {
         var exportDirectory = System.Environment.GetEnvironmentVariable("LUCKYDOG_DIAGNOSTICS_SMOKE_DIR");
         if (string.IsNullOrWhiteSpace(exportDirectory))
@@ -1350,6 +1350,7 @@ public partial class ModeManager : Control
         try
         {
             VerifyDemoContentSmoke();
+            await VerifyChipRewardSmoke();
             var path = DiagnosticLog.ExportPackage(_gameData, _platformService, exportDirectory);
             GD.Print($"[DiagnosticsSmoke] Export passed: {path}");
             GetTree().Quit();
@@ -1359,6 +1360,54 @@ public partial class ModeManager : Control
             GD.PushError($"[DiagnosticsSmoke] Export failed: {exception}");
             GetTree().Quit(3);
         }
+    }
+
+    private async System.Threading.Tasks.Task VerifyChipRewardSmoke()
+    {
+        var scene = GD.Load<PackedScene>("res://Scenes/Poker/ChipReward.tscn");
+        var cases = new (DataTables.EHandRank Rank, int Count, string FirstColor)[]
+        {
+            (DataTables.EHandRank.OnePair, 2, "Green"),
+            (DataTables.EHandRank.TwoPair, 4, "Blue"),
+            (DataTables.EHandRank.ThreeOfAKind, 6, "Red"),
+            (DataTables.EHandRank.Straight, 8, "Red"),
+            (DataTables.EHandRank.Flush, 9, "Blue"),
+            (DataTables.EHandRank.FullHouse, 11, "Purple"),
+            (DataTables.EHandRank.FourOfAKind, 13, "Green"),
+            (DataTables.EHandRank.StraightFlush, 17, "Green"),
+            (DataTables.EHandRank.RoyalFlush, 21, "Orange"),
+        };
+        foreach (var test in cases)
+        {
+            var reward = scene.Instantiate<ChipRewardController>();
+            AddChild(reward);
+            try
+            {
+                var anchors = reward.GetNode<Node2D>("PileAnchors");
+                if (anchors.GetChildren().Sum(marker => marker.GetChildCount()) != 0)
+                    throw new InvalidOperationException("ChipReward preview sprites survived Ready: exported marker binding is missing.");
+                reward.Setup(100, test.Rank);
+                var chips = anchors.GetChildren().SelectMany(marker => marker.GetChildren()).OfType<Sprite2D>().ToArray();
+                if (chips.Length != test.Count || chips.Any(chip => chip.Texture == null))
+                    throw new InvalidOperationException($"ChipReward {test.Rank}: invalid count or missing texture ({chips.Length}/{test.Count}).");
+                var first = reward.GetNode("PileAnchors/Pile1").GetChild<Sprite2D>(0);
+                var expectedFile = test.FirstColor == "Blue" ? "Chip_BlueA.png" : $"Chip_{test.FirstColor}_A.png";
+                var expectedTexture = GD.Load<Texture2D>($"res://Assets/v1/ChipStack/{expectedFile}");
+                if (first.Texture != expectedTexture || first.Visible || Mathf.IsZeroApprox(first.Rotation))
+                    throw new InvalidOperationException($"ChipReward {test.Rank}: wrong color or missing spawn animation initial state.");
+                var startPosition = first.Position;
+                await ToSignal(GetTree().CreateTimer(1.2), SceneTreeTimer.SignalName.Timeout);
+                if (chips.Any(chip => !chip.Visible || !Mathf.IsZeroApprox(chip.Rotation))
+                    || first.Position.IsEqualApprox(startPosition))
+                    throw new InvalidOperationException($"ChipReward {test.Rank}: spawn animation did not complete.");
+                reward.PlayInteractionHint(InteractionHintTriggerKind.PassiveMistake);
+                if (!reward.IsInteractionHintPlaying)
+                    throw new InvalidOperationException($"ChipReward {test.Rank}: hint animation did not start.");
+                GD.Print($"[ChipRewardSmoke] {test.Rank}: {test.Count} chips, {test.FirstColor}, spawn/hint verified.");
+            }
+            finally { reward.Free(); }
+        }
+        GD.Print("[ChipRewardSmoke] All nine winning hands passed.");
     }
 
     private static void VerifyDemoContentSmoke()

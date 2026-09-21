@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory)] [string]$ExecutablePath,
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
-    [int]$RunSeconds = 10,
+    [int]$RunSeconds = 30,
     [string]$DemoContentManifest = ''
 )
 
@@ -55,6 +55,9 @@ if ($matchedPattern) {
 
 if ($output -notmatch '\[DiagnosticsSmoke\] Export passed:') {
     throw "Exported runtime smoke test did not complete the diagnostic export. See $logDirectory"
+}
+if (!$output.Contains('[ChipRewardSmoke] All nine winning hands passed.')) {
+    throw "Exported ChipReward regression did not pass. See $logDirectory"
 }
 
 if ($Channel -eq 'Demo') {
