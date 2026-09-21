@@ -9,7 +9,7 @@ public partial class TutorialManager : CanvasLayer
     [Export] private Control _overlayInput = null!;
 
     private const double AutomaticShowIdleSeconds = 20.0;
-    private const double DismissLockSeconds = 1.0;
+    private const double DismissLockSeconds = 2.0;
 
     private GameData _gameData = null!;
     private InteractionHintController _interactionHints = null!;
