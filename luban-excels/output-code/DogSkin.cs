@@ -20,6 +20,7 @@ public sealed partial class DogSkin : Luban.BeanBase
         { if(!_buf["Id"].IsNumber) { throw new SerializationException(); }  Id = _buf["Id"]; }
         { if(!_buf["Alias"].IsString) { throw new SerializationException(); }  Alias = _buf["Alias"]; }
         { if(!_buf["IconName"].IsString) { throw new SerializationException(); }  IconName = _buf["IconName"]; }
+        { if(!_buf["BuildChannelMask"].IsNumber) { throw new SerializationException(); }  BuildChannelMask = (EBuildChannelMask)_buf["BuildChannelMask"].AsInt; }
         { if(!_buf["DefaultEars"].IsString) { throw new SerializationException(); }  DefaultEars = _buf["DefaultEars"]; }
         { if(!_buf["DefaultEyes"].IsString) { throw new SerializationException(); }  DefaultEyes = _buf["DefaultEyes"]; }
         { if(!_buf["DefaultTongue"].IsString) { throw new SerializationException(); }  DefaultTongue = _buf["DefaultTongue"]; }
@@ -50,6 +51,7 @@ public sealed partial class DogSkin : Luban.BeanBase
     public readonly int Id;
     public readonly string Alias;
     public readonly string IconName;
+    public readonly EBuildChannelMask BuildChannelMask;
     /// <summary>
     /// 只影响图标和桌宠模式，不影响打牌模式
     /// </summary>
@@ -93,6 +95,7 @@ public sealed partial class DogSkin : Luban.BeanBase
         + "Id:" + Id + ","
         + "Alias:" + Alias + ","
         + "IconName:" + IconName + ","
+        + "BuildChannelMask:" + BuildChannelMask + ","
         + "DefaultEars:" + DefaultEars + ","
         + "DefaultEyes:" + DefaultEyes + ","
         + "DefaultTongue:" + DefaultTongue + ","

@@ -21,6 +21,7 @@ public sealed partial class Item : Luban.BeanBase
         { if(!_buf["Name"].IsString) { throw new SerializationException(); }  Name = _buf["Name"]; }
         { if(!_buf["Alias"].IsString) { throw new SerializationException(); }  Alias = _buf["Alias"]; }
         { if(!_buf["ItemType"].IsNumber) { throw new SerializationException(); }  ItemType = (EItemType)_buf["ItemType"].AsInt; }
+        { if(!_buf["BuildChannelMask"].IsNumber) { throw new SerializationException(); }  BuildChannelMask = (EBuildChannelMask)_buf["BuildChannelMask"].AsInt; }
         { if(!_buf["HiddenRegionFlag"].IsNumber) { throw new SerializationException(); }  HiddenRegionFlag = (EHiddenRegionFlag)_buf["HiddenRegionFlag"].AsInt; }
         { if(!_buf["SafeResourceId"].IsNumber) { throw new SerializationException(); }  SafeResourceId = _buf["SafeResourceId"]; }
         { if(!_buf["ItemRarity"].IsNumber) { throw new SerializationException(); }  ItemRarity = (ERarity)_buf["ItemRarity"].AsInt; }
@@ -57,12 +58,13 @@ public sealed partial class Item : Luban.BeanBase
     /// </summary>
     public readonly string Alias;
     public readonly EItemType ItemType;
+    public readonly EBuildChannelMask BuildChannelMask;
     /// <summary>
     /// 在哪些国家无法抽到
     /// </summary>
     public readonly EHiddenRegionFlag HiddenRegionFlag;
     /// <summary>
-    /// 直播模式或者安全模式开启状态下，需要替换成和谐资源，该替换规则高于国家规则
+    /// 直播安全模式开启状态下，需要替换成和谐资源，该替换规则高于地区规则
     /// </summary>
     public readonly int SafeResourceId;
     public readonly ERarity ItemRarity;
@@ -148,6 +150,7 @@ public sealed partial class Item : Luban.BeanBase
         + "Name:" + Name + ","
         + "Alias:" + Alias + ","
         + "ItemType:" + ItemType + ","
+        + "BuildChannelMask:" + BuildChannelMask + ","
         + "HiddenRegionFlag:" + HiddenRegionFlag + ","
         + "SafeResourceId:" + SafeResourceId + ","
         + "ItemRarity:" + ItemRarity + ","
