@@ -27,7 +27,7 @@ offset_right = 120.0
 offset_bottom = 54.0
 theme_override_styles/panel = SubResource("bubble_style")
 script = ExtResource("1_script")
-_iconRect = NodePath("Overlay/Root/Icon")
+_iconRect = NodePath("Overlay/Root/IconSlot/Icon")
 _textLabel = NodePath("Overlay/Root/Text")
 _strikeLine = NodePath("Overlay/StrikeLine")
 _loadingIndicator = NodePath("Overlay/LoadingIndicator")
@@ -48,12 +48,21 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Overlay/Root" unique_id=2109359432]
+[node name="IconSlot" type="Control" parent="Overlay/Root"]
 custom_minimum_size = Vector2(34, 28)
 layout_mode = 2
 mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="Overlay/Root/IconSlot" unique_id=2109359432]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("2_box")
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="Text" type="RichTextLabel" parent="Overlay/Root" unique_id=423815409]

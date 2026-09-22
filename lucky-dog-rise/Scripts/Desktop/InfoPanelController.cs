@@ -405,7 +405,8 @@ public partial class InfoPanelController : CanvasLayer
                     state.DisplayValue,
                     _gameData.Chips,
                     state.PaymentSource,
-                    state.StrikeThrough);
+                    state.StrikeThrough,
+                    readyToOpen: state.Status == BlindBoxHintStatus.Ready);
                 break;
             default:
                 _blindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

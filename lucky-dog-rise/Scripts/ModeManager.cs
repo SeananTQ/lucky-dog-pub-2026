@@ -51,7 +51,7 @@ public partial class ModeManager : Control
     private PanelContainer _bossStatusPanel = null!;
     private Button _bossModeButton = null!;
     // Seconds after startup becomes interactive before the poker-entry hint begins.
-    private const double PokerEntryHintDelaySeconds = 35.0;
+    private const double PokerEntryHintDelaySeconds = 30.0;
     private const double PokerEntryHintBreathSeconds = 1.2;
     private const double MenuEntryHintDelaySeconds = 15.0;
     private const double MenuEntryHintBreathSeconds = 1.2;
@@ -2307,7 +2307,8 @@ public partial class ModeManager : Control
                     state.DisplayValue,
                     _gameData.Chips,
                     state.PaymentSource,
-                    state.StrikeThrough);
+                    state.StrikeThrough,
+                    readyToOpen: state.Status == BlindBoxHintStatus.Ready);
                 break;
             default:
                 _bossBlindBoxHint.ShowCountdown(TimeSpan.FromSeconds(state.RemainingSeconds));

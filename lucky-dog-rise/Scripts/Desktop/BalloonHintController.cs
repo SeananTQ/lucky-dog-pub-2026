@@ -29,6 +29,12 @@ public partial class BalloonHintController : PanelContainer
     [Export] public TailSide TailPlacement { get; set; } = TailSide.Left;
     [Export] public float TailInset { get; set; } = 16f;
 
+    public const double ReadyIconShakeIntervalSeconds = 5.0;
+    private const double ReadyIconShakeDurationSeconds = 0.8;
+    private double _readyIconShakeElapsed;
+    private bool _readyIconShakeEnabled;
+    private Control _iconSlot = null!;
+
     private Tween? _flashTween;
     private Tween? _visibilityTween;
     private string _currentTextBbcode = string.Empty;
@@ -45,10 +51,12 @@ public partial class BalloonHintController : PanelContainer
 
     public override void _Ready()
     {
+        _iconSlot = _iconRect.GetParent<Control>();
+        SetProcess(false);
         _sourceTextFont = _textLabel.GetThemeFont("normal_font");
         CapturePanelStyle();
         MouseFilter = MouseFilterEnum.Stop;
-        _iconRect.Visible = false;
+        _iconSlot.Visible = false;
         _loadingIndicator.SetLoading(false);
         HideStrikeLine();
         SetTextContent(string.Empty);
@@ -137,9 +145,10 @@ public partial class BalloonHintController : PanelContainer
 
     public void ShowCountdown(TimeSpan remaining)
     {
+        SetReadyIconShake(false);
         StopLoading();
         HideStrikeLine();
-        _iconRect.Visible = false;
+        _iconSlot.Visible = false;
         _textLabel.Visible = true;
         SetTextContent($"[font_size=20]{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}[/font_size]");
     }
@@ -149,7 +158,7 @@ public partial class BalloonHintController : PanelContainer
         StopLoading();
         HideStrikeLine();
         _iconRect.Texture = icon;
-        _iconRect.Visible = icon != null;
+        _iconSlot.Visible = icon != null;
         _textLabel.Visible = true;
         var isInsufficient = currentChips >= 0 && currentChips < cost;
         var text = isInsufficient
@@ -165,7 +174,8 @@ public partial class BalloonHintController : PanelContainer
         int cost,
         int currentChips = -1,
         BlindBoxPaymentSource paymentSource = BlindBoxPaymentSource.Unknown,
-        bool strikeThrough = false)
+        bool strikeThrough = false,
+        bool readyToOpen = false)
     {
         StopLoading();
         var icon = LoadAssetTexture(iconPath) ?? fallbackIcon;
@@ -174,7 +184,7 @@ public partial class BalloonHintController : PanelContainer
             if (strikeThrough)
             {
                 _iconRect.Texture = icon;
-                _iconRect.Visible = icon != null;
+                _iconSlot.Visible = icon != null;
                 _textLabel.Visible = true;
                 SetTextContent($"[font_size=20]{cost}[/font_size]");
                 ShowStrikeLine(cost.ToString());
@@ -186,11 +196,12 @@ public partial class BalloonHintController : PanelContainer
 #if DEBUG
             AddPaymentSourceLabel(paymentSource);
 #endif
+            SetReadyIconShake(readyToOpen && icon != null);
             return;
         }
 
         _iconRect.Texture = icon;
-        _iconRect.Visible = icon != null;
+        _iconSlot.Visible = icon != null;
         _textLabel.Visible = true;
         HideStrikeLine();
         SetTextContent(valueMode switch
@@ -202,6 +213,7 @@ public partial class BalloonHintController : PanelContainer
 #if DEBUG
         AddPaymentSourceLabel(paymentSource);
 #endif
+        SetReadyIconShake(readyToOpen && icon != null);
     }
 
 #if DEBUG
@@ -226,16 +238,18 @@ public partial class BalloonHintController : PanelContainer
 
     public void ShowIconOnly(Texture2D? icon)
     {
+        SetReadyIconShake(false);
         StopLoading();
         HideStrikeLine();
         _iconRect.Texture = icon;
-        _iconRect.Visible = icon != null;
+        _iconSlot.Visible = icon != null;
         _textLabel.Visible = false;
         SetTextContent(string.Empty);
     }
 
     public void ShowLoading()
     {
+        SetReadyIconShake(false);
         if (_showingLoading)
         {
             _interactionEnabled = false;
@@ -244,7 +258,7 @@ public partial class BalloonHintController : PanelContainer
 
         _showingLoading = true;
         HideStrikeLine();
-        _iconRect.Visible = false;
+        _iconSlot.Visible = false;
         _textLabel.Visible = false;
         SetTextContent(string.Empty);
         _loadingIndicator.SetLoading(true);
@@ -305,6 +319,8 @@ public partial class BalloonHintController : PanelContainer
             return;
 
         _isDisplayVisible = visible;
+        if (!visible)
+            SetReadyIconShake(false);
         MouseFilter = visible ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
         _visibilityTween?.Kill();
 
@@ -333,6 +349,42 @@ public partial class BalloonHintController : PanelContainer
             _visibilityTween.TweenProperty(this, "scale", new Vector2(0.98f, 0.98f), 0.1);
             _visibilityTween.Parallel().TweenProperty(this, "modulate:a", 0f, 0.1);
         }
+    }
+
+    private void SetReadyIconShake(bool enabled)
+    {
+        if (_readyIconShakeEnabled == enabled)
+            return;
+        _readyIconShakeEnabled = enabled;
+        _readyIconShakeElapsed = 0;
+        _iconRect.Rotation = 0;
+        SetProcess(enabled);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!_isDisplayVisible || !IsVisibleInTree() || !_interactionEnabled)
+        {
+            _readyIconShakeElapsed = 0;
+            _iconRect.Rotation = 0;
+            return;
+        }
+
+        _readyIconShakeElapsed += delta;
+        if (_readyIconShakeElapsed < ReadyIconShakeIntervalSeconds)
+            return;
+        var progress = (_readyIconShakeElapsed - ReadyIconShakeIntervalSeconds) / ReadyIconShakeDurationSeconds;
+        if (progress >= 1)
+        {
+            _readyIconShakeElapsed = 0;
+            _iconRect.Rotation = 0;
+            return;
+        }
+
+        // Only the visual child rotates; the HBox owns a stationary size placeholder.
+        _iconRect.PivotOffset = _iconRect.Size * 0.5f;
+        // Two equally visible left-right cycles per group, then return to the interval.
+        _iconRect.Rotation = -Mathf.DegToRad(12f) * (float)Math.Sin(progress * Math.PI * 4);
     }
 
     private void ResetTextColor()
