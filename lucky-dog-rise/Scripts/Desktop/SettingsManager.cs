@@ -322,7 +322,7 @@ public static class SettingsManager
     public static bool LoadVsyncEnabled()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionDisplay, KeyVsyncEnabled, true);
+        return (bool)config.GetValue(SectionDisplay, KeyVsyncEnabled, false);
     }
 
     public static void SaveVsyncEnabled(bool enabled)
@@ -350,7 +350,7 @@ public static class SettingsManager
     public static bool LoadCenterCounterOnTaskbar()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionDisplay, KeyCenterCounterOnTaskbar, true);
+        return (bool)config.GetValue(SectionDisplay, KeyCenterCounterOnTaskbar, false);
     }
 
     public static bool LoadAutoHideCounter()
@@ -442,7 +442,7 @@ public static class SettingsManager
     public static bool LoadPreventAccidentalDrag()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionSystem, KeyPreventAccidentalDrag, true);
+        return (bool)config.GetValue(SectionSystem, KeyPreventAccidentalDrag, false);
     }
 
     public static void SavePreventAccidentalDrag(bool enabled)
