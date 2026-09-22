@@ -194,17 +194,6 @@ public static class BuildCapabilities
     public static bool SteamInventory => !IsDemoRuntime;
     public static bool PlatformStatistics => !IsDemoRuntime;
     public static bool Achievements => !IsDemoRuntime;
-    public static bool SteamCloud
-    {
-        get
-        {
-#if DEBUG
-            // The editor is connected through the local Playtest AppID. Never let
-            // a Demo simulation read or write that app's Cloud namespace.
-            if (BuildInfo.IsDebugDemo)
-                return false;
-#endif
-            return true;
-        }
-    }
+    // Demo progress is local-only, including consumables and outfit presets.
+    public static bool SteamCloud => !IsDemoRuntime;
 }

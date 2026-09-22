@@ -64,7 +64,7 @@ if ($Channel -eq 'Demo') {
     if ($DemoContentManifest -and !$output.Contains('[DemoContentSmoke] Packaged tables and assets verified.')) {
         throw 'Packaged Demo content verification did not pass.'
     }
-    $expectedCapabilities = '[BuildCapabilities] Channel=Demo, BlindBoxes=True, CollectionEvents=True, LinkTree=True, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=True'
+    $expectedCapabilities = '[BuildCapabilities] Channel=Demo, BlindBoxes=True, CollectionEvents=True, LinkTree=True, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=False'
     if (!$output.Contains($expectedCapabilities, [StringComparison]::Ordinal)) {
         throw "Exported Demo did not report the expected capability profile. See $logDirectory"
     }

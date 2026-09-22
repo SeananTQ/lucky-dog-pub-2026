@@ -62,7 +62,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public string ProviderName => "Steam";
     public string StatusMessage => _runtime.StatusMessage;
     public bool IsAvailable => _runtime.IsInitialized;
-    public bool IsCloudAvailable => IsAvailable
+    public bool IsCloudAvailable => BuildCapabilities.SteamCloud && IsAvailable
         && SteamRemoteStorage.IsCloudEnabledForAccount()
         && SteamRemoteStorage.IsCloudEnabledForApp();
     public uint AppId => _runtime.AppId;
