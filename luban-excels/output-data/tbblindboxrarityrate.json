@@ -199,14 +199,14 @@
     "Id": 200305,
     "BlindBoxId": 2003,
     "Rarity": 2,
-    "Weight": 1000,
+    "Weight": 800,
     "IsEnabled": true
   },
   {
     "Id": 200306,
     "BlindBoxId": 2003,
     "Rarity": 1,
-    "Weight": 2000,
+    "Weight": 500,
     "IsEnabled": true
   },
   {
