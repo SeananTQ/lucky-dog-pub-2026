@@ -32,6 +32,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private GameData _gameData = null!;
     private DogAppearanceSpec _dogSkin = null!;
     private DogAppearanceSpec _previewAppearance = null!;
+    private Item _previewHeadwear = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     private Tween _tongueTween = null!;
     private Tween _pawTween = null!;
@@ -358,6 +359,14 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             ReapplyCurrentReaction();
     }
 
+    /// <summary>Development-tool headwear preview without changing player equipment.</summary>
+    public void SetPreviewHeadwear(Item item)
+    {
+        _previewHeadwear = item;
+        if (IsNodeReady())
+            ReapplyCurrentReaction();
+    }
+
     public void PlayTemporaryReaction(EDogReactionTrigger trigger, double seconds = 0.9)
     {
         if (!IsNodeReady()) return;
@@ -444,7 +453,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (!IsNodeReady()) return;
 
-        if (_gameData == null)
+        if (_gameData == null && _previewHeadwear == null)
         {
             StopHeadwearDropAnimation();
             _headwear.ZIndex = HeadwearBaseZIndex;
@@ -452,7 +461,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             return;
         }
 
-        var item = _gameData.Inventory.GetEquipped(EItemType.Headwear);
+        var item = _previewHeadwear ?? _gameData?.Inventory.GetEquipped(EItemType.Headwear);
         if (item == null || item.AssetPathList.Count == 0)
         {
             StopHeadwearDropAnimation();
@@ -768,7 +777,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         ApplyPawVisual(visual);
         RefreshEquippedHeadwear();
 
-        if (!string.IsNullOrEmpty(visual.OverrideHeadwear))
+        if (_previewHeadwear == null && !string.IsNullOrEmpty(visual.OverrideHeadwear))
             ApplyHeadwearOverride(visual.OverrideHeadwear);
 
         RefreshFixedEyewear();

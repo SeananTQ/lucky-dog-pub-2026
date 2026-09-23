@@ -92,6 +92,7 @@ public partial class DogSkinEditorController : Control
         var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen()).Size;
         DisplayServer.WindowSetSize(new Vector2I(Math.Min(1480, usable.X), Math.Min(900, usable.Y)));
         CenterWindow();
+        Callable.From(RestoreWindowAfterSceneChange).CallDeferred();
 
         _assets = new DogSkinAssetCatalog();
         _iconExportService = new DogSkinIconExportService();
@@ -107,6 +108,16 @@ public partial class DogSkinEditorController : Control
         var rect = DisplayServer.ScreenGetUsableRect(screen);
         var size = DisplayServer.WindowGetSize();
         DisplayServer.WindowSetPosition(rect.Position + (rect.Size - size) / 2);
+    }
+
+    private void RestoreWindowAfterSceneChange()
+    {
+        DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Borderless, false);
+        DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.ResizeDisabled, false);
+        var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen()).Size;
+        DisplayServer.WindowSetSize(new Vector2I(Math.Min(1480, usable.X), Math.Min(900, usable.Y)));
+        CenterWindow();
     }
 
     private void BuildShell()
@@ -131,6 +142,8 @@ public partial class DogSkinEditorController : Control
         toolbar.AddChild(CreateButton("重新载入正式 JSON", ConfirmReloadFromTable));
         toolbar.AddChild(CreateButton("导出完整 CSV", ExportCsv));
         toolbar.AddChild(CreateButton("合成道具图标", ShowIconComposer));
+        toolbar.AddChild(CreateButton("商店页录屏演出", OpenCapture));
+        toolbar.AddChild(CreateButton("退出工具", ExitEditor));
 
         _status = new Label
         {
@@ -146,6 +159,36 @@ public partial class DogSkinEditorController : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         _rootLayout.AddChild(_content);
+    }
+
+    private void OpenCapture()
+    {
+        if (_hasUnsavedChanges)
+        {
+            SetStatus("当前草稿尚未保存。请先保存草稿，再打开商店页录屏演出。", true);
+            return;
+        }
+        GetTree().ChangeSceneToFile("res://Tools/DogSkinEditor/SteamStoreCapture.tscn");
+    }
+
+    private void ExitEditor()
+    {
+        if (!_hasUnsavedChanges)
+        {
+            GetTree().Quit();
+            return;
+        }
+        var dialog = new ConfirmationDialog
+        {
+            Title = "退出 DogSkin 编辑器",
+            DialogText = "当前草稿尚未保存。确定放弃修改并退出吗？",
+        };
+        dialog.GetOkButton().Text = "放弃并退出";
+        dialog.GetCancelButton().Text = "继续编辑";
+        dialog.Confirmed += () => GetTree().Quit();
+        dialog.Canceled += dialog.QueueFree;
+        AddChild(dialog);
+        dialog.PopupCentered();
     }
 
     private void ShowOverview()

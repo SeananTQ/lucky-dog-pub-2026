@@ -16,6 +16,8 @@ DeveloperLauncherController
 DemoLinkTreeSmoke
 DogVisual
 DogSkinEditorController
+SteamStoreCaptureController
+SteamStoreCaptureSmoke
 DragHandler
 GameData
 GameManager
