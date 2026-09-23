@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
-    [string]$GodotEditor
+    [string]$GodotEditor,
+    [ValidateRange(1, 365)] [int]$RecordingValidDays = 7,
+    [string]$RecordingExpiresOn = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,6 +20,28 @@ $exportPresetPath = Join-Path $projectRoot 'export_presets.cfg'
 $presetBackupRoot = Join-Path $localBuild 'preset-backup'
 $presetBackupPath = Join-Path $presetBackupRoot 'export_presets.cfg'
 $presetAbsentMarker = Join-Path $presetBackupRoot 'export_presets.was-absent'
+$recordingExpiryUtc = ''
+if ($RecordingExpiresOn -and $Channel -ne 'PlaytestRecording') {
+    throw '-RecordingExpiresOn is only valid for PlaytestRecording.'
+}
+if ($Channel -eq 'PlaytestRecording') {
+    if ($RecordingExpiresOn) {
+        $date = [datetime]::MinValue
+        if (![datetime]::TryParseExact($RecordingExpiresOn, 'yyyy-MM-dd',
+                [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::None, [ref]$date)) {
+            throw '-RecordingExpiresOn must use yyyy-MM-dd (Hong Kong date).'
+        }
+        # The named day remains usable; the package expires at the next midnight in Hong Kong.
+        $expiry = [DateTimeOffset]::new($date.Date.AddDays(1), [TimeSpan]::FromHours(8))
+    }
+    else {
+        $expiry = [DateTimeOffset]::UtcNow.AddDays($RecordingValidDays)
+    }
+    $recordingExpiryUtc = $expiry.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ',
+        [Globalization.CultureInfo]::InvariantCulture)
+    Write-Host "[Build] Recording package expires at $recordingExpiryUtc UTC."
+}
 
 function Read-LocalDataFile([string]$Path) {
     return & ([scriptblock]::Create([System.IO.File]::ReadAllText($Path)))
@@ -111,7 +135,7 @@ try {
     $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
     $env:LUCKYDOG_BUILD_COMMIT = $commit
     $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
-    $env:LUCKYDOG_RECORDING_EXPIRES_UTC = if ($Channel -eq 'PlaytestRecording') { '2026-10-02T16:00:00Z' } else { '' }
+    $env:LUCKYDOG_RECORDING_EXPIRES_UTC = $recordingExpiryUtc
     try {
         if ($Channel -eq 'Demo') {
             # A cache-free C# project needs its editor assembly before scene import.
@@ -193,7 +217,7 @@ Get-ChildItem -LiteralPath $obfuscationRoot -Recurse -File | Where-Object { $_.N
 Get-ChildItem -LiteralPath $staging -Recurse -File | Where-Object { $_.Extension -eq '.pdb' -or $_.Name -match 'console\.exe$' } |
     Remove-Item -Force
 
-& (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel $Channel -Version $version
+& (Join-Path $PSScriptRoot 'Verify-Build.ps1') -StagingDirectory $staging -Channel $Channel -Version $version -RecordingExpiresUtc $recordingExpiryUtc
 $demoManifest = if ($Channel -eq 'Demo') { Join-Path $localBuild 'demo-content-manifest.json' } else { '' }
 & (Join-Path $PSScriptRoot 'Test-ExportedRuntime.ps1') -ExecutablePath $outputExe -Channel $Channel -DemoContentManifest $demoManifest -RunSeconds 30
 if (Test-Path -LiteralPath $packagePath) { Remove-Item -Force -LiteralPath $packagePath }

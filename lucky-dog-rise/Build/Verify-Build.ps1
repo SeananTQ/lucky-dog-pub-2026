@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)] [string]$StagingDirectory,
     [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
-    [Parameter(Mandatory)] [string]$Version
+    [Parameter(Mandatory)] [string]$Version,
+    [string]$RecordingExpiresUtc = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,7 +54,8 @@ foreach ($developerAllowlistSymbol in 'DeveloperSteamAccountAllowlist', 'steam-a
 if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-09-25T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
 }
-if ($Channel -eq 'PlaytestRecording' -and !$ascii.Contains('2026-10-02T16:00:00Z')) {
+if ($Channel -eq 'PlaytestRecording' -and
+    (!$RecordingExpiresUtc -or !$ascii.Contains($RecordingExpiresUtc))) {
     throw 'Playtest Recording expiration metadata is missing from the release assembly.'
 }
 if ($Channel -eq 'Release' -and $ascii.Contains('2026-09-25T16:00:00Z')) {
@@ -68,6 +70,7 @@ $report = @"
 
 - Version: $Version
 - Channel: $Channel
+- Recording expiry UTC: $RecordingExpiresUtc
 - Architecture: Windows x86_64
 - PDB present: no
 - Debug entry symbols present: no
