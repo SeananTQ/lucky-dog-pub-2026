@@ -29,6 +29,10 @@ namespace DataTables
         /// 正式版
         /// </summary>
         Release = 8,
+        /// <summary>
+        /// Playtest录屏模式
+        /// </summary>
+        PlaytestRecording = 16,
     }
 
 } 

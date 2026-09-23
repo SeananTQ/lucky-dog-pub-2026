@@ -530,5 +530,24 @@
     "SteamDropMaxPerWindow": 0,
     "CostChipsOverride": -1000,
     "SteamCompletionReceiptItemDefId": 0
+  },
+  {
+    "Id": 4001,
+    "NextScheduleId": 0,
+    "ProgressCheckpoint": 0,
+    "BuildChannelMask": 16,
+    "BlindBoxId": 4002,
+    "FallbackBlindBoxId": 0,
+    "IsLoopTrack": true,
+    "StartSeconds": 0,
+    "IntervalSeconds": 5,
+    "MaxGrantCount": -1,
+    "IsEnabled": true,
+    "SteamPlaytimeGeneratorItemDefId": 0,
+    "SteamDropIntervalSeconds": 0,
+    "SteamDropWindowSeconds": 0,
+    "SteamDropMaxPerWindow": 0,
+    "CostChipsOverride": 1000,
+    "SteamCompletionReceiptItemDefId": 0
   }
 ]

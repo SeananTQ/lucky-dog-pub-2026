@@ -103,5 +103,20 @@
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common_Ticket.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": false
+  },
+  {
+    "Id": 4002,
+    "Name": "录屏专用盲盒",
+    "BuildChannelMask": 16,
+    "BoxType": 1,
+    "RewardSelectionMode": 3,
+    "DisplayMode": 1,
+    "CostChips": 1000,
+    "HintValueMode": 1,
+    "MaxRevealClickCount": 3,
+    "AutoCollectSeconds": 3,
+    "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
+    "IsPlatformInventoryRequired": false,
+    "IsEnabled": true
   }
 ]

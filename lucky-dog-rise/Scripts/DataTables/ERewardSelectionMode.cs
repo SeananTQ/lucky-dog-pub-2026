@@ -24,6 +24,10 @@ namespace DataTables
         /// 抽取时排除玩家此前从同一个盲盒中抽中的物品；其他盲盒抽中的同一道具不计入排除范围。（客户端盲盒专用，状态是否跨设备取决于云存档的最终设计）
         /// </summary>
         ExcludeDrawnInThisBox = 2,
+        /// <summary>
+        /// 直接按 RecordingRewardOrder 选择道具，不抽品质或权重。
+        /// </summary>
+        RecordingSequence = 3,
     }
 
 } 

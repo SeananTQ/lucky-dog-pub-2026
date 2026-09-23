@@ -22,6 +22,7 @@ public sealed partial class BlindBoxItemWeight : Luban.BeanBase
         { if(!_buf["ItemId"].IsNumber) { throw new SerializationException(); }  ItemId = _buf["ItemId"]; }
         { if(!_buf["Weight"].IsNumber) { throw new SerializationException(); }  Weight = _buf["Weight"]; }
         { if(!_buf["IsEnabled"].IsBoolean) { throw new SerializationException(); }  IsEnabled = _buf["IsEnabled"]; }
+        { if(!_buf["RecordingRewardOrder"].IsNumber) { throw new SerializationException(); }  RecordingRewardOrder = _buf["RecordingRewardOrder"]; }
     }
 
     public static BlindBoxItemWeight DeserializeBlindBoxItemWeight(JSONNode _buf)
@@ -49,6 +50,10 @@ public sealed partial class BlindBoxItemWeight : Luban.BeanBase
     /// 关闭后不参与奖池，但保留权重
     /// </summary>
     public readonly bool IsEnabled;
+    /// <summary>
+    /// 仅顺序发奖模式使用。0 不加入队列；正整数按升序发奖，同一盲盒内不可重复；走到末尾后循环。
+    /// </summary>
+    public readonly int RecordingRewardOrder;
    
     public const int __ID__ = -1542572447;
     public override int GetTypeId() => __ID__;
@@ -65,6 +70,7 @@ public sealed partial class BlindBoxItemWeight : Luban.BeanBase
         + "ItemId:" + ItemId + ","
         + "Weight:" + Weight + ","
         + "IsEnabled:" + IsEnabled + ","
+        + "RecordingRewardOrder:" + RecordingRewardOrder + ","
         + "}";
     }
 }

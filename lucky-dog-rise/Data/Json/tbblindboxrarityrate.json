@@ -257,5 +257,47 @@
     "Rarity": 1,
     "Weight": 20,
     "IsEnabled": true
+  },
+  {
+    "Id": 400201,
+    "BlindBoxId": 4002,
+    "Rarity": 6,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 400202,
+    "BlindBoxId": 4002,
+    "Rarity": 5,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 400203,
+    "BlindBoxId": 4002,
+    "Rarity": 4,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 400204,
+    "BlindBoxId": 4002,
+    "Rarity": 3,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 400205,
+    "BlindBoxId": 4002,
+    "Rarity": 2,
+    "Weight": 100,
+    "IsEnabled": true
+  },
+  {
+    "Id": 400206,
+    "BlindBoxId": 4002,
+    "Rarity": 1,
+    "Weight": 100,
+    "IsEnabled": true
   }
 ]
