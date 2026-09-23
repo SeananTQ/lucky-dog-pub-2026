@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
     [string]$GodotEditor
 )
 
@@ -38,6 +38,11 @@ function Invoke-GodotBuildStep([string]$Step, [string[]]$Arguments) {
     $cleanup = @($errors | Where-Object { $Step -eq 'export' -and $_.Line -match "^ERROR: \d+ RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit\.$" })
     if ($cleanup) { Write-Warning 'Godot headless export reported DummyTexture cleanup leaks at exit; retained in export log.' }
     $errors = @($errors | Where-Object { $_ -notin $cleanup })
+    $localOnly = @($errors | Where-Object { $Step -eq 'export' -and (
+        $_.Line -eq 'ERROR: [Wick] Failed to listen on port 6505: Already in use' -or
+        ($Channel -eq 'PlaytestRecording' -and $_.Line -eq 'ERROR: Failed to read the root certificate store.')) })
+    if ($localOnly) { Write-Warning 'Headless export reported local-only Wick/certificate diagnostics; retained in export log.' }
+    $errors = @($errors | Where-Object { $_ -notin $localOnly })
     if ($errors) { throw "Godot $Step reported errors despite exit code zero. See $stdout and $stderr" }
     if ((Test-Path -LiteralPath $stderr) -and (Get-Item -LiteralPath $stderr).Length -gt 0) {
         Write-Warning "Godot $Step emitted diagnostics. See $stderr"
@@ -76,7 +81,7 @@ if ($Channel -eq 'Demo') {
 
 $channelSlug = $Channel.ToLowerInvariant()
 $staging = Join-Path $localBuild "staging\$channelSlug"
-$executableBaseName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo' } else { 'LuckyDogRise' }
+$executableBaseName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo' } elseif ($Channel -eq 'PlaytestRecording') { 'LuckyDogRiseRecording' } else { 'LuckyDogRise' }
 $outputExe = Join-Path $staging "$executableBaseName.exe"
 $assemblyPath = Join-Path $staging 'data_LuckyDogRise_windows_x86_64\LuckyDogRise.dll'
 $packageDir = Join-Path $workspace 'GameBuild'
@@ -89,6 +94,7 @@ $oldPckKey = $env:GODOT_SCRIPT_ENCRYPTION_KEY
 $oldSaveKey = $env:LUCKYDOG_SAVE_HMAC_KEY
 $oldCommit = $env:LUCKYDOG_BUILD_COMMIT
 $oldPlaytestExpiry = $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC
+$oldRecordingExpiry = $env:LUCKYDOG_RECORDING_EXPIRES_UTC
 $hadExportPreset = Test-Path -LiteralPath $exportPresetPath
 New-Item -ItemType Directory -Force -Path $presetBackupRoot | Out-Null
 if ($hadExportPreset) {
@@ -105,6 +111,7 @@ try {
     $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
     $env:LUCKYDOG_BUILD_COMMIT = $commit
     $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
+    $env:LUCKYDOG_RECORDING_EXPIRES_UTC = if ($Channel -eq 'PlaytestRecording') { '2026-10-02T16:00:00Z' } else { '' }
     try {
         if ($Channel -eq 'Demo') {
             # A cache-free C# project needs its editor assembly before scene import.
@@ -142,6 +149,7 @@ try {
         $env:LUCKYDOG_SAVE_HMAC_KEY = $oldSaveKey
         $env:LUCKYDOG_BUILD_COMMIT = $oldCommit
         $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = $oldPlaytestExpiry
+        $env:LUCKYDOG_RECORDING_EXPIRES_UTC = $oldRecordingExpiry
     }
 }
 finally {

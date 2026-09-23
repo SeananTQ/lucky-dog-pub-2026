@@ -251,11 +251,13 @@ public partial class GameData : Node
         ValidateRefreshmentConfigs();
         _blindBoxService = new BlindBoxService(this);
 #if DEBUG
-        _saveDataMode = BuildInfo.IsDebugDemo || StartInSteamMockSimulation
+        _saveDataMode = BuildInfo.IsDebugDemo || BuildInfo.IsRecording || StartInSteamMockSimulation
             ? SettingsManager.SaveDataMode.LocalSave
             : SettingsManager.LoadSaveDataMode();
 #else
-        _saveDataMode = SettingsManager.LoadSaveDataMode();
+        _saveDataMode = BuildInfo.IsRecording
+            ? SettingsManager.SaveDataMode.LocalSave
+            : SettingsManager.LoadSaveDataMode();
 #endif
         PlayerProgress = new PlayerProgress(_storageContext);
         _profileAutosaveTimer = ProfileAutosaveSeconds;

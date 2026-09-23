@@ -696,6 +696,8 @@ public static class SaveManager
             .Select(schedule => schedule.Id)
             .ToHashSet();
         profile.BlindBoxRuntimeState.SequenceIndex = Math.Max(0, profile.BlindBoxRuntimeState.SequenceIndex);
+        profile.BlindBoxRuntimeState.RecordingRewardCursor = Math.Max(
+            0, profile.BlindBoxRuntimeState.RecordingRewardCursor);
         profile.BlindBoxRuntimeState.SequenceProgressCheckpoint = Math.Max(
             0,
             profile.BlindBoxRuntimeState.SequenceProgressCheckpoint);

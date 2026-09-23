@@ -52,6 +52,13 @@ public partial class InfoPanelController : CanvasLayer
     private int _currentPayout;
     private bool _hasResolvedHand;
     private bool _blindBoxOpeningLoading;
+    private bool _recordingBubbleRevealed;
+
+    public void SetRecordingBubbleRevealed(bool revealed)
+    {
+        _recordingBubbleRevealed = revealed;
+        RefreshBlindBoxButton();
+    }
 
     // 赔率表数据来自 Luban PayTable（JSON → C# 数据驱动）
 
@@ -381,14 +388,17 @@ public partial class InfoPanelController : CanvasLayer
         _blindBoxBtn.Disabled = state.Status is BlindBoxHintStatus.Waiting
             or BlindBoxHintStatus.Completed
             or BlindBoxHintStatus.Opening
-            or BlindBoxHintStatus.PendingReward;
+            or BlindBoxHintStatus.PendingReward
+            || (BuildInfo.IsRecording && !_recordingBubbleRevealed);
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
-            && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
+            && (BuildInfo.IsRecording || !SettingsManager.LoadAlwaysShowBlindBoxBubble());
+        var hideRecordingReady = BuildInfo.IsRecording && !_recordingBubbleRevealed
+            && state.Status is BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips;
         var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward
             or BlindBoxHintStatus.Opening
             or BlindBoxHintStatus.Completed;
-        SetBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble);
+        SetBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble && !hideRecordingReady);
 
         switch (state.Status)
         {

@@ -12,6 +12,7 @@ public partial class GlobalInputTracker : Node
     [Signal] public delegate void GlobalMousePressedEventHandler(Vector2I screenPosition);
     [Signal] public delegate void GlobalWinKeyPressedEventHandler();
     [Signal] public delegate void GlobalEscapeKeyPressedEventHandler();
+    [Signal] public delegate void GlobalRecordingHotkeyPressedEventHandler(int virtualKeyCode);
 
     public GameData GameData { get; set; } = null!;
 
@@ -23,6 +24,7 @@ public partial class GlobalInputTracker : Node
     private readonly bool[] _keysDown = new bool[256];
 
     private LowLevelKeyboardProc _kbCallback;
+    public bool IsKeyboardHookInstalled => _kbHook != IntPtr.Zero;
 
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
@@ -34,6 +36,8 @@ public partial class GlobalInputTracker : Node
     private const int VK_RWIN = 0x5C;
     private const int VK_F2 = 0x71;
     private const int VK_F3 = 0x72;
+    private const int VK_F4 = 0x73;
+    private const int VK_F5 = 0x74;
     private const int VK_BROWSER_BACK = 0xA6;
     private const int VK_BROWSER_HOME = 0xAC;
     private const int VK_VOLUME_MUTE = 0xAD;
@@ -146,6 +150,8 @@ public partial class GlobalInputTracker : Node
                     EmitSignal(SignalName.GlobalWinKeyPressed);
                 else if (vkCode == VK_ESCAPE)
                     EmitSignal(SignalName.GlobalEscapeKeyPressed);
+                else if (BuildInfo.IsRecording && vkCode is VK_F4 or VK_F5)
+                    EmitSignal(SignalName.GlobalRecordingHotkeyPressed, vkCode);
                 if (!IsDebugPresentationHotkey(vkCode) && !IsHardwareFunctionKey(vkCode))
                     Interlocked.Increment(ref _pendingPresses);
             }
@@ -167,6 +173,8 @@ public partial class GlobalInputTracker : Node
 
     private static bool IsDebugPresentationHotkey(Key key)
     {
+        if (BuildInfo.IsRecording && key is Key.F4 or Key.F5)
+            return true;
 #if DEBUG
         return key is Key.F2 or Key.F3;
 #else
@@ -176,6 +184,8 @@ public partial class GlobalInputTracker : Node
 
     private static bool IsDebugPresentationHotkey(int virtualKeyCode)
     {
+        if (BuildInfo.IsRecording && virtualKeyCode is VK_F4 or VK_F5)
+            return true;
 #if DEBUG
         return virtualKeyCode is VK_F2 or VK_F3;
 #else

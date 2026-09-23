@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$StagingDirectory,
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$Version
 )
 
@@ -21,8 +21,8 @@ if ($forbidden) {
 
 $gameAssembly = $files | Where-Object Name -eq 'LuckyDogRise.dll' | Select-Object -First 1
 if (!$gameAssembly) { throw 'LuckyDogRise.dll is missing from the exported build.' }
-$expectedExecutableName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo.exe' } else { 'LuckyDogRise.exe' }
-$expectedProductName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } else { 'Lucky Dog Rise' }
+$expectedExecutableName = if ($Channel -eq 'Demo') { 'LuckyDogRiseDemo.exe' } elseif ($Channel -eq 'PlaytestRecording') { 'LuckyDogRiseRecording.exe' } else { 'LuckyDogRise.exe' }
+$expectedProductName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } elseif ($Channel -eq 'PlaytestRecording') { 'Lucky Dog Rise Playtest Recording' } else { 'Lucky Dog Rise' }
 $gameExecutable = $files | Where-Object Name -eq $expectedExecutableName | Select-Object -First 1
 if (!$gameExecutable) { throw "$expectedExecutableName is missing from the exported build." }
 $steamworksManaged = $files | Where-Object Name -eq 'Steamworks.NET.dll' | Select-Object -First 1
@@ -52,6 +52,9 @@ foreach ($developerAllowlistSymbol in 'DeveloperSteamAccountAllowlist', 'steam-a
 }
 if ($Channel -eq 'Playtest' -and !$ascii.Contains('2026-09-25T16:00:00Z')) {
     throw 'Playtest expiration metadata is missing from the release assembly.'
+}
+if ($Channel -eq 'PlaytestRecording' -and !$ascii.Contains('2026-10-02T16:00:00Z')) {
+    throw 'Playtest Recording expiration metadata is missing from the release assembly.'
 }
 if ($Channel -eq 'Release' -and $ascii.Contains('2026-09-25T16:00:00Z')) {
     throw 'Playtest expiration metadata must not remain in the Release assembly.'

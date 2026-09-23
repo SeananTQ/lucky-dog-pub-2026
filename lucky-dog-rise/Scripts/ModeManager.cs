@@ -75,6 +75,7 @@ public partial class ModeManager : Control
     private bool _bossCounterAutoHidden;
     private double _bossCounterAutoHideRemainingSeconds;
     private bool _bossRiseIntroSuppressesBlindBoxHint;
+    private bool _recordingBubbleRevealed;
     private GameManager _gameManager = null!;
     private Label _mainText = null!;
     private Font _bossCounterSourceFont = null!;
@@ -162,9 +163,11 @@ public partial class ModeManager : Control
     public GameData GameDataObj => _gameData;
     public IGamePlatformService PlatformService => _platformService;
 
-#if DEBUG
-    private static readonly EItemType[] DebugGrantItemTypes = Enum.GetValues<EItemType>()
+    private static readonly EItemType[] DirectorGrantItemTypes = Enum.GetValues<EItemType>()
         .ToArray();
+    private readonly Random _directorRandom = new();
+    private int _directorGrantItemTypeIndex;
+#if DEBUG
     private const int DebugEmptyEquipmentWeight = 3;
 
     private enum DebugEquipmentSource
@@ -177,7 +180,6 @@ public partial class ModeManager : Control
 #if DEBUG
     private readonly Random _debugRandom = new();
     private readonly Dictionary<(DebugEquipmentSource source, EItemType type), ShuffleBag<int>> _debugEquipmentBags = new();
-    private int _debugGrantItemTypeIndex;
 #endif
     private readonly Queue<(double time, int count)> _desktopInputEvents = new();
     private const double DesktopActivitySampleSeconds = 10.0;
@@ -647,6 +649,7 @@ public partial class ModeManager : Control
         _globalInputTracker.GlobalMousePressed += OnGlobalMousePressed;
         _globalInputTracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
         _globalInputTracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
+        _globalInputTracker.GlobalRecordingHotkeyPressed += OnGlobalRecordingHotkeyPressed;
         AddChild(_globalInputTracker);
 
         _startupPlatformWaitRemaining = StartupPlatformWaitSeconds;
@@ -676,12 +679,15 @@ public partial class ModeManager : Control
                 return true;
             }
 #endif
-            storageContext = string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal)
-                ? AccountStorageContext.ForSteam(_platformService.AccountId)
-                : (BuildInfo.IsDevelopment || OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
-                  && string.Equals(_platformService.AccountProvider, "dev", StringComparison.Ordinal)
-                    ? AccountStorageContext.ForDevelopment(_platformService.AccountId)
-                    : null!;
+            storageContext = string.Equals(_platformService.AccountProvider, "recording", StringComparison.Ordinal)
+                && BuildInfo.IsRecording
+                    ? AccountStorageContext.ForRecording(_platformService.AccountId)
+                    : string.Equals(_platformService.AccountProvider, "steam", StringComparison.Ordinal)
+                        ? AccountStorageContext.ForSteam(_platformService.AccountId)
+                        : (BuildInfo.IsDevelopment || OS.GetCmdlineUserArgs().Contains("--diagnostics-export-smoke"))
+                          && string.Equals(_platformService.AccountProvider, "dev", StringComparison.Ordinal)
+                            ? AccountStorageContext.ForDevelopment(_platformService.AccountId)
+                            : null!;
             return storageContext != null;
         }
         catch (Exception exception)
@@ -2286,11 +2292,13 @@ public partial class ModeManager : Control
 
         var state = _gameData.GetBlindBoxHintState();
         var hideWaitingBubble = state.Status == BlindBoxHintStatus.Waiting
-            && !SettingsManager.LoadAlwaysShowBlindBoxBubble();
+            && (BuildInfo.IsRecording || !SettingsManager.LoadAlwaysShowBlindBoxBubble());
+        var hideRecordingReady = BuildInfo.IsRecording && !_recordingBubbleRevealed
+            && state.Status is BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips;
         var hideForTransition = state.Status is BlindBoxHintStatus.PendingReward
             or BlindBoxHintStatus.Opening
             or BlindBoxHintStatus.Completed;
-        SetBossBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble);
+        SetBossBlindBoxHintDisplayVisible(!hideForTransition && !hideWaitingBubble && !hideRecordingReady);
 
         switch (state.Status)
         {
@@ -2325,6 +2333,8 @@ public partial class ModeManager : Control
     private void OnBossBlindBoxHintPressed()
     {
         if (_gameData == null)
+            return;
+        if (BuildInfo.IsRecording && !_recordingBubbleRevealed)
             return;
 
         var state = _gameData.GetBlindBoxHintState();
@@ -2446,30 +2456,7 @@ public partial class ModeManager : Control
 
     private void OnRandomAcquireItem()
     {
-        var allCandidates = LubanData.Tables.TbItem.DataList
-            .Where(item => item.AcquisitionType != EAcquisitionType.Retired && !item.IsHiddenInBag)
-            .ToList();
-        if (allCandidates.Count == 0)
-            return;
-
-        // 未集齐时只发未拥有物品；集齐后允许重复发放，以便录制时继续补数量。
-        bool hasUnownedItem = allCandidates.Any(item => !_gameData.Inventory.Owns(item.Id));
-        for (int attempt = 0; attempt < DebugGrantItemTypes.Length; attempt++)
-        {
-            var type = DebugGrantItemTypes[_debugGrantItemTypeIndex];
-            _debugGrantItemTypeIndex = (_debugGrantItemTypeIndex + 1) % DebugGrantItemTypes.Length;
-
-            var candidates = allCandidates
-                .Where(item => item.ItemType == type)
-                .Where(item => !hasUnownedItem || !_gameData.Inventory.Owns(item.Id))
-                .ToList();
-            if (candidates.Count == 0)
-                continue;
-
-            var item = candidates[_debugRandom.Next(candidates.Count)];
-            _gameData.AddItem(item.Id, count: 1, markNew: false, source: PlayerProgressSource.Debug);
-            return;
-        }
+        GrantRandomUnownedItem();
     }
 
     private void OnDebugGrantChips()
@@ -2502,9 +2489,37 @@ public partial class ModeManager : Control
     }
 #endif
 
+    private void GrantRandomUnownedItem()
+    {
+        var allCandidates = LubanData.Tables.TbItem.DataList
+            .Where(item => item.AcquisitionType != EAcquisitionType.Retired && !item.IsHiddenInBag)
+            .ToList();
+        if (allCandidates.Count == 0)
+            return;
+
+        // Until the catalog is complete, grant only unowned items. Repeats remain useful for filming later.
+        var hasUnownedItem = allCandidates.Any(item => !_gameData.Inventory.Owns(item.Id));
+        for (var attempt = 0; attempt < DirectorGrantItemTypes.Length; attempt++)
+        {
+            var type = DirectorGrantItemTypes[_directorGrantItemTypeIndex];
+            _directorGrantItemTypeIndex = (_directorGrantItemTypeIndex + 1) % DirectorGrantItemTypes.Length;
+            var candidates = allCandidates
+                .Where(item => item.ItemType == type)
+                .Where(item => !hasUnownedItem || !_gameData.Inventory.Owns(item.Id))
+                .ToList();
+            if (candidates.Count == 0)
+                continue;
+            var item = candidates[_directorRandom.Next(candidates.Count)];
+            _gameData.AddItem(item.Id, count: 1, markNew: false, source: PlayerProgressSource.Debug);
+            return;
+        }
+    }
+
     private void OnBlindBoxRequested()
     {
         if (_infoPanel == null)
+            return;
+        if (BuildInfo.IsRecording && !_recordingBubbleRevealed)
             return;
 
         var state = _gameData.GetBlindBoxHintState();
@@ -2626,6 +2641,8 @@ public partial class ModeManager : Control
 
     private void BeginBlindBoxOpen(BlindBoxHintState state)
     {
+        if (BuildInfo.IsRecording && !_recordingBubbleRevealed)
+            return;
         if (_blindBoxOpeningUiActive)
             return;
 
@@ -2633,6 +2650,11 @@ public partial class ModeManager : Control
         var pending = _gameData.TryOpenBlindBox();
         if (pending != null)
         {
+            if (BuildInfo.IsRecording)
+            {
+                _recordingBubbleRevealed = false;
+                _infoPanel?.SetRecordingBubbleRevealed(false);
+            }
             ResolveBlindBoxOpeningUi(pending);
             return;
         }
@@ -2816,6 +2838,29 @@ public partial class ModeManager : Control
         // the origin offset. Query it each time so display rearrangements are respected.
         return nativeScreenPosition
             + DisplayServer.ScreenGetPosition(DisplayServer.GetPrimaryScreen());
+    }
+
+    private void OnGlobalRecordingHotkeyPressed(int virtualKeyCode)
+    {
+        if (!BuildInfo.IsRecording || !_startupInitialized
+            || _startupState < StartupState.IntroPlaying || _gameData == null)
+            return;
+
+        if (virtualKeyCode == 0x73)
+        {
+            var state = _gameData.GetBlindBoxHintState();
+            if (!_recordingBubbleRevealed
+                && state.Status is BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
+            {
+                _recordingBubbleRevealed = true;
+                _infoPanel?.SetRecordingBubbleRevealed(true);
+                RefreshBossBlindBoxHint();
+            }
+        }
+        else if (virtualKeyCode == 0x74)
+        {
+            GrantRandomUnownedItem();
+        }
     }
 
     private void OnGlobalWinKeyPressed()
@@ -3126,6 +3171,7 @@ public partial class ModeManager : Control
         if (!_dogHitRect.HasPoint(localPos) || _settingsPanel.ContainsPoint(localPos)
             || GetBossStatusPanelRect().HasPoint(localPos)
             || (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible
+                && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore
                 && GetBossBlindBoxHintRect().HasPoint(localPos))
             || (_bossBlindBoxOverlay != null && _bossBlindBoxOverlay.Visible
                 && GetBossBlindBoxOverlayRect().HasPoint(localPos)))
@@ -3749,6 +3795,22 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
+        if (BuildInfo.IsRecording && @event is InputEventKey
+            { Pressed: true, Echo: false, Keycode: Key.F4 })
+        {
+            if (!_globalInputTracker.IsKeyboardHookInstalled)
+                OnGlobalRecordingHotkeyPressed(0x73);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (BuildInfo.IsRecording && @event is InputEventKey
+            { Pressed: true, Echo: false, Keycode: Key.F5 })
+        {
+            if (!_globalInputTracker.IsKeyboardHookInstalled)
+                OnGlobalRecordingHotkeyPressed(0x74);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
             && TryOpenSettingsFromDesktopDog(DisplayServer.MouseGetPosition()))
         {

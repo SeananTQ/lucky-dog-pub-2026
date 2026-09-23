@@ -14,6 +14,7 @@ public enum DebugGameplayChannel
 {
     Standard,
     Demo,
+    Recording,
 }
 
 public readonly record struct DebugLaunchSelection(
@@ -46,6 +47,9 @@ public partial class DeveloperLauncherController : CanvasLayer
         _gameplayChannelOption.AddItem(
             "Demo 调试渠道（独立存档）",
             (int)DebugGameplayChannel.Demo);
+        _gameplayChannelOption.AddItem(
+            "Playtest 录屏模式（独立本地存档）",
+            (int)DebugGameplayChannel.Recording);
 
         _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
         _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
@@ -68,8 +72,17 @@ public partial class DeveloperLauncherController : CanvasLayer
     {
         var environment = (DebugRuntimeEnvironment)_environmentOption.GetSelectedId();
         var gameplayChannel = (DebugGameplayChannel)_gameplayChannelOption.GetSelectedId();
+        if (gameplayChannel == DebugGameplayChannel.Recording
+            && environment == DebugRuntimeEnvironment.SteamMock)
+        {
+            _environmentOption.Select(0);
+            environment = DebugRuntimeEnvironment.IntegratedDebug;
+        }
+        _environmentOption.Disabled = gameplayChannel == DebugGameplayChannel.Recording;
         _mockScenarioSection.Visible = environment == DebugRuntimeEnvironment.SteamMock;
-        _environmentHint.Text = gameplayChannel == DebugGameplayChannel.Demo
+        _environmentHint.Text = gameplayChannel == DebugGameplayChannel.Recording
+            ? "录屏模式使用 Playtest 录屏调度、独立本地存档和离线平台；到点后按导播键才显示盲盒气球。"
+            : gameplayChannel == DebugGameplayChannel.Demo
                                 && environment == DebugRuntimeEnvironment.SteamMock
             ? "Demo 调度将在 Steam Mock 独立内存沙箱中运行；退出进程即恢复，不写入任何真实存档或 Steam 服务。"
             : gameplayChannel == DebugGameplayChannel.Demo

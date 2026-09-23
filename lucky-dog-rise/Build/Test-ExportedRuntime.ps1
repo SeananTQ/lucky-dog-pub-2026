@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$ExecutablePath,
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
     [int]$RunSeconds = 30,
     [string]$DemoContentManifest = ''
 )
@@ -19,7 +19,10 @@ $isolatedLocalAppData = Join-Path $logDirectory ("localappdata-" + [Guid]::NewGu
 $diagnosticExportDirectory = Join-Path $logDirectory ("diagnostic-exports-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $isolatedAppData, $isolatedLocalAppData, $diagnosticExportDirectory | Out-Null
 
-$process = Start-Process -FilePath $executable.Path -ArgumentList @('--headless', '--', '--disable-steam', '--diagnostics-export-smoke') -WindowStyle Hidden -PassThru `
+$runtimeArguments = @('--headless', '--')
+if ($Channel -ne 'PlaytestRecording') { $runtimeArguments += '--disable-steam' }
+$runtimeArguments += '--diagnostics-export-smoke'
+$process = Start-Process -FilePath $executable.Path -ArgumentList $runtimeArguments -WindowStyle Hidden -PassThru `
     -Environment @{ APPDATA = $isolatedAppData; LOCALAPPDATA = $isolatedLocalAppData; LUCKYDOG_DIAGNOSTICS_SMOKE_DIR = $diagnosticExportDirectory; LUCKYDOG_DEMO_CONTENT_MANIFEST = $DemoContentManifest } `
     -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 try {
@@ -67,6 +70,15 @@ if ($Channel -eq 'Demo') {
     $expectedCapabilities = '[BuildCapabilities] Channel=Demo, BlindBoxes=True, CollectionEvents=True, LinkTree=True, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=False'
     if (!$output.Contains($expectedCapabilities, [StringComparison]::Ordinal)) {
         throw "Exported Demo did not report the expected capability profile. See $logDirectory"
+    }
+}
+if ($Channel -eq 'PlaytestRecording') {
+    $expectedCapabilities = '[BuildCapabilities] Channel=PlaytestRecording, BlindBoxes=True, CollectionEvents=False, LinkTree=False, SteamInventory=False, PlatformStatistics=False, Achievements=False, SteamCloud=False'
+    if (!$output.Contains($expectedCapabilities, [StringComparison]::Ordinal)) {
+        throw "Exported recording build did not report the expected offline capability profile. See $logDirectory"
+    }
+    if (!$output.Contains('Loaded account=recording:playtest', [StringComparison]::Ordinal)) {
+        throw "Exported recording build did not load its isolated local account. See $logDirectory"
     }
 }
 

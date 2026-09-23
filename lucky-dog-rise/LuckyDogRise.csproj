@@ -8,6 +8,7 @@
     <LUCKYDOG_BUILD_COMMIT Condition=" '$(LUCKYDOG_BUILD_COMMIT)' == '' ">dev</LUCKYDOG_BUILD_COMMIT>
     <LUCKYDOG_SAVE_HMAC_KEY Condition=" '$(LUCKYDOG_SAVE_HMAC_KEY)' == '' "></LUCKYDOG_SAVE_HMAC_KEY>
     <LUCKYDOG_PLAYTEST_EXPIRES_UTC Condition=" '$(LUCKYDOG_PLAYTEST_EXPIRES_UTC)' == '' "></LUCKYDOG_PLAYTEST_EXPIRES_UTC>
+    <LUCKYDOG_RECORDING_EXPIRES_UTC Condition=" '$(LUCKYDOG_RECORDING_EXPIRES_UTC)' == '' "></LUCKYDOG_RECORDING_EXPIRES_UTC>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Steamworks.NET">
@@ -17,6 +18,7 @@
     <AssemblyMetadata Include="BuildCommit" Value="$(LUCKYDOG_BUILD_COMMIT)" />
     <AssemblyMetadata Include="SaveHmacKey" Value="$(LUCKYDOG_SAVE_HMAC_KEY)" />
     <AssemblyMetadata Include="PlaytestExpiresUtc" Value="$(LUCKYDOG_PLAYTEST_EXPIRES_UTC)" />
+    <AssemblyMetadata Include="RecordingExpiresUtc" Value="$(LUCKYDOG_RECORDING_EXPIRES_UTC)" />
   </ItemGroup>
   <Target Name="ValidateSteamworksNetDependency" BeforeTargets="ResolveAssemblyReferences">
     <Error Condition="!Exists('$(SteamworksNetAssembly)')"

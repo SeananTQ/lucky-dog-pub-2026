@@ -24,6 +24,7 @@ internal static class BlindBoxRegressionSmoke
             GD.Print("[BlindBoxRegressionSmoke] Passed retired eyewear save cleanup checks.");
             VerifySequenceProgressMigrationAndOrdering(service);
             VerifyDemoScheduleAndNonRepeatingPools(service);
+            VerifyRecordingScheduleAndRewardOrder(service);
             VerifyDeveloperLauncherGameplayChannel();
             VerifyFallbackAdvanceAndLateReward(service);
             VerifyPreparedRewardInventoryVisibilityGrace();
@@ -66,6 +67,54 @@ internal static class BlindBoxRegressionSmoke
             "Restoring the developer launcher default did not reactivate the production schedule chain.");
     }
 
+    private static void VerifyRecordingScheduleAndRewardOrder(BlindBoxService service)
+    {
+        BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Recording);
+        BlindBoxService.ConfigureDebugScheduleChannel(DebugGameplayChannel.Recording);
+        try
+        {
+            Assert(BuildInfo.IsRecording && !BuildCapabilities.SteamInventory
+                   && !BuildCapabilities.SteamCloud && !BuildCapabilities.PlatformStatistics,
+                "Recording mode did not disable Steam-backed services.");
+            Assert(BlindBoxService.GetSequenceSchedules().Count == 0,
+                "Recording mode unexpectedly entered the normal first-run Schedule chain.");
+            var schedule = LubanData.Tables.TbBlindBoxSchedule.DataList.Single(row =>
+                row.IsEnabled && row.IsLoopTrack
+                && BlindBoxService.IsScheduleEnabledForCurrentChannel(row));
+            Assert(schedule.Id == 4001 && schedule.IntervalSeconds == 5,
+                "Recording mode did not select its five-second loop Schedule.");
+            var state = new BlindBoxRuntimeState();
+            service.MaintainPresentation(state);
+            Assert(state.LockedPresentation == null && state.NextLoopPresentationSeconds == 5,
+                "Recording bubble appeared before its configured interval.");
+            state.ScheduleSeconds = 5;
+            Assert(service.MaintainPresentation(state)
+                   && state.LockedPresentation?.BlindBoxId == 4002,
+                "Recording bubble was not locked at the configured interval.");
+            var box = LubanData.Tables.TbBlindBox.GetOrDefault(4002)
+                ?? throw new InvalidOperationException("Missing recording blind box.");
+            var queue = LubanData.Tables.TbBlindBoxItemWeight.DataList
+                .Where(row => row.IsEnabled && row.BlindBoxId == box.Id
+                              && row.RecordingRewardOrder > 0)
+                .OrderBy(row => row.RecordingRewardOrder)
+                .ToArray();
+            Assert(queue.Length == 15 && queue.Select(row => row.RecordingRewardOrder)
+                    .SequenceEqual(Enumerable.Range(1, 15)),
+                "Recording reward order is incomplete or duplicated.");
+            for (var index = 0; index <= queue.Length; index++)
+            {
+                state.RecordingRewardCursor = index;
+                Assert(service.RollRewardForTesting(box, state)?.Id == queue[index % queue.Length].ItemId,
+                    $"Recording reward cursor {index} returned the wrong item.");
+            }
+        }
+        finally
+        {
+            BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Standard);
+            BlindBoxService.ConfigureDebugScheduleChannel(DebugGameplayChannel.Standard);
+        }
+    }
+
     private static void VerifyDemoScheduleAndNonRepeatingPools(BlindBoxService service)
     {
         const int normalDemoBlindBoxId = 2002;
@@ -73,10 +122,10 @@ internal static class BlindBoxRegressionSmoke
         var schedules = BlindBoxService.GetSequenceSchedules(DataTables.EBuildChannelMask.Demo);
         Assert(schedules.Count == 15,
             "The Demo first-run sequence does not contain the configured 15 Schedules.");
-        Assert(schedules.Count(schedule => schedule.BlindBoxId == normalDemoBlindBoxId) == 12,
-            "The Demo sequence does not contain 12 normal blind-box presentations.");
-        Assert(schedules.Count(schedule => schedule.BlindBoxId == goodDemoBlindBoxId) == 3,
-            "The Demo sequence does not contain 3 good blind-box presentations.");
+        Assert(schedules.Count(schedule => schedule.BlindBoxId == normalDemoBlindBoxId) == 11,
+            "The Demo sequence does not contain 11 normal blind-box presentations.");
+        Assert(schedules.Count(schedule => schedule.BlindBoxId == goodDemoBlindBoxId) == 4,
+            "The Demo sequence does not contain 4 good blind-box presentations.");
         Assert(!LubanData.Tables.TbBlindBoxSchedule.DataList.Any(schedule =>
                 schedule.IsEnabled
                 && schedule.IsLoopTrack
@@ -100,8 +149,8 @@ internal static class BlindBoxRegressionSmoke
             .Select(entry => entry.ItemId)
             .Distinct()
             .ToList();
-        Assert(poolItemIds.Count == 12,
-            "The normal Demo blind box does not contain the configured 12-item collection.");
+        Assert(poolItemIds.Count == 11,
+            "The normal Demo blind box does not contain the configured 11-item collection.");
 
         var remainingItemId = poolItemIds[^1];
         var state = new BlindBoxRuntimeState

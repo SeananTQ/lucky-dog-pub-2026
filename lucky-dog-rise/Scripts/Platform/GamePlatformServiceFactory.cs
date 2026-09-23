@@ -18,6 +18,8 @@ public static class GamePlatformServiceFactory
 
     public static IGamePlatformService Create(DebugLaunchSelection selection)
     {
+        if (BuildInfo.IsRecording)
+            return CreateRecordingService();
         if (selection.Environment == DebugRuntimeEnvironment.SteamMock)
         {
             var offline = new OfflineGamePlatformService(
@@ -29,6 +31,8 @@ public static class GamePlatformServiceFactory
                 initialScenario: selection.SteamScenario);
         }
 #endif
+        if (BuildInfo.IsRecording)
+            return CreateRecordingService();
         if (OS.GetCmdlineUserArgs().Any(argument =>
                 string.Equals(argument, DisableSteamArgument, StringComparison.OrdinalIgnoreCase)))
         {
@@ -46,4 +50,8 @@ public static class GamePlatformServiceFactory
 #endif
         return service;
     }
+
+    private static IGamePlatformService CreateRecordingService() =>
+        new OfflineGamePlatformService("录屏模式使用独立本地存档，不连接 Steam。",
+            accountProvider: "recording", accountId: "playtest");
 }

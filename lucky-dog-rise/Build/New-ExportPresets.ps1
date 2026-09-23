@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateSet('Playtest', 'Demo', 'Release')] [string]$Channel,
+    [Parameter(Mandatory)] [ValidateSet('Playtest', 'PlaytestRecording', 'Demo', 'Release')] [string]$Channel,
     [Parameter(Mandatory)] [string]$TemplatePath,
     [Parameter(Mandatory)] [string]$ExportPath,
     [Parameter(Mandatory)] [string]$Version,
@@ -12,10 +12,11 @@ $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 if ($ProjectDirectory) { $projectRoot = Resolve-Path -LiteralPath $ProjectDirectory }
 $feature = switch ($Channel) {
     'Playtest' { 'lucky_playtest' }
+    'PlaytestRecording' { 'lucky_playtest_recording' }
     'Demo' { 'lucky_demo' }
     default { 'lucky_release' }
 }
-$productName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } else { 'Lucky Dog Rise' }
+$productName = if ($Channel -eq 'Demo') { 'Lucky Dog Rise Demo' } elseif ($Channel -eq 'PlaytestRecording') { 'Lucky Dog Rise Playtest Recording' } else { 'Lucky Dog Rise' }
 $presetName = "Windows $Channel"
 $escapedTemplate = $TemplatePath.Replace('\', '/')
 $escapedExport = $ExportPath.Replace('\', '/')

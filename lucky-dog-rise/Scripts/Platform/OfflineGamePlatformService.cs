@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace LuckyDogRise;
 
 using System;
@@ -10,16 +12,19 @@ public sealed class OfflineGamePlatformService : IGamePlatformService
 {
     private const string StorageTestAccountPrefix = "--storage-test-account=";
     private readonly string _accountId;
+    private readonly string _accountProvider;
     public event Action UserStatsReady
     {
         add { }
         remove { }
     }
 
-    public OfflineGamePlatformService(string statusMessage)
+    public OfflineGamePlatformService(string statusMessage,
+        string? accountProvider = null, string? accountId = null)
     {
         StatusMessage = statusMessage;
-        _accountId = ResolveDevelopmentAccountId();
+        _accountId = accountId ?? ResolveDevelopmentAccountId();
+        _accountProvider = accountProvider ?? (_accountId.Length > 0 ? "dev" : string.Empty);
     }
 
     public string ProviderName => "Offline";
@@ -27,7 +32,7 @@ public sealed class OfflineGamePlatformService : IGamePlatformService
     public bool IsAvailable => false;
     public uint AppId => 0;
     public string PersonaName => string.Empty;
-    public string AccountProvider => _accountId.Length > 0 ? "dev" : string.Empty;
+    public string AccountProvider => _accountProvider;
     public string AccountId => _accountId;
 
     public void RunCallbacks()

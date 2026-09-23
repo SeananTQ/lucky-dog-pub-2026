@@ -11,6 +11,7 @@ public enum BuildChannel
 {
     Dev,
     Playtest,
+    PlaytestRecording,
     Demo,
     Release,
 }
@@ -18,6 +19,7 @@ public enum BuildChannel
 public static class BuildInfo
 {
     private const string PlaytestFeature = "lucky_playtest";
+    private const string PlaytestRecordingFeature = "lucky_playtest_recording";
     private const string DemoFeature = "lucky_demo";
     private const string ReleaseFeature = "lucky_release";
     public const uint PlaytestSteamAppId = 4972240;
@@ -31,6 +33,8 @@ public static class BuildInfo
 #if DEBUG
             return BuildChannel.Dev;
 #else
+            if (OS.HasFeature(PlaytestRecordingFeature))
+                return BuildChannel.PlaytestRecording;
             if (OS.HasFeature(PlaytestFeature))
                 return BuildChannel.Playtest;
             return OS.HasFeature(DemoFeature) ? BuildChannel.Demo : BuildChannel.Release;
@@ -42,6 +46,7 @@ public static class BuildInfo
     public static DebugGameplayChannel SelectedDebugGameplayChannel { get; private set; } =
         DebugGameplayChannel.Standard;
     public static bool IsDebugDemo => SelectedDebugGameplayChannel == DebugGameplayChannel.Demo;
+    public static bool IsDebugRecording => SelectedDebugGameplayChannel == DebugGameplayChannel.Recording;
 
     public static void ConfigureDebugGameplayChannel(DebugGameplayChannel channel)
     {
@@ -57,10 +62,22 @@ public static class BuildInfo
 #endif
 
     public static string BuildCommit { get; } = ReadAssemblyMetadata("BuildCommit", "unknown");
+    public static bool IsRecording
+    {
+        get
+        {
+#if DEBUG
+            if (IsDebugRecording)
+                return true;
+#endif
+            return Channel == BuildChannel.PlaytestRecording;
+        }
+    }
     public static string ValidationError { get; private set; } = string.Empty;
     public static uint ExpectedSteamAppId => Channel switch
     {
         BuildChannel.Playtest => PlaytestSteamAppId,
+        BuildChannel.PlaytestRecording => 0,
         BuildChannel.Demo => DemoSteamAppId,
         BuildChannel.Release => ReleaseSteamAppId,
         _ => 0,
@@ -74,6 +91,7 @@ public static class BuildInfo
         var currentChannelMask = Channel switch
         {
             BuildChannel.Playtest => EBuildChannelMask.Playtest,
+            BuildChannel.PlaytestRecording => EBuildChannelMask.PlaytestRecording,
             BuildChannel.Demo => EBuildChannelMask.Demo,
             BuildChannel.Release => EBuildChannelMask.Release,
             _ => (EBuildChannelMask)0,
@@ -97,9 +115,11 @@ public static class BuildInfo
         return true;
 #else
         var playtest = OS.HasFeature(PlaytestFeature);
+        var recording = OS.HasFeature(PlaytestRecordingFeature);
         var demo = OS.HasFeature(DemoFeature);
         var release = OS.HasFeature(ReleaseFeature);
-        if ((Convert.ToInt32(playtest) + Convert.ToInt32(demo) + Convert.ToInt32(release) != 1)
+        if ((Convert.ToInt32(playtest) + Convert.ToInt32(recording)
+             + Convert.ToInt32(demo) + Convert.ToInt32(release) != 1)
             || !TryGetSaveHmacKey(out _))
         {
             ValidationError = "This build is missing a valid channel tag or save key.";
@@ -108,6 +128,8 @@ public static class BuildInfo
         }
 
         if (playtest && !ValidatePlaytestExpiry())
+            return false;
+        if (recording && !ValidateRecordingExpiry())
             return false;
 
         ValidationError = string.Empty;
@@ -135,6 +157,22 @@ public static class BuildInfo
 
         ValidationError = "This Playtest build expired on September 25, 2026. Please request a newer build.";
         GD.PushError($"[Build] {ValidationError}");
+        return false;
+    }
+
+    private static bool ValidateRecordingExpiry()
+    {
+        var rawExpiry = ReadAssemblyMetadata("RecordingExpiresUtc", string.Empty);
+        if (!DateTimeOffset.TryParse(rawExpiry, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var expiresAt))
+        {
+            ValidationError = "This recording build has no valid expiration date.";
+            return false;
+        }
+        if (DateTimeOffset.UtcNow < expiresAt)
+            return true;
+        ValidationError = $"This recording build expired on {expiresAt:yyyy-MM-dd}.";
         return false;
     }
 #endif
@@ -189,11 +227,11 @@ public static class BuildCapabilities
 
     public static bool BlindBoxes => true;
     public static bool CollectionEvents => IsDemoRuntime;
-    public static bool LinkTree => true;
+    public static bool LinkTree => !BuildInfo.IsRecording;
     public static bool LocalLinkTreeRewards => IsDemoRuntime;
-    public static bool SteamInventory => !IsDemoRuntime;
-    public static bool PlatformStatistics => !IsDemoRuntime;
-    public static bool Achievements => !IsDemoRuntime;
+    public static bool SteamInventory => !IsDemoRuntime && !BuildInfo.IsRecording;
+    public static bool PlatformStatistics => !IsDemoRuntime && !BuildInfo.IsRecording;
+    public static bool Achievements => !IsDemoRuntime && !BuildInfo.IsRecording;
     // Demo progress is local-only, including consumables and outfit presets.
-    public static bool SteamCloud => !IsDemoRuntime;
+    public static bool SteamCloud => !IsDemoRuntime && !BuildInfo.IsRecording;
 }

@@ -157,6 +157,8 @@ public sealed class BlindBoxRuntimeState
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool SequenceProgressInitialized { get; set; }
     public int SequenceIndex { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int RecordingRewardCursor { get; set; }
     /// <summary>
     /// 盲盒专用的连续调度时钟。它按真实帧时间持续累积，但流速由等待时间倍率控制；
     /// 与真实的 TotalPlaySeconds 分离，避免倍率变化导致时间轴跳变。
@@ -648,8 +650,13 @@ public sealed class BlindBoxService
             return null;
         }
 
+        var result = CreateOpenResult(totalPlaySeconds, schedule, box, item, price.ActualCost);
+        if (result == null)
+            return null;
         _gameData.ModifyChips(-price.ActualCost, PlayerProgressSource.BlindBox);
-        return CreateOpenResult(totalPlaySeconds, schedule, box, item, price.ActualCost);
+        if (box.RewardSelectionMode == ERewardSelectionMode.RecordingSequence)
+            runtimeState.RecordingRewardCursor++;
+        return result;
     }
 
     public bool TryGetNextAvailable(
@@ -884,6 +891,8 @@ public sealed class BlindBoxService
             .Where(schedule => IsScheduleEnabledForChannel(schedule, channelMask)
                                && !schedule.IsLoopTrack)
             .ToList();
+        if (channelMask == EBuildChannelMask.PlaytestRecording && enabled.Count == 0)
+            return [];
         if (TryBuildSequenceChain(enabled, out var chain, out var failure))
             return chain;
 
@@ -901,6 +910,7 @@ public sealed class BlindBoxService
         return BuildInfo.Channel switch
         {
             BuildChannel.Playtest => EBuildChannelMask.Playtest,
+            BuildChannel.PlaytestRecording => EBuildChannelMask.PlaytestRecording,
             BuildChannel.Demo => EBuildChannelMask.Demo,
             BuildChannel.Release => EBuildChannelMask.Release,
             _ => (EBuildChannelMask)0,
@@ -914,6 +924,7 @@ public sealed class BlindBoxService
         _debugScheduleChannelMask = channel switch
         {
             DebugGameplayChannel.Demo => EBuildChannelMask.Demo,
+            DebugGameplayChannel.Recording => EBuildChannelMask.PlaytestRecording,
             _ => EBuildChannelMask.Release,
         };
         GD.Print($"[BlindBox] Debug schedule channel: {_debugScheduleChannelMask}.");
@@ -1160,6 +1171,7 @@ public sealed class BlindBoxService
                      EBuildChannelMask.Playtest,
                      EBuildChannelMask.Demo,
                      EBuildChannelMask.Release,
+                     EBuildChannelMask.PlaytestRecording,
                  })
         {
             var channelSchedules = enabledSchedules
@@ -1168,7 +1180,8 @@ public sealed class BlindBoxService
             var channelSequence = channelSchedules
                 .Where(schedule => !schedule.IsLoopTrack)
                 .ToList();
-            if (!TryBuildSequenceChain(channelSequence, out _, out var sequenceFailure))
+            if (!(channelMask == EBuildChannelMask.PlaytestRecording && channelSequence.Count == 0)
+                && !TryBuildSequenceChain(channelSequence, out _, out var sequenceFailure))
                 GD.PushError($"[BlindBox] Invalid {channelMask} first-run reward sequence: {sequenceFailure}.");
 
             var expectedLoopCount = channelMask == EBuildChannelMask.Demo ? 0 : 1;
@@ -1181,7 +1194,8 @@ public sealed class BlindBoxService
             }
         }
 
-        var allowedBoxChannels = EBuildChannelMask.Playtest | EBuildChannelMask.Demo | EBuildChannelMask.Release;
+        var allowedBoxChannels = EBuildChannelMask.Playtest | EBuildChannelMask.Demo
+                                 | EBuildChannelMask.Release | EBuildChannelMask.PlaytestRecording;
         foreach (var box in LubanData.Tables.TbBlindBox.DataList)
         {
             if ((box.BuildChannelMask & ~allowedBoxChannels) != 0
@@ -1305,6 +1319,21 @@ public sealed class BlindBoxService
             var rates = LubanData.Tables.TbBlindBoxRarityRate.DataList
                 .Where(rate => rate.IsEnabled && rate.BlindBoxId == box.Id && rate.Weight > 0)
                 .ToList();
+            if (box.RewardSelectionMode == ERewardSelectionMode.RecordingSequence)
+            {
+                var queue = GetRecordingRewardRows(box);
+                if (queue.Count == 0 || queue.Select(entry => entry.RecordingRewardOrder).Distinct().Count() != queue.Count)
+                    GD.PushError($"[BlindBox] Recording box {box.Id} needs unique positive reward orders.");
+                foreach (var entry in queue)
+                {
+                    var item = LubanData.Tables.TbItem.GetOrDefault(entry.ItemId);
+                    if (item == null || item.AcquisitionType != GetExpectedAcquisitionType(box.BoxType)
+                        || !LubanData.Tables.TbBlindBoxRevealPath.DataList.Any(path =>
+                            path.IsEnabled && path.ActualRarity == item.ItemRarity && path.Weight > 0))
+                        GD.PushError($"[BlindBox] Recording reward {entry.Id} has no valid item or reveal path.");
+                }
+                continue;
+            }
             if (rates.Count == 0)
             {
                 GD.PushError($"[BlindBox] Box {box.Id} has no enabled rarity rates.");
@@ -1427,6 +1456,12 @@ public sealed class BlindBoxService
 
     private Item? RollReward(BlindBox box, BlindBoxRuntimeState runtimeState)
     {
+        if (box.RewardSelectionMode == ERewardSelectionMode.RecordingSequence)
+        {
+            var queue = GetRecordingRewardRows(box);
+            return queue.Count == 0 ? null : LubanData.Tables.TbItem.GetOrDefault(
+                queue[Math.Max(0, runtimeState.RecordingRewardCursor) % queue.Count].ItemId);
+        }
         if (box.RewardSelectionMode == ERewardSelectionMode.ExcludeDrawnInThisBox)
             return RollRewardExcludingDrawnItems(box, runtimeState);
 
@@ -1437,6 +1472,13 @@ public sealed class BlindBoxService
         var candidates = GetRewardCandidates(box, rarity.Value);
         return PickWeighted(candidates, entry => entry.Weight).Item;
     }
+
+    private static List<BlindBoxItemWeight> GetRecordingRewardRows(BlindBox box) =>
+        LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(entry => entry.IsEnabled && entry.BlindBoxId == box.Id
+                            && entry.RecordingRewardOrder > 0)
+            .OrderBy(entry => entry.RecordingRewardOrder)
+            .ToList();
 
 #if DEBUG
     internal BlindBoxService(int testSeed)
