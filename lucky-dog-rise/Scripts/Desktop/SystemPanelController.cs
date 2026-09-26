@@ -515,10 +515,10 @@ public partial class SystemPanelController : CanvasLayer
         _saveDataModeOption = GetNode<OptionButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/SaveDataModeRow/SaveDataModeOption");
         _saveDataModeOption.AddItem("调试全道具", (int)SettingsManager.SaveDataMode.DebugAllItems);
         _saveDataModeOption.AddItem("本地存档", (int)SettingsManager.SaveDataMode.LocalSave);
-        _saveDataModeOption.Select(BuildInfo.IsDebugDemo
+        _saveDataModeOption.Select(BuildInfo.IsDebugDemo || BuildInfo.IsRecording
             ? (int)SettingsManager.SaveDataMode.LocalSave
             : (int)SettingsManager.LoadSaveDataMode());
-        _saveDataModeOption.Disabled = BuildInfo.IsDebugDemo;
+        _saveDataModeOption.Disabled = BuildInfo.IsDebugDemo || BuildInfo.IsRecording;
 #endif
 
         RefreshAudioControlsFromStorage();
@@ -670,6 +670,8 @@ public partial class SystemPanelController : CanvasLayer
             RefreshDebugPlayTime();
         };
         steamMockPanelToggle.SetPressedNoSignal(false);
+        steamMockPanelToggle.GetParent<Control>().Visible = !BuildInfo.IsRecording;
+        _showDeveloperLauncherNextStartupToggle.GetParent<Control>().Visible = !BuildInfo.IsRecording;
         steamMockPanelToggle.Toggled += visible =>
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
@@ -775,8 +777,8 @@ public partial class SystemPanelController : CanvasLayer
     public void SetSteamMockActive(bool active)
     {
         _steamMockActive = active;
-        _saveDataModeOption.Disabled = active || BuildInfo.IsDebugDemo;
-        _saveDataModeOption.Select(active || BuildInfo.IsDebugDemo
+        _saveDataModeOption.Disabled = active || BuildInfo.IsDebugDemo || BuildInfo.IsRecording;
+        _saveDataModeOption.Select(active || BuildInfo.IsDebugDemo || BuildInfo.IsRecording
             ? (int)SettingsManager.SaveDataMode.LocalSave
             : (int)SettingsManager.LoadSaveDataMode());
         foreach (var entry in _linkTreeRewardEntries)
@@ -3898,7 +3900,7 @@ public partial class SystemPanelController : CanvasLayer
         BuildLanguageOptions();
         BuildDisplayOptions();
 #if DEBUG
-        _saveDataModeOption.Select(BuildInfo.IsDebugDemo
+        _saveDataModeOption.Select(BuildInfo.IsDebugDemo || BuildInfo.IsRecording
             ? (int)SettingsManager.SaveDataMode.LocalSave
             : (int)SettingsManager.LoadSaveDataMode());
         _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(

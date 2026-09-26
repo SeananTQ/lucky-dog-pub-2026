@@ -119,6 +119,7 @@ $oldSaveKey = $env:LUCKYDOG_SAVE_HMAC_KEY
 $oldCommit = $env:LUCKYDOG_BUILD_COMMIT
 $oldPlaytestExpiry = $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC
 $oldRecordingExpiry = $env:LUCKYDOG_RECORDING_EXPIRES_UTC
+$oldRecordingDebug = $env:LUCKYDOG_RECORDING_DEBUG
 $hadExportPreset = Test-Path -LiteralPath $exportPresetPath
 New-Item -ItemType Directory -Force -Path $presetBackupRoot | Out-Null
 if ($hadExportPreset) {
@@ -136,6 +137,8 @@ try {
     $env:LUCKYDOG_BUILD_COMMIT = $commit
     $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
     $env:LUCKYDOG_RECORDING_EXPIRES_UTC = $recordingExpiryUtc
+    # Keep the encrypted release engine template, while compiling the recording game's Debug tools.
+    $env:LUCKYDOG_RECORDING_DEBUG = if ($Channel -eq 'PlaytestRecording') { 'true' } else { '' }
     try {
         if ($Channel -eq 'Demo') {
             # A cache-free C# project needs its editor assembly before scene import.
@@ -174,6 +177,7 @@ try {
         $env:LUCKYDOG_BUILD_COMMIT = $oldCommit
         $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = $oldPlaytestExpiry
         $env:LUCKYDOG_RECORDING_EXPIRES_UTC = $oldRecordingExpiry
+        $env:LUCKYDOG_RECORDING_DEBUG = $oldRecordingDebug
     }
 }
 finally {

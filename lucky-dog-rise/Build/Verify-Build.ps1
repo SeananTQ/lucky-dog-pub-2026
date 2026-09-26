@@ -44,10 +44,13 @@ if (($versionInfo.CompanyName -ne 'Seanan Studio') -or
 $bytes = [System.IO.File]::ReadAllBytes($gameAssembly.FullName)
 $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
 foreach ($debugSymbol in 'RandomAcquireItemRequested', 'DebugGrantChipsRequested', 'ResetToDebugAllItems') {
-    if ($ascii.Contains($debugSymbol)) { throw "Debug symbol remains in release assembly: $debugSymbol" }
+    if ($Channel -eq 'PlaytestRecording') {
+        if (!$ascii.Contains($debugSymbol)) { throw "Recording Debug tools are missing: $debugSymbol" }
+    }
+    elseif ($ascii.Contains($debugSymbol)) { throw "Debug symbol remains in release assembly: $debugSymbol" }
 }
 foreach ($developerAllowlistSymbol in 'DeveloperSteamAccountAllowlist', 'steam-account-allowlist.json') {
-    if ($ascii.Contains($developerAllowlistSymbol)) {
+    if ($Channel -ne 'PlaytestRecording' -and $ascii.Contains($developerAllowlistSymbol)) {
         throw "Developer Steam account allowlist symbol remains in release assembly: $developerAllowlistSymbol"
     }
 }
@@ -73,7 +76,7 @@ $report = @"
 - Recording expiry UTC: $RecordingExpiresUtc
 - Architecture: Windows x86_64
 - PDB present: no
-- Debug entry symbols present: no
+- Debug entry symbols present: $($Channel -eq 'PlaytestRecording')
 - PCK encryption expected: yes
 - PCK directory encryption expected: yes
 - C# assembly obfuscated: yes

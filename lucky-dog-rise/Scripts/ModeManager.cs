@@ -290,7 +290,8 @@ public partial class ModeManager : Control
             || string.Equals(argument, SingleInstanceSmokeArgument, StringComparison.OrdinalIgnoreCase)
             || string.Equals(argument, "--identity-unavailable-smoke", StringComparison.OrdinalIgnoreCase));
         var launcherRequestedBySetting = SettingsManager.LoadShowDeveloperLauncherOnStartup();
-        if (!automatedSmoke && (forceLauncher || launcherRequestedBySetting))
+        if (BuildInfo.Channel != BuildChannel.PlaytestRecording
+            && !automatedSmoke && (forceLauncher || launcherRequestedBySetting))
         {
             ShowDeveloperLauncher();
             return;
@@ -298,7 +299,9 @@ public partial class ModeManager : Control
 
         ContinueStartup(new DebugLaunchSelection(
             DebugRuntimeEnvironment.IntegratedDebug,
-            DebugSteamScenario.NormalSuccess));
+            DebugSteamScenario.NormalSuccess,
+            BuildInfo.Channel == BuildChannel.PlaytestRecording
+                ? DebugGameplayChannel.Recording : DebugGameplayChannel.Standard));
 #else
         ContinueStartup();
 #endif
@@ -649,7 +652,6 @@ public partial class ModeManager : Control
         _globalInputTracker.GlobalMousePressed += OnGlobalMousePressed;
         _globalInputTracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
         _globalInputTracker.GlobalEscapeKeyPressed += OnGlobalEscapeKeyPressed;
-        _globalInputTracker.GlobalRecordingHotkeyPressed += OnGlobalRecordingHotkeyPressed;
         AddChild(_globalInputTracker);
 
         _startupPlatformWaitRemaining = StartupPlatformWaitSeconds;
@@ -1358,6 +1360,10 @@ public partial class ModeManager : Control
         {
             VerifyDemoContentSmoke();
             await VerifyChipRewardSmoke();
+#if DEBUG
+            if (BuildInfo.Channel == BuildChannel.PlaytestRecording)
+                await VerifyRecordingDebugSmoke();
+#endif
             var path = DiagnosticLog.ExportPackage(_gameData, _platformService, exportDirectory);
             GD.Print($"[DiagnosticsSmoke] Export passed: {path}");
             GetTree().Quit();
@@ -1368,6 +1374,57 @@ public partial class ModeManager : Control
             GetTree().Quit(3);
         }
     }
+
+#if DEBUG
+    private async System.Threading.Tasks.Task VerifyRecordingDebugSmoke()
+    {
+        var debugTab = _settingsPanel.GetNodeOrNull<Button>("Panel/RootVBox/TitleRow/DebugTab");
+        var debugContent = _settingsPanel.GetNodeOrNull<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
+        if (debugTab == null || !debugTab.Visible || debugContent == null)
+            throw new InvalidOperationException("Recording Debug tab was stripped or hidden.");
+        debugTab.EmitSignal(BaseButton.SignalName.Pressed);
+        if (!debugContent.Visible)
+            throw new InvalidOperationException("Recording Debug tab did not open its content.");
+        if (!_gameData.IsUsingLocalSave || _platformService.AccountProvider != "recording"
+            || BlindBoxService.GetCurrentScheduleChannelMask() != EBuildChannelMask.PlaytestRecording)
+            throw new InvalidOperationException("Recording Debug package lost its local storage or schedule channel.");
+
+        // The diagnostics path stops before window/hook setup; exercise the same _Input entry
+        // used by focused-window function keys, against the instantiated exported UI.
+        var previousStartupState = _startupState;
+        _startupInitialized = true;
+        _startupState = StartupState.Interactive;
+        try
+        {
+            _Input(new InputEventKey { Keycode = Key.F2, Pressed = true });
+            if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.AllCatalog))
+                throw new InvalidOperationException("Recording F2 input did not randomize catalog equipment.");
+            _Input(new InputEventKey { Keycode = Key.F3, Pressed = true });
+            if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.Owned))
+                throw new InvalidOperationException("Recording F3 input did not randomize owned equipment.");
+
+            var hint = _gameData.GetBlindBoxHintState();
+            if (hint.Status is not (BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
+                || _recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A > 0.01f)
+                throw new InvalidOperationException("Recording bubble did not remain hidden after its deadline.");
+            _Input(new InputEventKey { Keycode = Key.F4, Pressed = true });
+            await ToSignal(GetTree().CreateTimer(0.25), SceneTreeTimer.SignalName.Timeout);
+            if (!_recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A < 0.99f)
+                throw new InvalidOperationException("Recording F4 input did not animate the bubble into view.");
+
+            var itemCount = _gameData.Inventory.GetOwnedItemCounts().Values.Sum();
+            _Input(new InputEventKey { Keycode = Key.F5, Pressed = true });
+            if (_gameData.Inventory.GetOwnedItemCounts().Values.Sum() != itemCount + 1)
+                throw new InvalidOperationException("Recording F5 input did not grant exactly one item.");
+            GD.Print("[RecordingDebugSmoke] Debug tab, F2/F3 equipment, hidden deadline, F4 animation and F5 grant passed.");
+        }
+        finally
+        {
+            _startupInitialized = false;
+            _startupState = previousStartupState;
+        }
+    }
+#endif
 
     private async System.Threading.Tasks.Task VerifyChipRewardSmoke()
     {
@@ -2840,13 +2897,13 @@ public partial class ModeManager : Control
             + DisplayServer.ScreenGetPosition(DisplayServer.GetPrimaryScreen());
     }
 
-    private void OnGlobalRecordingHotkeyPressed(int virtualKeyCode)
+    private void HandleRecordingHotkey(Key key)
     {
         if (!BuildInfo.IsRecording || !_startupInitialized
             || _startupState < StartupState.IntroPlaying || _gameData == null)
             return;
 
-        if (virtualKeyCode == 0x73)
+        if (key == Key.F4)
         {
             var state = _gameData.GetBlindBoxHintState();
             if (!_recordingBubbleRevealed
@@ -2857,7 +2914,7 @@ public partial class ModeManager : Control
                 RefreshBossBlindBoxHint();
             }
         }
-        else if (virtualKeyCode == 0x74)
+        else if (key == Key.F5)
         {
             GrantRandomUnownedItem();
         }
@@ -3795,19 +3852,17 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
-        if (BuildInfo.IsRecording && @event is InputEventKey
+        if (BuildInfo.IsRecording && !_settingsPanel.IsOpen && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F4 })
         {
-            if (!_globalInputTracker.IsKeyboardHookInstalled)
-                OnGlobalRecordingHotkeyPressed(0x73);
+            HandleRecordingHotkey(Key.F4);
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (BuildInfo.IsRecording && @event is InputEventKey
+        if (BuildInfo.IsRecording && !_settingsPanel.IsOpen && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F5 })
         {
-            if (!_globalInputTracker.IsKeyboardHookInstalled)
-                OnGlobalRecordingHotkeyPressed(0x74);
+            HandleRecordingHotkey(Key.F5);
             GetViewport().SetInputAsHandled();
             return;
         }

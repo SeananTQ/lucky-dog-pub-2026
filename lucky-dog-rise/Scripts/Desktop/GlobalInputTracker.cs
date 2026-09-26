@@ -12,7 +12,6 @@ public partial class GlobalInputTracker : Node
     [Signal] public delegate void GlobalMousePressedEventHandler(Vector2I screenPosition);
     [Signal] public delegate void GlobalWinKeyPressedEventHandler();
     [Signal] public delegate void GlobalEscapeKeyPressedEventHandler();
-    [Signal] public delegate void GlobalRecordingHotkeyPressedEventHandler(int virtualKeyCode);
 
     public GameData GameData { get; set; } = null!;
 
@@ -24,7 +23,6 @@ public partial class GlobalInputTracker : Node
     private readonly bool[] _keysDown = new bool[256];
 
     private LowLevelKeyboardProc _kbCallback;
-    public bool IsKeyboardHookInstalled => _kbHook != IntPtr.Zero;
 
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
@@ -150,8 +148,6 @@ public partial class GlobalInputTracker : Node
                     EmitSignal(SignalName.GlobalWinKeyPressed);
                 else if (vkCode == VK_ESCAPE)
                     EmitSignal(SignalName.GlobalEscapeKeyPressed);
-                else if (BuildInfo.IsRecording && vkCode is VK_F4 or VK_F5)
-                    EmitSignal(SignalName.GlobalRecordingHotkeyPressed, vkCode);
                 if (!IsDebugPresentationHotkey(vkCode) && !IsHardwareFunctionKey(vkCode))
                     Interlocked.Increment(ref _pendingPresses);
             }

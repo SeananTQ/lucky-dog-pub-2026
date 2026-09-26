@@ -2990,7 +2990,7 @@ public partial class GameData : Node
 #if !DEBUG
         mode = SettingsManager.SaveDataMode.LocalSave;
 #else
-        if (BuildInfo.IsDebugDemo)
+        if (BuildInfo.IsDebugDemo || BuildInfo.IsRecording)
         {
             mode = SettingsManager.SaveDataMode.LocalSave;
         }

@@ -30,7 +30,9 @@ public static class BuildInfo
     {
         get
         {
-#if DEBUG
+#if RECORDING_BUILD
+            return BuildChannel.PlaytestRecording;
+#elif DEBUG
             return BuildChannel.Dev;
 #else
             if (OS.HasFeature(PlaytestRecordingFeature))
@@ -110,7 +112,7 @@ public static class BuildInfo
 
     public static bool ValidateCurrentBuild()
     {
-#if DEBUG
+#if DEBUG && !RECORDING_BUILD
         ValidationError = string.Empty;
         return true;
 #else
@@ -118,6 +120,13 @@ public static class BuildInfo
         var recording = OS.HasFeature(PlaytestRecordingFeature);
         var demo = OS.HasFeature(DemoFeature);
         var release = OS.HasFeature(ReleaseFeature);
+#if RECORDING_BUILD
+        if (!recording)
+        {
+            ValidationError = "Recording debug code requires the recording channel tag.";
+            return false;
+        }
+#endif
         if ((Convert.ToInt32(playtest) + Convert.ToInt32(recording)
              + Convert.ToInt32(demo) + Convert.ToInt32(release) != 1)
             || !TryGetSaveHmacKey(out _))
@@ -137,7 +146,7 @@ public static class BuildInfo
 #endif
     }
 
-#if !DEBUG
+#if !DEBUG || RECORDING_BUILD
     private static bool ValidatePlaytestExpiry()
     {
         var rawExpiry = ReadAssemblyMetadata("PlaytestExpiresUtc", string.Empty);
@@ -179,7 +188,7 @@ public static class BuildInfo
 
     internal static bool TryGetSaveHmacKey(out byte[] key)
     {
-#if DEBUG
+#if DEBUG && !RECORDING_BUILD
         key = Convert.FromHexString("55B20C7B4E336E69F563BC01EA16CE2ABFAE4304534D7698C64D3F87681A2B44");
         return true;
 #else

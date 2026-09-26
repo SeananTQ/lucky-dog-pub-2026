@@ -80,6 +80,9 @@ if ($Channel -eq 'PlaytestRecording') {
     if (!$output.Contains('Loaded account=recording:playtest', [StringComparison]::Ordinal)) {
         throw "Exported recording build did not load its isolated local account. See $logDirectory"
     }
+    if (!$output.Contains('[RecordingDebugSmoke] Debug tab, F2/F3 equipment, hidden deadline, F4 animation and F5 grant passed.', [StringComparison]::Ordinal)) {
+        throw "Exported recording Debug tab and function-key regression did not pass. See $logDirectory"
+    }
 }
 
 $diagnosticPackages = @(Get-ChildItem -LiteralPath $diagnosticExportDirectory -Filter 'LDR_Diagnostics_*.zip')

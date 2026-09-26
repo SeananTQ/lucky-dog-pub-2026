@@ -10,6 +10,9 @@
     <LUCKYDOG_PLAYTEST_EXPIRES_UTC Condition=" '$(LUCKYDOG_PLAYTEST_EXPIRES_UTC)' == '' "></LUCKYDOG_PLAYTEST_EXPIRES_UTC>
     <LUCKYDOG_RECORDING_EXPIRES_UTC Condition=" '$(LUCKYDOG_RECORDING_EXPIRES_UTC)' == '' "></LUCKYDOG_RECORDING_EXPIRES_UTC>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(LUCKYDOG_RECORDING_DEBUG)' == 'true' And '$(Configuration)' == 'ExportRelease' ">
+    <DefineConstants>$(DefineConstants);DEBUG;RECORDING_BUILD</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Steamworks.NET">
       <HintPath>$(SteamworksNetAssembly)</HintPath>

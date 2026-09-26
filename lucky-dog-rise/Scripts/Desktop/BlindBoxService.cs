@@ -902,6 +902,8 @@ public sealed class BlindBoxService
 
     internal static EBuildChannelMask GetCurrentScheduleChannelMask()
     {
+        if (BuildInfo.Channel == BuildChannel.PlaytestRecording)
+            return EBuildChannelMask.PlaytestRecording;
 #if DEBUG
         if (OS.GetCmdlineUserArgs().Contains("--demo-blind-boxes"))
             return EBuildChannelMask.Demo;
