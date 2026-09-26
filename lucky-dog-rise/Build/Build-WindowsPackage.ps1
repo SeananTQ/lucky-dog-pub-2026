@@ -52,10 +52,23 @@ function Invoke-GodotBuildStep([string]$Step, [string[]]$Arguments) {
     New-Item -ItemType Directory -Force -Path $logs | Out-Null
     $stdout = Join-Path $logs "$($Channel.ToLowerInvariant())-$Step.stdout.log"
     $stderr = Join-Path $logs "$($Channel.ToLowerInvariant())-$Step.stderr.log"
-    $process = Start-Process -FilePath $GodotEditor -ArgumentList $Arguments -WindowStyle Hidden -PassThru -Wait `
+    $process = Start-Process -FilePath $GodotEditor -ArgumentList $Arguments -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-    Write-Host "[Build] Godot $Step exit code: $($process.ExitCode). Logs: $logs"
-    if ($process.ExitCode -ne 0) { throw "Godot $Step failed. See $stderr" }
+    try {
+        # Start-Process -Wait also waits for descendants on Windows. MSBuild/compiler
+        # servers can outlive Godot, leaving a completed export stuck before cleanup.
+        $null = $process.Handle
+        if (!$process.WaitForExit(15 * 60 * 1000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Godot $Step timed out after 15 minutes. See $stdout and $stderr"
+        }
+        $exitCode = $process.ExitCode
+    }
+    finally {
+        $process.Dispose()
+    }
+    Write-Host "[Build] Godot $Step exit code: $exitCode. Logs: $logs"
+    if ($exitCode -ne 0) { throw "Godot $Step failed. See $stderr" }
     # Godot may return zero even when resources failed to import or instantiate.
     $errors = @(Select-String -LiteralPath $stdout, $stderr -Pattern '^\s*(ERROR:|SCRIPT ERROR:|.*\berror (CS|MSB|NU)\d+:)')
     # Headless renderer cleanup after export; not a missing texture/import failure.

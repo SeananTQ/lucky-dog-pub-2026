@@ -1312,6 +1312,12 @@ theme_override_font_sizes/font_size = 14
 text = "将当前存档标记为扑克新手"
 tooltip_text = "立即写入当前帐号存档并开启教程显示；重启后按真实扑克新手流程运行。"
 
+[node name="OpenSaveParentFolderBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "打开存档上级文件夹"
+tooltip_text = "打开当前运行实例的存档渠道目录（例如 accounts/recording），其中包含各账号的存档文件夹。"
+
 [node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=240889279]
 layout_mode = 2
 theme_type_variation = &"DestructiveButton"

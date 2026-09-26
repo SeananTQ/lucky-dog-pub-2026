@@ -653,6 +653,8 @@ public partial class SystemPanelController : CanvasLayer
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
         var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
+        GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/OpenSaveParentFolderBtn")
+            .Pressed += OpenSaveParentFolder;
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var resetDemoExperienceBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetDemoExperienceBtn");
         var randomizeSceneBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/RandomizeSceneBtn");
@@ -2444,6 +2446,24 @@ public partial class SystemPanelController : CanvasLayer
     }
 
 #if DEBUG
+    private void OpenSaveParentFolder()
+    {
+        // Resolve the already-bound save path, including this package's user:// root
+        // and account identity. profile_0.json -> saves -> account -> provider directory.
+        var directory = new System.IO.FileInfo(SaveManager.AbsoluteSavePath).Directory?.Parent?.Parent?.FullName;
+        if (string.IsNullOrEmpty(directory))
+        {
+            GD.PushError("[Debug] Cannot resolve the parent of the current save folder.");
+            return;
+        }
+
+        var error = DirAccess.MakeDirRecursiveAbsolute(directory);
+        if (error == Error.Ok)
+            error = OS.ShellOpen(directory);
+        if (error != Error.Ok)
+            GD.PushError($"[Debug] Cannot open save parent folder: {directory} ({error}).");
+    }
+
     private void RefreshDebugPlayTime()
     {
         if (_playTimeLabel == null || _gameData == null)
