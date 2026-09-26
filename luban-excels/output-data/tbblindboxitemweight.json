@@ -2128,17 +2128,17 @@
     "RecordingRewardOrder": 0
   },
   {
-    "Id": 400202003,
+    "Id": 400202018,
     "BlindBoxId": 4002,
-    "ItemId": 2003,
+    "ItemId": 2018,
     "Weight": 100,
     "IsEnabled": true,
     "RecordingRewardOrder": 1
   },
   {
-    "Id": 400202009,
+    "Id": 400201020,
     "BlindBoxId": 4002,
-    "ItemId": 2009,
+    "ItemId": 1020,
     "Weight": 100,
     "IsEnabled": true,
     "RecordingRewardOrder": 2
@@ -2158,93 +2158,5 @@
     "Weight": 100,
     "IsEnabled": true,
     "RecordingRewardOrder": 4
-  },
-  {
-    "Id": 400202032,
-    "BlindBoxId": 4002,
-    "ItemId": 2032,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 5
-  },
-  {
-    "Id": 400205004,
-    "BlindBoxId": 4002,
-    "ItemId": 5004,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 6
-  },
-  {
-    "Id": 400206006,
-    "BlindBoxId": 4002,
-    "ItemId": 6006,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 7
-  },
-  {
-    "Id": 400208005,
-    "BlindBoxId": 4002,
-    "ItemId": 8005,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 8
-  },
-  {
-    "Id": 400206008,
-    "BlindBoxId": 4002,
-    "ItemId": 6008,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 9
-  },
-  {
-    "Id": 400207008,
-    "BlindBoxId": 4002,
-    "ItemId": 7008,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 10
-  },
-  {
-    "Id": 400208012,
-    "BlindBoxId": 4002,
-    "ItemId": 8012,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 11
-  },
-  {
-    "Id": 400201008,
-    "BlindBoxId": 4002,
-    "ItemId": 1008,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 12
-  },
-  {
-    "Id": 400201011,
-    "BlindBoxId": 4002,
-    "ItemId": 1011,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 13
-  },
-  {
-    "Id": 400201013,
-    "BlindBoxId": 4002,
-    "ItemId": 1013,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 14
-  },
-  {
-    "Id": 400202013,
-    "BlindBoxId": 4002,
-    "ItemId": 2013,
-    "Weight": 100,
-    "IsEnabled": true,
-    "RecordingRewardOrder": 15
   }
 ]
