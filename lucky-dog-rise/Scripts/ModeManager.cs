@@ -1389,33 +1389,47 @@ public partial class ModeManager : Control
             || BlindBoxService.GetCurrentScheduleChannelMask() != EBuildChannelMask.PlaytestRecording)
             throw new InvalidOperationException("Recording Debug package lost its local storage or schedule channel.");
 
-        // The diagnostics path stops before window/hook setup; exercise the same _Input entry
-        // used by focused-window function keys, against the instantiated exported UI.
+        // Exercise Godot's event dispatch, rather than calling the handler directly.
         var previousStartupState = _startupState;
         _startupInitialized = true;
         _startupState = StartupState.Interactive;
         try
         {
-            _Input(new InputEventKey { Keycode = Key.F2, Pressed = true });
-            if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.AllCatalog))
-                throw new InvalidOperationException("Recording F2 input did not randomize catalog equipment.");
-            _Input(new InputEventKey { Keycode = Key.F3, Pressed = true });
-            if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.Owned))
-                throw new InvalidOperationException("Recording F3 input did not randomize owned equipment.");
+            foreach (var panelOpen in new[] { false, true })
+            {
+                if (panelOpen)
+                    _settingsPanel.Open();
+                else
+                    _settingsPanel.CloseImmediate();
+                _debugEquipmentBags.Clear();
+                _recordingBubbleRevealed = false;
+                _infoPanel?.SetRecordingBubbleRevealed(false);
+                RefreshBossBlindBoxHint();
+                await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+                if (_settingsPanel.IsOpen != panelOpen)
+                    throw new InvalidOperationException("Recording regression failed to set the panel state.");
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F2, Pressed = true });
+                if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.AllCatalog))
+                    throw new InvalidOperationException("Recording F2 input did not randomize catalog equipment.");
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F3, Pressed = true });
+                if (!_debugEquipmentBags.Keys.Any(key => key.source == DebugEquipmentSource.Owned))
+                    throw new InvalidOperationException("Recording F3 input did not randomize owned equipment.");
 
-            var hint = _gameData.GetBlindBoxHintState();
-            if (hint.Status is not (BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
-                || _recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A > 0.01f)
-                throw new InvalidOperationException("Recording bubble did not remain hidden after its deadline.");
-            _Input(new InputEventKey { Keycode = Key.F4, Pressed = true });
-            await ToSignal(GetTree().CreateTimer(0.25), SceneTreeTimer.SignalName.Timeout);
-            if (!_recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A < 0.99f)
-                throw new InvalidOperationException("Recording F4 input did not animate the bubble into view.");
+                var hint = _gameData.GetBlindBoxHintState();
+                if (hint.Status is not (BlindBoxHintStatus.Ready or BlindBoxHintStatus.NotEnoughChips)
+                    || _recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A > 0.01f)
+                    throw new InvalidOperationException("Recording bubble did not remain hidden after its deadline.");
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F4, Pressed = true });
+                await ToSignal(GetTree().CreateTimer(0.25), SceneTreeTimer.SignalName.Timeout);
+                if (!_recordingBubbleRevealed || _bossBlindBoxHint.Modulate.A < 0.99f)
+                    throw new InvalidOperationException("Recording F4 input did not animate the bubble into view.");
 
-            var itemCount = _gameData.Inventory.GetOwnedItemCounts().Values.Sum();
-            _Input(new InputEventKey { Keycode = Key.F5, Pressed = true });
-            if (_gameData.Inventory.GetOwnedItemCounts().Values.Sum() != itemCount + 1)
-                throw new InvalidOperationException("Recording F5 input did not grant exactly one item.");
+                var itemCount = _gameData.Inventory.GetOwnedItemCounts().Values.Sum();
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F5, Pressed = true });
+                if (_gameData.Inventory.GetOwnedItemCounts().Values.Sum() != itemCount + 1)
+                    throw new InvalidOperationException("Recording F5 input did not grant exactly one item.");
+                GD.Print($"[RecordingDebugSmoke] Godot input dispatch passed with panel open={panelOpen}.");
+            }
             GD.Print("[RecordingDebugSmoke] Debug tab, F2/F3 equipment, hidden deadline, F4 animation and F5 grant passed.");
         }
         finally
@@ -3852,14 +3866,14 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
-        if (BuildInfo.IsRecording && !_settingsPanel.IsOpen && @event is InputEventKey
+        if (BuildInfo.IsRecording && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F4 })
         {
             HandleRecordingHotkey(Key.F4);
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (BuildInfo.IsRecording && !_settingsPanel.IsOpen && @event is InputEventKey
+        if (BuildInfo.IsRecording && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F5 })
         {
             HandleRecordingHotkey(Key.F5);
@@ -3873,8 +3887,7 @@ public partial class ModeManager : Control
             return;
         }
 #if DEBUG
-        if (@event is InputEventKey { Pressed: true, Echo: false } key
-            && !_settingsPanel.IsOpen)
+        if (@event is InputEventKey { Pressed: true, Echo: false } key)
         {
             if (key.Keycode == Key.F2)
             {

@@ -83,6 +83,11 @@ if ($Channel -eq 'PlaytestRecording') {
     if (!$output.Contains('[RecordingDebugSmoke] Debug tab, F2/F3 equipment, hidden deadline, F4 animation and F5 grant passed.', [StringComparison]::Ordinal)) {
         throw "Exported recording Debug tab and function-key regression did not pass. See $logDirectory"
     }
+    foreach ($panelState in 'False', 'True') {
+        if (!$output.Contains("[RecordingDebugSmoke] Godot input dispatch passed with panel open=$panelState.", [StringComparison]::Ordinal)) {
+            throw "Recording function-key dispatch failed with panel open=$panelState. See $logDirectory"
+        }
+    }
 }
 
 $diagnosticPackages = @(Get-ChildItem -LiteralPath $diagnosticExportDirectory -Filter 'LDR_Diagnostics_*.zip')
