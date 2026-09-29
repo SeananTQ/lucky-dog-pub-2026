@@ -39,6 +39,7 @@ public static class InGameRoomSmoke
                 return;
             }
             Check(tab is { Visible: true }, "room tab visible in the main game");
+            main.RoomSnapForSmoke(true);
             tab.EmitSignal(BaseButton.SignalName.Pressed);
             await Frame();
             var host = panel.GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent");
@@ -81,6 +82,10 @@ public static class InGameRoomSmoke
                 await Capture(main, "in-game-lobby-" + locale);
             }
             var row = page.GetNode<VBoxContainer>("Lobby/RoomList").GetChild(0);
+            var unitScaleStep = Enumerable.Range(SettingsManager.DesktopPetScaleStepMin,
+                SettingsManager.DesktopPetScaleStepMax - SettingsManager.DesktopPetScaleStepMin + 1)
+                .Single(step => SettingsManager.GetDesktopPetScaleFactor(step) == 1);
+            main.ApplyDesktopPetScaleStep(unitScaleStep);
             var originalWindowSize = DisplayServer.WindowGetSize();
             var originalWindowPosition = DisplayServer.WindowGetPosition();
             var localDog = main.GetNode<DogVisual>("BossKeyContent/ContentA/DogArea");
@@ -95,8 +100,22 @@ public static class InGameRoomSmoke
                 "room host covers display with a one-pixel margin and stays windowed");
             Check(main.RoomDesktopForSmoke.RemoteDogs.All(dog => dog.IsVisibleInTree() && dog.Dog.GameData == null),
                 "remote dogs visible and isolated from player state");
+            var remotes = client.View.Members.Where(member => member.Id != client.Id)
+                .Select(member => main.RoomDesktopForSmoke.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
+            var roomWindowPosition = DisplayServer.WindowGetPosition();
+            var roomWindowSize = DisplayServer.WindowGetSize();
+            var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
+            Check(Mathf.IsEqualApprox(localDog.GlobalPosition.X, usable.Position.X + usable.Size.X / 2f - roomWindowPosition.X),
+                "observer starts at center regardless of host identity");
+            Check(Mathf.IsEqualApprox(remotes[0].Position.X - localDog.GlobalPosition.X, panel.PanelSize.X)
+                && Mathf.IsEqualApprox(localDog.GlobalPosition.X - remotes[1].Position.X, panel.PanelSize.X),
+                "remote dogs start right then left at displayed panel-width intervals");
+            Check(remotes.All(dog => dog.GetParent() is CanvasLayer { Layer: < 0 }),
+                "all remote parts including absolute-Z claws and tongue render beneath the local dog");
+            var contentA = main.GetNode<Node2D>("BossKeyContent/ContentA");
+            Check(panel.PanelRect.Position.Y > 0 && Mathf.IsEqualApprox(panel.PanelRect.End.Y, contentA.Position.Y),
+                "room panel uses ordinary 1x slot 8 spacing above dog, not screen top");
             await Capture(main, "in-game-room-three-dogs");
-            var originalScaleStep = SettingsManager.LoadDesktopPetScaleStep();
             var twiceScaleStep = Enumerable.Range(SettingsManager.DesktopPetScaleStepMin,
                 SettingsManager.DesktopPetScaleStepMax - SettingsManager.DesktopPetScaleStepMin + 1)
                 .Single(step => SettingsManager.GetDesktopPetScaleFactor(step) == 2);
@@ -107,12 +126,84 @@ public static class InGameRoomSmoke
             Check(DisplayServer.WindowGetPosition() == DisplayServer.ScreenGetPosition(DisplayServer.WindowGetCurrentScreen()) + Vector2I.One,
                 "scaling keeps the room host on its display");
             await Capture(main, "in-game-room-three-dogs-2x");
-            main.ApplyDesktopPetScaleStep(originalScaleStep);
+            main.ApplyDesktopPetScaleStep(unitScaleStep);
             await Frame();
             var localCenter = DisplayServer.WindowGetPosition() + (Vector2I)localDog.GlobalPosition;
             Check(main.RoomHitTestForSmoke(localCenter), "original dog hit area follows room layout");
             Check(!main.RoomHitTestForSmoke(DisplayServer.WindowGetPosition() + new Vector2I(5, 5)),
                 "transparent empty desktop remains click-through");
+            // Feed real viewport mouse events through ModeManager._Input. Moving
+            // the OS pointer would disturb the developer's current desktop work.
+            void PointerButton(Vector2 point, bool pressed) => main.GetViewport().PushInput(new InputEventMouseButton
+            {
+                ButtonIndex = MouseButton.Left, Pressed = pressed, Position = point, GlobalPosition = point,
+                ButtonMask = pressed ? MouseButtonMask.Left : 0,
+            }, true);
+            void PointerMotion(Vector2 point, bool held = true) => main.GetViewport().PushInput(new InputEventMouseMotion
+            {
+                Position = point, GlobalPosition = point, ButtonMask = held ? MouseButtonMask.Left : 0,
+            }, true);
+            async Task Drag(Vector2 dogPosition, Vector2 delta)
+            {
+                var point = dogPosition + new Vector2(0, -40 * localDog.GlobalScale.X / 0.25f);
+                PointerButton(point, true);
+                PointerMotion(point + delta);
+                await Frame();
+                Check(main.RoomDraggingForSmoke && !main.RoomClickThroughForSmoke,
+                    "active drag captures movement across transparent desktop");
+                PointerButton(point + delta, false);
+                await Frame();
+                Check(!main.RoomDraggingForSmoke, "mouse release stops individual drag");
+            }
+            var ownStart = localDog.GlobalPosition;
+            var panelStart = panel.PanelRect.Position;
+            var remoteStarts = remotes.Select(dog => dog.Position).ToArray();
+            for (int i = 0; i < remotes.Length; i++)
+            {
+                var point = roomWindowPosition + (Vector2I)(remotes[i].Position + new Vector2(0, -40));
+                Check(main.RoomHitTestForSmoke(point), "remote dog participates in native click-through hit test");
+                var delta = new Vector2(i == 0 ? 90 : -90, -170);
+                await Drag(remotes[i].Position, delta);
+                Check(remotes[i].Position.IsEqualApprox(remoteStarts[i] + delta)
+                    && localDog.GlobalPosition.IsEqualApprox(ownStart) && panel.PanelRect.Position.IsEqualApprox(panelStart),
+                    "remote drag only moves the chosen dog and leaves own dog/panel fixed");
+            }
+            var remotePositions = remotes.Select(dog => dog.Position).ToArray();
+            await Drag(ownStart, new Vector2(-130, -210));
+            Check(localDog.GlobalPosition.IsEqualApprox(ownStart + new Vector2(-130, -210))
+                && remotes.Select((dog, i) => dog.Position.IsEqualApprox(remotePositions[i])).All(equal => equal),
+                "local drag leaves both remote positions unchanged");
+            Check(!panel.PanelRect.Position.IsEqualApprox(panelStart)
+                && panel.PanelRect.Position.X >= usable.Position.X - roomWindowPosition.X
+                && panel.PanelRect.End.X <= usable.End.X - roomWindowPosition.X,
+                "own panel follows dragged local dog and remains within work-area width");
+            Check(Mathf.IsEqualApprox(panel.PanelRect.Position.Y, panelStart.Y - 210)
+                && Mathf.IsEqualApprox(panel.PanelRect.End.Y, contentA.Position.Y),
+                "slot 8 follows local dog vertically without changing its normal gap");
+            await Drag(remotes[0].Position, localDog.GlobalPosition + new Vector2(35, 15) - remotes[0].Position);
+            remotes[0].Modulate = new Color(0.5f, 0.7f, 1);
+            await Capture(main, "in-game-room-overlap");
+            var overlappedRemote = remotes[0].Position;
+            var ownOverlap = localDog.GlobalPosition;
+            await Drag(ownOverlap, new Vector2(0, -85));
+            Check(localDog.GlobalPosition.IsEqualApprox(ownOverlap + new Vector2(0, -85))
+                && remotes[0].Position.IsEqualApprox(overlappedRemote), "overlap picks local dog first");
+            Check(DisplayServer.WindowGetPosition() == roomWindowPosition && DisplayServer.WindowGetSize() == roomWindowSize,
+                "all individual drags leave the native room window fixed");
+            // Losing button state must not leave a dog attached to the mouse.
+            var remoteHead = remotes[1].Position + new Vector2(0, -40);
+            PointerButton(remoteHead, true);
+            PointerMotion(remoteHead + new Vector2(20, 0));
+            PointerMotion(remoteHead + new Vector2(60, 0), held: false);
+            await Frame();
+            Check(!main.RoomDraggingForSmoke, "missing release recovers from mouse button mask");
+            var draggedOwn = localDog.GlobalPosition;
+            var draggedRemotes = remotes.Select(dog => dog.Position).ToArray();
+            client.SetAppearance(client.SkinId, client.HeadwearId, client.Reaction);
+            await Settle();
+            Check(localDog.GlobalPosition.IsEqualApprox(draggedOwn)
+                && remotes.Select((dog, i) => dog.Position.IsEqualApprox(draggedRemotes[i])).All(equal => equal),
+                "room snapshot refresh preserves dragged positions");
             var codeLabel = page.GetNode<Label>("Room/CodeRow/Code");
             Check(codeLabel.Text == client.JoinedCode && codeLabel.Size.Y >= 20, "room code has visible text and height");
             var joinedCode = client.JoinedCode;
@@ -127,6 +218,18 @@ public static class InGameRoomSmoke
             panel.Open();
             await main.ToSignal(tree.CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
             Check(client.JoinedCode == joinedCode, "closing the panel preserves membership");
+            Check(localDog.GlobalPosition.IsEqualApprox(draggedOwn)
+                && remotes.Select((dog, i) => dog.Position.IsEqualApprox(draggedRemotes[i])).All(equal => equal),
+                "tab switches and closing/reopening panel preserve dragged positions");
+            main.RoomModeForSmoke(true);
+            await main.ToSignal(tree.CreateTimer(0.3), SceneTreeTimer.SignalName.Timeout);
+            main.RoomModeForSmoke(false);
+            await main.ToSignal(tree.CreateTimer(0.5), SceneTreeTimer.SignalName.Timeout);
+            Check(localDog.GlobalPosition.IsEqualApprox(draggedOwn)
+                && remotes.Select((dog, i) => dog.Position.IsEqualApprox(draggedRemotes[i])).All(equal => equal),
+                "poker round-trip preserves each dragged position");
+            panel.Open();
+            await Frame();
             tab.EmitSignal(BaseButton.SignalName.Pressed);
             L10n.SetLocale("zh_CN", save: false);
             await Frame();
@@ -188,7 +291,96 @@ public static class InGameRoomSmoke
             await main.ToSignal(tree.CreateTimer(0.5), SceneTreeTimer.SignalName.Timeout);
             Check(main.RoomDesktopWindowActive && main.RoomDesktopForSmoke.RemoteDogs.All(dog => dog.IsVisibleInTree()),
                 "returning to desktop restores joined room presentation");
-            GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, three desktop dogs, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
+            var desktop = main.RoomDesktopForSmoke;
+            remotes = client.View.Members.Where(member => member.Id != client.Id)
+                .Select(member => desktop.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
+            float taskbarOffset = (main.GetNode<Marker2D>("BossKeyContent/ContentA/TaskBar").Position.Y - localDog.Position.Y);
+            float TaskbarY() => DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen()).End.Y
+                - DisplayServer.WindowGetPosition().Y;
+            Vector2 DogPosition(int id) => id == client.Id ? localDog.GlobalPosition
+                : remotes.Single(dog => dog.MemberId == id).Position;
+            foreach (int id in client.View.Members.Select(member => member.Id))
+            {
+                Check(desktop.IsTaskbarSnapped(id) && Mathf.IsEqualApprox(DogPosition(id).Y + taskbarOffset, TaskbarY()),
+                    "each dog initially attaches its own anchor to the taskbar");
+                var others = client.View.Members.Where(m => m.Id != id).ToDictionary(m => m.Id, m => DogPosition(m.Id));
+                var position = DogPosition(id);
+                await Drag(position, new Vector2(20, -20));
+                Check(desktop.IsTaskbarSnapped(id) && Mathf.IsEqualApprox(DogPosition(id).Y, position.Y),
+                    "attached dog slides horizontally and resists small upward drags");
+                await Drag(DogPosition(id), new Vector2(0, -50));
+                Check(!desktop.IsTaskbarSnapped(id) && Mathf.IsEqualApprox(DogPosition(id).Y, position.Y - 50),
+                    "dragging up beyond ordinary threshold detaches this dog");
+                await Drag(DogPosition(id), new Vector2(0, 42));
+                Check(desktop.IsTaskbarSnapped(id) && Mathf.IsEqualApprox(DogPosition(id).Y + taskbarOffset, TaskbarY()),
+                    "dragging near taskbar snaps this dog back and release retains attachment");
+                Check(others.All(other => DogPosition(other.Key).IsEqualApprox(other.Value)),
+                    "snapping one dog never moves other members");
+            }
+            main.ApplyDesktopPetScaleStep(twiceScaleStep);
+            await Frame();
+            Check(client.View.Members.All(member => desktop.IsTaskbarSnapped(member.Id)
+                && Mathf.IsEqualApprox(DogPosition(member.Id).Y + taskbarOffset * 2, TaskbarY())),
+                "2x keeps every attached dog on the taskbar");
+            await Capture(main, "in-game-room-taskbar-2x");
+            main.ApplyDesktopPetScaleStep(unitScaleStep);
+            await Frame();
+            main.RoomSnapForSmoke(false);
+            await Frame();
+            foreach (int id in client.View.Members.Select(member => member.Id))
+            {
+                var before = DogPosition(id);
+                await Drag(before, new Vector2(10, -8));
+                Check(!desktop.IsTaskbarSnapped(id) && DogPosition(id).IsEqualApprox(before + new Vector2(10, -8)),
+                    "disabled snap permits free movement near taskbar for every dog");
+            }
+            main.RoomSnapForSmoke(true);
+            foreach (int id in client.View.Members.Select(member => member.Id))
+                await Drag(DogPosition(id), new Vector2(10, 0));
+            panel.Open();
+            await Frame();
+            var beforeEdge = localDog.GlobalPosition;
+            await Drag(beforeEdge, new Vector2(25 - beforeEdge.X, 0));
+            Check(panel.PanelRect.Position.X >= -5 && panel.PanelRect.End.X <= DisplayServer.WindowGetSize().X + 5,
+                "near left edge room panel uses the ordinary alternate slots without leaving the screen");
+            await Capture(main, "in-game-room-panel-edge");
+            await Drag(localDog.GlobalPosition, beforeEdge - localDog.GlobalPosition);
+            await Capture(main, "in-game-room-taskbar");
+            // Deliver a newer model between presentation and the next input,
+            // reproducing the child service tick occurring after the host tick.
+            var beforeDeparture = client.View;
+            var departing = main.RoomDesktopForSmoke.RemoteDogs.First();
+            var staleHead = departing.Position + new Vector2(0, -40);
+            client.Receive(beforeDeparture with
+            {
+                Revision = beforeDeparture.Revision + 1,
+                Members = beforeDeparture.Members.Where(m => m.Id != departing.MemberId).ToArray(),
+            });
+            PointerButton(staleHead, true);
+            PointerMotion(staleHead + new Vector2(40, 0));
+            Check(!main.RoomDraggingForSmoke, "clicking a departed member's stale node is ignored");
+            PointerButton(staleHead, false);
+            client.Receive(beforeDeparture with { Revision = beforeDeparture.Revision + 2 });
+            await Frame();
+            PointerButton(staleHead, true);
+            PointerMotion(staleHead + new Vector2(40, 0));
+            Check(main.RoomDraggingForSmoke, "begin drag before session ends");
+            client.Leave();
+            PointerMotion(staleHead + new Vector2(80, 0));
+            PointerButton(staleHead, false);
+            Check(!main.RoomDraggingForSmoke, "session ending cancels drag before presentation catches up");
+            await Settle();
+            // An initial snapshot may also arrive before seats exist.
+            client.BeginSession(beforeDeparture.Code);
+            await Frame();
+            client.Receive(beforeDeparture);
+            var newLocalHead = localDog.GlobalPosition + new Vector2(0, -40);
+            PointerButton(newLocalHead, true);
+            PointerMotion(newLocalHead + new Vector2(40, 0));
+            PointerButton(newLocalHead, false);
+            Check(!main.RoomDraggingForSmoke, "new-session input waits for matching presentation seats");
+            await Frame();
+            GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
             tree.Quit();
         }
         catch (Exception exception)

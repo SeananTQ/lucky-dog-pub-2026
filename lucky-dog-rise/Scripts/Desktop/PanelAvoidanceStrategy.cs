@@ -36,7 +36,8 @@ public readonly record struct PanelPlacementContext(
     Rect2? TopAccessoryRect,
     int TopActionHeight,
     int PlaySettingsGap,
-    bool PlayHighScale);
+    bool PlayHighScale,
+    Vector2 DesktopGridOrigin = default);
 
 public readonly record struct PanelPlacementResult(Vector2 PanelPosition);
 
@@ -168,7 +169,8 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
                 panelWidth,
                 panelHeight,
                 sideY,
-                centerX);
+                centerX,
+                context.DesktopGridOrigin);
             if (Fits(
                     context.WindowPosition.X + position.X,
                     context.WindowPosition.Y + position.Y))
@@ -195,7 +197,8 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
             panelWidth,
             panelHeight,
             sideY,
-            centerX);
+            centerX,
+            context.DesktopGridOrigin);
         if (TopActionsFit(
                 context.WindowPosition.X + centerFallback.X,
                 context.WindowPosition.Y + centerFallback.Y))
@@ -215,7 +218,8 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
                 panelWidth,
                 panelHeight,
                 sideY,
-                centerX);
+                centerX,
+                context.DesktopGridOrigin);
             if (TopActionsFit(
                     context.WindowPosition.X + position.X,
                     context.WindowPosition.Y + position.Y))
@@ -233,7 +237,8 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
             panelWidth,
             panelHeight,
             sideY,
-            centerX);
+            centerX,
+            context.DesktopGridOrigin);
         int screenMinX = context.UsableScreen.Position.X
             + LegacyScreenTolerance
             - context.WindowPosition.X;
@@ -316,18 +321,19 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
         int panelWidth,
         int panelHeight,
         float sideY,
-        float centerX)
+        float centerX,
+        Vector2 gridOrigin)
     {
         return slot switch
         {
-            9 => new Vector2I((int)mainX + mainWidth, 0),
-            8 => new Vector2I((int)centerX, 0),
-            7 => Vector2I.Zero,
+            9 => new Vector2I((int)mainX + mainWidth, (int)gridOrigin.Y),
+            8 => new Vector2I((int)centerX, (int)gridOrigin.Y),
+            7 => (Vector2I)gridOrigin,
             6 => new Vector2I((int)mainX + mainWidth, (int)sideY),
-            4 => new Vector2I(0, (int)sideY),
+            4 => new Vector2I((int)gridOrigin.X, (int)sideY),
             3 => new Vector2I((int)mainX + mainWidth, (int)mainY + mainHeight),
             2 => new Vector2I((int)centerX, (int)mainY + mainHeight),
-            1 => new Vector2I(0, (int)mainY + mainHeight),
+            1 => new Vector2I((int)gridOrigin.X, (int)mainY + mainHeight),
             _ => new Vector2I(
                 (int)(mainX + mainWidth / 2f - panelWidth / 2f),
                 (int)(mainY + mainHeight / 2f - panelHeight / 2f)),

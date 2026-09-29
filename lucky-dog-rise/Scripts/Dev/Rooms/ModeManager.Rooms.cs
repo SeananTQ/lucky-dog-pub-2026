@@ -1,4 +1,5 @@
 #if DEBUG && !RECORDING_BUILD
+using System.Linq;
 using Godot;
 using LuckyDogRise.Rooms;
 
@@ -15,8 +16,23 @@ public partial class ModeManager
     private RoomSnapshot _roomLastLayoutSnapshot;
     private float _roomLastLayoutScale;
     private Rect2I _roomLastWorkArea;
+    private Button[] _roomLocalDogHits;
+    private int _roomDragMember;
+    private long _roomDragPresence;
+    private long _roomDragSession;
+    private Vector2 _roomDragMouseStart;
+    private Vector2 _roomDragDogStart;
+    private bool? _roomSnapEnabledForSmoke;
+    private bool RoomSnapEnabled => _roomSnapEnabledForSmoke ?? SettingsManager.LoadSnapToWindowsTaskbar();
+    private float RoomTaskbarAnchorOffsetY =>
+        (_bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y) * _desktopPetScaleFactor;
 
-    private void AttachRoomDesktopPreview(RoomClient client) => _desktopRoomClient = client;
+    private void AttachRoomDesktopPreview(RoomClient client)
+    {
+        _desktopRoomClient = client;
+        _roomLocalDogHits = new[] { "HitButton", "ClawLeftHitButton", "ClawRightHitButton" }
+            .Select(path => _bossDogVisual.GetNode<Button>(path)).ToArray();
+    }
 
     private void UpdateRoomDesktopPreview()
     {
@@ -50,6 +66,8 @@ public partial class ModeManager
             ApplyRoomDesktopLayout(force: true);
         }
         else ApplyRoomDesktopLayout();
+        if (_roomDragMember != 0 && (_hiddenByFullscreenApp || !RoomDragMemberIsCurrent()))
+            CancelWindowDrag();
     }
 
     private void ApplyRoomDesktopLayout(bool force = false)
@@ -75,9 +93,11 @@ public partial class ModeManager
             changed = true;
         }
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
-            new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor);
+            new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor, _panelSize.X,
+            RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
         var offset = dogPosition - _bossDogVisual.Position * _desktopPetScaleFactor;
-        changed |= _bossContentOffset != offset;
+        bool localSnapped = _roomDesktop.IsTaskbarSnapped(_desktopRoomClient.Id);
+        changed |= _bossContentOffset != offset || _taskbarSnapped != localSnapped;
         if (!changed) return;
         _roomLastLayoutSnapshot = _desktopRoomClient.View;
         _roomLastLayoutScale = _desktopPetScaleFactor;
@@ -86,7 +106,7 @@ public partial class ModeManager
         _bossContentA.Position = offset;
         _bossCanvasLayer.Offset = offset;
         _bossBubbleLayer.Offset = offset;
-        _taskbarSnapped = false;
+        _taskbarSnapped = localSnapped;
         _bossWorkAreaSnapshotReady = false;
         UpdateBossInteractionRects();
         ApplyBossCounterLayout();
@@ -98,6 +118,7 @@ public partial class ModeManager
     private void RestoreRoomDesktopWindow()
     {
         if (!_roomWindowActive) return;
+        CancelWindowDrag();
         _roomWindowActive = false;
         _roomDesktop.Hide();
         if (DisplayServer.WindowGetMode() is DisplayServer.WindowMode.Fullscreen
@@ -113,9 +134,86 @@ public partial class ModeManager
         if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
     }
 
+    private bool IsRoomLocalDogHit(Vector2 point) => _roomLocalDogHits != null
+        && _roomLocalDogHits.Any(hit => RoomDogView.ContainsWindowPoint(hit, point));
+
+    private int HitRoomDog(Vector2 point)
+    {
+        if (_hiddenByFullscreenApp || !_roomDesktop.IsVisibleInTree()) return 0;
+        // Match the drawing order even when the dogs overlap completely.
+        if (IsRoomLocalDogHit(point) && _desktopRoomClient.View?.Members.Any(m => m.Id == _desktopRoomClient.Id) == true)
+            return _desktopRoomClient.Id;
+        return _roomDesktop.HitTest(point);
+    }
+
+    private bool RoomDragMemberIsCurrent() => _desktopRoomClient.Session == _roomDragSession
+        && !_desktopRoomClient.HiddenMembers.Contains(_roomDragMember)
+        && _desktopRoomClient.View?.Members.Any(m => m.Id == _roomDragMember && m.Presence == _roomDragPresence) == true
+        && _roomDesktop.HasMember(_roomDragSession, _roomDragMember, _roomDragPresence);
+
+    private void HandleRoomPointerInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } button)
+        {
+            if (!button.Pressed)
+            {
+                if (_isDragging) GetViewport().SetInputAsHandled();
+                CancelWindowDrag();
+                return;
+            }
+            CancelWindowDrag();
+            var point = button.Position;
+            if (_settingsPanel.ContainsPoint(point)
+                || (_steamMockPanel != null && _steamMockPanel.ContainsPoint(point))
+                || GetBossStatusPanelRect().HasPoint(point)
+                || (_bossBlindBoxHint is { Visible: true } && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore
+                    && GetBossBlindBoxHintRect().HasPoint(point))
+                || (_bossBlindBoxOverlay is { Visible: true } && GetBossBlindBoxOverlayRect().HasPoint(point))) return;
+            int memberId = HitRoomDog(point);
+            if (memberId == 0) return;
+            // Network snapshots can change after the previous presentation frame.
+            // Ignore a dog whose old node has not been removed/replaced yet.
+            var member = _desktopRoomClient.View?.Members.FirstOrDefault(m => m.Id == memberId);
+            if (member == null || !_roomDesktop.HasMember(_desktopRoomClient.Session, memberId, member.Presence)) return;
+            _roomDragMember = memberId;
+            _roomDragSession = _desktopRoomClient.Session;
+            _roomDragPresence = member.Presence;
+            _roomDragMouseStart = point;
+            _roomDragDogStart = _roomDesktop.GetPosition(memberId);
+            _potentialDrag = true;
+        }
+        else if (@event is InputEventMouseMotion motion && _roomDragMember != 0)
+        {
+            if ((motion.ButtonMask & MouseButtonMask.Left) == 0 || !RoomDragMemberIsCurrent())
+            {
+                CancelWindowDrag();
+                return;
+            }
+            var delta = motion.Position - _roomDragMouseStart;
+            if (!_isDragging && delta.LengthSquared() < DefaultDragThreshold * DefaultDragThreshold) return;
+            _isDragging = true;
+            SetClickThrough(false);
+            float snappedDogY = DisplayServer.ScreenGetUsableRect(_roomScreen).End.Y
+                - DisplayServer.WindowGetPosition().Y - RoomTaskbarAnchorOffsetY;
+            _roomDesktop.MoveMember(_roomDragMember, _roomDragDogStart + delta, snappedDogY,
+                RoomSnapEnabled, SnapThreshold, BreakawayThreshold);
+            // Reuse the local dog's counter, bubble and panel layout chain. The
+            // room host stays still; remote moves do not move the local panel.
+            ApplyRoomDesktopLayout();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
     // Development-only assertions use the actual window, dog nodes and hit test.
     public bool RoomDesktopWindowActive => _roomWindowActive;
     public RoomDesktopPreview RoomDesktopForSmoke => _roomDesktop;
+    public bool RoomDraggingForSmoke => _roomDragMember != 0 && _isDragging;
+    public bool RoomClickThroughForSmoke => _isClickThrough;
+    public void RoomSnapForSmoke(bool enabled)
+    {
+        _roomSnapEnabledForSmoke = enabled;
+        if (_roomWindowActive) ApplyRoomDesktopLayout(force: true);
+    }
     public bool RoomHitTestForSmoke(Vector2I point) => IsScreenPointOverInteractiveContent(point);
     public void RoomModeForSmoke(bool poker) { if (poker) SwitchToPlay(); else SwitchToBossKey(); }
     public void RoomFullscreenHideForSmoke(bool hidden)

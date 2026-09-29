@@ -78,6 +78,14 @@ public partial class RoomDogView : Node2D
         foreach (var hit in _dogHits) if (Contains(hit)) return true;
         return false;
     }
+    public bool ContainsDogPoint(Vector2 windowPoint)
+    {
+        foreach (var hit in _dogHits) if (ContainsWindowPoint(hit, windowPoint)) return true;
+        return false;
+    }
+    internal static bool ContainsWindowPoint(Control control, Vector2 windowPoint) => control.IsVisibleInTree()
+        && new Rect2(Vector2.Zero, control.Size).HasPoint(
+            control.GetGlobalTransformWithCanvas().AffineInverse() * windowPoint);
     public bool IsPointerOverContent() => Visible && (IsPointerOverDog()
         || Contains(_chatButton) || Contains(_inputPanel));
 

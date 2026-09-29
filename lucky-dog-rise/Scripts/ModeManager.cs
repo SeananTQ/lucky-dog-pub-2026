@@ -971,6 +971,11 @@ public partial class ModeManager : Control
         if (what == NotificationApplicationFocusIn)
             (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
+#if DEBUG && !RECORDING_BUILD
+        if (what == NotificationWMWindowFocusOut && _roomWindowActive)
+            CancelWindowDrag();
+#endif
+
         if (what == NotificationWMWindowFocusOut && _settingsPanel != null && _settingsPanel.IsOpen
             && SettingsManager.LoadAutoHidePanel())
         {
@@ -2902,7 +2907,11 @@ public partial class ModeManager : Control
 
         if (CurrentMode == Mode.BossKey)
         {
+#if DEBUG && !RECORDING_BUILD
+            over |= _roomWindowActive ? HitRoomDog(localPos) != 0 : _dogHitRect.HasPoint(localPos);
+#else
             over |= _dogHitRect.HasPoint(localPos);
+#endif
             // Keep the counter geometry as a hover target even when the panel is hidden by auto-hide.
             over |= GetBossStatusPanelRect().HasPoint(localPos);
             if (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore)
@@ -3271,7 +3280,11 @@ public partial class ModeManager : Control
 
         var localPos = ScreenToWindowLocal(screenPosition);
         // Use the existing scaled dog hit area, excluding UI drawn in front of it.
-        if (!_dogHitRect.HasPoint(localPos) || _settingsPanel.ContainsPoint(localPos)
+        if (!(
+#if DEBUG && !RECORDING_BUILD
+                _roomWindowActive ? IsRoomLocalDogHit(localPos) :
+#endif
+                _dogHitRect.HasPoint(localPos)) || _settingsPanel.ContainsPoint(localPos)
             || GetBossStatusPanelRect().HasPoint(localPos)
             || (_bossBlindBoxHint != null && _bossBlindBoxHint.Visible
                 && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore
@@ -3425,6 +3438,17 @@ public partial class ModeManager : Control
             ? GetBossTaskbarAnchorWindowPosition().Y
             : aY + ah;
 
+        var desktopGridOrigin = Vector2.Zero;
+#if DEBUG && !RECORDING_BUILD
+        if (CurrentMode == Mode.BossKey && _roomWindowActive)
+        {
+            // In a room the host stays fixed and the dog moves inside it. Translate
+            // the ordinary nine-slot grid with the dog, including the existing top
+            // buffer used by the blind-box reveal at larger desktop-pet scales.
+            desktopGridOrigin = new Vector2(aX - _panelSize.X, aY - CalculateBossTopBufferHeight());
+        }
+#endif
+
         var placement = _panelAvoidanceStrategy.CalculatePanelPlacement(
             new PanelPlacementContext(
                 CurrentMode == Mode.Play ? PanelHostMode.Play : PanelHostMode.BossKey,
@@ -3439,7 +3463,8 @@ public partial class ModeManager : Control
                 topAccessoryRect,
                 Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight),
                 PlayGameSettingsGap,
-                IsHighOtherUiScale()));
+                IsHighOtherUiScale(),
+                desktopGridOrigin));
         _settingsPanel.SetPanelPosition(placement.PanelPosition);
         UpdatePlayPanelDismissOverlay();
     }
@@ -3973,13 +3998,17 @@ public partial class ModeManager : Control
             }
         }
 
+#if DEBUG && !RECORDING_BUILD
+        // Room dragging moves one local presentation, never the native host.
+        if (_roomWindowActive && (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left }
+            || @event is InputEventMouseMotion))
+        {
+            HandleRoomPointerInput(@event);
+            return;
+        }
+#endif
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
-#if DEBUG && !RECORDING_BUILD
-            // Individual dog dragging is a later feature. Do not drag an entire
-            // monitor-sized transparent window when clicking a room dog.
-            if (_roomWindowActive) return;
-#endif
             if (mb.Pressed)
             {
                 var mouseScreenPosition = DisplayServer.MouseGetPosition();
@@ -4055,6 +4084,9 @@ public partial class ModeManager : Control
 
     private void CancelWindowDrag()
     {
+#if DEBUG && !RECORDING_BUILD
+        _roomDragMember = 0;
+#endif
         _isDragging = false;
         _potentialDrag = false;
         _taskbarSnapped = false;
