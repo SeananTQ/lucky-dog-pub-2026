@@ -52,6 +52,13 @@ public partial class SingleInstanceGuard : Node
     public override void _EnterTree()
     {
         _instance = this;
+#if DEBUG && !RECORDING_BUILD
+        // The standalone room lab has no account or player state. Do not let it
+        // publish/replace the normal Dev identity or acquire its instance mutex.
+        if (OS.GetCmdlineArgs().Any(argument => argument.Replace('\\', '/').EndsWith(
+                "/Scenes/Dev/Rooms/RoomLab.tscn", StringComparison.OrdinalIgnoreCase)))
+            return;
+#endif
 #if DEBUG
         // The read-only configuration test must not acquire the game's mutex or
         // replace its published account identity when launched with F6.

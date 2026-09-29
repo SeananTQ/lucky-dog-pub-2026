@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomMemberRow.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="RoomMemberRow" type="HBoxContainer" node_paths=PackedStringArray("_name", "_hide")]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme = ExtResource("theme")
+script = ExtResource("script")
+_name = NodePath("Name")
+_hide = NodePath("Hide")
+
+[node name="Name" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+text_overrun_behavior = 3
+
+[node name="Hide" type="Button" parent="."]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(60, 32)
+text = "隐藏"

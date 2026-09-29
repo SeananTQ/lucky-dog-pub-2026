@@ -66,6 +66,20 @@ class DemoPruningTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Output must be'):
             prepare(self.source, self.source)
 
+    def test_room_lab_is_not_copied_to_demo(self):
+        # Room development must not leak scenes, executable C# or placeholder art.
+        paths = ('Scenes/Dev/Rooms/RoomLab.tscn',
+                 'Scripts/Dev/Rooms/RoomSandbox.cs',
+                 'Assets/UI/Icon/Dev/Icon_RoomChat.svg')
+        for rel in paths:
+            file = self.source / rel
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text('room-lab-placeholder')
+        self.run_prepare()
+        for rel in paths:
+            self.assertFalse((self.output / rel).exists(), rel)
+            self.assertTrue((self.source / rel).exists(), rel)
+
 
 if __name__ == '__main__':
     unittest.main()

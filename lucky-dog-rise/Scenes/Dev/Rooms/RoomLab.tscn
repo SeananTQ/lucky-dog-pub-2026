@@ -1,0 +1,417 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomLab.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomDogView.tscn" id="dog"]
+[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomListRow.tscn" id="roomRow"]
+[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomMemberRow.tscn" id="memberRow"]
+
+[node name="RoomLab" type="Control" node_paths=PackedStringArray("_panel", "_tools", "_titleBar", "_toolbar", "_backdrop", "_status", "_metrics", "_currentRoom", "_viewOption", "_targetOption", "_scaleOption", "_skinOption", "_hatOption", "_reactionOption", "_latency", "_pause", "_globalInput", "_showNames", "_desktop", "_roomName", "_roomCode", "_roomList", "_memberList", "_dogRoot")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_panel = NodePath("Panel")
+_tools = NodePath("Tools")
+_titleBar = NodePath("TitleBar")
+_toolbar = NodePath("Toolbar")
+_backdrop = NodePath("Backdrop")
+_status = NodePath("Panel/Scroll/Content/Status")
+_metrics = NodePath("Tools/Scroll/Content/Metrics")
+_currentRoom = NodePath("Panel/Scroll/Content/CurrentRoom")
+_viewOption = NodePath("Toolbar/Content/View")
+_targetOption = NodePath("Tools/Scroll/Content/Target")
+_scaleOption = NodePath("Panel/Scroll/Content/Scale")
+_skinOption = NodePath("Tools/Scroll/Content/Skin")
+_hatOption = NodePath("Tools/Scroll/Content/Hat")
+_reactionOption = NodePath("Tools/Scroll/Content/Reaction")
+_latency = NodePath("Tools/Scroll/Content/Network/Latency")
+_pause = NodePath("Tools/Scroll/Content/Pause")
+_globalInput = NodePath("Tools/Scroll/Content/GlobalInput")
+_showNames = NodePath("Panel/Scroll/Content/ShowNames")
+_desktop = NodePath("Toolbar/Content/Desktop")
+_roomName = NodePath("Panel/Scroll/Content/RoomName")
+_roomCode = NodePath("Panel/Scroll/Content/CodeRow/Code")
+_roomList = NodePath("Panel/Scroll/Content/RoomList")
+_memberList = NodePath("Panel/Scroll/Content/Members")
+_dogRoot = NodePath("Dogs")
+_dogScene = ExtResource("dog")
+_roomRowScene = ExtResource("roomRow")
+_memberRowScene = ExtResource("memberRow")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.12, 0.16, 0.17, 1)
+
+[node name="Dogs" type="Node2D" parent="."]
+
+
+[node name="TitleBar" type="PanelContainer" parent="."]
+z_index = 40
+offset_right = 1280.0
+offset_bottom = 44.0
+
+[node name="Content" type="HBoxContainer" parent="TitleBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="TitleBar/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+text = "房间实验室 · A 阶段（本地模拟）"
+tooltip_text = "拖动标题移动窗口；双击恢复屏幕布局，底部预留反馈空间"
+
+[node name="Minimize" type="Button" parent="TitleBar/Content"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "最小化"
+
+[node name="Fit" type="Button" parent="TitleBar/Content"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "适应屏幕"
+tooltip_text = "占满屏幕工作区宽度，底部留出 200 像素用于反馈"
+
+[node name="Quit" type="Button" parent="TitleBar/Content"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 0
+text = "关闭"
+
+
+[node name="Toolbar" type="PanelContainer" parent="."]
+z_index = 40
+offset_top = 44.0
+offset_right = 1280.0
+offset_bottom = 92.0
+
+[node name="Content" type="HBoxContainer" parent="Toolbar"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SeedRow" type="HBoxContainer" parent="Toolbar/Content"]
+layout_mode = 2
+
+
+
+[node name="Three" type="Button" parent="Toolbar/Content/SeedRow"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "重置为 3 人"
+
+
+[node name="Six" type="Button" parent="Toolbar/Content/SeedRow"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "重置为 6 人"
+
+
+[node name="ViewLabel" type="Label" parent="Toolbar/Content"]
+layout_mode = 2
+text = "观察 / 主控"
+
+
+[node name="View" type="OptionButton" parent="Toolbar/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(160, 34)
+
+
+[node name="Desktop" type="CheckButton" parent="Toolbar/Content"]
+layout_mode = 2
+text = "透明桌面测试"
+
+
+[node name="Panel" type="PanelContainer" parent="."]
+z_index = 30
+offset_left = 16.0
+offset_top = 104.0
+offset_right = 436.0
+offset_bottom = 784.0
+
+[node name="Scroll" type="ScrollContainer" parent="Panel"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Panel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Tools" type="PanelContainer" parent="."]
+z_index = 30
+offset_left = 864.0
+offset_top = 104.0
+offset_right = 1264.0
+offset_bottom = 784.0
+
+[node name="Scroll" type="ScrollContainer" parent="Tools"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Tools/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "房间"
+autowrap_mode = 3
+
+[node name="LabNotice" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "本地模拟 · A 阶段"
+autowrap_mode = 3
+
+[node name="CurrentRoom" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "等待启动…"
+autowrap_mode = 3
+
+[node name="RoomActions" type="HBoxContainer" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Copy" type="Button" parent="Panel/Scroll/Content/RoomActions"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "复制房间码"
+
+[node name="Leave" type="Button" parent="Panel/Scroll/Content/RoomActions"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "离开房间"
+
+[node name="Members" type="VBoxContainer" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Divider" type="HSeparator" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="LobbyTitle" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "房间大厅"
+autowrap_mode = 3
+
+[node name="RoomName" type="LineEdit" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "新的小狗房间"
+max_length = 40
+placeholder_text = "房间名称"
+custom_minimum_size = Vector2(0, 36)
+
+[node name="CreateRow" type="HBoxContainer" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Create" type="Button" parent="Panel/Scroll/Content/CreateRow"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "创建房间"
+
+[node name="Random" type="Button" parent="Panel/Scroll/Content/CreateRow"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "随机加入"
+
+[node name="CodeRow" type="HBoxContainer" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Code" type="LineEdit" parent="Panel/Scroll/Content/CodeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入房间码"
+max_length = 32
+
+[node name="Join" type="Button" parent="Panel/Scroll/Content/CodeRow"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "加入"
+
+[node name="Refresh" type="Button" parent="Panel/Scroll/Content"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "刷新房间列表"
+
+[node name="RoomList" type="VBoxContainer" parent="Panel/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="ScaleTitle" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "本地小狗倍率"
+autowrap_mode = 3
+
+[node name="Scale" type="OptionButton" parent="Panel/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+
+[node name="ShowNames" type="CheckButton" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = "显示玩家昵称"
+button_pressed = true
+
+[node name="Status" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+[node name="Title" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "模拟客户端控制"
+autowrap_mode = 3
+
+
+
+
+
+
+[node name="TargetLabel" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "面板操作目标（独立于观察视角）"
+autowrap_mode = 3
+
+[node name="Target" type="OptionButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 34)
+
+[node name="TargetActions" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Join" type="Button" parent="Tools/Scroll/Content/TargetActions"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "加入当前房间"
+
+[node name="Leave" type="Button" parent="Tools/Scroll/Content/TargetActions"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "离开 / 掉线"
+
+[node name="SkinLabel" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "目标毛色 / 头饰 / 表情"
+autowrap_mode = 3
+
+[node name="Skin" type="OptionButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 34)
+
+[node name="Hat" type="OptionButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 34)
+
+[node name="Reaction" type="OptionButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 34)
+
+[node name="Apply" type="Button" parent="Tools/Scroll/Content"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "发送目标外观与表情"
+
+[node name="Chat" type="Button" parent="Tools/Scroll/Content"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "目标发送测试气泡"
+
+[node name="Network" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+
+[node name="Label" type="Label" parent="Tools/Scroll/Content/Network"]
+layout_mode = 2
+text = "接收延迟（毫秒）"
+
+[node name="Latency" type="SpinBox" parent="Tools/Scroll/Content/Network"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 36)
+max_value = 10000.0
+step = 100.0
+size_flags_horizontal = 3
+
+[node name="Pause" type="CheckButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "暂停目标接收（恢复时同步最新状态）"
+
+[node name="GlobalInput" type="CheckButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "全局输入只驱动当前主控小狗"
+button_pressed = true
+
+
+[node name="Game" type="Button" parent="Tools/Scroll/Content"]
+theme_type_variation = &"CapsuleButton"
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "房主切换玩法标识（仅测试）"
+
+[node name="Hint" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "悬停本机小狗可发送短气泡。此场景不读写玩家存档，不连接 Steam。"
+autowrap_mode = 3
+
+[node name="Metrics" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+
+[connection signal="pressed" from="Panel/Scroll/Content/RoomActions/Copy" to="." method="OnCopyCode"]
+[connection signal="pressed" from="Panel/Scroll/Content/RoomActions/Leave" to="." method="OnLeave"]
+[connection signal="pressed" from="Panel/Scroll/Content/CreateRow/Create" to="." method="OnCreate"]
+[connection signal="pressed" from="Panel/Scroll/Content/CreateRow/Random" to="." method="OnRandom"]
+[connection signal="pressed" from="Panel/Scroll/Content/CodeRow/Join" to="." method="OnJoinCode"]
+[connection signal="pressed" from="Panel/Scroll/Content/Refresh" to="." method="OnRefresh"]
+[connection signal="pressed" from="Toolbar/Content/SeedRow/Three" to="." method="OnResetThree"]
+[connection signal="pressed" from="Toolbar/Content/SeedRow/Six" to="." method="OnResetSix"]
+[connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Join" to="." method="OnTargetJoin"]
+[connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Leave" to="." method="OnTargetLeave"]
+[connection signal="pressed" from="Tools/Scroll/Content/Apply" to="." method="OnApplyAppearance"]
+[connection signal="pressed" from="Tools/Scroll/Content/Chat" to="." method="OnMockChat"]
+[connection signal="pressed" from="Tools/Scroll/Content/Game" to="." method="OnChangeGame"]
+[connection signal="pressed" from="TitleBar/Content/Quit" to="." method="OnQuit"]
+
+[connection signal="gui_input" from="TitleBar/Content/Title" to="." method="OnTitleInput"]
+[connection signal="pressed" from="TitleBar/Content/Minimize" to="." method="OnMinimize"]
+[connection signal="pressed" from="TitleBar/Content/Fit" to="." method="OnFitScreen"]
