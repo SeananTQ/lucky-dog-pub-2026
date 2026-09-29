@@ -27,6 +27,15 @@ public partial class RoomLab : Control
     [Export] private OptionButton _hatOption = null!;
     [Export] private OptionButton _reactionOption = null!;
     [Export] private SpinBox _latency = null!;
+    [Export] private SpinBox _requestDelay = null!;
+    [Export] private OptionButton _requestFailure = null!;
+    [Export] private Label _operation = null!;
+    [Export] private Label _targetOperation = null!;
+    [Export] private Button _cancel = null!;
+    [Export] private Button _create = null!;
+    [Export] private Button _join = null!;
+    [Export] private Button _random = null!;
+    [Export] private Button _refresh = null!;
     [Export] private CheckButton _pause = null!;
     [Export] private CheckButton _globalInput = null!;
     [Export] private CheckButton _showNames = null!;
@@ -42,6 +51,8 @@ public partial class RoomLab : Control
     private RoomSandbox _server = new();
     private readonly List<RoomClient> _clients = new();
     private readonly Dictionary<int, RoomDogView> _dogs = new();
+    private RoomClient _listClient;
+    private RoomListing[] _renderedListings;
     private readonly float[] _scales = { 0.5f, 1, 2, 3, 4 };
     private readonly bool[] _keys = new bool[256];
     private readonly Queue<double> _inputTimes = new();
@@ -95,11 +106,19 @@ public partial class RoomLab : Control
             _hatOption.AddItem($"{item.Id}", item.Id);
         foreach (var reaction in LubanData.Tables.TbDogReaction.DataList.Where(r => r.Id >= 1001 && r.Id <= 1009))
             _reactionOption.AddItem(((EDogReactionTrigger)reaction.Id).ToString(), reaction.Id);
+        _requestFailure.AddItem("下一请求：正常", (int)MockRoomFailure.None);
+        _requestFailure.AddItem("下一请求：服务不可用", (int)MockRoomFailure.Unavailable);
+        _requestFailure.AddItem("下一请求：无回应（验证超时）", (int)MockRoomFailure.NoResponse);
 
         _viewOption.ItemSelected += index => SwitchView((int)index);
         _targetOption.ItemSelected += index => { _targetIndex = (int)index; BindTarget(); };
         _scaleOption.ItemSelected += index => { Current.LocalScale = _scales[index]; _dirty = true; };
-        _latency.ValueChanged += value => { if (!_binding) Target.Latency = value / 1000; };
+        _latency.ValueChanged += value => { if (!_binding) _server.Settings(Target).Latency = value / 1000; };
+        _requestDelay.ValueChanged += value => { if (!_binding) _server.Settings(Target).RequestDelay = value / 1000; };
+        _requestFailure.ItemSelected += index =>
+        {
+            if (!_binding) _server.Settings(Target).NextFailure = (MockRoomFailure)_requestFailure.GetItemId((int)index);
+        };
         _pause.Toggled += value => { if (!_binding) _server.SetPaused(Target, value); };
         _showNames.Toggled += value => { Current.ShowNames = value; _dirty = true; };
         _globalInput.Toggled += _ => ResetInputSampling();
@@ -112,6 +131,7 @@ public partial class RoomLab : Control
     private void ResetClients(int count)
     {
         CloseEditors();
+        foreach (var client in _clients) client.Dispose();
         _server = new RoomSandbox();
         _clients.Clear();
         _viewIndex = 0;
@@ -129,42 +149,46 @@ public partial class RoomLab : Control
         }
         _server.Create(Current, "小狗一起待着");
         foreach (var client in _clients.Skip(1)) _server.Join(client, Current.JoinedCode);
+        foreach (var client in _clients) client.Search();
         _server.Tick(0);
         _viewOption.Select(0);
         _targetOption.Select(1);
         BindTarget();
         BindLocal();
-        OnRefresh();
         ResetInputSampling();
         Status($"已启动 {count} 个独立模拟客户端；没有连接 Steam 或加载玩家存档。");
     }
 
     public void OnResetThree() => ResetClients(3);
     public void OnResetSix() => ResetClients(6);
-    public void OnCreate() { Status(_server.Create(Current, _roomName.Text), "房间已创建。"); OnRefresh(); }
-    public void OnJoinCode() { Status(_server.Join(Current, _roomCode.Text), "正在加入房间。"); OnRefresh(); }
-    public void OnRandom()
-    {
-        var room = _server.Search().FirstOrDefault(r => r.Count < r.Capacity && r.Code != Current.JoinedCode);
-        Status(room == null ? "没有其他可加入房间，可以创建房间。" : _server.Join(Current, room.Code), "正在加入房间。");
-    }
-    public void OnLeave() { _server.Leave(Current); CloseEditors(); OnRefresh(); Status("已离开房间。"); }
+    public void OnCreate() => StartRequest(Current.Create(_roomName.Text));
+    public void OnJoinCode() => StartRequest(Current.Join(_roomCode.Text));
+    public void OnRandom() => StartRequest(Current.FindAndJoin());
+    private void StartRequest(bool started) => Status(started ? "" : "当前请求尚未结束，可等待或取消。");
+    public void OnCancelRequest() => Current.Cancel();
+    public void OnTargetCancelRequest() => Target.Cancel();
+    public void OnLeave() { Current.Leave(); CloseEditors(); Status("已离开房间。"); }
     public void OnCopyCode()
     {
         if (Current.JoinedCode.Length > 0) DisplayServer.ClipboardSet(Current.JoinedCode);
         Status(Current.JoinedCode.Length > 0 ? "房间码已复制。" : "请先进入房间。");
     }
-    public void OnTargetJoin() { Status(_server.Join(Target, Current.JoinedCode), "模拟玩家已加入。"); OnRefresh(); }
-    public void OnTargetLeave() { _server.Leave(Target); OnRefresh(); Status("模拟玩家已离开；房主离开时验证新房主。"); }
+    public void OnTargetJoin() => StartRequest(Target.Join(Current.JoinedCode));
+    public void OnTargetLeave() { Target.Leave(); Status("模拟玩家已离开；房主离开时验证新房主。"); }
+    public void OnCloseTargetRoom()
+    {
+        _server.CloseRoom(Target.JoinedCode);
+        Status("已模拟目标房间关闭；等待加入该房间的请求将在完成时检查房间是否仍存在。");
+    }
     public void OnApplyAppearance()
     {
         Target.SetAppearance(_skinOption.GetSelectedId(), _hatOption.GetSelectedId(), _reactionOption.GetSelectedId());
         Status("变化已发送，按目标客户端的网络条件观察同步。");
     }
-    public void OnMockChat() => Status(_server.SendChat(Target, $"你好，来自{Target.Name}！"), "模拟消息已发送。");
+    public void OnMockChat() => Status(Target.SendChat($"你好，来自{Target.Name}！"), "模拟消息已发送。");
     public void OnChangeGame()
     {
-        Status(_server.SetGame(Current, Current.View?.GameId == "social" ? "test-mode" : "social"),
+        Status(Current.SetGame(Current.View?.GameId == "social" ? "test-mode" : "social"),
             "玩法标识已更新；刷新列表可观察图标提示变化。");
     }
     public void OnQuit() => GetTree().Quit();
@@ -197,14 +221,22 @@ public partial class RoomLab : Control
             _draggingTitle = false;
     }
 
-    public void OnRefresh()
+    public void OnRefresh() => StartRequest(Current.Search());
+    private void RenderRoomList()
     {
+        if (ReferenceEquals(_listClient, Current) && ReferenceEquals(_renderedListings, Current.Listings))
+        {
+            foreach (var row in _roomList.GetChildren().OfType<RoomListRow>()) row.SetRequestPending(Current.IsBusy);
+            return;
+        }
+        _listClient = Current;
+        _renderedListings = Current.Listings;
         ClearRows(_roomList);
-        foreach (var room in _server.Search())
+        foreach (var room in Current.Listings)
         {
             var row = _roomRowScene.Instantiate<RoomListRow>();
             _roomList.AddChild(row);
-            row.Bind(room, () => { Status(_server.Join(Current, room.Code), "正在加入房间。"); });
+            row.Bind(room, () => StartRequest(Current.Join(room.Code)), Current.IsBusy);
         }
     }
 
@@ -232,11 +264,39 @@ public partial class RoomLab : Control
         _skinOption.Select(_skinOption.GetItemIndex(Target.SkinId));
         _hatOption.Select(_hatOption.GetItemIndex(Target.HeadwearId));
         _reactionOption.Select(_reactionOption.GetItemIndex(Target.Reaction));
-        _latency.Value = Target.Latency * 1000;
-        _pause.SetPressedNoSignal(Target.Paused);
+        var settings = _server.Settings(Target);
+        _latency.Value = settings.Latency * 1000;
+        _requestDelay.Value = settings.RequestDelay * 1000;
+        _requestFailure.Select(_requestFailure.GetItemIndex((int)settings.NextFailure));
+        _pause.SetPressedNoSignal(settings.Paused);
         _binding = false;
     }
     private void Status(string text, string success = "") => _status.Text = text.Length > 0 ? text : success;
+    private static string OperationText(RoomClient client)
+    {
+        var action = client.Operation switch
+        {
+            RoomOperation.Search => "搜索房间", RoomOperation.Create => "创建房间",
+            RoomOperation.Join => "加入房间", _ => ""
+        };
+        return client.RequestState switch
+        {
+            RoomRequestState.Pending => $"正在{action}…可取消",
+            RoomRequestState.Succeeded => $"{action}成功" +
+                (client.Operation != RoomOperation.Search && client.View == null ? "，等待成员状态…" : ""),
+            RoomRequestState.Cancelled => $"已取消{action}",
+            RoomRequestState.TimedOut => $"{action}超时，可重试",
+            RoomRequestState.Failed => client.Failure switch
+            {
+                RoomFailure.InvalidName => "房间名称需要 1–40 个字符。",
+                RoomFailure.NotFound => "房间已关闭或不存在，请刷新列表。",
+                RoomFailure.Full => "房间已满，请选择其他房间。",
+                RoomFailure.NoMatchingRoom => "没有其他可加入房间，可以创建房间。",
+                _ => "房间服务暂不可用，可稍后重试。"
+            },
+            _ => ""
+        };
+    }
     private void CloseEditors() { foreach (var dog in _dogs.Values) dog.CloseChat(); }
 
     public override void _Process(double delta)
@@ -250,17 +310,24 @@ public partial class RoomLab : Control
         _server.Tick(delta);
         ObserveInput(delta);
         if (_dirty) { _dirty = false; RenderCurrent(); }
+        _targetOperation.Text = $"目标：{OperationText(Target)}";
+        // A fault is consumed by Request(), not by a settings-panel refresh.
+        _requestFailure.Select(_requestFailure.GetItemIndex((int)_server.Settings(Target).NextFailure));
         UpdatePassThrough();
         _metricsTimer += delta;
         if (_metricsTimer >= 1)
         {
             _metricsTimer = 0;
-            _metrics.Text = $"{Engine.GetFramesPerSecond()} FPS · 待投递 {_server.PendingCount} · 视角 {Current.Id} · 状态版本 {Current.View?.Revision ?? 0}";
+            _metrics.Text = $"{Engine.GetFramesPerSecond()} FPS · 待投递 {_server.PendingCount} · 请求 {_server.PendingRequestCount}\n视角 {Current.Id} · 状态版本 {Current.View?.Revision ?? 0}";
         }
     }
 
     private void RenderCurrent()
     {
+        RenderRoomList();
+        _operation.Text = OperationText(Current);
+        _cancel.Disabled = !Current.IsBusy;
+        _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = Current.IsBusy;
         var view = Current.View;
         _currentRoom.Text = view == null ? (Current.JoinedCode.Length > 0 ? "等待房间状态…" : "尚未加入房间")
             : $"{view.Name} · {view.Members.Length}/6\n{view.Code}";
@@ -309,7 +376,7 @@ public partial class RoomLab : Control
                 var target = dog;
                 dog.SendRequested += text =>
                 {
-                    var result = _server.SendChat(Current, text);
+                    var result = Current.SendChat(text);
                     Status(result, "已发送。");
                     if (result.Length == 0) target.AcceptSend();
                 };
@@ -382,7 +449,7 @@ public partial class RoomLab : Control
     {
         var popup = _viewOption.GetPopup().Visible || _targetOption.GetPopup().Visible
             || _scaleOption.GetPopup().Visible || _skinOption.GetPopup().Visible
-            || _hatOption.GetPopup().Visible || _reactionOption.GetPopup().Visible;
+            || _hatOption.GetPopup().Visible || _reactionOption.GetPopup().Visible || _requestFailure.GetPopup().Visible;
         SetPassThrough(_desktop.ButtonPressed && !_draggingTitle && !popup
             && !Over(_titleBar) && !Over(_toolbar) && !Over(_panel) && !Over(_tools)
             && !_dogs.Values.Any(d => d.IsPointerOverContent()));
@@ -396,7 +463,11 @@ public partial class RoomLab : Control
         WindowNative.SetWindowLong(_windowHandle, WindowNative.GWL_EXSTYLE, style);
         _passThrough = enabled;
     }
-    public override void _ExitTree() => SetPassThrough(false);
+    public override void _ExitTree()
+    {
+        SetPassThrough(false);
+        foreach (var client in _clients) client.Dispose();
+    }
 
     // Development bridge: same commands as the visible controls, not a second UI implementation.
     public string DebugCommand(string command, int value = 0)
@@ -422,7 +493,8 @@ public partial class RoomLab : Control
     public string DebugState() => JsonSerializer.Serialize(new
     {
         view = Current.Id, scale = Current.LocalScale, room = Current.View,
-        clients = _clients.Select(c => new { c.Id, c.LocalScale, c.JoinedCode, c.Reaction, c.Paused, revision = c.View?.Revision }),
+        clients = _clients.Select(c => new { c.Id, c.LocalScale, c.JoinedCode, c.Reaction,
+            paused = _server.Settings(c).Paused, c.Operation, c.RequestState, c.Failure, revision = c.View?.Revision }),
         pending = _server.PendingCount, passThrough = _passThrough, status = _status.Text,
     });
     public async void SavePreview(string path)
@@ -444,10 +516,12 @@ public partial class RoomLab : Control
             await UiFrame();
             await UiFrame();
             Verify(_dogs.Count == 3 && Current.View.Members.Length == 3, "three rendered dogs");
+            var lobbyRow = _roomList.GetChild(0);
             OnApplyAppearance();
             _server.Tick(0);
             DebugCommand("reaction", 1006);
             await UiFrame();
+            Verify(ReferenceEquals(lobbyRow, _roomList.GetChild(0)), "appearance sync preserves lobby buttons");
             Verify(Current.View.Members.Single(m => m.Id == Target.Id).Reaction == 1006, "button path updates remote dog");
             DebugCommand("scale", 2);
             await UiFrame();
@@ -494,10 +568,62 @@ public partial class RoomLab : Control
             _server.Tick(0);
             await UiFrame();
             Verify(_dogs.Count == 6, "late join restores visual");
-            GD.Print("ROOM_UI_PASS: real dog scenes, appearance, local scale/hide, bubble input, six players, window restore, join/leave.");
+            await RunRequestUiSmoke();
+            GD.Print("ROOM_UI_PASS: real dog scenes, appearance, local scale/hide, bubble input, six players, window restore, join/leave, async request controls.");
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
+    }
+    private async System.Threading.Tasks.Task RunRequestUiSmoke()
+    {
+        OnResetThree();
+        DebugCommand("target", 0);
+        _requestDelay.Value = 3000;
+        var previous = Current.JoinedCode;
+        _roomName.Text = "异步创建测试";
+        _create.EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        Verify(Current.IsBusy && _create.Disabled && _join.Disabled && !_cancel.Disabled,
+            "pending request disables repeated actions and enables cancellation");
+        Verify(Current.JoinedCode == previous, "old room remains while waiting");
+        await CaptureSmoke("request-pending");
+        _cancel.EmitSignal(Button.SignalName.Pressed);
+        _server.Tick(4);
+        await UiFrame();
+        Verify(Current.RequestState == RoomRequestState.Cancelled && Current.JoinedCode == previous,
+            "cancelled request cannot create a room later");
+        Verify(!_create.Disabled && _cancel.Disabled, "cancellation restores controls");
+
+        _requestDelay.Value = 0;
+        SelectRequestFailure(MockRoomFailure.Unavailable);
+        _create.EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        Verify(Current.RequestState == RoomRequestState.Failed && Current.JoinedCode == previous,
+            "request failure keeps original room");
+        Verify(_requestFailure.GetSelectedId() == (int)MockRoomFailure.None, "one-shot fault resets visible selector");
+        _create.EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        Verify(Current.RequestState == RoomRequestState.Succeeded && Current.JoinedCode != previous
+            && Current.View?.Members.Length == 1, "retry enters new room");
+
+        SelectRequestFailure(MockRoomFailure.NoResponse);
+        _refresh.EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        _server.Tick(RoomRules.RequestTimeout);
+        await UiFrame();
+        Verify(Current.RequestState == RoomRequestState.TimedOut && !_refresh.Disabled,
+            "silent request times out and can retry");
+        await CaptureSmoke("request-timeout");
+        _refresh.EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        Verify(Current.RequestState == RoomRequestState.Succeeded && Current.Listings.Length == 2,
+            "refresh recovers after timeout");
+    }
+    private void SelectRequestFailure(MockRoomFailure failure)
+    {
+        var index = _requestFailure.GetItemIndex((int)failure);
+        _requestFailure.Select(index);
+        _requestFailure.EmitSignal(OptionButton.SignalName.ItemSelected, index);
     }
     private async System.Threading.Tasks.Task UiFrame()
     {

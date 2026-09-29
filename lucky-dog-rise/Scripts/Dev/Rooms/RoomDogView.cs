@@ -30,7 +30,7 @@ public partial class RoomDogView : Node2D
         _send.Pressed += Send;
         _cancel.Pressed += CloseChat;
         _input.TextSubmitted += _ => Send();
-        _input.MaxLength = RoomSandbox.MaxChatCharacters;
+        _input.MaxLength = RoomRules.MaxChatCharacters;
         _bubble.Hide();
         _inputPanel.Hide();
         _chatButton.Hide();

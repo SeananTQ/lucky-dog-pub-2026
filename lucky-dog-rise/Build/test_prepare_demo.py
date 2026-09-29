@@ -80,6 +80,27 @@ class DemoPruningTests(unittest.TestCase):
             self.assertFalse((self.output / rel).exists(), rel)
             self.assertTrue((self.source / rel).exists(), rel)
 
+    def test_shared_room_code_is_not_copied_to_demo(self):
+        excluded = ('Scripts/Rooms/RoomSession.cs',
+                    'Scripts/Rooms/RoomSession.cs.uid',
+                    'Scripts/Rooms/Transport/RoomTransport.cs')
+        retained = ('Scripts/Desktop/SettingsManager.cs',
+                    'Scripts/RoomsHelper.cs',
+                    'Scripts/Other/Rooms/Unrelated.cs')
+        contents = {rel: 'source-content:' + rel for rel in excluded + retained}
+        for rel, content in contents.items():
+            file = self.source / rel
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(content)
+        self.run_prepare()
+        self.assertFalse((self.output / 'Scripts/Rooms').exists())
+        for rel in excluded:
+            self.assertFalse((self.output / rel).exists(), rel)
+        for rel in retained:
+            self.assertEqual((self.output / rel).read_text(), contents[rel], rel)
+        for rel, content in contents.items():
+            self.assertEqual((self.source / rel).read_text(), content, rel)
+
 
 if __name__ == '__main__':
     unittest.main()

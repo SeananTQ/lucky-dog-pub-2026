@@ -113,9 +113,18 @@ def prepare(source, output):
                 shutil.rmtree(child)
             else:
                 child.unlink()
-    shutil.copytree(source, output, ignore=shutil.ignore_patterns(
+    ignored_patterns = shutil.ignore_patterns(
         '.godot', 'bin', 'obj', 'addons', 'Tools', 'Build', 'docs', 'Dev',
-        'steam_appid*.txt', 'export_presets.cfg'), dirs_exist_ok=True)
+        'steam_appid*.txt', 'export_presets.cfg')
+
+    def ignore_demo_content(directory, names):
+        ignored = ignored_patterns(directory, names)
+        # Shared room logic is not part of Demo; do not suppress unrelated Rooms folders.
+        if Path(directory) == source / 'Scripts':
+            ignored.add('Rooms')
+        return ignored
+
+    shutil.copytree(source, output, ignore=ignore_demo_content, dirs_exist_ok=True)
     for rel in removed:
         (output / rel).unlink(missing_ok=True)
         (output / (rel + '.import')).unlink(missing_ok=True)

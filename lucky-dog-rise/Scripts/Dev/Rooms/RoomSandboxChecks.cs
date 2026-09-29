@@ -25,7 +25,7 @@ internal static class RoomSandboxChecks
         a.HiddenMembers.Add(2);
         Check(b.LocalScale == 1 && b.HiddenMembers.Count == 0, "local preferences isolated");
 
-        b.Latency = 1;
+        server.Settings(b).Latency = 1;
         a.SetAppearance(1013, 0, 1006);
         server.Tick(0);
         Check(a.View.Members[0].Reaction == 1006 && b.View.Members[0].Reaction == 1001, "actual delayed replica");
@@ -54,7 +54,7 @@ internal static class RoomSandboxChecks
         Check(c.Bubbles[a.Id].Text == "hello", "receiver independently rate limits");
         server.Tick(7);
         Check(a.Bubbles.Count == 0 && b.Bubbles.Count == 0, "bubble expires across clients");
-        b.Latency = 8;
+        server.Settings(b).Latency = 8;
         server.SendChat(a, "expires in transit");
         server.Tick(8);
         Check(b.Bubbles.Count == 0, "expired message never displayed");
@@ -78,7 +78,7 @@ internal static class RoomSandboxChecks
         var extra = server.AddClient(7, "seventh", 1012);
         Check(server.Join(extra, code) != "" && extra.JoinedCode == "", "six-player capacity enforced");
         Check(server.Join(extra, "invalid") != "", "invalid room handled");
-        b.Latency = 10;
+        server.Settings(b).Latency = 10;
         for (var i = 0; i < 1000; i++) c.SetAppearance(1012, 0, i % 2 == 0 ? 1001 : 1005);
         Check(server.PendingCount <= 6, "snapshot queue bounded");
         server.Create(b, "Other");
@@ -87,7 +87,8 @@ internal static class RoomSandboxChecks
         var other = b.JoinedCode;
         server.Leave(b);
         Check(!server.Search().Any(r => r.Code == other), "last departure destroys room");
-        return "ROOM_SANDBOX_PASS: isolated replicas, latency, bounded queues, reconnect, capacity, owner transfer, metadata, chat validation/expiry, local settings.";
+        return "ROOM_SANDBOX_PASS: isolated replicas, latency, bounded queues, reconnect, capacity, owner transfer, metadata, chat validation/expiry, local settings.\n"
+            + RoomRequestChecks.Run();
     }
     private static void Check(bool passed, string message)
     {

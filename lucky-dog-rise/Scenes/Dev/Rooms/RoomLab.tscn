@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomListRow.tscn" id="roomRow"]
 [ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomMemberRow.tscn" id="memberRow"]
 
-[node name="RoomLab" type="Control" node_paths=PackedStringArray("_panel", "_tools", "_titleBar", "_toolbar", "_backdrop", "_status", "_metrics", "_currentRoom", "_viewOption", "_targetOption", "_scaleOption", "_skinOption", "_hatOption", "_reactionOption", "_latency", "_pause", "_globalInput", "_showNames", "_desktop", "_roomName", "_roomCode", "_roomList", "_memberList", "_dogRoot")]
+[node name="RoomLab" type="Control" node_paths=PackedStringArray("_panel", "_tools", "_titleBar", "_toolbar", "_backdrop", "_status", "_metrics", "_currentRoom", "_viewOption", "_targetOption", "_scaleOption", "_skinOption", "_hatOption", "_reactionOption", "_latency", "_requestDelay", "_requestFailure", "_operation", "_targetOperation", "_cancel", "_create", "_join", "_random", "_refresh", "_pause", "_globalInput", "_showNames", "_desktop", "_roomName", "_roomCode", "_roomList", "_memberList", "_dogRoot")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -31,6 +31,15 @@ _skinOption = NodePath("Tools/Scroll/Content/Skin")
 _hatOption = NodePath("Tools/Scroll/Content/Hat")
 _reactionOption = NodePath("Tools/Scroll/Content/Reaction")
 _latency = NodePath("Tools/Scroll/Content/Network/Latency")
+_requestDelay = NodePath("Tools/Scroll/Content/RequestDelay/Value")
+_requestFailure = NodePath("Tools/Scroll/Content/RequestFailure")
+_operation = NodePath("Panel/Scroll/Content/Operation")
+_targetOperation = NodePath("Tools/Scroll/Content/TargetOperation")
+_cancel = NodePath("Panel/Scroll/Content/RoomActions/Cancel")
+_create = NodePath("Panel/Scroll/Content/CreateRow/Create")
+_join = NodePath("Panel/Scroll/Content/CodeRow/Join")
+_random = NodePath("Panel/Scroll/Content/CreateRow/Random")
+_refresh = NodePath("Panel/Scroll/Content/Refresh")
 _pause = NodePath("Tools/Scroll/Content/Pause")
 _globalInput = NodePath("Tools/Scroll/Content/GlobalInput")
 _showNames = NodePath("Panel/Scroll/Content/ShowNames")
@@ -183,6 +192,11 @@ layout_mode = 2
 text = "等待启动…"
 autowrap_mode = 3
 
+[node name="Operation" type="Label" parent="Panel/Scroll/Content"]
+layout_mode = 2
+autowrap_mode = 3
+text = ""
+
 [node name="RoomActions" type="HBoxContainer" parent="Panel/Scroll/Content"]
 layout_mode = 2
 
@@ -200,6 +214,14 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
 size_flags_horizontal = 3
 text = "离开房间"
+
+[node name="Cancel" type="Button" parent="Panel/Scroll/Content/RoomActions"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+text = "取消请求"
+disabled = true
 
 [node name="Members" type="VBoxContainer" parent="Panel/Scroll/Content"]
 layout_mode = 2
@@ -373,6 +395,51 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "暂停目标接收（恢复时同步最新状态）"
 
+[node name="RequestLabel" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "目标请求模拟（创建 / 加入 / 搜索）"
+
+[node name="RequestDelay" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Tools/Scroll/Content/RequestDelay"]
+layout_mode = 2
+text = "请求耗时（毫秒）"
+
+[node name="Value" type="SpinBox" parent="Tools/Scroll/Content/RequestDelay"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 36)
+size_flags_horizontal = 3
+max_value = 30000.0
+step = 500.0
+tooltip_text = "仅影响新发起的请求；与成员状态接收延迟分开。请求超时为 15 秒。"
+
+[node name="RequestFailure" type="OptionButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+
+[node name="RequestActions" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+[node name="Cancel" type="Button" parent="Tools/Scroll/Content/RequestActions"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 36)
+text = "取消目标请求"
+
+[node name="CloseRoom" type="Button" parent="Tools/Scroll/Content/RequestActions"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 36)
+text = "模拟房间关闭"
+tooltip_text = "关闭操作目标所在房间，仅用于模拟，不是正式房主管理功能。"
+
+[node name="TargetOperation" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+autowrap_mode = 3
+
 [node name="GlobalInput" type="CheckButton" parent="Tools/Scroll/Content"]
 layout_mode = 2
 text = "全局输入只驱动当前主控小狗"
@@ -415,3 +482,7 @@ autowrap_mode = 3
 [connection signal="gui_input" from="TitleBar/Content/Title" to="." method="OnTitleInput"]
 [connection signal="pressed" from="TitleBar/Content/Minimize" to="." method="OnMinimize"]
 [connection signal="pressed" from="TitleBar/Content/Fit" to="." method="OnFitScreen"]
+
+[connection signal="pressed" from="Panel/Scroll/Content/RoomActions/Cancel" to="." method="OnCancelRequest"]
+[connection signal="pressed" from="Tools/Scroll/Content/RequestActions/Cancel" to="." method="OnTargetCancelRequest"]
+[connection signal="pressed" from="Tools/Scroll/Content/RequestActions/CloseRoom" to="." method="OnCloseTargetRoom"]
