@@ -104,6 +104,13 @@ public partial class SystemPanelController : CanvasLayer
     private Button _linkTreeTab = null!;
     private Button _collectionEventTab = null!;
     private Button _outfitPresetTab = null!;
+#if DEBUG && !RECORDING_BUILD
+    private Button _roomTab;
+    private VBoxContainer _roomContent;
+    private Rooms.InGameRoomPreview _roomPreview;
+    public event Action<Rooms.RoomClient> RoomPreviewCreated;
+    private int _roomTabIndex = -1;
+#endif
 #if DEBUG
     private Button _debugTab = null!;
 #endif
@@ -461,6 +468,7 @@ public partial class SystemPanelController : CanvasLayer
         GetNode("Panel/RootVBox/Scroll/ContentVBox/DebugContent").Free();
         GetNode("ResetSaveConfirm").Free();
 #endif
+        ConfigureRoomTab();
         SwitchTab(0);
         _buildVersionLabel.Text = BuildInfo.DisplayVersion;
         RefreshGlobalInputChipsEarnedLabel();
@@ -1009,6 +1017,17 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SwitchTab(int index)
     {
+#if DEBUG && !RECORDING_BUILD
+        if (index == _roomTabIndex && _roomPreview == null)
+        {
+            _roomPreview = GD.Load<PackedScene>("res://Scenes/Dev/Rooms/InGameRoomPage.tscn")
+                .Instantiate<Rooms.InGameRoomPreview>();
+            _roomContent.AddChild(_roomPreview);
+            RoomPreviewCreated?.Invoke(_roomPreview.PreviewClient);
+            BindTutorialPopupActivity(_roomPreview);
+            _panelScroll.ScrollVertical = 0;
+        }
+#endif
         for (int i = 0; i < _tabs.Count; i++)
         {
             _tabContents[i].Visible = i == index;
@@ -1050,6 +1069,33 @@ public partial class SystemPanelController : CanvasLayer
         if (index == 5)
             RefreshDebugPlayTime();
         #endif
+    }
+
+    private void ConfigureRoomTab()
+    {
+        var tab = GetNode<Button>("Panel/RootVBox/TitleRow/RoomTab");
+        var content = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent");
+#if DEBUG && !RECORDING_BUILD
+        if (!BuildInfo.IsDebugDemo && !BuildInfo.IsRecording)
+        {
+            _roomTab = tab;
+            _roomContent = content;
+            _roomTabIndex = _tabs.Count;
+            _tabs.Add(tab);
+            _tabContents.Add(content);
+            tab.Visible = true;
+            tab.Pressed += () => SwitchTab(_roomTabIndex);
+            // Seven icon tabs plus Close fit the existing 420px panel.
+            // Keep a 44px target height and do not move the preset page yet.
+            var visibleCount = _tabs.Count(button => button.Visible);
+            var width = visibleCount >= 7 ? 46f : 56f;
+            foreach (var button in _tabs)
+                button.CustomMinimumSize = new Vector2(width, button.CustomMinimumSize.Y);
+            return;
+        }
+#endif
+        tab.Free();
+        content.Free();
     }
 
     private void EnsureCurrentTabReady()

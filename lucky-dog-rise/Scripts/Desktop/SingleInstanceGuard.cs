@@ -75,6 +75,10 @@ public partial class SingleInstanceGuard : Node
                 string.Equals(argument, "--diagnostics-export-smoke", StringComparison.OrdinalIgnoreCase))
             ? $"{channel}.DiagnosticsSmoke.{System.Environment.ProcessId}"
             : channel;
+#if DEBUG && !RECORDING_BUILD
+        if (Rooms.InGameRoomSmoke.Requested)
+            instanceScope = $"{channel}.RoomsPageSmoke.{System.Environment.ProcessId}";
+#endif
         var mutexName = $@"Local\LuckyDogRise.{instanceScope}.Instance";
         var requestName = $@"Local\LuckyDogRise.{instanceScope}.Activate";
         var acknowledgementName = $@"Local\LuckyDogRise.{instanceScope}.Activated";

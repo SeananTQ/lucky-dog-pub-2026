@@ -249,6 +249,15 @@ public partial class ModeManager : Control
         SettingsManager.AutoHideCounterChanged += OnAutoHideCounterChanged;
 
         L10n.ApplySavedOrSystemLocale();
+#if DEBUG && !RECORDING_BUILD
+        if (Rooms.InGameRoomSmoke.Requested)
+        {
+            ContinueStartup(new DebugLaunchSelection(DebugRuntimeEnvironment.SteamMock,
+                DebugSteamScenario.NormalSuccess, Rooms.InGameRoomSmoke.DemoRequested
+                    ? DebugGameplayChannel.Demo : DebugGameplayChannel.Standard));
+            return;
+        }
+#endif
 #if DEBUG
         if (OS.GetCmdlineUserArgs().Any(argument =>
                 string.Equals(argument, BlindBoxRegressionSmokeArgument, StringComparison.OrdinalIgnoreCase)))
@@ -535,6 +544,9 @@ public partial class ModeManager : Control
         _settingsPanel.SetRenderScale(_otherUiScaleFactor);
         _settingsPanel.GameData = _gameData;
         _settingsPanel.PlatformService = _platformService;
+#if DEBUG && !RECORDING_BUILD
+        _settingsPanel.RoomPreviewCreated += AttachRoomDesktopPreview;
+#endif
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.CollectionVictoryCelebrated += OnCollectionVictoryCelebrated;
         _settingsPanel.SwitchToBossKeyRequested += SwitchToBossKey;
@@ -660,6 +672,9 @@ public partial class ModeManager : Control
                 ? StartupState.PlatformWaiting
                 : StartupState.ReadyToReveal;
         _startupInitialized = true;
+#if DEBUG && !RECORDING_BUILD
+        if (Rooms.InGameRoomSmoke.Requested) Rooms.InGameRoomSmoke.Run(this);
+#endif
     }
 
     private bool TryResolveAccountStorage(out AccountStorageContext storageContext)
@@ -895,6 +910,9 @@ public partial class ModeManager : Control
             _gameData?.RecordPokerModeSeconds(_);
 
         UpdateFullscreenVisibility(_);
+#if DEBUG && !RECORDING_BUILD
+        UpdateRoomDesktopPreview();
+#endif
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
@@ -1039,6 +1057,9 @@ public partial class ModeManager : Control
         _settingsPanel.CancelPendingOtherUiScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
+#if DEBUG && !RECORDING_BUILD
+        RestoreRoomDesktopWindow();
+#endif
         HideBossKeyContent();
 
         if (_playRoot == null)
@@ -1783,6 +1804,9 @@ public partial class ModeManager : Control
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
         RestoreBossBlindBoxRewardIfNeeded();
+#if DEBUG && !RECORDING_BUILD
+        UpdateRoomDesktopPreview();
+#endif
     }
 
     private void RefreshBossDogVisuals()
@@ -1918,7 +1942,11 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey)
         {
             SetupFatWindow();
-            if (preserveContentAnchor)
+            if (preserveContentAnchor
+#if DEBUG && !RECORDING_BUILD
+                && !_roomWindowActive
+#endif
+                )
             {
                 DisplayServer.WindowSetPosition(
                     oldBossAnchor - RoundToVector2I(GetBossTaskbarAnchorWindowPosition()));
@@ -1971,7 +1999,11 @@ public partial class ModeManager : Control
             return;
 
         SetupFatWindow();
-        if (preserveTaskbarAnchor)
+        if (preserveTaskbarAnchor
+#if DEBUG && !RECORDING_BUILD
+            && !_roomWindowActive
+#endif
+            )
         {
             var newWindowPosition = oldAnchorScreenPosition
                 - RoundToVector2I(GetBossTaskbarAnchorWindowPosition());
@@ -3418,6 +3450,13 @@ public partial class ModeManager : Control
     {
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
+#if DEBUG && !RECORDING_BUILD
+        if (_roomWindowActive)
+        {
+            ApplyRoomDesktopLayout(force: true);
+            return;
+        }
+#endif
 
         var layout = _panelAvoidanceStrategy.CalculateHostLayout(
             new HostLayoutContext(
@@ -3501,6 +3540,11 @@ public partial class ModeManager : Control
 
     private void UpdateBossWorkAreaTracking()
     {
+#if DEBUG && !RECORDING_BUILD
+        // Room layout owns the full transparent host. Single-dog taskbar tracking
+        // must not restore the old native-window anchor on the following frame.
+        if (_roomWindowActive) return;
+#endif
         if (CurrentMode != Mode.BossKey)
         {
             _bossWorkAreaSnapshotReady = false;
@@ -3931,6 +3975,11 @@ public partial class ModeManager : Control
 
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
+#if DEBUG && !RECORDING_BUILD
+            // Individual dog dragging is a later feature. Do not drag an entire
+            // monitor-sized transparent window when clicking a room dog.
+            if (_roomWindowActive) return;
+#endif
             if (mb.Pressed)
             {
                 var mouseScreenPosition = DisplayServer.MouseGetPosition();

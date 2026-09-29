@@ -69,6 +69,13 @@ class DemoPruningTests(unittest.TestCase):
     def test_room_lab_is_not_copied_to_demo(self):
         # Room development must not leak scenes, executable C# or placeholder art.
         paths = ('Scenes/Dev/Rooms/RoomLab.tscn',
+                 'Scenes/Dev/Rooms/InGameRoomPage.tscn',
+                 'Scenes/Dev/Rooms/InGameRoomText.csv',
+                 'Scenes/Dev/Rooms/RoomDesktopPreview.tscn',
+                 'Scripts/Dev/Rooms/RoomDesktopPreview.cs',
+                 'Scripts/Dev/Rooms/ModeManager.Rooms.cs',
+                 'Scripts/Dev/Rooms/InGameRoomPreview.cs',
+                 'Scripts/Dev/Rooms/InGameRoomSmoke.cs',
                  'Scripts/Dev/Rooms/RoomSandbox.cs',
                  'Assets/UI/Icon/Dev/Icon_RoomChat.svg')
         for rel in paths:

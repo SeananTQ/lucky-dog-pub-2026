@@ -81,6 +81,15 @@ public partial class RoomDogView : Node2D
     public bool IsPointerOverContent() => Visible && (IsPointerOverDog()
         || Contains(_chatButton) || Contains(_inputPanel));
 
+    public void MakePassivePreview()
+    {
+        foreach (var hit in _dogHits)
+        {
+            hit.MouseFilter = Control.MouseFilterEnum.Ignore;
+            hit.FocusMode = Control.FocusModeEnum.None;
+        }
+    }
+
     public void OpenChat()
     {
         if (!_isLocal || !Visible) return;

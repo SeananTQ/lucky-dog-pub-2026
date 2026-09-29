@@ -23,6 +23,8 @@
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/WishlistCallToActionOverlay.tscn" id="19_wishlist_cta"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/CollectionCelebrationConfetti.tscn" id="20_collection_confetti"]
 
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Room.svg" id="22_room"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_no_shadow"]
 content_margin_left = 12.0
 content_margin_top = 12.0
@@ -105,6 +107,16 @@ tooltip_text = "Settings_Tab_OutfitPresets"
 theme_type_variation = &"PanelTopTab"
 theme_override_constants/icon_max_width = 32
 icon = ExtResource("5_preset")
+icon_alignment = 1
+
+[node name="RoomTab" type="Button" parent="Panel/RootVBox/TitleRow"]
+visible = false
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+tooltip_text = "Rooms_Title"
+theme_type_variation = &"PanelTopTab"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("22_room")
 icon_alignment = 1
 
 [node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow" unique_id=-363168624]
@@ -215,6 +227,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 0
+
+[node name="RoomContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="SettingsContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox" unique_id=372283480]
 visible = false
