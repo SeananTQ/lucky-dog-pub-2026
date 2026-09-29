@@ -96,6 +96,14 @@ public partial class RoomDesktopPreview : Node2D
         return 0;
     }
 
+    public void UpdateNameBars(Rect2 idleRect, Font font, StyleBox style, bool centerOnTaskbar,
+        float taskbarHeight, float taskbarAnchorY, float tongueClearance)
+    {
+        foreach (var (id, dog) in _dogs)
+            dog.ApplyNameBarLayout(idleRect, font, style, centerOnTaskbar && IsTaskbarSnapped(id),
+                taskbarHeight, taskbarAnchorY, tongueClearance);
+    }
+
     public Vector2 GetPosition(int memberId) => _placements[memberId].Position;
     public bool HasMember(long session, int memberId, long presence) => _session == session
         && _placements.TryGetValue(memberId, out var placement) && placement.Presence == presence;

@@ -95,6 +95,12 @@ public partial class ModeManager
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
             new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor, _panelSize.X,
             RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
+        _roomDesktop.UpdateNameBars(
+            new Rect2(_bossStatusPanelBasePosition - _bossDogVisual.Position, _bossStatusPanelBaseSize),
+            _mainText.GetThemeFont("font"), _bossStatusPanel.GetThemeStylebox("panel"),
+            RoomSnapEnabled && SettingsManager.LoadCenterCounterOnTaskbar(),
+            Mathf.Max(0, screen.End.Y - usable.End.Y) / _desktopPetScaleFactor,
+            _bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y, BossCounterTongueClearance);
         var offset = dogPosition - _bossDogVisual.Position * _desktopPetScaleFactor;
         bool localSnapped = _roomDesktop.IsTaskbarSnapped(_desktopRoomClient.Id);
         changed |= _bossContentOffset != offset || _taskbarSnapped != localSnapped;

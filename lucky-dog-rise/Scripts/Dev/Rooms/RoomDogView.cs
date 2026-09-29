@@ -8,6 +8,7 @@ namespace LuckyDogRise.Rooms;
 public partial class RoomDogView : Node2D
 {
     [Export] public DogVisual Dog { get; private set; } = null!;
+    [Export] private PanelContainer _nameBar = null!;
     [Export] private Label _name = null!;
     [Export] private PanelContainer _bubble = null!;
     [Export] private Label _bubbleText = null!;
@@ -21,11 +22,13 @@ public partial class RoomDogView : Node2D
     private RoomMember _member;
     private bool _isLocal;
     private double _hoverGrace;
+    private Sprite2D _tongue;
     public bool Editing => _inputPanel.Visible;
     public int MemberId => _member?.Id ?? 0;
 
     public override void _Ready()
     {
+        _tongue = Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
         _chatButton.Pressed += OpenChat;
         _send.Pressed += Send;
         _cancel.Pressed += CloseChat;
@@ -48,10 +51,32 @@ public partial class RoomDogView : Node2D
             Dog.ApplyReaction((EDogReactionTrigger)member.Reaction);
         _member = member;
         _name.Text = (owner ? "♛ " : "") + member.Name + (local ? " · 本机" : "");
-        _name.Visible = showName;
+        _nameBar.Visible = showName;
         _bubble.Visible = !string.IsNullOrEmpty(bubble);
         _bubbleText.Text = bubble ?? "";
         if (!local) _chatButton.Hide();
+    }
+
+    public void ApplyNameBarLayout(Rect2 idleRect, Font font, StyleBox style,
+        bool centerOnTaskbar, float taskbarHeight, float taskbarAnchorY, float tongueClearance)
+    {
+        // Use the real counter's cached font/style, including its scale-specific
+        // oversampling and antialiasing. No per-frame resource duplication.
+        if (_name.GetThemeFont("font") != font) _name.AddThemeFontOverride("font", font);
+        if (_nameBar.GetThemeStylebox("panel") != style) _nameBar.AddThemeStyleboxOverride("panel", style);
+        var position = idleRect.Position;
+        if (centerOnTaskbar && taskbarHeight > 0)
+        {
+            position.Y = taskbarAnchorY + (taskbarHeight - idleRect.Size.Y) / 2;
+            if (_tongue.Texture != null)
+            {
+                float halfHeight = _tongue.Texture.GetHeight() * Mathf.Abs(_tongue.Scale.Y) / 2;
+                float tongueBottom = Dog.Position.Y + (_tongue.Position.Y + halfHeight) * Mathf.Abs(Dog.Scale.Y);
+                position.Y = Mathf.Max(position.Y, tongueBottom + tongueClearance);
+            }
+        }
+        _nameBar.Position = position;
+        _nameBar.Size = idleRect.Size;
     }
 
     public override void _Process(double delta)

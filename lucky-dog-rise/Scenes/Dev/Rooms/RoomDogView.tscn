@@ -4,11 +4,32 @@
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 [ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Dev/Icon_RoomChat.svg" id="chat"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="counter_font"]
 
-[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("Dog", "_name", "_bubble", "_bubbleText", "_chatButton", "_inputPanel", "_input", "_send", "_cancel", "_dogHits")]
+[sub_resource type="StyleBoxFlat" id="counter_bg"]
+content_margin_left = 5.0
+content_margin_top = 3.0
+content_margin_right = 5.0
+content_margin_bottom = 3.0
+bg_color = Color(0.85882354, 0.89411765, 0.9137255, 0.9607843)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.535, 0.56, 0.82)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.04, 0.045, 0.05, 0.28)
+shadow_size = 1
+shadow_offset = Vector2(0, 2)
+
+[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("Dog", "_nameBar", "_name", "_bubble", "_bubbleText", "_chatButton", "_inputPanel", "_input", "_send", "_cancel", "_dogHits")]
 script = ExtResource("script")
 Dog = NodePath("Dog")
-_name = NodePath("Name")
+_nameBar = NodePath("NameBar")
+_name = NodePath("NameBar/Name")
 _bubble = NodePath("Bubble")
 _bubbleText = NodePath("Bubble/Text")
 _chatButton = NodePath("ChatButton")
@@ -21,14 +42,29 @@ _dogHits = [NodePath("Dog/HitButton"), NodePath("Dog/ClawLeftHitButton"), NodePa
 [node name="Dog" parent="." instance=ExtResource("dog")]
 scale = Vector2(0.25, 0.25)
 
-[node name="Name" type="Label" parent="."]
-offset_left = -120.0
-offset_top = 40.0
-offset_right = 120.0
-offset_bottom = 66.0
-theme = ExtResource("theme")
+[node name="NameBar" type="PanelContainer" parent="."]
+offset_left = -86.0
+offset_top = 20.0
+offset_right = 90.0
+offset_bottom = 49.0
+theme_override_styles/panel = SubResource("counter_bg")
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="NameBar"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.065, 0.075, 1)
+theme_override_colors/font_shadow_color = Color(1, 1, 1, 0.3)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/outline_size = 0
+theme_override_fonts/font = ExtResource("counter_font")
 theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
+vertical_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 mouse_filter = 2
 
 [node name="Bubble" type="PanelContainer" parent="."]
