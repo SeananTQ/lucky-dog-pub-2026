@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomListRow.cs" id="script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Dev/Icon_RoomGame.svg" id="icon"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
 
 [node name="RoomListRow" type="HBoxContainer" node_paths=PackedStringArray("_gameIcon", "_name", "_count", "_join")]
 layout_mode = 2

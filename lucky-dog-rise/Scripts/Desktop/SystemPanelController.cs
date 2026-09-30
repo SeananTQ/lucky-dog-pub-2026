@@ -104,7 +104,7 @@ public partial class SystemPanelController : CanvasLayer
     private Button _linkTreeTab = null!;
     private Button _collectionEventTab = null!;
     private Button _outfitPresetTab = null!;
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
     private Button _roomTab;
     private VBoxContainer _roomContent;
     private Rooms.InGameRoomPreview _roomPreview;
@@ -300,6 +300,9 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _platformService = value;
+#if !DEMO_BUILD && !RECORDING_BUILD
+            _roomPreview?.Configure(_platformService, _gameData);
+#endif
             _inventoryService = BuildCapabilities.SteamInventory
                 ? value as IPlatformInventoryService
                 : null;
@@ -1017,13 +1020,14 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SwitchTab(int index)
     {
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         if (index == _roomTabIndex && _roomPreview == null)
         {
-            _roomPreview = GD.Load<PackedScene>("res://Scenes/Dev/Rooms/InGameRoomPage.tscn")
+            _roomPreview = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
                 .Instantiate<Rooms.InGameRoomPreview>();
+            _roomPreview.Configure(_platformService, _gameData);
+            _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
             _roomContent.AddChild(_roomPreview);
-            RoomPreviewCreated?.Invoke(_roomPreview.PreviewClient);
             BindTutorialPopupActivity(_roomPreview);
             _panelScroll.ScrollVertical = 0;
         }
@@ -1073,10 +1077,11 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ConfigureRoomTab()
     {
-        var tab = GetNode<Button>("Panel/RootVBox/TitleRow/RoomTab");
-        var content = GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent");
-#if DEBUG && !RECORDING_BUILD
-        if (!BuildInfo.IsDebugDemo && !BuildInfo.IsRecording)
+        var tab = GetNodeOrNull<Button>("Panel/RootVBox/TitleRow/RoomTab");
+        var content = GetNodeOrNull<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent");
+        if (tab == null || content == null) return;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (BuildCapabilities.SteamRooms)
         {
             _roomTab = tab;
             _roomContent = content;

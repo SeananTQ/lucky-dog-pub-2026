@@ -6,6 +6,34 @@ import shutil
 from pathlib import Path
 
 
+ROOM_ICONS = ('TabIcon_Room.svg', 'Icon_RoomGame.svg', 'Icon_RoomChat.svg')
+
+
+def strip_room_panel(content):
+    """Remove the room-only scene branches from the disposable Demo copy."""
+    roots = ('Panel/RootVBox/TitleRow/RoomTab',
+             'Panel/RootVBox/Scroll/ContentVBox/RoomContent')
+
+    def keep_node(match):
+        block = match.group(0)
+        name = re.search(r'\bname="([^"]+)"', block).group(1)
+        parent = re.search(r'\bparent="([^"]+)"', block)
+        path = (parent.group(1) + '/' if parent else '') + name
+        return '' if any(path == root or path.startswith(root + '/') for root in roots) else block
+
+    content = re.sub(r'^\[node [^\n]*\][\s\S]*?(?=^\[|\Z)', keep_node, content, flags=re.M)
+    for icon in ROOM_ICONS:
+        pattern = (r'^\[ext_resource [^\n]*path="res://Assets/UI/Icon/' + re.escape(icon)
+                   + r'"[^\n]*id="([^"]+)"\]\r?\n')
+        match = re.search(pattern, content, re.M)
+        if match:
+            resource_id = match.group(1)
+            content = re.sub(pattern, '', content, flags=re.M)
+            if f'ExtResource("{resource_id}")' in content:
+                raise ValueError(f'SystemPanel: room icon remains referenced: {icon}')
+    return content
+
+
 def prepare(source, output):
     source, output = source.resolve(), output.resolve()
     expected = source.parent / '.local-build' / 'demo-project'
@@ -86,6 +114,8 @@ def prepare(source, output):
             continue
         if rel not in reasons:
             removed.append(rel)
+    removed.extend('Assets/UI/Icon/' + icon for icon in ROOM_ICONS
+                   if (source / 'Assets/UI/Icon' / icon).exists())
     removed_set = set(removed)
     scene_edits = {}
     # Remove editor-only texture defaults from the COPY; equipment initializes at runtime.
@@ -93,7 +123,12 @@ def prepare(source, output):
         for file in (source / folder).rglob('*'):
             if file.suffix not in ('.tscn', '.tres') or 'Dev' in file.relative_to(source).parts:
                 continue
+            if file.is_relative_to(source / 'Scenes/Rooms'):
+                continue
             content = file.read_text(encoding='utf-8-sig')
+            if file == source / 'Scenes/App/SystemPanel.tscn':
+                content = strip_room_panel(content)
+                scene_edits[file.relative_to(source).as_posix()] = content
             for path in re.findall(r'path="res://([^"\n]+)"', content):
                 if path in removed_set:
                     pattern = r'^\[ext_resource type="Texture2D"[^\n]*path="res://' + re.escape(path) + r'"[^\n]*id="([^"]+)"\]\r?\n'
@@ -119,8 +154,8 @@ def prepare(source, output):
 
     def ignore_demo_content(directory, names):
         ignored = ignored_patterns(directory, names)
-        # Shared room logic is not part of Demo; do not suppress unrelated Rooms folders.
-        if Path(directory) == source / 'Scripts':
+        # Production room code and resources are excluded only at their known roots.
+        if Path(directory) in (source / 'Scripts', source / 'Scenes'):
             ignored.add('Rooms')
         return ignored
 
@@ -137,9 +172,17 @@ def prepare(source, output):
     project.write_text(project.read_text(encoding='utf-8').replace(
         'enabled=PackedStringArray("res://addons/wick/plugin.cfg")', 'enabled=PackedStringArray()'), encoding='utf-8')
     csproj = output / 'LuckyDogRise.csproj'
-    csproj.write_text(re.sub(r'<SteamworksNetRoot>.*?</SteamworksNetRoot>',
+    project_source = re.sub(r'<SteamworksNetRoot>.*?</SteamworksNetRoot>',
         lambda _: '<SteamworksNetRoot>' + (source.parent / '.local-build/steamworks/Steamworks.NET-Standalone_2025.163.0/Windows-x64').as_posix() + '</SteamworksNetRoot>',
-        csproj.read_text(encoding='utf-8')), encoding='utf-8')
+        csproj.read_text(encoding='utf-8'))
+    # Both editor import (Debug) and final export must compile without Rooms sources.
+    project_source, replaced = re.subn(r'</Project>\s*\Z',
+        '  <PropertyGroup>\n'
+        '    <DefineConstants>$(DefineConstants);DEMO_BUILD</DefineConstants>\n'
+        '  </PropertyGroup>\n</Project>\n', project_source)
+    if replaced != 1:
+        raise ValueError('LuckyDogRise.csproj: missing Project closing element')
+    csproj.write_text(project_source, encoding='utf-8')
     manifest = dict(item_ids=sorted(items), dog_skin_ids=sorted(skins),
                     dog_folders=sorted({r['FolderPath'] for r in skins.values()}),
                     retained_assets={p: sorted(r) for p, r in sorted(reasons.items())},

@@ -1,9 +1,9 @@
 [gd_scene format=3]
-[ext_resource type="Script" path="res://Scripts/Dev/Rooms/InGameRoomPreview.cs" id="script"]
-[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/InGameRoomDirectoryRow.tscn" id="row"]
-[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/InGameRoomMemberRow.tscn" id="member"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Dev/Icon_RoomGame.svg" id="icon"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_code", "_status", "_empty", "_create", "_join", "_random", "_refresh", "_return", "_cancel")]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/InGameRoomPreview.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomDirectoryRow.tscn" id="row"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomMemberRow.tscn" id="member"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_code", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -18,6 +18,8 @@ _roomTitle = NodePath("Room/Title")
 _code = NodePath("Room/CodeRow/Code")
 _status = NodePath("Status")
 _empty = NodePath("Lobby/Empty")
+_connection = NodePath("Notice")
+_game = NodePath("Room/Game/Name")
 _create = NodePath("Lobby/CreateRow/Create")
 _join = NodePath("Lobby/JoinRow/Join")
 _random = NodePath("Lobby/Random")
@@ -29,7 +31,7 @@ _memberRow = ExtResource("member")
 
 [node name="Notice" type="Label" parent="."]
 layout_mode = 2
-text = "Rooms_MockNotice"
+text = "Rooms_SteamUnavailable"
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 13
 

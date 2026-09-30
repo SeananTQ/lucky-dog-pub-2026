@@ -7,6 +7,9 @@ namespace LuckyDogRise;
 public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
     IPlatformStatisticSyncOperations, IPlatformUpdateService, IPlatformCloudStorageService, IPlatformScreenshotService
+#if !DEMO_BUILD && !RECORDING_BUILD
+    , Rooms.IPlatformRoomServiceProvider
+#endif
 {
     private const double InventoryTimeoutSeconds = 10.0;
     private static readonly double[] RetryDelaySeconds = [5.0, 15.0, 30.0, 60.0];
@@ -42,6 +45,13 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public string ProviderName => "Steam";
     public string StatusMessage => _statusMessage;
     public bool IsAvailable => _session?.IsAvailable == true;
+#if !DEMO_BUILD && !RECORDING_BUILD
+    // Inventory readiness is deliberately not a lobby/network readiness gate.
+    public Rooms.IRoomService RoomService => !_disposed && !HasAccountIdentityConflict
+        ? _session?.RoomService : null;
+    public bool RoomRestartRequired => !_disposed && !HasAccountIdentityConflict
+        && _session?.RoomRestartRequired == true;
+#endif
     public System.Threading.Tasks.Task<bool> SaveScreenshotAsync(byte[] rgb, int width, int height)
     {
         if (_disposed || HasAccountIdentityConflict || _session == null

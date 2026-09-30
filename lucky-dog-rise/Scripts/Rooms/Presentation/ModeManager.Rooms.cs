@@ -1,4 +1,4 @@
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
 using System.Linq;
 using Godot;
 using LuckyDogRise.Rooms;
@@ -22,13 +22,23 @@ public partial class ModeManager
     private long _roomDragSession;
     private Vector2 _roomDragMouseStart;
     private Vector2 _roomDragDogStart;
+#if DEBUG
     private bool? _roomSnapEnabledForSmoke;
-    private bool RoomSnapEnabled => _roomSnapEnabledForSmoke ?? SettingsManager.LoadSnapToWindowsTaskbar();
+#endif
+    private bool RoomSnapEnabled =>
+#if DEBUG
+        _roomSnapEnabledForSmoke ??
+#endif
+        SettingsManager.LoadSnapToWindowsTaskbar();
     private float RoomTaskbarAnchorOffsetY =>
         (_bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y) * _desktopPetScaleFactor;
 
     private void AttachRoomDesktopPreview(RoomClient client)
     {
+        if (ReferenceEquals(_desktopRoomClient, client)) return;
+        RestoreRoomDesktopWindow();
+        _roomDesktop?.Clear();
+        _roomLastLayoutSnapshot = null;
         _desktopRoomClient = client;
         _roomLocalDogHits = new[] { "HitButton", "ClawLeftHitButton", "ClawRightHitButton" }
             .Select(path => _bossDogVisual.GetNode<Button>(path)).ToArray();
@@ -58,7 +68,7 @@ public partial class ModeManager
             _roomWindowActive = true;
             if (_roomDesktop == null)
             {
-                _roomDesktop = GD.Load<PackedScene>("res://Scenes/Dev/Rooms/RoomDesktopPreview.tscn")
+                _roomDesktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
                     .Instantiate<RoomDesktopPreview>();
                 _bossKeyContent.AddChild(_roomDesktop);
             }
@@ -170,7 +180,9 @@ public partial class ModeManager
             CancelWindowDrag();
             var point = button.Position;
             if (_settingsPanel.ContainsPoint(point)
+#if DEBUG
                 || (_steamMockPanel != null && _steamMockPanel.ContainsPoint(point))
+#endif
                 || GetBossStatusPanelRect().HasPoint(point)
                 || (_bossBlindBoxHint is { Visible: true } && _bossBlindBoxHint.MouseFilter != Control.MouseFilterEnum.Ignore
                     && GetBossBlindBoxHintRect().HasPoint(point))
@@ -211,6 +223,7 @@ public partial class ModeManager
     }
 
     // Development-only assertions use the actual window, dog nodes and hit test.
+#if DEBUG
     public bool RoomDesktopWindowActive => _roomWindowActive;
     public RoomDesktopPreview RoomDesktopForSmoke => _roomDesktop;
     public bool RoomDraggingForSmoke => _roomDragMember != 0 && _isDragging;
@@ -229,5 +242,6 @@ public partial class ModeManager
         _fullscreenCheckTimer = 2;
         SetHiddenByFullscreenApp(hidden);
     }
+#endif
 }
 #endif

@@ -51,3 +51,10 @@ SteamInventoryTestController
 StartupAccountGateController
 LootConfigurationValidationRunner
 TestDogSkinParts
+LuckyDogRise.Rooms.InGameRoomDirectoryRow
+LuckyDogRise.Rooms.InGameRoomPreview
+LuckyDogRise.Rooms.RoomDesktopPreview
+LuckyDogRise.Rooms.RoomDogView
+LuckyDogRise.Rooms.RoomLab
+LuckyDogRise.Rooms.RoomListRow
+LuckyDogRise.Rooms.RoomMemberRow

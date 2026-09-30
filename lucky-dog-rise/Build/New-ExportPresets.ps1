@@ -23,6 +23,9 @@ $escapedExport = $ExportPath.Replace('\', '/')
 $versionParts = @($Version.Split('.'))
 while ($versionParts.Count -lt 4) { $versionParts += '0' }
 $fileVersion = ($versionParts[0..3] -join '.')
+$roomExclusions = if ($Channel -in 'Demo', 'PlaytestRecording') {
+    ',Scenes/Rooms/*,Scripts/Rooms/*,Assets/UI/Icon/Icon_RoomGame.svg*,Assets/UI/Icon/Icon_RoomChat.svg*'
+} else { '' }
 $content = @"
 [preset.0]
 
@@ -33,7 +36,7 @@ dedicated_server=false
 custom_features="$feature"
 export_filter="all_resources"
 include_filter="Data/Localization/*.csv,Audio/**/*.ogg,Audio/**/*.wav,Audio/**/*.mp3"
-exclude_filter="addons/*,Tools/*,docs/*,Build/Developer/*,steam_appid.txt,steam_appid.dev.txt,Scenes/Dev/*,Scripts/Dev/Rooms/*,Assets/UI/Icon/Dev/*,Scripts/Desktop/DeveloperLauncherController.cs*,Scripts/Desktop/SteamMockPanelController.cs*,Scripts/Platform/DebugSteamMockPlatformService.cs*,Scripts/Platform/IDebugSteamMockController.cs*,Assets/v1/layer_index_old.json,Themes/DefaultTheme_V1Bak.tres"
+exclude_filter="addons/*,Tools/*,docs/*,Build/Developer/*,steam_appid.txt,steam_appid.dev.txt,Scenes/Dev/*,Scripts/Dev/Rooms/*,Assets/UI/Icon/Dev/*,Scripts/Desktop/DeveloperLauncherController.cs*,Scripts/Desktop/SteamMockPanelController.cs*,Scripts/Platform/DebugSteamMockPlatformService.cs*,Scripts/Platform/IDebugSteamMockController.cs*,Assets/v1/layer_index_old.json,Themes/DefaultTheme_V1Bak.tres$roomExclusions"
 export_path="$escapedExport"
 patches=PackedStringArray()
 encryption_include_filters="*"

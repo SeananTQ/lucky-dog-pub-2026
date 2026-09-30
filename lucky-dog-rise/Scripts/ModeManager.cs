@@ -249,7 +249,7 @@ public partial class ModeManager : Control
         SettingsManager.AutoHideCounterChanged += OnAutoHideCounterChanged;
 
         L10n.ApplySavedOrSystemLocale();
-#if DEBUG && !RECORDING_BUILD
+#if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
         if (Rooms.InGameRoomSmoke.Requested)
         {
             ContinueStartup(new DebugLaunchSelection(DebugRuntimeEnvironment.SteamMock,
@@ -544,7 +544,7 @@ public partial class ModeManager : Control
         _settingsPanel.SetRenderScale(_otherUiScaleFactor);
         _settingsPanel.GameData = _gameData;
         _settingsPanel.PlatformService = _platformService;
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         _settingsPanel.RoomPreviewCreated += AttachRoomDesktopPreview;
 #endif
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
@@ -672,7 +672,7 @@ public partial class ModeManager : Control
                 ? StartupState.PlatformWaiting
                 : StartupState.ReadyToReveal;
         _startupInitialized = true;
-#if DEBUG && !RECORDING_BUILD
+#if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
         if (Rooms.InGameRoomSmoke.Requested) Rooms.InGameRoomSmoke.Run(this);
 #endif
     }
@@ -910,7 +910,7 @@ public partial class ModeManager : Control
             _gameData?.RecordPokerModeSeconds(_);
 
         UpdateFullscreenVisibility(_);
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
 #endif
         UpdatePokerViewportRendering(_);
@@ -971,7 +971,7 @@ public partial class ModeManager : Control
         if (what == NotificationApplicationFocusIn)
             (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         if (what == NotificationWMWindowFocusOut && _roomWindowActive)
             CancelWindowDrag();
 #endif
@@ -1062,7 +1062,7 @@ public partial class ModeManager : Control
         _settingsPanel.CancelPendingOtherUiScaleChange();
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         RestoreRoomDesktopWindow();
 #endif
         HideBossKeyContent();
@@ -1809,7 +1809,7 @@ public partial class ModeManager : Control
         RefreshBossDogVisuals();
         RefreshBossBlindBoxHint();
         RestoreBossBlindBoxRewardIfNeeded();
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
 #endif
     }
@@ -1948,7 +1948,7 @@ public partial class ModeManager : Control
         {
             SetupFatWindow();
             if (preserveContentAnchor
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
                 && !_roomWindowActive
 #endif
                 )
@@ -2005,7 +2005,7 @@ public partial class ModeManager : Control
 
         SetupFatWindow();
         if (preserveTaskbarAnchor
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
             && !_roomWindowActive
 #endif
             )
@@ -2907,7 +2907,7 @@ public partial class ModeManager : Control
 
         if (CurrentMode == Mode.BossKey)
         {
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
             over |= _roomWindowActive ? HitRoomDog(localPos) != 0 : _dogHitRect.HasPoint(localPos);
 #else
             over |= _dogHitRect.HasPoint(localPos);
@@ -3281,7 +3281,7 @@ public partial class ModeManager : Control
         var localPos = ScreenToWindowLocal(screenPosition);
         // Use the existing scaled dog hit area, excluding UI drawn in front of it.
         if (!(
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
                 _roomWindowActive ? IsRoomLocalDogHit(localPos) :
 #endif
                 _dogHitRect.HasPoint(localPos)) || _settingsPanel.ContainsPoint(localPos)
@@ -3439,7 +3439,7 @@ public partial class ModeManager : Control
             : aY + ah;
 
         var desktopGridOrigin = Vector2.Zero;
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         if (CurrentMode == Mode.BossKey && _roomWindowActive)
         {
             // In a room the host stays fixed and the dog moves inside it. Translate
@@ -3475,7 +3475,7 @@ public partial class ModeManager : Control
     {
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, true);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.AlwaysOnTop, true);
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         if (_roomWindowActive)
         {
             ApplyRoomDesktopLayout(force: true);
@@ -3565,7 +3565,7 @@ public partial class ModeManager : Control
 
     private void UpdateBossWorkAreaTracking()
     {
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         // Room layout owns the full transparent host. Single-dog taskbar tracking
         // must not restore the old native-window anchor on the following frame.
         if (_roomWindowActive) return;
@@ -3998,7 +3998,7 @@ public partial class ModeManager : Control
             }
         }
 
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         // Room dragging moves one local presentation, never the native host.
         if (_roomWindowActive && (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left }
             || @event is InputEventMouseMotion))
@@ -4084,7 +4084,7 @@ public partial class ModeManager : Control
 
     private void CancelWindowDrag()
     {
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
         _roomDragMember = 0;
 #endif
         _isDragging = false;

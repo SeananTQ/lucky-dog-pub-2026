@@ -504,7 +504,13 @@ public partial class RoomLab : Control
     }
     private void RunSmokeAndQuit()
     {
-        try { GD.Print(RoomSandboxChecks.Run()); GetTree().Quit(); }
+        try
+        {
+            GD.Print(RoomSandboxChecks.Run());
+            SteamRoomChecks.Run();
+            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance and recovery (fake transport).");
+            GetTree().Quit();
+        }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
     }
 

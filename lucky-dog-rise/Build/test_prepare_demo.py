@@ -27,7 +27,10 @@ class DemoPruningTests(unittest.TestCase):
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(b'test')
         (self.source / 'project.godot').write_text('')
-        (self.source / 'LuckyDogRise.csproj').write_text('<SteamworksNetRoot>old</SteamworksNetRoot>')
+        (self.source / 'LuckyDogRise.csproj').write_text(
+            '<Project><PropertyGroup><SteamworksNetRoot>old</SteamworksNetRoot>'
+            '<DefineConstants>$(DefineConstants);EXISTING_SYMBOL</DefineConstants>'
+            '</PropertyGroup></Project>')
 
     def run_prepare(self):
         for name, rows in self.rows.items():
@@ -90,10 +93,14 @@ class DemoPruningTests(unittest.TestCase):
     def test_shared_room_code_is_not_copied_to_demo(self):
         excluded = ('Scripts/Rooms/RoomSession.cs',
                     'Scripts/Rooms/RoomSession.cs.uid',
-                    'Scripts/Rooms/Transport/RoomTransport.cs')
+                    'Scripts/Rooms/Transport/RoomTransport.cs',
+                    'Scripts/Rooms/Presentation/InGameRoomPreview.cs',
+                    'Scenes/Rooms/InGameRoomPage.tscn',
+                    'Scenes/Rooms/InGameRoomText.en.translation')
         retained = ('Scripts/Desktop/SettingsManager.cs',
                     'Scripts/RoomsHelper.cs',
-                    'Scripts/Other/Rooms/Unrelated.cs')
+                    'Scripts/Other/Rooms/Unrelated.cs',
+                    'Scenes/Other/Rooms/Unrelated.tscn')
         contents = {rel: 'source-content:' + rel for rel in excluded + retained}
         for rel, content in contents.items():
             file = self.source / rel
@@ -101,12 +108,62 @@ class DemoPruningTests(unittest.TestCase):
             file.write_text(content)
         self.run_prepare()
         self.assertFalse((self.output / 'Scripts/Rooms').exists())
+        self.assertFalse((self.output / 'Scenes/Rooms').exists())
         for rel in excluded:
             self.assertFalse((self.output / rel).exists(), rel)
         for rel in retained:
             self.assertEqual((self.output / rel).read_text(), contents[rel], rel)
         for rel, content in contents.items():
             self.assertEqual((self.source / rel).read_text(), content, rel)
+
+    def test_demo_copy_compiles_without_room_types(self):
+        original = (self.source / 'LuckyDogRise.csproj').read_text()
+        self.run_prepare()
+        copied = (self.output / 'LuckyDogRise.csproj').read_text()
+        self.assertIn('$(DefineConstants);DEMO_BUILD', copied)
+        self.assertIn('$(DefineConstants);EXISTING_SYMBOL', copied)
+        self.assertEqual((self.source / 'LuckyDogRise.csproj').read_text(), original)
+        self.run_prepare()
+        self.assertEqual((self.output / 'LuckyDogRise.csproj').read_text().count('DEMO_BUILD'), 1)
+
+    def test_demo_panel_has_no_room_nodes_or_dangling_icon(self):
+        scene = self.source / 'Scenes/App/SystemPanel.tscn'
+        scene.parent.mkdir(parents=True)
+        original = '''[gd_scene format=3]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/TabIcon_Room.svg" id="room_icon"]
+[node name="SystemPanel" type="CanvasLayer"]
+[node name="RoomTab" type="Button" parent="Panel/RootVBox/TitleRow"]
+icon = ExtResource("room_icon")
+[node name="Hint" type="Label" parent="Panel/RootVBox/TitleRow/RoomTab"]
+text = "room hint"
+[node name="RoomContent" type="VBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox"]
+[node name="Placeholder" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/RoomContent"]
+text = "room content"
+[node name="SettingsTab" type="Button" parent="Panel/RootVBox/TitleRow"]
+text = "settings"
+[node name="RoomTab" type="Button" parent="Unrelated"]
+text = "keep unrelated node"
+'''
+        scene.write_text(original)
+        for name in ('TabIcon_Room.svg', 'Icon_RoomGame.svg', 'Icon_RoomChat.svg'):
+            icon = self.source / 'Assets/UI/Icon' / name
+            icon.parent.mkdir(parents=True, exist_ok=True)
+            icon.write_text('placeholder')
+            Path(str(icon) + '.import').write_text('import-placeholder')
+        result = self.run_prepare()
+        copied = (self.output / scene.relative_to(self.source)).read_text()
+        self.assertNotIn('room_icon', copied)
+        self.assertNotIn('room hint', copied)
+        self.assertNotIn('room content', copied)
+        self.assertNotIn('name="RoomContent"', copied)
+        self.assertIn('name="SettingsTab"', copied)
+        self.assertIn('keep unrelated node', copied)
+        self.assertEqual(scene.read_text(), original)
+        for name in ('TabIcon_Room.svg', 'Icon_RoomGame.svg', 'Icon_RoomChat.svg'):
+            rel = 'Assets/UI/Icon/' + name
+            self.assertIn(rel, result['excluded_assets'])
+            self.assertFalse((self.output / rel).exists())
+            self.assertFalse((self.output / (rel + '.import')).exists())
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
 using System;
 using Godot;
 using DataTables;
@@ -132,12 +132,14 @@ public partial class RoomDogView : Node2D
     }
     private void Send() => SendRequested?.Invoke(_input.Text);
     public void AcceptSend() { _input.Clear(); CloseChat(); }
+#if DEBUG
     public void SubmitChatForSmoke(string text)
     {
         OpenChat();
         _input.Text = text;
         _send.EmitSignal(Button.SignalName.Pressed);
     }
+#endif
     public void CloseChat()
     {
         _inputPanel.Hide();

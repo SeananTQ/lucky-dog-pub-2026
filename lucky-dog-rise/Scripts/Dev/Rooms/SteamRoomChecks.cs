@@ -1,0 +1,307 @@
+#if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace LuckyDogRise.Rooms;
+
+// A deterministic transport seam exercises actual RoomClient/SteamRoomService state changes.
+// These checks neither initialize Steam nor access inventory, settings or player saves.
+public static class SteamRoomChecks
+{
+    public static void Run()
+    {
+        CheckCodes();
+        CheckLateCreate();
+        CheckDeadlineBeforeClientTick();
+        CheckSerializedRetry();
+        CheckFailedJoinKeepsOldRoom();
+        CheckValidationAndPresence();
+        CheckSearchAndRandomJoin();
+        CheckOfflineAndSuspension();
+        CheckMissingCallback();
+        CheckDispose();
+    }
+
+    private static void Assert(bool condition, string message)
+    {
+        if (!condition) throw new InvalidOperationException("Steam room check failed: " + message);
+    }
+
+    private static SteamRoomService Service(FakeTransport transport) => new(transport, 10,
+        skin => skin is 10 or 20, hat => hat is 30 or 40, reaction => reaction is 1001 or 1002,
+        () => transport.Now);
+    private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10);
+
+    private static void CheckCodes()
+    {
+        foreach (var id in new ulong[] { 1, 31, 32, 109775242000000000, ulong.MaxValue })
+        {
+            var code = SteamRoomProtocol.Encode(id);
+            Assert(SteamRoomProtocol.TryDecode(code.ToLowerInvariant(), out var decoded) && decoded == id,
+                "room code must round-trip every 64-bit id");
+        }
+        Assert(!SteamRoomProtocol.TryDecode("LD-Z000000000000", out _), "overflow rejected");
+        Assert(!SteamRoomProtocol.TryDecode("LD-0000000000000", out _), "zero rejected");
+        Assert(!SteamRoomProtocol.TryDecode("LD-000000000000I", out _), "invalid alphabet rejected");
+        Assert(!SteamRoomProtocol.TryDecodeAppearance("1:10:-30:1001", out _, out _, out _), "negative item rejected");
+        Assert(!SteamRoomProtocol.TryDecodeAppearance(new string('1', 500), out _, out _, out _), "oversize metadata rejected");
+    }
+
+    private static void CheckLateCreate()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("room");
+        client.AdvanceTo(RoomRules.RequestTimeout);
+        Assert(client.RequestState == RoomRequestState.TimedOut, "request timeout visible");
+        transport.SucceedMembership(101);
+        Assert(client.JoinedCode == "" && client.View == null, "late create cannot commit");
+        Assert(transport.Left.SequenceEqual(new ulong[] { 101 }), "late create membership cleaned");
+        Assert(!transport.RequestHandles[0].DisposedBeforeCallback, "cancel retains native callback");
+    }
+
+    private static void CheckSerializedRetry()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(201);
+        client.Join(SteamRoomProtocol.Encode(201));
+        client.Cancel();
+        client.Join(SteamRoomProtocol.Encode(201));
+        Assert(transport.MembershipCalls == 1, "same-lobby retry must await stale operation");
+        transport.SucceedMembership(201);
+        Assert(transport.Left.SequenceEqual(new ulong[] { 201 }) && transport.MembershipCalls == 2,
+            "cleanup precedes retry launch");
+        transport.SucceedMembership(201);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(201) && client.View.Members.Length == 1,
+            "new same-lobby membership survives stale cleanup");
+        Assert(transport.Left.Count == 1, "new membership was not evicted");
+    }
+
+    private static void CheckDeadlineBeforeClientTick()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("callback pump runs first");
+        transport.Now = 15;
+        transport.SucceedMembership(202);
+        Assert(client.JoinedCode == "" && transport.Left.Contains(202),
+            "expired result cannot commit before the UI client clock advances");
+        client.AdvanceTo(15);
+        Assert(client.RequestState == RoomRequestState.TimedOut, "normal UI timeout remains visible");
+    }
+
+    private static void CheckFailedJoinKeepsOldRoom()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("old");
+        transport.SucceedMembership(301);
+        var session = client.Session;
+        client.Join(SteamRoomProtocol.Encode(302));
+        transport.FailMembership(RoomFailure.Full);
+        Assert(client.Failure == RoomFailure.Full && client.JoinedCode == SteamRoomProtocol.Encode(301)
+            && client.Session == session && transport.Left.Count == 0, "failed switch retains existing room");
+        client.Create("bad metadata");
+        transport.InitializeSucceeds = false;
+        transport.SucceedMembership(303);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(301) && transport.Left.Contains(303),
+            "failed metadata initialization cleans new room only");
+    }
+
+    private static void CheckValidationAndPresence()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(401, new SteamRoomMemberData(88, "remote\nname", "1:999999:999999:999999"));
+        client.Join(SteamRoomProtocol.Encode(401));
+        transport.SucceedMembership(401);
+        var remote = client.View.Members.Single(member => member.Id != 1);
+        Assert(remote.SkinId == 10 && remote.HeadwearId == 0 && remote.Reaction == 1001,
+            "untrusted metadata uses valid local defaults");
+        Assert(remote.Name == "remotename", "control characters removed from nickname");
+        transport.SetRemote(401, new SteamRoomMemberData(88, "new name", "1:20:30:1002"));
+        var updated = client.View.Members.Single(member => member.Id != 1);
+        Assert(updated.SkinId == 20 && updated.HeadwearId == 30 && updated.Reaction == 1002
+            && updated.Presence == remote.Presence, "remote appearance updates retain identity");
+        transport.RemoveRemote(401, 88);
+        Assert(client.View.Members.Length == 1, "leave removes visible dog");
+        transport.SetRemote(401, new SteamRoomMemberData(88, "back", "1:10:0:1001"));
+        Assert(client.View.Members.Single(member => member.Id != 1).Presence != remote.Presence,
+            "rejoined Steam identity has new presence");
+        client.SetAppearance(20, 40, 1002);
+        Assert(transport.AppearanceWrites.Last() == "1:20:40:1002"
+            && client.View.Members.Single(member => member.Id == 1).SkinId == 20, "own appearance synchronized");
+    }
+
+    private static void CheckSearchAndRandomJoin()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(501);
+        transport.Seed(502);
+        transport.Rooms[502] = transport.Rooms[502] with { Protocol = "future-incompatible" };
+        client.FindAndJoin();
+        transport.CompleteSearch(501, 502);
+        Assert(client.Operation == RoomOperation.Join && transport.MembershipCalls == 1,
+            "search can synchronously chain a compatible join");
+        transport.SucceedMembership(501);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(501), "random join succeeds");
+    }
+
+    private static void CheckOfflineAndSuspension()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("room");
+        transport.SucceedMembership(601);
+        client.Create("pending");
+        transport.IsAvailable = false;
+        service.Tick();
+        Assert(client.JoinedCode == "" && client.Failure == RoomFailure.Unavailable && !client.IsBusy,
+            "disconnect clears members and pending request");
+        transport.IsAvailable = true;
+        transport.SucceedMembership(602);
+        Assert(transport.Left.Contains(602) && client.JoinedCode == "", "late offline success cleaned after reconnect");
+        client.Create("before mock");
+        service.SetSuspended(true);
+        transport.SucceedMembership(603);
+        Assert(!service.IsAvailable && transport.Left.Contains(603), "Mock switch blocks late membership");
+        service.SetSuspended(false);
+        Assert(service.IsAvailable, "real mode can resume without changing Steam runtime");
+    }
+
+    private static void CheckMissingCallback()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("missing callback");
+        client.AdvanceTo(15);
+        client.Create("queued retry");
+        transport.Now = 46;
+        service.Tick();
+        Assert(!service.IsAvailable && client.Failure == RoomFailure.Unavailable && !client.IsBusy,
+            "missing native callback has bounded visible failure");
+        transport.SucceedMembership(701);
+        Assert(service.IsAvailable && transport.Left.Contains(701) && transport.MembershipCalls == 1,
+            "late settlement cleans membership and permits recovery");
+    }
+
+    private static void CheckDispose()
+    {
+        var transport = new FakeTransport();
+        var service = Service(transport);
+        using var client = Client(service);
+        client.Create("dispose");
+        transport.SucceedMembership(801);
+        service.Dispose();
+        Assert(client.JoinedCode == "" && transport.Left.Contains(801) && transport.Disposed,
+            "service teardown leaves room before transport disposal");
+    }
+
+    private sealed class FakeHandle : IDisposable
+    {
+        public bool CallbackDelivered;
+        public bool DisposedBeforeCallback;
+        public void Dispose() { if (!CallbackDelivered) DisposedBeforeCallback = true; }
+    }
+
+    private sealed class FakeTransport : ISteamRoomTransport
+    {
+        private readonly Queue<(Action<SteamRoomJoinResult> Callback, FakeHandle Handle)> _membership = new();
+        private Action<SteamRoomSearchResult> _search;
+        private FakeHandle _searchHandle;
+        public ulong LocalSteamId => 77;
+        public bool IsAvailable { get; set; } = true;
+        public bool InitializeSucceeds = true;
+        public bool Disposed;
+        public double Now;
+        public int MembershipCalls;
+        public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
+        public readonly List<ulong> Left = new();
+        public readonly List<string> AppearanceWrites = new();
+        public readonly List<FakeHandle> RequestHandles = new();
+        public event Action<ulong> LobbyChanged = delegate { };
+        public event Action<ulong, ulong> MemberDeparted = delegate { };
+
+        public void Seed(ulong lobby, params SteamRoomMemberData[] other)
+        {
+            var members = new[] { new SteamRoomMemberData(77, "local Steam name", "1:10:0:1001") }.Concat(other).ToArray();
+            Rooms[lobby] = new SteamRoomData(lobby, SteamRoomProtocol.Version, "room", "social", 77,
+                members.Length, 6, members);
+        }
+        public IDisposable Create(Action<SteamRoomJoinResult> completed) => Join(0, completed);
+        public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
+        {
+            MembershipCalls++;
+            var handle = new FakeHandle();
+            RequestHandles.Add(handle);
+            _membership.Enqueue((completed, handle));
+            return handle;
+        }
+        public IDisposable Search(Action<SteamRoomSearchResult> completed)
+        {
+            _search = completed;
+            _searchHandle = new FakeHandle();
+            return _searchHandle;
+        }
+        public void CompleteSearch(params ulong[] ids)
+        {
+            _searchHandle.CallbackDelivered = true;
+            _search(new SteamRoomSearchResult(RoomFailure.None, ids));
+        }
+        public void SucceedMembership(ulong lobby)
+        {
+            if (!Rooms.ContainsKey(lobby)) Seed(lobby);
+            var request = _membership.Dequeue();
+            request.Handle.CallbackDelivered = true;
+            request.Callback(new SteamRoomJoinResult(RoomFailure.None, lobby));
+        }
+        public void FailMembership(RoomFailure failure)
+        {
+            var request = _membership.Dequeue();
+            request.Handle.CallbackDelivered = true;
+            request.Callback(new SteamRoomJoinResult(failure, 0));
+        }
+        public SteamRoomData ReadLobby(ulong lobbyId, bool includeMembers) => Rooms.GetValueOrDefault(lobbyId);
+        public bool InitializeLobby(ulong lobbyId, string name)
+        {
+            if (!InitializeSucceeds) return false;
+            Rooms[lobbyId] = Rooms[lobbyId] with { Name = name };
+            return true;
+        }
+        public bool SetGame(ulong lobbyId, string game)
+        {
+            Rooms[lobbyId] = Rooms[lobbyId] with { Game = game };
+            return true;
+        }
+        public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
+        public void Leave(ulong lobbyId) => Left.Add(lobbyId);
+        public void Dispose() => Disposed = true;
+        public void SetRemote(ulong lobbyId, SteamRoomMemberData member)
+        {
+            var data = Rooms[lobbyId];
+            var members = data.Members.Where(value => value.SteamId != member.SteamId).Append(member).ToArray();
+            Rooms[lobbyId] = data with { Members = members, Count = members.Length };
+            LobbyChanged(lobbyId);
+        }
+        public void RemoveRemote(ulong lobbyId, ulong member)
+        {
+            var data = Rooms[lobbyId];
+            var members = data.Members.Where(value => value.SteamId != member).ToArray();
+            Rooms[lobbyId] = data with { Members = members, Count = members.Length };
+            MemberDeparted(lobbyId, member);
+            LobbyChanged(lobbyId);
+        }
+    }
+}
+#endif

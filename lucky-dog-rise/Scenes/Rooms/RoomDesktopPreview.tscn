@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomDesktopPreview.cs" id="script"]
-[ext_resource type="PackedScene" path="res://Scenes/Dev/Rooms/RoomDogView.tscn" id="dog"]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomDesktopPreview.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomDogView.tscn" id="dog"]
 
 [node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer")]
 script = ExtResource("script")

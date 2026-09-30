@@ -11,21 +11,36 @@ $preservePath = Join-Path $PSScriptRoot 'godot-obfuscation-preserve.txt'
 $preserved = Get-Content -LiteralPath $preservePath | Where-Object { $_ -and !$_.StartsWith('#') }
 
 $discovered = Get-ChildItem -Recurse -File (Join-Path $projectRoot 'Scripts') -Filter '*.cs' |
-    Select-String -Pattern 'public\s+(?:sealed\s+)?partial\s+class\s+(\w+)\s*:\s*(?:Node|Node2D|Control|CanvasLayer|PanelContainer|Window)\b' |
-    ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    Sort-Object -Unique
+    ForEach-Object {
+        $sourceText = Get-Content -LiteralPath $_.FullName -Raw
+        $namespaceMatch = [regex]::Match($sourceText, '(?m)^namespace\s+([\w.]+)')
+        $namespaceName = $namespaceMatch.Groups[1].Value
+        foreach ($classMatch in [regex]::Matches($sourceText,
+                'public\s+(?:sealed\s+)?partial\s+class\s+(\w+)\s*:\s*(?:Node|Node2D|Control|CanvasLayer|PanelContainer|HBoxContainer|VBoxContainer|Window)\b')) {
+            $className = $classMatch.Groups[1].Value
+            [pscustomobject]@{
+                Name = $className
+                FullName = if ($namespaceName) { "$namespaceName.$className" } else { $className }
+            }
+        }
+    } |
+    Sort-Object -Property FullName -Unique
 
-$missing = $discovered | Where-Object { $_ -notin $preserved }
+$missing = $discovered | Where-Object { $_.Name -notin $preserved -and $_.FullName -notin $preserved }
 if ($missing) {
-    throw "Godot-bound types are missing from the Obfuscar preserve list: $($missing -join ', ')"
+    throw "Godot-bound types are missing from the Obfuscar preserve list: $($missing.FullName -join ', ')"
 }
 
 $skipTypes = $preserved | ForEach-Object {
-    $fullName = if ($_ -match '\.') { $_ } else { "LuckyDogRise.$_" }
-    "    <SkipType name=`"$fullName`" />"
+    $entry = $_
+    $matchingTypes = @($discovered | Where-Object { $_.Name -eq $entry })
+    $fullNames = if ($entry -match '\.') { @($entry) }
+        elseif ($matchingTypes.Count) { @($matchingTypes.FullName) }
+        else { @("LuckyDogRise.$entry") }
+    foreach ($fullName in $fullNames) { "    <SkipType name=`"$fullName`" />" }
 }
 $skipGodotMethods = $discovered | ForEach-Object {
-    "    <SkipMethod type=`"LuckyDogRise.$_`" name=`"*`" />"
+    "    <SkipMethod type=`"$($_.FullName)`" name=`"*`" />"
 }
 $assemblyPath = Join-Path (Resolve-Path $AssemblyDirectory) 'LuckyDogRise.dll'
 if (!(Test-Path -LiteralPath $assemblyPath)) { throw "Game assembly not found: $assemblyPath" }

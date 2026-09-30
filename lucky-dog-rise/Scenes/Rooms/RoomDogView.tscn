@@ -1,9 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomDogView.cs" id="script"]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomDogView.cs" id="script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 [ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Dev/Icon_RoomChat.svg" id="chat"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomChat.svg" id="chat"]
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="counter_font"]
 
 [sub_resource type="StyleBoxFlat" id="counter_bg"]

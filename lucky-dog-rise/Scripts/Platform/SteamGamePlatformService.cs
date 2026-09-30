@@ -9,6 +9,9 @@ namespace LuckyDogRise;
 public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAchievementTestOperations,
     IPlatformAchievementSyncOperations, IPlatformStatisticSyncOperations, IPlatformInventoryService,
     IPlatformUpdateService, IPlatformCloudStorageService, IPlatformScreenshotService
+#if !DEMO_BUILD && !RECORDING_BUILD
+    , Rooms.IPlatformRoomServiceProvider
+#endif
 {
     private enum InventoryRequestKind
     {
@@ -33,6 +36,29 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private readonly HashSet<int> _ownedInventoryItemDefIds = new();
     private readonly HashSet<int> _loggedPlaytimeGeneratorItemDefIds = new();
     private PlatformInventoryItem[] _inventoryItems = [];
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private Rooms.SteamRoomService _roomService;
+    public bool RoomRestartRequired => _roomService?.RestartRequired == true;
+    public Rooms.IRoomService RoomService
+    {
+        get
+        {
+            if (!BuildCapabilities.SteamRooms || !IsAvailable) return null;
+            if (_roomService == null)
+            {
+                var tables = LubanData.Tables;
+                var skins = tables.TbDogSkin.DataList.Select(skin => skin.Id).ToHashSet();
+                var hats = tables.TbItem.DataList.Where(item => item.ItemType == DataTables.EItemType.Headwear)
+                    .Select(item => item.Id).ToHashSet();
+                var reactions = tables.TbDogReaction.DataList.Select(reaction => (int)reaction.DogReactionTrigger).ToHashSet();
+                if (skins.Count == 0) return null;
+                _roomService = new Rooms.SteamRoomService(new Rooms.SteamRoomTransport(_runtime),
+                    tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains);
+            }
+            return _roomService.IsAvailable ? _roomService : null;
+        }
+    }
+#endif
     private bool _userStatsDirty;
     private bool _userStatsStoreInFlight;
     private bool _inventorySynchronizationStarted;
@@ -79,7 +105,16 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         || _playtimeDropAwaitingInventoryVerification != null;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _inventoryItems;
 
-    public void RunCallbacks() => _runtime.RunCallbacks();
+    public void RunCallbacks()
+    {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomService?.Tick();
+#endif
+        _runtime.RunCallbacks();
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomService?.Tick();
+#endif
+    }
     public bool TryGetLiveAccountId(out string accountId)
     {
         accountId = string.Empty;
@@ -582,6 +617,10 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     public void Dispose()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomService?.Dispose();
+        _roomService = null;
+#endif
         _pendingScreenshot?.TrySetResult(false);
         _screenshotReadyCallback?.Dispose();
         _screenshotReadyCallback = null;

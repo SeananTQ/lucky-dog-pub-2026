@@ -380,6 +380,7 @@ public static class InGameRoomSmoke
             PointerButton(newLocalHead, false);
             Check(!main.RoomDraggingForSmoke, "new-session input waits for matching presentation seats");
             await Frame();
+            await SteamRoomPageChecks.Run(main);
             GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
             tree.Quit();
         }

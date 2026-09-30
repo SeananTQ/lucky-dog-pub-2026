@@ -1,4 +1,4 @@
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
 using System;
 using Godot;
 
@@ -9,11 +9,13 @@ public partial class InGameRoomDirectoryRow : HBoxContainer
     [Export] private Label _name = null!;
     [Export] private Label _count = null!;
     [Export] private Button _join = null!;
+    [Export] private TextureRect _game = null!;
     private bool _full;
     public void Bind(RoomListing room, bool busy, Action join)
     {
         _name.Text = room.Name;
         _name.TooltipText = room.Name;
+        _game.TooltipText = InGameRoomPreview.GameName(room.GameId);
         _count.Text = $"{room.Count}/{room.Capacity}";
         _full = room.Count >= room.Capacity;
         SetBusy(busy);

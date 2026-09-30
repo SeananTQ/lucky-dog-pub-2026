@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6c1nam1somtn"
-path="res://.godot/imported/Icon_RoomChat.svg-b2da9d0903249c6e3e0adc2631c77d78.ctex"
+uid="uid://dj5dj0hgq4ice"
+path="res://.godot/imported/Icon_RoomGame.svg-a7afbffad04e412917d062045d9774ab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/Icon/Dev/Icon_RoomChat.svg"
-dest_files=["res://.godot/imported/Icon_RoomChat.svg-b2da9d0903249c6e3e0adc2631c77d78.ctex"]
+source_file="res://Assets/UI/Icon/Icon_RoomGame.svg"
+dest_files=["res://.godot/imported/Icon_RoomGame.svg-a7afbffad04e412917d062045d9774ab.ctex"]
 
 [params]
 

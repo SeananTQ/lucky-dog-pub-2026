@@ -1,4 +1,4 @@
-#if DEBUG && !RECORDING_BUILD
+#if !DEMO_BUILD && !RECORDING_BUILD
 using System;
 using System.Collections.Generic;
 using System.Linq;

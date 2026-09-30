@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c4pkyf8u5byjj"
+
+[deps]
+
+files=["res://Scenes/Rooms/InGameRoomText.en.translation", "res://Scenes/Rooms/InGameRoomText.zh_CN.translation", "res://Scenes/Rooms/InGameRoomText.zh_TW.translation", "res://Scenes/Rooms/InGameRoomText.ja.translation", "res://Scenes/Rooms/InGameRoomText.es_ES.translation", "res://Scenes/Rooms/InGameRoomText.es.translation", "res://Scenes/Rooms/InGameRoomText.pt_BR.translation", "res://Scenes/Rooms/InGameRoomText.pt_PT.translation", "res://Scenes/Rooms/InGameRoomText.fr.translation", "res://Scenes/Rooms/InGameRoomText.de.translation", "res://Scenes/Rooms/InGameRoomText.da.translation", "res://Scenes/Rooms/InGameRoomText.id.translation", "res://Scenes/Rooms/InGameRoomText.nb.translation", "res://Scenes/Rooms/InGameRoomText.sv.translation", "res://Scenes/Rooms/InGameRoomText.nl.translation", "res://Scenes/Rooms/InGameRoomText.vi.translation", "res://Scenes/Rooms/InGameRoomText.ms.translation", "res://Scenes/Rooms/InGameRoomText.ko.translation", "res://Scenes/Rooms/InGameRoomText.ru.translation", "res://Scenes/Rooms/InGameRoomText.uk.translation"]
+
+source_file="res://Scenes/Rooms/InGameRoomText.csv"
+dest_files=["res://Scenes/Rooms/InGameRoomText.en.translation", "res://Scenes/Rooms/InGameRoomText.zh_CN.translation", "res://Scenes/Rooms/InGameRoomText.zh_TW.translation", "res://Scenes/Rooms/InGameRoomText.ja.translation", "res://Scenes/Rooms/InGameRoomText.es_ES.translation", "res://Scenes/Rooms/InGameRoomText.es.translation", "res://Scenes/Rooms/InGameRoomText.pt_BR.translation", "res://Scenes/Rooms/InGameRoomText.pt_PT.translation", "res://Scenes/Rooms/InGameRoomText.fr.translation", "res://Scenes/Rooms/InGameRoomText.de.translation", "res://Scenes/Rooms/InGameRoomText.da.translation", "res://Scenes/Rooms/InGameRoomText.id.translation", "res://Scenes/Rooms/InGameRoomText.nb.translation", "res://Scenes/Rooms/InGameRoomText.sv.translation", "res://Scenes/Rooms/InGameRoomText.nl.translation", "res://Scenes/Rooms/InGameRoomText.vi.translation", "res://Scenes/Rooms/InGameRoomText.ms.translation", "res://Scenes/Rooms/InGameRoomText.ko.translation", "res://Scenes/Rooms/InGameRoomText.ru.translation", "res://Scenes/Rooms/InGameRoomText.uk.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

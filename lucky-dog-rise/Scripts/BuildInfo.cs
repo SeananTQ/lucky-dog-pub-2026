@@ -239,6 +239,17 @@ public static class BuildCapabilities
     public static bool LinkTree => !BuildInfo.IsRecording;
     public static bool LocalLinkTreeRewards => IsDemoRuntime;
     public static bool SteamInventory => !IsDemoRuntime && !BuildInfo.IsRecording;
+    public static bool SteamRooms
+    {
+        get
+        {
+#if DEMO_BUILD || RECORDING_BUILD
+            return false;
+#else
+            return !IsDemoRuntime && !BuildInfo.IsRecording;
+#endif
+        }
+    }
     public static bool PlatformStatistics => !IsDemoRuntime && !BuildInfo.IsRecording;
     public static bool Achievements => !IsDemoRuntime && !BuildInfo.IsRecording;
     // Demo progress is local-only, including consumables and outfit presets.

@@ -1,7 +1,7 @@
 [gd_scene format=3]
-[ext_resource type="Script" path="res://Scripts/Dev/Rooms/InGameRoomDirectoryRow.cs" id="script"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Dev/Icon_RoomGame.svg" id="icon"]
-[node name="RoomRow" type="HBoxContainer" node_paths=PackedStringArray("_name", "_count", "_join")]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/InGameRoomDirectoryRow.cs" id="script"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
+[node name="RoomRow" type="HBoxContainer" node_paths=PackedStringArray("_name", "_count", "_join", "_game")]
 custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
@@ -9,6 +9,7 @@ script = ExtResource("script")
 _name = NodePath("Name")
 _count = NodePath("Count")
 _join = NodePath("Join")
+_game = NodePath("GameIcon")
 [node name="GameIcon" type="TextureRect" parent="."]
 custom_minimum_size = Vector2(26, 26)
 layout_mode = 2

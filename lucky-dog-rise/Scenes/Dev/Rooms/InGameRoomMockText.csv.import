@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bt0iuhiy0udwr"
+
+[deps]
+
+files=["res://Scenes/Dev/Rooms/InGameRoomMockText.en.translation", "res://Scenes/Dev/Rooms/InGameRoomMockText.zh_CN.translation", "res://Scenes/Dev/Rooms/InGameRoomMockText.zh_TW.translation"]
+
+source_file="res://Scenes/Dev/Rooms/InGameRoomMockText.csv"
+dest_files=["res://Scenes/Dev/Rooms/InGameRoomMockText.en.translation", "res://Scenes/Dev/Rooms/InGameRoomMockText.zh_CN.translation", "res://Scenes/Dev/Rooms/InGameRoomMockText.zh_TW.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

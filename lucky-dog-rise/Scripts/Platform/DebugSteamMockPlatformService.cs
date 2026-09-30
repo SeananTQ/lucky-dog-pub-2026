@@ -13,6 +13,9 @@ namespace LuckyDogRise;
 public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatformInventoryService,
     IRecoverablePlatformService, IPlatformAchievementSyncOperations, IPlatformAchievementTestOperations,
     IPlatformStatisticSyncOperations, IPlatformUpdateService, IDebugSteamMockController
+#if !DEMO_BUILD && !RECORDING_BUILD
+    , Rooms.IPlatformRoomServiceProvider
+#endif
 {
     private const ulong RewardInstanceBase = 9_100_000_000_000_000;
     private const ulong LinkTreeReceiptInstanceBase = 9_100_100_000_000_000;
@@ -108,6 +111,21 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     public event Action<DebugSteamMockSnapshot> SnapshotChanged = delegate { };
 
     public bool IsMockActive => _mockActive;
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private Rooms.SteamRoomService _realRoomService;
+    public bool RoomRestartRequired => !_disposed && !IsMockActive
+        && (_inner as Rooms.IPlatformRoomServiceProvider)?.RoomRestartRequired == true;
+    public Rooms.IRoomService RoomService
+    {
+        get
+        {
+            if (_disposed || IsMockActive) return null;
+            var service = (_inner as Rooms.IPlatformRoomServiceProvider)?.RoomService;
+            if (service is Rooms.SteamRoomService real) _realRoomService = real;
+            return service;
+        }
+    }
+#endif
     public bool CanUseRealSteam => _canUseRealSteam;
     public string ProviderName => IsMockActive ? "Steam Debug Mock" : _inner.ProviderName;
     public string StatusMessage => IsMockActive ? _lastEvent : _inner.StatusMessage;
@@ -239,6 +257,9 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             message = "当前真实或模拟 Steam 事务仍在处理中，不能切换场景。";
             return false;
         }
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _realRoomService?.SetSuspended(true);
+#endif
         _mockActive = true;
         _scenario = scenario;
         ResetScenario();
@@ -259,6 +280,9 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             return false;
         }
 
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _realRoomService?.SetSuspended(false);
+#endif
         _mockActive = false;
         ResetScenario();
         message = "已恢复真实 Steam。";
