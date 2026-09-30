@@ -84,7 +84,8 @@ public partial class RoomDesktopPreview : Node2D
             dog.Position = placement.Position;
             dog.Visible = !client.HiddenMembers.Contains(member.Id);
             dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
-                client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "");
+                client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
+                client.IsTongueActive(member.Id));
         }
         return localPosition;
     }

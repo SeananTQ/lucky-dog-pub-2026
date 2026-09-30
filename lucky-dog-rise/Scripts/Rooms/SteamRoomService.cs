@@ -41,6 +41,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     private bool _suspended;
     private bool _settlementTimedOut;
     private string _lastAppearance = "";
+    private string _lastActivity = "";
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
 
@@ -195,6 +196,8 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             // leaves the old room and its window layout untouched.
             var appearance = AppearanceOf(pending.Client);
             _transport.SetAppearance(result.LobbyId, appearance);
+            var activity = SteamRoomProtocol.EncodeActivity(pending.Client.ActivitySequence + 1, false);
+            _transport.SetActivity(result.LobbyId, activity);
             pending.Client.TryComplete(pending.Request.Id, () =>
             {
                 var previous = _lobby;
@@ -202,6 +205,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 _identities.Clear();
                 _nextMemberId = 2;
                 _lastAppearance = appearance;
+                _lastActivity = activity;
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby));
                 Publish(data);
                 accepted = true;
@@ -266,6 +270,23 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         catch { return "房间服务暂不可用。"; }
     }
 
+    private static string ActivityOf(RoomClient client)
+        => SteamRoomProtocol.EncodeActivity(client.ActivitySequence, client.TongueActive);
+
+    public void UpdateActivity(RoomClient client)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0) return;
+        try
+        {
+            var activity = ActivityOf(client);
+            if (activity == _lastActivity) return;
+            _transport.SetActivity(_lobby, activity);
+            _lastActivity = activity;
+            OnLobbyChanged(_lobby);
+        }
+        catch { Disconnect(); }
+    }
+
     public string SendChat(RoomClient client, string text) => "Steam 房间聊天尚未开放。";
 
     private void OnMemberDeparted(ulong lobby, ulong member)
@@ -308,10 +329,13 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             // item ids are resolved to local safe defaults; they never become owned items.
             var appearance = raw.SteamId == _transport.LocalSteamId ? AppearanceOf(_client) : raw.Appearance;
             var valid = SteamRoomProtocol.TryDecodeAppearance(appearance, out var skin, out var hat, out var reaction);
+            var activity = raw.SteamId == _transport.LocalSteamId ? ActivityOf(_client) : raw.Activity;
+            bool validActivity = SteamRoomProtocol.TryDecodeActivity(activity, out var sequence, out var active);
             members.Add(new RoomMember(identity.Id, SteamRoomProtocol.SafePersonaName(raw.Name),
                 valid && _validSkin(skin) ? skin : _defaultSkin,
                 valid && (hat == 0 || _validHeadwear(hat)) ? hat : 0,
-                valid && _validReaction(reaction) ? reaction : 1001, identity.Presence));
+                valid && _validReaction(reaction) ? reaction : 1001, identity.Presence,
+                validActivity ? sequence : 0, validActivity && active));
         }
         var owner = _identities.TryGetValue(data.OwnerId, out var ownerIdentity) ? ownerIdentity.Id : 0;
         _client.Receive(new RoomSnapshot(SteamRoomProtocol.Encode(_lobby), data.Name,
@@ -328,6 +352,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _lobby = 0;
         _identities.Clear();
         _lastAppearance = "";
+        _lastActivity = "";
         if (client.JoinedCode.Length > 0) client.BeginSession("");
         if (old != 0) SafeLeave(old);
     }

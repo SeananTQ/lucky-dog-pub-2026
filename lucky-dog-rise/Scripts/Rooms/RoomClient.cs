@@ -10,6 +10,11 @@ public sealed class RoomClient : IDisposable
     private readonly Dictionary<int, RoomChat> _bubbles = new();
     private readonly Dictionary<int, long> _chatSequences = new();
     private readonly Dictionary<int, double> _receivedChatAt = new();
+    private readonly Dictionary<int, (long Presence, long Sequence, double Until)> _activity = new();
+    private double _inputActiveUntil;
+    private double _nextActivityRenewal;
+    public long ActivitySequence { get; private set; }
+    public bool TongueActive { get; private set; }
     public int Id { get; }
     public string Name { get; }
     public int SkinId { get; private set; }
@@ -135,6 +140,19 @@ public sealed class RoomClient : IDisposable
         if (!double.IsFinite(now) || now < _now) throw new ArgumentOutOfRangeException(nameof(now));
         _now = now;
         if (_request != null && now >= _deadline) CancelPending(RoomRequestState.TimedOut);
+        if (TongueActive)
+        {
+            if (now >= _inputActiveUntil) StopInputActivity();
+            else if (now >= _nextActivityRenewal) PublishActivity();
+        }
+        bool expired = false;
+        foreach (var (id, activity) in _activity.ToArray())
+            if (activity.Until > 0 && now >= activity.Until)
+            {
+                _activity[id] = (activity.Presence, activity.Sequence, 0);
+                expired = true;
+            }
+        if (expired) Changed?.Invoke();
         ExpireBubbles(now);
     }
     public void Dispose()
@@ -158,11 +176,47 @@ public sealed class RoomClient : IDisposable
         _service.UpdateAppearance(this);
     }
 
+    public void SetReaction(int reaction)
+    {
+        if (Reaction != reaction) SetAppearance(SkinId, HeadwearId, reaction);
+    }
+
+    public void NotifyInputActivity()
+    {
+        if (_disposed || JoinedCode.Length == 0) return;
+        _inputActiveUntil = _now + RoomRules.InputActivityHold;
+        if (TongueActive) return;
+        TongueActive = true;
+        PublishActivity();
+    }
+
+    public void StopInputActivity()
+    {
+        _inputActiveUntil = 0;
+        if (_disposed || !TongueActive) return;
+        TongueActive = false;
+        PublishActivity();
+    }
+
+    private void PublishActivity()
+    {
+        ActivitySequence++;
+        _nextActivityRenewal = _now + RoomRules.ActivityRenewal;
+        _service.UpdateActivity(this);
+    }
+
+    public bool IsTongueActive(int memberId) => _activity.TryGetValue(memberId, out var value)
+        && value.Until > _now;
+
     internal void BeginSession(string code)
     {
         Session++;
         JoinedCode = code;
         View = null;
+        TongueActive = false;
+        ActivitySequence++;
+        _inputActiveUntil = _nextActivityRenewal = 0;
+        _activity.Clear();
         _bubbles.Clear();
         _chatSequences.Clear();
         _receivedChatAt.Clear();
@@ -173,6 +227,16 @@ public sealed class RoomClient : IDisposable
     {
         if (_disposed || snapshot.Code != JoinedCode || snapshot.Revision <= (View?.Revision ?? -1)) return;
         View = snapshot with { Members = (RoomMember[])snapshot.Members.Clone() };
+        foreach (var id in _activity.Keys.ToArray())
+            if (!View.Members.Any(m => m.Id == id && m.Presence == _activity[id].Presence)) _activity.Remove(id);
+        foreach (var member in View.Members)
+        {
+            // Re-reading cached Steam metadata or changing a hat must not renew
+            // a stale active flag. Only a newer activity sequence grants a lease.
+            if (!_activity.TryGetValue(member.Id, out var previous) || member.ActivitySequence > previous.Sequence)
+                _activity[member.Id] = (member.Presence, member.ActivitySequence,
+                    member.TongueActive ? _now + RoomRules.ActivityLease : 0);
+        }
         foreach (var id in _bubbles.Keys.ToArray())
             if (!View.Members.Any(m => m.Id == id && m.Presence == _bubbles[id].Presence)) _bubbles.Remove(id);
         if (!_committing && !_disposed) Changed?.Invoke();

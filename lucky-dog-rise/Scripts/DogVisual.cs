@@ -34,6 +34,12 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private DogAppearanceSpec _previewAppearance = null!;
     private Item _previewHeadwear = null!;
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
+    public EDogReactionTrigger CurrentReaction => _currentReaction;
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private bool _roomTongueDriven;
+    private bool _roomTongueActive;
+    public bool RoomTongueActive => _roomTongueDriven && _roomTongueActive && _reactionShowsTongue;
+#endif
     private Tween _tongueTween = null!;
     private Tween _pawTween = null!;
     private Tween _headwearDropTween = null!;
@@ -119,6 +125,23 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     {
         if (_tongue == null) return;
 
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (_roomTongueDriven)
+        {
+            if (!RoomTongueActive) return;
+            // Reapplying a reaction/skin resets animation timers and positions.
+            // Capture the new base before resuming this locally timed animation.
+            if (_desktopTongueActiveTimer <= 0f)
+            {
+                _desktopTongueBasePosition = _tongue.Position;
+                _desktopTongueActiveTimer = 1f;
+            }
+            _desktopTongueBeatTimer -= (float)delta;
+            StepDesktopTongueBeat();
+            return;
+        }
+#endif
+
         if (IsDesktopTongueImmediateMode())
         {
             if (_desktopTongueTimer <= 0f) return;
@@ -148,13 +171,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _desktopTongueActiveTimer -= (float)delta;
         _desktopTongueBeatTimer -= (float)delta;
 
-        if (_desktopTongueBeatTimer <= 0f)
-        {
-            _desktopTongueExtended = !_desktopTongueExtended;
-            _desktopTongueBeatTimer = _desktopTongueBeatSeconds;
-            _tongue.Position = _desktopTongueBasePosition
-                + (_desktopTongueExtended ? new Vector2(0, _desktopTongueTapOffset) : Vector2.Zero);
-        }
+        StepDesktopTongueBeat();
 
         if (_desktopTongueActiveTimer <= 0f)
         {
@@ -162,6 +179,33 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             _tongue.Position = _desktopTongueBasePosition;
         }
     }
+
+    private void StepDesktopTongueBeat()
+    {
+        if (_desktopTongueBeatTimer > 0f) return;
+        _desktopTongueExtended = !_desktopTongueExtended;
+        _desktopTongueBeatTimer = _desktopTongueBeatSeconds;
+        _tongue.Position = _desktopTongueBasePosition
+            + (_desktopTongueExtended ? new Vector2(0, _desktopTongueTapOffset) : Vector2.Zero);
+    }
+
+#if !DEMO_BUILD && !RECORDING_BUILD
+    // Only room replicas use this entry. It deliberately ignores this computer's
+    // instantaneous/smooth setting, which still belongs to its own desktop dog.
+    public void SetRoomTongueActivity(bool active)
+    {
+        _roomTongueDriven = true;
+        if (_roomTongueActive == active) return;
+        _roomTongueActive = active;
+        if (!active)
+        {
+            if (_tongue != null && _desktopTongueActiveTimer > 0f)
+                _tongue.Position = _desktopTongueBasePosition;
+            _desktopTongueActiveTimer = _desktopTongueBeatTimer = 0f;
+            _desktopTongueExtended = false;
+        }
+    }
+#endif
 
     /// <summary>
     /// 以场景中的默认狗头为参照，将资源所属版本的 PSD 中心点换算到 HeadRoot。

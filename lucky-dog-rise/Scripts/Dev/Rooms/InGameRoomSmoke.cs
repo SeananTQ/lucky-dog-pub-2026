@@ -100,8 +100,49 @@ public static class InGameRoomSmoke
                 "room host covers display with a one-pixel margin and stays windowed");
             Check(main.RoomDesktopForSmoke.RemoteDogs.All(dog => dog.IsVisibleInTree() && dog.Dog.GameData == null),
                 "remote dogs visible and isolated from player state");
+            // Verify room restoration before a poker round-trip: that separate
+            // mode transition intentionally repositions the single-dog window.
+            var restoreCode = client.JoinedCode;
+            client.Leave();
+            await Settle();
+            Check(DisplayServer.WindowGetSize() == originalWindowSize
+                && DisplayServer.WindowGetPosition() == originalWindowPosition,
+                "leaving a room restores the original single-dog window");
+            client.Join(restoreCode);
+            await Settle();
             var remotes = client.View.Members.Where(member => member.Id != client.Id)
                 .Select(member => main.RoomDesktopForSmoke.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
+            var remoteClient = page.MockClientForSmoke(remotes[0].MemberId);
+            foreach (int reaction in new[] { 1005, 1006, 1003 })
+            {
+                remoteClient.SetReaction(reaction);
+                page.AdvancePreview(0);
+                await Frame();
+                Check((int)remotes[0].Dog.CurrentReaction == reaction, "remote activity reaches main-game dog");
+            }
+            remoteClient.NotifyInputActivity();
+            page.AdvancePreview(0);
+            await Frame();
+            Check(remotes[0].Dog.RoomTongueActive && !remotes[1].Dog.RoomTongueActive,
+                "main-game remote tongue states are independent");
+            page.AdvancePreview(1);
+            await Frame();
+            Check(!remotes[0].Dog.RoomTongueActive, "main-game remote tongue stops after input");
+            main.RoomActivityForSmoke(1006, true);
+            page.AdvancePreview(0);
+            await Frame();
+            Check(remoteClient.View.Members.Single(m => m.Id == client.Id).Reaction == 1006
+                && remoteClient.IsTongueActive(client.Id), "main-game own reaction and input reach other clients");
+            var ownHat = client.HeadwearId;
+            var ownSkin = client.SkinId;
+            client.SetAppearance(0, 0, client.Reaction);
+            main.RoomEquipmentRefreshForSmoke();
+            page.AdvancePreview(0);
+            Check(client.Reaction == 1006 && client.SkinId == ownSkin && client.HeadwearId == ownHat,
+                "equipment update preserves current reaction");
+            main.RoomActivityForSmoke(1001, false);
+            client.StopInputActivity();
+            await Frame();
             var roomWindowPosition = DisplayServer.WindowGetPosition();
             var roomWindowSize = DisplayServer.WindowGetSize();
             var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
@@ -245,9 +286,8 @@ public static class InGameRoomSmoke
             Check(client.JoinedCode.Length == 0, "leave room");
             Check(!main.RoomDesktopWindowActive && main.RoomDesktopForSmoke.RemoteDogs.Count == 0,
                 "leave removes remote dogs");
-            Check(DisplayServer.WindowGetSize() == originalWindowSize
-                && DisplayServer.WindowGetPosition() == originalWindowPosition,
-                $"leave restores the single-dog window: expected {originalWindowPosition}/{originalWindowSize}, actual {DisplayServer.WindowGetPosition()}/{DisplayServer.WindowGetSize()}");
+            Check(DisplayServer.WindowGetSize() == originalWindowSize,
+                "leave restores single-dog window size after poker repositioning");
             page.GetNode<LineEdit>("Lobby/CreateRow/Name").Text = "UI regression";
             Click("Lobby/CreateRow/Create");
             await Settle();

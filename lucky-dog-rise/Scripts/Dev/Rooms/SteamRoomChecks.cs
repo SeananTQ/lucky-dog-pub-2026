@@ -21,6 +21,7 @@ public static class SteamRoomChecks
         CheckOfflineAndSuspension();
         CheckMissingCallback();
         CheckDispose();
+        CheckActivity();
     }
 
     private static void Assert(bool condition, string message)
@@ -208,6 +209,54 @@ public static class SteamRoomChecks
             "service teardown leaves room before transport disposal");
     }
 
+    private static void CheckActivity()
+    {
+        Assert(SteamRoomProtocol.TryDecodeActivity("1:42:1", out var sequence, out var active)
+            && sequence == 42 && active, "activity metadata round trip");
+        foreach (var invalid in new[] { "", "1:-1:1", "1:2:5", "2:1:1", "1:9223372036854775808:1", new string('1', 100) })
+            Assert(!SteamRoomProtocol.TryDecodeActivity(invalid, out _, out _), "invalid activity rejected");
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(901, new SteamRoomMemberData(88, "remote", "1:10:0:1001"));
+        client.Join(SteamRoomProtocol.Encode(901));
+        transport.SucceedMembership(901);
+        int remoteId = client.View.Members.Single(m => m.Id != 1).Id;
+        Assert(!client.IsTongueActive(remoteId), "older clients without activity metadata remain idle");
+        transport.SetRemote(901, new SteamRoomMemberData(88, "remote", "1:20:30:1002", "1:1:1"));
+        Assert(client.IsTongueActive(remoteId), "Steam metadata activates remote tongue");
+        client.AdvanceTo(4);
+        transport.SetRemote(901, new SteamRoomMemberData(88, "renamed", "1:20:40:1002", "1:1:1"));
+        Assert(!client.IsTongueActive(remoteId), "cached activity cannot renew on appearance callback");
+        transport.SetRemote(901, new SteamRoomMemberData(88, "remote", "1:20:40:1002", "1:2:1"));
+        Assert(client.IsTongueActive(remoteId), "new sequence resumes animation");
+        transport.SetRemote(901, new SteamRoomMemberData(88, "remote", "1:20:40:1002", "1:3:0"));
+        transport.SetRemote(901, new SteamRoomMemberData(88, "remote", "1:20:40:1002", "1:2:1"));
+        Assert(!client.IsTongueActive(remoteId), "older active sequence cannot undo stop");
+
+        var writes = transport.ActivityWrites.Count;
+        var appearanceWrites = transport.AppearanceWrites.Count;
+        client.NotifyInputActivity();
+        for (int i = 0; i < 1000; i++) client.NotifyInputActivity();
+        Assert(transport.ActivityWrites.Count == writes + 1, "rapid inputs publish one start, not 1001 events");
+        for (int i = 1; i <= 30; i++)
+        {
+            client.NotifyInputActivity();
+            client.AdvanceTo(4 + i * 0.1);
+        }
+        Assert(transport.ActivityWrites.Count <= writes + 4 && transport.AppearanceWrites.Count == appearanceWrites,
+            "ongoing input has bounded renewals and does not resend hats");
+        client.AdvanceTo(8);
+        Assert(!client.TongueActive && transport.ActivityWrites.Last().EndsWith(":0"), "final idle is published without more input");
+        client.SetReaction(1002);
+        client.SetAppearance(20, 40, client.Reaction);
+        Assert(transport.AppearanceWrites.Last() == "1:20:40:1002", "changing outfit retains activity reaction");
+        client.NotifyInputActivity();
+        transport.IsAvailable = false;
+        service.Tick();
+        Assert(!client.TongueActive && client.View == null && !client.IsTongueActive(remoteId), "disconnect clears transient state");
+    }
+
     private sealed class FakeHandle : IDisposable
     {
         public bool CallbackDelivered;
@@ -229,6 +278,7 @@ public static class SteamRoomChecks
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
         public readonly List<ulong> Left = new();
         public readonly List<string> AppearanceWrites = new();
+        public readonly List<string> ActivityWrites = new();
         public readonly List<FakeHandle> RequestHandles = new();
         public event Action<ulong> LobbyChanged = delegate { };
         public event Action<ulong, ulong> MemberDeparted = delegate { };
@@ -285,6 +335,7 @@ public static class SteamRoomChecks
             return true;
         }
         public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
+        public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);
         public void Leave(ulong lobbyId) => Left.Add(lobbyId);
         public void Dispose() => Disposed = true;
         public void SetRemote(ulong lobbyId, SteamRoomMemberData member)

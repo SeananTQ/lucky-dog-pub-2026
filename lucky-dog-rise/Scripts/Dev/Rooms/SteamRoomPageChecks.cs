@@ -125,6 +125,7 @@ internal static class SteamRoomPageChecks
             }));
         public void Cancel(RoomClient client, long id) { }
         public void Leave(RoomClient client) => client.BeginSession("");
+        public void UpdateActivity(RoomClient client) { }
         public void UpdateAppearance(RoomClient client)
         {
             AppearanceUpdates++;

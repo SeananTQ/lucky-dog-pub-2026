@@ -3,7 +3,7 @@ using System;
 
 namespace LuckyDogRise.Rooms;
 
-public sealed record SteamRoomMemberData(ulong SteamId, string Name, string Appearance);
+public sealed record SteamRoomMemberData(ulong SteamId, string Name, string Appearance, string Activity = "");
 public sealed record SteamRoomData(ulong LobbyId, string Protocol, string Name, string Game,
     ulong OwnerId, int Count, int Capacity, SteamRoomMemberData[] Members);
 public sealed record SteamRoomJoinResult(RoomFailure Failure, ulong LobbyId);
@@ -26,6 +26,7 @@ public interface ISteamRoomTransport : IDisposable
     bool InitializeLobby(ulong lobbyId, string name);
     bool SetGame(ulong lobbyId, string game);
     void SetAppearance(ulong lobbyId, string appearance);
+    void SetActivity(ulong lobbyId, string activity);
     void Leave(ulong lobbyId);
 }
 #endif

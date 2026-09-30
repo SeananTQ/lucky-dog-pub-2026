@@ -164,7 +164,7 @@ public partial class InGameRoomPreview : VBoxContainer
             ?? LubanData.Tables.TbDogSkin.DataList[0].Id;
         int headwear = _gameData.Inventory.GetEquipped(EItemType.Headwear)?.Id ?? 0;
         if (_client.SkinId != skin || _client.HeadwearId != headwear)
-            _client.SetAppearance(skin, headwear, 1001);
+            _client.SetAppearance(skin, headwear, _client.Reaction);
     }
     private void OnClientChanged()
     {

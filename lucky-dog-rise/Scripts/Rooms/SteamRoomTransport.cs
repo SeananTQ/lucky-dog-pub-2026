@@ -151,7 +151,8 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 var member = SteamMatchmaking.GetLobbyMemberByIndex(lobby, index);
                 SteamFriends.RequestUserInformation(member, true);
                 members.Add(new SteamRoomMemberData(member.m_SteamID, SteamFriends.GetFriendPersonaName(member),
-                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.AppearanceKey)));
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.AppearanceKey),
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ActivityKey)));
             }
         }
         return new SteamRoomData(lobbyId, SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.ProtocolKey),
@@ -186,6 +187,12 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     {
         // Leave is safe offline, but must never act under a replacement Steam identity.
         if (CanUseApi && lobbyId != 0) SteamMatchmaking.LeaveLobby(new CSteamID(lobbyId));
+    }
+
+    public void SetActivity(ulong lobbyId, string activity)
+    {
+        RequireAvailable();
+        SteamMatchmaking.SetLobbyMemberData(new CSteamID(lobbyId), SteamRoomProtocol.ActivityKey, activity);
     }
 
     public void Dispose()

@@ -49,5 +49,6 @@ public partial class InGameRoomPreview
         foreach (var translation in _mockTranslations) TranslationServer.RemoveTranslation(translation);
     }
     public void AdvancePreview(double seconds) => _sandbox?.Tick(seconds);
+    public RoomClient MockClientForSmoke(int id) => _mockClients.Single(client => client.Id == id);
 }
 #endif

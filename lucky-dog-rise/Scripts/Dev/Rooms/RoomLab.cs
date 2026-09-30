@@ -26,6 +26,9 @@ public partial class RoomLab : Control
     [Export] private OptionButton _skinOption = null!;
     [Export] private OptionButton _hatOption = null!;
     [Export] private OptionButton _reactionOption = null!;
+    [Export] private OptionButton _activityOption = null!;
+    [Export] private CheckButton _continuousInput = null!;
+    [Export] private CheckButton _sendPause = null!;
     [Export] private SpinBox _latency = null!;
     [Export] private SpinBox _requestDelay = null!;
     [Export] private OptionButton _requestFailure = null!;
@@ -56,6 +59,7 @@ public partial class RoomLab : Control
     private readonly float[] _scales = { 0.5f, 1, 2, 3, 4 };
     private readonly bool[] _keys = new bool[256];
     private readonly Queue<double> _inputTimes = new();
+    private readonly HashSet<int> _heldInput = new();
     private int _viewIndex;
     private int _targetIndex = 1;
     private bool _dirty;
@@ -106,6 +110,15 @@ public partial class RoomLab : Control
             _hatOption.AddItem($"{item.Id}", item.Id);
         foreach (var reaction in LubanData.Tables.TbDogReaction.DataList.Where(r => r.Id >= 1001 && r.Id <= 1009))
             _reactionOption.AddItem(((EDogReactionTrigger)reaction.Id).ToString(), reaction.Id);
+        foreach (var state in LubanData.Tables.TbDesktopActivityState.DataList)
+            _activityOption.AddItem($"{state.StateName} · {state.DogReactionTrigger}", state.Id);
+        _continuousInput.Toggled += value =>
+        {
+            if (_binding) return;
+            if (value) { _heldInput.Add(Target.Id); Target.NotifyInputActivity(); }
+            else { _heldInput.Remove(Target.Id); Target.StopInputActivity(); }
+        };
+        _sendPause.Toggled += value => { if (!_binding) _server.SetSendingPaused(Target, value); };
         _requestFailure.AddItem("下一请求：正常", (int)MockRoomFailure.None);
         _requestFailure.AddItem("下一请求：服务不可用", (int)MockRoomFailure.Unavailable);
         _requestFailure.AddItem("下一请求：无回应（验证超时）", (int)MockRoomFailure.NoResponse);
@@ -134,6 +147,7 @@ public partial class RoomLab : Control
         foreach (var client in _clients) client.Dispose();
         _server = new RoomSandbox();
         _clients.Clear();
+        _heldInput.Clear();
         _viewIndex = 0;
         _targetIndex = 1;
         _viewOption.Clear();
@@ -174,7 +188,13 @@ public partial class RoomLab : Control
         Status(Current.JoinedCode.Length > 0 ? "房间码已复制。" : "请先进入房间。");
     }
     public void OnTargetJoin() => StartRequest(Target.Join(Current.JoinedCode));
-    public void OnTargetLeave() { Target.Leave(); Status("模拟玩家已离开；房主离开时验证新房主。"); }
+    public void OnTargetLeave()
+    {
+        _heldInput.Remove(Target.Id);
+        Target.Leave();
+        BindTarget();
+        Status("模拟玩家已离开；房主离开时验证新房主。");
+    }
     public void OnCloseTargetRoom()
     {
         _server.CloseRoom(Target.JoinedCode);
@@ -186,6 +206,21 @@ public partial class RoomLab : Control
         Status("变化已发送，按目标客户端的网络条件观察同步。");
     }
     public void OnMockChat() => Status(Target.SendChat($"你好，来自{Target.Name}！"), "模拟消息已发送。");
+    public void OnApplyActivity()
+    {
+        var state = LubanData.Tables.TbDesktopActivityState.Get(_activityOption.GetSelectedId());
+        Target.SetReaction((int)state.DogReactionTrigger);
+        if (!state.EnableTongueFeedback) OnStopActivity();
+        BindTarget();
+        Status("目标活动表情已发送；只切换表情，不生成键盘输入。");
+    }
+    public void OnPulseActivity() { Target.NotifyInputActivity(); Status("目标输入活动已触发，停止输入后自动收回舌头。"); }
+    public void OnStopActivity()
+    {
+        _heldInput.Remove(Target.Id);
+        Target.StopInputActivity();
+        BindTarget();
+    }
     public void OnChangeGame()
     {
         Status(Current.SetGame(Current.View?.GameId == "social" ? "test-mode" : "social"),
@@ -264,11 +299,15 @@ public partial class RoomLab : Control
         _skinOption.Select(_skinOption.GetItemIndex(Target.SkinId));
         _hatOption.Select(_hatOption.GetItemIndex(Target.HeadwearId));
         _reactionOption.Select(_reactionOption.GetItemIndex(Target.Reaction));
+        var state = LubanData.Tables.TbDesktopActivityState.DataList.FirstOrDefault(s => (int)s.DogReactionTrigger == Target.Reaction);
+        if (state != null) _activityOption.Select(_activityOption.GetItemIndex(state.Id));
+        _continuousInput.SetPressedNoSignal(_heldInput.Contains(Target.Id));
         var settings = _server.Settings(Target);
         _latency.Value = settings.Latency * 1000;
         _requestDelay.Value = settings.RequestDelay * 1000;
         _requestFailure.Select(_requestFailure.GetItemIndex((int)settings.NextFailure));
         _pause.SetPressedNoSignal(settings.Paused);
+        _sendPause.SetPressedNoSignal(settings.SendingPaused);
         _binding = false;
     }
     private void Status(string text, string success = "") => _status.Text = text.Length > 0 ? text : success;
@@ -307,6 +346,12 @@ public partial class RoomLab : Control
             if (!Input.IsMouseButtonPressed(MouseButton.Left)) _draggingTitle = false;
             else GetWindow().Position = _dragWindowStart + DisplayServer.MouseGetPosition() - _dragMouseStart;
         }
+        foreach (var client in _clients)
+            if (_heldInput.Contains(client.Id))
+            {
+                if (client.JoinedCode.Length == 0) _heldInput.Remove(client.Id);
+                else client.NotifyInputActivity();
+            }
         _server.Tick(delta);
         ObserveInput(delta);
         if (_dirty) { _dirty = false; RenderCurrent(); }
@@ -386,7 +431,8 @@ public partial class RoomLab : Control
                 Size.Y - 85 * scale - (rows - 1 - i / columns) * spacingY);
             dog.Visible = !Current.HiddenMembers.Contains(member.Id) || member.Id == Current.Id;
             dog.Display(member, member.Id == Current.Id, member.Id == view.OwnerId, Current.ShowNames,
-                Current.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "");
+                Current.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
+                Current.IsTongueActive(member.Id));
         }
     }
 
@@ -409,7 +455,11 @@ public partial class RoomLab : Control
             for (var key = 1; key < 256; key++)
             {
                 var down = (GetAsyncKeyState(key) & 0x8000) != 0;
-                if (down && !_keys[key]) _inputTimes.Enqueue(_server.Now);
+                if (down && !_keys[key])
+                {
+                    _inputTimes.Enqueue(_server.Now);
+                    Current.NotifyInputActivity();
+                }
                 _keys[key] = down;
             }
         }
@@ -424,7 +474,7 @@ public partial class RoomLab : Control
         if (_candidate?.Id != state.Id) { _candidate = state; _candidateTime = 0; }
         _candidateTime += delta;
         if (_candidateTime < state.MinDurationSeconds) return;
-        Current.SetAppearance(Current.SkinId, Current.HeadwearId, (int)state.DogReactionTrigger);
+        Current.SetReaction((int)state.DogReactionTrigger);
         _cooldown = state.CooldownSeconds;
         _candidateTime = 0;
     }
@@ -449,7 +499,8 @@ public partial class RoomLab : Control
     {
         var popup = _viewOption.GetPopup().Visible || _targetOption.GetPopup().Visible
             || _scaleOption.GetPopup().Visible || _skinOption.GetPopup().Visible
-            || _hatOption.GetPopup().Visible || _reactionOption.GetPopup().Visible || _requestFailure.GetPopup().Visible;
+            || _hatOption.GetPopup().Visible || _reactionOption.GetPopup().Visible || _activityOption.GetPopup().Visible
+            || _requestFailure.GetPopup().Visible;
         SetPassThrough(_desktop.ButtonPressed && !_draggingTitle && !popup
             && !Over(_titleBar) && !Over(_toolbar) && !Over(_panel) && !Over(_tools)
             && !_dogs.Values.Any(d => d.IsPointerOverContent()));
@@ -484,6 +535,11 @@ public partial class RoomLab : Control
             case "join": OnTargetJoin(); break;
             case "pause": _server.SetPaused(Target, value != 0); BindTarget(); break;
             case "reaction": Target.SetAppearance(Target.SkinId, Target.HeadwearId, value); break;
+            case "activity": _activityOption.Select(_activityOption.GetItemIndex(value)); OnApplyActivity(); break;
+            case "pulse": OnPulseActivity(); break;
+            case "stop-input": OnStopActivity(); break;
+            case "hold-input": _continuousInput.ButtonPressed = value != 0; break;
+            case "pause-send": _sendPause.ButtonPressed = value != 0; break;
             case "desktop": _desktop.ButtonPressed = value != 0; break;
             case "input": _globalInput.ButtonPressed = value != 0; break;
         }
@@ -493,7 +549,8 @@ public partial class RoomLab : Control
     public string DebugState() => JsonSerializer.Serialize(new
     {
         view = Current.Id, scale = Current.LocalScale, room = Current.View,
-        clients = _clients.Select(c => new { c.Id, c.LocalScale, c.JoinedCode, c.Reaction,
+        clients = _clients.Select(c => new { c.Id, c.LocalScale, c.JoinedCode, c.Reaction, c.TongueActive, c.ActivitySequence,
+            sendingPaused = _server.Settings(c).SendingPaused,
             paused = _server.Settings(c).Paused, c.Operation, c.RequestState, c.Failure, revision = c.View?.Revision }),
         pending = _server.PendingCount, passThrough = _passThrough, status = _status.Text,
     });
@@ -508,7 +565,7 @@ public partial class RoomLab : Control
         {
             GD.Print(RoomSandboxChecks.Run());
             SteamRoomChecks.Run();
-            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance and recovery (fake transport).");
+            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases and recovery (fake transport).");
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
@@ -529,6 +586,7 @@ public partial class RoomLab : Control
             await UiFrame();
             Verify(ReferenceEquals(lobbyRow, _roomList.GetChild(0)), "appearance sync preserves lobby buttons");
             Verify(Current.View.Members.Single(m => m.Id == Target.Id).Reaction == 1006, "button path updates remote dog");
+            await RunActivityUiSmoke();
             DebugCommand("scale", 2);
             await UiFrame();
             Verify(_dogs.Values.All(d => d.Scale == Vector2.One * 2), "all visible dogs scale locally");
@@ -580,6 +638,48 @@ public partial class RoomLab : Control
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
     }
+    private async System.Threading.Tasks.Task RunActivityUiSmoke()
+    {
+        var dog = _dogs[Target.Id].Dog;
+        // Only override this replica; never change persisted player settings.
+        dog.Set("_desktopTongueImmediateMode", true);
+        foreach (int state in new[] { 3, 4, 1 })
+        {
+            _activityOption.Select(_activityOption.GetItemIndex(state));
+            OnApplyActivity();
+            _server.Tick(0);
+            await UiFrame();
+            Verify(dog.CurrentReaction == LubanData.Tables.TbDesktopActivityState.Get(state).DogReactionTrigger,
+                "activity control reaches the real dog reaction");
+        }
+        _continuousInput.ButtonPressed = true;
+        _server.Tick(0);
+        await UiFrame();
+        Verify(dog.RoomTongueActive && !_dogs[Current.Id].Dog.RoomTongueActive,
+            "only selected dog becomes active");
+        var tongue = dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
+        var first = tongue.Position;
+        dog._Process(0.13);
+        Verify(tongue.Position != first, "remote tongue animates despite instant setting");
+        _sendPause.ButtonPressed = true;
+        for (int i = 0; i < 8; i++) { Target.NotifyInputActivity(); _server.Tick(0.5); }
+        await UiFrame();
+        Verify(!dog.RoomTongueActive, "sending outage expires remote animation");
+        _sendPause.ButtonPressed = false;
+        _server.Tick(0);
+        await UiFrame();
+        Verify(dog.RoomTongueActive, "restored sender resumes animation");
+        OnStopActivity();
+        _server.Tick(0);
+        await UiFrame();
+        Verify(!dog.RoomTongueActive, "stop control stops remote animation");
+        var stopped = tongue.Position;
+        dog._Process(1);
+        Verify(tongue.Position == stopped, "stopped tongue remains at rest");
+        await CaptureSmoke("activity-idle");
+        GD.Print("ROOM_ACTIVITY_UI_PASS: activity controls, reactions, independent tongue animation, forced smooth, outage timeout and recovery.");
+    }
+
     private async System.Threading.Tasks.Task RunRequestUiSmoke()
     {
         OnResetThree();

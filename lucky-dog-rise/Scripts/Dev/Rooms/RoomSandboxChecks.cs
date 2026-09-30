@@ -9,6 +9,7 @@ internal static class RoomSandboxChecks
 {
     public static string Run()
     {
+        CheckActivity();
         var server = new RoomSandbox();
         var a = server.AddClient(1, "A", 1012);
         var b = server.AddClient(2, "B", 1012);
@@ -93,6 +94,62 @@ internal static class RoomSandboxChecks
     private static void Check(bool passed, string message)
     {
         if (!passed) throw new InvalidOperationException("Room sandbox regression: " + message);
+    }
+
+    private static void CheckActivity()
+    {
+        var server = new RoomSandbox();
+        using var a = server.AddClient(1, "A", 1012);
+        using var b = server.AddClient(2, "B", 1012);
+        using var c = server.AddClient(3, "C", 1012);
+        server.Create(a, "Activity");
+        server.Join(b, a.JoinedCode);
+        server.Join(c, a.JoinedCode);
+        server.Tick(0);
+        foreach (var reaction in new[] { 1005, 1006, 1003 })
+        {
+            b.SetReaction(reaction);
+            server.Tick(0);
+            Check(a.View.Members.Single(m => m.Id == b.Id).Reaction == reaction
+                && c.View.Members.Single(m => m.Id == b.Id).Reaction == reaction, "all observers see activity expressions");
+        }
+        b.NotifyInputActivity();
+        server.Tick(0);
+        Check(a.IsTongueActive(2) && !a.IsTongueActive(1) && !a.IsTongueActive(3), "activity belongs only to sender");
+        for (int i = 0; i < 60; i++) { b.NotifyInputActivity(); server.Tick(0.1); }
+        Check(a.IsTongueActive(2) && c.IsTongueActive(2), "sustained activity renews its lease");
+        server.Tick(RoomRules.InputActivityHold + 0.01);
+        Check(!a.IsTongueActive(2) && !c.IsTongueActive(2), "stopping input publishes idle");
+
+        b.NotifyInputActivity();
+        server.Tick(0);
+        server.SetSendingPaused(b, true);
+        for (int i = 0; i < 40; i++)
+        {
+            b.NotifyInputActivity();
+            a.SetAppearance(1012, 0, i % 2 == 0 ? 1001 : 1005);
+            server.Tick(0.1);
+        }
+        Check(b.TongueActive && !a.IsTongueActive(2), "unrelated snapshots cannot extend a disconnected sender lease");
+        server.SetSendingPaused(b, false);
+        server.Tick(0);
+        Check(a.IsTongueActive(2), "resuming sender renews active state");
+        b.Leave();
+        server.Tick(0);
+        Check(!a.IsTongueActive(2), "departure drops activity immediately");
+        server.Join(b, a.JoinedCode);
+        server.Tick(0);
+        Check(!b.TongueActive && !a.IsTongueActive(2), "rejoin cannot inherit old activity");
+
+        server.Settings(a).Latency = 0.3;
+        b.NotifyInputActivity();
+        server.Tick(0.1);
+        Check(!a.IsTongueActive(2) && c.IsTongueActive(2), "receiver delay affects only that observer");
+        server.Tick(0.21);
+        Check(a.IsTongueActive(2), "delayed activity reaches observer");
+        b.StopInputActivity();
+        server.Tick(0.31);
+        Check(!a.IsTongueActive(2), "delayed stop reaches observer");
     }
 }
 #endif

@@ -13,6 +13,7 @@ public static class SteamRoomProtocol
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
     public const string AppearanceKey = "ld_appearance";
+    public const string ActivityKey = "ld_activity";
     private const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
     public static string Encode(ulong lobbyId)
@@ -66,6 +67,23 @@ public static class SteamRoomProtocol
     {
         if (string.IsNullOrWhiteSpace(value)) return "Steam player";
         return new string(value.Where(c => !char.IsControl(c)).Take(64).ToArray());
+    }
+
+    // Separate, optional metadata keeps appearance compatible with 0.6.0 clients.
+    public static string EncodeActivity(long sequence, bool active)
+        => string.Create(CultureInfo.InvariantCulture, $"1:{sequence}:{(active ? 1 : 0)}");
+
+    public static bool TryDecodeActivity(string value, out long sequence, out bool active)
+    {
+        sequence = 0;
+        active = false;
+        if (value == null || value.Length > 32) return false;
+        var parts = value.Split(':');
+        if (parts.Length != 3 || parts[0] != "1" || parts[2] is not ("0" or "1")
+            || !long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out sequence)
+            || sequence < 0) { sequence = 0; return false; }
+        active = parts[2] == "1";
+        return true;
     }
 }
 #endif

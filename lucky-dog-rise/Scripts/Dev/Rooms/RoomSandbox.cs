@@ -14,6 +14,7 @@ public sealed class MockRoomSettings
     private double _requestDelay;
     public double Latency { get => _latency; set => _latency = double.IsFinite(value) ? Math.Clamp(value, 0, 10) : 0; }
     public bool Paused { get; internal set; }
+    public bool SendingPaused { get; internal set; }
     public double RequestDelay { get => _requestDelay; set => _requestDelay = double.IsFinite(value) ? Math.Clamp(value, 0, 30) : 0; }
     public MockRoomFailure NextFailure { get; set; }
 }
@@ -114,7 +115,7 @@ public sealed class RoomSandbox : IRoomService
         Leave(client);
         client.BeginSession(room.Code);
         room.Members.Add(client.Id, new RoomMember(client.Id, client.Name,
-            client.SkinId, client.HeadwearId, client.Reaction, ++_nextPresence));
+            client.SkinId, client.HeadwearId, client.Reaction, ++_nextPresence, client.ActivitySequence));
         Broadcast(room);
         return RoomResult.Success;
     }
@@ -155,11 +156,26 @@ public sealed class RoomSandbox : IRoomService
 
     public void UpdateAppearance(RoomClient client)
     {
-        if (!_rooms.TryGetValue(client.JoinedCode, out var room)
+        if (Settings(client).SendingPaused || !_rooms.TryGetValue(client.JoinedCode, out var room)
             || !room.Members.TryGetValue(client.Id, out var member)) return;
         room.Members[client.Id] = member with { SkinId = client.SkinId,
             HeadwearId = client.HeadwearId, Reaction = client.Reaction };
         Broadcast(room);
+    }
+
+    public void UpdateActivity(RoomClient client)
+    {
+        if (Settings(client).SendingPaused || !_rooms.TryGetValue(client.JoinedCode, out var room)
+            || !room.Members.TryGetValue(client.Id, out var member)) return;
+        room.Members[client.Id] = member with { ActivitySequence = client.ActivitySequence,
+            TongueActive = client.TongueActive };
+        Broadcast(room);
+    }
+
+    public void SetSendingPaused(RoomClient client, bool paused)
+    {
+        Settings(client).SendingPaused = paused;
+        if (!paused) { UpdateAppearance(client); UpdateActivity(client); }
     }
 
     public string SetGame(RoomClient client, string gameId)

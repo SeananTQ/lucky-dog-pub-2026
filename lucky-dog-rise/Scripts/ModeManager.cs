@@ -916,6 +916,9 @@ public partial class ModeManager : Control
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        SyncRoomActivity();
+#endif
         UpdateBossWorkAreaTracking();
 
         if (_hiddenByFullscreenApp)
@@ -2679,7 +2682,12 @@ public partial class ModeManager : Control
             EndDesktopCelebrationReaction();
 
         if (CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp && _desktopTongueFeedbackEnabled)
+        {
             _bossDogVisual.PlayDesktopTongueTap(count);
+#if !DEMO_BUILD && !RECORDING_BUILD
+            _desktopRoomClient?.NotifyInputActivity();
+#endif
+        }
     }
 
     private void EndDesktopCelebrationReaction()

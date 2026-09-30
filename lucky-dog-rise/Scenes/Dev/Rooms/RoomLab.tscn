@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://fhllu02wc3rt" path="res://Scripts/Dev/Rooms/RoomLab.cs" id="script"]
 [ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="theme"]
 
-[node name="RoomLab" type="Control" unique_id=810050331 node_paths=PackedStringArray("_panel", "_tools", "_titleBar", "_toolbar", "_backdrop", "_status", "_metrics", "_currentRoom", "_viewOption", "_targetOption", "_scaleOption", "_skinOption", "_hatOption", "_reactionOption", "_latency", "_requestDelay", "_requestFailure", "_operation", "_targetOperation", "_cancel", "_create", "_join", "_random", "_refresh", "_pause", "_globalInput", "_showNames", "_desktop", "_roomName", "_roomCode", "_roomList", "_memberList", "_dogRoot")]
+[node name="RoomLab" type="Control" unique_id=810050331 node_paths=PackedStringArray("_panel", "_tools", "_titleBar", "_toolbar", "_backdrop", "_status", "_metrics", "_currentRoom", "_viewOption", "_targetOption", "_scaleOption", "_skinOption", "_hatOption", "_reactionOption", "_activityOption", "_continuousInput", "_sendPause", "_latency", "_requestDelay", "_requestFailure", "_operation", "_targetOperation", "_cancel", "_create", "_join", "_random", "_refresh", "_pause", "_globalInput", "_showNames", "_desktop", "_roomName", "_roomCode", "_roomList", "_memberList", "_dogRoot")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -30,6 +30,9 @@ _scaleOption = NodePath("Panel/Scroll/Content/Scale")
 _skinOption = NodePath("Tools/Scroll/Content/Skin")
 _hatOption = NodePath("Tools/Scroll/Content/Hat")
 _reactionOption = NodePath("Tools/Scroll/Content/Reaction")
+_activityOption = NodePath("Tools/Scroll/Content/Activity/State")
+_continuousInput = NodePath("Tools/Scroll/Content/ContinuousInput")
+_sendPause = NodePath("Tools/Scroll/Content/SendPause")
 _latency = NodePath("Tools/Scroll/Content/Network/Latency")
 _requestDelay = NodePath("Tools/Scroll/Content/RequestDelay/Value")
 _requestFailure = NodePath("Tools/Scroll/Content/RequestFailure")
@@ -352,6 +355,46 @@ size_flags_horizontal = 3
 theme_type_variation = &"CapsuleButton"
 text = "发送目标外观与表情"
 
+[node name="ActivityLabel" type="Label" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "目标活动状态（跳过本地判定等待）"
+
+[node name="Activity" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+[node name="State" type="OptionButton" parent="Tools/Scroll/Content/Activity"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Apply" type="Button" parent="Tools/Scroll/Content/Activity"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "发送表情"
+
+[node name="Tongue" type="HBoxContainer" parent="Tools/Scroll/Content"]
+layout_mode = 2
+
+[node name="Pulse" type="Button" parent="Tools/Scroll/Content/Tongue"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "短暂输入"
+
+[node name="Stop" type="Button" parent="Tools/Scroll/Content/Tongue"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "停止输入"
+
+[node name="ContinuousInput" type="CheckButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "目标持续输入（只驱动目标舌头）"
+
+[node name="SendPause" type="CheckButton" parent="Tools/Scroll/Content"]
+layout_mode = 2
+text = "暂停目标发送（模拟断流）"
+tooltip_text = "保持持续输入并暂停发送，其他视角的舌头应在 3 秒内停止；恢复发送后重新同步。"
+
 [node name="Chat" type="Button" parent="Tools/Scroll/Content" unique_id=698606830]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
@@ -459,6 +502,9 @@ autowrap_mode = 3
 [connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Join" to="." method="OnTargetJoin"]
 [connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Leave" to="." method="OnTargetLeave"]
 [connection signal="pressed" from="Tools/Scroll/Content/Apply" to="." method="OnApplyAppearance"]
+[connection signal="pressed" from="Tools/Scroll/Content/Activity/Apply" to="." method="OnApplyActivity"]
+[connection signal="pressed" from="Tools/Scroll/Content/Tongue/Pulse" to="." method="OnPulseActivity"]
+[connection signal="pressed" from="Tools/Scroll/Content/Tongue/Stop" to="." method="OnStopActivity"]
 [connection signal="pressed" from="Tools/Scroll/Content/Chat" to="." method="OnMockChat"]
 [connection signal="pressed" from="Tools/Scroll/Content/RequestActions/Cancel" to="." method="OnTargetCancelRequest"]
 [connection signal="pressed" from="Tools/Scroll/Content/RequestActions/CloseRoom" to="." method="OnCloseTargetRoom"]

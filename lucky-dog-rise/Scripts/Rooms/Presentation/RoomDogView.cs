@@ -39,7 +39,8 @@ public partial class RoomDogView : Node2D
         _chatButton.Hide();
     }
 
-    public void Display(RoomMember member, bool local, bool owner, bool showName, string bubble)
+    public void Display(RoomMember member, bool local, bool owner, bool showName, string bubble,
+        bool tongueActive = false)
     {
         if (_member?.Id != member.Id || _isLocal != local) CloseChat();
         _isLocal = local;
@@ -49,6 +50,7 @@ public partial class RoomDogView : Node2D
             Dog.SetPreviewHeadwear(LubanData.Tables.TbItem.GetOrDefault(member.HeadwearId));
         if (_member?.Reaction != member.Reaction || _member?.SkinId != member.SkinId)
             Dog.ApplyReaction((EDogReactionTrigger)member.Reaction);
+        Dog.SetRoomTongueActivity(tongueActive);
         _member = member;
         _name.Text = (owner ? "♛ " : "") + member.Name + (local ? " · 本机" : "");
         _nameBar.Visible = showName;

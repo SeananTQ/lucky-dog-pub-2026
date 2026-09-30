@@ -124,6 +124,15 @@ public partial class ModeManager
             CancelWindowDrag();
     }
 
+    private void SyncRoomActivity()
+    {
+        if (_desktopRoomClient == null) return;
+        if (CurrentMode == Mode.BossKey)
+            _desktopRoomClient.SetReaction((int)_bossDogVisual.CurrentReaction);
+        if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp || !_desktopTongueFeedbackEnabled)
+            _desktopRoomClient.StopInputActivity();
+    }
+
     private void ApplyRoomDesktopLayout(bool force = false)
     {
         if (_roomScreen >= DisplayServer.GetScreenCount()) _roomScreen = DisplayServer.GetPrimaryScreen();
@@ -272,6 +281,13 @@ public partial class ModeManager
     public RoomDesktopPreview RoomDesktopForSmoke => _roomDesktop;
     public bool RoomDraggingForSmoke => _roomDragMember != 0 && _isDragging;
     public bool RoomClickThroughForSmoke => _isClickThrough;
+    public void RoomActivityForSmoke(int reaction, bool input)
+    {
+        _bossDogVisual.ApplyReaction((DataTables.EDogReactionTrigger)reaction);
+        SyncRoomActivity();
+        if (input) OnTypingInputOccurred(1);
+    }
+    public void RoomEquipmentRefreshForSmoke() => _gameData.EmitSignal(GameData.SignalName.EquipmentChanged);
     public void RoomSnapForSmoke(bool enabled)
     {
         _roomSnapEnabledForSmoke = enabled;
