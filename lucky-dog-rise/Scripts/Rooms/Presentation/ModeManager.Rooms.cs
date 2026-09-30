@@ -7,6 +7,50 @@ namespace LuckyDogRise;
 
 public partial class ModeManager
 {
+    // Runs only through the existing isolated exported-package diagnostic entry.
+    // Exercise scene bindings after obfuscation without joining Steam or touching inventory.
+    private void VerifyRoomExportSmoke()
+    {
+        if (!BuildCapabilities.SteamRooms) return;
+        var tab = _settingsPanel.GetNodeOrNull<Button>("Panel/RootVBox/TitleRow/RoomTab");
+        if (tab == null || !tab.Visible)
+            throw new System.InvalidOperationException("Exported room tab is missing.");
+        tab.EmitSignal(BaseButton.SignalName.Pressed);
+        var page = _settingsPanel.GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent")
+            .GetChild<InGameRoomPreview>(0);
+        if (L10n.Tr("Rooms_Create") == "Rooms_Create")
+            throw new System.InvalidOperationException("Exported room translations are missing.");
+
+        var row = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomDirectoryRow.tscn")
+            .Instantiate<InGameRoomDirectoryRow>();
+        var desktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
+            .Instantiate<RoomDesktopPreview>();
+        AddChild(row);
+        AddChild(desktop);
+        try
+        {
+            row.Hide();
+            desktop.Hide();
+            row.Bind(new RoomListing("diagnostic", "Export validation", "social", 2, RoomRules.Capacity), false, () => { });
+            row.SetBusy(true);
+            var skin = LubanData.Tables.TbDogSkin.DataList[0].Id;
+            // No service is needed: only feed the same read-only snapshot used by the renderer.
+            var client = new RoomClient(null, 1, "Export validation", skin);
+            client.BeginSession("diagnostic");
+            client.Receive(new RoomSnapshot("diagnostic", "Export validation", "social", 1, 1,
+                new[] { new RoomMember(1, "Local", skin, 0, 1001, 1), new RoomMember(2, "Remote", skin, 0, 1001, 2) }));
+            desktop.Present(client, new Rect2(0, 0, 1280, 720), 1, 420, 0, true);
+            if (desktop.RemoteDogs.Count != 1 || desktop.RemoteDogs.Single().Dog.GameData != null)
+                throw new System.InvalidOperationException("Exported remote dog scene could not be initialized.");
+            GD.Print("[RoomExportSmoke] Room page, translations, directory row and remote dog bindings passed.");
+        }
+        finally
+        {
+            desktop.Free();
+            row.Free();
+        }
+    }
+
     private RoomClient _desktopRoomClient;
     private RoomDesktopPreview _roomDesktop;
     private bool _roomWindowActive;

@@ -148,7 +148,7 @@ try {
     $env:GODOT_SCRIPT_ENCRYPTION_KEY = $secrets.PckEncryptionKey
     $env:LUCKYDOG_SAVE_HMAC_KEY = $secrets.SaveHmacKey
     $env:LUCKYDOG_BUILD_COMMIT = $commit
-    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-09-25T16:00:00Z' } else { '' }
+    $env:LUCKYDOG_PLAYTEST_EXPIRES_UTC = if ($Channel -eq 'Playtest') { '2026-10-15T16:00:00Z' } else { '' }
     $env:LUCKYDOG_RECORDING_EXPIRES_UTC = $recordingExpiryUtc
     # Keep the encrypted release engine template, while compiling the recording game's Debug tools.
     $env:LUCKYDOG_RECORDING_DEBUG = if ($Channel -eq 'PlaytestRecording') { 'true' } else { '' }

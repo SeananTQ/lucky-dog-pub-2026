@@ -62,6 +62,10 @@ if ($output -notmatch '\[DiagnosticsSmoke\] Export passed:') {
 if (!$output.Contains('[ChipRewardSmoke] All nine winning hands passed.')) {
     throw "Exported ChipReward regression did not pass. See $logDirectory"
 }
+if ($Channel -in 'Playtest', 'Release' -and
+    !$output.Contains('[RoomExportSmoke] Room page, translations, directory row and remote dog bindings passed.')) {
+    throw "Exported room resource/binding regression did not pass. See $logDirectory"
+}
 
 if ($Channel -eq 'Demo') {
     if ($DemoContentManifest -and !$output.Contains('[DemoContentSmoke] Packaged tables and assets verified.')) {

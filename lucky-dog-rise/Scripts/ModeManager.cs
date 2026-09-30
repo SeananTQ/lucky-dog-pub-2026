@@ -1386,6 +1386,9 @@ public partial class ModeManager : Control
         {
             VerifyDemoContentSmoke();
             await VerifyChipRewardSmoke();
+#if !DEMO_BUILD && !RECORDING_BUILD
+            VerifyRoomExportSmoke();
+#endif
 #if DEBUG
             if (BuildInfo.Channel == BuildChannel.PlaytestRecording)
                 await VerifyRecordingDebugSmoke();
