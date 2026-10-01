@@ -14,7 +14,8 @@ internal static class RoomRequestChecks
         MembershipRaceChecks();
         SearchAndLifecycleChecks();
         LateCallbackChecks();
-        return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays.";
+        RemovalRaceChecks();
+        return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays, removal cancellation and reentrancy.";
     }
 
     private static void PendingAndFailureChecks()
@@ -197,8 +198,61 @@ internal static class RoomRequestChecks
             && !service.LiveResources.Contains(timedOut), "late timed-out success is compensated without changing current room");
     }
 
-    // A controllable contract double models per-operation remote resources. Steam
-    // has not been integrated; its adapter must provide equivalent ownership-safe cleanup.
+    private static void RemovalRaceChecks()
+    {
+        var service = new LateResultService();
+        using var client = new RoomClient(service, 1, "Removed player", 1012);
+        client.Join("original");
+        service.RemoteSuccess(client, client.ActiveRequestId, "original");
+        client.FindAndJoin();
+        var pendingSearch = client.ActiveRequestId;
+        var session = client.Session;
+        var notificationCount = 0;
+        var attemptedRejoin = false;
+        client.Changed += () =>
+        {
+            if (client.Failure != RoomFailure.Removed) return;
+            notificationCount++;
+            Check(client.Operation == RoomOperation.None && client.RequestState == RoomRequestState.Failed
+                && client.JoinedCode == "" && client.View == null && !client.IsBusy,
+                "observers see the complete terminal removal state");
+            attemptedRejoin |= client.Join("original");
+        };
+        client.RemoveFromRoom(RoomFailure.Removed);
+        Check(service.Cancelled.Contains(pendingSearch) && client.Session > session
+            && service.LiveResources.Count == 0 && notificationCount == 1 && !attemptedRejoin,
+            "removal cancels pending request, advances session and prevents reentrant join");
+        var committed = false;
+        Check(!client.TryComplete(pendingSearch, () =>
+            {
+                committed = true;
+                return new RoomResult(RoomFailure.None, [new RoomListing("other", "Other", "social", 1, 6)]);
+            }) && !committed && client.Failure == RoomFailure.Removed && !client.IsBusy,
+            "late search completion cannot auto-join after removal");
+
+        client.Join("second");
+        var pendingJoin = client.ActiveRequestId;
+        client.RemoveFromRoom(RoomFailure.Removed);
+        service.RemoteSuccess(client, pendingJoin, "second");
+        Check(client.JoinedCode == "" && client.Failure == RoomFailure.Removed
+            && service.Compensated.Contains(pendingJoin) && service.LiveResources.Count == 0,
+            "late join success is compensated after removal without resurrecting membership");
+
+        client.Join("third");
+        var current = client.ActiveRequestId;
+        Check(!client.TryComplete(current, () =>
+            {
+                client.BeginSession("third");
+                client.RemoveFromRoom(RoomFailure.Banned);
+                return RoomResult.Success;
+            }) && client.Failure == RoomFailure.Banned && client.RequestState == RoomRequestState.Failed
+            && client.JoinedCode == "" && !client.IsBusy,
+            "removal inside a membership commit cannot be overwritten by outer success");
+        Check(client.Search(), "terminal removal releases mutation guard for later explicit actions");
+    }
+
+    // A controllable contract double models per-operation remote resources;
+    // adapters must provide equivalent ownership-safe cleanup.
     private sealed class LateResultService : IRoomService
     {
         public double Now => 0;
@@ -212,6 +266,7 @@ internal static class RoomRequestChecks
         public void UpdateActivity(RoomClient client) { }
         public string SetGame(RoomClient client, string gameId) => "";
         public string SendChat(RoomClient client, string text) => "";
+        public string Kick(RoomClient client, int memberId, long presence) => "Rooms_KickUnavailable";
         public void RemoteSuccess(RoomClient client, long requestId, string code)
         {
             LiveResources.Add(requestId);

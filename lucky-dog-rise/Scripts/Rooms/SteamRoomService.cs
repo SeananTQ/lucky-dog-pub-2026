@@ -29,6 +29,8 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     private readonly Func<int, bool> _validReaction;
     private readonly Func<double> _now;
     private readonly Dictionary<ulong, (int Id, long Presence)> _identities = new();
+    private readonly HashSet<ulong> _banned = new();
+    private readonly HashSet<ulong> _blockedLobbies = new();
     private RoomClient _client;
     private Pending _inFlight;
     private Pending _queued;
@@ -86,6 +88,11 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             if (!SteamRoomProtocol.TryDecode(request.Value, out var lobby))
             {
                 client.TryComplete(request.Id, () => new RoomResult(RoomFailure.NotFound));
+                return;
+            }
+            if (_blockedLobbies.Contains(lobby))
+            {
+                client.TryComplete(request.Id, () => new RoomResult(RoomFailure.Banned));
                 return;
             }
             if (lobby == _lobby)
@@ -163,7 +170,9 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 foreach (var id in (result.LobbyIds ?? []).Distinct().Take(50))
                 {
                     var data = _transport.ReadLobby(id, false);
-                    if (!Compatible(data)) continue;
+                    if (!Compatible(data) || _blockedLobbies.Contains(id)
+                        || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
+                        || bans.Contains(_transport.LocalSteamId)) continue;
                     listings.Add(new RoomListing(SteamRoomProtocol.Encode(data.LobbyId), data.Name,
                         SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", data.Count, data.Capacity));
                 }
@@ -200,6 +209,17 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.NotFound));
                 return;
             }
+            if (!SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
+            {
+                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+                return;
+            }
+            if (bans.Contains(_transport.LocalSteamId) || _blockedLobbies.Contains(result.LobbyId))
+            {
+                _blockedLobbies.Add(result.LobbyId);
+                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Banned));
+                return;
+            }
             // Publish local appearance before switching our committed view. A failed join
             // leaves the old room and its window layout untouched.
             var appearance = AppearanceOf(pending.Client);
@@ -213,6 +233,8 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 var previous = _lobby;
                 _lobby = result.LobbyId;
                 _identities.Clear();
+                _banned.Clear();
+                _banned.UnionWith(bans);
                 _nextMemberId = 2;
                 _lastAppearance = appearance;
                 _lastActivity = activity;
@@ -285,6 +307,47 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         catch { return "房间服务暂不可用。"; }
     }
 
+    public string Kick(RoomClient client, int memberId, long presence)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0)
+            return "Rooms_KickUnavailable";
+        try
+        {
+            var lobby = _lobby;
+            var data = _transport.ReadLobby(lobby, true);
+            if (data?.OwnerId != _transport.LocalSteamId) return "Rooms_KickNotOwner";
+            if (!Compatible(data) || data.Members == null
+                || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
+                return "Rooms_KickUnavailable";
+            var identity = _identities.FirstOrDefault(pair => pair.Value.Id == memberId
+                && pair.Value.Presence == presence);
+            var target = data.Members.FirstOrDefault(member => member.SteamId == identity.Key);
+            if (target == null || target.SteamId == _transport.LocalSteamId || target.SteamId == 0)
+                return "Rooms_KickInvalidTarget";
+            Guid.TryParseExact(target.ChatSession, "N", out var targetSession);
+            if (_chatSessions.TryGetValue(target.SteamId, out var previous) && previous != targetSession)
+                return "Rooms_KickInvalidTarget";
+            bans.UnionWith(_banned);
+            if (bans.Contains(target.SteamId)) return ""; // Idempotent: no repeated network writes.
+            if (bans.Count >= SteamRoomProtocol.MaxBannedMembers) return "Rooms_KickListFull";
+            bans.Add(target.SteamId);
+            // Write the durable room-scoped rule before sending a best-effort prompt.
+            // Metadata callbacks also enforce removal, so lost/reordered prompts are harmless.
+            if (!_transport.SetBannedMembers(lobby, SteamRoomProtocol.EncodeBannedMembers(bans)))
+                return "Rooms_KickUnavailable";
+            if (_lobby != lobby) return "";
+            _banned.UnionWith(bans);
+            if (targetSession != Guid.Empty)
+            {
+                try { _transport.SendChat(lobby, SteamRoomProtocol.EncodeKick(target.SteamId, targetSession)); }
+                catch { /* The accepted metadata update remains authoritative. */ }
+            }
+            OnLobbyChanged(lobby);
+            return "";
+        }
+        catch { return "Rooms_KickUnavailable"; }
+    }
+
     private static string ActivityOf(RoomClient client)
         => SteamRoomProtocol.EncodeActivity(client.ActivitySequence, client.TongueActive);
 
@@ -331,7 +394,22 @@ public sealed class SteamRoomService : IRoomService, IDisposable
 
     private void OnChatReceived(ulong lobby, ulong sender, byte[] bytes)
     {
-        if (!IsAvailable || _lobby == 0 || lobby != _lobby || sender == _transport.LocalSteamId
+        if (!IsAvailable || _lobby == 0 || lobby != _lobby || sender == _transport.LocalSteamId) return;
+        if (SteamRoomProtocol.TryDecodeKick(bytes, out var target, out var membership))
+        {
+            if (target != _transport.LocalSteamId || membership != _chatSession) return;
+            try
+            {
+                var data = _transport.ReadLobby(lobby, true);
+                // Never trust an owner id carried in a packet or our last rendered snapshot.
+                if (data?.OwnerId == sender && Compatible(data)
+                    && SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
+                    && bans.Contains(target)) ApplyBans(bans);
+            }
+            catch { /* A metadata notification can still complete removal. */ }
+            return;
+        }
+        if (_banned.Contains(sender)
             || !SteamRoomProtocol.TryDecodeChat(bytes, out var session, out var sequence, out var sentAt, out var text)) return;
         // Both clocks are supplied by Steam; local wall-clock settings are irrelevant.
         var age = _transport.ServerTime - sentAt;
@@ -372,21 +450,36 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 Disconnect();
                 return;
             }
+            if (!SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
+            {
+                Disconnect();
+                return;
+            }
+            if (!ApplyBans(bans)) return;
             Publish(data);
         }
         catch { Disconnect(); }
     }
 
+    private bool ApplyBans(HashSet<ulong> bans)
+    {
+        _banned.UnionWith(bans);
+        if (!_banned.Contains(_transport.LocalSteamId)) return true;
+        _blockedLobbies.Add(_lobby);
+        _client.RemoveFromRoom(RoomFailure.Removed);
+        return false;
+    }
+
     private void Publish(SteamRoomData data)
     {
-        var present = data.Members.Select(m => m.SteamId).ToHashSet();
+        var present = data.Members.Where(m => !_banned.Contains(m.SteamId)).Select(m => m.SteamId).ToHashSet();
         foreach (var stale in _identities.Keys.Where(id => !present.Contains(id)).ToArray()) _identities.Remove(stale);
         foreach (var stale in _chatSessions.Keys.Where(id => !present.Contains(id)).ToArray()) _chatSessions.Remove(stale);
         foreach (var stale in _receivedChatAt.Keys.Where(id => !present.Contains(id)).ToArray()) _receivedChatAt.Remove(stale);
         var members = new List<RoomMember>();
         foreach (var raw in data.Members.DistinctBy(m => m.SteamId).Take(RoomRules.Capacity))
         {
-            if (raw.SteamId == 0) continue;
+            if (raw.SteamId == 0 || _banned.Contains(raw.SteamId)) continue;
             if (Guid.TryParseExact(raw.ChatSession, "N", out var chatToken) && chatToken != Guid.Empty)
             {
                 if (_chatSessions.TryGetValue(raw.SteamId, out var previousToken) && previousToken != chatToken
@@ -425,6 +518,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         var old = _lobby;
         _lobby = 0;
         _identities.Clear();
+        _banned.Clear();
         _lastAppearance = "";
         _lastActivity = "";
         _chatSession = Guid.Empty;

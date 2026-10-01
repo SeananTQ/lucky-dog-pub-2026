@@ -53,6 +53,8 @@ public sealed class RoomClient : IDisposable
     }
     public string SetGame(string gameId) => _disposed ? "房间连接已关闭。" : _service.SetGame(this, gameId);
     public string SendChat(string text) => _disposed ? "房间连接已关闭。" : _service.SendChat(this, text);
+    public string Kick(int memberId, long presence) => _disposed || _committing
+        ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
     private bool BeginRequest(RoomOperation operation, string value)
     {
@@ -133,6 +135,32 @@ public sealed class RoomClient : IDisposable
         }
         finally { _committing = false; }
         Changed?.Invoke();
+    }
+
+    // Host removal is terminal for this membership, including any search that
+    // would otherwise auto-join when its delayed callback arrives. Notify only
+    // after the request/session have been invalidated, while guarding against
+    // observers starting another request inside the removal notification.
+    internal void RemoveFromRoom(RoomFailure reason)
+    {
+        if (_disposed) return;
+        var wasCommitting = _committing;
+        _committing = true;
+        try
+        {
+            var requestId = _request?.Id ?? 0;
+            _request = null;
+            _joinAfterSearch = false;
+            if (requestId != 0) _service.Cancel(this, requestId);
+            var session = Session;
+            _service.Leave(this);
+            if (Session == session || JoinedCode.Length > 0 || View != null) BeginSession("");
+            Operation = RoomOperation.None;
+            RequestState = RoomRequestState.Failed;
+            Failure = reason;
+            Changed?.Invoke();
+        }
+        finally { _committing = wasCommitting; }
     }
     public void AdvanceTo(double now)
     {

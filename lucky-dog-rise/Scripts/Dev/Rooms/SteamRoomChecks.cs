@@ -27,6 +27,245 @@ public static class SteamRoomChecks
         CheckChat();
         CheckChatFiltering();
         CheckSteamChatTextFilter();
+        CheckKickProtocol();
+        CheckKickAuthorityAndDelivery();
+        CheckKickReception();
+        CheckKickMetadataAndPendingRequests();
+        CheckBanAdmissionAndLifetime();
+        CheckBanMigrationAndCapacity();
+    }
+
+    private static void CheckKickProtocol()
+    {
+        var ids = Enumerable.Range(1, SteamRoomProtocol.MaxBannedMembers).Select(id => (ulong)id).ToArray();
+        Assert(SteamRoomProtocol.TryDecodeBannedMembers(SteamRoomProtocol.EncodeBannedMembers(ids), out var decoded)
+            && decoded.SetEquals(ids), "ban metadata supports the documented maximum without losing identities");
+        Assert(SteamRoomProtocol.TryDecodeBannedMembers("1:", out decoded) && decoded.Count == 0,
+            "explicit empty ban metadata is valid");
+        foreach (string invalid in new[] { null, "", "2:", "1:0", "1:-1", "1:0000000000000000",
+            "1:0000000000000001,0000000000000001", "1:18446744073709551616", new string('1', 9000) })
+            Assert(!SteamRoomProtocol.TryDecodeBannedMembers(invalid, out _), "malformed ban metadata is not an empty list");
+
+        var membership = Guid.NewGuid();
+        var packet = SteamRoomProtocol.EncodeKick(88, membership);
+        Assert(packet.Length == 28 && SteamRoomProtocol.TryDecodeKick(packet, out var target, out var token)
+            && target == 88 && token == membership, "management packet preserves target and membership token");
+        Assert(!SteamRoomProtocol.TryDecodeChat(packet, out _, out _, out _, out _),
+            "management packet never decodes as displayed chat");
+        var invalidMagic = (byte[])packet.Clone(); invalidMagic[0] = (byte)'X';
+        foreach (var invalid in new[] { null, Array.Empty<byte>(), packet[..^1], packet.Concat(new byte[] { 0 }).ToArray(), invalidMagic })
+            Assert(!SteamRoomProtocol.TryDecodeKick(invalid, out _, out _), "malformed management packet rejected");
+        var invalidTarget = (byte[])packet.Clone(); Array.Clear(invalidTarget, 4, 8);
+        var invalidToken = (byte[])packet.Clone(); Array.Clear(invalidToken, 12, 16);
+        Assert(!SteamRoomProtocol.TryDecodeKick(invalidTarget, out _, out _)
+            && !SteamRoomProtocol.TryDecodeKick(invalidToken, out _, out _), "zero target and empty membership token rejected");
+    }
+
+    private static void CheckKickAuthorityAndDelivery()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        var token = Guid.NewGuid();
+        transport.Seed(120, new SteamRoomMemberData(88, "guest", "1:10:0:1001", ChatSession: token.ToString("N")));
+        client.Join(SteamRoomProtocol.Encode(120)); transport.SucceedMembership(120);
+        var guest = client.View.Members.Single(member => member.Id != 1);
+        var self = client.View.Members.Single(member => member.Id == 1);
+        Assert(client.Kick(self.Id, self.Presence) == "Rooms_KickInvalidTarget", "owner cannot remove itself");
+        Assert(client.Kick(guest.Id, guest.Presence + 1) == "Rooms_KickInvalidTarget"
+            && client.Kick(999, guest.Presence) == "Rooms_KickInvalidTarget", "unknown and stale confirmation targets rejected");
+        var original = transport.Rooms[120];
+        transport.Rooms[120] = original with
+        {
+            Members = original.Members.Select(member => member.SteamId == 88
+                ? member with { ChatSession = Guid.NewGuid().ToString("N") } : member).ToArray()
+        };
+        Assert(client.Kick(guest.Id, guest.Presence) == "Rooms_KickInvalidTarget" && transport.BanWrites.Count == 0,
+            "same Steam user rejoining before the UI callback cannot be kicked through an old confirmation");
+        transport.Rooms[120] = original with { Members = original.Members.Where(member => member.SteamId != 88).ToArray(), Count = 1 };
+        Assert(client.Kick(guest.Id, guest.Presence) == "Rooms_KickInvalidTarget" && transport.BanWrites.Count == 0,
+            "target departing before the UI callback cannot create a new ban from an obsolete row");
+        transport.Rooms[120] = original;
+
+        transport.SetOwner(120, 88, notify: false);
+        Assert(client.View.OwnerId == 1 && client.Kick(guest.Id, guest.Presence) == "Rooms_KickNotOwner"
+            && transport.BanWrites.Count == 0, "authority comes from current Steam owner, not stale displayed owner");
+        transport.SetOwner(120, 77, notify: false);
+        transport.BanWriteSucceeds = false;
+        Assert(client.Kick(guest.Id, guest.Presence) == "Rooms_KickUnavailable" && transport.Chats.Count == 0
+            && transport.Rooms[120].BannedMembers == "1:", "failed ban write cannot announce a completed kick");
+        transport.BanWriteSucceeds = true;
+        Assert(client.SendChat("owner is chatting") == "", "chat starts ordinary text cooldown");
+        int filterCalls = transport.FilterCalls.Count;
+        transport.ChatFilter = (_, _) => throw new InvalidOperationException("management must not use text filtering");
+        transport.Events.Clear();
+        Assert(client.Kick(guest.Id, guest.Presence) == "", "kick bypasses text cooldown and unavailable text filter");
+        Assert(transport.FilterCalls.Count == filterCalls && transport.Events.SequenceEqual(new[] { "ban", "chat" }),
+            "ban persistence precedes its independent management prompt");
+        Assert(SteamRoomProtocol.TryDecodeBannedMembers(transport.Rooms[120].BannedMembers, out var banned)
+            && banned.SetEquals(new ulong[] { 88 }), "ban uses Steam identity rather than local display slot");
+        Assert(SteamRoomProtocol.TryDecodeKick(transport.Chats.Last(), out var target, out var membership)
+            && target == 88 && membership == token, "kick prompt addresses the confirmed membership");
+
+        // A failed/lost prompt must not undo a successful metadata update.
+        transport.SetRemote(120, new SteamRoomMemberData(99, "second guest", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        var second = client.View.Members.Single(member => member.Name == "second guest");
+        transport.ChatSucceeds = false;
+        Assert(client.Kick(second.Id, second.Presence) == ""
+            && SteamRoomProtocol.TryDecodeBannedMembers(transport.Rooms[120].BannedMembers, out banned) && banned.Contains(99),
+            "accepted ban survives best-effort prompt delivery failure");
+    }
+
+    private static void CheckKickReception()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        var ownerToken = Guid.NewGuid();
+        transport.Seed(121,
+            new SteamRoomMemberData(88, "first owner", "1:10:0:1001", ChatSession: ownerToken.ToString("N")),
+            new SteamRoomMemberData(99, "next owner", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        transport.SetOwner(121, 88, notify: false);
+        client.Join(SteamRoomProtocol.Encode(121)); transport.SucceedMembership(121);
+        var localToken = Guid.ParseExact(transport.ChatSessions[121], "N");
+        var kick = SteamRoomProtocol.EncodeKick(77, localToken);
+        transport.DeliverChat(121, 88, kick);
+        Assert(client.JoinedCode.Length > 0, "a prompt alone cannot invent a ban missing from owner metadata");
+        transport.DeliverChat(121, 88, SteamRoomProtocol.EncodeChat(ownerToken, 1, transport.ServerTime, "hello"));
+        int filtered = transport.FilterCalls.Count;
+        transport.ChatFilter = (_, _) => throw new InvalidOperationException("management is not text");
+        transport.SetBans(121, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }), notify: false);
+        transport.DeliverChat(999, 88, kick);
+        transport.DeliverChat(121, 88, SteamRoomProtocol.EncodeKick(99, localToken));
+        transport.DeliverChat(121, 88, SteamRoomProtocol.EncodeKick(77, Guid.NewGuid()));
+        transport.DeliverChat(121, 99, kick);
+        Assert(client.JoinedCode.Length > 0 && transport.FilterCalls.Count == filtered,
+            "wrong room, target, membership and non-owner commands cannot remove local player or call text filter");
+
+        transport.SetOwner(121, 99, notify: false);
+        transport.DeliverChat(121, 88, kick);
+        Assert(client.JoinedCode.Length > 0, "old host's delayed packet loses authority immediately on migration");
+        transport.DeliverChat(121, 99, kick);
+        Assert(client.JoinedCode == "" && client.View == null && client.Bubbles.Count == 0
+            && client.Failure == RoomFailure.Removed && transport.Left.SequenceEqual(new ulong[] { 121 }),
+            "new current owner prompt removes membership even during text cooldown and filter outage");
+        transport.DeliverChat(121, 99, kick);
+        Assert(transport.Left.Count == 1 && transport.FilterCalls.Count == filtered,
+            "duplicate removal is harmless and never displayed as chat");
+    }
+
+    private static void CheckKickMetadataAndPendingRequests()
+    {
+        foreach (bool pendingSearch in new[] { false, true })
+        {
+            var transport = new FakeTransport();
+            using var service = Service(transport);
+            using var client = Client(service);
+            transport.Seed(122, new SteamRoomMemberData(88, "owner", "1:10:0:1001"));
+            transport.SetOwner(122, 88, notify: false);
+            transport.Seed(123);
+            client.Join(SteamRoomProtocol.Encode(122)); transport.SucceedMembership(122);
+            var oldToken = Guid.ParseExact(transport.ChatSessions[122], "N");
+            if (pendingSearch) client.FindAndJoin();
+            else client.Join(SteamRoomProtocol.Encode(123));
+            transport.SetBans(122, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }));
+            Assert(client.JoinedCode == "" && !client.IsBusy && client.Failure == RoomFailure.Removed,
+                "metadata callback alone removes player and cancels an in-flight room operation");
+            transport.DeliverChat(122, 88, SteamRoomProtocol.EncodeKick(77, oldToken));
+            if (pendingSearch)
+            {
+                transport.CompleteSearch(123);
+                Assert(transport.MembershipCalls == 1, "late random-search result cannot auto-join after removal");
+            }
+            else
+            {
+                transport.SucceedMembership(123);
+                Assert(transport.Left.Contains(123), "late successful join is cleaned after removal");
+            }
+            Assert(client.JoinedCode == "" && client.Failure == RoomFailure.Removed,
+                "reordered prompt and late operation callbacks cannot resurrect a removed membership");
+
+            client.Create("fresh room"); transport.SucceedMembership(124);
+            Assert(client.JoinedCode == SteamRoomProtocol.Encode(124) && client.Failure == RoomFailure.None,
+                "old room ban does not become a global ban on new rooms");
+            transport.DeliverChat(122, 88, SteamRoomProtocol.EncodeKick(77, oldToken));
+            Assert(client.JoinedCode == SteamRoomProtocol.Encode(124), "old lobby packet cannot remove new room membership");
+        }
+    }
+
+    private static void CheckBanAdmissionAndLifetime()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        foreach (ulong lobby in new ulong[] { 125, 126, 127, 128, 129 }) transport.Seed(lobby);
+        transport.SetBans(126, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }), notify: false);
+        transport.SetBans(127, "broken", notify: false);
+        transport.Rooms[128] = transport.Rooms[128] with { Protocol = "lucky-dog-room-1" };
+        transport.SetBans(129, "1:" + string.Join(",", Enumerable.Range(1, SteamRoomProtocol.MaxBannedMembers + 1)
+            .Select(id => id.ToString("X16", System.Globalization.CultureInfo.InvariantCulture))), notify: false);
+        client.Join(SteamRoomProtocol.Encode(125)); transport.SucceedMembership(125);
+        long previous = client.Session;
+        client.Search(); transport.CompleteSearch(125, 126, 127, 128, 129);
+        Assert(client.Listings.Select(listing => listing.Code).SequenceEqual(new[] { SteamRoomProtocol.Encode(125) }),
+            "search excludes locally banned, malformed, oversized and old-protocol rooms");
+
+        client.Join(SteamRoomProtocol.Encode(126)); transport.SucceedMembership(126);
+        Assert(client.Failure == RoomFailure.Banned && client.JoinedCode == SteamRoomProtocol.Encode(125)
+            && client.Session == previous && transport.Left.Contains(126) && !transport.Left.Contains(125),
+            "direct banned-room join cleans new membership and preserves previous room");
+        int membershipCalls = transport.MembershipCalls;
+        transport.SetBans(126, "1:", notify: false);
+        client.Join(SteamRoomProtocol.Encode(126));
+        Assert(client.Failure == RoomFailure.Banned && !client.IsBusy && transport.MembershipCalls == membershipCalls,
+            "locally remembered removal rejects a direct retry before another Steam join, even with stale metadata");
+        client.FindAndJoin(); transport.CompleteSearch(126);
+        Assert(client.Failure == RoomFailure.NoMatchingRoom && !client.IsBusy
+            && transport.MembershipCalls == membershipCalls && client.JoinedCode == SteamRoomProtocol.Encode(125),
+            "stale search results cannot start a banned-room random-join loop");
+        foreach (ulong invalidRoom in new ulong[] { 127, 128, 129 })
+        {
+            client.Join(SteamRoomProtocol.Encode(invalidRoom)); transport.SucceedMembership(invalidRoom);
+            Assert(client.Failure != RoomFailure.None && client.JoinedCode == SteamRoomProtocol.Encode(125)
+                && transport.Left.Contains(invalidRoom), "invalid room admission fails closed and cleans membership");
+        }
+        transport.SetBans(125, "malformed live metadata");
+        Assert(client.JoinedCode == "", "live malformed ban state cannot silently disable moderation");
+    }
+
+    private static void CheckBanMigrationAndCapacity()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(130,
+            new SteamRoomMemberData(88, "old host", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")),
+            new SteamRoomMemberData(99, "new target", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        transport.SetOwner(130, 88, notify: false);
+        transport.SetBans(130, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 55 }), notify: false);
+        client.Join(SteamRoomProtocol.Encode(130)); transport.SucceedMembership(130);
+        transport.SetOwner(130, 77);
+        var guest = client.View.Members.Single(member => member.Name == "new target");
+        Assert(client.Kick(guest.Id, guest.Presence) == ""
+            && SteamRoomProtocol.TryDecodeBannedMembers(transport.Rooms[130].BannedMembers, out var banned)
+            && banned.SetEquals(new ulong[] { 55, 99 }), "new owner retains previous owner's room bans");
+
+        transport.SetBans(130, "1:");
+        var oldHost = client.View.Members.Single(member => member.Name == "old host");
+        Assert(client.Kick(oldHost.Id, oldHost.Presence) == ""
+            && SteamRoomProtocol.TryDecodeBannedMembers(transport.Rooms[130].BannedMembers, out banned)
+            && banned.SetEquals(new ulong[] { 55, 88, 99 }), "delayed metadata cannot erase bans already observed in this room");
+
+        client.Leave();
+        transport.Seed(131, new SteamRoomMemberData(88, "target in new room", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        client.Join(SteamRoomProtocol.Encode(131)); transport.SucceedMembership(131);
+        guest = client.View.Members.Single(member => member.Id != 1);
+        transport.SetBans(131, SteamRoomProtocol.EncodeBannedMembers(
+            Enumerable.Range(1000, SteamRoomProtocol.MaxBannedMembers).Select(id => (ulong)id)));
+        int writes = transport.BanWrites.Count, prompts = transport.Chats.Count;
+        Assert(client.Kick(guest.Id, guest.Presence) == "Rooms_KickListFull"
+            && transport.BanWrites.Count == writes && transport.Chats.Count == prompts,
+            "full room ban list fails visibly without evicting older entries or pretending removal succeeded");
     }
 
     private static void CheckChatFiltering()
@@ -501,6 +740,10 @@ public static class SteamRoomChecks
         public long ServerTime => 100000 + (long)Now;
         public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
         public readonly List<byte[]> Chats = new();
+        public readonly List<string> Events = new();
+        public readonly Dictionary<ulong, string> ChatSessions = new();
+        public readonly List<(ulong Lobby, string Members)> BanWrites = new();
+        public bool BanWriteSucceeds = true;
         public bool ChatSucceeds = true;
         public Func<ulong, string, string> ChatFilter = (_, text) => text;
         public readonly List<(ulong Sender, string Text)> FilterCalls = new();
@@ -509,8 +752,22 @@ public static class SteamRoomChecks
             FilterCalls.Add((senderSteamId, text));
             return ChatFilter(senderSteamId, text);
         }
-        public void SetChatSession(ulong lobbyId, string session) { }
-        public bool SendChat(ulong lobbyId, byte[] message) { if (!ChatSucceeds) return false; Chats.Add(message); return true; }
+        public void SetChatSession(ulong lobbyId, string session) => ChatSessions[lobbyId] = session;
+        public bool SendChat(ulong lobbyId, byte[] message)
+        {
+            Events.Add("chat");
+            if (!ChatSucceeds) return false;
+            Chats.Add(message);
+            return true;
+        }
+        public bool SetBannedMembers(ulong lobbyId, string members)
+        {
+            if (!BanWriteSucceeds) return false;
+            BanWrites.Add((lobbyId, members));
+            Events.Add("ban");
+            SetBans(lobbyId, members, notify: false);
+            return true;
+        }
         public void DeliverChat(ulong lobby, ulong sender, byte[] message) => ChatReceived(lobby, sender, message);
         public int MembershipCalls;
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
@@ -576,6 +833,16 @@ public static class SteamRoomChecks
         public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);
         public void Leave(ulong lobbyId) => Left.Add(lobbyId);
         public void Dispose() => Disposed = true;
+        public void SetBans(ulong lobbyId, string value, bool notify = true)
+        {
+            Rooms[lobbyId] = Rooms[lobbyId] with { BannedMembers = value };
+            if (notify) LobbyChanged(lobbyId);
+        }
+        public void SetOwner(ulong lobbyId, ulong owner, bool notify = true)
+        {
+            Rooms[lobbyId] = Rooms[lobbyId] with { OwnerId = owner };
+            if (notify) LobbyChanged(lobbyId);
+        }
         public void SetRemote(ulong lobbyId, SteamRoomMemberData member)
         {
             var data = Rooms[lobbyId];

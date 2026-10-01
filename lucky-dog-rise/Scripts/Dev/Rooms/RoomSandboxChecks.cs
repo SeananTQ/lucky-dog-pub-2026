@@ -10,6 +10,7 @@ internal static class RoomSandboxChecks
     public static string Run()
     {
         CheckActivity();
+        CheckKicking();
         var server = new RoomSandbox();
         var a = server.AddClient(1, "A", 1012);
         var b = server.AddClient(2, "B", 1012);
@@ -88,7 +89,7 @@ internal static class RoomSandboxChecks
         var other = b.JoinedCode;
         server.Leave(b);
         Check(!server.Search().Any(r => r.Code == other), "last departure destroys room");
-        return "ROOM_SANDBOX_PASS: isolated replicas, latency, bounded queues, reconnect, capacity, owner transfer, metadata, chat validation/expiry, local settings.\n"
+        return "ROOM_SANDBOX_PASS: isolated replicas, latency, bounded queues, reconnect, capacity, owner transfer, metadata, chat validation/expiry, local settings, host removal and room-scoped bans.\n"
             + RoomRequestChecks.Run();
     }
     private static void Check(bool passed, string message)
@@ -150,6 +151,102 @@ internal static class RoomSandboxChecks
         b.StopInputActivity();
         server.Tick(0.31);
         Check(!a.IsTongueActive(2), "delayed stop reaches observer");
+    }
+
+    private static void CheckKicking()
+    {
+        var server = new RoomSandbox();
+        using var owner = server.AddClient(1, "Owner", 1012);
+        using var target = server.AddClient(2, "Target", 1012);
+        using var successor = server.AddClient(3, "Successor", 1012);
+        using var otherOwner = server.AddClient(4, "Other owner", 1012);
+        server.Create(owner, "Moderated room");
+        var code = owner.JoinedCode;
+        server.Join(target, code);
+        server.Join(successor, code);
+        server.Tick(0);
+        var targetPresence = owner.View.Members.Single(m => m.Id == target.Id).Presence;
+        Check(target.Kick(successor.Id, owner.View.Members.Single(m => m.Id == successor.Id).Presence)
+            == "Rooms_KickNotOwner", "non-owner cannot remove a member");
+        Check(owner.Kick(owner.Id, owner.View.Members.Single(m => m.Id == owner.Id).Presence)
+            == "Rooms_KickInvalidTarget", "owner cannot remove self");
+        Check(owner.Kick(999, 1) == "Rooms_KickInvalidTarget", "missing target rejected");
+
+        var oldSuccessorPresence = owner.View.Members.Single(m => m.Id == successor.Id).Presence;
+        successor.Leave();
+        server.Join(successor, code);
+        server.Tick(0);
+        Check(owner.Kick(successor.Id, oldSuccessorPresence) == "Rooms_KickInvalidTarget"
+            && successor.JoinedCode == code, "stale confirmation cannot target rejoined member");
+
+        server.SendChat(target, "Before removal");
+        target.NotifyInputActivity();
+        server.Tick(0);
+        var staleSnapshot = target.View;
+        server.Settings(target).Latency = 10;
+        owner.SetAppearance(1013, 0, 1005);
+        server.Settings(target).RequestDelay = 2;
+        Check(target.FindAndJoin(), "target has pending automatic join before removal");
+        var removedNotifications = 0;
+        var reentrantRequestStarted = false;
+        target.Changed += () =>
+        {
+            if (target.Failure != RoomFailure.Removed) return;
+            removedNotifications++;
+            Check(target.JoinedCode == "" && target.View == null && !target.IsBusy,
+                "removal notification observes fully cleared membership");
+            reentrantRequestStarted |= target.FindAndJoin();
+        };
+        Check(owner.Kick(target.Id, targetPresence) == "", "owner can remove current member");
+        Check(target.Failure == RoomFailure.Removed && target.RequestState == RoomRequestState.Failed
+            && target.Operation == RoomOperation.None && target.Bubbles.Count == 0 && !target.TongueActive
+            && removedNotifications == 1 && !reentrantRequestStarted && server.PendingRequestCount == 0,
+            "removal atomically clears activity, chat and pending auto-join");
+        target.Receive(staleSnapshot with { Revision = staleSnapshot.Revision + 100 });
+        server.Tick(12);
+        Check(target.JoinedCode == "" && target.View == null && target.Failure == RoomFailure.Removed
+            && owner.View.Members.Length == 2 && successor.View.Members.Length == 2,
+            "queued and stale snapshots cannot resurrect kicked member");
+
+        server.Settings(target).RequestDelay = 0;
+        target.Join(code);
+        server.Tick(0);
+        Check(target.Failure == RoomFailure.Banned && target.JoinedCode == "", "room code cannot bypass ban");
+        server.Create(target, "Target's own room");
+        var retained = target.JoinedCode;
+        target.Join(code);
+        server.Tick(0);
+        Check(target.Failure == RoomFailure.Banned && target.JoinedCode == retained,
+            "failed banned join preserves current room");
+        target.Search();
+        server.Tick(0);
+        Check(target.Listings.All(r => r.Code != code), "banned room excluded from player's directory");
+        target.FindAndJoin();
+        server.Tick(0);
+        Check(target.Failure == RoomFailure.NoMatchingRoom && target.JoinedCode == retained,
+            "random join cannot select banned room");
+
+        server.Create(otherOwner, "Allowed room");
+        target.FindAndJoin();
+        server.Tick(0);
+        server.Tick(0);
+        Check(target.JoinedCode == otherOwner.JoinedCode, "random join can still choose another allowed room");
+        owner.Leave();
+        server.Tick(0);
+        Check(successor.View.OwnerId == successor.Id, "surviving member becomes owner");
+        target.Join(code);
+        server.Tick(0);
+        Check(target.Failure == RoomFailure.Banned && target.JoinedCode == otherOwner.JoinedCode,
+            "ban survives host migration");
+        Check(owner.Kick(successor.Id, successor.View.Members.Single().Presence) == "Rooms_KickUnavailable",
+            "departed owner cannot remove former members");
+        server.Create(owner, "Same owner's new room");
+        target.Join(owner.JoinedCode);
+        server.Tick(0);
+        Check(target.RequestState == RoomRequestState.Succeeded && target.JoinedCode == owner.JoinedCode
+            && owner.JoinedCode != code, "new room does not inherit same owner's old ban list");
+        successor.Leave();
+        Check(server.Search().All(r => r.Code != code), "last member's departure destroys old banned room");
     }
 }
 #endif

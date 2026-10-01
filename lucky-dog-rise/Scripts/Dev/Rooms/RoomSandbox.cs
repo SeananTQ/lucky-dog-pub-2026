@@ -31,6 +31,7 @@ public sealed class RoomSandbox : IRoomService
         public int Owner;
         public long Revision;
         public readonly Dictionary<int, RoomMember> Members = new();
+        public readonly HashSet<int> BannedClients = new();
     }
     private sealed record Delivery(int ClientId, long Session, double Due,
         RoomSnapshot Snapshot, RoomChat Chat);
@@ -84,7 +85,7 @@ public sealed class RoomSandbox : IRoomService
         if (pending.Failure == MockRoomFailure.Unavailable) return new RoomResult(RoomFailure.Unavailable);
         return pending.Request.Operation switch
         {
-            RoomOperation.Search => new RoomResult(RoomFailure.None, Search()),
+            RoomOperation.Search => new RoomResult(RoomFailure.None, Search(pending.Client)),
             RoomOperation.Create => CreateResult(pending.Client, pending.Request.Value),
             RoomOperation.Join => JoinResult(pending.Client, pending.Request.Value),
             _ => new RoomResult(RoomFailure.Unavailable)
@@ -93,6 +94,9 @@ public sealed class RoomSandbox : IRoomService
 
     public RoomListing[] Search() => _rooms.Values.OrderBy(r => r.Code)
         .Select(r => new RoomListing(r.Code, r.Name, r.GameId, r.Members.Count, RoomRules.Capacity)).ToArray();
+
+    private RoomListing[] Search(RoomClient client) => Search()
+        .Where(r => !_rooms[r.Code].BannedClients.Contains(client.Id)).ToArray();
 
     // Synchronous helpers only seed tests. Product-facing UI uses RoomClient requests.
     public string Create(RoomClient client, string name) => FailureText(CreateResult(client, name).Failure);
@@ -110,6 +114,7 @@ public sealed class RoomSandbox : IRoomService
     private RoomResult JoinResult(RoomClient client, string code)
     {
         if (!_rooms.TryGetValue((code ?? "").Trim(), out var room)) return new RoomResult(RoomFailure.NotFound);
+        if (room.BannedClients.Contains(client.Id)) return new RoomResult(RoomFailure.Banned);
         if (client.JoinedCode == room.Code) return RoomResult.Success;
         if (room.Members.Count >= RoomRules.Capacity) return new RoomResult(RoomFailure.Full);
         Leave(client);
@@ -126,6 +131,7 @@ public sealed class RoomSandbox : IRoomService
         RoomFailure.InvalidName => "房间名称需要 1–40 个字符。",
         RoomFailure.NotFound => "房间不存在，请刷新列表。",
         RoomFailure.Full => "房间已满。",
+        RoomFailure.Banned => "你已被房主请出，无法再次加入这个房间。",
         _ => "房间服务暂不可用。"
     };
 
@@ -185,6 +191,22 @@ public sealed class RoomSandbox : IRoomService
         if (string.IsNullOrWhiteSpace(gameId) || gameId.Length > 32) return "玩法标识无效。";
         room.GameId = gameId;
         Broadcast(room);
+        return "";
+    }
+
+    public string Kick(RoomClient client, int memberId, long presence)
+    {
+        if (!_clients.TryGetValue(client.Id, out var actual) || !ReferenceEquals(actual, client)
+            || !_rooms.TryGetValue(client.JoinedCode, out var room)
+            || !room.Members.ContainsKey(client.Id)) return "Rooms_KickUnavailable";
+        if (room.Owner != client.Id) return "Rooms_KickNotOwner";
+        if (memberId == client.Id || !room.Members.TryGetValue(memberId, out var member)
+            || member.Presence != presence) return "Rooms_KickInvalidTarget";
+
+        // Identity stays stable across re-entry, while Presence protects against
+        // a stale member-row confirmation targeting a newer membership.
+        room.BannedClients.Add(memberId);
+        _clients[memberId].RemoveFromRoom(RoomFailure.Removed);
         return "";
     }
 

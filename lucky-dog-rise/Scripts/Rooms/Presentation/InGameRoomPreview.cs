@@ -29,6 +29,10 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private Button _refresh = null!;
     [Export] private Button _return = null!;
     [Export] private Button _cancel = null!;
+    [Export] private VBoxContainer _kickConfirm = null!;
+    [Export] private Label _kickName = null!;
+    [Export] private Button _kickAccept = null!;
+    [Export] private Button _kickCancel = null!;
     [Export] private PackedScene _directoryRow = null!;
     [Export] private PackedScene _memberRow = null!;
     private RoomClient _client;
@@ -46,6 +50,10 @@ public partial class InGameRoomPreview : VBoxContainer
     private bool _dirty;
     private long _lastSession;
     private string _noticeKey = "";
+    private RoomClient _kickClient;
+    private long _kickSession;
+    private int _kickMemberId;
+    private long _kickPresence;
     public event Action<RoomClient> ClientChanged;
     public RoomClient CurrentClient => _client;
 
@@ -93,6 +101,8 @@ public partial class InGameRoomPreview : VBoxContainer
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
         _return.Pressed += () => { _browsing = false; _dirty = true; };
+        _kickAccept.Pressed += ConfirmKick;
+        _kickCancel.Pressed += CancelKick;
         L10n.Changed += OnLanguageChanged;
         InitializeMock();
         RefreshService();
@@ -148,6 +158,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void ReplaceClient(RoomClient client)
     {
+        CancelKick();
         if (_client != null)
         {
             _client.Changed -= OnClientChanged;
@@ -179,6 +190,10 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void OnClientChanged()
     {
+        if (_client.Failure is RoomFailure.Removed or RoomFailure.Banned)
+            _noticeKey = _client.Failure == RoomFailure.Removed ? "Rooms_Removed" : "Rooms_Banned";
+        if (_kickClient != null && KickTargetError(_kickClient, _kickSession, _kickMemberId, _kickPresence).Length > 0)
+            CancelKick();
         if (_client.Session != _lastSession)
         {
             _lastSession = _client.Session;
@@ -204,6 +219,46 @@ public partial class InGameRoomPreview : VBoxContainer
         DisplayServer.ClipboardSet(_client.JoinedCode);
         _noticeKey = "Rooms_CodeCopied";
         _dirty = true;
+    }
+
+    private string KickTargetError(RoomClient client, long session, int memberId, long presence)
+    {
+        if (!ReferenceEquals(client, _client) || client == null || client.Session != session
+            || client.JoinedCode.Length == 0 || client.IsBusy) return "Rooms_KickUnavailable";
+        if (client.View?.OwnerId != client.Id) return "Rooms_KickNotOwner";
+        return memberId == client.Id || !client.View.Members.Any(m => m.Id == memberId && m.Presence == presence)
+            ? "Rooms_KickInvalidTarget" : "";
+    }
+
+    private void RequestKick(RoomClient client, long session, RoomMember member)
+    {
+        var error = KickTargetError(client, session, member.Id, member.Presence);
+        if (error.Length > 0) { _noticeKey = error; _dirty = true; return; }
+        _kickClient = client;
+        _kickSession = session;
+        _kickMemberId = member.Id;
+        _kickPresence = member.Presence;
+        _kickName.Text = member.Name;
+        _kickConfirm.Show();
+        _noticeKey = "";
+        _dirty = true;
+    }
+
+    private void ConfirmKick()
+    {
+        // Validate the captured membership again: the host, room or target can
+        // change while the confirmation is visible, or before this signal runs.
+        var error = KickTargetError(_kickClient, _kickSession, _kickMemberId, _kickPresence);
+        if (error.Length == 0) error = _kickClient.Kick(_kickMemberId, _kickPresence);
+        CancelKick();
+        _noticeKey = error.Length == 0 ? "Rooms_KickSent" : error;
+        _dirty = true;
+    }
+
+    private void CancelKick()
+    {
+        _kickClient = null;
+        _kickConfirm?.Hide();
     }
 
     private void Render()
@@ -254,16 +309,26 @@ public partial class InGameRoomPreview : VBoxContainer
         _code.Text = _client.JoinedCode;
         _code.TooltipText = _client.JoinedCode;
         var members = view?.Members;
-        if (ReferenceEquals(_lastMembers, members)) return;
+        if (ReferenceEquals(_lastMembers, members))
+        {
+            foreach (var row in _members.GetChildren()) row.GetNode<Button>("Kick").Disabled = _client.IsBusy;
+            return;
+        }
         _lastMembers = members;
         Clear(_members);
         if (members == null) return;
         foreach (var member in members)
         {
-            var row = _memberRow.Instantiate<Label>();
+            var row = _memberRow.Instantiate<HBoxContainer>();
             _members.AddChild(row);
             var name = member.Id == _client.Id ? L10n.Tr("Rooms_You") : member.Name;
-            row.Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
+            row.GetNode<Label>("Name").Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
+            var kick = row.GetNode<Button>("Kick");
+            kick.Visible = view.OwnerId == _client.Id && member.Id != _client.Id;
+            kick.Disabled = _client.IsBusy;
+            var client = _client;
+            var session = client.Session;
+            kick.Pressed += () => RequestKick(client, session, member);
         }
     }
     partial void RenderMockNotice();
@@ -280,7 +345,8 @@ public partial class InGameRoomPreview : VBoxContainer
         RoomRequestState.Failed => _client.Failure switch
         {
             RoomFailure.InvalidName => "Rooms_InvalidName", RoomFailure.NotFound => "Rooms_NotFound",
-            RoomFailure.Full => "Rooms_Full", RoomFailure.NoMatchingRoom => "Rooms_NoMatch", _ => "Rooms_Unavailable"
+            RoomFailure.Full => "Rooms_Full", RoomFailure.NoMatchingRoom => "Rooms_NoMatch",
+            RoomFailure.Removed => "Rooms_Removed", RoomFailure.Banned => "Rooms_Banned", _ => "Rooms_Unavailable"
         },
         _ => ""
     };

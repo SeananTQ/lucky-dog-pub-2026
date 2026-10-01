@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomDirectoryRow.tscn" id="row"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomMemberRow.tscn" id="member"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_code", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_code", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel", "_kickConfirm", "_kickName", "_kickAccept", "_kickCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -26,6 +26,10 @@ _random = NodePath("Lobby/Random")
 _refresh = NodePath("Lobby/Header/Refresh")
 _return = NodePath("Lobby/Return")
 _cancel = NodePath("Cancel")
+_kickConfirm = NodePath("Room/KickConfirm")
+_kickName = NodePath("Room/KickConfirm/Name")
+_kickAccept = NodePath("Room/KickConfirm/Actions/Confirm")
+_kickCancel = NodePath("Room/KickConfirm/Actions/Cancel")
 _directoryRow = ExtResource("row")
 _memberRow = ExtResource("member")
 
@@ -186,6 +190,42 @@ autowrap_mode = 3
 [node name="Members" type="VBoxContainer" parent="Room"]
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="KickConfirm" type="VBoxContainer" parent="Room"]
+layout_mode = 2
+theme_override_constants/separation = 6
+visible = false
+
+[node name="Divider" type="HSeparator" parent="Room/KickConfirm"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Room/KickConfirm"]
+layout_mode = 2
+autowrap_mode = 3
+auto_translate_mode = 2
+
+[node name="Message" type="Label" parent="Room/KickConfirm"]
+layout_mode = 2
+text = "Rooms_KickConfirmMessage"
+autowrap_mode = 3
+
+[node name="Actions" type="HBoxContainer" parent="Room/KickConfirm"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Cancel" type="Button" parent="Room/KickConfirm/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "Common_Cancel"
+
+[node name="Confirm" type="Button" parent="Room/KickConfirm/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "Rooms_KickConfirm"
 
 [node name="Browse" type="Button" parent="Room"]
 layout_mode = 2

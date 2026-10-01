@@ -21,6 +21,7 @@ public interface IRoomService
     void Leave(RoomClient client);
     void UpdateAppearance(RoomClient client);
     void UpdateActivity(RoomClient client);
+    string Kick(RoomClient client, int memberId, long presence);
     string SetGame(RoomClient client, string gameId);
     string SendChat(RoomClient client, string text);
 }

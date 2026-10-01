@@ -106,6 +106,7 @@ internal static class SteamRoomPageChecks
             Check(second.Bubbles.Count == 0, "reconnected hidden page expires chat with its new service clock");
             page.Free();
             Check(second.JoinedCode.Length == 0, "page disposal leaves its current service");
+            await CheckKickInteraction(parent);
             await CheckChatInteraction(parent);
             GD.Print("[SteamRoomPageChecks] PASS production provider, join failure, appearance dispatch, service-clock chat expiry while hidden, reconnect clock reset, disposal (fake transport).");
         }
@@ -113,6 +114,128 @@ internal static class SteamRoomPageChecks
         {
             if (GodotObject.IsInstanceValid(page)) page.Free();
         }
+    }
+
+    private static async Task CheckKickInteraction(Node parent)
+    {
+        var service = new Service();
+        var provider = new Provider { RoomService = service };
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
+            .Instantiate<InGameRoomPreview>();
+        page.Configure(provider, null);
+        parent.AddChild(page);
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        try
+        {
+            await Frame();
+            var client = page.CurrentClient;
+            client.Join("PROVIDER1");
+            await Frame();
+            var members = page.GetNode<VBoxContainer>("Room/Members");
+            Button Kick(int index) => members.GetChild(index).GetNode<Button>("Kick");
+            var confirm = page.GetNode<Control>("Room/KickConfirm");
+            var accept = confirm.GetNode<Button>("Actions/Confirm");
+            var cancel = confirm.GetNode<Button>("Actions/Cancel");
+            var status = page.GetNode<Label>("Status");
+            Check(!Kick(0).Visible && !Kick(1).Visible, "non-host has no removal controls");
+
+            service.OwnerId = client.Id;
+            service.Publish(client);
+            await Frame();
+            Check(!Kick(0).Visible && Kick(1).Visible,
+                "host migration exposes removal controls only for other members");
+            // Godot keeps the source key in Button.Text and translates its
+            // shaped display. Compare that display size to literal translated
+            // text before any language switch can refresh a stale text cache.
+            var kick = Kick(1);
+            var translatedKick = L10n.Tr(kick.Text);
+            Check(translatedKick != kick.Text, "removal translation is registered before its first use");
+            var expectedKick = new Button
+            {
+                Text = translatedKick,
+                ThemeTypeVariation = kick.ThemeTypeVariation,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                Visible = false,
+            };
+            kick.GetParent().AddChild(expectedKick);
+            await Frame();
+            Check(Mathf.IsEqualApprox(kick.GetMinimumSize().X, expectedKick.GetMinimumSize().X),
+                "first removal button is shaped with translated text without changing language");
+            expectedKick.Free();
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            Check(confirm.Visible && service.KickRequests == 0
+                && confirm.GetNode<Label>("Name").Text == "Remote member", "removal waits for a named confirmation");
+            cancel.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!confirm.Visible && service.KickRequests == 0, "canceling confirmation does not remove anyone");
+
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            service.OwnerId = 2;
+            service.Publish(client);
+            // No frame between authority loss and an already queued UI signal.
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(!confirm.Visible && service.KickRequests == 0 && !Kick(1).Visible,
+                "host loss closes confirmation and rejects stale accept signals");
+
+            service.OwnerId = client.Id;
+            service.Publish(client);
+            await Frame();
+            var staleRowButton = Kick(1);
+            staleRowButton.EmitSignal(BaseButton.SignalName.Pressed);
+            service.RemotePresence++;
+            service.Publish(client);
+            staleRowButton.EmitSignal(BaseButton.SignalName.Pressed);
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(!confirm.Visible && service.KickRequests == 0,
+                "rejoined target cannot be removed by an old row or confirmation");
+
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            client.Leave();
+            client.Join("PROVIDER1");
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(!confirm.Visible && service.KickRequests == 0, "new room session invalidates old confirmation");
+
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(service.KickRequests == 1 && service.LastKickMember == 2
+                && service.LastKickPresence == service.RemotePresence && !confirm.Visible
+                && status.Text == L10n.Tr("Rooms_KickSent"), "confirmed action passes the current membership and shows request result");
+            service.KickError = "Rooms_KickUnavailable";
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(status.Text == L10n.Tr("Rooms_KickUnavailable") && status.Text != "Rooms_KickUnavailable",
+                "failed removal displays translated error in the room page");
+
+            int searches = service.SearchRequests;
+            client.RemoveFromRoom(RoomFailure.Removed);
+            await Frame();
+            Check(page.GetNode<Control>("Lobby").Visible && !page.GetNode<Control>("Room").Visible
+                && status.Visible && status.Text == L10n.Tr("Rooms_Removed") && status.Text != "Rooms_Removed"
+                && service.SearchRequests == searches && !client.IsBusy,
+                "forced exit returns to directory with persistent reason and no automatic search or rejoin");
+            await Frame();
+            Check(status.Text == L10n.Tr("Rooms_Removed"), "ordinary frames retain the removal reason");
+            service.RejoinFailure = RoomFailure.Banned;
+            client.Join("PROVIDER1");
+            await Frame();
+            Check(client.JoinedCode.Length == 0 && status.Text == L10n.Tr("Rooms_Banned")
+                && status.Text != "Rooms_Banned" && service.SearchRequests == searches,
+                "denied reentry stays in directory and shows its own reason");
+            page.RefreshRooms();
+            await Frame();
+            Check(!status.Visible && service.SearchRequests == searches + 1,
+                "explicit refresh clears the old notice without implicitly joining");
+            GD.Print("[RoomKickPageChecks] PASS ownership, confirmation, stale membership/session, translated errors and forced-exit notice (fake service).");
+        }
+        finally { page.Free(); }
     }
 
     private static async Task CheckChatInteraction(Node parent)
@@ -229,25 +352,38 @@ internal static class SteamRoomPageChecks
     {
         public double Now { get; set; } = 1_000_000;
         public int AppearanceUpdates;
+        public int OwnerId = 2;
+        public long RemotePresence = 2;
+        public int SearchRequests;
+        public int KickRequests;
+        public int LastKickMember;
+        public long LastKickPresence;
+        public string KickError = "";
+        public RoomFailure RejoinFailure;
         private long _revision;
         private long _chatSequence;
         public void Request(RoomClient client, RoomRequest request)
             => client.TryComplete(request.Id, () =>
             {
                 if (request.Operation == RoomOperation.Search)
+                {
+                    SearchRequests++;
                     return new RoomResult(RoomFailure.None,
                         new[] { new RoomListing("PROVIDER1", "Provider room", "social", 1, 6) });
+                }
                 if (request.Operation == RoomOperation.Join && request.Value != "PROVIDER1")
                     return new RoomResult(RoomFailure.NotFound);
+                if (request.Operation == RoomOperation.Join && RejoinFailure != RoomFailure.None)
+                    return new RoomResult(RejoinFailure);
                 client.BeginSession("PROVIDER1");
                 Publish(client);
                 return RoomResult.Success;
             });
-        private void Publish(RoomClient client) => client.Receive(new RoomSnapshot("PROVIDER1",
-            "Provider room", "social", 2, ++_revision, new[]
+        public void Publish(RoomClient client) => client.Receive(new RoomSnapshot("PROVIDER1",
+            "Provider room", "social", OwnerId, ++_revision, new[]
             {
                 new RoomMember(1, client.Name, client.SkinId, client.HeadwearId, client.Reaction, 1),
-                new RoomMember(2, "Remote member", 1001, 0, 1001, 2),
+                new RoomMember(2, "Remote member", 1001, 0, 1001, RemotePresence),
             }));
         public void Cancel(RoomClient client, long id) { }
         public void Leave(RoomClient client) => client.BeginSession("");
@@ -258,6 +394,13 @@ internal static class SteamRoomPageChecks
             if (client.JoinedCode.Length > 0) Publish(client);
         }
         public string SetGame(RoomClient client, string gameId) => "";
+        public string Kick(RoomClient client, int memberId, long presence)
+        {
+            KickRequests++;
+            LastKickMember = memberId;
+            LastKickPresence = presence;
+            return KickError;
+        }
         public string SendChat(RoomClient client, string text)
         {
             client.Receive(new RoomChat(++_chatSequence, client.JoinedCode, 1, 1,

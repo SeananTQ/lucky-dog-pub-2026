@@ -139,6 +139,7 @@ public partial class RoomLab : Control
         Resized += () => _dirty = true;
         ResetClients(3);
         if (OS.GetCmdlineUserArgs().Contains("--rooms-ui-smoke")) RunUiSmoke();
+        if (OS.GetCmdlineUserArgs().Contains("--rooms-kick-smoke")) RunKickSmokeAndQuit();
     }
 
     private void ResetClients(int count)
@@ -188,6 +189,14 @@ public partial class RoomLab : Control
         Status(Current.JoinedCode.Length > 0 ? "房间码已复制。" : "请先进入房间。");
     }
     public void OnTargetJoin() => StartRequest(Target.Join(Current.JoinedCode));
+    public void OnTargetKick()
+    {
+        var presence = Current.View?.Members.FirstOrDefault(m => m.Id == Target.Id)?.Presence ?? 0;
+        var error = Current.Kick(Target.Id, presence);
+        if (error.Length == 0) _heldInput.Remove(Target.Id);
+        BindTarget();
+        Status(L10n.Tr(error.Length == 0 ? "Rooms_KickSent" : error));
+    }
     public void OnTargetLeave()
     {
         _heldInput.Remove(Target.Id);
@@ -338,6 +347,8 @@ public partial class RoomLab : Control
                 RoomFailure.NotFound => "房间已关闭或不存在，请刷新列表。",
                 RoomFailure.Full => "房间已满，请选择其他房间。",
                 RoomFailure.NoMatchingRoom => "没有其他可加入房间，可以创建房间。",
+                RoomFailure.Removed => L10n.Tr("Rooms_Removed"),
+                RoomFailure.Banned => L10n.Tr("Rooms_Banned"),
                 _ => "房间服务暂不可用，可稍后重试。"
             },
             _ => ""
@@ -540,6 +551,7 @@ public partial class RoomLab : Control
             case "chat": OnMockChat(); break;
             case "leave": OnTargetLeave(); break;
             case "join": OnTargetJoin(); break;
+            case "kick": OnTargetKick(); break;
             case "pause": _server.SetPaused(Target, value != 0); BindTarget(); break;
             case "reaction": Target.SetAppearance(Target.SkinId, Target.HeadwearId, value); break;
             case "activity": _activityOption.Select(_activityOption.GetItemIndex(value)); OnApplyActivity(); break;
@@ -645,7 +657,8 @@ public partial class RoomLab : Control
             await UiFrame();
             Verify(_dogs.Count == 6, "late join restores visual");
             await RunRequestUiSmoke();
-            GD.Print("ROOM_UI_PASS: real dog scenes, appearance, local scale/hide, bubble input, six players, window restore, join/leave, async request controls.");
+            await RunKickUiSmoke();
+            GD.Print("ROOM_UI_PASS: real dog scenes, appearance, local scale/hide, bubble input, six players, window restore, join/leave, async request controls, host kick controls.");
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
@@ -834,6 +847,42 @@ public partial class RoomLab : Control
         var index = _requestFailure.GetItemIndex((int)failure);
         _requestFailure.Select(index);
         _requestFailure.EmitSignal(OptionButton.SignalName.ItemSelected, index);
+    }
+    private async void RunKickSmokeAndQuit()
+    {
+        try
+        {
+            _globalInput.ButtonPressed = false;
+            await RunKickUiSmoke();
+            GD.Print("[RoomKickLabChecks] PASS target removal, replica cleanup, denied reentry and fresh room controls.");
+            GetTree().Quit();
+        }
+        catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
+    }
+
+    private async System.Threading.Tasks.Task RunKickUiSmoke()
+    {
+        OnResetThree();
+        await UiFrame();
+        var code = Current.JoinedCode;
+        var target = Target;
+        GetNode<Button>("Tools/Scroll/Content/Kick").EmitSignal(Button.SignalName.Pressed);
+        await UiFrame();
+        Verify(target.Failure == RoomFailure.Removed && target.View == null && _dogs.Count == 2,
+            "target kick button removes the target and its visual");
+        OnTargetJoin();
+        await UiFrame();
+        Verify(target.Failure == RoomFailure.Banned && target.JoinedCode == "",
+            "target join button cannot bypass room ban");
+        DebugCommand("view", 1);
+        await UiFrame();
+        Verify(Current.Failure == RoomFailure.Banned && _operation.Text == L10n.Tr("Rooms_Banned")
+            && _dogs.Count == 0, "removed observer sees the ban reason and no stale room dogs");
+        _roomName.Text = "被请出后创建新房间";
+        OnCreate();
+        await UiFrame();
+        Verify(Current.JoinedCode != "" && Current.JoinedCode != code && _dogs.Count == 1,
+            "removed player can explicitly create another room");
     }
     private async System.Threading.Tasks.Task UiFrame()
     {

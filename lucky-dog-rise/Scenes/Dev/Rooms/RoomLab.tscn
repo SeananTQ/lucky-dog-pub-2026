@@ -331,6 +331,12 @@ size_flags_horizontal = 3
 theme_type_variation = &"CapsuleButton"
 text = "离开 / 掉线"
 
+[node name="Kick" type="Button" parent="Tools/Scroll/Content"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "主控请出目标"
+
 [node name="SkinLabel" type="Label" parent="Tools/Scroll/Content" unique_id=722400897]
 layout_mode = 2
 text = "目标毛色 / 头饰 / 表情"
@@ -501,6 +507,7 @@ autowrap_mode = 3
 [connection signal="pressed" from="Panel/Scroll/Content/Refresh" to="." method="OnRefresh"]
 [connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Join" to="." method="OnTargetJoin"]
 [connection signal="pressed" from="Tools/Scroll/Content/TargetActions/Leave" to="." method="OnTargetLeave"]
+[connection signal="pressed" from="Tools/Scroll/Content/Kick" to="." method="OnTargetKick"]
 [connection signal="pressed" from="Tools/Scroll/Content/Apply" to="." method="OnApplyAppearance"]
 [connection signal="pressed" from="Tools/Scroll/Content/Activity/Apply" to="." method="OnApplyActivity"]
 [connection signal="pressed" from="Tools/Scroll/Content/Tongue/Pulse" to="." method="OnPulseActivity"]

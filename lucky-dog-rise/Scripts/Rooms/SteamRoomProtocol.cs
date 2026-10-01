@@ -1,6 +1,7 @@
 #if !DEMO_BUILD && !RECORDING_BUILD
 using System;
 using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
 using System.Buffers.Binary;
 using System.Text;
@@ -10,15 +11,63 @@ namespace LuckyDogRise.Rooms;
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    public const string Version = "lucky-dog-room-1";
+    // Older clients cannot enforce room bans; discovery and code joins must agree.
+    public const string Version = "lucky-dog-room-2";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
     public const string AppearanceKey = "ld_appearance";
     public const string ActivityKey = "ld_activity";
     public const string ChatSessionKey = "ld_chat_session";
+    public const string BanListKey = "ld_bans";
+    public const int MaxBannedMembers = 256;
     public const int MaxChatBytes = 512;
     private static readonly UTF8Encoding ChatEncoding = new(false, true);
+
+    // Single owner-written value, small enough for Steam lobby metadata. Never
+    // silently discard old bans when this bounded list fills up.
+    public static string EncodeBannedMembers(IEnumerable<ulong> members)
+    {
+        var ids = members.Distinct().OrderBy(id => id).ToArray();
+        if (ids.Length > MaxBannedMembers || ids.Contains(0UL))
+            throw new ArgumentOutOfRangeException(nameof(members));
+        return "1:" + string.Join(",", ids.Select(id => id.ToString("X16", CultureInfo.InvariantCulture)));
+    }
+
+    public static bool TryDecodeBannedMembers(string value, out HashSet<ulong> members)
+    {
+        members = new HashSet<ulong>();
+        if (value == null || value.Length > 2 + MaxBannedMembers * 17
+            || !value.StartsWith("1:", StringComparison.Ordinal)) return false;
+        if (value.Length == 2) return true;
+        var entries = value[2..].Split(',');
+        if (entries.Length > MaxBannedMembers) return false;
+        foreach (var entry in entries)
+            if (entry.Length != 16 || !ulong.TryParse(entry, NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture, out var id) || id == 0 || !members.Add(id)) return false;
+        return true;
+    }
+
+    // A management prompt, never text chat. The authoritative ban is lobby data;
+    // the membership token prevents delayed prompts targeting another visit.
+    public static byte[] EncodeKick(ulong target, Guid membership)
+    {
+        var bytes = new byte[28];
+        "LDK1"u8.CopyTo(bytes);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(4), target);
+        membership.TryWriteBytes(bytes.AsSpan(12));
+        return bytes;
+    }
+
+    public static bool TryDecodeKick(byte[] bytes, out ulong target, out Guid membership)
+    {
+        target = 0;
+        membership = Guid.Empty;
+        if (bytes == null || bytes.Length != 28 || !bytes.AsSpan(0, 4).SequenceEqual("LDK1"u8)) return false;
+        target = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(4));
+        membership = new Guid(bytes.AsSpan(12));
+        return target != 0 && membership != Guid.Empty;
+    }
 
     // Binary envelope: magic/version, per-membership token, sequence, Steam time,
     // UTF-8 payload. Identity always comes from Steam's callback, never this body.
@@ -104,7 +153,7 @@ public static class SteamRoomProtocol
         return new string(value.Where(c => !char.IsControl(c)).Take(64).ToArray());
     }
 
-    // Separate, optional metadata keeps appearance compatible with 0.6.0 clients.
+    // Activity remains separate from appearance; missing activity uses idle defaults.
     public static string EncodeActivity(long sequence, bool active)
         => string.Create(CultureInfo.InvariantCulture, $"1:{sequence}:{(active ? 1 : 0)}");
 
