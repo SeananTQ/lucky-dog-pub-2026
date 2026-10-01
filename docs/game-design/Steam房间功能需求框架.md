@@ -366,3 +366,20 @@ A 原型完成接入真实服务前的通用层整理，约定如下；Steam 适
 本地回归覆盖房主权限、目标成员会话校验、名单与房间生命周期、旧协议拒绝、错误提示及禁止自动重入。Mock／假 Steam 传输检查不替代真实 Steam 的踢出、重新加入拒绝与房主移交验收；真实双账号验证留待主人集中测试。
 
 技术依据：[Steam 官方请出成员建议](https://partner.steamgames.com/doc/api/ISteamMatchmaking#LobbyKicked_t)、[房间共享元数据](https://partner.steamgames.com/doc/api/ISteamMatchmaking#SetLobbyData)。
+
+## 阶段 B：房间码隐藏与好友邀请增量
+
+- 房间码继续使用全大写 Base32，输入不区分大小写。本次保留现有 `LD-` 加 13 位格式，未更换编码或使原房间码失效。
+- 房间码旁提供“隐藏／显示”开关，隐藏时显示遮挡字符，清除明文悬停提示，同时遮挡手动加入的房间码输入框；复制按钮仍复制完整真实房间码。隐藏偏好保存在本机设置，跨房间、切换页签及重启保留，不同步给其他玩家，也不改变房间的公开属性或加入权限。
+- 房间码独占一行，隐藏与复制按钮位于紧邻的标题行，避免完整编码被按钮挤压截断。
+- 房间内提供“邀请 Steam 好友”，打开 Steam 原生好友邀请窗口，由玩家选择邀请对象。房主与普通成员均可使用；未入房、正在处理房间请求或处于 Mock 时不发送真实邀请。Steam Overlay 尚未就绪或不可用时提示失败，不把打开邀请窗口当成已经发送邀请。
+- 玩家在 Steam 中接受邀请后，使用现有入房流程。游戏已运行时处理 `GameLobbyJoinRequested_t`；尚未运行时接收 Steam 的 `+connect_lobby <Lobby ID>` 启动参数。无需先打开房间页；必要时在后台创建房间页面控制器，保持当前页签和面板开关状态。
+- 启动邀请只解析一次，等待 Steam 服务与页面就绪后消费。多条尚未处理的邀请只保留玩家最后接受的一条；同目标的重复回调不重启正在进行的加入。玩家后来再次明确接受邀请时可以重新尝试，不自动轮询或重新加入。
+- 接受邀请时取消当前未完成的房间请求，再按既有取消和迟到回调规则处理；目标满员、失效、不兼容或禁止加入时保留原房间。接受当前所在房间的邀请会取消另一个未完成的请求，保持当前房间，不重复加入。邀请不能绕过房间禁止名单。
+- 同账号 Steam 重连可以保留尚未消费的邀请，但已经消费的启动参数不会重放。主动离房、被请出或进入 Mock 时清除待处理邀请；账号冲突及平台退出时清空。Mock 不打开 Steam 邀请窗口、不处理真实邀请；Demo 与录屏模式继续移除房间功能。
+
+技术依据：[Steam 好友邀请窗口](https://partner.steamgames.com/doc/api/ISteamFriends#ActivateGameOverlayInviteDialog)、[接受邀请与启动参数](https://partner.steamgames.com/doc/api/ISteamFriends#GameLobbyJoinRequested_t)、[Steam Overlay 可用性](https://partner.steamgames.com/doc/api/ISteamUtils#IsOverlayEnabled)。
+
+真实 Steam 验收需分别检查：已运行游戏接受邀请、游戏关闭时从邀请启动并加入、Overlay 邀请窗口，以及满员／失效／被禁止房间的错误提示。房间码隐藏与复制可先在本地模拟环境观察；假传输检查不替代上述真实 Steam 操作。
+
+本轮 Debug、ExportRelease 和剔除房间功能后的 Demo 工程编译通过；`--rooms-smoke` 的模拟房间、假 Steam 传输与实际页面逻辑回归通过。额外的 `--rooms-invite-panel-smoke` 在独立测试用户目录下验证从未访问过房间页时接受邀请、保持当前面板状态，以及中英文／繁中文案下完整房间码和操作按钮的布局宽度。该额外测试必须把 `APPDATA` 指向工作区 `.local-build/room-invite-smoke/appdata`，并在创建系统面板前检查实际用户目录，避免迁移或改写开发者设置。上述检查未发送真实 Steam 邀请，未执行发布上传。

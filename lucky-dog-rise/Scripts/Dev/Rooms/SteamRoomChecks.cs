@@ -33,6 +33,190 @@ public static class SteamRoomChecks
         CheckKickMetadataAndPendingRequests();
         CheckBanAdmissionAndLifetime();
         CheckBanMigrationAndCapacity();
+        SteamRoomInviteInboxChecks.Run();
+        CheckInvitingFriends();
+        CheckIncomingInvitations();
+        CheckInvitationAdmission();
+        CheckInvitationLifetime();
+        CheckInvitationRecovery();
+    }
+
+    private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckInvitingFriends()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        Assert(service.InviteFriends(client) == "Rooms_InviteUnavailable" && transport.InviteDialogs.Count == 0,
+            "an invitation dialog requires a joined room");
+        client.Create("invite room"); transport.SucceedMembership(InviteLobby);
+        Assert(service.InviteFriends(client) == "ok" && transport.InviteDialogs.SequenceEqual(new[] { InviteLobby }),
+            "invitation dialog targets the currently joined lobby");
+
+        using var staleClient = Client(service);
+        Assert(service.InviteFriends(staleClient) == "Rooms_InviteUnavailable" && transport.InviteDialogs.Count == 1,
+            "an unrelated client cannot invite through another client's membership");
+        client.Search();
+        Assert(service.InviteFriends(client) == "Rooms_InviteUnavailable" && transport.InviteDialogs.Count == 1,
+            "busy clients cannot open an invitation dialog");
+        client.Cancel(); transport.CompleteSearch();
+        transport.InviteDialogSucceeds = false;
+        Assert(service.InviteFriends(client) == "Rooms_InviteOverlayUnavailable"
+            && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby),
+            "an unavailable overlay reports a useful error without changing membership");
+        transport.InviteDialogSucceeds = true;
+        transport.SetRemote(InviteLobby, new SteamRoomMemberData(88, "new host", "1:10:0:1001"));
+        transport.SetOwner(InviteLobby, 88);
+        Assert(service.InviteFriends(client) == "ok", "a current non-host member can invite friends to the public room");
+        var membership = transport.Rooms[InviteLobby];
+        transport.Rooms[InviteLobby] = membership with { Members = Array.Empty<SteamRoomMemberData>(), Count = 0 };
+        int opened = transport.InviteDialogs.Count;
+        Assert(service.InviteFriends(client) == "Rooms_InviteUnavailable" && transport.InviteDialogs.Count == opened,
+            "a stale displayed membership cannot open the overlay before its departure callback");
+        transport.Rooms[InviteLobby] = membership;
+        transport.IsAvailable = false;
+        Assert(service.InviteFriends(client) == "Rooms_InviteUnavailable" && transport.InviteDialogs.Count == opened,
+            "offline invitation attempts never call the overlay");
+    }
+
+    private static void CheckIncomingInvitations()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        transport.DeliverInvitation(0);
+        Assert(!service.TryTakeJoinRequest(out _), "invalid invite callbacks cannot become room requests");
+        transport.DeliverInvitation(InviteLobby);
+        transport.DeliverInvitation(InviteLobby);
+        transport.DeliverInvitation(InviteLobby + 1);
+        Assert(service.TryTakeJoinRequest(out var code) && code == SteamRoomProtocol.Encode(InviteLobby + 1)
+            && !service.TryTakeJoinRequest(out _),
+            "invites arriving before the client exists coalesce to one latest intent and consume once");
+
+        using var client = Client(service);
+        transport.Seed(InviteLobby + 1);
+        client.Join(code);
+        transport.DeliverInvitation(InviteLobby + 1);
+        Assert(!service.TryTakeJoinRequest(out _), "duplicate invite during the same pending join does not restart it");
+        transport.SucceedMembership(InviteLobby + 1);
+        var session = client.Session;
+        transport.DeliverInvitation(InviteLobby + 1);
+        Assert(!service.TryTakeJoinRequest(out _) && client.Session == session,
+            "accepting an invitation to the idle current room keeps its membership and transient state");
+
+        transport.Seed(InviteLobby + 2);
+        client.Join(SteamRoomProtocol.Encode(InviteLobby + 2));
+        transport.DeliverInvitation(InviteLobby + 1);
+        Assert(service.TryTakeJoinRequest(out code),
+            "an invitation to the current room can cancel a different pending destination");
+        client.Cancel(); client.Join(code);
+        transport.SucceedMembership(InviteLobby + 2);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby + 1)
+            && transport.Left.Contains(InviteLobby + 2) && !client.IsBusy,
+            "cancelled native join is cleaned up without replacing the requested current room");
+
+        client.FindAndJoin();
+        transport.DeliverInvitation(InviteLobby + 2);
+        Assert(service.TryTakeJoinRequest(out code), "an explicit invitation supersedes automatic room search");
+        client.Cancel(); client.Join(code);
+        transport.DeliverInvitation(InviteLobby + 2);
+        Assert(!service.TryTakeJoinRequest(out _), "duplicate of a queued invitation join is ignored");
+        transport.CompleteSearch(InviteLobby + 1);
+        transport.SucceedMembership(InviteLobby + 2);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby + 2)
+            && !service.TryTakeJoinRequest(out _), "the cancelled random search cannot override the invitation destination");
+    }
+
+    private static void CheckInvitationAdmission()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("current room"); transport.SucceedMembership(InviteLobby);
+        foreach (var failure in new[] { RoomFailure.Full, RoomFailure.NotFound })
+        {
+            transport.DeliverInvitation(InviteLobby + 1);
+            Assert(service.TryTakeJoinRequest(out var code), "fresh explicit invitation can retry after an earlier failure");
+            client.Cancel(); client.Join(code); transport.FailMembership(failure);
+            Assert(client.Failure == failure && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
+                && !transport.Left.Contains(InviteLobby) && !service.TryTakeJoinRequest(out _),
+                "full or closed invited room keeps the existing room and does not repeat automatically");
+        }
+        transport.Seed(InviteLobby + 2);
+        transport.Rooms[InviteLobby + 2] = transport.Rooms[InviteLobby + 2] with { Protocol = "incompatible-game" };
+        transport.DeliverInvitation(InviteLobby + 2);
+        Assert(service.TryTakeJoinRequest(out var incompatible), "incompatible invite enters normal admission checking");
+        client.Cancel(); client.Join(incompatible); transport.SucceedMembership(InviteLobby + 2);
+        Assert(client.Failure != RoomFailure.None && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
+            && transport.Left.Contains(InviteLobby + 2), "invitation cannot bypass room protocol validation");
+
+        transport.Seed(InviteLobby + 3);
+        transport.SetBans(InviteLobby + 3, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }), notify: false);
+        transport.DeliverInvitation(InviteLobby + 3);
+        Assert(service.TryTakeJoinRequest(out var banned), "banned destination still uses shared admission logic");
+        client.Cancel(); client.Join(banned); transport.SucceedMembership(InviteLobby + 3);
+        Assert(client.Failure == RoomFailure.Banned && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
+            && transport.Left.Contains(InviteLobby + 3), "Steam invite is not an exemption from the room ban list");
+        int calls = transport.MembershipCalls;
+        transport.DeliverInvitation(InviteLobby + 3);
+        Assert(service.TryTakeJoinRequest(out banned), "a new explicit banned-room invitation can report the failure");
+        client.Cancel(); client.Join(banned);
+        Assert(client.Failure == RoomFailure.Banned && transport.MembershipCalls == calls,
+            "known banned room fails without another native join or rejoin loop");
+    }
+
+    private static void CheckInvitationLifetime()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("leaving room"); transport.SucceedMembership(InviteLobby);
+        transport.DeliverInvitation(InviteLobby + 1);
+        client.Leave();
+        Assert(!service.TryTakeJoinRequest(out _), "explicit leave cancels pending invitation intent");
+
+        transport.Seed(InviteLobby + 2, new SteamRoomMemberData(88, "host", "1:10:0:1001"));
+        transport.SetOwner(InviteLobby + 2, 88, notify: false);
+        transport.DeliverInvitation(InviteLobby + 2);
+        Assert(service.TryTakeJoinRequest(out var code), "fresh invitation after leaving can join another room");
+        client.Join(code); transport.SucceedMembership(InviteLobby + 2);
+        transport.DeliverInvitation(InviteLobby + 3);
+        transport.SetBans(InviteLobby + 2, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }));
+        Assert(client.Failure == RoomFailure.Removed && client.JoinedCode == "" && !service.TryTakeJoinRequest(out _),
+            "host removal clears both consumed and pending invitation paths instead of auto-joining elsewhere");
+        service.Tick();
+        Assert(!service.TryTakeJoinRequest(out _), "later callback pumps cannot revive a consumed invitation after removal");
+
+        transport.DeliverInvitation(InviteLobby + 4);
+        service.SetSuspended(true);
+        transport.DeliverInvitation(InviteLobby + 5);
+        service.SetSuspended(false);
+        Assert(!service.TryTakeJoinRequest(out _), "Mock suspension clears old invitations and ignores new real Steam callbacks");
+    }
+
+    private static void CheckInvitationRecovery()
+    {
+        foreach (bool disposeBeforeClient in new[] { false, true })
+        {
+            var inbox = new SteamRoomInviteInbox();
+            var transport = new FakeTransport();
+            using var service = Service(transport, inbox);
+            var client = Client(service);
+            client.Create("room before reconnect"); transport.SucceedMembership(InviteLobby);
+            transport.DeliverInvitation(InviteLobby + 1);
+            if (disposeBeforeClient) service.Dispose();
+            else { transport.IsAvailable = false; service.Tick(); }
+            client.Dispose(); // The page disposes its old client after the platform becomes unavailable.
+            Assert(!service.TryTakeJoinRequest(out _), "an unavailable adapter does not consume pending invitation intent");
+            var recoveredTransport = new FakeTransport();
+            using var recovered = Service(recoveredTransport, inbox);
+            Assert(recovered.TryTakeJoinRequest(out var code) && code == SteamRoomProtocol.Encode(InviteLobby + 1)
+                && !recovered.TryTakeJoinRequest(out _),
+                "same-account recovery preserves an unconsumed invite through old client and service teardown");
+            recovered.Dispose();
+            using var nextRecovery = Service(new FakeTransport(), inbox);
+            Assert(!nextRecovery.TryTakeJoinRequest(out _), "later recovery cannot replay an already consumed startup or callback invite");
+        }
     }
 
     private static void CheckKickProtocol()
@@ -492,9 +676,9 @@ public static class SteamRoomChecks
         if (!condition) throw new InvalidOperationException("Steam room check failed: " + message);
     }
 
-    private static SteamRoomService Service(FakeTransport transport) => new(transport, 10,
+    private static SteamRoomService Service(FakeTransport transport, SteamRoomInviteInbox invitations = null) => new(transport, 10,
         skin => skin is 10 or 20, hat => hat is 30 or 40, reaction => reaction is 1001 or 1002,
-        () => transport.Now);
+        () => transport.Now, invitations);
     private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10);
 
     private static void CheckCodes()
@@ -745,6 +929,15 @@ public static class SteamRoomChecks
         public readonly List<(ulong Lobby, string Members)> BanWrites = new();
         public bool BanWriteSucceeds = true;
         public bool ChatSucceeds = true;
+        public bool InviteDialogSucceeds = true;
+        public readonly List<ulong> InviteDialogs = new();
+        public event Action<ulong> JoinRequested = delegate { };
+        public void DeliverInvitation(ulong lobby) => JoinRequested(lobby);
+        public bool OpenInviteDialog(ulong lobbyId)
+        {
+            InviteDialogs.Add(lobbyId);
+            return InviteDialogSucceeds;
+        }
         public Func<ulong, string, string> ChatFilter = (_, text) => text;
         public readonly List<(ulong Sender, string Text)> FilterCalls = new();
         public string FilterChatForDisplay(ulong senderSteamId, string text)

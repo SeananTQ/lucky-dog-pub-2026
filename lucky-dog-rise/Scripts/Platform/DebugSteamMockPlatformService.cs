@@ -125,6 +125,15 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             return service;
         }
     }
+
+    private void SuspendRealRooms()
+    {
+        // Rooms may now be initialized by the callback pump before the page asks for them.
+        // Also catch a newly recovered Steam session while the inventory sandbox is active.
+        if ((_inner as Rooms.IPlatformRoomServiceProvider)?.RoomService is Rooms.SteamRoomService real)
+            _realRoomService = real;
+        _realRoomService?.SetSuspended(true);
+    }
 #endif
     public bool CanUseRealSteam => _canUseRealSteam;
     public string ProviderName => IsMockActive ? "Steam Debug Mock" : _inner.ProviderName;
@@ -181,6 +190,9 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     {
         if (_disposed)
             return;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsMockActive) SuspendRealRooms();
+#endif
         _inner.RunCallbacks();
         UpdateSimulationClock();
         if (!IsMockActive
@@ -258,7 +270,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             return false;
         }
 #if !DEMO_BUILD && !RECORDING_BUILD
-        _realRoomService?.SetSuspended(true);
+        SuspendRealRooms();
 #endif
         _mockActive = true;
         _scenario = scenario;

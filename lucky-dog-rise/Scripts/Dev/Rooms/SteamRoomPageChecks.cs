@@ -1,6 +1,8 @@
 #if DEBUG && !RECORDING_BUILD
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 
@@ -107,13 +109,186 @@ internal static class SteamRoomPageChecks
             page.Free();
             Check(second.JoinedCode.Length == 0, "page disposal leaves its current service");
             await CheckKickInteraction(parent);
+            await CheckInviteInteraction(parent);
             await CheckChatInteraction(parent);
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-invite-panel-smoke"))
+                await CheckLazyPanelInvitation(parent);
             GD.Print("[SteamRoomPageChecks] PASS production provider, join failure, appearance dispatch, service-clock chat expiry while hidden, reconnect clock reset, disposal (fake transport).");
         }
         finally
         {
             if (GodotObject.IsInstanceValid(page)) page.Free();
         }
+    }
+
+    private static async Task CheckLazyPanelInvitation(Node parent)
+    {
+        // SystemPanel initializes ordinary settings (including migrations). This
+        // extra smoke test must never run against the developer's real settings.
+        var isolatedRoot = Path.GetFullPath(ProjectSettings.GlobalizePath(
+            "res://../.local-build/room-invite-smoke/appdata"))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var userData = Path.GetFullPath(OS.GetUserDataDir());
+        Check(userData.StartsWith(isolatedRoot, StringComparison.OrdinalIgnoreCase),
+            "panel invite smoke requires isolated .local-build/room-invite-smoke/appdata user directory");
+
+        var service = new Service();
+        var provider = new Provider { RoomService = service };
+        var panel = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn")
+            .Instantiate<SystemPanelController>();
+        panel.PlatformService = provider;
+        var created = new List<RoomClient>();
+        panel.RoomPreviewCreated += created.Add;
+        parent.AddChild(panel);
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        try
+        {
+            await Frame();
+            var content = panel.GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox");
+            var roomContent = content.GetNode<VBoxContainer>("RoomContent");
+            var visibleTabs = content.GetChildren().OfType<Control>()
+                .Where(node => node.Visible).Select(node => node.Name.ToString()).ToArray();
+            Check(!panel.IsOpen && roomContent.GetChildCount() == 0 && created.Count == 0,
+                "closed settings panel has not constructed an unvisited room page");
+            service.PendingInvitation = "PROVIDER1";
+            await Frame();
+            var page = roomContent.GetChildren().OfType<InGameRoomPreview>().Single();
+            Check(page.CurrentClient?.JoinedCode == "PROVIDER1" && service.JoinRequests == 1
+                && created.Contains(page.CurrentClient),
+                "accepted invitation constructs room controller and publishes client without opening room tab");
+            Check(!panel.IsOpen && !roomContent.Visible && !page.IsVisibleInTree()
+                && visibleTabs.SequenceEqual(content.GetChildren().OfType<Control>()
+                    .Where(node => node.Visible).Select(node => node.Name.ToString())),
+                "lazy invitation preserves the selected tab and closed panel");
+            await Frame();
+            Check(roomContent.GetChildCount() == 1 && service.JoinRequests == 1,
+                "idle frames neither create another room page nor repeat accepted invitation");
+            panel.GetNode<Button>("Panel/RootVBox/TitleRow/RoomTab").EmitSignal(BaseButton.SignalName.Pressed);
+            panel.Open();
+            var originalLocale = TranslationServer.GetLocale();
+            try
+            {
+                foreach (var locale in new[] { "en", "zh_CN", "zh_TW" })
+                {
+                    L10n.SetLocale(locale, save: false);
+                    await Frame();
+                    var code = page.GetNode<Label>("Room/CodeRow/Code");
+                    code.Text = "LD-0WWWWWWWWWWWW"; // Wide glyphs, full legacy code length.
+                    await Frame();
+                    var textWidth = code.GetThemeFont("font").GetStringSize(code.Text,
+                        fontSize: code.GetThemeFontSize("font_size")).X;
+                    Check(textWidth <= code.Size.X + 1 && page.Size.X <= panel.PanelSize.X,
+                        "full uppercase code and hide/copy controls fit the real settings panel in " + locale);
+                }
+            }
+            finally { L10n.SetLocale(originalLocale, save: false); }
+            GD.Print("[RoomInvitePanelChecks] PASS unvisited room tab, lazy controller, client attachment and closed-panel preservation (isolated settings; fake provider).");
+        }
+        finally { panel.Free(); }
+    }
+
+    private static async Task CheckInviteInteraction(Node parent)
+    {
+        var service = new Service { PendingInvitation = "PROVIDER1" };
+        var provider = new Provider { RoomService = service };
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
+            .Instantiate<InGameRoomPreview>();
+        page.Configure(provider, null);
+        parent.AddChild(page);
+        page.Hide();
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        try
+        {
+            await Frame();
+            var client = page.CurrentClient;
+            var invite = page.GetNode<Button>("Room/Invite");
+            var code = page.GetNode<Label>("Room/CodeRow/Code");
+            var visibility = page.GetNode<Button>("Room/CodeHeader/Visibility");
+            var codeInput = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
+            var status = page.GetNode<Label>("Status");
+            Check(!page.Visible && client.JoinedCode == "PROVIDER1" && service.JoinRequests == 1,
+                "hidden production page consumes startup invitation once through ordinary join");
+            Check(service.SearchRequests == 0, "startup invitation does not wait for an unrelated directory search");
+            await Frame();
+            Check(service.JoinRequests == 1, "accepted invitation is not retried on ordinary frames");
+            Check(code.Text == "PROVIDER1" && code.TooltipText == "PROVIDER1" && !codeInput.Secret,
+                "room code is visible before enabling local privacy");
+            visibility.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(code.Text != "PROVIDER1" && code.TooltipText.Length == 0 && codeInput.Secret
+                && client.JoinedCode == "PROVIDER1", "privacy masks label, tooltip and manual input immediately without changing the real code");
+            service.Publish(client);
+            await Frame();
+            Check(code.Text != "PROVIDER1" && code.TooltipText.Length == 0,
+                "membership rendering cannot reveal a hidden room code");
+            Check(!invite.Disabled, "any room member can open the Steam invitation picker");
+            invite.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(service.InviteRequests == 1 && !status.Visible,
+                "invitation button dispatches to the provider without claiming a sent invitation");
+            service.InviteResult = "Rooms_InviteOverlayUnavailable";
+            invite.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(service.InviteRequests == 2 && status.Text == L10n.Tr("Rooms_InviteOverlayUnavailable")
+                && status.Text != "Rooms_InviteOverlayUnavailable", "disabled overlay failure has a translated explanation");
+
+            service.HoldSearch = true;
+            client.Search();
+            await Frame();
+            Check(invite.Disabled && client.IsBusy, "busy membership disables invitation picker");
+            invite.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(service.InviteRequests == 2, "stale invite-button signal cannot dispatch while busy");
+            service.PendingInvitation = "MISSING";
+            await Frame();
+            Check(service.CancelRequests == 1 && !client.IsBusy && client.JoinedCode == "PROVIDER1"
+                && client.Failure == RoomFailure.NotFound && status.Text == L10n.Tr("Rooms_NotFound"),
+                "accepted invitation supersedes pending search, retains old room on failure and clears stale overlay notice");
+            int joins = service.JoinRequests;
+            await Frame();
+            Check(service.JoinRequests == joins, "failed invitation does not form a retry loop");
+
+            service.RejoinFailure = RoomFailure.Banned;
+            client.Leave();
+            service.PendingInvitation = "PROVIDER1";
+            await Frame();
+            Check(client.JoinedCode.Length == 0 && client.Failure == RoomFailure.Banned
+                && status.Text == L10n.Tr("Rooms_Banned"), "invitations still obey room-level reentry bans");
+            service.RejoinFailure = RoomFailure.None;
+            service.PendingInvitation = "PROVIDER1";
+            await Frame();
+            Check(client.JoinedCode == "PROVIDER1" && code.Text != "PROVIDER1" && code.TooltipText.Length == 0,
+                "hidden code remains hidden when accepting another invitation");
+
+            client.Search();
+            service.PendingInvitation = "PROVIDER1";
+            joins = service.JoinRequests;
+            await Frame();
+            Check(!client.IsBusy && service.CancelRequests == 2 && service.JoinRequests == joins,
+                "latest invitation to current room cancels earlier work without redundant rejoin");
+            provider.RoomService = null;
+            await Frame();
+            service.PendingInvitation = "PROVIDER1";
+            await Frame();
+            Check(service.PendingInvitation == "PROVIDER1", "unavailable page does not discard an unconsumed invitation");
+            service.HoldSearch = false;
+            provider.RoomService = service;
+            await Frame();
+            Check(page.CurrentClient.JoinedCode == "PROVIDER1" && code.Text != "PROVIDER1"
+                && code.TooltipText.Length == 0, "service recovery consumes a new invitation without resetting privacy");
+            visibility.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(code.Text == "PROVIDER1" && code.TooltipText == "PROVIDER1" && !codeInput.Secret,
+                "explicit show restores code and manual input visibility");
+            GD.Print("[RoomInvitePageChecks] PASS hidden/startup consumption, privacy, overlay errors, cancellation, failed switch, bans and recovery (fake service; no real invitations).");
+        }
+        finally { page.Free(); }
     }
 
     private static async Task CheckKickInteraction(Node parent)
@@ -348,13 +523,20 @@ internal static class SteamRoomPageChecks
         public void Dispose() { }
     }
 
-    private sealed class Service : IRoomService
+    private sealed class Service : IRoomService, IRoomInviteService
     {
         public double Now { get; set; } = 1_000_000;
         public int AppearanceUpdates;
         public int OwnerId = 2;
         public long RemotePresence = 2;
         public int SearchRequests;
+        public int JoinRequests;
+        public int CancelRequests;
+        public bool HoldSearch;
+        public string PendingInvitation = "";
+        public int InviteRequests;
+        public string InviteResult = "ok";
+        public bool HasPendingJoinRequest => PendingInvitation.Length > 0;
         public int KickRequests;
         public int LastKickMember;
         public long LastKickPresence;
@@ -362,8 +544,22 @@ internal static class SteamRoomPageChecks
         public RoomFailure RejoinFailure;
         private long _revision;
         private long _chatSequence;
+        public string InviteFriends(RoomClient client) { InviteRequests++; return InviteResult; }
+        public bool TryTakeJoinRequest(out string roomCode)
+        {
+            roomCode = PendingInvitation;
+            PendingInvitation = "";
+            return roomCode.Length > 0;
+        }
         public void Request(RoomClient client, RoomRequest request)
-            => client.TryComplete(request.Id, () =>
+        {
+            if (request.Operation == RoomOperation.Search && HoldSearch)
+            {
+                SearchRequests++;
+                return;
+            }
+            if (request.Operation == RoomOperation.Join) JoinRequests++;
+            client.TryComplete(request.Id, () =>
             {
                 if (request.Operation == RoomOperation.Search)
                 {
@@ -379,13 +575,14 @@ internal static class SteamRoomPageChecks
                 Publish(client);
                 return RoomResult.Success;
             });
+        }
         public void Publish(RoomClient client) => client.Receive(new RoomSnapshot("PROVIDER1",
             "Provider room", "social", OwnerId, ++_revision, new[]
             {
                 new RoomMember(1, client.Name, client.SkinId, client.HeadwearId, client.Reaction, 1),
                 new RoomMember(2, "Remote member", 1001, 0, 1001, RemotePresence),
             }));
-        public void Cancel(RoomClient client, long id) { }
+        public void Cancel(RoomClient client, long id) { CancelRequests++; }
         public void Leave(RoomClient client) => client.BeginSession("");
         public void UpdateActivity(RoomClient client) { }
         public void UpdateAppearance(RoomClient client)

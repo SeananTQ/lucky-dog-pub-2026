@@ -38,6 +38,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private PlatformInventoryItem[] _inventoryItems = [];
 #if !DEMO_BUILD && !RECORDING_BUILD
     private Rooms.SteamRoomService _roomService;
+    private readonly Rooms.SteamRoomInviteInbox _roomInvitations;
     public bool RoomRestartRequired => _roomService?.RestartRequired == true;
     public Rooms.IRoomService RoomService
     {
@@ -53,7 +54,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
                 var reactions = tables.TbDogReaction.DataList.Select(reaction => (int)reaction.DogReactionTrigger).ToHashSet();
                 if (skins.Count == 0) return null;
                 _roomService = new Rooms.SteamRoomService(new Rooms.SteamRoomTransport(_runtime),
-                    tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains);
+                    tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains,
+                    invitations: _roomInvitations);
             }
             return _roomService.IsAvailable ? _roomService : null;
         }
@@ -65,9 +67,16 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private InventoryRequest? _promoItemAwaitingInventoryVerification;
     private InventoryRequest? _playtimeDropAwaitingInventoryVerification;
 
-    public SteamGamePlatformService(SteamworksRuntime runtime)
+    public SteamGamePlatformService(SteamworksRuntime runtime
+#if !DEMO_BUILD && !RECORDING_BUILD
+        , Rooms.SteamRoomInviteInbox roomInvitations = null
+#endif
+        )
     {
         _runtime = runtime;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomInvitations = roomInvitations ?? new Rooms.SteamRoomInviteInbox();
+#endif
         _userStatsReceivedCallback = Callback<UserStatsReceived_t>.Create(OnUserStatsReceived);
         _userStatsStoredCallback = Callback<UserStatsStored_t>.Create(OnUserStatsStored);
         _userAchievementStoredCallback = Callback<UserAchievementStored_t>.Create(OnUserAchievementStored);
@@ -108,6 +117,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public void RunCallbacks()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
+        // Register GameLobbyJoinRequested before the first callback pump, even while the
+        // account gate is showing and the room page has not been instantiated yet.
+        _ = RoomService;
         _roomService?.Tick();
 #endif
         _runtime.RunCallbacks();

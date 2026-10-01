@@ -10,7 +10,7 @@ namespace LuckyDogRise.Rooms;
 /// Steam owns lobby membership. This adapter owns one local client and maps Steam identities
 /// to display identities without reading/writing inventory, statistics or local saves.
 /// </summary>
-public sealed class SteamRoomService : IRoomService, IDisposable
+public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDisposable
 {
     private sealed class Pending(RoomClient client, RoomRequest request)
     {
@@ -23,6 +23,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     }
 
     private readonly ISteamRoomTransport _transport;
+    private readonly SteamRoomInviteInbox _invitations;
     private readonly int _defaultSkin;
     private readonly Func<int, bool> _validSkin;
     private readonly Func<int, bool> _validHeadwear;
@@ -53,12 +54,14 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
     public double Now => _now();
+    public bool HasPendingJoinRequest => IsAvailable && _invitations.HasPending;
 
     public SteamRoomService(ISteamRoomTransport transport, int defaultSkin,
         Func<int, bool> validSkin, Func<int, bool> validHeadwear, Func<int, bool> validReaction,
-        Func<double> now = null)
+        Func<double> now = null, SteamRoomInviteInbox invitations = null)
     {
         _transport = transport;
+        _invitations = invitations ?? new SteamRoomInviteInbox();
         _defaultSkin = defaultSkin;
         _validSkin = validSkin;
         _validHeadwear = validHeadwear;
@@ -67,6 +70,44 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _transport.LobbyChanged += OnLobbyChanged;
         _transport.MemberDeparted += OnMemberDeparted;
         _transport.ChatReceived += OnChatReceived;
+        _transport.JoinRequested += OnJoinRequested;
+    }
+
+    public string InviteFriends(RoomClient client)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0 || client.IsBusy)
+            return "Rooms_InviteUnavailable";
+        try
+        {
+            var data = _transport.ReadLobby(_lobby, true);
+            if (!Compatible(data) || data.Members == null
+                || !data.Members.Any(member => member.SteamId == _transport.LocalSteamId)
+                || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
+                || bans.Contains(_transport.LocalSteamId)) return "Rooms_InviteUnavailable";
+            return _transport.OpenInviteDialog(_lobby) ? "ok" : "Rooms_InviteOverlayUnavailable";
+        }
+        catch { return "Rooms_InviteUnavailable"; }
+    }
+
+    private void OnJoinRequested(ulong lobbyId)
+    {
+        if (!_disposed && !_suspended) _invitations.Queue(lobbyId);
+    }
+
+    public bool TryTakeJoinRequest(out string roomCode)
+    {
+        roomCode = "";
+        if (!IsAvailable || !_invitations.TryTake(out var lobbyId)) return false;
+        // Duplicated acceptance callbacks must not restart a pending join. A later fresh
+        // acceptance after failure is still allowed, and an invite never bypasses join validation.
+        var pending = _queued ?? _inFlight;
+        if (pending != null && !pending.Cancelled && pending.Request.Operation == RoomOperation.Join
+            && pending.Client.IsRequestCurrent(pending.Request.Id)
+            && SteamRoomProtocol.TryDecode(pending.Request.Value, out var joining) && joining == lobbyId)
+            return false;
+        if (lobbyId == _lobby && _client?.IsBusy != true) return false;
+        roomCode = SteamRoomProtocol.Encode(lobbyId);
+        return true;
     }
 
     public void Request(RoomClient client, RoomRequest request)
@@ -513,6 +554,15 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     public void Leave(RoomClient client)
     {
         if (!ReferenceEquals(client, _client)) return;
+        // The page also disposes its old client when a platform session becomes
+        // unavailable. That teardown must not erase the shared recovery inbox.
+        if (IsAvailable) _invitations.Clear();
+        LeaveRoom(client);
+    }
+
+    private void LeaveRoom(RoomClient client)
+    {
+        if (!ReferenceEquals(client, _client)) return;
         if (_queued?.Client == client) _queued = null;
         if (_inFlight?.Client == client) _inFlight.Cancelled = true;
         var old = _lobby;
@@ -543,6 +593,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     public void SetSuspended(bool suspended)
     {
         _suspended = suspended;
+        if (suspended) _invitations.Clear();
         if (suspended && !_disposed) Disconnect();
     }
 
@@ -556,7 +607,9 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             _inFlight.Cancelled = true;
             _inFlight.Client.TryComplete(_inFlight.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
         }
-        if (_client != null) Leave(_client);
+        // A freshly accepted invitation may outlive a transient platform disconnect.
+        // Recovery owns the inbox; unlike an explicit Leave/kick, teardown does not discard it.
+        if (_client != null) LeaveRoom(_client);
     }
 
     private void SafeLeave(ulong lobby)
@@ -573,6 +626,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _transport.LobbyChanged -= OnLobbyChanged;
         _transport.MemberDeparted -= OnMemberDeparted;
         _transport.ChatReceived -= OnChatReceived;
+        _transport.JoinRequested -= OnJoinRequested;
         _inFlight?.Handle?.Dispose();
         _inFlight = null;
         _transport.Dispose();

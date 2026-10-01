@@ -15,17 +15,24 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     private readonly Callback<LobbyChatMsg_t> _chatReceived;
     private readonly Callback<PersonaStateChange_t> _personaChanged;
     private readonly Callback<SteamServersDisconnected_t> _disconnected;
+    private readonly Callback<GameLobbyJoinRequested_t> _joinRequested;
     private bool _disposed;
     public ulong LocalSteamId { get; }
     public event Action<ulong> LobbyChanged = delegate { };
     public event Action<ulong, ulong> MemberDeparted = delegate { };
     public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
+    public event Action<ulong> JoinRequested = delegate { };
     public long ServerTime => CanUseApi ? SteamUtils.GetServerRealTime() : 0;
 
     public SteamRoomTransport(SteamworksRuntime runtime)
     {
         _runtime = runtime;
         LocalSteamId = runtime.SteamId;
+        _joinRequested = Callback<GameLobbyJoinRequested_t>.Create(data =>
+        {
+            // This callback is the user's acceptance, not the arrival of an unsolicited invite.
+            if (CanUseApi) JoinRequested(data.m_steamIDLobby.m_SteamID);
+        });
         _chatReceived = Callback<LobbyChatMsg_t>.Create(data =>
         {
             if (!CanUseApi || data.m_eChatEntryType != (byte)EChatEntryType.k_EChatEntryTypeChatMsg) return;
@@ -75,6 +82,14 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     private void RequireAvailable()
     {
         if (!IsAvailable) throw new InvalidOperationException("The Steam room session is unavailable.");
+    }
+
+    public bool OpenInviteDialog(ulong lobbyId)
+    {
+        RequireAvailable();
+        if (!SteamUtils.IsOverlayEnabled()) return false;
+        SteamFriends.ActivateGameOverlayInviteDialog(new CSteamID(lobbyId));
+        return true;
     }
 
     public IDisposable Search(Action<SteamRoomSearchResult> completed)
@@ -227,6 +242,7 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     {
         if (_disposed) return;
         _disposed = true;
+        _joinRequested.Dispose();
         _chatReceived.Dispose();
         _disconnected.Dispose();
         _personaChanged.Dispose();

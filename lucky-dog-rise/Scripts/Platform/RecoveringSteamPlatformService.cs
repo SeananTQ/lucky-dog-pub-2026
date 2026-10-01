@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace LuckyDogRise;
@@ -26,10 +27,18 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private bool _disposed;
     private string _accountId = string.Empty;
     private SteamInitializationFailureKind _lastInitializationFailure;
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private readonly Rooms.SteamRoomInviteInbox _roomInvitations;
+#endif
 
     public RecoveringSteamPlatformService(bool enableInventory = true)
     {
         _inventoryEnabled = enableInventory;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Parse launch intent once for this process's platform lifetime, not on reconnect.
+        _roomInvitations = Rooms.SteamRoomInviteInbox.FromCommandLine(
+            OS.GetCmdlineArgs().Concat(OS.GetCmdlineUserArgs()));
+#endif
         TryConnect();
     }
 
@@ -296,6 +305,9 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
             return;
 
         DisposeSession();
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomInvitations.Clear();
+#endif
         _disposed = true;
         SetConnectionState(PlatformConnectionState.Offline);
     }
@@ -328,7 +340,11 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         _accountId = connectedAccountId;
 
-        _session = new SteamGamePlatformService(runtime);
+        _session = new SteamGamePlatformService(runtime
+#if !DEMO_BUILD && !RECORDING_BUILD
+            , _roomInvitations
+#endif
+            );
         _session.UserStatsReady += OnUserStatsReady;
         _session.StoreStatusChanged += OnStoreStatusChanged;
         if (_inventoryEnabled)
@@ -354,6 +370,9 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         _statusMessage = $"Steam account changed from {_accountId} to {actualAccountId}; restart is required.";
         _nextRetryAtSeconds = double.PositiveInfinity;
         DisposeSession();
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomInvitations.Clear();
+#endif
         SetConnectionState(PlatformConnectionState.Unavailable);
         AccountIdentityConflictDetected(_accountId, actualAccountId);
     }

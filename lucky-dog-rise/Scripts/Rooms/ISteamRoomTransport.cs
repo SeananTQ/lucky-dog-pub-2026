@@ -21,6 +21,8 @@ public interface ISteamRoomTransport : IDisposable
     event Action<ulong> LobbyChanged;
     event Action<ulong, ulong> MemberDeparted;
     event Action<ulong, ulong, byte[]> ChatReceived;
+    event Action<ulong> JoinRequested;
+    bool OpenInviteDialog(ulong lobbyId);
     IDisposable Search(Action<SteamRoomSearchResult> completed);
     IDisposable Create(Action<SteamRoomJoinResult> completed);
     IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed);

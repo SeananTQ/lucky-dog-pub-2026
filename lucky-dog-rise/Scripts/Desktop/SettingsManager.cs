@@ -46,6 +46,9 @@ public static class SettingsManager
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
     private const string KeyLocale = "locale";
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private const string KeyRoomCodeHidden = "room_code_hidden";
+#endif
     public enum DisplayMode
     {
         Clock = 0,
@@ -537,6 +540,21 @@ public static class SettingsManager
 
     public static float GetOtherUiScaleFactor(int step) =>
         OtherUiScaleFactors[Mathf.Clamp(step, OtherUiScaleStepMin, OtherUiScaleStepMax)];
+
+#if !DEMO_BUILD && !RECORDING_BUILD
+    public static bool LoadRoomCodeHidden()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDisplay, KeyRoomCodeHidden, false);
+    }
+
+    public static void SaveRoomCodeHidden(bool hidden)
+    {
+        var config = Load();
+        config.SetValue(SectionDisplay, KeyRoomCodeHidden, hidden);
+        config.Save(Path);
+    }
+#endif
 
     public static string LoadLocale()
     {

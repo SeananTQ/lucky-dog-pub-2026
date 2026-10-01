@@ -857,6 +857,14 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Process(double delta)
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Invitations can arrive before the room tab has ever been opened.
+        // Create its controller without changing the selected tab or opening the panel.
+        if (_roomPreview == null && BuildCapabilities.SteamRooms && _roomTabIndex >= 0
+            && (_platformService as Rooms.IPlatformRoomServiceProvider)?.RoomService
+                is Rooms.IRoomInviteService { HasPendingJoinRequest: true })
+            EnsureRoomPreview();
+#endif
         if (_panelScrollDragPotential && !Input.IsMouseButtonPressed(MouseButton.Left))
             ResetPanelScrollDrag();
 
@@ -1021,16 +1029,7 @@ public partial class SystemPanelController : CanvasLayer
     private void SwitchTab(int index)
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
-        if (index == _roomTabIndex && _roomPreview == null)
-        {
-            _roomPreview = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
-                .Instantiate<Rooms.InGameRoomPreview>();
-            _roomPreview.Configure(_platformService, _gameData);
-            _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
-            _roomContent.AddChild(_roomPreview);
-            BindTutorialPopupActivity(_roomPreview);
-            _panelScroll.ScrollVertical = 0;
-        }
+        if (index == _roomTabIndex) EnsureRoomPreview();
 #endif
         for (int i = 0; i < _tabs.Count; i++)
         {
@@ -1074,6 +1073,21 @@ public partial class SystemPanelController : CanvasLayer
             RefreshDebugPlayTime();
         #endif
     }
+
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private void EnsureRoomPreview()
+    {
+        if (_roomPreview != null || _roomContent == null) return;
+        _roomPreview = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
+            .Instantiate<Rooms.InGameRoomPreview>();
+        _roomPreview.Configure(_platformService, _gameData);
+        _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
+        _roomContent.AddChild(_roomPreview);
+        BindTutorialPopupActivity(_roomPreview);
+        // Only reset scrolling when the player is actually viewing this page.
+        if (_roomContent.Visible) _panelScroll.ScrollVertical = 0;
+    }
+#endif
 
     private void ConfigureRoomTab()
     {

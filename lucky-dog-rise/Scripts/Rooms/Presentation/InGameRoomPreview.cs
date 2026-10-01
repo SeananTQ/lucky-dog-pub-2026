@@ -19,6 +19,8 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private LineEdit _codeInput = null!;
     [Export] private Label _roomTitle = null!;
     [Export] private Label _code = null!;
+    [Export] private Button _codeVisibility = null!;
+    [Export] private Button _invite = null!;
     [Export] private Label _status = null!;
     [Export] private Label _empty = null!;
     [Export] private Label _connection = null!;
@@ -50,6 +52,8 @@ public partial class InGameRoomPreview : VBoxContainer
     private bool _dirty;
     private long _lastSession;
     private string _noticeKey = "";
+    private bool _hideRoomCode;
+    private bool _privacyLoaded;
     private RoomClient _kickClient;
     private long _kickSession;
     private int _kickMemberId;
@@ -72,7 +76,15 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         _gameData = gameData;
         if (_gameData != null) _gameData.EquipmentChanged += SyncLocalAppearance;
+        // UI privacy is a local preference, independent of the Steam account.
+        // Standalone fake-provider checks have no GameData and never write it.
+        if (!_privacyLoaded && _gameData != null)
+        {
+            _hideRoomCode = SettingsManager.LoadRoomCodeHidden();
+            _privacyLoaded = true;
+        }
         if (IsNodeReady()) RefreshService();
+        _dirty = true;
     }
 
     public override void _Ready()
@@ -103,6 +115,8 @@ public partial class InGameRoomPreview : VBoxContainer
         _return.Pressed += () => { _browsing = false; _dirty = true; };
         _kickAccept.Pressed += ConfirmKick;
         _kickCancel.Pressed += CancelKick;
+        _codeVisibility.Pressed += ToggleCodeVisibility;
+        _invite.Pressed += InviteFriends;
         L10n.Changed += OnLanguageChanged;
         InitializeMock();
         RefreshService();
@@ -116,6 +130,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // Steam stamps chat expiry with its service clock. Godot's uptime has a
         // different origin, so mixing them leaves otherwise valid bubbles stuck.
         if (!_isMock && _client != null) _client.AdvanceTo(_service.Now);
+        ConsumeAcceptedInvite();
         if (_dirty) { _dirty = false; Render(); }
     }
     public override void _ExitTree()
@@ -153,7 +168,9 @@ public partial class InGameRoomPreview : VBoxContainer
         var client = new RoomClient(current, 1, name, LubanData.Tables.TbDogSkin.DataList[0].Id);
         client.AdvanceTo(current.Now);
         ReplaceClient(client);
-        client.Search();
+        // A known invite already supplies the target. Do not put an unnecessary
+        // directory search in front of the cold-start join on Steam's callback queue.
+        if (current is not IRoomInviteService { HasPendingJoinRequest: true }) client.Search();
     }
 
     private void ReplaceClient(RoomClient client)
@@ -221,6 +238,47 @@ public partial class InGameRoomPreview : VBoxContainer
         _dirty = true;
     }
 
+    private void ToggleCodeVisibility()
+    {
+        _hideRoomCode = !_hideRoomCode;
+        if (_gameData != null) SettingsManager.SaveRoomCodeHidden(_hideRoomCode);
+        // Apply immediately: do not leave a frame of unmasked text after a click.
+        RenderCodePrivacy();
+    }
+
+    private void RenderCodePrivacy()
+    {
+        string code = _client?.JoinedCode ?? "";
+        _code.Text = _hideRoomCode && code.Length > 0 ? "••••••••••••" : code;
+        _code.TooltipText = _hideRoomCode ? "" : code;
+        _codeVisibility.Text = _hideRoomCode ? "Rooms_ShowCode" : "Rooms_HideCode";
+        _codeInput.Secret = _hideRoomCode;
+    }
+
+    private void InviteFriends()
+    {
+        if (_client == null || _client.JoinedCode.Length == 0 || _client.IsBusy
+            || _isMock || _service is not IRoomInviteService invitations) return;
+        string result = invitations.InviteFriends(_client);
+        // Opening the picker does not mean the player has sent an invitation.
+        _noticeKey = result == "ok" ? "" : result;
+        _dirty = true;
+    }
+
+    private void ConsumeAcceptedInvite()
+    {
+        if (_isMock || _client == null || _service is not IRoomInviteService invitations
+            || !invitations.TryTakeJoinRequest(out string code)) return;
+        CancelKick();
+        _noticeKey = "";
+        _client.Cancel();
+        // Reuse the ordinary join path so errors retain the previous membership,
+        // and Steam callback cleanup remains serialized by the room service.
+        if (!string.Equals(_client.JoinedCode, code, StringComparison.OrdinalIgnoreCase))
+            _client.Join(code);
+        _dirty = true;
+    }
+
     private string KickTargetError(RoomClient client, long session, int memberId, long presence)
     {
         if (!ReferenceEquals(client, _client) || client == null || client.Session != session
@@ -263,6 +321,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
+        RenderCodePrivacy();
         _connection.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired"
             : _client == null ? "Rooms_SteamUnavailable" : "Rooms_SteamConnected");
         RenderMockNotice();
@@ -286,6 +345,9 @@ public partial class InGameRoomPreview : VBoxContainer
         _return.Visible = joined;
         _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = _client.IsBusy;
         _cancel.Visible = _client.IsBusy;
+        _invite.Disabled = !joined || _client.IsBusy || _isMock || _service is not IRoomInviteService;
+        _invite.TooltipText = _isMock || _service is not IRoomInviteService
+            ? L10n.Tr("Rooms_InviteUnavailable") : "";
         _status.Text = L10n.Tr(_noticeKey.Length > 0 ? _noticeKey : StatusKey());
         _status.Visible = _status.Text.Length > 0;
         _empty.Visible = _client.Listings.Length == 0 && !_client.IsBusy;
@@ -306,8 +368,6 @@ public partial class InGameRoomPreview : VBoxContainer
         var view = _client.View;
         _game.Text = GameName(view?.GameId);
         _roomTitle.Text = view == null ? L10n.Tr("Rooms_WaitMembers") : $"{view.Name}  {view.Members.Length}/{RoomRules.Capacity}";
-        _code.Text = _client.JoinedCode;
-        _code.TooltipText = _client.JoinedCode;
         var members = view?.Members;
         if (ReferenceEquals(_lastMembers, members))
         {
