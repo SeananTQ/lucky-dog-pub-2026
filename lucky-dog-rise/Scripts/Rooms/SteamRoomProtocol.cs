@@ -2,6 +2,8 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Buffers.Binary;
+using System.Text;
 
 namespace LuckyDogRise.Rooms;
 
@@ -14,6 +16,39 @@ public static class SteamRoomProtocol
     public const string GameKey = "ld_game";
     public const string AppearanceKey = "ld_appearance";
     public const string ActivityKey = "ld_activity";
+    public const string ChatSessionKey = "ld_chat_session";
+    public const int MaxChatBytes = 512;
+    private static readonly UTF8Encoding ChatEncoding = new(false, true);
+
+    // Binary envelope: magic/version, per-membership token, sequence, Steam time,
+    // UTF-8 payload. Identity always comes from Steam's callback, never this body.
+    public static byte[] EncodeChat(Guid session, long sequence, long sentAt, string text)
+    {
+        var body = ChatEncoding.GetBytes(text);
+        var bytes = new byte[36 + body.Length];
+        "LDC1"u8.CopyTo(bytes);
+        session.TryWriteBytes(bytes.AsSpan(4, 16));
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(20), sequence);
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(28), sentAt);
+        body.CopyTo(bytes, 36);
+        return bytes;
+    }
+
+    public static bool TryDecodeChat(byte[] bytes, out Guid session, out long sequence, out long sentAt, out string text)
+    {
+        session = Guid.Empty;
+        sequence = sentAt = 0;
+        text = "";
+        if (bytes == null || bytes.Length is <= 36 or > MaxChatBytes
+            || !bytes.AsSpan(0, 4).SequenceEqual("LDC1"u8)) return false;
+        session = new Guid(bytes.AsSpan(4, 16));
+        sequence = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(20));
+        sentAt = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(28));
+        if (session == Guid.Empty || sequence <= 0 || sentAt <= 0) return false;
+        try { text = ChatEncoding.GetString(bytes, 36, bytes.Length - 36); }
+        catch (DecoderFallbackException) { return false; }
+        return RoomRules.ValidateChat(text).Length == 0;
+    }
     private const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
     public static string Encode(ulong lobbyId)

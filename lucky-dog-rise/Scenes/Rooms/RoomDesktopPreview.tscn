@@ -3,10 +3,19 @@
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomDesktopPreview.cs" id="script"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomDogView.tscn" id="dog"]
 
-[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer")]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat"]
+
+[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat")]
 script = ExtResource("script")
 _dogScene = ExtResource("dog")
 _remoteLayer = NodePath("RemoteLayer")
+_chatLayer = NodePath("ChatLayer")
+LocalChat = NodePath("ChatLayer/Chat")
 
 [node name="RemoteLayer" type="CanvasLayer" parent="."]
 layer = -1
+
+[node name="ChatLayer" type="CanvasLayer" parent="."]
+layer = 3
+
+[node name="Chat" parent="ChatLayer" instance=ExtResource("chat")]

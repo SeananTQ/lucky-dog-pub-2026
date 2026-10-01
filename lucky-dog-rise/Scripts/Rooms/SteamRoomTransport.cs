@@ -11,17 +11,32 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<LobbyDataUpdate_t> _dataChanged;
     private readonly Callback<LobbyChatUpdate_t> _membersChanged;
+    private readonly Callback<LobbyChatMsg_t> _chatReceived;
     private readonly Callback<PersonaStateChange_t> _personaChanged;
     private readonly Callback<SteamServersDisconnected_t> _disconnected;
     private bool _disposed;
     public ulong LocalSteamId { get; }
     public event Action<ulong> LobbyChanged = delegate { };
     public event Action<ulong, ulong> MemberDeparted = delegate { };
+    public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
+    public long ServerTime => CanUseApi ? SteamUtils.GetServerRealTime() : 0;
 
     public SteamRoomTransport(SteamworksRuntime runtime)
     {
         _runtime = runtime;
         LocalSteamId = runtime.SteamId;
+        _chatReceived = Callback<LobbyChatMsg_t>.Create(data =>
+        {
+            if (!CanUseApi || data.m_eChatEntryType != (byte)EChatEntryType.k_EChatEntryTypeChatMsg) return;
+            // Chat entry indices are valid only inside this callback. Copy now;
+            // never retain an index or fetch lobby history on join.
+            var buffer = new byte[4096];
+            int length = SteamMatchmaking.GetLobbyChatEntry(new CSteamID(data.m_ulSteamIDLobby),
+                (int)data.m_iChatID, out var sender, buffer, buffer.Length, out var kind);
+            if (length <= 0 || length > SteamRoomProtocol.MaxChatBytes
+                || kind != EChatEntryType.k_EChatEntryTypeChatMsg || sender.m_SteamID != data.m_ulSteamIDUser) return;
+            ChatReceived(data.m_ulSteamIDLobby, sender.m_SteamID, buffer.AsSpan(0, length).ToArray());
+        });
         _dataChanged = Callback<LobbyDataUpdate_t>.Create(data =>
         {
             if (data.m_bSuccess != 0 && CanUseApi) LobbyChanged(data.m_ulSteamIDLobby);
@@ -152,7 +167,8 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 SteamFriends.RequestUserInformation(member, true);
                 members.Add(new SteamRoomMemberData(member.m_SteamID, SteamFriends.GetFriendPersonaName(member),
                     SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.AppearanceKey),
-                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ActivityKey)));
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ActivityKey),
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ChatSessionKey)));
             }
         }
         return new SteamRoomData(lobbyId, SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.ProtocolKey),
@@ -199,10 +215,24 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     {
         if (_disposed) return;
         _disposed = true;
+        _chatReceived.Dispose();
         _disconnected.Dispose();
         _personaChanged.Dispose();
         _membersChanged.Dispose();
         _dataChanged.Dispose();
+    }
+
+    public void SetChatSession(ulong lobbyId, string session)
+    {
+        RequireAvailable();
+        SteamMatchmaking.SetLobbyMemberData(new CSteamID(lobbyId), SteamRoomProtocol.ChatSessionKey, session);
+    }
+
+    public bool SendChat(ulong lobbyId, byte[] message)
+    {
+        RequireAvailable();
+        return message.Length <= SteamRoomProtocol.MaxChatBytes
+            && SteamMatchmaking.SendLobbyChatMsg(new CSteamID(lobbyId), message, message.Length);
     }
 }
 #endif

@@ -66,6 +66,10 @@ public partial class ModeManager
     private long _roomDragSession;
     private Vector2 _roomDragMouseStart;
     private Vector2 _roomDragDogStart;
+    private const double RoomChatBlindBoxRestoreDelaySeconds = 5;
+    private bool _roomChatBubbleActive;
+    private double _roomChatBlindBoxRestoreRemaining;
+    private bool RoomChatSuppressesBlindBoxHint => _roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining > 0;
 #if DEBUG
     private bool? _roomSnapEnabledForSmoke;
 #endif
@@ -115,6 +119,8 @@ public partial class ModeManager
                 _roomDesktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
                     .Instantiate<RoomDesktopPreview>();
                 _bossKeyContent.AddChild(_roomDesktop);
+                _roomDesktop.LocalChat.Opened += () => { CancelWindowDrag(); _settingsPanel.CloseImmediate(); };
+                _roomDesktop.LocalChat.BubbleActivityChanged += OnRoomChatBubbleActivityChanged;
             }
             _roomDesktop.Show();
             ApplyRoomDesktopLayout(force: true);
@@ -131,6 +137,24 @@ public partial class ModeManager
             _desktopRoomClient.SetReaction((int)_bossDogVisual.CurrentReaction);
         if (CurrentMode != Mode.BossKey || _hiddenByFullscreenApp || !_desktopTongueFeedbackEnabled)
             _desktopRoomClient.StopInputActivity();
+    }
+
+    private void OnRoomChatBubbleActivityChanged(bool active)
+    {
+        if (_roomChatBubbleActive == active) return;
+        _roomChatBubbleActive = active;
+        _roomChatBlindBoxRestoreRemaining = active ? 0 : RoomChatBlindBoxRestoreDelaySeconds;
+        // Chat and reward balloons share the same space. Remove the old balloon
+        // before the first chat frame, including any in-progress fade-in tween.
+        _bossBlindBoxHint?.SetDisplayVisible(false, animate: false);
+    }
+
+    private void UpdateRoomChatBlindBoxDelay(double delta)
+    {
+        if (_roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining <= 0) return;
+        _roomChatBlindBoxRestoreRemaining = System.Math.Max(0, _roomChatBlindBoxRestoreRemaining - delta);
+        if (_roomChatBlindBoxRestoreRemaining == 0)
+            RefreshBossBlindBoxHint();
     }
 
     private void ApplyRoomDesktopLayout(bool force = false)
@@ -158,6 +182,9 @@ public partial class ModeManager
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
             new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor, _panelSize.X,
             RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
+        if (!_hiddenByFullscreenApp && IsRoomLocalDogHit(GetViewport().GetMousePosition()))
+            _roomDesktop.LocalChat.Present(true, true,
+                _desktopRoomClient.Bubbles.TryGetValue(_desktopRoomClient.Id, out var ownBubble) ? ownBubble.Text : "");
         _roomDesktop.UpdateNameBars(
             new Rect2(_bossStatusPanelBasePosition - _bossDogVisual.Position, _bossStatusPanelBaseSize),
             _mainText.GetThemeFont("font"), _bossStatusPanel.GetThemeStylebox("panel"),
@@ -232,7 +259,7 @@ public partial class ModeManager
             }
             CancelWindowDrag();
             var point = button.Position;
-            if (_settingsPanel.ContainsPoint(point)
+            if (_roomDesktop.LocalChat.ContainsPoint(point) || _settingsPanel.ContainsPoint(point)
 #if DEBUG
                 || (_steamMockPanel != null && _steamMockPanel.ContainsPoint(point))
 #endif
@@ -281,6 +308,9 @@ public partial class ModeManager
     public RoomDesktopPreview RoomDesktopForSmoke => _roomDesktop;
     public bool RoomDraggingForSmoke => _roomDragMember != 0 && _isDragging;
     public bool RoomClickThroughForSmoke => _isClickThrough;
+    public bool RoomChatSuppressesHintForSmoke => RoomChatSuppressesBlindBoxHint;
+    public void RoomAdvanceChatHintForSmoke(double delta) => UpdateRoomChatBlindBoxDelay(delta);
+    public void RoomRefreshHintForSmoke() => RefreshBossBlindBoxHint();
     public void RoomActivityForSmoke(int reaction, bool input)
     {
         _bossDogVisual.ApplyReaction((DataTables.EDogReactionTrigger)reaction);

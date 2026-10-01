@@ -22,6 +22,71 @@ public static class SteamRoomChecks
         CheckMissingCallback();
         CheckDispose();
         CheckActivity();
+        CheckChat();
+    }
+
+    private static void CheckChat()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        var token = Guid.NewGuid();
+        var remote = new SteamRoomMemberData(88, "guest", "1:10:0:1001", ChatSession: token.ToString("N"));
+        transport.Seed(100, remote);
+        client.Join(SteamRoomProtocol.Encode(100));
+        transport.SucceedMembership(100);
+        var guest = client.View.Members.Single(m => m.Id != 1);
+        byte[] Packet(long seq, string value, long age = 0, Guid? session = null) =>
+            SteamRoomProtocol.EncodeChat(session ?? token, seq, transport.ServerTime - age, value);
+        void Deliver(byte[] bytes, ulong lobby = 100, ulong sender = 88) => transport.DeliverChat(lobby, sender, bytes);
+        void Advance(double seconds) { transport.Now += seconds; client.AdvanceTo(transport.Now); }
+
+        Assert(client.SendChat(" 你好 🐶 : hello ") == "", "UTF-8 chat sends and echoes locally");
+        Assert(client.Bubbles[1].Text == "你好 🐶 : hello", "local whitespace trimmed");
+        Assert(SteamRoomProtocol.TryDecodeChat(transport.Chats[0], out _, out _, out _, out var wireText)
+            && wireText == client.Bubbles[1].Text, "binary envelope round trip");
+        Deliver(transport.Chats[0], sender: 77);
+        Assert(client.Bubbles.Count == 1, "Steam self echo ignored");
+        Assert(client.SendChat("flood") == "Rooms_ChatTooFast" && transport.Chats.Count == 1, "sender rate limit");
+        foreach (var invalid in new[] { " ", "\nhello", new string('字', 121), "\uD800" })
+            Assert(client.SendChat(invalid).Length > 0, "outgoing invalid text blocked");
+
+        var valid = Packet(1, "来自另一只狗 🐕");
+        Deliver(valid, lobby: 200); Deliver(valid, sender: 999);
+        Deliver(Packet(1, "wrong incarnation", session: Guid.NewGuid()));
+        Deliver(Packet(1, "expired", age: 7)); Deliver(Packet(1, "future", age: -10));
+        Deliver(new byte[4096]);
+        var malformed = (byte[])valid.Clone(); malformed[^1] = 0xff; Deliver(malformed);
+        Assert(client.Bubbles.Count == 1, "wrong room/sender/token/time/encoding rejected");
+        Deliver(valid);
+        Assert(client.Bubbles[guest.Id].Text == "来自另一只狗 🐕", "remote message delivered");
+        Deliver(Packet(2, "flood"));
+        Assert(client.Bubbles[guest.Id].Id == 1, "receiver rate limit independent of sender");
+        Advance(2); Deliver(valid);
+        Assert(client.Bubbles[guest.Id].Id == 1, "duplicate ignored");
+        Advance(2); Deliver(Packet(3, "latest"));
+        Assert(client.Bubbles.Count == 2 && client.Bubbles[guest.Id].Text == "latest", "one bubble per sender");
+        Advance(7);
+        Assert(client.Bubbles.Count == 0, "all messages expire");
+        transport.ChatSucceeds = false;
+        Assert(client.SendChat("not sent") == "Rooms_ChatUnavailable" && client.Bubbles.Count == 0,
+            "failed transport does not fake successful delivery");
+        Advance(2); transport.ChatSucceeds = true;
+        Assert(client.SendChat("retry") == "", "failure can retry");
+
+        transport.RemoveRemote(100, 88);
+        var oldToken = token; token = Guid.NewGuid();
+        transport.SetRemote(100, remote with { ChatSession = token.ToString("N") });
+        Deliver(Packet(99, "old member", session: oldToken));
+        Assert(client.Bubbles.Count == 1, "departed incarnation cannot inject a delayed message");
+        Deliver(Packet(1, "rejoined"));
+        Assert(client.Bubbles.Count == 2, "new membership can start sequence at one");
+        client.Leave();
+        Deliver(Packet(2, "after leaving"));
+        Assert(client.Bubbles.Count == 0, "leave clears messages and rejects callbacks");
+        client.Join(SteamRoomProtocol.Encode(100)); transport.SucceedMembership(100);
+        Deliver(Packet(3, "before rejoin", age: 2));
+        Assert(client.Bubbles.Count == 0, "messages predating this join rejected");
     }
 
     private static void Assert(bool condition, string message)
@@ -274,6 +339,13 @@ public static class SteamRoomChecks
         public bool InitializeSucceeds = true;
         public bool Disposed;
         public double Now;
+        public long ServerTime => 100000 + (long)Now;
+        public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
+        public readonly List<byte[]> Chats = new();
+        public bool ChatSucceeds = true;
+        public void SetChatSession(ulong lobbyId, string session) { }
+        public bool SendChat(ulong lobbyId, byte[] message) { if (!ChatSucceeds) return false; Chats.Add(message); return true; }
+        public void DeliverChat(ulong lobby, ulong sender, byte[] message) => ChatReceived(lobby, sender, message);
         public int MembershipCalls;
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
         public readonly List<ulong> Left = new();

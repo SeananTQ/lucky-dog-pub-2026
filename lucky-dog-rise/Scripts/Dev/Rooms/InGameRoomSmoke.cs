@@ -23,6 +23,8 @@ public static class InGameRoomSmoke
                 await main.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
                 await main.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
             }
+            async Task Wait(double seconds) =>
+                await main.ToSignal(tree.CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
             await main.ToSignal(tree.CreateTimer(2), SceneTreeTimer.SignalName.Timeout);
             var panel = main.SettingsPanelObj;
             panel.Open();
@@ -113,6 +115,104 @@ public static class InGameRoomSmoke
             var remotes = client.View.Members.Where(member => member.Id != client.Id)
                 .Select(member => main.RoomDesktopForSmoke.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
             var remoteClient = page.MockClientForSmoke(remotes[0].MemberId);
+            var chat = main.RoomDesktopForSmoke.LocalChat;
+            var rewardHint = main.GetNode<BalloonHintController>("BossKeyContent/CanvasLayer/BlindBoxHint");
+            main.RoomRefreshHintForSmoke();
+            await Wait(0.2);
+            Check(rewardHint.Modulate.A > 0.99f, "baseline countdown balloon is visible");
+            var rewardHintLeft = (rewardHint.GetGlobalTransformWithCanvas() * Vector2.Zero).X;
+            chat.OpenChat();
+            Check(rewardHint.Modulate.A == 0 && rewardHint.MouseFilter == Control.MouseFilterEnum.Ignore,
+                "opening composer immediately removes reward balloon and its hit target");
+            chat.CloseChat();
+            // Exercise the actual frame-driven timer once; subsequent boundary
+            // cases advance that same production timer without waiting in real time.
+            await Wait(4.6);
+            Check(main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A == 0,
+                "canceling composer keeps reward balloon hidden before five seconds");
+            await Wait(0.7);
+            Check(!main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A > 0.99f,
+                "canceling composer restores reward balloon after five real seconds");
+            chat.OpenChat();
+            chat.CloseChat();
+            main.RoomAdvanceChatHintForSmoke(4);
+            chat.OpenChat();
+            main.RoomAdvanceChatHintForSmoke(20);
+            Check(main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A == 0,
+                "reopening composer suspends restoration throughout editing");
+            chat.CloseChat();
+            main.RoomAdvanceChatHintForSmoke(4.99);
+            Check(main.RoomChatSuppressesHintForSmoke, "reopening restarts a full five-second wait");
+            main.RoomAdvanceChatHintForSmoke(0.02);
+            await Wait(0.2);
+            Check(rewardHint.Modulate.A > 0.99f, "reopened and canceled composer eventually restores balloon");
+            chat.OpenChat();
+            await Frame();
+            Check(chat.Editing && !panel.IsOpen, "main dog opens composer and releases overlapping settings panel");
+            var chatPoint = chat.ComposerRectForSmoke.GetCenter();
+            Check(main.RoomHitTestForSmoke(DisplayServer.WindowGetPosition() + (Vector2I)chatPoint),
+                "composer participates in transparent-window hit testing");
+            main._Input(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = chatPoint });
+            main._Input(new InputEventMouseMotion { ButtonMask = MouseButtonMask.Left, Position = chatPoint + new Vector2(30, 0) });
+            Check(!main.RoomDraggingForSmoke, "composer click cannot start dog dragging");
+            chat.SubmitForSmoke("你好，房间里的朋友！");
+            page.AdvancePreview(0);
+            await Frame();
+            Check(!chat.Editing && remoteClient.Bubbles.ContainsKey(client.Id), "main input sends through shared service");
+            Check(remoteClient.SendChat("Hello from the other dog!") == "", "remote can send reply");
+            page.AdvancePreview(0);
+            await Frame();
+            Check(client.Bubbles.ContainsKey(remoteClient.Id), "main receives remote bubble");
+            Check(Mathf.IsEqualApprox(chat.MessageRectForSmoke.Position.X, rewardHintLeft),
+                "chat body starts at the countdown balloon's normal left edge");
+            Check(rewardHint.Modulate.A == 0, "sent local message keeps reward balloon hidden");
+            main.RoomAdvanceChatHintForSmoke(20);
+            Check(main.RoomChatSuppressesHintForSmoke, "restoration does not count down while a sent message remains");
+            await Capture(main, "chat-in-game");
+            page.AdvancePreview(7);
+            await Frame();
+            main.RoomAdvanceChatHintForSmoke(4);
+            Check(main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A == 0,
+                "message expiry starts a fresh five-second wait");
+            main.RoomAdvanceChatHintForSmoke(1.1);
+            await Wait(0.2);
+            Check(!main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A > 0.99f,
+                "reward balloon restores five seconds after local message disappears");
+            Check(remoteClient.SendChat("A remote-only message") == "", "remote sends independent message");
+            page.AdvancePreview(0);
+            await Frame();
+            Check(!main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A > 0.99f,
+                "another dog's message does not suppress the local reward balloon");
+            var alwaysShowRewardHint = SettingsManager.LoadAlwaysShowBlindBoxBubble();
+            try
+            {
+                Check(main.GameDataObj.GetBlindBoxHintState().Status == BlindBoxHintStatus.Waiting,
+                    "hidden-countdown test starts before a reward becomes available");
+                SettingsManager.SaveAlwaysShowBlindBoxBubble(false);
+                main.RoomRefreshHintForSmoke();
+                await Wait(0.2);
+                chat.OpenChat();
+                chat.CloseChat();
+                main.RoomAdvanceChatHintForSmoke(5.1);
+                await Wait(0.2);
+                Check(!main.RoomChatSuppressesHintForSmoke && rewardHint.Modulate.A == 0,
+                    "restoration respects an otherwise hidden countdown instead of forcing it visible");
+            }
+            finally
+            {
+                SettingsManager.SaveAlwaysShowBlindBoxBubble(alwaysShowRewardHint);
+                main.RoomRefreshHintForSmoke();
+            }
+            GD.Print("[InGameRoomSmoke] CHAT_HINT_DELAY_PASS cancel, message expiry, reopening, remote isolation and normal visibility rules.");
+            chat.OpenChat();
+            main.RoomModeForSmoke(true);
+            await Frame();
+            Check(!chat.Editing, "poker transition closes composer");
+            main.RoomModeForSmoke(false);
+            await Settle();
+            page.AdvancePreview(7);
+            panel.Open();
+            await Frame();
             foreach (int reaction in new[] { 1005, 1006, 1003 })
             {
                 remoteClient.SetReaction(reaction);
@@ -421,7 +521,7 @@ public static class InGameRoomSmoke
             Check(!main.RoomDraggingForSmoke, "new-session input waits for matching presentation seats");
             await Frame();
             await SteamRoomPageChecks.Run(main);
-            GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
+            GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, bubble chat, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
             tree.Quit();
         }
         catch (Exception exception)

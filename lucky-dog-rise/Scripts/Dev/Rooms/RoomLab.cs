@@ -422,8 +422,8 @@ public partial class RoomLab : Control
                 dog.SendRequested += text =>
                 {
                     var result = Current.SendChat(text);
-                    Status(result, "已发送。");
-                    if (result.Length == 0) target.AcceptSend();
+                    Status(result.Length > 0 ? InGameRoomPreview.ChatText(result) : "", "已发送。");
+                    target.Chat.SetSendResult(result);
                 };
             }
             dog.Scale = Vector2.One * scale;
@@ -565,7 +565,7 @@ public partial class RoomLab : Control
         {
             GD.Print(RoomSandboxChecks.Run());
             SteamRoomChecks.Run();
-            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases and recovery (fake transport).");
+            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat validation/expiry and recovery (fake transport).");
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
@@ -579,6 +579,7 @@ public partial class RoomLab : Control
             await UiFrame();
             await UiFrame();
             Verify(_dogs.Count == 3 && Current.View.Members.Length == 3, "three rendered dogs");
+            await RunFirstChatFrameSmoke();
             var lobbyRow = _roomList.GetChild(0);
             OnApplyAppearance();
             _server.Tick(0);
@@ -598,6 +599,8 @@ public partial class RoomLab : Control
             await UiFrame();
             _dogs[Current.Id].OpenChat();
             Verify(_dogs[Current.Id].Editing, "local bubble opens input");
+            await UiFrame();
+            await CaptureSmoke("chat-composer");
             _dogs[Current.Id].SubmitChatForSmoke("你好！本机消息测试。");
             _server.Tick(0);
             Verify(!_dogs[Current.Id].Editing && Current.Bubbles.ContainsKey(Current.Id), "send button delivers and closes input");
@@ -606,6 +609,7 @@ public partial class RoomLab : Control
             await UiFrame();
             Verify(Current.Bubbles.ContainsKey(Target.Id), "remote bubble received");
             await CaptureSmoke("three");
+            await RunChatUiSmoke();
             Current.HiddenMembers.Add(Target.Id);
             _dirty = true;
             await UiFrame();
@@ -678,6 +682,72 @@ public partial class RoomLab : Control
         Verify(tongue.Position == stopped, "stopped tongue remains at rest");
         await CaptureSmoke("activity-idle");
         GD.Print("ROOM_ACTIVITY_UI_PASS: activity controls, reactions, independent tongue animation, forced smooth, outage timeout and recovery.");
+    }
+
+    private async System.Threading.Tasks.Task RunFirstChatFrameSmoke()
+    {
+        int previousTarget = _targetIndex;
+        for (int target = 0; target < 3; target++)
+        {
+            DebugCommand("target", target);
+            OnMockChat();
+            _server.Tick(0);
+            RenderCurrent();
+            var panel = _dogs[Target.Id].Chat.GetNode<PanelContainer>("Message");
+            Vector2? firstSize = null;
+            // Check every rendered frame: waiting for two layouts hides the original flash.
+            for (int frame = 0; frame < 4; frame++)
+            {
+                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                if (!panel.Visible) continue;
+                Verify(panel.Size.X <= 301 && panel.Size.Y <= 90,
+                    $"first message has its final compact size (dog {Target.Id}, frame {frame}, {panel.Size})");
+                firstSize ??= panel.Size;
+                Verify(panel.Size.IsEqualApprox(firstSize.Value), "first bubble does not resize after becoming visible");
+            }
+            Verify(firstSize.HasValue, "first message is rendered");
+        }
+        DebugCommand("target", previousTarget);
+        _server.Tick(7);
+        await UiFrame();
+        GD.Print("ROOM_CHAT_FIRST_FRAME_PASS: all three first messages remain compact on every rendered frame.");
+    }
+
+    private async System.Threading.Tasks.Task RunChatUiSmoke()
+    {
+        var chat = _dogs[Current.Id].Chat;
+        var tip = chat.GlobalPosition;
+        var shortRect = chat.MessageRectForSmoke;
+        chat.SubmitForSmoke("too soon");
+        Verify(chat.Editing && chat.ErrorForSmoke == "Rooms_ChatTooFast", "failed send keeps editor open with feedback");
+        chat._Input(new InputEventKey { Pressed = true, Keycode = Key.Escape });
+        Verify(!chat.Editing, "Escape closes editor");
+        _server.Tick(2);
+        chat.SubmitForSmoke("大家好！这是一条较长的聊天消息，用来检查自动换行。气泡向右和向上延展，尾巴仍然指着同一只小狗。Hello from the room!");
+        _server.Tick(0);
+        await UiFrame(); await UiFrame();
+        var longRect = chat.MessageRectForSmoke;
+        Verify(chat.GlobalPosition == tip && longRect.Size.Y > shortRect.Size.Y
+            && longRect.Position.Y < shortRect.Position.Y, "wrapped bubble grows upward with stationary tip");
+        await CaptureSmoke("chat-long");
+        chat.GlobalPosition = new Vector2(Size.X - 15, 20);
+        chat.Present(true, true, "edge");
+        await UiFrame();
+        var trigger = chat.ButtonRectForSmoke;
+        Verify(trigger.Position.X >= 0 && trigger.Position.Y >= 0 && trigger.End.X <= Size.X,
+            "hover entry remains reachable near screen edges");
+        chat.OpenChat();
+        await UiFrame(); await UiFrame();
+        var editor = chat.ComposerRectForSmoke;
+        await CaptureSmoke("chat-edge");
+        Verify(editor.Position.X >= 0 && editor.Position.Y >= 0 && editor.End.X <= Size.X
+            && editor.End.Y <= Size.Y,  $"top-right editor stays within viewport: {editor}, size {Size}, tip {chat.GlobalPosition}");
+        chat.GlobalPosition = tip;
+        chat.CloseChat();
+        _server.Tick(7);
+        await UiFrame();
+        Verify(Current.Bubbles.Count == 0, "UI messages expire without history");
+        GD.Print("ROOM_CHAT_UI_PASS: shared composer, errors, Escape, wrapping, fixed tip, viewport edges and expiry.");
     }
 
     private async System.Threading.Tasks.Task RunRequestUiSmoke()

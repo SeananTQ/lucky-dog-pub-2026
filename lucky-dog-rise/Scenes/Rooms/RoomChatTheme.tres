@@ -1,0 +1,135 @@
+[gd_resource type="Theme" load_steps=15 format=3]
+
+[ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="latin"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="cjk"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="button_latin"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="button_cjk"]
+
+[sub_resource type="FontVariation" id="font"]
+base_font = ExtResource("latin")
+fallbacks = Array[Font]([ExtResource("cjk")])
+
+[sub_resource type="FontVariation" id="button_font"]
+base_font = ExtResource("button_latin")
+fallbacks = Array[Font]([ExtResource("button_cjk")])
+
+[sub_resource type="StyleBoxFlat" id="bubble"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.965, 0.965, 0.94, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="input"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+bg_color = Color(0.93, 0.91, 0.87, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.40, 0.24, 0.20, 0.65)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="button_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.40, 0.24, 0.20, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="button_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.49, 0.31, 0.25, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="button_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.31, 0.18, 0.15, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="button_disabled"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.65, 0.58, 0.53, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="button_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.74, 0.58, 0.45, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[resource]
+default_font = SubResource("font")
+default_font_size = 18
+PanelContainer/styles/panel = SubResource("bubble")
+Label/colors/font_color = Color(0.40, 0.24, 0.20, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0)
+Label/colors/font_outline_color = Color(0, 0, 0, 0)
+LineEdit/colors/font_color = Color(0.40, 0.24, 0.20, 1)
+LineEdit/colors/font_placeholder_color = Color(0.40, 0.24, 0.20, 0.6)
+LineEdit/colors/font_selected_color = Color(0.40, 0.24, 0.20, 1)
+LineEdit/colors/caret_color = Color(0.40, 0.24, 0.20, 1)
+LineEdit/colors/selection_color = Color(0.40, 0.24, 0.20, 0.2)
+LineEdit/styles/normal = SubResource("input")
+LineEdit/styles/focus = SubResource("focus")
+LineEdit/styles/read_only = SubResource("input")
+ChatButton/base_type = &"Button"
+ChatButton/fonts/font = SubResource("button_font")
+ChatButton/font_sizes/font_size = 18
+ChatButton/colors/font_color = Color(0.965, 0.965, 0.94, 1)
+ChatButton/colors/font_disabled_color = Color(0.965, 0.965, 0.94, 0.65)
+ChatButton/colors/font_focus_color = Color(0.965, 0.965, 0.94, 1)
+ChatButton/colors/font_hover_color = Color(1, 1, 0.98, 1)
+ChatButton/colors/font_hover_pressed_color = Color(1, 1, 0.98, 1)
+ChatButton/colors/font_pressed_color = Color(1, 1, 0.98, 1)
+ChatButton/styles/disabled = SubResource("button_disabled")
+ChatButton/styles/focus = SubResource("button_focus")
+ChatButton/styles/hover = SubResource("button_hover")
+ChatButton/styles/hover_pressed = SubResource("button_pressed")
+ChatButton/styles/normal = SubResource("button_normal")
+ChatButton/styles/pressed = SubResource("button_pressed")

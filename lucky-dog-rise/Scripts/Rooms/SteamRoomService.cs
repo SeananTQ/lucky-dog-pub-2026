@@ -42,6 +42,12 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     private bool _settlementTimedOut;
     private string _lastAppearance = "";
     private string _lastActivity = "";
+    private Guid _chatSession;
+    private long _chatSequence;
+    private long _chatJoinedAt;
+    private double _lastChatSentAt = double.NegativeInfinity;
+    private readonly Dictionary<ulong, Guid> _chatSessions = new();
+    private readonly Dictionary<ulong, double> _receivedChatAt = new();
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
 
@@ -57,6 +63,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _now = now ?? (() => (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency);
         _transport.LobbyChanged += OnLobbyChanged;
         _transport.MemberDeparted += OnMemberDeparted;
+        _transport.ChatReceived += OnChatReceived;
     }
 
     public void Request(RoomClient client, RoomRequest request)
@@ -198,6 +205,8 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             _transport.SetAppearance(result.LobbyId, appearance);
             var activity = SteamRoomProtocol.EncodeActivity(pending.Client.ActivitySequence + 1, false);
             _transport.SetActivity(result.LobbyId, activity);
+            var chatSession = Guid.NewGuid();
+            _transport.SetChatSession(result.LobbyId, chatSession.ToString("N"));
             pending.Client.TryComplete(pending.Request.Id, () =>
             {
                 var previous = _lobby;
@@ -206,6 +215,11 @@ public sealed class SteamRoomService : IRoomService, IDisposable
                 _nextMemberId = 2;
                 _lastAppearance = appearance;
                 _lastActivity = activity;
+                _chatSession = chatSession;
+                _chatJoinedAt = _transport.ServerTime;
+                _chatSequence = 0;
+                _chatSessions.Clear();
+                _receivedChatAt.Clear();
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby));
                 Publish(data);
                 accepted = true;
@@ -287,11 +301,50 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         catch { Disconnect(); }
     }
 
-    public string SendChat(RoomClient client, string text) => "Steam 房间聊天尚未开放。";
+    public string SendChat(RoomClient client, string text)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0) return "Rooms_ChatUnavailable";
+        var error = RoomRules.ValidateChat(text);
+        if (error.Length > 0) return error;
+        double now = _now();
+        if (now - _lastChatSentAt < RoomRules.ChatCooldown) return "Rooms_ChatTooFast";
+        var member = client.View?.Members.FirstOrDefault(m => m.Id == client.Id);
+        if (member == null) return "Rooms_ChatUnavailable";
+        try
+        {
+            long sentAt = _transport.ServerTime;
+            if (sentAt <= 0) return "Rooms_ChatUnavailable";
+            text = text.Trim();
+            long sequence = ++_chatSequence;
+            _lastChatSentAt = now;
+            if (!_transport.SendChat(_lobby, SteamRoomProtocol.EncodeChat(_chatSession, sequence, sentAt, text)))
+                return "Rooms_ChatUnavailable";
+            client.Receive(new RoomChat(sequence, client.JoinedCode, member.Id, member.Presence,
+                text, now + RoomRules.ChatLifetime), now);
+            return "";
+        }
+        catch { return "Rooms_ChatUnavailable"; }
+    }
+
+    private void OnChatReceived(ulong lobby, ulong sender, byte[] bytes)
+    {
+        if (!IsAvailable || _lobby == 0 || lobby != _lobby || sender == _transport.LocalSteamId
+            || !SteamRoomProtocol.TryDecodeChat(bytes, out var session, out var sequence, out var sentAt, out var text)) return;
+        // Both clocks are supplied by Steam; local wall-clock settings are irrelevant.
+        var age = _transport.ServerTime - sentAt;
+        if (age < -2 || age >= RoomRules.ChatLifetime || sentAt < _chatJoinedAt) return;
+        if (!_identities.TryGetValue(sender, out var identity)
+            || !_chatSessions.TryGetValue(sender, out var current) || current != session) return;
+        double now = _now();
+        if (_receivedChatAt.TryGetValue(sender, out var last) && now - last < RoomRules.ChatCooldown) return;
+        _receivedChatAt[sender] = now;
+        _client.Receive(new RoomChat(sequence, _client.JoinedCode, identity.Id, identity.Presence,
+            text, now + RoomRules.ChatLifetime - Math.Max(0, age)), now);
+    }
 
     private void OnMemberDeparted(ulong lobby, ulong member)
     {
-        if (lobby == _lobby) _identities.Remove(member);
+        if (lobby == _lobby) { _identities.Remove(member); _chatSessions.Remove(member); _receivedChatAt.Remove(member); }
     }
 
     private void OnLobbyChanged(ulong lobby)
@@ -316,10 +369,19 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     {
         var present = data.Members.Select(m => m.SteamId).ToHashSet();
         foreach (var stale in _identities.Keys.Where(id => !present.Contains(id)).ToArray()) _identities.Remove(stale);
+        foreach (var stale in _chatSessions.Keys.Where(id => !present.Contains(id)).ToArray()) _chatSessions.Remove(stale);
+        foreach (var stale in _receivedChatAt.Keys.Where(id => !present.Contains(id)).ToArray()) _receivedChatAt.Remove(stale);
         var members = new List<RoomMember>();
         foreach (var raw in data.Members.DistinctBy(m => m.SteamId).Take(RoomRules.Capacity))
         {
             if (raw.SteamId == 0) continue;
+            if (Guid.TryParseExact(raw.ChatSession, "N", out var chatToken) && chatToken != Guid.Empty)
+            {
+                if (_chatSessions.TryGetValue(raw.SteamId, out var previousToken) && previousToken != chatToken
+                    && raw.SteamId != _transport.LocalSteamId) _identities.Remove(raw.SteamId);
+                _chatSessions[raw.SteamId] = chatToken;
+            }
+            else _chatSessions.Remove(raw.SteamId);
             if (!_identities.TryGetValue(raw.SteamId, out var identity))
             {
                 identity = (raw.SteamId == _transport.LocalSteamId ? 1 : _nextMemberId++, ++_nextPresence);
@@ -353,6 +415,9 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _identities.Clear();
         _lastAppearance = "";
         _lastActivity = "";
+        _chatSession = Guid.Empty;
+        _chatSessions.Clear();
+        _receivedChatAt.Clear();
         if (client.JoinedCode.Length > 0) client.BeginSession("");
         if (old != 0) SafeLeave(old);
     }
@@ -401,6 +466,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         _disposed = true;
         _transport.LobbyChanged -= OnLobbyChanged;
         _transport.MemberDeparted -= OnMemberDeparted;
+        _transport.ChatReceived -= OnChatReceived;
         _inFlight?.Handle?.Dispose();
         _inFlight = null;
         _transport.Dispose();

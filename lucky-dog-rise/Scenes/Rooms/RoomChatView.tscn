@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomChatView.cs" id="script"]
+[ext_resource type="Theme" path="res://Scenes/Rooms/RoomChatTheme.tres" id="theme"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomChat.svg" id="icon"]
+
+[node name="Chat" type="Node2D" node_paths=PackedStringArray("_message", "_text", "_composer", "_input", "_error", "_send", "_cancel", "_open", "_tail")]
+z_index = 12
+script = ExtResource("script")
+_message = NodePath("Message")
+_text = NodePath("Message/Text")
+_composer = NodePath("Composer")
+_input = NodePath("Composer/Content/Input")
+_error = NodePath("Composer/Content/Error")
+_send = NodePath("Composer/Content/Actions/Send")
+_cancel = NodePath("Composer/Content/Actions/Cancel")
+_open = NodePath("Open")
+_tail = NodePath("Tail")
+
+[node name="Tail" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.965, 0.965, 0.94, 1)
+polygon = PackedVector2Array(0, 0, -16, -14, 0, -14)
+
+[node name="Message" type="PanelContainer" parent="."]
+visible = false
+mouse_filter = 2
+theme = ExtResource("theme")
+
+[node name="Text" type="Label" parent="Message"]
+layout_mode = 2
+mouse_filter = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+
+[node name="Composer" type="PanelContainer" parent="."]
+visible = false
+theme = ExtResource("theme")
+mouse_filter = 0
+
+[node name="Content" type="VBoxContainer" parent="Composer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Input" type="LineEdit" parent="Composer/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+max_length = 120
+context_menu_enabled = false
+select_all_on_focus = false
+
+[node name="Error" type="Label" parent="Composer/Content"]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 14
+
+[node name="Actions" type="HBoxContainer" parent="Composer/Content"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 8
+
+[node name="Cancel" type="Button" parent="Composer/Content/Actions"]
+layout_mode = 2
+theme = ExtResource("theme")
+theme_type_variation = &"ChatButton"
+focus_mode = 0
+
+[node name="Send" type="Button" parent="Composer/Content/Actions"]
+layout_mode = 2
+theme = ExtResource("theme")
+theme_type_variation = &"ChatButton"
+focus_mode = 0
+
+[node name="Open" type="Button" parent="."]
+visible = false
+offset_left = -16.0
+offset_top = -24.0
+offset_right = 20.0
+offset_bottom = 12.0
+theme = ExtResource("theme")
+theme_type_variation = &"ChatButton"
+icon = ExtResource("icon")
+expand_icon = true
+theme_override_constants/icon_max_width = 24
+focus_mode = 0

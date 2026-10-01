@@ -191,12 +191,11 @@ public sealed class RoomSandbox : IRoomService
     public string SendChat(RoomClient client, string text)
     {
         if (!_rooms.TryGetValue(client.JoinedCode, out var room)
-            || !room.Members.TryGetValue(client.Id, out var member)) return "请先进入房间。";
-        if (string.IsNullOrWhiteSpace(text)) return "请输入文字。";
-        if (text.Length > RoomRules.MaxChatCharacters) return $"最多 {RoomRules.MaxChatCharacters} 个字符。";
-        if (text.Any(char.IsControl)) return "请发送单行文字。";
+            || !room.Members.TryGetValue(client.Id, out var member)) return "Rooms_ChatUnavailable";
+        var error = RoomRules.ValidateChat(text);
+        if (error.Length > 0) return error;
         if (_lastChat.TryGetValue(client.Id, out var last) && Now - last < RoomRules.ChatCooldown)
-            return "发送太快，请稍后再试。";
+            return "Rooms_ChatTooFast";
         _lastChat[client.Id] = Now;
         var chat = new RoomChat(++_nextChat, room.Code, client.Id, member.Presence,
             text.Trim(), Now + RoomRules.ChatLifetime);

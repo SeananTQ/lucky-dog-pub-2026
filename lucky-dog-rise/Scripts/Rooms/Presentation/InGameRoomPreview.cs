@@ -49,6 +49,15 @@ public partial class InGameRoomPreview : VBoxContainer
     public event Action<RoomClient> ClientChanged;
     public RoomClient CurrentClient => _client;
 
+    // The standalone lab also uses these strings, without creating the room page.
+    public static string ChatText(string key)
+    {
+        var locale = TranslationServer.GetLocale();
+        locale = locale.StartsWith("zh") ? (locale.Contains("TW") || locale.Contains("Hant") ? "zh_TW" : "zh_CN") : "en";
+        var value = GD.Load<Translation>($"res://Scenes/Rooms/InGameRoomText.{locale}.translation").GetMessage(key).ToString();
+        return value.Length > 0 ? value : key;
+    }
+
     public void Configure(IGamePlatformService platform, GameData gameData)
     {
         _platform = platform;

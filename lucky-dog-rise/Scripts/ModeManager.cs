@@ -912,6 +912,7 @@ public partial class ModeManager : Control
         UpdateFullscreenVisibility(_);
 #if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
+        UpdateRoomChatBlindBoxDelay(_);
 #endif
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
@@ -2471,6 +2472,9 @@ public partial class ModeManager : Control
 
     private void SetBossBlindBoxHintDisplayVisible(bool visible)
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        visible &= !RoomChatSuppressesBlindBoxHint;
+#endif
         _bossBlindBoxHint.SetDisplayVisible(visible);
     }
 
@@ -2920,6 +2924,7 @@ public partial class ModeManager : Control
         {
 #if !DEMO_BUILD && !RECORDING_BUILD
             over |= _roomWindowActive ? HitRoomDog(localPos) != 0 : _dogHitRect.HasPoint(localPos);
+            over |= _roomWindowActive && !_hiddenByFullscreenApp && _roomDesktop.LocalChat.ContainsPoint(localPos);
 #else
             over |= _dogHitRect.HasPoint(localPos);
 #endif

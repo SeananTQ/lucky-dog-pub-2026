@@ -237,16 +237,18 @@ public sealed class RoomClient : IDisposable
                 _activity[member.Id] = (member.Presence, member.ActivitySequence,
                     member.TongueActive ? _now + RoomRules.ActivityLease : 0);
         }
+        foreach (var id in _chatSequences.Keys.ToArray())
+            if (!View.Members.Any(m => m.Id == id))
+            { _bubbles.Remove(id); _chatSequences.Remove(id); _receivedChatAt.Remove(id); }
         foreach (var id in _bubbles.Keys.ToArray())
-            if (!View.Members.Any(m => m.Id == id && m.Presence == _bubbles[id].Presence)) _bubbles.Remove(id);
+            if (!View.Members.Any(m => m.Id == id && m.Presence == _bubbles[id].Presence))
+            { _bubbles.Remove(id); _chatSequences.Remove(id); _receivedChatAt.Remove(id); }
         if (!_committing && !_disposed) Changed?.Invoke();
     }
 
     internal void Receive(RoomChat chat, double now)
     {
-        if (_disposed || chat.Code != JoinedCode || chat.ExpiresAt <= now || string.IsNullOrWhiteSpace(chat.Text)
-            || chat.Text.Length > RoomRules.MaxChatCharacters
-            || chat.Text.Any(char.IsControl)
+        if (_disposed || chat.Code != JoinedCode || chat.ExpiresAt <= now || RoomRules.ValidateChat(chat.Text).Length > 0
             || View == null || !View.Members.Any(m => m.Id == chat.SenderId && m.Presence == chat.Presence)
             || (_chatSequences.TryGetValue(chat.SenderId, out var last) && chat.Id <= last)
             || (_receivedChatAt.TryGetValue(chat.SenderId, out var receivedAt)

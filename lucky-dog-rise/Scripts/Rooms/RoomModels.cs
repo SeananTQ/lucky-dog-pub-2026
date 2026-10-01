@@ -13,6 +13,19 @@ public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
 
 public static class RoomRules
 {
+    public static string ValidateChat(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "Rooms_ChatEmpty";
+        if (text.Length > MaxChatCharacters) return "Rooms_ChatTooLong";
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (char.IsControl(text[i])) return "Rooms_ChatSingleLine";
+            if (!char.IsSurrogate(text[i])) continue;
+            if (!char.IsHighSurrogate(text[i]) || i + 1 >= text.Length || !char.IsLowSurrogate(text[++i]))
+                return "Rooms_ChatSingleLine";
+        }
+        return "";
+    }
     public const int Capacity = 6;
     public const int MaxChatCharacters = 120;
     public const double ChatLifetime = 6;

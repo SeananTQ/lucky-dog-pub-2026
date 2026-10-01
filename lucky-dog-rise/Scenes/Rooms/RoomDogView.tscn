@@ -1,9 +1,9 @@
 [gd_scene format=3]
 
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat_scene"]
+
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomDogView.cs" id="script"]
-[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 [ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomChat.svg" id="chat"]
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="counter_font"]
 
 [sub_resource type="StyleBoxFlat" id="counter_bg"]
@@ -25,18 +25,12 @@ shadow_color = Color(0.04, 0.045, 0.05, 0.28)
 shadow_size = 1
 shadow_offset = Vector2(0, 2)
 
-[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("Dog", "_nameBar", "_name", "_bubble", "_bubbleText", "_chatButton", "_inputPanel", "_input", "_send", "_cancel", "_dogHits")]
+[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("Dog", "_nameBar", "_name", "Chat", "_dogHits")]
 script = ExtResource("script")
 Dog = NodePath("Dog")
 _nameBar = NodePath("NameBar")
 _name = NodePath("NameBar/Name")
-_bubble = NodePath("Bubble")
-_bubbleText = NodePath("Bubble/Text")
-_chatButton = NodePath("ChatButton")
-_inputPanel = NodePath("InputPanel")
-_input = NodePath("InputPanel/Content/Text")
-_send = NodePath("InputPanel/Content/Actions/Send")
-_cancel = NodePath("InputPanel/Content/Actions/Cancel")
+Chat = NodePath("Chat")
 _dogHits = [NodePath("Dog/HitButton"), NodePath("Dog/ClawLeftHitButton"), NodePath("Dog/ClawRightHitButton")]
 
 [node name="Dog" parent="." instance=ExtResource("dog")]
@@ -67,67 +61,5 @@ clip_text = true
 text_overrun_behavior = 3
 mouse_filter = 2
 
-[node name="Bubble" type="PanelContainer" parent="."]
-visible = false
-z_index = 10
-offset_left = -130.0
-offset_top = -230.0
-offset_right = 130.0
-offset_bottom = -160.0
-theme = ExtResource("theme")
-mouse_filter = 2
-
-[node name="Text" type="Label" parent="Bubble"]
-custom_minimum_size = Vector2(236, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-autowrap_mode = 3
-mouse_filter = 2
-
-[node name="ChatButton" type="Button" parent="."]
-theme_type_variation = &"CapsuleButton"
-visible = false
-z_index = 11
-offset_left = -22.0
-offset_top = -159.0
-offset_right = 22.0
-offset_bottom = -115.0
-theme = ExtResource("theme")
-icon = ExtResource("chat")
-expand_icon = true
-theme_override_constants/icon_max_width = 28
-tooltip_text = "发送气泡消息"
-focus_mode = 0
-
-[node name="InputPanel" type="PanelContainer" parent="."]
-visible = false
-z_index = 12
-offset_left = -150.0
-offset_top = -240.0
-offset_right = 150.0
-offset_bottom = -140.0
-theme = ExtResource("theme")
-
-[node name="Content" type="VBoxContainer" parent="InputPanel"]
-layout_mode = 2
-
-[node name="Text" type="LineEdit" parent="InputPanel/Content"]
-layout_mode = 2
-custom_minimum_size = Vector2(270, 36)
-placeholder_text = "打个招呼…"
-max_length = 120
-select_all_on_focus = false
-
-[node name="Actions" type="HBoxContainer" parent="InputPanel/Content"]
-layout_mode = 2
-alignment = 2
-
-[node name="Cancel" type="Button" parent="InputPanel/Content/Actions"]
-theme_type_variation = &"CapsuleButton"
-layout_mode = 2
-text = "取消"
-
-[node name="Send" type="Button" parent="InputPanel/Content/Actions"]
-theme_type_variation = &"CapsuleButton"
-layout_mode = 2
-text = "发送"
+[node name="Chat" parent="." instance=ExtResource("chat_scene")]
+position = Vector2(-49, -140)

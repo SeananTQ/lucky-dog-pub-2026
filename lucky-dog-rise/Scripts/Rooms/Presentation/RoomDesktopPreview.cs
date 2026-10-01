@@ -12,6 +12,14 @@ public partial class RoomDesktopPreview : Node2D
 {
     [Export] private PackedScene _dogScene = null!;
     [Export] private CanvasLayer _remoteLayer = null!;
+    [Export] private CanvasLayer _chatLayer = null!;
+    [Export] public RoomChatView LocalChat { get; private set; } = null!;
+    private RoomClient _client;
+
+    public override void _Ready()
+    {
+        LocalChat.SendRequested += text => LocalChat.SetSendResult(_client?.SendChat(text) ?? "Rooms_ChatUnavailable");
+    }
     private readonly Dictionary<int, RoomDogView> _dogs = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)
     {
@@ -29,6 +37,11 @@ public partial class RoomDesktopPreview : Node2D
         // CanvasLayer does not inherit a Node2D ancestor's visibility.
         if (what == NotificationVisibilityChanged && IsInstanceValid(_remoteLayer))
             _remoteLayer.Visible = IsVisibleInTree();
+        if (what == NotificationVisibilityChanged && IsInstanceValid(_chatLayer))
+        {
+            _chatLayer.Visible = IsVisibleInTree();
+            if (!IsVisibleInTree() && LocalChat.IsNodeReady()) LocalChat.Reset();
+        }
     }
 
     public Vector2 Present(RoomClient client, Rect2 usable, float scale, float spacing,
@@ -40,6 +53,8 @@ public partial class RoomDesktopPreview : Node2D
             _session = client.Session;
         }
         _remoteLayer.Visible = IsVisibleInTree();
+        _chatLayer.Visible = IsVisibleInTree();
+        _client = client;
         var members = client.View?.Members ?? Array.Empty<RoomMember>();
         foreach (var id in _placements.Keys.Where(id => !members.Any(member =>
                      member.Id == id && member.Presence == _placements[id].Presence)).ToArray())
@@ -87,6 +102,11 @@ public partial class RoomDesktopPreview : Node2D
                 client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
                 client.IsTongueActive(member.Id));
         }
+        // Same anchor as RoomDogView, aligned to the original countdown balloon.
+        // ModeManager temporarily retracts that balloon while local chat is active.
+        LocalChat.Position = localPosition + new Vector2(-49, -140) * scale;
+        LocalChat.Scale = Vector2.One * scale;
+        LocalChat.Present(true, false, client.Bubbles.TryGetValue(client.Id, out var localBubble) ? localBubble.Text : "");
         return localPosition;
     }
 
@@ -131,6 +151,8 @@ public partial class RoomDesktopPreview : Node2D
 
     public void Clear()
     {
+        LocalChat?.Reset();
+        _client = null;
         foreach (var dog in _dogs.Values) { dog.Hide(); dog.QueueFree(); }
         _dogs.Clear();
         _placements.Clear();

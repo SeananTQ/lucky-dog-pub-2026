@@ -10,33 +10,19 @@ public partial class RoomDogView : Node2D
     [Export] public DogVisual Dog { get; private set; } = null!;
     [Export] private PanelContainer _nameBar = null!;
     [Export] private Label _name = null!;
-    [Export] private PanelContainer _bubble = null!;
-    [Export] private Label _bubbleText = null!;
-    [Export] private Button _chatButton = null!;
-    [Export] private PanelContainer _inputPanel = null!;
-    [Export] private LineEdit _input = null!;
-    [Export] private Button _send = null!;
-    [Export] private Button _cancel = null!;
+    [Export] public RoomChatView Chat { get; private set; } = null!;
     [Export] private Godot.Collections.Array<Button> _dogHits = new();
     public event Action<string> SendRequested;
     private RoomMember _member;
     private bool _isLocal;
-    private double _hoverGrace;
     private Sprite2D _tongue;
-    public bool Editing => _inputPanel.Visible;
+    public bool Editing => Chat.Editing;
     public int MemberId => _member?.Id ?? 0;
 
     public override void _Ready()
     {
         _tongue = Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
-        _chatButton.Pressed += OpenChat;
-        _send.Pressed += Send;
-        _cancel.Pressed += CloseChat;
-        _input.TextSubmitted += _ => Send();
-        _input.MaxLength = RoomRules.MaxChatCharacters;
-        _bubble.Hide();
-        _inputPanel.Hide();
-        _chatButton.Hide();
+        Chat.SendRequested += text => SendRequested?.Invoke(text);
     }
 
     public void Display(RoomMember member, bool local, bool owner, bool showName, string bubble,
@@ -54,9 +40,8 @@ public partial class RoomDogView : Node2D
         _member = member;
         _name.Text = (owner ? "♛ " : "") + member.Name + (local ? " · 本机" : "");
         _nameBar.Visible = showName;
-        _bubble.Visible = !string.IsNullOrEmpty(bubble);
-        _bubbleText.Text = bubble ?? "";
-        if (!local) _chatButton.Hide();
+        _currentBubble = bubble;
+        Chat.Present(local, IsPointerOverDog(), bubble);
     }
 
     public void ApplyNameBarLayout(Rect2 idleRect, Font font, StyleBox style,
@@ -83,21 +68,10 @@ public partial class RoomDogView : Node2D
 
     public override void _Process(double delta)
     {
-        if (!Visible || !_isLocal) return;
-        if (IsPointerOverDog() || Contains(_chatButton)) _hoverGrace = 0.4;
-        else _hoverGrace -= delta;
-        _chatButton.Visible = !Editing && _hoverGrace > 0;
+        if (Visible && _isLocal && IsPointerOverDog()) Chat.Present(true, true, _currentBubble);
     }
 
-    public override void _UnhandledKeyInput(InputEvent @event)
-    {
-        if (Editing && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
-        {
-            CloseChat();
-            GetViewport().SetInputAsHandled();
-        }
-    }
-
+    private string _currentBubble = "";
     private bool Contains(Control control) => control.IsVisibleInTree()
         && new Rect2(Vector2.Zero, control.Size).HasPoint(control.GetLocalMousePosition());
     public bool IsPointerOverDog()
@@ -114,7 +88,7 @@ public partial class RoomDogView : Node2D
         && new Rect2(Vector2.Zero, control.Size).HasPoint(
             control.GetGlobalTransformWithCanvas().AffineInverse() * windowPoint);
     public bool IsPointerOverContent() => Visible && (IsPointerOverDog()
-        || Contains(_chatButton) || Contains(_inputPanel));
+        || Chat.ContainsPoint(GetGlobalMousePosition()));
 
     public void MakePassivePreview()
     {
@@ -125,27 +99,11 @@ public partial class RoomDogView : Node2D
         }
     }
 
-    public void OpenChat()
-    {
-        if (!_isLocal || !Visible) return;
-        _inputPanel.Show();
-        _chatButton.Hide();
-        _input.GrabFocus();
-    }
-    private void Send() => SendRequested?.Invoke(_input.Text);
-    public void AcceptSend() { _input.Clear(); CloseChat(); }
+    public void OpenChat() => Chat.OpenChat();
+    public void AcceptSend() => Chat.SetSendResult("");
 #if DEBUG
-    public void SubmitChatForSmoke(string text)
-    {
-        OpenChat();
-        _input.Text = text;
-        _send.EmitSignal(Button.SignalName.Pressed);
-    }
+    public void SubmitChatForSmoke(string text) => Chat.SubmitForSmoke(text);
 #endif
-    public void CloseChat()
-    {
-        _inputPanel.Hide();
-        _input.ReleaseFocus();
-    }
+    public void CloseChat() => Chat.Reset();
 }
 #endif
