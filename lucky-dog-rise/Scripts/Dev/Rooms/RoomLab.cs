@@ -572,7 +572,7 @@ public partial class RoomLab : Control
         {
             GD.Print(RoomSandboxChecks.Run());
             SteamRoomChecks.Run();
-            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat validation/expiry and recovery (fake transport).");
+            GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat validation/filtering/expiry and recovery (fake transport and filter API delegates; no Steam dictionary).");
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }

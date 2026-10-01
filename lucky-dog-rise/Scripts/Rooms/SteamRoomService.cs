@@ -315,12 +315,14 @@ public sealed class SteamRoomService : IRoomService, IDisposable
             long sentAt = _transport.ServerTime;
             if (sentAt <= 0) return "Rooms_ChatUnavailable";
             text = text.Trim();
+            var displayText = _transport.FilterChatForDisplay(_transport.LocalSteamId, text);
+            if (RoomRules.ValidateChat(displayText).Length > 0) return "Rooms_ChatUnavailable";
             long sequence = ++_chatSequence;
             _lastChatSentAt = now;
             if (!_transport.SendChat(_lobby, SteamRoomProtocol.EncodeChat(_chatSession, sequence, sentAt, text)))
                 return "Rooms_ChatUnavailable";
             client.Receive(new RoomChat(sequence, client.JoinedCode, member.Id, member.Presence,
-                text, now + RoomRules.ChatLifetime), now);
+                displayText, now + RoomRules.ChatLifetime), now);
             return "";
         }
         catch { return "Rooms_ChatUnavailable"; }
@@ -338,8 +340,17 @@ public sealed class SteamRoomService : IRoomService, IDisposable
         double now = _now();
         if (_receivedChatAt.TryGetValue(sender, out var last) && now - last < RoomRules.ChatCooldown) return;
         _receivedChatAt[sender] = now;
+        string displayText;
+        try { displayText = _transport.FilterChatForDisplay(sender, text); }
+        catch
+        {
+            // A filtering failure must neither reveal raw text nor escape through
+            // the shared Steam callback pump and tear down unrelated platform services.
+            return;
+        }
+        if (RoomRules.ValidateChat(displayText).Length > 0) return;
         _client.Receive(new RoomChat(sequence, _client.JoinedCode, identity.Id, identity.Presence,
-            text, now + RoomRules.ChatLifetime - Math.Max(0, age)), now);
+            displayText, now + RoomRules.ChatLifetime - Math.Max(0, age)), now);
     }
 
     private void OnMemberDeparted(ulong lobby, ulong member)

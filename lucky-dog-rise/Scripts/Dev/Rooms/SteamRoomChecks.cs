@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using Steamworks;
 
 namespace LuckyDogRise.Rooms;
 
@@ -23,6 +25,163 @@ public static class SteamRoomChecks
         CheckDispose();
         CheckActivity();
         CheckChat();
+        CheckChatFiltering();
+        CheckSteamChatTextFilter();
+    }
+
+    private static void CheckChatFiltering()
+    {
+        // This is a display-adapter spy, not a substitute dictionary or a room Mock feature.
+        var transport = new FakeTransport { ChatFilter = (_, _) => "display result" };
+        using var service = Service(transport);
+        using var client = Client(service);
+        var token = Guid.NewGuid();
+        transport.Seed(110, new SteamRoomMemberData(88, "guest", "1:10:0:1001",
+            ChatSession: token.ToString("N")));
+        client.Join(SteamRoomProtocol.Encode(110));
+        transport.SucceedMembership(110);
+        int guest = client.View.Members.Single(member => member.Id != 1).Id;
+        byte[] Packet(long sequence, string text, long age = 0, Guid? session = null) =>
+            SteamRoomProtocol.EncodeChat(session ?? token, sequence, transport.ServerTime - age, text);
+        void Advance(double seconds) { transport.Now += seconds; client.AdvanceTo(transport.Now); }
+
+        Assert(client.SendChat("wire original 🐶") == "", "filtered local chat sends");
+        Assert(transport.FilterCalls.SequenceEqual(new[] { (77UL, "wire original 🐶") }),
+            "local display uses actual local Steam identity and original text");
+        Assert(client.Bubbles[1].Text == "display result", "local bubble uses returned display text");
+        Assert(SteamRoomProtocol.TryDecodeChat(transport.Chats.Single(), out _, out _, out _, out var wire)
+            && wire == "wire original 🐶", "wire retains original text for each recipient's filter preferences");
+
+        var valid = Packet(1, "remote original");
+        transport.DeliverChat(111, 88, valid);
+        transport.DeliverChat(110, 999, valid);
+        transport.DeliverChat(110, 77, transport.Chats[0]);
+        transport.DeliverChat(110, 88, Packet(1, "wrong token", session: Guid.NewGuid()));
+        transport.DeliverChat(110, 88, Packet(1, "expired", age: 7));
+        transport.DeliverChat(110, 88, Packet(1, "future", age: -10));
+        transport.DeliverChat(110, 88, new byte[4096]);
+        var malformed = (byte[])valid.Clone(); malformed[^1] = 0xff;
+        transport.DeliverChat(110, 88, malformed);
+        Assert(transport.FilterCalls.Count == 1, "untrusted packets and self echoes rejected before filtering");
+
+        transport.ChatFilter = (_, _) => "remote display";
+        transport.DeliverChat(110, 88, valid);
+        Assert(transport.FilterCalls.Last() == (88UL, "remote original")
+            && client.Bubbles[guest].Text == "remote display", "remote bubble uses sender identity and filtered result");
+        int callCount = transport.FilterCalls.Count;
+        transport.DeliverChat(110, 88, Packet(2, "too fast"));
+        Assert(transport.FilterCalls.Count == callCount, "receive rate limit runs before filtering");
+        Advance(2);
+        transport.ChatFilter = (_, _) => "duplicate must not replace bubble";
+        transport.DeliverChat(110, 88, valid);
+        Assert(client.Bubbles[guest].Text == "remote display", "duplicate cannot replace an existing bubble");
+        Advance(7);
+
+        transport.ChatFilter = (_, _) => throw new InvalidOperationException("injected filter failure");
+        int sent = transport.Chats.Count;
+        Assert(client.SendChat("do not leak local original") == "Rooms_ChatUnavailable"
+            && transport.Chats.Count == sent && client.Bubbles.Count == 0,
+            "local filter failure sends nothing and does not show unfiltered text");
+        transport.DeliverChat(110, 88, Packet(3, "do not leak remote original"));
+        Assert(client.Bubbles.Count == 0, "remote filter failure is contained and does not show unfiltered text");
+
+        long nextSequence = 4;
+        foreach (string invalid in new[] { null, "\ninvalid display" })
+        {
+            Advance(2);
+            transport.ChatFilter = (_, _) => invalid;
+            Assert(client.SendChat("invalid display must not leak local original") == "Rooms_ChatUnavailable"
+                && transport.Chats.Count == sent && client.Bubbles.Count == 0,
+                "invalid display results prevent sending and local echo");
+            transport.DeliverChat(110, 88, Packet(nextSequence++, "invalid display must not leak remote original"));
+            Assert(client.Bubbles.Count == 0, "invalid remote display results do not show unfiltered text");
+        }
+
+        transport.ChatFilter = (_, text) => text;
+        Advance(2);
+        Assert(client.SendChat("local recovered") == "" && client.Bubbles[1].Text == "local recovered",
+            "local filtering can recover after adapter failure");
+        transport.DeliverChat(110, 88, Packet(nextSequence++, "remote recovered"));
+        Assert(client.Bubbles[guest].Text == "remote recovered", "receive filtering can recover after adapter failure");
+        client.Leave();
+        callCount = transport.FilterCalls.Count;
+        transport.DeliverChat(110, 88, Packet(nextSequence, "after leaving"));
+        Assert(transport.FilterCalls.Count == callCount, "departed-room packets do not call the filter");
+    }
+
+    private static void CheckSteamChatTextFilter()
+    {
+        const ulong senderId = 76561198000000077UL;
+        int initialized = 0, filtered = 0;
+        uint options = uint.MaxValue, capacity = 0;
+        ETextFilteringContext context = ETextFilteringContext.k_ETextFilteringContextUnknown;
+        ulong actualSender = 0;
+        string actualInput = "";
+        int PassThrough(ETextFilteringContext value, CSteamID sender, string input, out string output, uint bytes)
+        {
+            filtered++;
+            context = value; actualSender = sender.m_SteamID; actualInput = input; capacity = bytes;
+            output = input;
+            return 0;
+        }
+        var filter = new SteamChatTextFilter(value => { initialized++; options = value; return true; }, PassThrough);
+        const string unicode = "中文 🐶 hello";
+        Assert(filter.Filter(senderId, unicode) == unicode && filtered == 1,
+            "zero filtered characters is a successful pass-through result");
+        Assert(options == 0 && context == ETextFilteringContext.k_ETextFilteringContextChat
+            && actualSender == senderId && actualInput == unicode,
+            "SDK seam receives reserved zero, Chat context, original text and actual Steam identity");
+        Assert(capacity >= Encoding.UTF8.GetByteCount(unicode) + 1,
+            "UTF-8 buffer includes multibyte characters and terminating zero");
+        filter.Filter(senderId, new string('a', RoomRules.MaxChatCharacters));
+        Assert(initialized == 1 && capacity >= RoomRules.MaxChatCharacters * 3 + 1,
+            "initialization is once per instance and ASCII replacement buffer permits three-byte masking characters");
+
+        int unavailableInitializations = 0;
+        int beforeUnavailable = filtered;
+        var unavailable = new SteamChatTextFilter(_ => { unavailableInitializations++; return false; }, PassThrough);
+        Assert(unavailable.Filter(senderId, unicode) == unicode && unavailable.Filter(senderId, "hello") == "hello"
+            && unavailableInitializations == 1 && filtered == beforeUnavailable + 2,
+            "unavailable dictionaries still call Steam pass-through without init loops");
+
+        int retryInitializations = 0;
+        bool RetryInitialization(uint _)
+        {
+            retryInitializations++;
+            if (retryInitializations == 1) throw new InvalidOperationException("injected initialization failure");
+            return true;
+        }
+        var retry = new SteamChatTextFilter(RetryInitialization, PassThrough);
+        AssertFilterThrows(() => retry.Filter(senderId, "first"), "initialization exceptions are surfaced");
+        Assert(retry.Filter(senderId, "retry") == "retry" && retryInitializations == 2,
+            "a failed initialization can retry on the next message");
+        var replacementSession = new SteamChatTextFilter(RetryInitialization, PassThrough);
+        replacementSession.Filter(senderId, "new session");
+        Assert(retryInitializations == 3, "a replacement Steam session initializes its own filter");
+
+        string result = new string('♥', RoomRules.MaxChatCharacters);
+        int resultCount = RoomRules.MaxChatCharacters;
+        var outputCheck = new SteamChatTextFilter(_ => true,
+            (ETextFilteringContext _, CSteamID _, string _, out string output, uint _) =>
+            { output = result; return resultCount; });
+        Assert(outputCheck.Filter(senderId, new string('a', RoomRules.MaxChatCharacters)) == result,
+            "full-length multibyte masking output remains valid chat");
+        result = "valid"; resultCount = -1;
+        AssertFilterThrows(() => outputCheck.Filter(senderId, "hello"), "negative SDK result rejected");
+        resultCount = 0;
+        foreach (string invalid in new[] { null, "", "\nhello", new string('字', RoomRules.MaxChatCharacters + 1), "\uD800" })
+        {
+            result = invalid;
+            AssertFilterThrows(() => outputCheck.Filter(senderId, "hello"), "invalid SDK output rejected");
+        }
+    }
+
+    private static void AssertFilterThrows(Action action, string message)
+    {
+        bool threw = false;
+        try { action(); }
+        catch (InvalidOperationException) { threw = true; }
+        Assert(threw, message);
     }
 
     private static void CheckChat()
@@ -343,6 +502,13 @@ public static class SteamRoomChecks
         public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
         public readonly List<byte[]> Chats = new();
         public bool ChatSucceeds = true;
+        public Func<ulong, string, string> ChatFilter = (_, text) => text;
+        public readonly List<(ulong Sender, string Text)> FilterCalls = new();
+        public string FilterChatForDisplay(ulong senderSteamId, string text)
+        {
+            FilterCalls.Add((senderSteamId, text));
+            return ChatFilter(senderSteamId, text);
+        }
         public void SetChatSession(ulong lobbyId, string session) { }
         public bool SendChat(ulong lobbyId, byte[] message) { if (!ChatSucceeds) return false; Chats.Add(message); return true; }
         public void DeliverChat(ulong lobby, ulong sender, byte[] message) => ChatReceived(lobby, sender, message);

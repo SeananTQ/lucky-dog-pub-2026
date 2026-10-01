@@ -30,6 +30,9 @@ public interface ISteamRoomTransport : IDisposable
     void SetAppearance(ulong lobbyId, string appearance);
     void SetActivity(ulong lobbyId, string activity);
     void SetChatSession(ulong lobbyId, string session);
+    // Display-only: use the viewer's preferences and the actual author's Steam identity.
+    // SendChat must still receive the original text for other viewers to filter themselves.
+    string FilterChatForDisplay(ulong senderSteamId, string text);
     bool SendChat(ulong lobbyId, byte[] message);
     void Leave(ulong lobbyId);
 }

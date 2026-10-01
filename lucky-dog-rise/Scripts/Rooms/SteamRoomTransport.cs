@@ -9,6 +9,7 @@ namespace LuckyDogRise.Rooms;
 public sealed class SteamRoomTransport : ISteamRoomTransport
 {
     private readonly SteamworksRuntime _runtime;
+    private readonly SteamChatTextFilter _chatTextFilter = new();
     private readonly Callback<LobbyDataUpdate_t> _dataChanged;
     private readonly Callback<LobbyChatUpdate_t> _membersChanged;
     private readonly Callback<LobbyChatMsg_t> _chatReceived;
@@ -233,6 +234,12 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         RequireAvailable();
         return message.Length <= SteamRoomProtocol.MaxChatBytes
             && SteamMatchmaking.SendLobbyChatMsg(new CSteamID(lobbyId), message, message.Length);
+    }
+
+    public string FilterChatForDisplay(ulong senderSteamId, string text)
+    {
+        RequireAvailable();
+        return _chatTextFilter.Filter(senderSteamId, text);
     }
 }
 #endif
