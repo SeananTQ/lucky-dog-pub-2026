@@ -27,6 +27,8 @@ public partial class RoomChatView : Node2D
     private string _messageText = "";
     private string _errorKey = "";
     private bool _imeAtKey;
+    private const double ErrorShakeDuration = 0.36;
+    private double _errorShakeRemaining;
 
     public override void _Ready()
     {
@@ -70,6 +72,7 @@ public partial class RoomChatView : Node2D
     public override void _Process(double delta)
     {
         if (!IsVisibleInTree()) return;
+        _errorShakeRemaining = HasBubble ? Math.Max(0, _errorShakeRemaining - delta) : 0;
         if (RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
         else _hoverGrace -= delta;
         _open.Visible = _local && !Editing && _hoverGrace > 0;
@@ -122,12 +125,14 @@ public partial class RoomChatView : Node2D
         width = panel.Size.X;
         height = panel.Size.Y;
         // Match the countdown balloon's left edge and stationary tail at 1x.
-        float x = Mathf.Clamp(-92, min.X, Mathf.Max(min.X, max.X - width));
+        float progress = 1 - (float)(_errorShakeRemaining / ErrorShakeDuration);
+        float shake = Mathf.Sin(progress * Mathf.Tau * 3) * 7 * (1 - progress);
+        float x = Mathf.Clamp(-92 + shake, min.X, Mathf.Max(min.X, max.X - width));
         float y = -14 - height;
         if (y < min.Y) y = 16; // Near screen top, keep the editor reachable below its anchor.
         y = Mathf.Clamp(y, min.Y, Mathf.Max(min.Y, max.Y - height));
         panel.Position = new Vector2(x, y);
-        float baseX = Mathf.Clamp(0, x + 12, x + width - 12);
+        float baseX = Mathf.Clamp(shake, x + 12, x + width - 12);
         float edgeY = y >= 0 ? y : y + height;
         _tail.Polygon = new[] { Vector2.Zero, new Vector2(baseX - 16, edgeY), new Vector2(baseX, edgeY) };
     }
@@ -185,10 +190,17 @@ public partial class RoomChatView : Node2D
     public void SetSendResult(string error)
     {
         if (string.IsNullOrEmpty(error)) { _input.Clear(); CloseChat(); }
-        else { _errorKey = error; RefreshText(); _input.GrabFocus(); _input.Edit(); }
+        else { _errorKey = error; RefreshText(); ShakeError(); _input.GrabFocus(); _input.Edit(); }
+    }
+    // Pure visual feedback also used by the lab's target-send button. It must
+    // never focus a remote/hidden input or manufacture a message that was not sent.
+    public void ShakeError()
+    {
+        if (HasBubble) _errorShakeRemaining = ErrorShakeDuration;
     }
     public void CloseChat()
     {
+        _errorShakeRemaining = 0;
         _composer.Hide();
         _input.ReleaseFocus();
         _input.Unedit();

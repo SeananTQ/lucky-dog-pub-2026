@@ -205,7 +205,14 @@ public partial class RoomLab : Control
         Target.SetAppearance(_skinOption.GetSelectedId(), _hatOption.GetSelectedId(), _reactionOption.GetSelectedId());
         Status("变化已发送，按目标客户端的网络条件观察同步。");
     }
-    public void OnMockChat() => Status(Target.SendChat($"你好，来自{Target.Name}！"), "模拟消息已发送。");
+    public void OnMockChat()
+    {
+        var result = Target.SendChat($"你好，来自{Target.Name}！");
+        Status(result.Length > 0 ? InGameRoomPreview.ChatText(result) : "", "模拟消息已发送。");
+        if (result.Length > 0 && Target.JoinedCode.Length > 0 && Target.JoinedCode == Current.JoinedCode
+            && _dogs.TryGetValue(Target.Id, out var dog) && dog.IsVisibleInTree())
+            dog.Chat.ShakeError();
+    }
     public void OnApplyActivity()
     {
         var state = LubanData.Tables.TbDesktopActivityState.Get(_activityOption.GetSelectedId());
@@ -706,6 +713,12 @@ public partial class RoomLab : Control
                 Verify(panel.Size.IsEqualApprox(firstSize.Value), "first bubble does not resize after becoming visible");
             }
             Verify(firstSize.HasValue, "first message is rendered");
+            var chat = _dogs[Target.Id].Chat;
+            var messageId = Current.Bubbles[Target.Id].Id;
+            OnMockChat();
+            await VerifyChatShake(chat, panel);
+            Verify(Current.Bubbles[Target.Id].Id == messageId && !chat.Editing,
+                "target rate-limit feedback neither sends a new message nor opens an input");
         }
         DebugCommand("target", previousTarget);
         _server.Tick(7);
@@ -720,6 +733,9 @@ public partial class RoomLab : Control
         var shortRect = chat.MessageRectForSmoke;
         chat.SubmitForSmoke("too soon");
         Verify(chat.Editing && chat.ErrorForSmoke == "Rooms_ChatTooFast", "failed send keeps editor open with feedback");
+        await VerifyChatShake(chat, chat.GetNode<PanelContainer>("Composer"));
+        Verify(chat.GetNode<LineEdit>("Composer/Content/Input").Text == "too soon",
+            "shake preserves unsent text");
         chat._Input(new InputEventKey { Pressed = true, Keycode = Key.Escape });
         Verify(!chat.Editing, "Escape closes editor");
         _server.Tick(2);
@@ -748,6 +764,23 @@ public partial class RoomLab : Control
         await UiFrame();
         Verify(Current.Bubbles.Count == 0, "UI messages expire without history");
         GD.Print("ROOM_CHAT_UI_PASS: shared composer, errors, Escape, wrapping, fixed tip, viewport edges and expiry.");
+    }
+
+    private async System.Threading.Tasks.Task VerifyChatShake(RoomChatView chat, PanelContainer panel)
+    {
+        var tip = chat.GlobalPosition;
+        var samples = new List<float>();
+        ulong started = Time.GetTicksMsec();
+        while (Time.GetTicksMsec() - started < 500)
+        {
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            samples.Add(panel.Position.X);
+            Verify(chat.GlobalPosition.IsEqualApprox(tip), "error shake keeps the dog and tail anchor stationary");
+        }
+        float settled = panel.Position.X;
+        Verify(samples.Max() > settled + 0.5f && samples.Min() < settled - 0.5f,
+            "failed send visibly shakes the bubble in both directions");
+        Verify(Mathf.IsEqualApprox(samples[^2], settled), "error shake settles without position drift");
     }
 
     private async System.Threading.Tasks.Task RunRequestUiSmoke()
