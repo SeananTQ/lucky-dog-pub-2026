@@ -45,6 +45,32 @@ internal static class SteamRoomPageChecks
             first.SetAppearance(1001, 0, 1001);
             Check(firstService.AppearanceUpdates > 0, "appearance reaches supplied service");
 
+            // Drive the actual page's _Process, never AdvanceTo directly. This
+            // service epoch deliberately differs from Godot's process uptime.
+            page.Show();
+            await Frame();
+            double firstSentAt = firstService.Now;
+            Check(first.SendChat("local clock check") == "", "provider accepts local chat");
+            firstService.DeliverRemote(first, "remote clock check", age: 2);
+            await Frame();
+            Check(first.Bubbles.Count == 2, "production page initially retains local and aged remote bubbles");
+            firstService.Now = firstSentAt + 3.99;
+            await Frame();
+            Check(first.Bubbles.ContainsKey(1) && first.Bubbles.ContainsKey(2),
+                "remote bubble retains its remaining four-second lifetime before the deadline");
+            page.Hide();
+            firstService.Now = firstSentAt + 4.01;
+            await Frame();
+            Check(!page.Visible && !first.Bubbles.ContainsKey(2) && first.Bubbles.ContainsKey(1),
+                "hidden production page expires aged remote bubble using the service clock");
+            firstService.Now = firstSentAt + 5.99;
+            await Frame();
+            Check(first.Bubbles.ContainsKey(1), "local bubble remains just before its six-second deadline");
+            firstService.Now = firstSentAt + 6.01;
+            await Frame();
+            Check(first.Bubbles.Count == 0,
+                "hidden production page expires local bubble after six seconds without manual client clock advancement");
+
             provider.RoomService = null;
             await Frame();
             Check(page.CurrentClient == null && first.JoinedCode.Length == 0,
@@ -57,7 +83,8 @@ internal static class SteamRoomPageChecks
                 && page.GetNode<Label>("Notice").Text != "Rooms_SteamRestartRequired",
                 "unsettled native request shows translated restart guidance even while provider stays null");
             provider.RoomRestartRequired = false;
-            provider.RoomService = new Service();
+            var secondService = new Service { Now = 100 };
+            provider.RoomService = secondService;
             await Frame();
             var second = page.CurrentClient;
             Check(second != null && !ReferenceEquals(first, second) && second.JoinedCode.Length == 0,
@@ -67,14 +94,111 @@ internal static class SteamRoomPageChecks
             second.Create("Reconnected room");
             await Frame();
             Check(second.View?.Members.Length == 2, "reconnected provider can create room");
+            double secondSentAt = secondService.Now;
+            Check(second.SendChat("new service epoch") == "", "reconnected provider accepts local chat");
+            await Frame();
+            Check(second.Bubbles.ContainsKey(1), "new client accepts the replacement service clock epoch");
+            secondService.Now = secondSentAt + 5.99;
+            await Frame();
+            Check(second.Bubbles.ContainsKey(1), "reconnected bubble remains before its deadline");
+            secondService.Now = secondSentAt + 6.01;
+            await Frame();
+            Check(second.Bubbles.Count == 0, "reconnected hidden page expires chat with its new service clock");
             page.Free();
             Check(second.JoinedCode.Length == 0, "page disposal leaves its current service");
-            GD.Print("[SteamRoomPageChecks] PASS production provider, join failure, appearance dispatch, disconnect, reconnect, disposal (fake transport).");
+            await CheckChatInteraction(parent);
+            GD.Print("[SteamRoomPageChecks] PASS production provider, join failure, appearance dispatch, service-clock chat expiry while hidden, reconnect clock reset, disposal (fake transport).");
         }
         finally
         {
             if (GodotObject.IsInstanceValid(page)) page.Free();
         }
+    }
+
+    private static async Task CheckChatInteraction(Node parent)
+    {
+        var sandbox = new RoomSandbox();
+        int skin = LubanData.Tables.TbDogSkin.DataList[0].Id;
+        using var client = sandbox.AddClient(1, "local", skin);
+        sandbox.Create(client, "chat interaction check");
+        sandbox.Tick(0);
+        var desktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
+            .Instantiate<RoomDesktopPreview>();
+        parent.AddChild(desktop);
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        try
+        {
+            desktop.Present(client, new Rect2(0, 0, 800, 600), 1, 420, 75, true);
+            var chat = desktop.LocalChat;
+            var open = chat.GetNode<Button>("Open");
+            var send = chat.GetNode<Button>("Composer/Content/Actions/Send");
+            var input = chat.GetNode<LineEdit>("Composer/Content/Input");
+            bool blocked = false;
+            chat.InteractionAllowed = () => !blocked;
+            int sendEvents = 0;
+            chat.SendRequested += _ => sendEvents++;
+            chat.Present(true, true, "");
+            await Frame();
+            Check(open.Visible, "available desktop chat responds to dog hover");
+            var entryPoint = open.GetGlobalRect().GetCenter();
+
+            foreach (var trigger in new[] { "button", "enter", "frame" })
+            {
+                blocked = false;
+                chat.OpenChat();
+                input.Text = "preserved draft";
+                Check(chat.Editing, "chat opens before reveal starts");
+                var composerPoint = chat.ComposerRectForSmoke.GetCenter();
+                // Deliberately change eligibility without a frame between it and
+                // the signal: stale clicks/Enter must not reach the room service.
+                blocked = true;
+                if (trigger == "button") send.EmitSignal(BaseButton.SignalName.Pressed);
+                else if (trigger == "enter") input.EmitSignal(LineEdit.SignalName.TextSubmitted, input.Text);
+                else await Frame();
+                sandbox.Tick(0);
+                Check(!chat.Editing && !input.HasFocus() && input.Text == "preserved draft",
+                    "reveal suspension closes composer and preserves unfocused draft: " + trigger);
+                Check(sendEvents == 0 && client.Bubbles.Count == 0 && sandbox.PendingCount == 0,
+                    "blocked send never dispatches or queues a chat: " + trigger);
+                Check(!chat.ContainsPoint(entryPoint) && !chat.ContainsPoint(composerPoint),
+                    "suspended chat removes its entry and composer from window hit testing");
+                chat.Present(true, true, "");
+                await Frame();
+                open.EmitSignal(BaseButton.SignalName.Pressed);
+                chat.OpenChat();
+                Check(!open.Visible && !chat.Editing, "repeated hover and open attempts stay blocked");
+            }
+
+            using var remote = sandbox.AddClient(2, "remote", skin);
+            sandbox.Join(remote, client.JoinedCode);
+            sandbox.Tick(0);
+            Check(remote.SendChat("incoming during reveal") == "", "remote chat remains available");
+            sandbox.Tick(0);
+            Check(client.Bubbles.ContainsKey(remote.Id), "reveal suspension does not block incoming messages");
+            sandbox.Tick(7);
+            Check(client.Bubbles.Count == 0, "incoming messages expire normally during reveal");
+
+            blocked = false;
+            await Frame();
+            Check(!chat.Editing && sendEvents == 0 && client.Bubbles.Count == 0,
+                "ending or canceling reveal never reopens or auto-sends the draft");
+            chat.Present(true, true, "");
+            await Frame();
+            Check(open.Visible, "hover entry recovers after reveal ends");
+            chat.OpenChat();
+            Check(input.Text == "preserved draft", "manual reopen restores the draft");
+            input.EmitSignal(LineEdit.SignalName.TextSubmitted, input.Text);
+            sandbox.Tick(0);
+            Check(sendEvents == 1 && !chat.Editing && input.Text.Length == 0
+                && client.Bubbles[client.Id].Text == "preserved draft",
+                "explicit sending recovers through the real desktop forwarding handler");
+            GD.Print("[RoomChatInteractionChecks] PASS hover, stale button/Enter, frame suspension, draft, hit testing, incoming expiry and manual recovery.");
+        }
+        finally { desktop.Free(); }
     }
 
     private static void Check(bool value, string message)
@@ -103,8 +227,10 @@ internal static class SteamRoomPageChecks
 
     private sealed class Service : IRoomService
     {
+        public double Now { get; set; } = 1_000_000;
         public int AppearanceUpdates;
         private long _revision;
+        private long _chatSequence;
         public void Request(RoomClient client, RoomRequest request)
             => client.TryComplete(request.Id, () =>
             {
@@ -132,7 +258,15 @@ internal static class SteamRoomPageChecks
             if (client.JoinedCode.Length > 0) Publish(client);
         }
         public string SetGame(RoomClient client, string gameId) => "";
-        public string SendChat(RoomClient client, string text) => "Not part of this test";
+        public string SendChat(RoomClient client, string text)
+        {
+            client.Receive(new RoomChat(++_chatSequence, client.JoinedCode, 1, 1,
+                text, Now + RoomRules.ChatLifetime), Now);
+            return "";
+        }
+        public void DeliverRemote(RoomClient client, string text, double age)
+            => client.Receive(new RoomChat(++_chatSequence, client.JoinedCode, 2, 2,
+                text, Now + RoomRules.ChatLifetime - age), Now);
     }
 }
 #endif

@@ -70,6 +70,11 @@ public partial class ModeManager
     private bool _roomChatBubbleActive;
     private double _roomChatBlindBoxRestoreRemaining;
     private bool RoomChatSuppressesBlindBoxHint => _roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining > 0;
+    // Includes the loading handoff and pending/restored rewards, not just the
+    // overlay's animation tween. A ready, unopened box does not block chatting.
+    private bool RoomChatInteractionAllowed => CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp
+        && !_blindBoxOpeningUiActive && _gameData?.PendingBlindBoxReward == null
+        && _bossBlindBoxOverlay?.Visible != true;
 #if DEBUG
     private bool? _roomSnapEnabledForSmoke;
 #endif
@@ -119,6 +124,7 @@ public partial class ModeManager
                 _roomDesktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
                     .Instantiate<RoomDesktopPreview>();
                 _bossKeyContent.AddChild(_roomDesktop);
+                _roomDesktop.LocalChat.InteractionAllowed = () => RoomChatInteractionAllowed;
                 _roomDesktop.LocalChat.Opened += () => { CancelWindowDrag(); _settingsPanel.CloseImmediate(); };
                 _roomDesktop.LocalChat.BubbleActivityChanged += OnRoomChatBubbleActivityChanged;
             }

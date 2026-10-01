@@ -566,13 +566,14 @@ public partial class RoomLab : Control
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         GetViewport().GetTexture().GetImage().SavePng(path);
     }
-    private void RunSmokeAndQuit()
+    private async void RunSmokeAndQuit()
     {
         try
         {
             GD.Print(RoomSandboxChecks.Run());
             SteamRoomChecks.Run();
             GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat validation/filtering/expiry and recovery (fake transport and filter API delegates; no Steam dictionary).");
+            await SteamRoomPageChecks.Run(this);
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }

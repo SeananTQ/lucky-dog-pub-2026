@@ -19,6 +19,10 @@ public partial class RoomChatView : Node2D
     public event Action<string> SendRequested;
     public event Action Opened;
     public event Action<bool> BubbleActivityChanged;
+    // Evaluated at the input boundary as well as each frame: an overlay can start
+    // after hover/rendering but before a queued click or Enter signal arrives.
+    public Func<bool> InteractionAllowed { get; set; }
+    private bool CanInteract => _local && IsVisibleInTree() && (InteractionAllowed?.Invoke() ?? true);
     public bool Editing => _composer.Visible;
     public bool HasBubble => IsVisibleInTree() && (Editing || _messageText.Length > 0);
     private bool _reportedBubbleActivity;
@@ -64,7 +68,7 @@ public partial class RoomChatView : Node2D
     {
         if (_local != local) CloseChat();
         _local = local;
-        if (hovered) _hoverGrace = 0.45;
+        if (RefreshInteractionAvailability() && hovered) _hoverGrace = 0.45;
         _messageText = text ?? "";
         _text.Text = _messageText;
         ReportBubbleActivity();
@@ -72,10 +76,11 @@ public partial class RoomChatView : Node2D
     public override void _Process(double delta)
     {
         if (!IsVisibleInTree()) return;
+        bool interactive = RefreshInteractionAvailability();
         _errorShakeRemaining = HasBubble ? Math.Max(0, _errorShakeRemaining - delta) : 0;
-        if (RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
+        if (interactive && RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
         else _hoverGrace -= delta;
-        _open.Visible = _local && !Editing && _hoverGrace > 0;
+        _open.Visible = interactive && !Editing && _hoverGrace > 0;
         if (_open.Visible)
         {
             var inverse = GetGlobalTransformWithCanvas().AffineInverse();
@@ -156,11 +161,23 @@ public partial class RoomChatView : Node2D
         _reportedBubbleActivity = active;
         BubbleActivityChanged?.Invoke(active);
     }
-    public bool ContainsPoint(Vector2 point) => IsVisibleInTree()
+    public bool RefreshInteractionAvailability()
+    {
+        bool allowed = CanInteract;
+        if (!allowed)
+        {
+            _hoverGrace = 0;
+            _open.Hide();
+            // Keep the draft, but release keyboard focus and any stale error state.
+            if (Editing) CloseChat();
+        }
+        return allowed;
+    }
+    public bool ContainsPoint(Vector2 point) => CanInteract
         && (RoomDogView.ContainsWindowPoint(_open, point) || RoomDogView.ContainsWindowPoint(_composer, point));
     public override void _Input(InputEvent @event)
     {
-        if (!Editing || !IsVisibleInTree()) return;
+        if (!RefreshInteractionAvailability() || !Editing) return;
         if (@event is InputEventKey { Pressed: true } key)
         {
             _imeAtKey = _input.HasImeText();
@@ -172,7 +189,7 @@ public partial class RoomChatView : Node2D
     }
     public void OpenChat()
     {
-        if (!_local || !IsVisibleInTree()) return;
+        if (!RefreshInteractionAvailability()) return;
         Opened?.Invoke();
         _composer.Show();
         ReportBubbleActivity();
@@ -184,7 +201,7 @@ public partial class RoomChatView : Node2D
     }
     private void Send()
     {
-        if (!Editing || _input.HasImeText()) return;
+        if (!RefreshInteractionAvailability() || !Editing || _input.HasImeText()) return;
         SendRequested?.Invoke(_input.Text);
     }
     public void SetSendResult(string error)

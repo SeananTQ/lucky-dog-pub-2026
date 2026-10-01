@@ -201,6 +201,7 @@ internal static class RoomRequestChecks
     // has not been integrated; its adapter must provide equivalent ownership-safe cleanup.
     private sealed class LateResultService : IRoomService
     {
+        public double Now => 0;
         public readonly List<long> Cancelled = new();
         public readonly List<long> Compensated = new();
         public readonly HashSet<long> LiveResources = new();

@@ -50,6 +50,7 @@ public sealed class SteamRoomService : IRoomService, IDisposable
     private readonly Dictionary<ulong, double> _receivedChatAt = new();
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
+    public double Now => _now();
 
     public SteamRoomService(ISteamRoomTransport transport, int defaultSkin,
         Func<int, bool> validSkin, Func<int, bool> validHeadwear, Func<int, bool> validReaction,

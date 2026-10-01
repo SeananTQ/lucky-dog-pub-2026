@@ -18,7 +18,11 @@ public partial class RoomDesktopPreview : Node2D
 
     public override void _Ready()
     {
-        LocalChat.SendRequested += text => LocalChat.SetSendResult(_client?.SendChat(text) ?? "Rooms_ChatUnavailable");
+        LocalChat.SendRequested += text =>
+        {
+            if (LocalChat.RefreshInteractionAvailability())
+                LocalChat.SetSendResult(_client?.SendChat(text) ?? "Rooms_ChatUnavailable");
+        };
     }
     private readonly Dictionary<int, RoomDogView> _dogs = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)

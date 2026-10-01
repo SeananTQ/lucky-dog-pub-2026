@@ -103,7 +103,9 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         RefreshService();
         TickMock(delta);
-        if (!_isMock) _client?.AdvanceTo(Time.GetTicksMsec() / 1000d);
+        // Steam stamps chat expiry with its service clock. Godot's uptime has a
+        // different origin, so mixing them leaves otherwise valid bubbles stuck.
+        if (!_isMock && _client != null) _client.AdvanceTo(_service.Now);
         if (_dirty) { _dirty = false; Render(); }
     }
     public override void _ExitTree()
@@ -139,7 +141,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (current == null) return;
         var name = string.IsNullOrWhiteSpace(_platform.PersonaName) ? L10n.Tr("Rooms_You") : _platform.PersonaName;
         var client = new RoomClient(current, 1, name, LubanData.Tables.TbDogSkin.DataList[0].Id);
-        client.AdvanceTo(Time.GetTicksMsec() / 1000d);
+        client.AdvanceTo(current.Now);
         ReplaceClient(client);
         client.Search();
     }

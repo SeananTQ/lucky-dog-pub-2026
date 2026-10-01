@@ -13,6 +13,9 @@ namespace LuckyDogRise.Rooms;
 /// </summary>
 public interface IRoomService
 {
+    // Monotonic seconds in this service's time domain. Client.AdvanceTo and
+    // RoomChat.ExpiresAt must use this clock, not an independent engine clock.
+    double Now { get; }
     void Request(RoomClient client, RoomRequest request);
     void Cancel(RoomClient client, long requestId);
     void Leave(RoomClient client);
