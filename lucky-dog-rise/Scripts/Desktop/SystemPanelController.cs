@@ -110,8 +110,18 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _roomContent;
     private Rooms.InGameRoomPreview _roomPreview;
     private ConfirmOverlayController _roomKickConfirm;
+    private Rooms.RoomGameProposalOverlay _roomGameProposal;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
     private int _roomTabIndex = -1;
+    public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
+    public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
+    public bool HasBlockingPanelModal => _desktopScaleConfirm?.Visible == true
+        || _desktopScaleModeSwitchConfirm?.Visible == true || _otherUiScaleConfirm?.Visible == true
+        || _recoveredItemsOverlay?.Visible == true || _wishlistCallToActionOverlay?.Visible == true
+#if DEBUG
+        || _resetSaveConfirm?.Visible == true
+#endif
+        ;
 #endif
 #if DEBUG
     private Button _debugTab = null!;
@@ -904,7 +914,7 @@ public partial class SystemPanelController : CanvasLayer
         TrackTutorialInterfaceActivity(@event);
         if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true
 #if !DEMO_BUILD && !RECORDING_BUILD
-            || _roomKickConfirm?.Visible == true
+            || HasRoomModal
 #endif
             )
         {
@@ -1050,8 +1060,9 @@ public partial class SystemPanelController : CanvasLayer
         if (index == _roomTabIndex) EnsureRoomPreview();
         else
         {
-            _roomPreview?.AccessPopup.Hide();
+            _roomPreview?.CloseRoomDropdowns();
             _roomPreview?.CancelKickConfirmation();
+            _roomPreview?.HideGameProposal();
         }
 #endif
         for (int i = 0; i < _tabs.Count; i++)
@@ -1098,6 +1109,20 @@ public partial class SystemPanelController : CanvasLayer
     }
 
 #if !DEMO_BUILD && !RECORDING_BUILD
+    public bool ShowRoomPage()
+    {
+        if (_roomTabIndex < 0 || !BuildCapabilities.SteamRooms) return false;
+        SwitchTab(_roomTabIndex);
+        if (!IsOpen) Open();
+        return true;
+    }
+
+    public bool TryShowPendingRoomGameProposal()
+    {
+        if (!HasPendingRoomGameProposal || !ShowRoomPage()) return false;
+        return _roomPreview.TryShowPendingGameProposal();
+    }
+
     private void EnsureRoomPreview()
     {
         if (_roomPreview != null || _roomContent == null) return;
@@ -1111,6 +1136,13 @@ public partial class SystemPanelController : CanvasLayer
         _roomKickConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
         _roomKickConfirm.VisibilityChanged += ResetPanelScrollDrag;
         _roomPreview.BindKickConfirmation(_roomKickConfirm);
+        _roomGameProposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
+            .Instantiate<Rooms.RoomGameProposalOverlay>();
+        AddChild(_roomGameProposal);
+        _roomGameProposal.Scale = _panel.Scale;
+        _roomGameProposal.SetOverlayRect(_panel.Position, PanelDesignSize);
+        _roomGameProposal.VisibilityChanged += ResetPanelScrollDrag;
+        _roomPreview.BindGameProposal(_roomGameProposal);
         _roomPreview.Configure(_platformService, _gameData);
         _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
         _roomPreview.PageChanged += () =>
@@ -1122,6 +1154,7 @@ public partial class SystemPanelController : CanvasLayer
         BindTutorialPopupActivity(_roomPreview);
         ApplyPopupRenderQuality(_roomPreview);
         ApplyPopupRenderQuality(_roomKickConfirm);
+        ApplyPopupRenderQuality(_roomGameProposal);
         // Only reset scrolling when the player is actually viewing this page.
         if (_roomContent.Visible) _panelScroll.ScrollVertical = 0;
     }
@@ -3079,6 +3112,7 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Position = pos;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomKickConfirm?.SetOverlayRect(pos, PanelDesignSize);
+        _roomGameProposal?.SetOverlayRect(pos, PanelDesignSize);
 #endif
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _desktopScaleModeSwitchConfirm?.SetOverlayRect(pos, PanelDesignSize);
@@ -3102,6 +3136,11 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomKickConfirm.Scale = value;
             ApplyPopupRenderQuality(_roomKickConfirm);
+        }
+        if (_roomGameProposal != null)
+        {
+            _roomGameProposal.Scale = value;
+            ApplyPopupRenderQuality(_roomGameProposal);
         }
 #endif
         _desktopScaleConfirm.Scale = value;
@@ -3212,8 +3251,9 @@ public partial class SystemPanelController : CanvasLayer
     public void Close()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
-        _roomPreview?.AccessPopup.Hide();
+        _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.HideGameProposal();
 #endif
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
@@ -3240,8 +3280,9 @@ public partial class SystemPanelController : CanvasLayer
     public void CloseImmediate()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
-        _roomPreview?.AccessPopup.Hide();
+        _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.HideGameProposal();
 #endif
         bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();
@@ -3389,6 +3430,7 @@ public partial class SystemPanelController : CanvasLayer
             || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPosition)
 #if !DEMO_BUILD && !RECORDING_BUILD
             || PopupContainsPoint(_roomPreview?.AccessPopup, windowPosition)
+            || PopupContainsPoint(_roomPreview?.GamePopup, windowPosition)
 #endif
 #if DEBUG
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPosition)

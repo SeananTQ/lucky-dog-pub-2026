@@ -56,6 +56,7 @@ LuckyDogRise.Rooms.InGameRoomPreview
 LuckyDogRise.Rooms.RoomDesktopPreview
 LuckyDogRise.Rooms.RoomDogView
 LuckyDogRise.Rooms.RoomChatView
+LuckyDogRise.Rooms.RoomGameProposalOverlay
 LuckyDogRise.Rooms.RoomLab
 LuckyDogRise.Rooms.RoomListRow
 LuckyDogRise.Rooms.RoomMemberRow

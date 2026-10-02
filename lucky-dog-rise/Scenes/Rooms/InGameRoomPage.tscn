@@ -41,9 +41,10 @@ _memberRow = ExtResource("member")
 
 [node name="Notice" type="Label" parent="."]
 layout_mode = 2
-text = "Rooms_SteamUnavailable"
+visible = false
+auto_translate_mode = 2
 autowrap_mode = 3
-label_settings = ExtResource("helper_label")
+label_settings = ExtResource("group_title")
 
 [node name="Lobby" type="VBoxContainer" parent="."]
 layout_mode = 2
@@ -156,9 +157,21 @@ label_settings = ExtResource("value_label")
 
 [node name="Game" type="HBoxContainer" parent="Room"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="Room/Game"]
+[node name="Name" type="Label" parent="Room/Game"]
+layout_mode = 2
+text = "Rooms_GameTitle"
+auto_translate_mode = 2
+size_flags_vertical = 4
+label_settings = ExtResource("group_title")
+
+[node name="Choices" type="HBoxContainer" parent="Room/Game"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Icon" type="TextureRect" parent="Room/Game/Choices"]
 layout_mode = 2
 custom_minimum_size = Vector2(26, 26)
 size_flags_vertical = 4
@@ -166,12 +179,20 @@ texture = ExtResource("icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Label" parent="Room/Game"]
+[node name="Current" type="OptionButton" parent="Room/Game/Choices"]
 layout_mode = 2
-text = "Rooms_Social"
-autowrap_mode = 3
+custom_minimum_size = Vector2(100, 36)
+theme_override_font_sizes/font_size = 16
+auto_translate_mode = 2
+fit_to_longest_item = false
 size_flags_horizontal = 3
-label_settings = ExtResource("option_label")
+
+[node name="Apply" type="Button" parent="Room/Game/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_type_variation = &"ActionButton"
+theme_override_font_sizes/font_size = 16
+text = "Rooms_GameChangePropose"
 
 [node name="Access" type="VBoxContainer" parent="Room"]
 layout_mode = 2

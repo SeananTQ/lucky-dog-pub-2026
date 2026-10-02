@@ -481,7 +481,7 @@ custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"CapsuleButton"
-text = "房主切换玩法标识（仅测试）"
+text = "发起 / 同意 / 切换玩法（观察玩家）"
 
 [node name="Hint" type="Label" parent="Tools/Scroll/Content" unique_id=2135025381]
 layout_mode = 2

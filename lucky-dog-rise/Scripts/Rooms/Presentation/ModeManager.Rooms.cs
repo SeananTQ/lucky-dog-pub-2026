@@ -26,9 +26,12 @@ public partial class ModeManager
         var desktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
             .Instantiate<RoomDesktopPreview>();
         var notice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn").Instantiate<CanvasLayer>();
+        var proposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
+            .Instantiate<RoomGameProposalOverlay>();
         AddChild(row);
         AddChild(desktop);
         AddChild(notice);
+        AddChild(proposal);
         try
         {
             row.Hide();
@@ -45,13 +48,18 @@ public partial class ModeManager
             desktop.Present(client, new Rect2(0, 0, 1280, 720), 1, 420, 0, true);
             if (desktop.RemoteDogs.Count != 1 || desktop.RemoteDogs.Single().Dog.GameData != null)
                 throw new System.InvalidOperationException("Exported remote dog scene could not be initialized.");
-            GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice and remote dog bindings passed.");
+            proposal.Present(client.View with { GameChange = new("diagnostic", "work", 60,
+                new[] { new RoomGameVote(1, 1, RoomGameVoteState.Accepted), new RoomGameVote(2, 2, RoomGameVoteState.Pending) }) },
+                client.Id, 60, false, false, "");
+            proposal.Hide();
+            GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice, game proposal and remote dog bindings passed.");
         }
         finally
         {
             desktop.Free();
             row.Free();
             notice.Free();
+            proposal.Free();
         }
     }
 
@@ -81,9 +89,32 @@ public partial class ModeManager
     private bool RoomChatSuppressesBlindBoxHint => _roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining > 0;
     // Includes the loading handoff and pending/restored rewards, not just the
     // overlay's animation tween. A ready, unopened box does not block chatting.
-    private bool RoomChatInteractionAllowed => CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp
+    private bool RoomBubblePresentationAllowed => CurrentMode == Mode.BossKey && !_hiddenByFullscreenApp
         && !_blindBoxOpeningUiActive && _gameData?.PendingBlindBoxReward == null
         && _bossBlindBoxOverlay?.Visible != true;
+    private bool RoomChatInteractionAllowed => RoomBubblePresentationAllowed
+        && _desktopRoomClient?.ChatAllowed == true && _settingsPanel?.HasRoomModal != true;
+
+    private void UpdateRoomGameProposalPresentation()
+    {
+        if (_settingsPanel?.HasPendingRoomGameProposal != true
+            || _startupState != StartupState.Interactive || _hiddenByFullscreenApp
+            || CurrentMode == Mode.Immersive || _blindBoxOpeningUiActive
+            || _gameData?.PendingBlindBoxReward != null || _bossBlindBoxOverlay?.Visible == true
+            || _settingsPanel.HasBlockingPanelModal || _settingsPanel.HasRoomModal || _settingsPanel.HasOpenDropdown
+            || CurrentMode == Mode.Play && (_gameManager?.IsTutorialOverlayVisible == true
+                || _gameManager?.IsCollectionProgressNoticeVisible == true
+                || _gameManager?.IsPokerHandShowcaseVisible == true)) return;
+
+        // A pending proposal keeps its original deadline while a higher-priority
+        // presentation is busy. Opening it never changes the player's poker mode.
+        CancelWindowDrag();
+        RefreshSettingsPanelModeActions();
+        PositionPanelInBestSlot();
+        if (!_settingsPanel.TryShowPendingRoomGameProposal()) return;
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
+        _roomDesktop?.LocalChat.RefreshInteractionAvailability();
+    }
 #if DEBUG
     private bool? _roomSnapEnabledForSmoke;
 #endif
@@ -209,7 +240,7 @@ public partial class ModeManager
     {
         if (_roomJoinNoticeRemaining <= 0) return;
         // A system notice cannot cover a reveal or run out while the desktop dog is hidden.
-        bool visible = RoomChatInteractionAllowed && _bossDogVisual.IsVisibleInTree();
+        bool visible = RoomBubblePresentationAllowed && _bossDogVisual.IsVisibleInTree();
         if (!visible)
         {
             _roomJoinNoticeWasVisible = false;

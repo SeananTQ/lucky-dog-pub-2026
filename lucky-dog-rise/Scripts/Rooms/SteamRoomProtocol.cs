@@ -8,14 +8,21 @@ using System.Text;
 
 namespace LuckyDogRise.Rooms;
 
+public sealed record SteamRoomGameVoter(ulong SteamId, Guid Session, int CompanionId = 0, long CompanionPresence = 0);
+public sealed record SteamRoomGameProposal(Guid Id, string Target, ulong Owner, Guid OwnerSession,
+    long StartedAt, long ExpiresAt, SteamRoomGameVoter[] Voters);
+public sealed record SteamRoomGameState(long Revision, string Game, SteamRoomGameProposal Proposal = null);
+
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Older owners cannot preserve companion retirements during ownership transfer.
-    public const string Version = "lucky-dog-room-4";
+    // Earlier clients can bypass voting and cannot enforce work-mode chat rules.
+    public const string Version = "lucky-dog-room-5";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
+    public const string GameVoteKey = "ld_game_vote";
+    public const string CreatedAtKey = "ld_created";
     public const string AppearanceKey = "ld_appearance";
     public const string ActivityKey = "ld_activity";
     public const string ChatSessionKey = "ld_chat_session";
@@ -25,6 +32,77 @@ public static class SteamRoomProtocol
     public const int MaxBannedMembers = 256;
     public const int MaxChatBytes = 512;
     private static readonly UTF8Encoding ChatEncoding = new(false, true);
+
+    // Current mode and the entire proposal share one owner-written key. A partial
+    // metadata write can never switch the mode while leaving an old vote active.
+    public static string EncodeGameState(SteamRoomGameState state)
+    {
+        string prefix = $"1|{state.Revision.ToString(CultureInfo.InvariantCulture)}|{state.Game}";
+        if (state.Proposal is not { } p) return prefix;
+        return prefix + string.Create(CultureInfo.InvariantCulture,
+            $"|{p.Id:N}|{p.Target}|{p.Owner:X16}|{p.OwnerSession:N}|{p.StartedAt}|{p.ExpiresAt}|")
+            + string.Join(",", p.Voters.Select(v => v.SteamId != 0
+                ? $"h{v.SteamId:X16}.{v.Session:N}"
+                : string.Create(CultureInfo.InvariantCulture, $"b{v.CompanionId}.{v.CompanionPresence}")));
+    }
+
+    public static bool TryDecodeGameState(string value, out SteamRoomGameState state)
+    {
+        state = null;
+        if (value == null || value.Length > 1024) return false;
+        var p = value.Split('|');
+        if (p.Length is not (3 or 10) || p[0] != "1"
+            || !long.TryParse(p[1], NumberStyles.None, CultureInfo.InvariantCulture, out var revision) || revision <= 0
+            || !RoomRules.IsRoomMode(p[2])) return false;
+        if (p.Length == 3) { state = new(revision, p[2]); return true; }
+        if (!Guid.TryParseExact(p[3], "N", out var id) || id == Guid.Empty || !RoomRules.IsRoomMode(p[4]) || p[4] == p[2]
+            || p[5].Length != 16 || !ulong.TryParse(p[5], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var owner) || owner == 0
+            || !Guid.TryParseExact(p[6], "N", out var ownerSession) || ownerSession == Guid.Empty
+            || !long.TryParse(p[7], NumberStyles.None, CultureInfo.InvariantCulture, out var start) || start <= 0
+            || !long.TryParse(p[8], NumberStyles.None, CultureInfo.InvariantCulture, out var end) || end <= start
+            || end - start != (long)RoomRules.GameChangeLifetime) return false;
+        var entries = p[9].Split(',');
+        if (entries.Length is < 1 or > RoomRules.Capacity) return false;
+        var voters = new List<SteamRoomGameVoter>();
+        foreach (var entry in entries)
+        {
+            var parts = entry.Split('.');
+            if (parts.Length != 2 || parts[0].Length < 2) return false;
+            if (parts[0][0] == 'h')
+            {
+                if (parts[0].Length != 17 || !ulong.TryParse(parts[0][1..], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var steam)
+                    || steam == 0 || !Guid.TryParseExact(parts[1], "N", out var session) || session == Guid.Empty
+                    || voters.Any(v => v.SteamId == steam)) return false;
+                voters.Add(new(steam, session));
+            }
+            else if (parts[0][0] == 'b')
+            {
+                if (!int.TryParse(parts[0][1..], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var bot) || bot is < -3 or > -1
+                    || !long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var presence) || presence <= 0
+                    || voters.Any(v => v.CompanionId == bot)) return false;
+                voters.Add(new(0, Guid.Empty, bot, presence));
+            }
+            else return false;
+        }
+        if (!voters.Any(v => v.SteamId == owner && v.Session == ownerSession)) return false;
+        state = new(revision, p[2], new(id, p[4], owner, ownerSession, start, end, voters.ToArray()));
+        return true;
+    }
+
+    public static string EncodeGameVote(Guid proposal, Guid session, long sequence, bool accept)
+        => string.Create(CultureInfo.InvariantCulture, $"1:{proposal:N}:{session:N}:{sequence}:{(accept ? 1 : 0)}");
+    public static bool TryDecodeGameVote(string value, out Guid proposal, out Guid session, out long sequence, out bool accept)
+    {
+        proposal = session = Guid.Empty; sequence = 0; accept = false;
+        if (value == null || value.Length > 100) return false;
+        var parts = value.Split(':');
+        if (parts.Length != 5 || parts[0] != "1" || parts[4] is not ("0" or "1")
+            || !Guid.TryParseExact(parts[1], "N", out proposal) || proposal == Guid.Empty
+            || !Guid.TryParseExact(parts[2], "N", out session) || session == Guid.Empty
+            || !long.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out sequence) || sequence <= 0) return false;
+        accept = parts[4] == "1";
+        return true;
+    }
 
     public static bool IsAccessValid(RoomAccess access)
         => access is RoomAccess.Public or RoomAccess.FriendsOnly or RoomAccess.InviteOnly;
@@ -112,30 +190,35 @@ public static class SteamRoomProtocol
 
     // Binary envelope: magic/version, per-membership token, sequence, Steam time,
     // UTF-8 payload. Identity always comes from Steam's callback, never this body.
-    public static byte[] EncodeChat(Guid session, long sequence, long sentAt, string text)
+    public static byte[] EncodeChat(Guid session, long sequence, long sentAt, string text, long modeRevision = 1)
     {
         var body = ChatEncoding.GetBytes(text);
-        var bytes = new byte[36 + body.Length];
-        "LDC1"u8.CopyTo(bytes);
+        var bytes = new byte[44 + body.Length];
+        "LDC2"u8.CopyTo(bytes);
         session.TryWriteBytes(bytes.AsSpan(4, 16));
         BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(20), sequence);
         BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(28), sentAt);
-        body.CopyTo(bytes, 36);
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(36), modeRevision);
+        body.CopyTo(bytes, 44);
         return bytes;
     }
 
     public static bool TryDecodeChat(byte[] bytes, out Guid session, out long sequence, out long sentAt, out string text)
+        => TryDecodeChat(bytes, out session, out sequence, out sentAt, out text, out _);
+
+    public static bool TryDecodeChat(byte[] bytes, out Guid session, out long sequence, out long sentAt, out string text, out long modeRevision)
     {
         session = Guid.Empty;
-        sequence = sentAt = 0;
+        sequence = sentAt = modeRevision = 0;
         text = "";
-        if (bytes == null || bytes.Length is <= 36 or > MaxChatBytes
-            || !bytes.AsSpan(0, 4).SequenceEqual("LDC1"u8)) return false;
+        if (bytes == null || bytes.Length is <= 44 or > MaxChatBytes
+            || !bytes.AsSpan(0, 4).SequenceEqual("LDC2"u8)) return false;
         session = new Guid(bytes.AsSpan(4, 16));
         sequence = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(20));
         sentAt = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(28));
-        if (session == Guid.Empty || sequence <= 0 || sentAt <= 0) return false;
-        try { text = ChatEncoding.GetString(bytes, 36, bytes.Length - 36); }
+        modeRevision = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(36));
+        if (session == Guid.Empty || sequence <= 0 || sentAt <= 0 || modeRevision <= 0) return false;
+        try { text = ChatEncoding.GetString(bytes, 44, bytes.Length - 44); }
         catch (DecoderFallbackException) { return false; }
         return RoomRules.ValidateChat(text).Length == 0;
     }

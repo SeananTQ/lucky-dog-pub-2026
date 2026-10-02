@@ -239,8 +239,14 @@ public partial class RoomLab : Control
     }
     public void OnChangeGame()
     {
-        Status(Current.SetGame(Current.View?.GameId == "social" ? "test-mode" : "social"),
-            "玩法标识已更新；刷新列表可观察图标提示变化。");
+        var proposal = Current.View?.GameChange;
+        var result = proposal == null
+            ? Current.ProposeGameChange(Current.View?.GameId == "social" ? "work" : "social")
+            : Current.View.OwnerId == Current.Id
+                ? Current.ConfirmGameChange(proposal.Id)
+                : Current.RespondGameChange(proposal.Id, true);
+        Status(result == "ok" ? "" : InGameRoomPreview.ChatText(result),
+            "玩法提议已处理；切换观察玩家可同意，再切回房主确认切换。");
     }
     public void OnQuit() => GetTree().Quit();
     public void OnMinimize() => GetWindow().Mode = Window.ModeEnum.Minimized;
@@ -436,6 +442,7 @@ public partial class RoomLab : Control
                 dog.Name = $"Dog{member.Id}";
                 _dogRoot.AddChild(dog);
                 _dogs.Add(member.Id, dog);
+                dog.Chat.InteractionAllowed = () => Current.ChatAllowed;
                 var target = dog;
                 dog.SendRequested += text =>
                 {
@@ -589,6 +596,7 @@ public partial class RoomLab : Control
             await SteamRoomPageChecks.Run(this);
             await RoomAccessPageChecks.Run(this);
             await RoomSettingsPageChecks.Run(this);
+            await RoomGameChangePageChecks.Run(this);
             await RoomEmptyDirectoryPageChecks.Run(this);
             GetTree().Quit();
         }

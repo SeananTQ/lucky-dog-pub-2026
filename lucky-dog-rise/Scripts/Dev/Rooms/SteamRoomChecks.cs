@@ -48,9 +48,155 @@ public static class SteamRoomChecks
         CheckRoomRenaming();
         CheckCompanionRemoval();
         CheckDirectoryCharacterCounts();
+        CheckGameChange();
+        CheckGameChangeMembershipAndVotes();
+        CheckGameChangeClock();
     }
 
     private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckGameChange()
+    {
+        var transport = new FakeTransport { GameStateWriteNotifies = true };
+        using var service = Service(transport, companions: now => RoomCompanionPlan.Create([10], [0], now, 901));
+        using var client = Client(service);
+        client.Create("voting"); transport.SucceedMembership(1701);
+        long? createdAt = client.View.CreatedAt;
+        Assert(createdAt == transport.ServerTime && client.ChatAllowed && client.SetGame("work") == "Rooms_GameChangeRequired",
+            "new room records creation time and cannot bypass voting with the legacy mode setter");
+        Assert(client.ProposeGameChange("invalid") == "Rooms_GameChangeInvalidMode"
+            && client.ProposeGameChange("social") == "Rooms_GameChangeInvalidMode", "only a different supported mode can be proposed");
+        Assert(client.ProposeGameChange("work") == "ok", "owner can propose work mode");
+        var first = client.View.GameChange;
+        string firstWire = transport.Rooms[1701].GameState;
+        Assert(first.Votes.Length == 4 && first.AcceptedCount == 1 && first.RequiredCount == 3
+            && !client.CanConfirmGameChange && client.View.GameId == "social", "four voters require three accepts and owner starts accepted");
+        Assert(client.ConfirmGameChange(first.Id) == "Rooms_GameChangeNoMajority", "one vote cannot switch the room");
+        int writes = transport.GameStateWrites.Count;
+        transport.Now = 1; client.AdvanceTo(1); service.Tick();
+        Assert(client.View.GameChange.AcceptedCount == 4 && client.CanConfirmGameChange && client.View.GameId == "social"
+            && transport.GameStateWrites.Count == writes, "companions accept after one second without network writes or automatic switching");
+        transport.GameStateWriteSucceeds = false;
+        Assert(client.ConfirmGameChange(first.Id) == "Rooms_GameChangeUpdateFailed" && client.View.GameId == "social"
+            && client.View.GameChange != null, "failed commit preserves the old mode and live proposal");
+        transport.GameStateWriteSucceeds = true;
+        transport.DelayGameEcho = true;
+        Assert(client.SendChat("before work") == "" && client.Bubbles.Count == 1, "social mode still has ordinary chat");
+        Assert(client.ConfirmGameChange(first.Id) == "ok" && client.View.GameId == "work"
+            && !client.ChatAllowed && client.View.GameChange == null && client.Bubbles.Count == 0,
+            "explicit majority commit switches mode and clears existing chat immediately");
+        Assert(client.SendChat("blocked") == "Rooms_ChatDisabled" && service.SendChat(client, "blocked") == "Rooms_ChatDisabled",
+            "both client and service enforce work-mode chat restrictions");
+        transport.ChangeName(1701, "late metadata"); service.Tick();
+        Assert(client.View.GameId == "work" && client.View.GameChange == null, "late metadata cannot resurrect the completed proposal or old game");
+        Assert(client.ProposeGameChange("social") == "ok", "work rooms can propose returning to social");
+        string returning = client.View.GameChange.Id;
+        Assert(client.ConfirmGameChange(first.Id) == "Rooms_GameChangeInvalidProposal", "old proposal ids cannot commit a later round");
+        Assert(client.CancelGameChange(returning) == "ok" && client.View.GameChange == null && client.View.GameId == "work",
+            "owner cancellation preserves the current work mode");
+        transport.Rooms[1701] = transport.Rooms[1701] with { GameState = transport.GameStateWrites[^1], Game = "work" };
+        transport.DelayGameEcho = false;
+        Assert(client.ProposeGameChange("social") == "ok", "fresh proposal after cancellation");
+        string expiring = client.View.GameChange.Id;
+        transport.Now = 62; client.AdvanceTo(62); service.Tick();
+        Assert(client.View.GameChange == null && client.View.GameId == "work"
+            && client.ConfirmGameChange(expiring) != "ok" && client.RoomAgeSeconds >= 62,
+            "sixty-second timeout never auto-switches and room age continues");
+        Assert(client.ProposeGameChange("social") == "ok", "timed-out rounds can be replaced");
+        string social = client.View.GameChange.Id;
+        transport.Now = 63; client.AdvanceTo(63); service.Tick();
+        Assert(client.ConfirmGameChange(social) == "ok" && client.ChatAllowed,
+            "work-mode vote control still operates while text chat is disabled");
+        transport.Now = 64; client.AdvanceTo(64); service.Tick();
+        Assert(client.SendChat("after work") == "" && SteamRoomProtocol.TryDecodeChat(transport.Chats[^1],
+            out _, out _, out _, out _, out var chatRevision) && chatRevision > 1,
+            "new social chat uses the final authoritative mode revision");
+        transport.Rooms[1701] = transport.Rooms[1701] with { GameState = firstWire, Game = "social" };
+        transport.ChangeName(1701, "older state replay");
+        Assert(client.View.GameId == "social" && client.View.GameChange == null && client.View.CreatedAt == createdAt,
+            "older state replay cannot revive a cancelled vote or reset room creation time");
+    }
+
+    private static void CheckGameChangeMembershipAndVotes()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        Guid remoteSession = Guid.NewGuid();
+        var remote = new SteamRoomMemberData(88, "remote", "1:10:0:1001", ChatSession: remoteSession.ToString("N"));
+        transport.Seed(1702, remote);
+        client.Join(SteamRoomProtocol.Encode(1702)); transport.SucceedMembership(1702);
+        Assert(client.ProposeGameChange("work") == "ok", "two-person room begins voting");
+        var proposal = client.View.GameChange;
+        var id = Guid.ParseExact(proposal.Id, "N");
+        transport.SetRemote(1702, remote with { GameVote = SteamRoomProtocol.EncodeGameVote(id, Guid.NewGuid(), 1, true) });
+        Assert(!client.CanConfirmGameChange, "another membership token cannot forge a vote");
+        transport.SetRemote(1702, remote with { GameVote = SteamRoomProtocol.EncodeGameVote(Guid.NewGuid(), remoteSession, 2, true) });
+        Assert(!client.CanConfirmGameChange, "another proposal id cannot forge a vote");
+        transport.SetRemote(1702, remote with { GameVote = SteamRoomProtocol.EncodeGameVote(id, remoteSession, 3, true) });
+        Assert(client.CanConfirmGameChange && client.View.GameChange.AcceptedCount == 2, "authenticated remote vote forms a strict majority");
+        transport.SetRemote(1702, remote with { GameVote = SteamRoomProtocol.EncodeGameVote(id, remoteSession, 2, false) });
+        Assert(client.CanConfirmGameChange, "old vote sequence cannot undo the newer answer");
+        transport.SetRemote(1702, remote with { GameVote = SteamRoomProtocol.EncodeGameVote(id, remoteSession, 4, false) });
+        Assert(!client.CanConfirmGameChange, "newer explicit rejection updates the same member rather than adding a vote");
+        transport.SetRemote(1702, remote with { ChatSession = Guid.NewGuid().ToString("N") });
+        Assert(client.View.GameChange == null && client.ConfirmGameChange(proposal.Id) != "ok",
+            "rejoining member invalidates the frozen electorate and its old confirmation");
+        service.Tick();
+        Assert(client.ProposeGameChange("work") == "ok", "new membership can start another round");
+        long? createdAt = client.View.CreatedAt;
+        transport.SetOwner(1702, 88);
+        Assert(client.View.GameChange == null && client.View.CreatedAt == createdAt
+            && client.ProposeGameChange("work") == "Rooms_GameChangeNotOwner", "ownership transfer cancels the vote but preserves room age");
+
+        var ownerSession = Guid.ParseExact(transport.Rooms[1702].Members.Single(m => m.SteamId == 88).ChatSession, "N");
+        var localSession = Guid.ParseExact(transport.ChatSessions[1702], "N");
+        var remoteProposal = new SteamRoomGameProposal(Guid.NewGuid(), "work", 88, ownerSession,
+            transport.ServerTime, transport.ServerTime + 60,
+            [new(77, localSession), new(88, ownerSession)]);
+        var state = new SteamRoomGameState(20, "social", remoteProposal);
+        transport.Rooms[1702] = transport.Rooms[1702] with { GameState = SteamRoomProtocol.EncodeGameState(state) };
+        transport.ChangeName(1702, "remote proposal");
+        Assert(client.View.GameChange?.Id == remoteProposal.Id.ToString("N")
+            && client.RespondGameChange(remoteProposal.Id.ToString("N"), true) == "ok", "non-owner may answer the current owner's proposal");
+        int voteWrites = transport.GameVoteWrites.Count;
+        Assert(client.RespondGameChange(remoteProposal.Id.ToString("N"), true) == "ok"
+            && transport.GameVoteWrites.Count == voteWrites, "duplicate same-round acceptance is idempotent");
+        Assert(client.ConfirmGameChange(remoteProposal.Id.ToString("N")) == "Rooms_GameChangeNotOwner", "only the current owner can finalize a majority");
+        transport.SetRemote(1702, new SteamRoomMemberData(99, "newcomer", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        Assert(client.View.GameChange == null, "joining members invalidate the frozen vote rather than silently changing its denominator");
+        transport.DeliverChat(1702, 88, SteamRoomProtocol.EncodeChat(ownerSession, 1, transport.ServerTime, "old social message", 1));
+        Assert(client.Bubbles.Count == 0, "delayed chat from an earlier mode revision cannot reappear after returning to social");
+        transport.DeliverChat(1702, 88, SteamRoomProtocol.EncodeChat(ownerSession, 2, transport.ServerTime, "current social message", 20));
+        Assert(client.Bubbles.Count == 1, "current-revision chat is still delivered normally");
+        Assert(SteamRoomProtocol.TryDecodeGameState(SteamRoomProtocol.EncodeGameState(state), out var roundtrip)
+            && roundtrip.Proposal.Voters.SequenceEqual(state.Proposal.Voters)
+            && !SteamRoomProtocol.TryDecodeGameState("1|1|work|malformed", out _), "bounded mode envelope validates proposals and voter identities");
+    }
+
+    private static void CheckGameChangeClock()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: now => RoomCompanionPlan.Create([10], [0], now, 902));
+        using var client = Client(service);
+        client.Create("clock"); transport.SucceedMembership(1703);
+        transport.Now = 0.9; client.AdvanceTo(0.9);
+        Assert(client.ProposeGameChange("work") == "ok", "fractional-clock proposal begins");
+        var id = client.View.GameChange.Id;
+        transport.Now = 1; client.AdvanceTo(1); service.Tick();
+        Assert(client.View.GameChange.AcceptedCount == 1 && !client.CanConfirmGameChange,
+            "crossing a Steam integer second cannot make the owner's companions accept before a real second");
+        transport.Now = 2; client.AdvanceTo(2); service.Tick();
+        Assert(client.CanConfirmGameChange, "companions eventually accept after the owner's monotonic minimum delay");
+        int writes = transport.GameStateWrites.Count;
+        transport.ServerOffset = -100;
+        transport.Now = 62; client.AdvanceTo(62); service.Tick();
+        Assert(client.View.GameChange == null && client.ConfirmGameChange(id) != "ok"
+            && transport.GameStateWrites.Count == writes + 1,
+            "Steam clock reversal cannot prolong a proposal and expiry writes only one terminal state");
+        transport.Now = 63; client.AdvanceTo(63); service.Tick();
+        Assert(transport.GameStateWrites.Count == writes + 1, "expired proposals do not produce ongoing metadata writes");
+    }
 
     private static void CheckDirectoryCharacterCounts()
     {
@@ -1381,9 +1527,15 @@ public static class SteamRoomChecks
         public readonly List<(ulong Lobby, string Name)> NameWrites = new();
         public bool NameWriteSucceeds = true;
         public bool DelayNameEcho;
+        public bool GameStateWriteSucceeds = true;
+        public bool DelayGameEcho;
+        public bool GameStateWriteNotifies;
+        public readonly List<string> GameStateWrites = new();
+        public readonly List<string> GameVoteWrites = new();
         public bool Disposed;
         public double Now;
-        public long ServerTime => 100000 + (long)Now;
+        public long ServerOffset;
+        public long ServerTime => 100000 + (long)Now + ServerOffset;
         public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
         public readonly List<byte[]> Chats = new();
         public readonly List<string> Events = new();
@@ -1437,7 +1589,8 @@ public static class SteamRoomChecks
         {
             var members = new[] { new SteamRoomMemberData(77, "local Steam name", "1:10:0:1001") }.Concat(other).ToArray();
             Rooms[lobby] = new SteamRoomData(lobby, SteamRoomProtocol.Version, "room", "social", 77,
-                members.Length, 6, members);
+                members.Length, 6, members, CreatedAt: ServerTime,
+                GameState: SteamRoomProtocol.EncodeGameState(new SteamRoomGameState(1, "social")));
             NativeAccess[lobby] = RoomAccess.Public;
         }
         public IDisposable Create(Action<SteamRoomJoinResult> completed) => Join(0, completed);
@@ -1484,6 +1637,24 @@ public static class SteamRoomChecks
         {
             Rooms[lobbyId] = Rooms[lobbyId] with { Game = game };
             return true;
+        }
+        public bool SetGameState(ulong lobbyId, string state)
+        {
+            if (!GameStateWriteSucceeds || Rooms[lobbyId].OwnerId != LocalSteamId) return false;
+            GameStateWrites.Add(state);
+            if (!DelayGameEcho)
+            {
+                SteamRoomProtocol.TryDecodeGameState(state, out var decoded);
+                Rooms[lobbyId] = Rooms[lobbyId] with { Game = decoded.Game, GameState = state };
+            }
+            if (GameStateWriteNotifies) LobbyChanged(lobbyId);
+            return true;
+        }
+        public void SetGameVote(ulong lobbyId, string vote)
+        {
+            GameVoteWrites.Add(vote);
+            Rooms[lobbyId] = Rooms[lobbyId] with { Members = Rooms[lobbyId].Members.Select(member =>
+                member.SteamId == LocalSteamId ? member with { GameVote = vote } : member).ToArray() };
         }
         public bool SetName(ulong lobbyId, string name)
         {

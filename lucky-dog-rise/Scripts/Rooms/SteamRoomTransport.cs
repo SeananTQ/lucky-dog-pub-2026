@@ -188,25 +188,36 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 members.Add(new SteamRoomMemberData(member.m_SteamID, SteamFriends.GetFriendPersonaName(member),
                     SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.AppearanceKey),
                     SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ActivityKey),
-                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ChatSessionKey)));
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.ChatSessionKey),
+                    SteamMatchmaking.GetLobbyMemberData(lobby, member, SteamRoomProtocol.GameVoteKey)));
             }
         }
+        string gameState = SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.GameKey);
+        var game = SteamRoomProtocol.TryDecodeGameState(gameState, out var decodedGame) ? decodedGame.Game : "";
+        long? created = long.TryParse(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CreatedAtKey),
+            System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var createdAt)
+            && createdAt > 0 ? createdAt : null;
         return new SteamRoomData(lobbyId, SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.ProtocolKey),
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.NameKey),
-            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.GameKey),
+            game,
             SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID, count,
             SteamMatchmaking.GetLobbyMemberLimit(lobby), members.ToArray(),
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.BanListKey),
             SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey)),
-            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CompanionsKey));
+            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CompanionsKey), created, gameState);
     }
 
     public bool InitializeLobby(ulong lobbyId, string name)
     {
         RequireAvailable();
         var lobby = new CSteamID(lobbyId);
+        long createdAt = ServerTime;
+        if (createdAt <= 0) return false;
         return SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.NameKey, name)
-            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.GameKey, "social")
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.GameKey,
+                SteamRoomProtocol.EncodeGameState(new SteamRoomGameState(1, "social")))
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.CreatedAtKey,
+                createdAt.ToString(System.Globalization.CultureInfo.InvariantCulture))
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.BanListKey, "1:")
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.AccessKey,
                 SteamRoomProtocol.EncodeAccess(RoomAccess.Public))
@@ -222,10 +233,21 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.BanListKey, members);
     }
 
-    public bool SetGame(ulong lobbyId, string game)
+    public bool SetGame(ulong lobbyId, string game) => false;
+    public bool SetGameState(ulong lobbyId, string state)
     {
         RequireAvailable();
-        return SteamMatchmaking.SetLobbyData(new CSteamID(lobbyId), SteamRoomProtocol.GameKey, game);
+        var lobby = new CSteamID(lobbyId);
+        return SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID == LocalSteamId
+            && SteamRoomProtocol.TryDecodeGameState(state, out _)
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.GameKey, state);
+    }
+    public void SetGameVote(ulong lobbyId, string vote)
+    {
+        RequireAvailable();
+        if (!SteamRoomProtocol.TryDecodeGameVote(vote, out _, out _, out _, out _))
+            throw new ArgumentException("Invalid room vote.", nameof(vote));
+        SteamMatchmaking.SetLobbyMemberData(new CSteamID(lobbyId), SteamRoomProtocol.GameVoteKey, vote);
     }
 
     public bool SetName(ulong lobbyId, string name)

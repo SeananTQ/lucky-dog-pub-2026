@@ -13,6 +13,8 @@ public sealed class RoomClient : IDisposable
     private readonly Dictionary<int, (long Presence, long Sequence, double Until)> _activity = new();
     private double _inputActiveUntil;
     private double _nextActivityRenewal;
+    private double _roomAgeAtReceipt;
+    private double _roomClockReceipt;
     public long ActivitySequence { get; private set; }
     public bool TongueActive { get; private set; }
     public int Id { get; }
@@ -44,6 +46,11 @@ public sealed class RoomClient : IDisposable
     public RoomFailure Failure { get; private set; }
     public RoomListing[] Listings { get; private set; } = Array.Empty<RoomListing>();
     public long ActiveRequestId => _request?.Id ?? 0;
+    public bool ChatAllowed => View != null && View.GameId == "social";
+    public double RoomAgeSeconds => View?.CreatedAt == null ? 0 : Math.Max(0, _roomAgeAtReceipt + _now - _roomClockReceipt);
+    public double GameChangeSecondsRemaining => View?.GameChange is { } change ? Math.Max(0, change.ExpiresAt - _now) : 0;
+    public bool CanConfirmGameChange => !IsBusy && View?.OwnerId == Id
+        && View.GameChange is { HasMajority: true } && GameChangeSecondsRemaining > 0;
 
     public bool Create(string name, bool joiningFromDirectory = false)
         => BeginRequest(RoomOperation.Create, name, joiningFromDirectory);
@@ -55,12 +62,18 @@ public sealed class RoomClient : IDisposable
         _joinAfterSearch = true;
         return BeginRequest(RoomOperation.Search, "");
     }
-    public string SetGame(string gameId) => _disposed ? "房间连接已关闭。" : _service.SetGame(this, gameId);
+    public string SetGame(string gameId) => "Rooms_GameChangeRequired";
+    public string ProposeGameChange(string gameId) => CanChangeGame() ? _service.ProposeGameChange(this, gameId) : "Rooms_GameChangeUnavailable";
+    public string RespondGameChange(string proposalId, bool accept) => CanChangeGame() ? _service.RespondGameChange(this, proposalId, accept) : "Rooms_GameChangeUnavailable";
+    public string ConfirmGameChange(string proposalId) => CanChangeGame() ? _service.ConfirmGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
+    public string CancelGameChange(string proposalId) => CanChangeGame() ? _service.CancelGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
+    private bool CanChangeGame() => !_disposed && !_committing && !IsBusy && View != null;
     public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy
         ? "Rooms_AccessUnavailable" : _service.SetAccess(this, access);
     public string SetName(string name) => _disposed || _committing || IsBusy
         ? "Rooms_NameUnavailable" : _service.SetName(this, name);
-    public string SendChat(string text) => _disposed ? "房间连接已关闭。" : _service.SendChat(this, text);
+    public string SendChat(string text) => _disposed ? "Rooms_ChatUnavailable"
+        : View != null && !ChatAllowed ? "Rooms_ChatDisabled" : _service.SendChat(this, text);
     public string Kick(int memberId, long presence) => _disposed || _committing
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
@@ -264,6 +277,7 @@ public sealed class RoomClient : IDisposable
         Session++;
         JoinedCode = code;
         View = null;
+        _roomAgeAtReceipt = _roomClockReceipt = 0;
         TongueActive = false;
         ActivitySequence++;
         _inputActiveUntil = _nextActivityRenewal = 0;
@@ -277,7 +291,15 @@ public sealed class RoomClient : IDisposable
     internal void Receive(RoomSnapshot snapshot)
     {
         if (_disposed || snapshot.Code != JoinedCode || snapshot.Revision <= (View?.Revision ?? -1)) return;
-        View = snapshot with { Members = (RoomMember[])snapshot.Members.Clone() };
+        if (snapshot.CreatedAt.HasValue && snapshot.ClockNow.HasValue)
+        {
+            var previousAge = View?.CreatedAt == snapshot.CreatedAt ? RoomAgeSeconds : 0;
+            _roomAgeAtReceipt = Math.Max(previousAge, Math.Max(0, (double)snapshot.ClockNow.Value - snapshot.CreatedAt.Value));
+            _roomClockReceipt = _now;
+        }
+        View = snapshot with { Members = (RoomMember[])snapshot.Members.Clone(),
+            GameChange = snapshot.GameChange is { } change ? change with { Votes = (RoomGameVote[])change.Votes.Clone() } : null };
+        if (!ChatAllowed) _bubbles.Clear();
         foreach (var id in _activity.Keys.ToArray())
             if (!View.Members.Any(m => m.Id == id && m.Presence == _activity[id].Presence)) _activity.Remove(id);
         foreach (var member in View.Members)
@@ -299,7 +321,7 @@ public sealed class RoomClient : IDisposable
 
     internal void Receive(RoomChat chat, double now)
     {
-        if (_disposed || chat.Code != JoinedCode || chat.ExpiresAt <= now || RoomRules.ValidateChat(chat.Text).Length > 0
+        if (_disposed || !ChatAllowed || chat.Code != JoinedCode || chat.ExpiresAt <= now || RoomRules.ValidateChat(chat.Text).Length > 0
             || View == null || !View.Members.Any(m => !m.IsCompanion && m.Id == chat.SenderId && m.Presence == chat.Presence)
             || (_chatSequences.TryGetValue(chat.SenderId, out var last) && chat.Id <= last)
             || (_receivedChatAt.TryGetValue(chat.SenderId, out var receivedAt)

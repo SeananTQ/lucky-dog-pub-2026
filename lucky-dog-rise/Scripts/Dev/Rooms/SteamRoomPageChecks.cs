@@ -81,8 +81,9 @@ internal static class SteamRoomPageChecks
                 "unavailable provider emits detach and disables room actions");
             provider.RoomRestartRequired = true;
             await Frame();
-            Check(page.GetNode<Label>("Notice").Text == L10n.Tr("Rooms_SteamRestartRequired")
-                && page.GetNode<Label>("Notice").Text != "Rooms_SteamRestartRequired",
+            Check(page.GetNode<Label>("Status").Visible
+                && page.GetNode<Label>("Status").Text == L10n.Tr("Rooms_SteamRestartRequired")
+                && page.GetNode<Label>("Status").Text != "Rooms_SteamRestartRequired",
                 "unsettled native request shows translated restart guidance even while provider stays null");
             provider.RoomRestartRequired = false;
             var secondService = new Service { Now = 100 };

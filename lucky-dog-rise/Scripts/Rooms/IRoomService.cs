@@ -23,6 +23,10 @@ public interface IRoomService
     void UpdateActivity(RoomClient client);
     string Kick(RoomClient client, int memberId, long presence);
     string SetGame(RoomClient client, string gameId);
+    string ProposeGameChange(RoomClient client, string gameId) => "Rooms_GameChangeUnavailable";
+    string RespondGameChange(RoomClient client, string proposalId, bool accept) => "Rooms_GameChangeUnavailable";
+    string ConfirmGameChange(RoomClient client, string proposalId) => "Rooms_GameChangeUnavailable";
+    string CancelGameChange(RoomClient client, string proposalId) => "Rooms_GameChangeUnavailable";
     string SetAccess(RoomClient client, RoomAccess access);
     string SetName(RoomClient client, string name) => "Rooms_NameUnavailable";
     string SendChat(RoomClient client, string text);

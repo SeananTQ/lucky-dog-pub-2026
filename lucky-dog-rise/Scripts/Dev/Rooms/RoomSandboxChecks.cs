@@ -146,9 +146,10 @@ internal static class RoomSandboxChecks
         server.Tick(0);
         Check(c.View.Members[0].Reaction == 1007, "resume resynchronizes");
 
-        Check(server.SetGame(b, "test") != "", "non-owner metadata rejected");
-        Check(server.SetGame(a, "test") == "", "owner metadata updated");
-        Check(server.Search().Single().GameId == "test", "directory reflects metadata");
+        Check(server.SetGame(b, "test") == "Rooms_GameChangeRequired"
+            && server.SetGame(a, "test") == "Rooms_GameChangeRequired"
+            && a.SetGame("work") == "Rooms_GameChangeRequired", "legacy metadata setter cannot bypass voting");
+        Check(server.Search().Single().GameId == "social", "rejected direct changes leave directory mode intact");
         Check(server.SendChat(a, "hello") == "", "chat accepted");
         Check(server.SendChat(a, "flood") != "", "chat rate limited");
         Check(server.SendChat(c, new string('x', 121)) != "", "oversized text rejected");
@@ -194,7 +195,7 @@ internal static class RoomSandboxChecks
         server.Leave(b);
         Check(!server.Search().Any(r => r.Code == other), "last departure destroys room");
         return "ROOM_SANDBOX_PASS: isolated replicas, latency, bounded queues, reconnect, capacity, owner transfer, metadata, chat validation/expiry, local settings, host removal and room-scoped bans.\n"
-            + RoomRequestChecks.Run();
+            + RoomRequestChecks.Run() + "\n" + RoomGameChangeChecks.Run();
     }
     private static void Check(bool passed, string message)
     {

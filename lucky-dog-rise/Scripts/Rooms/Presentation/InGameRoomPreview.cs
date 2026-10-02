@@ -188,6 +188,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _roomTitle.FocusExited += QueueNameCommit;
         _roomTitle.TextSubmitted += _ => { if (!_nameImeAtKey && !HasNameIme) CommitNameEdit(); };
         _code.Pressed += OnCopyCode;
+        InitializeGameControls();
         L10n.Changed += OnLanguageChanged;
         InitializeMock();
         RefreshService();
@@ -205,10 +206,12 @@ public partial class InGameRoomPreview : VBoxContainer
         if (!IsVisibleInTree())
         {
             CancelKick();
-            CloseAccessChoices();
+            CloseRoomDropdowns();
             if (_nameEditClient != null && !_nameCommitQueued) QueueNameCommit();
         }
         if (_dirty) { _dirty = false; Render(); }
+        RefreshRoomAge();
+        ProcessGameProposal();
     }
     public override void _ExitTree()
     {
@@ -217,6 +220,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         ReplaceClient(null);
         BindKickConfirmation(null);
+        BindGameProposal(null);
         DisposeMock();
         if (_registeredTranslations && --_translationUsers == 0)
         {
@@ -254,6 +258,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void ReplaceClient(RoomClient client)
     {
+        ResetGamePresentation();
         CancelKick();
         CloseAccessChoices();
         CancelNameEdit();
@@ -322,8 +327,8 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         if (GodotObject.IsInstanceValid(this) && IsInsideTree()) PageChanged?.Invoke();
     }).CallDeferred();
-    public void OnBrowse() { CancelKick(); CommitNameEdit(); CloseAccessChoices(); _browsing = true; RefreshRooms(); _dirty = true; NotifyPageChanged(); }
-    public void OnLeave() { CancelKick(); CancelNameEdit(); CloseAccessChoices(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
+    public void OnBrowse() { CancelKick(); HideGameProposal(); CommitNameEdit(); CloseRoomDropdowns(); _browsing = true; RefreshRooms(); _dirty = true; NotifyPageChanged(); }
+    public void OnLeave() { CancelKick(); HideGameProposal(); CancelNameEdit(); CloseRoomDropdowns(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
     public void OnCopyCode()
     {
         if (_client == null || _client.JoinedCode.Length == 0) return;
@@ -508,6 +513,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     public override void _Input(InputEvent @event)
     {
+        if (GameProposalVisible) return;
         if (_kickClient != null)
         {
             if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape })
@@ -515,6 +521,7 @@ public partial class InGameRoomPreview : VBoxContainer
             return;
         }
         if (_access.HasFocus() && @event is InputEventKey { Pressed: true }) RememberAccessContext();
+        if (_gameChoice.HasFocus() && @event is InputEventKey { Pressed: true }) RememberGameContext();
         if (!_roomTitle.HasFocus() || _nameEditClient == null) return;
         if (@event is InputEventKey { Pressed: true } key)
         {
@@ -557,11 +564,11 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void RequestKick(RoomClient client, long session, int memberId, long presence)
     {
-        if (!GodotObject.IsInstanceValid(_kickConfirm) || !IsVisibleInTree()) return;
+        if (!GodotObject.IsInstanceValid(_kickConfirm) || !IsVisibleInTree() || GameProposalVisible) return;
         CommitNameEdit();
         var error = KickTargetError(client, session, memberId, presence);
         if (error.Length > 0) { _noticeKey = error; _dirty = true; return; }
-        CloseAccessChoices();
+        CloseRoomDropdowns();
         _kickClient = client;
         _kickSession = session;
         _kickMemberId = memberId;
@@ -621,9 +628,8 @@ public partial class InGameRoomPreview : VBoxContainer
         RenderCodePrivacy();
         RenderAccess();
         RenderName();
-        _connection.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired"
-            : _client == null ? "Rooms_SteamUnavailable" : "Rooms_SteamConnected");
-        RenderMockNotice();
+        RenderGameControls();
+        RefreshRoomAge();
         if (_client == null)
         {
             _lobby.Show();
@@ -633,7 +639,8 @@ public partial class InGameRoomPreview : VBoxContainer
             _create.Disabled = _join.Disabled = _random.Disabled = true;
             _refresh.Disabled = false;
             _empty.Hide();
-            _status.Hide();
+            _status.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired" : "Rooms_SteamUnavailable");
+            _status.Show();
             Clear(_rooms);
             RenderMembers();
             return;
@@ -679,8 +686,6 @@ public partial class InGameRoomPreview : VBoxContainer
         else
             foreach (var row in _rooms.GetChildren().OfType<InGameRoomDirectoryRow>()) row.SetBusy(_client.IsBusy);
 
-        var view = _client.View;
-        _game.Text = string.Format(L10n.Tr("Rooms_GameFormat"), GameName(view?.GameId));
         RenderMembers();
     }
 
@@ -727,8 +732,12 @@ public partial class InGameRoomPreview : VBoxContainer
         }
     }
     partial void RenderMockNotice();
-    public static string GameName(string gameId) => string.IsNullOrWhiteSpace(gameId) || gameId == "social"
-        ? L10n.Tr("Rooms_Social") : gameId;
+    public static string GameName(string gameId) => gameId switch
+    {
+        null or "" or "social" => L10n.Tr("Rooms_Social"),
+        "work" => L10n.Tr("Rooms_Work"),
+        _ => gameId
+    };
     private string StatusKey() => _client.RequestState switch
     {
         RoomRequestState.Pending => _client.Operation switch

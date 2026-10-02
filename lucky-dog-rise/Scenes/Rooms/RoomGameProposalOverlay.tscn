@@ -1,0 +1,108 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomGameProposalOverlay.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_SettingsGroupTitle.tres" id="group"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_SettingsOption.tres" id="option"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_ValueText.tres" id="value"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_KeyText.tres" id="helper"]
+
+[sub_resource type="StyleBoxFlat" id="overlay"]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0, 0, 0, 0.92156863)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+
+[node name="RoomGameProposalOverlay" type="Control"]
+visible = false
+custom_minimum_size = Vector2(420, 600)
+layout_mode = 3
+theme = ExtResource("theme")
+script = ExtResource("script")
+auto_translate_mode = 2
+
+[node name="OverlayPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("overlay")
+
+[node name="Margin" type="MarginContainer" parent="OverlayPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="OverlayPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+label_settings = ExtResource("group")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Target" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+label_settings = ExtResource("value")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Countdown" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+label_settings = ExtResource("helper")
+horizontal_alignment = 1
+
+[node name="Summary" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+label_settings = ExtResource("option")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MemberScroll" type="ScrollContainer" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Members" type="VBoxContainer" parent="OverlayPanel/Margin/Content/MemberScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="Hint" type="Label" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+label_settings = ExtResource("helper")
+autowrap_mode = 3
+
+[node name="Error" type="Label" parent="OverlayPanel/Margin/Content"]
+visible = false
+layout_mode = 2
+label_settings = ExtResource("helper")
+autowrap_mode = 3
+
+[node name="Actions" type="VBoxContainer" parent="OverlayPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Primary" type="Button" parent="OverlayPanel/Margin/Content/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 42)
+theme_type_variation = &"ActionButton"
+autowrap_mode = 3
+
+[node name="Secondary" type="Button" parent="OverlayPanel/Margin/Content/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 42)
+theme_type_variation = &"SecondaryButton"
+autowrap_mode = 3

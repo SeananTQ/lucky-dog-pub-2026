@@ -26,6 +26,7 @@ public partial class GameManager : Node2D
 
     public bool IsCollectionProgressNoticeVisible => _collectionProgressDialog?.IsOverlayVisible == true;
     public bool IsTutorialOverlayVisible => _tutorial?.IsOverlayVisible == true;
+    public bool IsPokerHandShowcaseVisible => _pokerHandShowcase?.IsOverlayVisible == true;
 
     public event Action<bool> TutorialOverlayVisibilityChanged;
 

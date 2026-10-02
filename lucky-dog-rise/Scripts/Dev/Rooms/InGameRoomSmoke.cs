@@ -12,7 +12,8 @@ namespace LuckyDogRise.Rooms;
 public static class InGameRoomSmoke
 {
     public static bool DemoRequested => OS.GetCmdlineUserArgs().Contains("--rooms-page-demo-smoke");
-    public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke");
+    public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke");
     public static async void Run(ModeManager main)
     {
         try
@@ -57,6 +58,13 @@ public static class InGameRoomSmoke
             }
             void Click(string path) => page.GetNode<Button>(path).EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke"))
+            {
+                await Wait(2);
+                await RoomGameChangeMainChecks.Run(main, page);
+                tree.Quit();
+                return;
+            }
             Check(client.Listings.Length == 1 && client.Listings[0].Count == 2, "initial directory");
             Check(client.JoinedCode.Length == 0, "browsing does not join automatically");
             // Do this before any SetLocale call: switching language refreshes
@@ -955,6 +963,7 @@ public static class InGameRoomSmoke
             GD.Print("[InGameRoomSmoke] COMPANION_PASS real UI creation, fixed appearance, passive roles, negative-ID drag, local scale, stable replacement and room lifetime.");
             await RoomEmptyDirectoryPageChecks.Run(main);
             await SteamRoomPageChecks.Run(main);
+            await RoomGameChangeMainChecks.Run(main, page);
             GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, bubble chat, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
             tree.Quit();
         }

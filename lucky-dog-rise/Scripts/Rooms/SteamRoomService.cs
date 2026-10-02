@@ -50,6 +50,22 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private int _companionWriteFailures;
     private bool _companionWriteInProgress;
     private bool _refreshLobbyAfterCompanionWrite;
+    private SteamRoomGameState _gameState;
+    private long? _roomCreatedAt;
+    private long _gameNow;
+    private double _gameClock;
+    private double _gameClockSampleAt;
+    private long _lastGameDisplaySecond = -1;
+    private ulong _gameOwner;
+    private bool _gameWriteInProgress;
+    private double _nextGameCleanup;
+    private Guid _deadlineProposal;
+    private double _proposalDeadline;
+    private long _gameVoteSequence;
+    private Guid _localGameProposal;
+    private double _localCompanionAcceptAt;
+    private readonly HashSet<Guid> _invalidGameProposals = new();
+    private readonly Dictionary<ulong, (Guid Proposal, Guid Session, long Sequence, bool Accept)> _gameVotes = new();
     private long _nextPresence;
     private long _revision;
     private int _nextMemberId = 2;
@@ -318,6 +334,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 _accessOwner = data.OwnerId;
                 ClearRenameOverride();
                 ResetCompanions();
+                ResetGameState();
                 _identities.Clear();
                 _banned.Clear();
                 _banned.UnionWith(bans);
@@ -358,6 +375,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private static bool Compatible(SteamRoomData data) => data != null && data.LobbyId != 0
         && data.Protocol == SteamRoomProtocol.Version && SteamRoomProtocol.IsNameValid(data.Name)
         && SteamRoomProtocol.IsAccessValid(data.Access)
+        && SteamRoomProtocol.TryDecodeGameState(data.GameState, out _)
         && data.Capacity == RoomRules.Capacity && data.Count is >= 1 and <= RoomRules.Capacity;
 
     private string AppearanceOf(RoomClient client) => SteamRoomProtocol.EncodeAppearance(
@@ -379,20 +397,208 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         catch { Disconnect(); }
     }
 
-    public string SetGame(RoomClient client, string gameId)
+    public string SetGame(RoomClient client, string gameId) => "Rooms_GameChangeRequired";
+
+    private void ResetGameState()
     {
-        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0) return "请先进入房间。";
-        if (!SteamRoomProtocol.IsGameValid(gameId)) return "玩法标识无效。";
+        _gameState = null; _roomCreatedAt = null; _gameNow = 0; _lastGameDisplaySecond = -1;
+        _gameClock = 0; _gameClockSampleAt = Now;
+        _gameOwner = 0; _gameWriteInProgress = false; _nextGameCleanup = 0;
+        _deadlineProposal = Guid.Empty; _proposalDeadline = 0; _gameVoteSequence = 0;
+        _localGameProposal = Guid.Empty; _localCompanionAcceptAt = 0;
+        _invalidGameProposals.Clear(); _gameVotes.Clear();
+    }
+
+    private void AdvanceGameClock()
+    {
+        double now = Now;
+        _gameClock = Math.Max(_gameClock + Math.Max(0, now - _gameClockSampleAt), _transport.ServerTime);
+        _gameClockSampleAt = now;
+        _gameNow = (long)Math.Min(long.MaxValue, Math.Floor(_gameClock));
+    }
+
+    private SteamRoomGameVoter[] CurrentVoters(SteamRoomData data)
+    {
+        var voters = new List<SteamRoomGameVoter>();
+        foreach (var raw in data.Members.Where(m => !_banned.Contains(m.SteamId)).OrderBy(m => m.SteamId))
+        {
+            var session = raw.SteamId == _transport.LocalSteamId ? _chatSession
+                : Guid.TryParseExact(raw.ChatSession, "N", out var parsed) ? parsed : Guid.Empty;
+            if (raw.SteamId == 0 || session == Guid.Empty || voters.Any(v => v.SteamId == raw.SteamId)) return null;
+            voters.Add(new(raw.SteamId, session));
+        }
+        if (RoomCompanionPlan.TryRead(data.Companions, out var plan)
+            && (_companionPlan == null || plan.SameGeneration(_companionPlan)))
+        {
+            if (_companionPlan != null) plan = plan.MergeRetirements(_companionPlan);
+            foreach (var bot in plan.WithHumanCount(voters.Count).MembersAt(_gameNow).OrderBy(m => m.Id))
+                voters.Add(new(0, Guid.Empty, bot.Id, bot.Presence));
+        }
+        return voters.Count is >= 1 and <= RoomRules.Capacity ? voters.ToArray() : null;
+    }
+
+    private bool ProposalMatches(SteamRoomData data, SteamRoomGameProposal proposal)
+        => proposal.Owner == data.OwnerId && proposal.StartedAt <= _gameNow + 2
+            && !_invalidGameProposals.Contains(proposal.Id)
+            && CurrentVoters(data) is { } voters && voters.SequenceEqual(proposal.Voters);
+
+    private SteamRoomData ObserveGameState(SteamRoomData data)
+    {
+        if (!SteamRoomProtocol.TryDecodeGameState(data.GameState, out var incoming)) return data;
+        AdvanceGameClock();
+        if (_roomCreatedAt == null && data.CreatedAt is > 0 && data.CreatedAt <= _gameNow + 2)
+            _roomCreatedAt = data.CreatedAt;
+        if (_gameOwner != 0 && _gameOwner != data.OwnerId && _gameState?.Proposal is { } previous)
+            _invalidGameProposals.Add(previous.Id);
+        _gameOwner = data.OwnerId;
+        // Same revision has exactly one payload; late callbacks cannot undo a
+        // successful local write or revive a completed/cancelled proposal.
+        if (_gameState == null || incoming.Revision > _gameState.Revision) _gameState = incoming;
+        if (_gameState.Proposal is { } p && (!ProposalMatches(data, p) || _gameNow >= p.ExpiresAt))
+            _invalidGameProposals.Add(p.Id);
+        return data with { Game = _gameState.Game, GameState = SteamRoomProtocol.EncodeGameState(_gameState), CreatedAt = _roomCreatedAt };
+    }
+
+    private string ReadGame(RoomClient client, bool ownerOnly, out SteamRoomData data, bool allowBusy = false)
+    {
+        data = null;
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0 || client.IsBusy && !allowBusy)
+            return "Rooms_GameChangeUnavailable";
+        data = ApplyRenameOverride(_transport.ReadLobby(_lobby, true));
+        if (!Compatible(data) || data.Members == null || !data.Members.Any(m => m.SteamId == _transport.LocalSteamId))
+            return "Rooms_GameChangeUnavailable";
+        data = ObserveGameState(data);
+        Publish(data);
+        return ownerOnly && data.OwnerId != _transport.LocalSteamId ? "Rooms_GameChangeNotOwner" : "";
+    }
+
+    private string WriteGame(SteamRoomData data, SteamRoomGameState next)
+    {
+        var lobby = _lobby;
+        if (next.Revision <= 0 || data.OwnerId != _transport.LocalSteamId || _gameWriteInProgress)
+            return "Rooms_GameChangeUnavailable";
+        _gameWriteInProgress = true;
         try
         {
-            if (_transport.ReadLobby(_lobby, false)?.OwnerId != _transport.LocalSteamId)
-                return "只有房主可以修改房间玩法。";
-            if (!_transport.SetGame(_lobby, gameId)) return "房间服务暂不可用。";
-            OnLobbyChanged(_lobby);
-            return "";
+            string wire = SteamRoomProtocol.EncodeGameState(next);
+            if (!_transport.SetGameState(lobby, wire)) return "Rooms_GameChangeUpdateFailed";
+            if (_lobby != lobby) return "Rooms_GameChangeUnavailable";
+            _gameState = next;
+            Publish(data with { Game = next.Game, GameState = wire });
+            return "ok";
         }
-        catch { return "房间服务暂不可用。"; }
+        finally { _gameWriteInProgress = false; }
     }
+
+    private string GetProposal(RoomClient client, string id, bool ownerOnly,
+        out SteamRoomData data, out SteamRoomGameProposal proposal)
+    {
+        proposal = null;
+        var error = ReadGame(client, ownerOnly, out data);
+        if (error.Length > 0) return error;
+        if (!Guid.TryParseExact(id, "N", out var guid) || _gameState.Proposal is not { } p || p.Id != guid)
+            return "Rooms_GameChangeInvalidProposal";
+        if (_gameNow >= p.ExpiresAt) return "Rooms_GameChangeExpired";
+        if (!ProposalMatches(data, p)) return "Rooms_GameChangeInvalidProposal";
+        proposal = p;
+        return "";
+    }
+
+    public string ProposeGameChange(RoomClient client, string gameId)
+    {
+        try
+        {
+            var error = ReadGame(client, true, out var data);
+            if (error.Length > 0) return error;
+            if (!RoomRules.IsRoomMode(gameId) || gameId == _gameState.Game) return "Rooms_GameChangeInvalidMode";
+            if (_gameState.Proposal is { } current && ProposalMatches(data, current) && _gameNow < current.ExpiresAt)
+                return "Rooms_GameChangeAlreadyPending";
+            var voters = CurrentVoters(data);
+            if (voters == null || _gameNow <= 0 || _gameNow > long.MaxValue - 60) return "Rooms_GameChangeUnavailable";
+            var proposal = new SteamRoomGameProposal(Guid.NewGuid(), gameId, data.OwnerId, _chatSession,
+                _gameNow, _gameNow + 60, voters);
+            _localGameProposal = proposal.Id;
+            _localCompanionAcceptAt = Now + RoomRules.CompanionVoteDelay;
+            return WriteGame(data, new(checked(_gameState.Revision + 1), _gameState.Game, proposal));
+        }
+        catch { return "Rooms_GameChangeUpdateFailed"; }
+    }
+
+    public string RespondGameChange(RoomClient client, string proposalId, bool accept)
+    {
+        try
+        {
+            var error = GetProposal(client, proposalId, false, out var data, out var proposal);
+            if (error.Length > 0) return error;
+            if (proposal.Owner == _transport.LocalSteamId) return accept ? "ok" : "Rooms_GameChangeInvalidProposal";
+            if (_gameVotes.TryGetValue(_transport.LocalSteamId, out var prior)
+                && prior.Proposal == proposal.Id && prior.Session == _chatSession && prior.Accept == accept) return "ok";
+            var sequence = checked(++_gameVoteSequence);
+            _transport.SetGameVote(_lobby, SteamRoomProtocol.EncodeGameVote(proposal.Id, _chatSession, sequence, accept));
+            _gameVotes[_transport.LocalSteamId] = (proposal.Id, _chatSession, sequence, accept);
+            Publish(data);
+            return "ok";
+        }
+        catch { return "Rooms_GameChangeUpdateFailed"; }
+    }
+
+    public string ConfirmGameChange(RoomClient client, string proposalId)
+    {
+        try
+        {
+            var error = GetProposal(client, proposalId, true, out var data, out var proposal);
+            if (error.Length > 0) return error;
+            if (BuildGameChange(data)?.HasMajority != true) return "Rooms_GameChangeNoMajority";
+            return WriteGame(data, new(checked(_gameState.Revision + 1), proposal.Target));
+        }
+        catch { return "Rooms_GameChangeUpdateFailed"; }
+    }
+
+    public string CancelGameChange(RoomClient client, string proposalId)
+    {
+        try
+        {
+            var error = GetProposal(client, proposalId, true, out var data, out _);
+            return error.Length > 0 ? error : WriteGame(data, new(checked(_gameState.Revision + 1), _gameState.Game));
+        }
+        catch { return "Rooms_GameChangeUpdateFailed"; }
+    }
+
+    private RoomGameChange BuildGameChange(SteamRoomData data)
+    {
+        if (_gameState?.Proposal is not { } p || _gameNow >= p.ExpiresAt || !ProposalMatches(data, p)) return null;
+        if (_deadlineProposal != p.Id)
+        { _deadlineProposal = p.Id; _proposalDeadline = Now + p.ExpiresAt - _gameNow; }
+        else _proposalDeadline = Math.Min(_proposalDeadline, Now + p.ExpiresAt - _gameNow);
+        var votes = new List<RoomGameVote>();
+        foreach (var voter in p.Voters)
+        {
+            if (voter.SteamId == 0)
+            {
+                votes.Add(new(voter.CompanionId, voter.CompanionPresence,
+                    _gameNow >= p.StartedAt + 1 && (p.Id != _localGameProposal || Now >= _localCompanionAcceptAt)
+                        ? RoomGameVoteState.Accepted : RoomGameVoteState.Pending));
+                continue;
+            }
+            if (!_identities.TryGetValue(voter.SteamId, out var identity)) return null;
+            var state = voter.SteamId == p.Owner ? RoomGameVoteState.Accepted : RoomGameVoteState.Pending;
+            var raw = data.Members.FirstOrDefault(m => m.SteamId == voter.SteamId);
+            if (raw != null && SteamRoomProtocol.TryDecodeGameVote(raw.GameVote, out var proposal, out var session, out var sequence, out var accept)
+                && proposal == p.Id && session == voter.Session
+                && (!_gameVotes.TryGetValue(voter.SteamId, out var old) || old.Proposal != p.Id
+                    || old.Session != session || sequence > old.Sequence))
+                _gameVotes[voter.SteamId] = (proposal, session, sequence, accept);
+            if (voter.SteamId != p.Owner && _gameVotes.TryGetValue(voter.SteamId, out var vote)
+                && vote.Proposal == p.Id && vote.Session == voter.Session)
+                state = vote.Accept ? RoomGameVoteState.Accepted : RoomGameVoteState.Declined;
+            votes.Add(new(identity.Id, identity.Presence, state));
+        }
+        return new(p.Id.ToString("N"), p.Target, _proposalDeadline, votes.ToArray());
+    }
+
+    private static bool SameGameChange(RoomGameChange a, RoomGameChange b) => a == null ? b == null
+        : b != null && a.Id == b.Id && a.TargetGameId == b.TargetGameId
+            && a.ExpiresAt == b.ExpiresAt && a.Votes.SequenceEqual(b.Votes);
 
     public string SetName(RoomClient client, string name)
     {
@@ -550,6 +756,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     public string SendChat(RoomClient client, string text)
     {
         if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0) return "Rooms_ChatUnavailable";
+        try
+        {
+            if (ReadGame(client, false, out var room, allowBusy: true).Length > 0) return "Rooms_ChatUnavailable";
+            if (room.Game != "social") return "Rooms_ChatDisabled";
+        }
+        catch { return "Rooms_ChatUnavailable"; }
         var error = RoomRules.ValidateChat(text);
         if (error.Length > 0) return error;
         double now = _now();
@@ -565,7 +777,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             if (RoomRules.ValidateChat(displayText).Length > 0) return "Rooms_ChatUnavailable";
             long sequence = ++_chatSequence;
             _lastChatSentAt = now;
-            if (!_transport.SendChat(_lobby, SteamRoomProtocol.EncodeChat(_chatSession, sequence, sentAt, text)))
+            if (!_transport.SendChat(_lobby, SteamRoomProtocol.EncodeChat(_chatSession, sequence, sentAt, text, _gameState.Revision)))
                 return "Rooms_ChatUnavailable";
             client.Receive(new RoomChat(sequence, client.JoinedCode, member.Id, member.Presence,
                 displayText, now + RoomRules.ChatLifetime), now);
@@ -592,7 +804,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             return;
         }
         if (_banned.Contains(sender)
-            || !SteamRoomProtocol.TryDecodeChat(bytes, out var session, out var sequence, out var sentAt, out var text)) return;
+            || !SteamRoomProtocol.TryDecodeChat(bytes, out var session, out var sequence, out var sentAt, out var text, out var modeRevision)) return;
+        try
+        {
+            if (ReadGame(_client, false, out var room, allowBusy: true).Length > 0 || room.Game != "social"
+                || modeRevision != _gameState.Revision) return;
+        }
+        catch { return; }
         // Both clocks are supplied by Steam; local wall-clock settings are irrelevant.
         var age = _transport.ServerTime - sentAt;
         if (age < -2 || age >= RoomRules.ChatLifetime || sentAt < _chatJoinedAt) return;
@@ -616,13 +834,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     private void OnMemberDeparted(ulong lobby, ulong member)
     {
-        if (lobby == _lobby) { _identities.Remove(member); _chatSessions.Remove(member); _receivedChatAt.Remove(member); }
+        if (lobby == _lobby)
+        {
+            if (_gameState?.Proposal is { } proposal && proposal.Voters.Any(v => v.SteamId == member))
+                _invalidGameProposals.Add(proposal.Id);
+            _identities.Remove(member); _chatSessions.Remove(member); _receivedChatAt.Remove(member);
+        }
     }
 
     private void OnLobbyChanged(ulong lobby)
     {
         if (_disposed || _lobby == 0 || lobby != 0 && lobby != _lobby) return;
-        if (_companionWriteInProgress)
+        if (_companionWriteInProgress || _gameWriteInProgress)
         {
             // Steam dispatches later, but a fake/alternate transport may notify
             // from its setter. Re-read on the next tick rather than nesting Publish.
@@ -670,6 +893,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     private void Publish(SteamRoomData data, bool refreshCompanions = true)
     {
+        data = ObserveGameState(data);
         if (refreshCompanions)
         {
             UpdateCompanionPlan(data);
@@ -679,6 +903,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         foreach (var stale in _identities.Keys.Where(id => !present.Contains(id)).ToArray()) _identities.Remove(stale);
         foreach (var stale in _chatSessions.Keys.Where(id => !present.Contains(id)).ToArray()) _chatSessions.Remove(stale);
         foreach (var stale in _receivedChatAt.Keys.Where(id => !present.Contains(id)).ToArray()) _receivedChatAt.Remove(stale);
+        foreach (var stale in _gameVotes.Keys.Where(id => !present.Contains(id)).ToArray()) _gameVotes.Remove(stale);
         var members = new List<RoomMember>();
         foreach (var raw in data.Members.DistinctBy(m => m.SteamId).Take(RoomRules.Capacity))
         {
@@ -727,12 +952,14 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             }
         }
         var game = SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social";
+        var gameChange = BuildGameChange(data);
         var previous = _client.View;
         if (previous != null && previous.Code == SteamRoomProtocol.Encode(_lobby)
             && previous.Name == data.Name && previous.GameId == game && previous.OwnerId == owner
-            && previous.Access == data.Access && previous.Members.SequenceEqual(displayed)) return;
+            && previous.Access == data.Access && previous.CreatedAt == data.CreatedAt
+            && SameGameChange(previous.GameChange, gameChange) && previous.Members.SequenceEqual(displayed)) return;
         _client.Receive(new RoomSnapshot(SteamRoomProtocol.Encode(_lobby), data.Name,
-            game, owner, ++_revision, displayed.ToArray(), data.Access));
+            game, owner, ++_revision, displayed.ToArray(), data.Access, data.CreatedAt, _gameNow, gameChange));
     }
 
     private void UpdateCompanionPlan(SteamRoomData data)
@@ -826,6 +1053,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         _accessOwner = 0;
         ClearRenameOverride();
         ResetCompanions();
+        ResetGameState();
         _identities.Clear();
         _banned.Clear();
         _lastAppearance = "";
@@ -858,6 +1086,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                     if (_lobby == 0 || _lastRoomData == null) return;
                 }
                 FlushCompanionWrite(_lastRoomData);
+                AdvanceGameClock();
+                if (_gameState?.Proposal is { } proposal && _gameNow != _lastGameDisplaySecond)
+                {
+                    _lastGameDisplaySecond = _gameNow;
+                    Publish(_lastRoomData, refreshCompanions: false);
+                }
+                if (_gameState?.Proposal is { } invalid && (!ProposalMatches(_lastRoomData, invalid) || _gameNow >= invalid.ExpiresAt)
+                    && _lastRoomData.OwnerId == _transport.LocalSteamId && Now >= _nextGameCleanup)
+                {
+                    _nextGameCleanup = Now + 2;
+                    WriteGame(_lastRoomData, new(checked(_gameState.Revision + 1), _gameState.Game));
+                }
                 long second = Math.Max(_lastCompanionSecond, _transport.ServerTime);
                 if (_companionPlanAvailable && second != _lastCompanionSecond)
                 {

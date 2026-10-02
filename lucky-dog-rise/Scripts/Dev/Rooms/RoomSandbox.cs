@@ -29,8 +29,12 @@ public sealed class RoomSandbox : IRoomService
         public string Name = "";
         public string GameId = "social";
         public int Owner;
+        public long CreatedAt;
         public long Revision;
         public RoomAccess Access;
+        public RoomGameChange GameChange;
+        public int GameChangeOwner;
+        public double CompanionVoteAt;
         public RoomCompanionPlan Companions;
         public long LastCompanionSecond = -1;
         public RoomMember[] LastCompanionMembers = Array.Empty<RoomMember>();
@@ -52,6 +56,7 @@ public sealed class RoomSandbox : IRoomService
     private int _nextRoom;
     private long _nextPresence;
     private long _nextChat;
+    private long _nextGameChange;
     public double Now { get; private set; }
     public int PendingCount => _pending.Count;
     public int PendingRequestCount => _requests.Count;
@@ -114,7 +119,8 @@ public sealed class RoomSandbox : IRoomService
     {
         if (!RoomRules.TryNormalizeName(name, out name)) return new RoomResult(RoomFailure.InvalidName);
         Leave(client);
-        var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name, Owner = client.Id };
+        var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name,
+            Owner = client.Id, CreatedAt = (long)Now };
         room.Companions = CompanionFactory?.Invoke((long)Now);
         _rooms.Add(room.Code, room);
         return JoinResult(client, room.Code);
@@ -201,14 +207,136 @@ public sealed class RoomSandbox : IRoomService
     }
 
     public string SetGame(RoomClient client, string gameId)
+        => "Rooms_GameChangeRequired";
+
+    public string ProposeGameChange(RoomClient client, string targetGameId)
     {
-        if (!_rooms.TryGetValue(client.JoinedCode, out var room)) return "请先进入房间。";
-        if (room.Owner != client.Id) return "只有房主可以修改房间玩法。";
-        if (string.IsNullOrWhiteSpace(gameId) || gameId.Length > 32) return "玩法标识无效。";
-        room.GameId = gameId;
+        string error = GameChangeRoom(client, out var room);
+        if (error.Length > 0) return error;
+        if (room.Owner != client.Id) return "Rooms_GameChangeNotOwner";
+        if (!RoomRules.IsRoomMode(targetGameId) || room.GameId == targetGameId)
+            return "Rooms_GameChangeInvalidMode";
+        if (UpdateGameChange(room)) Broadcast(room);
+        if (room.GameChange != null) return "Rooms_GameChangeAlreadyPending";
+        if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
+        var votes = DisplayMembers(room).Select(member => new RoomGameVote(member.Id, member.Presence,
+            member.Id == room.Owner ? RoomGameVoteState.Accepted : RoomGameVoteState.Pending)).ToArray();
+        room.GameChange = new RoomGameChange($"mock-{++_nextGameChange}", targetGameId,
+            Now + RoomRules.GameChangeLifetime, votes);
+        room.GameChangeOwner = room.Owner;
+        room.CompanionVoteAt = Now + RoomRules.CompanionVoteDelay;
         Broadcast(room);
+        return "ok";
+    }
+
+    public string RespondGameChange(RoomClient client, string proposalId, bool accepted)
+    {
+        string error = GameChangeRoom(client, out var room);
+        if (error.Length > 0) return error;
+        error = CurrentGameChange(room, proposalId);
+        if (error.Length > 0) return error;
+        // The proposing host has accepted by proposing; withdrawing that intent
+        // cancels the proposal instead of recording a contradictory host vote.
+        if (room.Owner == client.Id) return accepted ? "ok" : "Rooms_GameChangeInvalidProposal";
+        var member = room.Members[client.Id];
+        int index = Array.FindIndex(room.GameChange.Votes,
+            vote => vote.MemberId == client.Id && vote.Presence == member.Presence);
+        if (index < 0) return "Rooms_GameChangeInvalidProposal";
+        var state = accepted ? RoomGameVoteState.Accepted : RoomGameVoteState.Declined;
+        if (room.GameChange.Votes[index].State == state) return "ok";
+        if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
+        var votes = (RoomGameVote[])room.GameChange.Votes.Clone();
+        votes[index] = votes[index] with { State = state };
+        room.GameChange = room.GameChange with { Votes = votes };
+        Broadcast(room);
+        return "ok";
+    }
+
+    public string ConfirmGameChange(RoomClient client, string proposalId)
+    {
+        string error = GameChangeRoom(client, out var room);
+        if (error.Length > 0) return error;
+        if (room.Owner != client.Id) return "Rooms_GameChangeNotOwner";
+        error = CurrentGameChange(room, proposalId);
+        if (error.Length > 0) return error;
+        if (!room.GameChange.HasMajority) return "Rooms_GameChangeNoMajority";
+        if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
+        room.GameId = room.GameChange.TargetGameId;
+        room.GameChange = null;
+        // A delayed message from the former chatting mode must not resurface
+        // after this room is switched back to chatting later.
+        if (room.GameId == "work") _pending.RemoveAll(delivery => delivery.Chat?.Code == room.Code);
+        Broadcast(room);
+        return "ok";
+    }
+
+    public string CancelGameChange(RoomClient client, string proposalId)
+    {
+        string error = GameChangeRoom(client, out var room);
+        if (error.Length > 0) return error;
+        if (room.Owner != client.Id) return "Rooms_GameChangeNotOwner";
+        error = CurrentGameChange(room, proposalId);
+        if (error.Length > 0) return error;
+        if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
+        room.GameChange = null;
+        Broadcast(room);
+        return "ok";
+    }
+
+    private string GameChangeRoom(RoomClient client, out Room room)
+    {
+        room = null;
+        if (client == null || !_clients.TryGetValue(client.Id, out var registered)
+            || !ReferenceEquals(registered, client) || client.IsBusy
+            || !_rooms.TryGetValue(client.JoinedCode, out room) || !room.Members.ContainsKey(client.Id))
+            return "Rooms_GameChangeUnavailable";
         return "";
     }
+
+    private bool FailGameChange(RoomClient client)
+    {
+        if (Settings(client).NextFailure == MockRoomFailure.None) return false;
+        Settings(client).NextFailure = MockRoomFailure.None;
+        return true;
+    }
+
+    private string CurrentGameChange(Room room, string proposalId)
+    {
+        if (room.GameChange == null || room.GameChange.Id != proposalId)
+            return "Rooms_GameChangeInvalidProposal";
+        bool expired = room.GameChange.ExpiresAt <= Now;
+        if (UpdateGameChange(room)) Broadcast(room);
+        return expired ? "Rooms_GameChangeExpired"
+            : room.GameChange == null ? "Rooms_GameChangeInvalidProposal" : "";
+    }
+
+    private bool UpdateGameChange(Room room)
+    {
+        if (room.GameChange == null) return false;
+        var members = DisplayMembers(room);
+        if (room.GameChange.ExpiresAt <= Now || room.Owner != room.GameChangeOwner
+            || room.GameChange.Votes.Length != members.Length
+            || room.GameChange.Votes.Any(vote => !members.Any(member =>
+                member.Id == vote.MemberId && member.Presence == vote.Presence)))
+        {
+            room.GameChange = null;
+            return true;
+        }
+        if (Now < room.CompanionVoteAt) return false;
+        var bots = members.Where(member => member.IsCompanion).Select(member => member.Id).ToHashSet();
+        var votes = room.GameChange.Votes;
+        if (!votes.Any(vote => bots.Contains(vote.MemberId) && vote.State == RoomGameVoteState.Pending))
+            return false;
+        room.GameChange = room.GameChange with
+        {
+            Votes = votes.Select(vote => bots.Contains(vote.MemberId) && vote.State == RoomGameVoteState.Pending
+                ? vote with { State = RoomGameVoteState.Accepted } : vote).ToArray()
+        };
+        return true;
+    }
+
+    private RoomMember[] DisplayMembers(Room room) => room.Members.Values.OrderBy(member => member.Id)
+        .Concat(room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>()).ToArray();
 
     // Development-only relationships; the production adapter delegates admission to Steam.
     public void SetFriends(RoomClient a, RoomClient b, bool friends = true)
@@ -291,6 +419,7 @@ public sealed class RoomSandbox : IRoomService
     {
         if (!_rooms.TryGetValue(client.JoinedCode, out var room)
             || !room.Members.TryGetValue(client.Id, out var member)) return "Rooms_ChatUnavailable";
+        if (room.GameId == "work") return "Rooms_ChatDisabled";
         var error = RoomRules.ValidateChat(text);
         if (error.Length > 0) return error;
         if (_lastChat.TryGetValue(client.Id, out var last) && Now - last < RoomRules.ChatCooldown)
@@ -331,11 +460,15 @@ public sealed class RoomSandbox : IRoomService
         foreach (var pending in requests)
             pending.Client.TryComplete(pending.Request.Id, () => Complete(pending));
         foreach (var room in _rooms.Values)
+        {
+            bool changed = UpdateGameChange(room);
             if (room.Companions != null && room.LastCompanionSecond != (long)Now)
             {
                 room.LastCompanionSecond = (long)Now;
-                if (!room.LastCompanionMembers.SequenceEqual(room.Companions.MembersAt((long)Now))) Broadcast(room);
+                changed |= !room.LastCompanionMembers.SequenceEqual(room.Companions.MembersAt((long)Now));
             }
+            if (changed) Broadcast(room);
+        }
         var due = _pending.Where(d => d.Due <= Now).OrderBy(d => d.Due).ToArray();
         _pending.RemoveAll(d => d.Due <= Now);
         foreach (var delivery in due)
@@ -349,6 +482,7 @@ public sealed class RoomSandbox : IRoomService
 
     private void Broadcast(Room room)
     {
+        UpdateGameChange(room);
         room.LastCompanionMembers = room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>();
         room.LastCompanionSecond = (long)Now;
         room.Revision++;
@@ -364,10 +498,11 @@ public sealed class RoomSandbox : IRoomService
         var old = _pending.FirstOrDefault(d => d.ClientId == client.Id && d.Snapshot != null);
         var due = old?.Due ?? Now + settings.Latency;
         _pending.RemoveAll(d => d.ClientId == client.Id && d.Snapshot != null);
-        var members = room.Members.Values.OrderBy(m => m.Id)
-            .Concat(room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>()).ToArray();
+        var members = DisplayMembers(room);
+        var gameChange = room.GameChange == null ? null
+            : room.GameChange with { Votes = (RoomGameVote[])room.GameChange.Votes.Clone() };
         var snapshot = new RoomSnapshot(room.Code, room.Name, room.GameId, room.Owner,
-            room.Revision, members, room.Access);
+            room.Revision, members, room.Access, room.CreatedAt, (long)Now, gameChange);
         _pending.Add(new Delivery(client.Id, client.Session, due, snapshot, null));
     }
 }

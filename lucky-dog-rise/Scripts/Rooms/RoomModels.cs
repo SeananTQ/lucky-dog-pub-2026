@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace LuckyDogRise.Rooms;
 
 // Room data is independent of Godot, Steam, inventory and the development simulator.
@@ -14,13 +16,26 @@ public sealed record RoomListing(string Code, string Name, string GameId, int Co
     public bool IsFull => (HumanCount ?? Count) >= Capacity;
 }
 public enum RoomAccess { Public = 0, FriendsOnly = 1, InviteOnly = 2 }
+public enum RoomGameVoteState { Pending, Accepted, Declined }
+public sealed record RoomGameVote(int MemberId, long Presence, RoomGameVoteState State, bool CountsForMajority = true);
+public sealed record RoomGameChange(string Id, string TargetGameId, double ExpiresAt, RoomGameVote[] Votes)
+{
+    public int ElectorateCount => Votes.Count(v => v.CountsForMajority);
+    public int AcceptedCount => Votes.Count(v => v.CountsForMajority && v.State == RoomGameVoteState.Accepted);
+    public int RequiredCount => ElectorateCount / 2 + 1;
+    public bool HasMajority => AcceptedCount >= RequiredCount;
+}
 public sealed record RoomSnapshot(string Code, string Name, string GameId, int OwnerId,
-    long Revision, RoomMember[] Members, RoomAccess Access = RoomAccess.Public);
+    long Revision, RoomMember[] Members, RoomAccess Access = RoomAccess.Public,
+    long? CreatedAt = null, long? ClockNow = null, RoomGameChange GameChange = null);
 public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
     string Text, double ExpiresAt);
 
 public static class RoomRules
 {
+    public const double GameChangeLifetime = 60;
+    public const double CompanionVoteDelay = 1;
+    public static bool IsRoomMode(string mode) => mode is "social" or "work";
     public const int MaxNameCharacters = 40;
     public static bool TryNormalizeName(string value, out string name)
     {

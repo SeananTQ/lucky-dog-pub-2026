@@ -58,7 +58,7 @@ internal static class RoomSettingsPageChecks
                 L10n.SetLocale(nextLocale, save: false);
                 await Frame();
                 Check(name.Text == "Rooms_Social" && name.PlaceholderText == L10n.Tr("Rooms_Name")
-                    && page.GetNode<Label>("Room/Game/Name").Text == string.Format(L10n.Tr("Rooms_GameFormat"), L10n.Tr("Rooms_Social")),
+                    && page.GetNode<OptionButton>("Room/Game/Choices/Current").Text == InGameRoomPreview.GameName("social"),
                     "locale changes translate game labels and placeholders but never the room name");
                 CheckOriginalRows("locale changes preserve live member rows and their buttons");
             }

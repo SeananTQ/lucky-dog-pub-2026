@@ -3,10 +3,10 @@ using System;
 
 namespace LuckyDogRise.Rooms;
 
-public sealed record SteamRoomMemberData(ulong SteamId, string Name, string Appearance, string Activity = "", string ChatSession = "");
+public sealed record SteamRoomMemberData(ulong SteamId, string Name, string Appearance, string Activity = "", string ChatSession = "", string GameVote = "");
 public sealed record SteamRoomData(ulong LobbyId, string Protocol, string Name, string Game,
     ulong OwnerId, int Count, int Capacity, SteamRoomMemberData[] Members, string BannedMembers = "1:",
-    RoomAccess Access = RoomAccess.Public, string Companions = "");
+    RoomAccess Access = RoomAccess.Public, string Companions = "", long? CreatedAt = null, string GameState = "");
 public sealed record SteamRoomJoinResult(RoomFailure Failure, ulong LobbyId);
 public sealed record SteamRoomSearchResult(RoomFailure Failure, ulong[] LobbyIds);
 
@@ -30,6 +30,8 @@ public interface ISteamRoomTransport : IDisposable
     SteamRoomData ReadLobby(ulong lobbyId, bool includeMembers);
     bool InitializeLobby(ulong lobbyId, string name);
     bool SetGame(ulong lobbyId, string game);
+    bool SetGameState(ulong lobbyId, string state) => false;
+    void SetGameVote(ulong lobbyId, string vote) { }
     bool SetName(ulong lobbyId, string name) => false;
     // False guarantees the previous policy remains intact. Throw if compensation
     // fails and native admission can no longer be confirmed against metadata.

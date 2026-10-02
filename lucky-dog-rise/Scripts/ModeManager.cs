@@ -912,6 +912,7 @@ public partial class ModeManager : Control
         UpdateFullscreenVisibility(_);
 #if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
+        UpdateRoomGameProposalPresentation();
         UpdateRoomJoinNotice(_);
         UpdateRoomChatBlindBoxDelay(_);
 #endif
