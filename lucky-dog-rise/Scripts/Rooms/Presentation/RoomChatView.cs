@@ -22,9 +22,21 @@ public partial class RoomChatView : Node2D
     // Evaluated at the input boundary as well as each frame: an overlay can start
     // after hover/rendering but before a queued click or Enter signal arrives.
     public Func<bool> InteractionAllowed { get; set; }
-    private bool CanInteract => _local && IsVisibleInTree() && (InteractionAllowed?.Invoke() ?? true);
+    private bool CanInteract => !_displaySuppressed && _local && IsVisibleInTree() && (InteractionAllowed?.Invoke() ?? true);
     public bool Editing => _composer.Visible;
-    public bool HasBubble => IsVisibleInTree() && (Editing || _messageText.Length > 0);
+    public bool HasBubble => !_displaySuppressed && IsVisibleInTree() && (Editing || _messageText.Length > 0);
+    private bool _displaySuppressed;
+    public void SetDisplaySuppressed(bool suppressed)
+    {
+        if (_displaySuppressed == suppressed) return;
+        _displaySuppressed = suppressed;
+        if (suppressed)
+        {
+            CloseChat(); // Preserve a draft while a local system notice takes priority.
+            _message.Hide(); _open.Hide(); _tail.Hide();
+        }
+        ReportBubbleActivity();
+    }
     private bool _reportedBubbleActivity;
     private bool _local;
     private double _hoverGrace;
@@ -76,6 +88,7 @@ public partial class RoomChatView : Node2D
     public override void _Process(double delta)
     {
         if (!IsVisibleInTree()) return;
+        if (_displaySuppressed) return;
         bool interactive = RefreshInteractionAvailability();
         _errorShakeRemaining = HasBubble ? Math.Max(0, _errorShakeRemaining - delta) : 0;
         if (interactive && RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;

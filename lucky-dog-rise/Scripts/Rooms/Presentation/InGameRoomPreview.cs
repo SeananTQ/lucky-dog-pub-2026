@@ -402,14 +402,15 @@ public partial class InGameRoomPreview : VBoxContainer
         },
         RoomRequestState.Cancelled => "Rooms_Cancelled",
         RoomRequestState.TimedOut => "Rooms_TimedOut",
-        RoomRequestState.Failed => _client.Failure switch
+        RoomRequestState.Failed => FailureKey(_client.Failure),
+        _ => ""
+    };
+    public static string FailureKey(RoomFailure failure) => failure switch
         {
             RoomFailure.InvalidName => "Rooms_InvalidName", RoomFailure.NotFound => "Rooms_NotFound",
             RoomFailure.Full => "Rooms_Full", RoomFailure.NoMatchingRoom => "Rooms_NoMatch",
             RoomFailure.Removed => "Rooms_Removed", RoomFailure.Banned => "Rooms_Banned", _ => "Rooms_Unavailable"
-        },
-        _ => ""
-    };
+        };
     private static void Clear(Node parent)
     {
         foreach (var child in parent.GetChildren()) { parent.RemoveChild(child); child.QueueFree(); }

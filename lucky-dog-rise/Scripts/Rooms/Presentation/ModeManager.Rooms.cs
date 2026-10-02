@@ -25,12 +25,15 @@ public partial class ModeManager
             .Instantiate<InGameRoomDirectoryRow>();
         var desktop = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn")
             .Instantiate<RoomDesktopPreview>();
+        var notice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn").Instantiate<CanvasLayer>();
         AddChild(row);
         AddChild(desktop);
+        AddChild(notice);
         try
         {
             row.Hide();
             desktop.Hide();
+            notice.GetChild<RoomChatView>(0).Present(false, false, "Export validation");
             row.Bind(new RoomListing("diagnostic", "Export validation", "social", 2, RoomRules.Capacity), false, () => { });
             row.SetBusy(true);
             var skin = LubanData.Tables.TbDogSkin.DataList[0].Id;
@@ -42,12 +45,13 @@ public partial class ModeManager
             desktop.Present(client, new Rect2(0, 0, 1280, 720), 1, 420, 0, true);
             if (desktop.RemoteDogs.Count != 1 || desktop.RemoteDogs.Single().Dog.GameData != null)
                 throw new System.InvalidOperationException("Exported remote dog scene could not be initialized.");
-            GD.Print("[RoomExportSmoke] Room page, translations, directory row and remote dog bindings passed.");
+            GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice and remote dog bindings passed.");
         }
         finally
         {
             desktop.Free();
             row.Free();
+            notice.Free();
         }
     }
 
@@ -69,6 +73,11 @@ public partial class ModeManager
     private const double RoomChatBlindBoxRestoreDelaySeconds = 5;
     private bool _roomChatBubbleActive;
     private double _roomChatBlindBoxRestoreRemaining;
+    private CanvasLayer _roomJoinNoticeLayer;
+    private RoomChatView _roomJoinNotice;
+    private string _roomJoinNoticeKey = "";
+    private double _roomJoinNoticeRemaining;
+    private bool _roomJoinNoticeWasVisible;
     private bool RoomChatSuppressesBlindBoxHint => _roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining > 0;
     // Includes the loading handoff and pending/restored rewards, not just the
     // overlay's animation tween. A ready, unopened box does not block chatting.
@@ -89,10 +98,21 @@ public partial class ModeManager
     private void AttachRoomDesktopPreview(RoomClient client)
     {
         if (ReferenceEquals(_desktopRoomClient, client)) return;
+        if (_desktopRoomClient != null)
+        {
+            _desktopRoomClient.JoinFailed -= OnRoomJoinFailed;
+            _desktopRoomClient.Changed -= OnRoomJoinNoticeStateChanged;
+        }
+        if (client != null) ClearRoomJoinNotice();
         RestoreRoomDesktopWindow();
         _roomDesktop?.Clear();
         _roomLastLayoutSnapshot = null;
         _desktopRoomClient = client;
+        if (client != null)
+        {
+            client.JoinFailed += OnRoomJoinFailed;
+            client.Changed += OnRoomJoinNoticeStateChanged;
+        }
         _roomLocalDogHits = new[] { "HitButton", "ClawLeftHitButton", "ClawRightHitButton" }
             .Select(path => _bossDogVisual.GetNode<Button>(path)).ToArray();
     }
@@ -126,7 +146,7 @@ public partial class ModeManager
                 _bossKeyContent.AddChild(_roomDesktop);
                 _roomDesktop.LocalChat.InteractionAllowed = () => RoomChatInteractionAllowed;
                 _roomDesktop.LocalChat.Opened += () => { CancelWindowDrag(); _settingsPanel.CloseImmediate(); };
-                _roomDesktop.LocalChat.BubbleActivityChanged += OnRoomChatBubbleActivityChanged;
+                _roomDesktop.LocalChat.BubbleActivityChanged += _ => RefreshRoomBubbleActivity();
             }
             _roomDesktop.Show();
             ApplyRoomDesktopLayout(force: true);
@@ -153,6 +173,70 @@ public partial class ModeManager
         // Chat and reward balloons share the same space. Remove the old balloon
         // before the first chat frame, including any in-progress fade-in tween.
         _bossBlindBoxHint?.SetDisplayVisible(false, animate: false);
+    }
+
+    private void RefreshRoomBubbleActivity() => OnRoomChatBubbleActivityChanged(
+        _roomDesktop?.LocalChat.HasBubble == true || _roomJoinNotice?.HasBubble == true);
+
+    private void OnRoomJoinFailed(RoomFailure failure, bool timedOut)
+    {
+        _roomJoinNoticeKey = timedOut ? "Rooms_TimedOut" : InGameRoomPreview.FailureKey(failure);
+        _roomJoinNoticeRemaining = RoomRules.ChatLifetime;
+        _roomJoinNoticeWasVisible = false;
+    }
+
+    private void OnRoomJoinNoticeStateChanged()
+    {
+        if (_desktopRoomClient == null) return;
+        // A new attempt, successful switch or explicit cancellation supersedes an old error.
+        if (_desktopRoomClient.IsBusy || _desktopRoomClient.Operation == RoomOperation.None
+            || _desktopRoomClient.RequestState is RoomRequestState.Succeeded or RoomRequestState.Cancelled)
+            ClearRoomJoinNotice();
+    }
+
+    private void ClearRoomJoinNotice()
+    {
+        _roomJoinNoticeKey = "";
+        _roomJoinNoticeRemaining = 0;
+        _roomJoinNoticeWasVisible = false;
+        _roomJoinNotice?.Hide();
+        if (_roomJoinNoticeLayer != null) _roomJoinNoticeLayer.Visible = false;
+        _roomDesktop?.LocalChat.SetDisplaySuppressed(false);
+        RefreshRoomBubbleActivity();
+    }
+
+    private void UpdateRoomJoinNotice(double delta)
+    {
+        if (_roomJoinNoticeRemaining <= 0) return;
+        // A system notice cannot cover a reveal or run out while the desktop dog is hidden.
+        bool visible = RoomChatInteractionAllowed && _bossDogVisual.IsVisibleInTree();
+        if (!visible)
+        {
+            _roomJoinNoticeWasVisible = false;
+            _roomJoinNotice?.Hide();
+            if (_roomJoinNoticeLayer != null) _roomJoinNoticeLayer.Visible = false;
+            return;
+        }
+        if (_roomJoinNoticeWasVisible) _roomJoinNoticeRemaining = System.Math.Max(0, _roomJoinNoticeRemaining - delta);
+        if (_roomJoinNoticeRemaining <= 0) { ClearRoomJoinNotice(); return; }
+        if (_roomJoinNoticeLayer == null)
+        {
+            // Reuse the chat prefab above the settings layer, without stealing input/focus.
+            _roomJoinNoticeLayer = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn")
+                .Instantiate<CanvasLayer>();
+            AddChild(_roomJoinNoticeLayer);
+            _roomJoinNotice = _roomJoinNoticeLayer.GetChild<RoomChatView>(0);
+            _roomJoinNotice.BubbleActivityChanged += _ => RefreshRoomBubbleActivity();
+        }
+        _roomJoinNotice.Scale = Vector2.One * _desktopPetScaleFactor;
+        _roomJoinNotice.Position = _bossDogVisual.GlobalPosition + new Vector2(-49, -140) * _desktopPetScaleFactor;
+        _roomJoinNoticeLayer.Visible = true;
+        _roomJoinNotice.Show();
+        _roomJoinNotice.Present(false, false, string.Format(InGameRoomPreview.ChatText("Rooms_JoinFailedNotice"),
+            InGameRoomPreview.ChatText(_roomJoinNoticeKey)));
+        // Announce the notice before retracting chat so their shared blind-box delay stays continuous.
+        _roomDesktop?.LocalChat.SetDisplaySuppressed(true);
+        _roomJoinNoticeWasVisible = true;
     }
 
     private void UpdateRoomChatBlindBoxDelay(double delta)
@@ -315,6 +399,9 @@ public partial class ModeManager
     public bool RoomDraggingForSmoke => _roomDragMember != 0 && _isDragging;
     public bool RoomClickThroughForSmoke => _isClickThrough;
     public bool RoomChatSuppressesHintForSmoke => RoomChatSuppressesBlindBoxHint;
+    public RoomChatView RoomJoinNoticeForSmoke => _roomJoinNotice;
+    public double RoomJoinNoticeRemainingForSmoke => _roomJoinNoticeRemaining;
+    public void RoomAdvanceJoinNoticeForSmoke(double delta) => UpdateRoomJoinNotice(delta);
     public void RoomAdvanceChatHintForSmoke(double delta) => UpdateRoomChatBlindBoxDelay(delta);
     public void RoomRefreshHintForSmoke() => RefreshBossBlindBoxHint();
     public void RoomActivityForSmoke(int reaction, bool input)

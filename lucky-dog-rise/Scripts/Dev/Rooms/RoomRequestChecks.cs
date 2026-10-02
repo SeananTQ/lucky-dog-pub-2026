@@ -15,7 +15,77 @@ internal static class RoomRequestChecks
         SearchAndLifecycleChecks();
         LateCallbackChecks();
         RemovalRaceChecks();
-        return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays, removal cancellation and reentrancy.";
+        JoinFailureNoticeChecks();
+        return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays, removal cancellation, local join failure notices and reentrancy.";
+    }
+
+    private static void JoinFailureNoticeChecks()
+    {
+        var service = new LateResultService();
+        using var client = new RoomClient(service, 1, "Local", 1012);
+        var notices = new List<(RoomFailure Reason, bool Timeout)>();
+        client.JoinFailed += (reason, timeout) => notices.Add((reason, timeout));
+        foreach (var reason in new[] { RoomFailure.Full, RoomFailure.NotFound, RoomFailure.Banned, RoomFailure.Unavailable })
+        {
+            client.Join("target");
+            var id = client.ActiveRequestId;
+            var before = notices.Count;
+            client.TryComplete(id, () => new RoomResult(reason));
+            Check(notices.Count == before + 1 && notices.Last() == (reason, false), "join failure reports exact reason once");
+            client.TryComplete(id, () => new RoomResult(reason));
+            client.SetReaction(1002);
+            Check(notices.Count == before + 1, "duplicate completion and appearance do not repeat notice");
+        }
+        client.Search();
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        client.Create("failed");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        client.Join("cancelled");
+        var cancelled = client.ActiveRequestId;
+        client.Cancel();
+        client.TryComplete(cancelled, () => new RoomResult(RoomFailure.Full));
+        Check(notices.Count == 4, "search/create failures and cancelled join remain silent");
+        client.FindAndJoin();
+        client.TryComplete(client.ActiveRequestId, () => RoomResult.Success);
+        Check(notices.Last() == (RoomFailure.NoMatchingRoom, false), "random join with no match reports failure");
+        client.FindAndJoin();
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.Last() == (RoomFailure.Unavailable, false), "random search service failure reports failure");
+        client.Join("timeout");
+        var timedOut = client.ActiveRequestId;
+        client.AdvanceTo(RoomRules.RequestTimeout);
+        Check(notices.Last() == (RoomFailure.None, true), "join timeout reported separately");
+        var count = notices.Count;
+        client.AdvanceTo(RoomRules.RequestTimeout + 1);
+        service.RemoteSuccess(client, timedOut, "late");
+        Check(notices.Count == count && client.JoinedCode == "", "late completion never renews notice or joins");
+        client.Join("original");
+        service.RemoteSuccess(client, client.ActiveRequestId, "original");
+        client.Join("full");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Full));
+        Check(client.JoinedCode == "original" && client.Bubbles.Count == 0 && service.ChatCalls == 0,
+            "failed switch retains room and notice never enters chat transport or shared bubbles");
+
+        // The old failure is delivered before Changed can start a new request,
+        // so that new request's pending event can retract the obsolete notice.
+        bool showing = false, retry = false;
+        client.JoinFailed += (_, _) => showing = true;
+        client.Changed += () =>
+        {
+            if (client.IsBusy) showing = false;
+            else if (!retry && client.RequestState == RoomRequestState.Failed)
+            { retry = true; client.Join("retry"); }
+        };
+        client.Join("reentrant");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Full));
+        Check(client.IsBusy && retry && !showing, "retry inside Changed clears old failure instead of reviving it");
+        client.Cancel();
+        service.OnCancel = () => client.Join("adapter retry");
+        client.Join("adapter timeout");
+        count = notices.Count;
+        client.AdvanceTo(RoomRules.RequestTimeout * 2 + 1);
+        Check(client.IsBusy && notices.Count == count, "reentrant adapter suppresses superseded timeout notice");
+        service.OnCancel = null;
     }
 
     private static void PendingAndFailureChecks()
@@ -259,13 +329,15 @@ internal static class RoomRequestChecks
         public readonly List<long> Cancelled = new();
         public readonly List<long> Compensated = new();
         public readonly HashSet<long> LiveResources = new();
+        public Action OnCancel;
+        public int ChatCalls;
         public void Request(RoomClient client, RoomRequest request) { }
-        public void Cancel(RoomClient client, long requestId) => Cancelled.Add(requestId);
+        public void Cancel(RoomClient client, long requestId) { Cancelled.Add(requestId); OnCancel?.Invoke(); }
         public void Leave(RoomClient client) { LiveResources.Clear(); client.BeginSession(""); }
         public void UpdateAppearance(RoomClient client) { }
         public void UpdateActivity(RoomClient client) { }
         public string SetGame(RoomClient client, string gameId) => "";
-        public string SendChat(RoomClient client, string text) => "";
+        public string SendChat(RoomClient client, string text) { ChatCalls++; return ""; }
         public string Kick(RoomClient client, int memberId, long presence) => "Rooms_KickUnavailable";
         public void RemoteSuccess(RoomClient client, long requestId, string code)
         {

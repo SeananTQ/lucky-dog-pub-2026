@@ -91,6 +91,33 @@ public static class InGameRoomSmoke
             var originalWindowSize = DisplayServer.WindowGetSize();
             var originalWindowPosition = DisplayServer.WindowGetPosition();
             var localDog = main.GetNode<DogVisual>("BossKeyContent/ContentA/DogArea");
+            client.Join("missing-notice-test");
+            await Settle();
+            var notice = main.RoomJoinNoticeForSmoke;
+            Check(notice?.HasBubble == true && !notice.Editing && main.RoomChatSuppressesHintForSmoke,
+                "first join failure uses passive dog bubble even before entering a room");
+            Check(notice.GetNode<Label>("Message/Text").Text.Contains(InGameRoomPreview.ChatText("Rooms_NotFound"))
+                && !notice.GetNode<Label>("Message/Text").Text.Contains("Rooms_"), "notice includes localized failure reason");
+            Check(DisplayServer.WindowGetSize() == originalWindowSize && !main.RoomDesktopWindowActive
+                && client.Bubbles.Count == 0, "failure notice neither expands window nor broadcasts chat");
+            Check(notice.GetParent<CanvasLayer>().Layer > panel.Layer && !notice.ContainsPoint(notice.GlobalPosition),
+                "passive notice renders above settings without intercepting input");
+            await Capture(main, "join-failed-alone");
+            main.RoomFullscreenHideForSmoke(true);
+            main.RoomAdvanceJoinNoticeForSmoke(0);
+            var remaining = main.RoomJoinNoticeRemainingForSmoke;
+            main.RoomAdvanceJoinNoticeForSmoke(20);
+            Check(!notice.HasBubble && main.RoomJoinNoticeRemainingForSmoke == remaining,
+                "hidden dog defers notice without consuming its display lifetime");
+            main.RoomFullscreenHideForSmoke(false);
+            main.RoomAdvanceJoinNoticeForSmoke(0);
+            Check(notice.HasBubble, "deferred failure returns when dog becomes visible");
+            main.RoomAdvanceJoinNoticeForSmoke(RoomRules.ChatLifetime + 1);
+            Check(!notice.HasBubble && main.RoomChatSuppressesHintForSmoke, "notice expires but blind-box delay remains");
+            main.RoomAdvanceChatHintForSmoke(4.9);
+            Check(main.RoomChatSuppressesHintForSmoke, "blind-box hint stays suppressed for five seconds after notice");
+            main.RoomAdvanceChatHintForSmoke(0.2);
+            Check(!main.RoomChatSuppressesHintForSmoke, "blind-box suppression ends after notice cooldown");
             row.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
             Check(client.View?.Members.Length == 3, "join from directory yields three members");
@@ -117,6 +144,26 @@ public static class InGameRoomSmoke
             var remoteClient = page.MockClientForSmoke(remotes[0].MemberId);
             var chat = main.RoomDesktopForSmoke.LocalChat;
             var rewardHint = main.GetNode<BalloonHintController>("BossKeyContent/CanvasLayer/BlindBoxHint");
+            chat.OpenChat();
+            var draftInput = chat.GetNode<LineEdit>("Composer/Content/Input");
+            draftInput.Text = "unfinished draft";
+            client.Join("missing-from-current-room");
+            await Settle();
+            Check(client.JoinedCode == restoreCode && notice.HasBubble && !chat.Editing && !chat.HasBubble,
+                "failed room switch retains membership and temporarily replaces local composer");
+            Check(!panel.IsOpen && draftInput.Text == "unfinished draft" && remoteClient.Bubbles.Count == 0,
+                "notice preserves draft and closed panel, with no remote chat");
+            chat.OpenChat();
+            Check(!chat.Editing, "notice prevents overlapping composer");
+            // Let the actual frame timer expire once, rather than advancing a test clock.
+            await Wait(RoomRules.ChatLifetime + 0.2);
+            Check(!notice.HasBubble && main.RoomChatSuppressesHintForSmoke, "frame-driven notice lifetime expires");
+            chat.OpenChat();
+            Check(chat.Editing && draftInput.Text == "unfinished draft", "composer can reopen with preserved draft");
+            draftInput.Clear();
+            chat.CloseChat();
+            main.RoomAdvanceChatHintForSmoke(5.1);
+            GD.Print("[InGameRoomSmoke] JOIN_NOTICE_PASS localized standalone error, passive layering, visibility pause, expiry, blind-box delay, retained room/draft and remote isolation.");
             main.RoomRefreshHintForSmoke();
             await Wait(0.2);
             Check(rewardHint.Modulate.A > 0.99f, "baseline countdown balloon is visible");

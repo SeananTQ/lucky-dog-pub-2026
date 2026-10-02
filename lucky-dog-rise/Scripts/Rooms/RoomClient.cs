@@ -28,6 +28,8 @@ public sealed class RoomClient : IDisposable
     public bool ShowNames { get; set; } = true;
     public IReadOnlyDictionary<int, RoomChat> Bubbles => _bubbles;
     public event Action Changed;
+    // Local presentation only; never a room chat message or transport payload.
+    public event Action<RoomFailure, bool> JoinFailed;
     private long _nextRequestId;
     private RoomRequest _request;
     private double _now;
@@ -105,6 +107,8 @@ public sealed class RoomClient : IDisposable
                 RequestState = RoomRequestState.Failed;
             }
         }
+        if ((Operation == RoomOperation.Join || autoJoin) && RequestState == RoomRequestState.Failed)
+            JoinFailed?.Invoke(Failure, false);
         Changed?.Invoke();
         return true;
     }
@@ -113,12 +117,17 @@ public sealed class RoomClient : IDisposable
     private void CancelPending(RoomRequestState state)
     {
         if (_request == null) return;
+        bool joining = Operation == RoomOperation.Join || _joinAfterSearch;
         var id = _request.Id;
         _request = null; // Invalidate before invoking a possibly reentrant adapter.
         _joinAfterSearch = false;
         RequestState = state;
         Failure = RoomFailure.None;
         _service.Cancel(this, id);
+        // Cancellation adapters can reenter; an old timeout must not overwrite
+        // a newer attempt or an explicit leave from that callback.
+        if (_disposed || _nextRequestId != id || RequestState != state) return;
+        if (joining && state == RoomRequestState.TimedOut) JoinFailed?.Invoke(RoomFailure.None, true);
         if (!_committing) Changed?.Invoke();
     }
     public void Leave()
@@ -188,6 +197,7 @@ public sealed class RoomClient : IDisposable
         if (_disposed) return;
         _disposed = true;
         Changed = null;
+        JoinFailed = null;
         CancelPending(RoomRequestState.Cancelled);
         _service.Leave(this);
     }

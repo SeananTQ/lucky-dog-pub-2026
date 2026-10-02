@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat"]
+
+[node name="RoomJoinNotice" type="CanvasLayer"]
+layer = 101
+visible = false
+
+[node name="Chat" parent="." instance=ExtResource("chat")]
+visible = false
