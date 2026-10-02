@@ -31,6 +31,9 @@ public sealed class RoomSandbox : IRoomService
         public int Owner;
         public long Revision;
         public RoomAccess Access;
+        public RoomCompanionPlan Companions;
+        public long LastCompanionSecond = -1;
+        public RoomMember[] LastCompanionMembers = Array.Empty<RoomMember>();
         public readonly Dictionary<int, RoomMember> Members = new();
         public readonly HashSet<int> BannedClients = new();
         public readonly HashSet<int> Invitees = new();
@@ -52,10 +55,12 @@ public sealed class RoomSandbox : IRoomService
     public double Now { get; private set; }
     public int PendingCount => _pending.Count;
     public int PendingRequestCount => _requests.Count;
+    // Opt-in C-stage feature. The A-stage lab keeps independent human simulators.
+    public Func<long, RoomCompanionPlan> CompanionFactory { get; set; }
 
     public RoomClient AddClient(int id, string name, int skinId)
     {
-        if (_clients.ContainsKey(id)) throw new ArgumentException("Duplicate client identity.");
+        if (id <= 0 || _clients.ContainsKey(id)) throw new ArgumentException("Invalid or duplicate client identity.");
         var client = new RoomClient(this, id, name, skinId);
         _clients.Add(id, client);
         _settings.Add(id, new MockRoomSettings());
@@ -109,6 +114,7 @@ public sealed class RoomSandbox : IRoomService
         if (name.Length is < 1 or > 40) return new RoomResult(RoomFailure.InvalidName);
         Leave(client);
         var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name, Owner = client.Id };
+        room.Companions = CompanionFactory?.Invoke((long)Now);
         _rooms.Add(room.Code, room);
         return JoinResult(client, room.Code);
     }
@@ -128,6 +134,7 @@ public sealed class RoomSandbox : IRoomService
         client.BeginSession(room.Code);
         room.Members.Add(client.Id, new RoomMember(client.Id, client.Name,
             client.SkinId, client.HeadwearId, client.Reaction, ++_nextPresence, client.ActivitySequence));
+        room.Companions = room.Companions?.WithHumanCount(room.Members.Count);
         Broadcast(room);
         return RoomResult.Success;
     }
@@ -291,6 +298,12 @@ public sealed class RoomSandbox : IRoomService
         _requests.RemoveAll(r => r.Due <= Now);
         foreach (var pending in requests)
             pending.Client.TryComplete(pending.Request.Id, () => Complete(pending));
+        foreach (var room in _rooms.Values)
+            if (room.Companions != null && room.LastCompanionSecond != (long)Now)
+            {
+                room.LastCompanionSecond = (long)Now;
+                if (!room.LastCompanionMembers.SequenceEqual(room.Companions.MembersAt((long)Now))) Broadcast(room);
+            }
         var due = _pending.Where(d => d.Due <= Now).OrderBy(d => d.Due).ToArray();
         _pending.RemoveAll(d => d.Due <= Now);
         foreach (var delivery in due)
@@ -304,6 +317,8 @@ public sealed class RoomSandbox : IRoomService
 
     private void Broadcast(Room room)
     {
+        room.LastCompanionMembers = room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>();
+        room.LastCompanionSecond = (long)Now;
         room.Revision++;
         foreach (var id in room.Members.Keys) QueueSnapshot(_clients[id], room);
     }
@@ -317,8 +332,10 @@ public sealed class RoomSandbox : IRoomService
         var old = _pending.FirstOrDefault(d => d.ClientId == client.Id && d.Snapshot != null);
         var due = old?.Due ?? Now + settings.Latency;
         _pending.RemoveAll(d => d.ClientId == client.Id && d.Snapshot != null);
+        var members = room.Members.Values.OrderBy(m => m.Id)
+            .Concat(room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>()).ToArray();
         var snapshot = new RoomSnapshot(room.Code, room.Name, room.GameId, room.Owner,
-            room.Revision, room.Members.Values.OrderBy(m => m.Id).ToArray(), room.Access);
+            room.Revision, members, room.Access);
         _pending.Add(new Delivery(client.Id, client.Session, due, snapshot, null));
     }
 }

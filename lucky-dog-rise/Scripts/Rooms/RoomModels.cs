@@ -4,7 +4,8 @@ namespace LuckyDogRise.Rooms;
 // Member Id is a session-local key. A platform adapter maps SteamID64 to this key;
 // it must never cast a SteamID64 to int or use a local slot as platform identity.
 public sealed record RoomMember(int Id, string Name, int SkinId, int HeadwearId,
-    int Reaction, long Presence, long ActivitySequence = 0, bool TongueActive = false);
+    int Reaction, long Presence, long ActivitySequence = 0, bool TongueActive = false,
+    bool IsCompanion = false);
 public sealed record RoomListing(string Code, string Name, string GameId, int Count, int Capacity);
 public enum RoomAccess { Public = 0, FriendsOnly = 1, InviteOnly = 2 }
 public sealed record RoomSnapshot(string Code, string Name, string GameId, int OwnerId,

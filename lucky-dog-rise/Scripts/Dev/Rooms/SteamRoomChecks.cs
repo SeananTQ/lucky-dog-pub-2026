@@ -42,9 +42,173 @@ public static class SteamRoomChecks
         CheckAccessProtocol();
         CheckAccessAuthorityAndMigration();
         CheckAccessFailuresAndAdmission();
+        CheckCompanionLifecycle();
+        CheckCompanionMigrationAndFallback();
+        CheckCompanionWritesAndActivityLease();
     }
 
     private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckCompanionLifecycle()
+    {
+        var transport = new FakeTransport();
+        int generations = 0;
+        using var service = Service(transport, companions: started =>
+        {
+            generations++;
+            return RoomCompanionPlan.Create([10, 20], [0, 30, 40], started, 123 + generations);
+        });
+        using var client = Client(service);
+        client.Create("companions"); transport.SucceedMembership(1601);
+        var initial = client.View.Members.Where(m => m.IsCompanion).ToArray();
+        string firstWire = transport.Rooms[1601].Companions;
+        Assert(generations == 1 && initial.Length == 3 && client.View.Members.Length == 4
+            && initial.All(m => m.Id < 0) && initial.Select(m => m.Id).Distinct().Count() == 3
+            && transport.Rooms[1601].Count == 1 && client.View.OwnerId == client.Id,
+            "one real Steam member gets three distinct display companions without fake Steam membership");
+        Assert(client.Kick(initial[0].Id, initial[0].Presence) == "Rooms_KickInvalidTarget"
+            && transport.BanWrites.Count == 0 && transport.Chats.Count == 0,
+            "companion identities cannot become kick targets or chat authors");
+        for (int second = 0; second < 80; second++)
+        {
+            transport.Now = second;
+            client.AdvanceTo(second);
+            service.Tick();
+            foreach (var bot in client.View.Members.Where(m => m.IsCompanion))
+            {
+                var original = initial.Single(m => m.Id == bot.Id);
+                Assert(bot.Name == original.Name && bot.SkinId == original.SkinId
+                    && bot.HeadwearId == original.HeadwearId && bot.Presence == original.Presence,
+                    "animation never rerolls name, appearance or companion identity");
+            }
+        }
+        Assert(transport.CompanionWrites.Count == 1 && transport.AppearanceWrites.Count == 1,
+            "eighty seconds of local activity make no periodic Steam writes");
+        transport.SetRemote(1601, new SteamRoomMemberData(88, "two", "1:10:0:1001"));
+        Assert(client.View.Members.Length == 4 && client.View.Members.Count(m => m.IsCompanion) == 2
+            && transport.CompanionWrites.Count == 2, "second human retires exactly one companion durably");
+        transport.RemoveRemote(1601, 88);
+        Assert(client.View.Members.Count(m => m.IsCompanion) == 2, "departing human does not replenish companions");
+        foreach (ulong id in new ulong[] { 99, 100, 101 })
+            transport.SetRemote(1601, new SteamRoomMemberData(id, "human", "1:10:0:1001"));
+        Assert(client.View.Members.Length == 4 && client.View.Members.All(m => !m.IsCompanion),
+            "four humans retire all three companions");
+        transport.SetRemote(1601, new SteamRoomMemberData(102, "fifth", "1:10:0:1001"));
+        transport.SetRemote(1601, new SteamRoomMemberData(103, "sixth", "1:10:0:1001"));
+        Assert(client.View.Members.Length == 6 && client.View.Members.All(m => !m.IsCompanion),
+            "all six places remain available to real Steam members");
+        foreach (ulong id in new ulong[] { 99, 100, 101, 102, 103 }) transport.RemoveRemote(1601, id);
+        var retiredWire = transport.Rooms[1601].Companions;
+        transport.ChangeCompanions(1601, firstWire);
+        Assert(client.View.Members.Length == 1 && transport.Rooms[1601].Companions == retiredWire,
+            "late older retirement metadata cannot resurrect a companion");
+        client.Create("new room"); transport.SucceedMembership(1602);
+        Assert(generations == 2 && client.View.Members.Count(m => m.IsCompanion) == 3
+            && transport.Rooms[1602].Companions != firstWire,
+            "new room gets its own fixed generation instead of inheriting former retirements");
+        transport.CompanionWriteSucceeds = false;
+        client.Create("metadata refusal"); transport.SucceedMembership(1603);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(1602) && transport.Left.Contains(1603),
+            "failed initialization cleans the new lobby and preserves the existing room");
+    }
+
+    private static void CheckCompanionMigrationAndFallback()
+    {
+        var transport = new FakeTransport();
+        int creations = 0;
+        using var service = Service(transport, companions: started =>
+        {
+            creations++;
+            return RoomCompanionPlan.Create([10], [0], started, 77);
+        });
+        using var client = Client(service);
+        var plan = RoomCompanionPlan.Create([10, 20], [30, 40], transport.ServerTime, 321);
+        transport.Seed(1611, new SteamRoomMemberData(88, "host", "1:10:0:1001"));
+        transport.SetOwner(1611, 88, false);
+        transport.ChangeCompanions(1611, plan.ToWire(), false);
+        client.Join(SteamRoomProtocol.Encode(1611)); transport.SucceedMembership(1611);
+        var inherited = client.View.Members.Where(m => m.IsCompanion).ToArray();
+        Assert(creations == 0 && inherited.Length == 2 && transport.CompanionWrites.Count == 0,
+            "joining derives a conservative mask without generating or writing another host's plan");
+        transport.RemoveRemote(1611, 88);
+        transport.SetOwner(1611, 77);
+        Assert(creations == 0 && client.View.Members.Where(m => m.IsCompanion).SequenceEqual(inherited)
+            && transport.CompanionWrites.Count == 1
+            && RoomCompanionPlan.TryRead(transport.Rooms[1611].Companions, out var migrated)
+            && migrated.SameGeneration(plan) && migrated.RetiredMask != 0,
+            "successor keeps identity, fixed outfit and observed retirement state and writes it once");
+        var goodWire = transport.Rooms[1611].Companions;
+        foreach (var invalid in new[] { "", "broken", new string('x', 9000) })
+        {
+            transport.ChangeCompanions(1611, invalid);
+            Assert(client.View.Members.Length == 1 && client.JoinedCode.Length > 0,
+                "invalid optional companion metadata falls back to humans without disconnecting");
+            transport.ChangeCompanions(1611, goodWire);
+            Assert(client.View.Members.Count(m => m.IsCompanion) == 2,
+                "valid recovery preserves retired count rather than restoring the original three");
+        }
+        transport.ChangeCompanions(1611, RoomCompanionPlan.Create([20], [0], transport.ServerTime, 999).ToWire());
+        Assert(client.View.Members.Length == 1, "a replaced generation cannot reroll an established room");
+        transport.ChangeCompanions(1611, goodWire);
+        client.Leave();
+        transport.Seed(1612);
+        transport.ChangeCompanions(1612,
+            RoomCompanionPlan.Create([99999], [99999], transport.ServerTime, 543).ToWire(), false);
+        client.Join(SteamRoomProtocol.Encode(1612)); transport.SucceedMembership(1612);
+        Assert(client.View.Members.Count(m => m.IsCompanion) == 3
+            && client.View.Members.Where(m => m.IsCompanion).All(m => m.SkinId == 10
+                && m.HeadwearId == 0 && m.Reaction is 1001 or 1002),
+            "new membership resets generation cache and sanitizes untrusted cosmetic ids");
+    }
+
+    private static void CheckCompanionWritesAndActivityLease()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: started => RoomCompanionPlan.Create([10], [0], started, 901));
+        using var client = Client(service);
+        client.Create("retirement retry"); transport.SucceedMembership(1621);
+        transport.CompanionWriteSucceeds = false;
+        transport.SetRemote(1621, new SteamRoomMemberData(88, "active human", "1:10:0:1001", "1:1:1"));
+        int remoteId = client.View.Members.Single(m => !m.IsCompanion && m.Id != client.Id).Id;
+        Assert(client.IsTongueActive(remoteId) && client.View.Members.Count(m => m.IsCompanion) == 2,
+            "retirement applies locally even while its durable write is temporarily refused");
+        int attempts = transport.CompanionWriteAttempts;
+        transport.Now = 1; client.AdvanceTo(1); service.Tick();
+        transport.Now = 4; client.AdvanceTo(4); service.Tick();
+        Assert(!client.IsTongueActive(remoteId) && transport.CompanionWriteAttempts == attempts,
+            "bot clock does not renew cached real activity or retry metadata every second");
+        transport.CompanionWriteSucceeds = true;
+        transport.Now = 5; client.AdvanceTo(5); service.Tick();
+        Assert(transport.CompanionWriteAttempts == attempts + 1 && transport.CompanionWrites.Count == 2,
+            "dirty retirement retries after five seconds and persists once");
+        attempts = transport.CompanionWriteAttempts;
+        int changes = 0;
+        client.Changed += () => changes++;
+        for (int second = 6; second < 60; second++)
+        {
+            transport.Now = second; client.AdvanceTo(second); service.Tick();
+            int beforeDuplicate = changes;
+            service.Tick(); service.Tick();
+            Assert(changes == beforeDuplicate, "repeated ticks in one Steam second do not rebuild the room snapshot");
+        }
+        Assert(transport.CompanionWriteAttempts == attempts && !client.IsTongueActive(remoteId),
+            "successful write without a metadata callback does not resend from stale cached lobby data");
+        var beforeClockRegression = client.View.Members.ToArray();
+        long revisionBeforeClockRegression = client.View.Revision;
+        transport.Now = 3; service.Tick();
+        transport.SetRemote(1621, transport.Rooms[1621].Members.Single(m => m.SteamId == 88));
+        Assert(client.View.Revision == revisionBeforeClockRegression
+            && client.View.Members.SequenceEqual(beforeClockRegression),
+            "Steam time moving backwards cannot replay older companion activity phases");
+        transport.Now = 60;
+        transport.CompanionWriteNotifies = true;
+        transport.SetRemote(1621, new SteamRoomMemberData(99, "third", "1:10:0:1001"));
+        service.Tick();
+        Assert(client.View.Members.Count(m => m.IsCompanion) == 1,
+            "synchronous metadata notifications settle without recursive companion writes");
+        transport.IsAvailable = false; service.Tick();
+        Assert(client.View == null, "disconnect clears companions and their animation clock");
+    }
 
     private static void CheckAccessProtocol()
     {
@@ -804,9 +968,10 @@ public static class SteamRoomChecks
         if (!condition) throw new InvalidOperationException("Steam room check failed: " + message);
     }
 
-    private static SteamRoomService Service(FakeTransport transport, SteamRoomInviteInbox invitations = null) => new(transport, 10,
+    private static SteamRoomService Service(FakeTransport transport, SteamRoomInviteInbox invitations = null,
+        Func<long, RoomCompanionPlan> companions = null) => new(transport, 10,
         skin => skin is 10 or 20, hat => hat is 30 or 40, reaction => reaction is 1001 or 1002,
-        () => transport.Now, invitations);
+        () => transport.Now, invitations, companions);
     private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10);
 
     private static void CheckCodes()
@@ -1051,6 +1216,10 @@ public static class SteamRoomChecks
         public readonly Dictionary<ulong, RoomAccess> NativeAccess = new();
         public readonly Queue<bool> AccessNativeResults = new();
         public bool AccessMetadataSucceeds = true;
+        public readonly List<(ulong Lobby, string Value)> CompanionWrites = new();
+        public int CompanionWriteAttempts;
+        public bool CompanionWriteSucceeds = true;
+        public bool CompanionWriteNotifies;
         public bool Disposed;
         public double Now;
         public long ServerTime => 100000 + (long)Now;
@@ -1171,6 +1340,20 @@ public static class SteamRoomChecks
                     Rooms[lobbyId] = Rooms[lobbyId] with { Access = value };
                     return true;
                 });
+        }
+        public bool SetCompanions(ulong lobbyId, string companions)
+        {
+            CompanionWriteAttempts++;
+            if (!CompanionWriteSucceeds || Rooms[lobbyId].OwnerId != LocalSteamId
+                || !RoomCompanionPlan.TryRead(companions, out _)) return false;
+            CompanionWrites.Add((lobbyId, companions));
+            ChangeCompanions(lobbyId, companions, CompanionWriteNotifies);
+            return true;
+        }
+        public void ChangeCompanions(ulong lobbyId, string companions, bool notify = true)
+        {
+            Rooms[lobbyId] = Rooms[lobbyId] with { Companions = companions };
+            if (notify) LobbyChanged(lobbyId);
         }
         public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
         public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);

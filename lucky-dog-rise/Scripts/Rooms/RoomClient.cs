@@ -35,6 +35,7 @@ public sealed class RoomClient : IDisposable
     private double _now;
     private double _deadline;
     private bool _joinAfterSearch;
+    private long _directoryCreateRequestId;
     private bool _disposed;
     private bool _committing;
     public bool IsBusy => _request != null;
@@ -44,7 +45,8 @@ public sealed class RoomClient : IDisposable
     public RoomListing[] Listings { get; private set; } = Array.Empty<RoomListing>();
     public long ActiveRequestId => _request?.Id ?? 0;
 
-    public bool Create(string name) => BeginRequest(RoomOperation.Create, name);
+    public bool Create(string name, bool joiningFromDirectory = false)
+        => BeginRequest(RoomOperation.Create, name, joiningFromDirectory);
     public bool Join(string code) => BeginRequest(RoomOperation.Join, code);
     public bool Search() => BeginRequest(RoomOperation.Search, "");
     public bool FindAndJoin()
@@ -60,13 +62,16 @@ public sealed class RoomClient : IDisposable
     public string Kick(int memberId, long presence) => _disposed || _committing
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
-    private bool BeginRequest(RoomOperation operation, string value)
+    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false)
     {
         if (IsBusy || _disposed || _committing) return false;
         Operation = operation;
         RequestState = RoomRequestState.Pending;
         Failure = RoomFailure.None;
         _request = new RoomRequest(++_nextRequestId, operation, value ?? "");
+        // This is presentation intent for one accepted request, not a different
+        // transport operation. Busy/reentrant rejected calls cannot overwrite it.
+        _directoryCreateRequestId = operation == RoomOperation.Create && joiningFromDirectory ? _request.Id : 0;
         _deadline = _now + RoomRules.RequestTimeout;
         var request = _request;
         Changed?.Invoke();
@@ -94,6 +99,8 @@ public sealed class RoomClient : IDisposable
         finally { _committing = false; }
         if (!IsRequestCurrent(id)) return false;
         var autoJoin = _joinAfterSearch && Operation == RoomOperation.Search;
+        bool directoryJoin = _directoryCreateRequestId == id && Operation == RoomOperation.Create;
+        _directoryCreateRequestId = 0;
         _joinAfterSearch = false;
         _request = null;
         Failure = result.Failure;
@@ -109,7 +116,7 @@ public sealed class RoomClient : IDisposable
                 RequestState = RoomRequestState.Failed;
             }
         }
-        if ((Operation == RoomOperation.Join || autoJoin) && RequestState == RoomRequestState.Failed)
+        if ((Operation == RoomOperation.Join || autoJoin || directoryJoin) && RequestState == RoomRequestState.Failed)
             JoinFailed?.Invoke(Failure, false);
         Changed?.Invoke();
         return true;
@@ -119,8 +126,9 @@ public sealed class RoomClient : IDisposable
     private void CancelPending(RoomRequestState state)
     {
         if (_request == null) return;
-        bool joining = Operation == RoomOperation.Join || _joinAfterSearch;
+        bool joining = Operation == RoomOperation.Join || _joinAfterSearch || _directoryCreateRequestId == _request.Id;
         var id = _request.Id;
+        _directoryCreateRequestId = 0;
         _request = null; // Invalidate before invoking a possibly reentrant adapter.
         _joinAfterSearch = false;
         RequestState = state;
@@ -162,6 +170,7 @@ public sealed class RoomClient : IDisposable
             var requestId = _request?.Id ?? 0;
             _request = null;
             _joinAfterSearch = false;
+            _directoryCreateRequestId = 0;
             if (requestId != 0) _service.Cancel(this, requestId);
             var session = Session;
             _service.Leave(this);
@@ -289,7 +298,7 @@ public sealed class RoomClient : IDisposable
     internal void Receive(RoomChat chat, double now)
     {
         if (_disposed || chat.Code != JoinedCode || chat.ExpiresAt <= now || RoomRules.ValidateChat(chat.Text).Length > 0
-            || View == null || !View.Members.Any(m => m.Id == chat.SenderId && m.Presence == chat.Presence)
+            || View == null || !View.Members.Any(m => !m.IsCompanion && m.Id == chat.SenderId && m.Presence == chat.Presence)
             || (_chatSequences.TryGetValue(chat.SenderId, out var last) && chat.Id <= last)
             || (_receivedChatAt.TryGetValue(chat.SenderId, out var receivedAt)
                 && now - receivedAt < RoomRules.ChatCooldown)) return;

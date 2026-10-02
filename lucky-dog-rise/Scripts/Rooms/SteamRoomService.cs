@@ -29,6 +29,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private readonly Func<int, bool> _validHeadwear;
     private readonly Func<int, bool> _validReaction;
     private readonly Func<double> _now;
+    private readonly Func<long, RoomCompanionPlan> _createCompanions;
     private readonly Dictionary<ulong, (int Id, long Presence)> _identities = new();
     private readonly HashSet<ulong> _banned = new();
     private readonly HashSet<ulong> _blockedLobbies = new();
@@ -37,6 +38,15 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private Pending _queued;
     private ulong _lobby;
     private ulong _accessOwner;
+    private RoomCompanionPlan _companionPlan;
+    private bool _companionPlanAvailable;
+    private SteamRoomData _lastRoomData;
+    private long _lastCompanionSecond = -1;
+    private string _pendingCompanions = "";
+    private double _nextCompanionWrite;
+    private int _companionWriteFailures;
+    private bool _companionWriteInProgress;
+    private bool _refreshLobbyAfterCompanionWrite;
     private long _nextPresence;
     private long _revision;
     private int _nextMemberId = 2;
@@ -59,7 +69,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     public SteamRoomService(ISteamRoomTransport transport, int defaultSkin,
         Func<int, bool> validSkin, Func<int, bool> validHeadwear, Func<int, bool> validReaction,
-        Func<double> now = null, SteamRoomInviteInbox invitations = null)
+        Func<double> now = null, SteamRoomInviteInbox invitations = null,
+        Func<long, RoomCompanionPlan> companions = null)
     {
         _transport = transport;
         _invitations = invitations ?? new SteamRoomInviteInbox();
@@ -67,6 +78,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         _validSkin = validSkin;
         _validHeadwear = validHeadwear;
         _validReaction = validReaction;
+        _createCompanions = companions;
         _now = now ?? (() => (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency);
         _transport.LobbyChanged += OnLobbyChanged;
         _transport.MemberDeparted += OnMemberDeparted;
@@ -244,6 +256,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             if (pending.Request.Operation == RoomOperation.Create
                 && !_transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim()))
                 throw new InvalidOperationException("Steam lobby metadata could not be initialized.");
+            if (pending.Request.Operation == RoomOperation.Create && _createCompanions != null)
+            {
+                var companions = _createCompanions(_transport.ServerTime);
+                if (companions != null && !_transport.SetCompanions(result.LobbyId, companions.ToWire()))
+                    throw new InvalidOperationException("Steam room companions could not be initialized.");
+            }
             var data = _transport.ReadLobby(result.LobbyId, true);
             if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
                 || !data.Members.Any(member => member.SteamId == _transport.LocalSteamId))
@@ -283,6 +301,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 var previous = _lobby;
                 _lobby = result.LobbyId;
                 _accessOwner = data.OwnerId;
+                ResetCompanions();
                 _identities.Clear();
                 _banned.Clear();
                 _banned.UnionWith(bans);
@@ -517,6 +536,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private void OnLobbyChanged(ulong lobby)
     {
         if (_disposed || _lobby == 0 || lobby != 0 && lobby != _lobby) return;
+        if (_companionWriteInProgress)
+        {
+            // Steam dispatches later, but a fake/alternate transport may notify
+            // from its setter. Re-read on the next tick rather than nesting Publish.
+            _refreshLobbyAfterCompanionWrite = true;
+            return;
+        }
         if (!IsAvailable) { Disconnect(); return; }
         try
         {
@@ -556,8 +582,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         return false;
     }
 
-    private void Publish(SteamRoomData data)
+    private void Publish(SteamRoomData data, bool refreshCompanions = true)
     {
+        if (refreshCompanions)
+        {
+            UpdateCompanionPlan(data);
+            _lastRoomData = data;
+        }
         var present = data.Members.Where(m => !_banned.Contains(m.SteamId)).Select(m => m.SteamId).ToHashSet();
         foreach (var stale in _identities.Keys.Where(id => !present.Contains(id)).ToArray()) _identities.Remove(stale);
         foreach (var stale in _chatSessions.Keys.Where(id => !present.Contains(id)).ToArray()) _chatSessions.Remove(stale);
@@ -591,9 +622,100 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 validActivity ? sequence : 0, validActivity && active));
         }
         var owner = _identities.TryGetValue(data.OwnerId, out var ownerIdentity) ? ownerIdentity.Id : 0;
+        var displayed = members.OrderBy(m => m.Id).ToList();
+        if (_companionPlanAvailable)
+        {
+            _lastCompanionSecond = Math.Max(_lastCompanionSecond, _transport.ServerTime);
+            foreach (var member in _companionPlan.MembersAt(_lastCompanionSecond))
+            {
+                if (displayed.Count >= RoomRules.Capacity) break;
+                displayed.Add(member with
+                {
+                    SkinId = _validSkin(member.SkinId) ? member.SkinId : _defaultSkin,
+                    HeadwearId = member.HeadwearId == 0 || _validHeadwear(member.HeadwearId) ? member.HeadwearId : 0,
+                    Reaction = _validReaction(member.Reaction) ? member.Reaction : 1001
+                });
+            }
+        }
+        var game = SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social";
+        var previous = _client.View;
+        if (previous != null && previous.Code == SteamRoomProtocol.Encode(_lobby)
+            && previous.Name == data.Name && previous.GameId == game && previous.OwnerId == owner
+            && previous.Access == data.Access && previous.Members.SequenceEqual(displayed)) return;
         _client.Receive(new RoomSnapshot(SteamRoomProtocol.Encode(_lobby), data.Name,
-            SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", owner, ++_revision,
-            members.OrderBy(m => m.Id).ToArray(), data.Access));
+            game, owner, ++_revision, displayed.ToArray(), data.Access));
+    }
+
+    private void UpdateCompanionPlan(SteamRoomData data)
+    {
+        if (!RoomCompanionPlan.TryRead(data.Companions, out var incoming)
+            || _companionPlan != null && !incoming.SameGeneration(_companionPlan))
+        {
+            // Corrupt/missing or a replaced generation cannot fabricate people or
+            // cause disconnects. Retain the retirement memory for a later valid update.
+            _companionPlanAvailable = false;
+            _pendingCompanions = "";
+            return;
+        }
+        _companionPlan = incoming.MergeRetirements(_companionPlan).WithHumanCount(data.Count);
+        _companionPlanAvailable = true;
+        var desired = _companionPlan.ToWire();
+        if (data.OwnerId != _transport.LocalSteamId || desired == data.Companions)
+        {
+            _pendingCompanions = "";
+            _companionWriteFailures = 0;
+            return;
+        }
+        // Only retirement changes are written. Animation derives from the shared
+        // plan and Steam clock locally; it never writes per-second member data.
+        if (_pendingCompanions != desired)
+        {
+            _pendingCompanions = desired;
+            _nextCompanionWrite = Now;
+            _companionWriteFailures = 0;
+        }
+        FlushCompanionWrite(data);
+    }
+
+    private void FlushCompanionWrite(SteamRoomData data)
+    {
+        if (_pendingCompanions.Length == 0 || Now < _nextCompanionWrite
+            || data.OwnerId != _transport.LocalSteamId || data.LobbyId != _lobby
+            || _companionWriteInProgress) return;
+        var lobby = _lobby;
+        var written = _pendingCompanions;
+        _companionWriteInProgress = true;
+        try
+        {
+            if (_transport.SetCompanions(lobby, written))
+            {
+                // A synchronous test transport callback may already have queued
+                // a newer retirement mask. Do not clear that update with this result.
+                if (_lobby == lobby && _pendingCompanions == written)
+                {
+                    _pendingCompanions = "";
+                    _companionWriteFailures = 0;
+                }
+                return;
+            }
+        }
+        catch { /* Optional companions keep the last safe local retirement state. */ }
+        finally { _companionWriteInProgress = false; }
+        if (_lobby != lobby || _pendingCompanions != written) return;
+        _companionWriteFailures++;
+        _nextCompanionWrite = Now + (_companionWriteFailures switch { 1 => 5, 2 => 15, 3 => 30, _ => 60 });
+    }
+
+    private void ResetCompanions()
+    {
+        _companionPlan = null;
+        _companionPlanAvailable = false;
+        _lastRoomData = null;
+        _lastCompanionSecond = -1;
+        _pendingCompanions = "";
+        _companionWriteFailures = 0;
+        _nextCompanionWrite = 0;
+        _refreshLobbyAfterCompanionWrite = false;
     }
 
     public void Leave(RoomClient client)
@@ -613,6 +735,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         var old = _lobby;
         _lobby = 0;
         _accessOwner = 0;
+        ResetCompanions();
         _identities.Clear();
         _banned.Clear();
         _lastAppearance = "";
@@ -634,6 +757,26 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         // needed, and we must not reset the shared inventory session speculatively.
         if (_inFlight != null && _now() - _inFlight.StartedAt >= 45) _settlementTimedOut = true;
         if (!_disposed && !IsAvailable) Disconnect();
+        if (!_disposed && IsAvailable && _lobby != 0 && _lastRoomData != null)
+        {
+            try
+            {
+                if (_refreshLobbyAfterCompanionWrite)
+                {
+                    _refreshLobbyAfterCompanionWrite = false;
+                    OnLobbyChanged(_lobby);
+                    if (_lobby == 0 || _lastRoomData == null) return;
+                }
+                FlushCompanionWrite(_lastRoomData);
+                long second = Math.Max(_lastCompanionSecond, _transport.ServerTime);
+                if (_companionPlanAvailable && second != _lastCompanionSecond)
+                {
+                    _lastCompanionSecond = second;
+                    Publish(_lastRoomData, refreshCompanions: false);
+                }
+            }
+            catch { Disconnect(); }
+        }
     }
 
     public void SetSuspended(bool suspended)

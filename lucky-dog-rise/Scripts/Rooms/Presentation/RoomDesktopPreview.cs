@@ -6,8 +6,8 @@ using Godot;
 
 namespace LuckyDogRise.Rooms;
 
-// Only remote presentation. The existing desktop dog retains its equipment,
-// activity, counter and rewards. These copies have no GameData or input tracker.
+// Remote players and companion presentation. The existing desktop dog retains
+// its equipment, activity, counter and rewards. Copies have no inventory/input.
 public partial class RoomDesktopPreview : Node2D
 {
     [Export] private PackedScene _dogScene = null!;
@@ -76,7 +76,8 @@ public partial class RoomDesktopPreview : Node2D
             if (!_placements.TryGetValue(member.Id, out var placement))
             {
                 // Stable seats: membership/appearance updates never reorder the
-                // remaining dogs. Seat zero belongs to the observer, not the host.
+                // remaining dogs. Freed companion seats can be reused by real
+                // arrivals without moving the others. Zero belongs to the observer.
                 int slot = member.Id == client.Id ? 0 : 1;
                 while (slot > 0 && _placements.Values.Any(p => p.Slot == slot)) slot++;
                 int side = (slot + 1) / 2 * (slot % 2 == 1 ? 1 : -1);
@@ -102,7 +103,7 @@ public partial class RoomDesktopPreview : Node2D
             dog.Scale = Vector2.One * scale;
             dog.Position = placement.Position;
             dog.Visible = !client.HiddenMembers.Contains(member.Id);
-            dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
+            dog.Display(member, false, !member.IsCompanion && member.Id == client.View.OwnerId, client.ShowNames,
                 client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
                 client.IsTongueActive(member.Id));
         }

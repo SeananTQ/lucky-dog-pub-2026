@@ -197,7 +197,8 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
             SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID, count,
             SteamMatchmaking.GetLobbyMemberLimit(lobby), members.ToArray(),
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.BanListKey),
-            SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey)));
+            SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey)),
+            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CompanionsKey));
     }
 
     public bool InitializeLobby(ulong lobbyId, string name)
@@ -245,6 +246,15 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
             }),
             value => SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.AccessKey,
                 SteamRoomProtocol.EncodeAccess(value)));
+    }
+
+    public bool SetCompanions(ulong lobbyId, string companions)
+    {
+        RequireAvailable();
+        var lobby = new CSteamID(lobbyId);
+        return SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID == LocalSteamId
+            && RoomCompanionPlan.TryRead(companions, out _)
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.CompanionsKey, companions);
     }
 
     public void SetAppearance(ulong lobbyId, string appearance)

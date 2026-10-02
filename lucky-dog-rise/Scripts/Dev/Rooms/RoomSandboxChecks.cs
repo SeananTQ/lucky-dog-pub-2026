@@ -7,6 +7,59 @@ namespace LuckyDogRise.Rooms;
 // Exercises state transitions and malformed/stale messages without Godot UI or Steam.
 internal static class RoomSandboxChecks
 {
+    private static void CheckCompanions()
+    {
+        int generated = 0;
+        var server = new RoomSandbox { CompanionFactory = now =>
+        {
+            generated++;
+            return RoomCompanionPlan.Create(new[] { 1012, 1013 }, new[] { 0, 7001 }, now, 42);
+        }};
+        var clients = Enumerable.Range(1, 6).Select(id => server.AddClient(id, $"P{id}", 1012)).ToArray();
+        var host = clients[0];
+        server.Create(host, "Companions"); server.Tick(0);
+        var code = host.JoinedCode;
+        Check(host.View.Members.Length == 4 && host.View.Members.Count(m => m.IsCompanion) == 3
+            && server.Search().Single().Count == 1, "companions are displayed but do not occupy Steam human slots");
+        var appearance = host.View.Members.Where(m => m.IsCompanion).Select(m => (m.Id, m.SkinId, m.HeadwearId)).ToArray();
+        var bot = host.View.Members.First(m => m.IsCompanion);
+        Check(host.Kick(bot.Id, bot.Presence) == "Rooms_KickInvalidTarget", "companion is not a human moderation target");
+        host.Receive(new RoomChat(1, code, bot.Id, bot.Presence, "forged bot chat", server.Now + 6), server.Now);
+        Check(host.Bubbles.Count == 0, "companion cannot impersonate a human chat sender");
+        server.Tick(35);
+        Check(appearance.SequenceEqual(host.View.Members.Where(m => m.IsCompanion).Select(m => (m.Id, m.SkinId, m.HeadwearId))),
+            "scripted activity never rerolls companion cosmetics");
+        server.Join(clients[1], code); server.Tick(0);
+        Check(host.View.Members.Length == 4 && host.View.Members.Count(m => m.IsCompanion) == 2
+            && host.View.Members.SequenceEqual(clients[1].View.Members), "new human replaces one companion for all viewers");
+        var retiredId = bot.Id;
+        host.Leave(); server.Tick(0);
+        var successor = clients[1];
+        Check(successor.View.OwnerId == successor.Id && successor.View.Members.Count(m => m.IsCompanion) == 2
+            && !successor.View.Members.Any(m => m.Id == retiredId) && generated == 1,
+            "host handoff preserves remaining companions without regeneration or refill");
+        server.Join(host, code); server.Tick(0);
+        for (int i = 2; i < clients.Length; i++)
+        {
+            server.Join(clients[i], code); server.Tick(0);
+            Check(successor.View.Members.Count(m => !m.IsCompanion) == i + 1
+                && successor.View.Members.Count(m => m.IsCompanion) == Math.Max(0, 4 - i - 1),
+                "up to six humans replace the remaining companions");
+        }
+        foreach (var client in clients.Take(5)) client.Leave();
+        server.Tick(0);
+        Check(clients[5].View.Members.Length == 1 && !clients[5].View.Members[0].IsCompanion,
+            "departures never revive retired companions");
+        clients[5].Leave(); server.Tick(0);
+        Check(server.Search().Length == 0, "last real player leaving ends room");
+        server.Create(host, "Fresh companions"); server.Tick(0);
+        Check(generated == 2 && host.View.Members.Count(m => m.IsCompanion) == 3, "new room creates a new fixed roster");
+        var baseline = new RoomSandbox();
+        var labClient = baseline.AddClient(1, "Lab", 1012);
+        baseline.Create(labClient, "A-stage"); baseline.Tick(0);
+        Check(labClient.View.Members.Length == 1, "A-stage defaults remain independent of C-stage companions");
+    }
+
     private static void CheckAccess()
     {
         var server = new RoomSandbox();
@@ -54,6 +107,7 @@ internal static class RoomSandboxChecks
         CheckActivity();
         CheckKicking();
         CheckAccess();
+        CheckCompanions();
         var server = new RoomSandbox();
         var a = server.AddClient(1, "A", 1012);
         var b = server.AddClient(2, "B", 1012);

@@ -11,8 +11,8 @@ namespace LuckyDogRise.Rooms;
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Older owners do not reconcile admission policy during ownership transfer.
-    public const string Version = "lucky-dog-room-3";
+    // Older owners cannot preserve companion retirements during ownership transfer.
+    public const string Version = "lucky-dog-room-4";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
@@ -21,6 +21,7 @@ public static class SteamRoomProtocol
     public const string ChatSessionKey = "ld_chat_session";
     public const string BanListKey = "ld_bans";
     public const string AccessKey = "ld_access";
+    public const string CompanionsKey = "ld_companions";
     public const int MaxBannedMembers = 256;
     public const int MaxChatBytes = 512;
     private static readonly UTF8Encoding ChatEncoding = new(false, true);

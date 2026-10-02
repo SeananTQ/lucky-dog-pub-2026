@@ -33,6 +33,15 @@ public partial class InGameRoomPreview
         _mockClients.AddRange(new[] { client, host, guest });
         _sandbox.Create(host, L10n.Tr("Rooms_MockRoom"));
         _sandbox.Join(guest, host.JoinedCode);
+        // Keep the original three-human example; new player-created rooms exercise
+        // the same C-stage companion plan as Steam, without touching real inventory.
+        var companionSkins = LubanData.Tables.TbDogSkin.DataList
+            .Where(s => BuildInfo.IncludesCurrentChannel(s.BuildChannelMask)).Select(s => s.Id).ToArray();
+        var companionHats = LubanData.Tables.TbItem.DataList
+            .Where(i => i.ItemType == DataTables.EItemType.Headwear && BuildInfo.IncludesCurrentChannel(i.BuildChannelMask))
+            .Select(i => i.Id).Prepend(0).ToArray();
+        if (companionSkins.Length > 0)
+            _sandbox.CompanionFactory = now => RoomCompanionPlan.Create(companionSkins, companionHats, now);
         _sandbox.Settings(client).RequestDelay = 0.35;
         ReplaceClient(client);
         client.Search();

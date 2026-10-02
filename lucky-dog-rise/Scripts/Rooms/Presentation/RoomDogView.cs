@@ -22,12 +22,19 @@ public partial class RoomDogView : Node2D
     public override void _Ready()
     {
         _tongue = Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
-        Chat.SendRequested += text => SendRequested?.Invoke(text);
+        Chat.SendRequested += text =>
+        {
+            if (_isLocal && _member?.IsCompanion == false) SendRequested?.Invoke(text);
+        };
     }
 
     public void Display(RoomMember member, bool local, bool owner, bool showName, string bubble,
         bool tongueActive = false)
     {
+        // Companions share the ordinary avatar presentation, but never local
+        // input or authority even if a caller accidentally supplies those flags.
+        local &= !member.IsCompanion;
+        owner &= !member.IsCompanion;
         if (_member?.Id != member.Id || _isLocal != local) CloseChat();
         _isLocal = local;
         if (_member?.SkinId != member.SkinId)
@@ -99,7 +106,7 @@ public partial class RoomDogView : Node2D
         }
     }
 
-    public void OpenChat() => Chat.OpenChat();
+    public void OpenChat() { if (_isLocal && _member?.IsCompanion == false) Chat.OpenChat(); }
     public void AcceptSend() => Chat.SetSendResult("");
 #if DEBUG
     public void SubmitChatForSmoke(string text) => Chat.SubmitForSmoke(text);

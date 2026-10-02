@@ -438,7 +438,9 @@ public static class InGameRoomSmoke
             page.GetNode<LineEdit>("Lobby/CreateRow/Name").Text = "UI regression";
             Click("Lobby/CreateRow/Create");
             await Settle();
-            Check(client.View?.Members.Length == 1 && client.View.OwnerId == client.Id, "create own room");
+            Check(client.View?.Members.Count(member => !member.IsCompanion) == 1
+                && client.View.Members.Count(member => member.IsCompanion) == 3
+                && client.View.OwnerId == client.Id, "create own room with three companion dogs");
             var ownCode = client.JoinedCode;
             Click("Room/Browse");
             await Settle();
@@ -567,6 +569,189 @@ public static class InGameRoomSmoke
             PointerButton(newLocalHead, false);
             Check(!main.RoomDraggingForSmoke, "new-session input waits for matching presentation seats");
             await Frame();
+
+            // C-stage companions use the actual main-scene room UI and desktop
+            // presentation. The earlier three-player A-stage baseline stays intact.
+            client.Leave();
+            page.MockClientForSmoke(2).Leave();
+            page.MockClientForSmoke(3).Leave();
+            await Settle();
+            page.RefreshRooms();
+            await Settle();
+            var emptyDirectory = page.GetNode<VBoxContainer>("Lobby/RoomList");
+            Check(client.Listings.Length == 0 && client.JoinedCode.Length == 0
+                && !page.GetNode<Control>("Lobby/Empty").Visible && emptyDirectory.GetChildCount() == 1,
+                "successful empty search shows one local room entry without creating a real room");
+            var companionEntry = emptyDirectory.GetChild<InGameRoomDirectoryRow>(0);
+            Check(companionEntry.GetNode<Label>("Count").Text == "3/6"
+                && !companionEntry.GetNode<Button>("Join").Disabled,
+                "empty lobby offers an actionable three-companion room");
+            await Capture(main, "in-game-empty-lobby-companions");
+            companionEntry.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
+            companionEntry.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(client.Operation == RoomOperation.Create && client.IsBusy,
+                "joining the local room starts one real creation request");
+            await Settle();
+            string companionRoom = client.JoinedCode;
+            var companionMembers = client.View.Members.Where(member => member.IsCompanion).ToArray();
+            Check(client.View.Members.Length == 4 && companionMembers.Length == 3
+                && client.View.OwnerId == client.Id
+                && companionMembers.Select(member => member.Id).Order().SequenceEqual(new[] { -3, -2, -1 }),
+                "new main-game room contains one real owner and three stable negative companion identities");
+            var companionDogs = companionMembers.Select(member => desktop.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
+            var companionAppearances = companionMembers.ToDictionary(member => member.Id,
+                member => (member.Name, member.SkinId, member.HeadwearId, member.Presence));
+            Check(companionMembers.Select(member => member.Name).Order().SequenceEqual(
+                    new[] { "熬夜的程序员", "没洗头的美术", "打喷嚏的策划" }.Order()),
+                "companions use the agreed playful display names without extra labels");
+            var companionUsable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
+            Check(Mathf.IsEqualApprox(localDog.GlobalPosition.X, companionUsable.Position.X
+                + companionUsable.Size.X / 2f - DisplayServer.WindowGetPosition().X)
+                && companionDogs[0].Position.X > localDog.GlobalPosition.X
+                && companionDogs[1].Position.X < localDog.GlobalPosition.X,
+                "companion room keeps own dog at center and fills right then left");
+            var memberRows = page.GetNode<VBoxContainer>("Room/Members");
+            for (int index = 0; index < client.View.Members.Length; index++)
+            {
+                var member = client.View.Members[index];
+                if (!member.IsCompanion) continue;
+                var kick = memberRows.GetChild(index).GetNode<Button>("Kick");
+                Check(!kick.Visible && kick.Disabled, "companion rows never offer host removal");
+                kick.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(!page.GetNode<Control>("Room/KickConfirm").Visible,
+                    "a forced hidden companion kick signal cannot open confirmation");
+            }
+            foreach (var dog in companionDogs)
+            {
+                int sends = 0;
+                dog.SendRequested += _ => sends++;
+                dog.Display(companionMembers.Single(member => member.Id == dog.MemberId),
+                    local: true, owner: true, showName: true, bubble: "");
+                dog.OpenChat();
+                dog.SubmitChatForSmoke("must not send");
+                Check(!dog.Editing && sends == 0 && !dog.GetNode<Label>("NameBar/Name").Text.Contains("♛")
+                    && !dog.GetNode<Label>("NameBar/Name").Text.Contains("本机"),
+                    "companion presentation rejects accidental local input and host badges");
+            }
+            page.AdvancePreview(9);
+            await Frame();
+            Check(client.View.Members.Where(member => member.IsCompanion).All(member =>
+                    companionAppearances[member.Id] == (member.Name, member.SkinId, member.HeadwearId, member.Presence))
+                && client.Bubbles.Count == 0, "companion appearance stays fixed across activity updates without automatic chat");
+            await Capture(main, "in-game-companions-created");
+            static int ActivityRank(int reaction) => reaction switch
+            { 1003 => 0, 1001 => 1, 1005 => 2, 1006 => 3, _ => -1 };
+            var previousMoods = client.View.Members.Where(member => member.IsCompanion)
+                .ToDictionary(member => member.Id, member => member.Reaction);
+            var rises = new System.Collections.Generic.HashSet<int>();
+            var falls = new System.Collections.Generic.HashSet<int>();
+            bool sawTongueMotion = false;
+            bool sawQuietDescent = false;
+            for (int step = 0; step < RoomCompanionPlan.MaxActivityCycleSeconds * 2; step++)
+            {
+                page.AdvancePreview(0.5);
+                await Frame();
+                foreach (var member in client.View.Members.Where(member => member.IsCompanion))
+                {
+                    int previousRank = ActivityRank(previousMoods[member.Id]);
+                    int rank = ActivityRank(member.Reaction);
+                    if (rank == previousRank) continue;
+                    var dog = companionDogs.Single(dog => dog.MemberId == member.Id);
+                    Check(Math.Abs(rank - previousRank) == 1,
+                        "companion moods rise and fall one tier at a time in the actual desktop presentation");
+                    var tongue = dog.Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
+                    if (rank > previousRank)
+                    {
+                        rises.Add(rank);
+                        Check(member.TongueActive && dog.Dog.RoomTongueActive,
+                            "every rising mood keeps the smooth room tongue animation active");
+                        if (!sawTongueMotion)
+                        {
+                            var position = tongue.Position;
+                            for (int sample = 0; sample < 4; sample++)
+                            {
+                                await Wait(0.07);
+                                sawTongueMotion |= !tongue.Position.IsEqualApprox(position);
+                            }
+                            Check(sawTongueMotion, "rising companion tongue really moves across rendered frames");
+                        }
+                    }
+                    else
+                    {
+                        falls.Add(rank);
+                        Check(!member.TongueActive && !dog.Dog.RoomTongueActive,
+                            "cooling companion mood stops the tongue instead of continuing the high activity");
+                        if (!sawQuietDescent)
+                        {
+                            var position = tongue.Position;
+                            await Wait(0.2);
+                            Check(tongue.Position.IsEqualApprox(position), "descending companion tongue stays still");
+                            sawQuietDescent = true;
+                        }
+                    }
+                    previousMoods[member.Id] = member.Reaction;
+                }
+                if (rises.Count == 3 && falls.Count == 3 && sawTongueMotion && sawQuietDescent) break;
+            }
+            Check(rises.Count == 3 && falls.Count == 3 && sawTongueMotion && sawQuietDescent,
+                "all rising and cooling tiers are exercised through the main game");
+            GD.Print("[InGameRoomSmoke] COMPANION_ACTIVITY_PASS progressive moods, moving tongue on rise and quiet descent.");
+            var companionOwnPosition = localDog.GlobalPosition;
+            for (int index = 0; index < companionDogs.Length; index++)
+            {
+                var dog = companionDogs[index];
+                var initial = dog.Position;
+                var otherPositions = desktop.RemoteDogs.Where(other => other.MemberId != dog.MemberId)
+                    .ToDictionary(other => other.MemberId, other => other.Position);
+                var delta = new Vector2(index % 2 == 0 ? -35 : 35, -100 - index * 30);
+                await Drag(initial, delta);
+                Check(dog.Position.IsEqualApprox(initial + delta)
+                    && localDog.GlobalPosition.IsEqualApprox(companionOwnPosition)
+                    && desktop.RemoteDogs.Where(other => other.MemberId != dog.MemberId)
+                        .All(other => other.Position.IsEqualApprox(otherPositions[other.MemberId])),
+                    "negative companion identities drag independently without moving other dogs");
+            }
+            var companionPositions = desktop.RemoteDogs.ToDictionary(dog => dog.MemberId, dog => dog.Position);
+            main.ApplyDesktopPetScaleStep(twiceScaleStep);
+            await Frame();
+            Check(desktop.RemoteDogs.All(dog => dog.Scale == Vector2.One * 2), "local scale includes every companion");
+            main.ApplyDesktopPetScaleStep(unitScaleStep);
+            await Frame();
+            Check(desktop.RemoteDogs.All(dog => dog.Position.IsEqualApprox(companionPositions[dog.MemberId])),
+                "companion free placements survive local scale changes");
+            var secondHuman = page.MockClientForSmoke(2);
+            var thirdHuman = page.MockClientForSmoke(3);
+            foreach (var joiningHuman in new[] { secondHuman, thirdHuman })
+            {
+                var previousPositions = desktop.RemoteDogs.ToDictionary(dog => dog.MemberId, dog => dog.Position);
+                joiningHuman.Join(companionRoom);
+                await Settle();
+                int humanCount = joiningHuman.Id;
+                Check(client.View.Members.Length == 4
+                    && client.View.Members.Count(member => !member.IsCompanion) == humanCount
+                    && client.View.Members.Count(member => member.IsCompanion) == 4 - humanCount,
+                    "each joining human replaces exactly one companion");
+                Check(localDog.GlobalPosition.IsEqualApprox(companionOwnPosition)
+                    && desktop.RemoteDogs.Where(dog => previousPositions.ContainsKey(dog.MemberId))
+                        .All(dog => dog.Position.IsEqualApprox(previousPositions[dog.MemberId])),
+                    "replacing a companion preserves every remaining dog's local position");
+                Check(joiningHuman.View.Members.Where(member => member.IsCompanion)
+                    .All(member => companionAppearances[member.Id] ==
+                        (member.Name, member.SkinId, member.HeadwearId, member.Presence)),
+                    "newcomer receives the existing companion identities and fixed appearances");
+            }
+            await Capture(main, "in-game-companions-replaced");
+            client.Leave();
+            secondHuman.Leave();
+            thirdHuman.Leave();
+            await Settle();
+            client.Search();
+            await Settle();
+            Check(!client.Listings.Any(listing => listing.Code == companionRoom)
+                && !main.RoomDesktopWindowActive && desktop.RemoteDogs.Count == 0,
+                "companions cannot keep a room alive after the final human leaves");
+            GD.Print("[InGameRoomSmoke] COMPANION_PASS real UI creation, fixed appearance, passive roles, negative-ID drag, local scale, stable replacement and room lifetime.");
+            await RoomEmptyDirectoryPageChecks.Run(main);
             await SteamRoomPageChecks.Run(main);
             GD.Print("[InGameRoomSmoke] PASS initial localization, room UI, bubble chat, centered seats, independent dragging, overlap priority, panel avoidance, local scale, transparent hit areas, window restoration, hidden state and poker round-trip.");
             tree.Quit();

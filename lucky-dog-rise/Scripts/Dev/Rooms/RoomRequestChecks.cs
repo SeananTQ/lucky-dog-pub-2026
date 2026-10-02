@@ -16,7 +16,77 @@ internal static class RoomRequestChecks
         LateCallbackChecks();
         RemovalRaceChecks();
         JoinFailureNoticeChecks();
+        DirectoryCreateNoticeChecks();
         return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays, removal cancellation, local join failure notices and reentrancy.";
+    }
+
+    private static void DirectoryCreateNoticeChecks()
+    {
+        var service = new LateResultService();
+        using var client = new RoomClient(service, 1, "Local", 1012);
+        var notices = new List<(RoomFailure Reason, bool Timeout)>();
+        client.JoinFailed += (reason, timeout) => notices.Add((reason, timeout));
+        client.Join("original"); service.RemoteSuccess(client, client.ActiveRequestId, "original");
+        long originalSession = client.Session;
+        client.Create("virtual room", joiningFromDirectory: true);
+        Check(client.Operation == RoomOperation.Create, "directory join still uses the real create transport operation");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.SequenceEqual(new[] { (RoomFailure.Unavailable, false) })
+            && client.JoinedCode == "original" && client.Session == originalSession,
+            "directory creation failure reports a local join notice and keeps the previous membership");
+
+        client.Create("ordinary after failure");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.InvalidName));
+        Check(notices.Count == 1, "directory notice intent never leaks to a later ordinary create");
+        client.Create("ordinary busy");
+        Check(!client.Create("rejected directory", joiningFromDirectory: true), "busy directory click is rejected");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.Count == 1, "a rejected flagged request cannot attach join intent to an ordinary request");
+        client.Create("directory busy", joiningFromDirectory: true);
+        Check(!client.Create("rejected ordinary"), "busy ordinary click is rejected");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.Count == 2, "a rejected ordinary request cannot remove directory join intent");
+        client.Create("ordinary committing");
+        client.TryComplete(client.ActiveRequestId, () =>
+        {
+            Check(!client.Create("reentrant directory", joiningFromDirectory: true),
+                "reentrant create cannot enter while a membership commit is running");
+            return new RoomResult(RoomFailure.Unavailable);
+        });
+        Check(notices.Count == 2, "rejected reentrant directory call cannot change active notice intent");
+
+        client.Create("directory cancelled", joiningFromDirectory: true);
+        long cancelled = client.ActiveRequestId;
+        client.Cancel();
+        client.Create("new ordinary");
+        service.RemoteSuccess(client, cancelled, "late cancelled room");
+        Check(notices.Count == 2 && client.IsBusy && client.JoinedCode == "original"
+            && service.Compensated.Contains(cancelled),
+            "cancelled directory success is cleaned without joining, noticing or disturbing the newer request");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.Count == 2, "cancelled request intent never leaks to its successor");
+        client.Create("directory timeout", joiningFromDirectory: true);
+        long timedOut = client.ActiveRequestId;
+        client.AdvanceTo(RoomRules.RequestTimeout);
+        Check(notices.Count == 3 && notices.Last() == (RoomFailure.None, true)
+            && client.JoinedCode == "original", "directory create timeout uses the local join-failed bubble channel");
+        client.AdvanceTo(RoomRules.RequestTimeout + 1);
+        service.RemoteSuccess(client, timedOut, "late timed-out room");
+        Check(notices.Count == 3 && client.JoinedCode == "original" && service.Compensated.Contains(timedOut),
+            "late timeout completion neither repeats the bubble nor changes rooms");
+        client.Create("ordinary timeout"); client.AdvanceTo(RoomRules.RequestTimeout * 2 + 1);
+        Check(notices.Count == 3, "ordinary create timeout stays silent after a directory timeout");
+        client.Join("missing");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.NotFound));
+        Check(notices.Count == 4 && notices.Last() == (RoomFailure.NotFound, false),
+            "normal join keeps its existing failure notification behavior");
+        client.Create("directory success", joiningFromDirectory: true);
+        service.RemoteSuccess(client, client.ActiveRequestId, "new real room");
+        Check(client.JoinedCode == "new real room" && notices.Count == 4, "successful directory create emits no error");
+        client.Create("ordinary after success");
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.Unavailable));
+        Check(notices.Count == 4 && client.Bubbles.Count == 0 && service.ChatCalls == 0,
+            "successful intent clears and local errors never enter the room chat transport");
     }
 
     private static void JoinFailureNoticeChecks()
