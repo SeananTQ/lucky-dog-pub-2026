@@ -875,6 +875,19 @@ public static class InGameRoomSmoke
             var panelRect = panel.GetNode<Control>("Panel").GetGlobalRect();
             Check(modalRect.Position.IsEqualApprox(panelRect.Position) && modalRect.Size.IsEqualApprox(panelRect.Size)
                 && !scroll.IsAncestorOf(roomKickConfirm), "removal modal follows the full panel bounds outside scroll content");
+            Check(!roomKickAccept.HasFocus() && !roomKickCancel.HasFocus(),
+                "opening removal confirmation does not preselect or highlight an action");
+            var acceptRect = roomKickAccept.GetGlobalRect();
+            var cancelRect = roomKickCancel.GetGlobalRect();
+            Check(acceptRect.End.Y <= cancelRect.Position.Y
+                && Mathf.IsEqualApprox(acceptRect.Size.X, cancelRect.Size.X)
+                && Mathf.IsEqualApprox(acceptRect.Position.X, cancelRect.Position.X),
+                "removal actions are stacked at equal width with confirmation above cancellation");
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = false });
+            await Frame();
+            Check(roomKickConfirm.Visible && client.View.Members.Any(member => member.Id == finalCompanion.Id),
+                "Enter without choosing a modal action neither removes a member nor cancels");
             await Capture(main, "in-game-room-kick-overlay");
             var presetTab = title.GetNode<Button>("OutfitPresetTab");
             var blockedTabPoint = presetTab.GetGlobalRect().GetCenter();

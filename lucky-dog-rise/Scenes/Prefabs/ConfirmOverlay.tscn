@@ -99,7 +99,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="ButtonRow" type="HBoxContainer" parent="OverlayPanel/Margin/Content" unique_id=887931038]
+[node name="ButtonRow" type="BoxContainer" parent="OverlayPanel/Margin/Content" unique_id=887931038]
 layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1

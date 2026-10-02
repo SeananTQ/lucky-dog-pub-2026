@@ -90,11 +90,22 @@ public partial class InGameRoomPreview : VBoxContainer
         _kickConfirm.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         _kickConfirm.Confirmed += ConfirmKick;
         _kickConfirm.Canceled += CancelKick;
-        var actions = _kickConfirm.GetNode<Control>("OverlayPanel/Margin/Content/ButtonRow");
+        var actions = _kickConfirm.GetNode<BoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
         var accept = actions.GetNode<Button>("ConfirmButton");
         _kickCancel = actions.GetNode<Button>("CancelButton");
+        // Only this dialog uses stacked actions; other shared-overlay users
+        // retain their current layout until they are migrated individually.
+        actions.Vertical = true;
+        actions.MoveChild(accept, 0);
+        _kickConfirm.FocusMode = FocusModeEnum.All;
+        _kickConfirm.FocusNext = _kickConfirm.FocusNeighborBottom = _kickConfirm.GetPathTo(accept);
+        _kickConfirm.FocusPrevious = _kickConfirm.FocusNeighborTop = _kickConfirm.GetPathTo(_kickCancel);
+        _kickConfirm.FocusNeighborLeft = _kickConfirm.FocusPrevious;
+        _kickConfirm.FocusNeighborRight = _kickConfirm.FocusNext;
         foreach (var (button, other) in new[] { (accept, _kickCancel), (_kickCancel, accept) })
         {
+            button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             var path = button.GetPathTo(other);
             button.FocusNext = button.FocusPrevious = path;
             button.FocusNeighborLeft = button.FocusNeighborRight = path;
@@ -557,7 +568,8 @@ public partial class InGameRoomPreview : VBoxContainer
         _kickPresence = presence;
         _kickName = client.View.Members.First(member => member.Id == memberId && member.Presence == presence).Name;
         ShowKickConfirmation();
-        _kickCancel.GrabFocus();
+        // Take focus off the covered page without preselecting either action.
+        _kickConfirm.GrabFocus();
         _noticeKey = "";
         _dirty = true;
     }

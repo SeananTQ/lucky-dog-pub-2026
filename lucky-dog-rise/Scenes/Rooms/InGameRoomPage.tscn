@@ -235,6 +235,9 @@ custom_minimum_size = Vector2(0, 36)
 theme_type_variation = &"CapsuleButton"
 text = "Rooms_InviteFriends"
 
+[node name="ActionsDivider" type="HSeparator" parent="Room"]
+layout_mode = 2
+
 [node name="Browse" type="Button" parent="Room"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
