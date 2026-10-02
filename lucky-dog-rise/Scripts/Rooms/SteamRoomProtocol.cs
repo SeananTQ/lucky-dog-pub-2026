@@ -11,8 +11,8 @@ namespace LuckyDogRise.Rooms;
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Older clients cannot enforce room bans; discovery and code joins must agree.
-    public const string Version = "lucky-dog-room-2";
+    // Older owners do not reconcile admission policy during ownership transfer.
+    public const string Version = "lucky-dog-room-3";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
@@ -20,9 +20,49 @@ public static class SteamRoomProtocol
     public const string ActivityKey = "ld_activity";
     public const string ChatSessionKey = "ld_chat_session";
     public const string BanListKey = "ld_bans";
+    public const string AccessKey = "ld_access";
     public const int MaxBannedMembers = 256;
     public const int MaxChatBytes = 512;
     private static readonly UTF8Encoding ChatEncoding = new(false, true);
+
+    public static bool IsAccessValid(RoomAccess access)
+        => access is RoomAccess.Public or RoomAccess.FriendsOnly or RoomAccess.InviteOnly;
+
+    public static string EncodeAccess(RoomAccess access) => access switch
+    {
+        RoomAccess.Public => "public",
+        RoomAccess.FriendsOnly => "friends",
+        RoomAccess.InviteOnly => "invite",
+        _ => throw new ArgumentOutOfRangeException(nameof(access))
+    };
+
+    public static RoomAccess DecodeAccess(string value) => value switch
+    {
+        "public" => RoomAccess.Public,
+        "friends" => RoomAccess.FriendsOnly,
+        "invite" => RoomAccess.InviteOnly,
+        _ => (RoomAccess)(-1)
+    };
+
+    // Steam has no transaction or lobby-type getter. Apply the real admission
+    // rule before advertising it. A failed second write must restore native
+    // admission; an uncertain rollback is an explicit session error.
+    public static bool WriteAccess(RoomAccess previous, RoomAccess next,
+        Func<RoomAccess, bool> writeNative, Func<RoomAccess, bool> writeMetadata)
+    {
+        if (!IsAccessValid(previous) || !IsAccessValid(next)) return false;
+        if (!writeNative(next)) return false;
+        if (previous == next) return true; // Ownership reconciliation, no metadata churn.
+        bool metadataUncertain = false;
+        try
+        {
+            if (writeMetadata(next)) return true;
+        }
+        catch { metadataUncertain = true; }
+        if (!writeNative(previous) || metadataUncertain && !writeMetadata(previous))
+            throw new InvalidOperationException("Steam lobby admission rollback could not be confirmed.");
+        return false;
+    }
 
     // Single owner-written value, small enough for Steam lobby metadata. Never
     // silently discard old bans when this bounded list fills up.

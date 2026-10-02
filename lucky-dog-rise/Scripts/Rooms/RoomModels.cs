@@ -6,8 +6,9 @@ namespace LuckyDogRise.Rooms;
 public sealed record RoomMember(int Id, string Name, int SkinId, int HeadwearId,
     int Reaction, long Presence, long ActivitySequence = 0, bool TongueActive = false);
 public sealed record RoomListing(string Code, string Name, string GameId, int Count, int Capacity);
+public enum RoomAccess { Public = 0, FriendsOnly = 1, InviteOnly = 2 }
 public sealed record RoomSnapshot(string Code, string Name, string GameId, int OwnerId,
-    long Revision, RoomMember[] Members);
+    long Revision, RoomMember[] Members, RoomAccess Access = RoomAccess.Public);
 public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
     string Text, double ExpiresAt);
 
@@ -40,7 +41,7 @@ public static class RoomRules
 
 public enum RoomOperation { None, Search, Create, Join }
 public enum RoomRequestState { Idle, Pending, Succeeded, Failed, Cancelled, TimedOut }
-public enum RoomFailure { None, InvalidName, NotFound, Full, Unavailable, NoMatchingRoom, Removed, Banned }
+public enum RoomFailure { None, InvalidName, NotFound, Full, Unavailable, NoMatchingRoom, Removed, Banned, AccessDenied }
 public sealed record RoomRequest(long Id, RoomOperation Operation, string Value);
 public sealed record RoomResult(RoomFailure Failure, RoomListing[] Rooms = null)
 {

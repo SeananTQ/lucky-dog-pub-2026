@@ -591,6 +591,7 @@ internal static class SteamRoomPageChecks
             if (client.JoinedCode.Length > 0) Publish(client);
         }
         public string SetGame(RoomClient client, string gameId) => "";
+        public string SetAccess(RoomClient client, RoomAccess access) => "Rooms_AccessUnavailable";
         public string Kick(RoomClient client, int memberId, long presence)
         {
             KickRequests++;

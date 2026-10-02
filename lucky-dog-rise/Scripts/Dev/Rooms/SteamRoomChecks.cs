@@ -39,9 +39,137 @@ public static class SteamRoomChecks
         CheckInvitationAdmission();
         CheckInvitationLifetime();
         CheckInvitationRecovery();
+        CheckAccessProtocol();
+        CheckAccessAuthorityAndMigration();
+        CheckAccessFailuresAndAdmission();
     }
 
     private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckAccessProtocol()
+    {
+        foreach (var access in Enum.GetValues<RoomAccess>())
+            Assert(SteamRoomProtocol.DecodeAccess(SteamRoomProtocol.EncodeAccess(access)) == access,
+                "access metadata round trip");
+        foreach (var invalid in new[] { null, "", "Public", "private", "3", "friends " })
+            Assert(!SteamRoomProtocol.IsAccessValid(SteamRoomProtocol.DecodeAccess(invalid)),
+                "unknown or absent policy cannot silently become public");
+
+        var native = RoomAccess.Public;
+        var metadata = RoomAccess.Public;
+        int nativeWrites = 0;
+        int metadataWrites = 0;
+        Assert(!SteamRoomProtocol.WriteAccess(native, RoomAccess.InviteOnly,
+            _ => { nativeWrites++; return false; }, _ => { metadataWrites++; return true; })
+            && nativeWrites == 1 && metadataWrites == 0, "failed native write cannot advertise success");
+        Assert(!SteamRoomProtocol.WriteAccess(native, RoomAccess.InviteOnly,
+            value => { native = value; return true; }, _ => false)
+            && native == RoomAccess.Public, "metadata refusal rolls back native admission");
+        Assert(!SteamRoomProtocol.WriteAccess(native, RoomAccess.InviteOnly,
+            value => { native = value; return true; }, value =>
+            {
+                metadata = value;
+                if (value == RoomAccess.InviteOnly) throw new InvalidOperationException("ambiguous SDK failure");
+                return true;
+            }) && native == RoomAccess.Public && metadata == RoomAccess.Public,
+            "exception after metadata mutation restores both parts before returning normal failure");
+        bool threw = false;
+        try
+        {
+            SteamRoomProtocol.WriteAccess(RoomAccess.Public, RoomAccess.InviteOnly,
+                value => value == RoomAccess.InviteOnly, _ => false);
+        }
+        catch (InvalidOperationException) { threw = true; }
+        Assert(threw, "failed compensation is explicit uncertainty, not an intact old policy");
+    }
+
+    private static void CheckAccessAuthorityAndMigration()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        Assert(client.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessUnavailable",
+            "changing permissions requires membership");
+        transport.Seed(1501, new SteamRoomMemberData(88, "remote", "1:10:0:1001"));
+        client.Join(SteamRoomProtocol.Encode(1501)); transport.SucceedMembership(1501);
+        Assert(client.View.Access == RoomAccess.Public && transport.AccessWrites.Count == 1,
+            "first owner session reconciles public native policy once");
+        var members = client.View.Members;
+        foreach (var access in new[] { RoomAccess.FriendsOnly, RoomAccess.InviteOnly, RoomAccess.Public })
+            Assert(client.SetAccess(access) == "ok" && client.View.Access == access
+                && transport.NativeAccess[1501] == access && client.View.Members.SequenceEqual(members)
+                && transport.Left.Count == 0, "permission changes preserve all existing members and their presence");
+        int writes = transport.AccessWrites.Count;
+        Assert(client.SetAccess(RoomAccess.Public) == "ok" && transport.AccessWrites.Count == writes,
+            "selecting current policy has no duplicate network write");
+        client.Search();
+        Assert(client.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessUnavailable",
+            "busy request does not interleave permission changes");
+        client.Cancel(); transport.CompleteSearch();
+        using var unrelated = Client(service);
+        Assert(service.SetAccess(unrelated, RoomAccess.InviteOnly) == "Rooms_AccessUnavailable",
+            "stale client cannot change another client's room");
+        Assert(client.SetAccess((RoomAccess)99) == "Rooms_AccessUnavailable", "undefined policy is rejected");
+        transport.SetOwner(1501, 88);
+        Assert(client.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessNotOwner"
+            && transport.AccessWrites.Count == writes, "former owner loses authority immediately");
+        transport.Rooms[1501] = transport.Rooms[1501] with { Access = RoomAccess.InviteOnly };
+        transport.SetOwner(1501, 88);
+        Assert(client.View.Access == RoomAccess.InviteOnly && client.View.OwnerId != client.Id,
+            "non-owner sees the latest policy metadata");
+        transport.SetOwner(1501, 77);
+        Assert(client.View.Access == RoomAccess.InviteOnly && client.View.OwnerId == client.Id
+            && transport.AccessWrites.Count == writes + 1
+            && transport.NativeAccess[1501] == RoomAccess.InviteOnly,
+            "successor reconciles inherited native policy without resetting to public");
+        transport.SetOwner(1501, 77);
+        service.Tick();
+        Assert(transport.AccessWrites.Count == writes + 1, "stable ownership does not rewrite native policy on callbacks or ticks");
+    }
+
+    private static void CheckAccessFailuresAndAdmission()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("permissions"); transport.SucceedMembership(1502);
+        transport.AccessNativeResults.Enqueue(false);
+        Assert(client.SetAccess(RoomAccess.FriendsOnly) == "Rooms_AccessUpdateFailed"
+            && client.View.Access == RoomAccess.Public, "native refusal preserves displayed policy");
+        transport.AccessMetadataSucceeds = false;
+        Assert(client.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessUpdateFailed"
+            && client.View.Access == RoomAccess.Public && transport.NativeAccess[1502] == RoomAccess.Public
+            && transport.Left.Count == 0, "metadata failure rolls back without expelling the owner");
+        transport.AccessMetadataSucceeds = true;
+        client.Join(SteamRoomProtocol.Encode(1503)); transport.FailMembership(RoomFailure.AccessDenied);
+        Assert(client.Failure == RoomFailure.AccessDenied && client.JoinedCode == SteamRoomProtocol.Encode(1502),
+            "native admission denial is explicit and leaves the original room intact");
+        transport.Seed(1503); transport.Seed(1504); transport.Seed(1505);
+        transport.Rooms[1503] = transport.Rooms[1503] with { Access = RoomAccess.FriendsOnly };
+        transport.Rooms[1504] = transport.Rooms[1504] with { Access = RoomAccess.InviteOnly };
+        transport.Rooms[1505] = transport.Rooms[1505] with { Access = (RoomAccess)(-1) };
+        client.Search(); transport.CompleteSearch(1502, 1503, 1504, 1505);
+        Assert(client.Listings.Length == 1 && client.Listings[0].Code == SteamRoomProtocol.Encode(1502),
+            "public discovery excludes restricted and malformed metadata even if a cached result contains them");
+        client.Join(SteamRoomProtocol.Encode(1505)); transport.SucceedMembership(1505);
+        Assert(client.Failure == RoomFailure.NotFound && client.JoinedCode == SteamRoomProtocol.Encode(1502),
+            "missing policy cannot be joined as compatible public room");
+
+        transport.AccessMetadataSucceeds = false;
+        transport.AccessNativeResults.Enqueue(true);
+        transport.AccessNativeResults.Enqueue(false);
+        Assert(client.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessUnavailable"
+            && client.View == null && client.JoinedCode == "" && transport.Left.Contains(1502),
+            "uncertain rollback clears this membership instead of showing a false confirmed policy");
+        transport.AccessMetadataSucceeds = true;
+        transport.Seed(1506, new SteamRoomMemberData(88, "host", "1:10:0:1001"));
+        transport.SetOwner(1506, 88, false);
+        client.Join(SteamRoomProtocol.Encode(1506)); transport.SucceedMembership(1506);
+        transport.AccessNativeResults.Enqueue(false);
+        transport.SetOwner(1506, 77);
+        Assert(client.View == null && transport.Left.Contains(1506),
+            "failed successor reconciliation never advertises unconfirmed admission policy");
+    }
 
     private static void CheckInvitingFriends()
     {
@@ -919,6 +1047,10 @@ public static class SteamRoomChecks
         public ulong LocalSteamId => 77;
         public bool IsAvailable { get; set; } = true;
         public bool InitializeSucceeds = true;
+        public readonly List<(ulong Lobby, RoomAccess Access)> AccessWrites = new();
+        public readonly Dictionary<ulong, RoomAccess> NativeAccess = new();
+        public readonly Queue<bool> AccessNativeResults = new();
+        public bool AccessMetadataSucceeds = true;
         public bool Disposed;
         public double Now;
         public long ServerTime => 100000 + (long)Now;
@@ -976,6 +1108,7 @@ public static class SteamRoomChecks
             var members = new[] { new SteamRoomMemberData(77, "local Steam name", "1:10:0:1001") }.Concat(other).ToArray();
             Rooms[lobby] = new SteamRoomData(lobby, SteamRoomProtocol.Version, "room", "social", 77,
                 members.Length, 6, members);
+            NativeAccess[lobby] = RoomAccess.Public;
         }
         public IDisposable Create(Action<SteamRoomJoinResult> completed) => Join(0, completed);
         public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
@@ -1021,6 +1154,23 @@ public static class SteamRoomChecks
         {
             Rooms[lobbyId] = Rooms[lobbyId] with { Game = game };
             return true;
+        }
+        public bool SetAccess(ulong lobbyId, RoomAccess access)
+        {
+            AccessWrites.Add((lobbyId, access));
+            return SteamRoomProtocol.WriteAccess(Rooms[lobbyId].Access, access,
+                value =>
+                {
+                    if (AccessNativeResults.Count > 0 && !AccessNativeResults.Dequeue()) return false;
+                    NativeAccess[lobbyId] = value;
+                    return true;
+                },
+                value =>
+                {
+                    if (!AccessMetadataSucceeds) return false;
+                    Rooms[lobbyId] = Rooms[lobbyId] with { Access = value };
+                    return true;
+                });
         }
         public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
         public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);

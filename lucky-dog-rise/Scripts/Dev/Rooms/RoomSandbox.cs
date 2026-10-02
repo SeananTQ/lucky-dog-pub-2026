@@ -30,8 +30,10 @@ public sealed class RoomSandbox : IRoomService
         public string GameId = "social";
         public int Owner;
         public long Revision;
+        public RoomAccess Access;
         public readonly Dictionary<int, RoomMember> Members = new();
         public readonly HashSet<int> BannedClients = new();
+        public readonly HashSet<int> Invitees = new();
     }
     private sealed record Delivery(int ClientId, long Session, double Due,
         RoomSnapshot Snapshot, RoomChat Chat);
@@ -43,6 +45,7 @@ public sealed class RoomSandbox : IRoomService
     private readonly List<Delivery> _pending = new();
     private readonly List<PendingRequest> _requests = new();
     private readonly Dictionary<int, double> _lastChat = new();
+    private readonly HashSet<(int, int)> _friends = new();
     private int _nextRoom;
     private long _nextPresence;
     private long _nextChat;
@@ -92,7 +95,7 @@ public sealed class RoomSandbox : IRoomService
         };
     }
 
-    public RoomListing[] Search() => _rooms.Values.OrderBy(r => r.Code)
+    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public).OrderBy(r => r.Code)
         .Select(r => new RoomListing(r.Code, r.Name, r.GameId, r.Members.Count, RoomRules.Capacity)).ToArray();
 
     private RoomListing[] Search(RoomClient client) => Search()
@@ -116,6 +119,10 @@ public sealed class RoomSandbox : IRoomService
         if (!_rooms.TryGetValue((code ?? "").Trim(), out var room)) return new RoomResult(RoomFailure.NotFound);
         if (room.BannedClients.Contains(client.Id)) return new RoomResult(RoomFailure.Banned);
         if (client.JoinedCode == room.Code) return RoomResult.Success;
+        if (room.Access != RoomAccess.Public && !room.Invitees.Contains(client.Id)
+            && !(room.Access == RoomAccess.FriendsOnly && room.Members.Keys.Any(id =>
+                _friends.Contains((Math.Min(id, client.Id), Math.Max(id, client.Id))))))
+            return new RoomResult(RoomFailure.AccessDenied);
         if (room.Members.Count >= RoomRules.Capacity) return new RoomResult(RoomFailure.Full);
         Leave(client);
         client.BeginSession(room.Code);
@@ -132,6 +139,7 @@ public sealed class RoomSandbox : IRoomService
         RoomFailure.NotFound => "房间不存在，请刷新列表。",
         RoomFailure.Full => "房间已满。",
         RoomFailure.Banned => "你已被房主请出，无法再次加入这个房间。",
+        RoomFailure.AccessDenied => "没有加入权限，请让房间成员发送邀请。",
         _ => "房间服务暂不可用。"
     };
 
@@ -192,6 +200,36 @@ public sealed class RoomSandbox : IRoomService
         room.GameId = gameId;
         Broadcast(room);
         return "";
+    }
+
+    // Development-only relationships; the production adapter delegates admission to Steam.
+    public void SetFriends(RoomClient a, RoomClient b, bool friends = true)
+    {
+        Settings(a); Settings(b);
+        var pair = (Math.Min(a.Id, b.Id), Math.Max(a.Id, b.Id));
+        if (friends) _friends.Add(pair); else _friends.Remove(pair);
+    }
+
+    public void GrantInvitation(string code, RoomClient client)
+    {
+        Settings(client);
+        if (_rooms.TryGetValue(code, out var room)) room.Invitees.Add(client.Id);
+    }
+
+    public string SetAccess(RoomClient client, RoomAccess access)
+    {
+        Settings(client);
+        if (!_rooms.TryGetValue(client.JoinedCode, out var room) || !room.Members.ContainsKey(client.Id)
+            || client.IsBusy) return "Rooms_AccessUnavailable";
+        if (room.Owner != client.Id) return "Rooms_AccessNotOwner";
+        if (!Enum.IsDefined(access)) return "Rooms_AccessUpdateFailed";
+        if (Settings(client).NextFailure != MockRoomFailure.None)
+        {
+            Settings(client).NextFailure = MockRoomFailure.None;
+            return "Rooms_AccessUpdateFailed";
+        }
+        if (room.Access != access) { room.Access = access; Broadcast(room); }
+        return "ok";
     }
 
     public string Kick(RoomClient client, int memberId, long presence)
@@ -280,7 +318,7 @@ public sealed class RoomSandbox : IRoomService
         var due = old?.Due ?? Now + settings.Latency;
         _pending.RemoveAll(d => d.ClientId == client.Id && d.Snapshot != null);
         var snapshot = new RoomSnapshot(room.Code, room.Name, room.GameId, room.Owner,
-            room.Revision, room.Members.Values.OrderBy(m => m.Id).ToArray());
+            room.Revision, room.Members.Values.OrderBy(m => m.Id).ToArray(), room.Access);
         _pending.Add(new Delivery(client.Id, client.Session, due, snapshot, null));
     }
 }

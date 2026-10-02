@@ -36,6 +36,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private Pending _inFlight;
     private Pending _queued;
     private ulong _lobby;
+    private ulong _accessOwner;
     private long _nextPresence;
     private long _revision;
     private int _nextMemberId = 2;
@@ -211,7 +212,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 foreach (var id in (result.LobbyIds ?? []).Distinct().Take(50))
                 {
                     var data = _transport.ReadLobby(id, false);
-                    if (!Compatible(data) || _blockedLobbies.Contains(id)
+                    if (!Compatible(data) || data.Access != RoomAccess.Public || _blockedLobbies.Contains(id)
                         || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
                         || bans.Contains(_transport.LocalSteamId)) continue;
                     listings.Add(new RoomListing(SteamRoomProtocol.Encode(data.LobbyId), data.Name,
@@ -261,6 +262,14 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Banned));
                 return;
             }
+            // The stored policy survives the former host. Reconcile native
+            // admission once when joining as owner, before committing our view.
+            if (data.OwnerId == _transport.LocalSteamId
+                && !_transport.SetAccess(result.LobbyId, data.Access))
+            {
+                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+                return;
+            }
             // Publish local appearance before switching our committed view. A failed join
             // leaves the old room and its window layout untouched.
             var appearance = AppearanceOf(pending.Client);
@@ -273,6 +282,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             {
                 var previous = _lobby;
                 _lobby = result.LobbyId;
+                _accessOwner = data.OwnerId;
                 _identities.Clear();
                 _banned.Clear();
                 _banned.UnionWith(bans);
@@ -312,6 +322,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     private static bool Compatible(SteamRoomData data) => data != null && data.LobbyId != 0
         && data.Protocol == SteamRoomProtocol.Version && SteamRoomProtocol.IsNameValid(data.Name)
+        && SteamRoomProtocol.IsAccessValid(data.Access)
         && data.Capacity == RoomRules.Capacity && data.Count is >= 1 and <= RoomRules.Capacity;
 
     private string AppearanceOf(RoomClient client) => SteamRoomProtocol.EncodeAppearance(
@@ -346,6 +357,31 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             return "";
         }
         catch { return "房间服务暂不可用。"; }
+    }
+
+    public string SetAccess(RoomClient client, RoomAccess access)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0 || client.IsBusy
+            || !SteamRoomProtocol.IsAccessValid(access)) return "Rooms_AccessUnavailable";
+        try
+        {
+            var lobby = _lobby;
+            var data = _transport.ReadLobby(lobby, false);
+            if (data?.OwnerId != _transport.LocalSteamId) return "Rooms_AccessNotOwner";
+            if (!Compatible(data)) return "Rooms_AccessUnavailable";
+            if (data.Access == access) return "ok";
+            if (!_transport.SetAccess(lobby, access)) return "Rooms_AccessUpdateFailed";
+            OnLobbyChanged(lobby);
+            return _lobby == lobby ? "ok" : "Rooms_AccessUnavailable";
+        }
+        catch
+        {
+            // A transport exception can mean both the update and its rollback
+            // failed. Stop this membership instead of asserting a stale policy.
+            // Existing members remain and Steam can appoint the next owner.
+            Disconnect();
+            return "Rooms_AccessUnavailable";
+        }
     }
 
     public string Kick(RoomClient client, int memberId, long presence)
@@ -497,6 +533,15 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 return;
             }
             if (!ApplyBans(bans)) return;
+            if (data.OwnerId != _accessOwner)
+            {
+                if (data.OwnerId == _transport.LocalSteamId && !_transport.SetAccess(_lobby, data.Access))
+                {
+                    Disconnect();
+                    return;
+                }
+                _accessOwner = data.OwnerId;
+            }
             Publish(data);
         }
         catch { Disconnect(); }
@@ -548,7 +593,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         var owner = _identities.TryGetValue(data.OwnerId, out var ownerIdentity) ? ownerIdentity.Id : 0;
         _client.Receive(new RoomSnapshot(SteamRoomProtocol.Encode(_lobby), data.Name,
             SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", owner, ++_revision,
-            members.OrderBy(m => m.Id).ToArray()));
+            members.OrderBy(m => m.Id).ToArray(), data.Access));
     }
 
     public void Leave(RoomClient client)
@@ -567,6 +612,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         if (_inFlight?.Client == client) _inFlight.Cancelled = true;
         var old = _lobby;
         _lobby = 0;
+        _accessOwner = 0;
         _identities.Clear();
         _banned.Clear();
         _lastAppearance = "";

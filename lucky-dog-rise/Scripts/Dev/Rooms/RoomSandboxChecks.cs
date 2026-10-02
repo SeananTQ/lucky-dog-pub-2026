@@ -7,10 +7,53 @@ namespace LuckyDogRise.Rooms;
 // Exercises state transitions and malformed/stale messages without Godot UI or Steam.
 internal static class RoomSandboxChecks
 {
+    private static void CheckAccess()
+    {
+        var server = new RoomSandbox();
+        var owner = server.AddClient(1, "Owner", 1012);
+        var member = server.AddClient(2, "Member", 1012);
+        var friend = server.AddClient(3, "Friend", 1012);
+        var stranger = server.AddClient(4, "Stranger", 1012);
+        server.Create(owner, "Access");
+        var code = owner.JoinedCode;
+        server.Join(member, code);
+        server.Tick(0);
+        Check(owner.View.Access == RoomAccess.Public, "new rooms default public");
+        Check(member.SetAccess(RoomAccess.InviteOnly) == "Rooms_AccessNotOwner", "non-host cannot change access");
+        Check(owner.SetAccess(RoomAccess.FriendsOnly) == "ok", "host sets friends access");
+        server.Tick(0);
+        Check(server.Search().Length == 0 && member.View.Access == RoomAccess.FriendsOnly
+            && member.JoinedCode == code, "private directory exclusion does not evict existing members");
+        stranger.Join(code); server.Tick(0);
+        Check(stranger.Failure == RoomFailure.AccessDenied, "knowing room code does not bypass access");
+        server.SetFriends(member, friend);
+        friend.Join(code); server.Tick(0);
+        Check(friend.JoinedCode == code, "friend of room member can join friends lobby");
+        owner.SetAccess(RoomAccess.InviteOnly); server.Tick(0);
+        friend.Leave(); friend.Join(code); server.Tick(0);
+        Check(friend.Failure == RoomFailure.AccessDenied, "friend still needs invite in invite-only mode");
+        server.GrantInvitation(code, friend);
+        friend.Join(code); server.Tick(0);
+        Check(friend.JoinedCode == code, "explicit invite grants entry");
+        server.Settings(owner).NextFailure = MockRoomFailure.Unavailable;
+        Check(owner.SetAccess(RoomAccess.Public) == "Rooms_AccessUpdateFailed", "rejected change reported");
+        server.Tick(0);
+        Check(owner.View.Access == RoomAccess.InviteOnly && server.Search().Length == 0, "failed change keeps original access");
+        owner.Leave(); server.Tick(0);
+        Check(member.View.OwnerId == member.Id && member.View.Access == RoomAccess.InviteOnly,
+            "host handoff retains access");
+        Check(member.SetAccess(RoomAccess.Public) == "ok", "successor can change access");
+        server.Tick(0);
+        Check(server.Search().Length == 1, "public room discoverable again");
+        server.Create(owner, "New room"); server.Tick(0);
+        Check(owner.View.Access == RoomAccess.Public, "new room does not inherit last private setting");
+    }
+
     public static string Run()
     {
         CheckActivity();
         CheckKicking();
+        CheckAccess();
         var server = new RoomSandbox();
         var a = server.AddClient(1, "A", 1012);
         var b = server.AddClient(2, "B", 1012);

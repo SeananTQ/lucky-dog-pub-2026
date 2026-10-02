@@ -337,6 +337,7 @@ internal static class RoomRequestChecks
         public void UpdateAppearance(RoomClient client) { }
         public void UpdateActivity(RoomClient client) { }
         public string SetGame(RoomClient client, string gameId) => "";
+        public string SetAccess(RoomClient client, RoomAccess access) => "Rooms_AccessUnavailable";
         public string SendChat(RoomClient client, string text) { ChatCalls++; return ""; }
         public string Kick(RoomClient client, int memberId, long presence) => "Rooms_KickUnavailable";
         public void RemoteSuccess(RoomClient client, long requestId, string code)

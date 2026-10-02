@@ -21,6 +21,11 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private Label _code = null!;
     [Export] private Button _codeVisibility = null!;
     [Export] private Button _invite = null!;
+    [Export] private Button _access = null!;
+    [Export] private VBoxContainer _accessChoices = null!;
+    [Export] private Button _accessPublic = null!;
+    [Export] private Button _accessFriends = null!;
+    [Export] private Button _accessInvite = null!;
     [Export] private Label _status = null!;
     [Export] private Label _empty = null!;
     [Export] private Label _connection = null!;
@@ -58,6 +63,8 @@ public partial class InGameRoomPreview : VBoxContainer
     private long _kickSession;
     private int _kickMemberId;
     private long _kickPresence;
+    private RoomClient _accessClient;
+    private long _accessSession;
     public event Action<RoomClient> ClientChanged;
     public RoomClient CurrentClient => _client;
 
@@ -117,6 +124,10 @@ public partial class InGameRoomPreview : VBoxContainer
         _kickCancel.Pressed += CancelKick;
         _codeVisibility.Pressed += ToggleCodeVisibility;
         _invite.Pressed += InviteFriends;
+        _access.Pressed += ToggleAccessChoices;
+        _accessPublic.Pressed += () => SelectAccess(RoomAccess.Public);
+        _accessFriends.Pressed += () => SelectAccess(RoomAccess.FriendsOnly);
+        _accessInvite.Pressed += () => SelectAccess(RoomAccess.InviteOnly);
         L10n.Changed += OnLanguageChanged;
         InitializeMock();
         RefreshService();
@@ -131,6 +142,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // different origin, so mixing them leaves otherwise valid bubbles stuck.
         if (!_isMock && _client != null) _client.AdvanceTo(_service.Now);
         ConsumeAcceptedInvite();
+        if (!IsVisibleInTree()) CloseAccessChoices();
         if (_dirty) { _dirty = false; Render(); }
     }
     public override void _ExitTree()
@@ -176,6 +188,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private void ReplaceClient(RoomClient client)
     {
         CancelKick();
+        CloseAccessChoices();
         if (_client != null)
         {
             _client.Changed -= OnClientChanged;
@@ -207,6 +220,8 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void OnClientChanged()
     {
+        if (_accessClient != null && AccessError(_accessClient, _accessSession).Length > 0)
+            CloseAccessChoices();
         if (_client.Failure is RoomFailure.Removed or RoomFailure.Banned)
             _noticeKey = _client.Failure == RoomFailure.Removed ? "Rooms_Removed" : "Rooms_Banned";
         if (_kickClient != null && KickTargetError(_kickClient, _kickSession, _kickMemberId, _kickPresence).Length > 0)
@@ -228,8 +243,8 @@ public partial class InGameRoomPreview : VBoxContainer
         else _client.Search();
         _dirty = true;
     }
-    public void OnBrowse() { _browsing = true; RefreshRooms(); _dirty = true; }
-    public void OnLeave() { _client?.Leave(); _browsing = true; RefreshRooms(); }
+    public void OnBrowse() { CloseAccessChoices(); _browsing = true; RefreshRooms(); _dirty = true; }
+    public void OnLeave() { CloseAccessChoices(); _client?.Leave(); _browsing = true; RefreshRooms(); }
     public void OnCopyCode()
     {
         if (_client == null || _client.JoinedCode.Length == 0) return;
@@ -264,6 +279,69 @@ public partial class InGameRoomPreview : VBoxContainer
         _noticeKey = result == "ok" ? "" : result;
         _dirty = true;
     }
+
+    private string AccessError(RoomClient client, long session)
+    {
+        if (!ReferenceEquals(client, _client) || client == null || client.Session != session
+            || client.JoinedCode.Length == 0 || client.IsBusy || client.View == null)
+            return "Rooms_AccessUnavailable";
+        return client.View.OwnerId == client.Id ? "" : "Rooms_AccessNotOwner";
+    }
+
+    private void ToggleAccessChoices()
+    {
+        if (_accessChoices.Visible) { CloseAccessChoices(); return; }
+        if (AccessError(_client, _client?.Session ?? 0).Length > 0) return;
+        _accessClient = _client;
+        _accessSession = _client.Session;
+        _accessChoices.Show();
+    }
+
+    private void CloseAccessChoices()
+    {
+        _accessClient = null;
+        _accessChoices?.Hide();
+    }
+
+    private void SelectAccess(RoomAccess access)
+    {
+        // The selected room or host may have changed since the menu opened.
+        // A stale button signal must never modify a newly joined room.
+        if (_accessClient == null || !_accessChoices.Visible) return;
+        var error = AccessError(_accessClient, _accessSession);
+        if (error.Length == 0)
+        {
+            string result = _accessClient.SetAccess(access);
+            error = result == "ok" ? "" : result;
+        }
+        CloseAccessChoices();
+        _noticeKey = error;
+        RenderAccess();
+        _dirty = true;
+    }
+
+    private void RenderAccess()
+    {
+        var access = _client?.View?.Access ?? RoomAccess.Public;
+        _access.Text = L10n.Tr(AccessKey(access)) + "  ▾";
+        _access.Disabled = AccessError(_client, _client?.Session ?? 0).Length > 0;
+        _access.TooltipText = _client?.View != null && _client.View.OwnerId != _client.Id
+            ? L10n.Tr("Rooms_AccessNotOwner") : "";
+        foreach (var (button, value) in new[] { (_accessPublic, RoomAccess.Public),
+                     (_accessFriends, RoomAccess.FriendsOnly), (_accessInvite, RoomAccess.InviteOnly) })
+        {
+            button.SetPressedNoSignal(access == value);
+            button.Disabled = _access.Disabled || access == value;
+        }
+        if (_access.Disabled) CloseAccessChoices();
+    }
+
+    private static string AccessKey(RoomAccess access) => access switch
+    {
+        RoomAccess.FriendsOnly => "Rooms_AccessFriendsOnly",
+        RoomAccess.InviteOnly => "Rooms_AccessInviteOnly",
+        _ => "Rooms_AccessPublic"
+    };
 
     private void ConsumeAcceptedInvite()
     {
@@ -322,6 +400,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private void Render()
     {
         RenderCodePrivacy();
+        RenderAccess();
         _connection.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired"
             : _client == null ? "Rooms_SteamUnavailable" : "Rooms_SteamConnected");
         RenderMockNotice();
@@ -409,6 +488,7 @@ public partial class InGameRoomPreview : VBoxContainer
         {
             RoomFailure.InvalidName => "Rooms_InvalidName", RoomFailure.NotFound => "Rooms_NotFound",
             RoomFailure.Full => "Rooms_Full", RoomFailure.NoMatchingRoom => "Rooms_NoMatch",
+            RoomFailure.AccessDenied => "Rooms_AccessDenied",
             RoomFailure.Removed => "Rooms_Removed", RoomFailure.Banned => "Rooms_Banned", _ => "Rooms_Unavailable"
         };
     private static void Clear(Node parent)

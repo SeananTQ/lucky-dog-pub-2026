@@ -160,6 +160,10 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess => RoomFailure.None,
                 EChatRoomEnterResponse.k_EChatRoomEnterResponseFull => RoomFailure.Full,
                 EChatRoomEnterResponse.k_EChatRoomEnterResponseDoesntExist => RoomFailure.NotFound,
+                EChatRoomEnterResponse.k_EChatRoomEnterResponseNotAllowed
+                    or EChatRoomEnterResponse.k_EChatRoomEnterResponseBanned
+                    or EChatRoomEnterResponse.k_EChatRoomEnterResponseMemberBlockedYou
+                    or EChatRoomEnterResponse.k_EChatRoomEnterResponseYouBlockedMember => RoomFailure.AccessDenied,
                 _ => RoomFailure.Unavailable
             };
             completed(new SteamRoomJoinResult(failure, result.m_ulSteamIDLobby));
@@ -192,7 +196,8 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.GameKey),
             SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID, count,
             SteamMatchmaking.GetLobbyMemberLimit(lobby), members.ToArray(),
-            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.BanListKey));
+            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.BanListKey),
+            SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey)));
     }
 
     public bool InitializeLobby(ulong lobbyId, string name)
@@ -202,6 +207,8 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         return SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.NameKey, name)
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.GameKey, "social")
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.BanListKey, "1:")
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.AccessKey,
+                SteamRoomProtocol.EncodeAccess(RoomAccess.Public))
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.ProtocolKey, SteamRoomProtocol.Version);
     }
 
@@ -218,6 +225,26 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     {
         RequireAvailable();
         return SteamMatchmaking.SetLobbyData(new CSteamID(lobbyId), SteamRoomProtocol.GameKey, game);
+    }
+
+    public bool SetAccess(ulong lobbyId, RoomAccess access)
+    {
+        RequireAvailable();
+        var lobby = new CSteamID(lobbyId);
+        if (!SteamRoomProtocol.IsAccessValid(access)
+            || SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID != LocalSteamId) return false;
+        var previous = SteamRoomProtocol.DecodeAccess(
+            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey));
+        return SteamRoomProtocol.WriteAccess(previous, access,
+            value => SteamMatchmaking.SetLobbyType(lobby, value switch
+            {
+                RoomAccess.Public => ELobbyType.k_ELobbyTypePublic,
+                RoomAccess.FriendsOnly => ELobbyType.k_ELobbyTypeFriendsOnly,
+                RoomAccess.InviteOnly => ELobbyType.k_ELobbyTypePrivate,
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            }),
+            value => SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.AccessKey,
+                SteamRoomProtocol.EncodeAccess(value)));
     }
 
     public void SetAppearance(ulong lobbyId, string appearance)

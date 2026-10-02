@@ -54,6 +54,8 @@ public sealed class RoomClient : IDisposable
         return BeginRequest(RoomOperation.Search, "");
     }
     public string SetGame(string gameId) => _disposed ? "房间连接已关闭。" : _service.SetGame(this, gameId);
+    public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy
+        ? "Rooms_AccessUnavailable" : _service.SetAccess(this, access);
     public string SendChat(string text) => _disposed ? "房间连接已关闭。" : _service.SendChat(this, text);
     public string Kick(int memberId, long presence) => _disposed || _committing
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
