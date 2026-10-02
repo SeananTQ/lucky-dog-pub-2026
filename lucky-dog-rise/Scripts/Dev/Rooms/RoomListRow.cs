@@ -18,7 +18,7 @@ public partial class RoomListRow : HBoxContainer
         _count.Text = $"{room.Count}/{room.Capacity}";
         _gameIcon.TooltipText = room.GameId == "social" ? "一起待着（玩法图标占位）" : "玩法同步测试（非实际扑克）";
         _gameIcon.Modulate = room.GameId == "social" ? Colors.White : new Color(0.7f, 0.9f, 1f);
-        _full = room.Count >= room.Capacity;
+        _full = room.IsFull;
         SetRequestPending(busy);
         _join.Pressed += () => join();
     }

@@ -46,6 +46,11 @@ public partial class ConfirmOverlayController : Control
             Cancel();
     }
 
+    public override void _ExitTree()
+    {
+        L10n.Changed -= RefreshLocalizedText;
+    }
+
     public void ShowConfirm(string title, string message, string confirmText = "确认", string cancelText = "取消")
     {
         StopTimedConfirm();

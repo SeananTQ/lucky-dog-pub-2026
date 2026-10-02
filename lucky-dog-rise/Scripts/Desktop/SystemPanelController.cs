@@ -97,6 +97,7 @@ public partial class SystemPanelController : CanvasLayer
     private Vector2 _panelScrollDragStartPosition;
     private int _panelScrollDragStartValue;
     private BaseButton _panelScrollPressedButton;
+    private bool _panelScrollDisabledPressedButton;
 
     // 页签按钮
     private Button _settingsTab = null!;
@@ -108,6 +109,7 @@ public partial class SystemPanelController : CanvasLayer
     private Button _roomTab;
     private VBoxContainer _roomContent;
     private Rooms.InGameRoomPreview _roomPreview;
+    private ConfirmOverlayController _roomKickConfirm;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
     private int _roomTabIndex = -1;
 #endif
@@ -844,6 +846,8 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _ExitTree()
     {
+        ResetPanelScrollDrag();
+        L10n.Changed -= RefreshLocalizedOptionText;
         SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
         if (_collectionEventContent != null)
         {
@@ -898,7 +902,11 @@ public partial class SystemPanelController : CanvasLayer
     public override void _Input(InputEvent @event)
     {
         TrackTutorialInterfaceActivity(@event);
-        if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true)
+        if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true
+#if !DEMO_BUILD && !RECORDING_BUILD
+            || _roomKickConfirm?.Visible == true
+#endif
+            )
         {
             ResetPanelScrollDrag();
             return;
@@ -926,8 +934,11 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _panelScrollDragging = true;
-            if (_panelScrollPressedButton != null)
+            if (IsLiveScrollButton(_panelScrollPressedButton) && !_panelScrollPressedButton.Disabled)
+            {
                 _panelScrollPressedButton.Disabled = true;
+                _panelScrollDisabledPressedButton = true;
+            }
         }
 
         _panelScroll.ScrollVertical = _panelScrollDragStartValue - Mathf.RoundToInt(delta.Y);
@@ -965,6 +976,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void BeginPanelScrollDrag(Vector2 mousePosition)
     {
+        ResetPanelScrollDrag();
         if (!_panelScroll.GetGlobalRect().HasPoint(mousePosition))
             return;
 
@@ -1000,13 +1012,19 @@ public partial class SystemPanelController : CanvasLayer
 
     private void ResetPanelScrollDrag()
     {
-        if (_panelScrollPressedButton != null)
-            _panelScrollPressedButton.Disabled = false;
-
+        var pressedButton = _panelScrollPressedButton;
+        bool restoreButton = _panelScrollDisabledPressedButton;
+        // Clear ownership before touching a dynamic control: its row may have
+        // disappeared since mouse-down, and must never leave dragging latched.
         _panelScrollPressedButton = null;
+        _panelScrollDisabledPressedButton = false;
         _panelScrollDragPotential = false;
         _panelScrollDragging = false;
+        if (restoreButton && IsLiveScrollButton(pressedButton)) pressedButton.Disabled = false;
     }
+
+    private static bool IsLiveScrollButton(BaseButton button) => GodotObject.IsInstanceValid(button)
+        && !button.IsQueuedForDeletion() && button.IsInsideTree();
 
     private static T FindControlAncestor<T>(Control control, Control boundary) where T : Control
     {
@@ -1030,6 +1048,11 @@ public partial class SystemPanelController : CanvasLayer
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (index == _roomTabIndex) EnsureRoomPreview();
+        else
+        {
+            _roomPreview?.AccessPopup.Hide();
+            _roomPreview?.CancelKickConfirmation();
+        }
 #endif
         for (int i = 0; i < _tabs.Count; i++)
         {
@@ -1080,10 +1103,25 @@ public partial class SystemPanelController : CanvasLayer
         if (_roomPreview != null || _roomContent == null) return;
         _roomPreview = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
             .Instantiate<Rooms.InGameRoomPreview>();
+        _roomKickConfirm = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
+            .Instantiate<ConfirmOverlayController>();
+        _roomKickConfirm.Name = "RoomKickConfirm";
+        AddChild(_roomKickConfirm);
+        _roomKickConfirm.Scale = _panel.Scale;
+        _roomKickConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
+        _roomKickConfirm.VisibilityChanged += ResetPanelScrollDrag;
+        _roomPreview.BindKickConfirmation(_roomKickConfirm);
         _roomPreview.Configure(_platformService, _gameData);
         _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
+        _roomPreview.PageChanged += () =>
+        {
+            // Background invitation handling must not scroll the active settings page.
+            if (_roomContent.IsVisibleInTree()) _panelScroll.ScrollVertical = 0;
+        };
         _roomContent.AddChild(_roomPreview);
         BindTutorialPopupActivity(_roomPreview);
+        ApplyPopupRenderQuality(_roomPreview);
+        ApplyPopupRenderQuality(_roomKickConfirm);
         // Only reset scrolling when the player is actually viewing this page.
         if (_roomContent.Visible) _panelScroll.ScrollVertical = 0;
     }
@@ -3039,6 +3077,9 @@ public partial class SystemPanelController : CanvasLayer
     public void SetPanelPosition(Vector2 pos)
     {
         _panel.Position = pos;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomKickConfirm?.SetOverlayRect(pos, PanelDesignSize);
+#endif
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _desktopScaleModeSwitchConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
@@ -3056,6 +3097,13 @@ public partial class SystemPanelController : CanvasLayer
         _renderScale = Mathf.Max(0.01f, scale);
         var value = Vector2.One * _renderScale;
         _panel.Scale = value;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (_roomKickConfirm != null)
+        {
+            _roomKickConfirm.Scale = value;
+            ApplyPopupRenderQuality(_roomKickConfirm);
+        }
+#endif
         _desktopScaleConfirm.Scale = value;
         _desktopScaleModeSwitchConfirm.Scale = value;
         _otherUiScaleConfirm.Scale = value;
@@ -3163,6 +3211,10 @@ public partial class SystemPanelController : CanvasLayer
 
     public void Close()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomPreview?.AccessPopup.Hide();
+        _roomPreview?.CancelKickConfirmation();
+#endif
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
         _desktopScaleModeSwitchConfirm?.Hide();
@@ -3187,6 +3239,10 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _roomPreview?.AccessPopup.Hide();
+        _roomPreview?.CancelKickConfirmation();
+#endif
         bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
@@ -3331,11 +3387,26 @@ public partial class SystemPanelController : CanvasLayer
             || PopupContainsPoint(_languageOption.GetPopup(), windowPosition)
             || PopupContainsPoint(_displayOption.GetPopup(), windowPosition)
             || PopupContainsPoint(_armAppearanceOption.GetPopup(), windowPosition)
+#if !DEMO_BUILD && !RECORDING_BUILD
+            || PopupContainsPoint(_roomPreview?.AccessPopup, windowPosition)
+#endif
 #if DEBUG
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPosition)
             || PopupContainsPoint(_playerProgressMultiplierOption.GetPopup(), windowPosition)
 #endif
             ;
+    }
+
+    // Opening an embedded dropdown transfers focus away from the host Window.
+    // That is still interaction with this panel, including keyboard-only use.
+    public bool HasOpenDropdown => HasVisibleDropdown(_panel);
+
+    private static bool HasVisibleDropdown(Node node)
+    {
+        if (node is OptionButton option && option.GetPopup().Visible) return true;
+        foreach (var child in node.GetChildren())
+            if (HasVisibleDropdown(child)) return true;
+        return false;
     }
 
     private static bool PopupContainsPoint(PopupMenu popup, Vector2 windowPosition)

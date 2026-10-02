@@ -45,9 +45,64 @@ public static class SteamRoomChecks
         CheckCompanionLifecycle();
         CheckCompanionMigrationAndFallback();
         CheckCompanionWritesAndActivityLease();
+        CheckRoomRenaming();
+        CheckCompanionRemoval();
+        CheckDirectoryCharacterCounts();
     }
 
     private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckDirectoryCharacterCounts()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: now => RoomCompanionPlan.Create([10], [0], now, 801));
+        using var client = Client(service);
+        client.Create("own room"); transport.SucceedMembership(1671);
+        string initialOwnPlan = transport.Rooms[1671].Companions;
+        var otherPlan = RoomCompanionPlan.Create([20], [30], transport.ServerTime, 802);
+        transport.Seed(1672);
+        transport.SetOwner(1672, 88, false);
+        transport.ChangeCompanions(1672, otherPlan.ToWire(), false);
+        void Refresh()
+        {
+            client.Search(); transport.CompleteSearch(1671, 1672);
+        }
+        RoomListing Listing(ulong id) => client.Listings.Single(r => r.Code == SteamRoomProtocol.Encode(id));
+        Refresh();
+        Assert(Listing(1671).Count == 4 && Listing(1671).HumanCount == 1
+            && Listing(1672).Count == 4 && Listing(1672).HumanCount == 1,
+            "own and foreign one-human rooms both list all three companions");
+        var bot = client.View.Members.First(m => m.IsCompanion);
+        Assert(client.Kick(bot.Id, bot.Presence) == "", "owner removes a listed companion");
+        int writes = transport.CompanionWriteAttempts;
+        transport.ChangeCompanions(1671, initialOwnPlan, false);
+        Refresh();
+        Assert(Listing(1671).Count == 3 && Listing(1671).HumanCount == 1
+            && transport.CompanionWriteAttempts == writes,
+            "discovery merges current room retirements without rewriting stale metadata or refilling the list");
+        transport.SetRemote(1672, new SteamRoomMemberData(88, "other human", "1:10:0:1001"));
+        Refresh();
+        Assert(Listing(1672).Count == 4 && Listing(1672).HumanCount == 2,
+            "foreign pending retirement is conservatively trimmed to two humans plus two companions");
+        transport.ChangeCompanions(1672, otherPlan.WithHumanCount(3).ToWire(), false);
+        Refresh();
+        Assert(Listing(1672).Count == 3 && Listing(1672).HumanCount == 2,
+            "persisted retired companions do not return when real member count decreases");
+        foreach (var invalid in new[] { "", "broken", new string('x', RoomCompanionPlan.MaxWireLength + 1) })
+        {
+            transport.ChangeCompanions(1672, invalid, false); Refresh();
+            Assert(Listing(1672).Count == 2 && Listing(1672).HumanCount == 2,
+                "absent or malformed optional plan degrades directory display to real humans");
+        }
+        transport.ChangeCompanions(1672, otherPlan.ToWire(), false);
+        foreach (ulong id in new ulong[] { 89, 90, 91, 92 })
+            transport.SetRemote(1672, new SteamRoomMemberData(id, "human", "1:10:0:1001"));
+        Refresh();
+        Assert(Listing(1672).Count == 6 && Listing(1672).HumanCount == 6 && Listing(1672).IsFull,
+            "six real Steam members stay full even if old companion metadata remains in the lobby");
+        Assert(transport.CompanionWriteAttempts == writes && transport.AppearanceWrites.Count == 1,
+            "directory character counts require no extra member-data writes or companion heartbeats");
+    }
 
     private static void CheckCompanionLifecycle()
     {
@@ -66,9 +121,9 @@ public static class SteamRoomChecks
             && initial.All(m => m.Id < 0) && initial.Select(m => m.Id).Distinct().Count() == 3
             && transport.Rooms[1601].Count == 1 && client.View.OwnerId == client.Id,
             "one real Steam member gets three distinct display companions without fake Steam membership");
-        Assert(client.Kick(initial[0].Id, initial[0].Presence) == "Rooms_KickInvalidTarget"
+        Assert(client.Kick(initial[0].Id, initial[0].Presence + 1) == "Rooms_KickInvalidTarget"
             && transport.BanWrites.Count == 0 && transport.Chats.Count == 0,
-            "companion identities cannot become kick targets or chat authors");
+            "stale companion identity cannot become a removal target or chat author");
         for (int second = 0; second < 80; second++)
         {
             transport.Now = second;
@@ -208,6 +263,103 @@ public static class SteamRoomChecks
             "synchronous metadata notifications settle without recursive companion writes");
         transport.IsAvailable = false; service.Tick();
         Assert(client.View == null, "disconnect clears companions and their animation clock");
+    }
+
+    private static void CheckRoomRenaming()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: now => RoomCompanionPlan.Create([10], [0], now, 701));
+        using var client = Client(service);
+        Assert(client.SetName("name") == "Rooms_NameUnavailable", "rename requires current membership");
+        client.Create("original"); transport.SucceedMembership(1641);
+        transport.DelayNameEcho = true;
+        Assert(client.SetName("  Renamed 狗  ") == "ok" && client.View.Name == "Renamed 狗"
+            && transport.NameWrites.Single().Name == "Renamed 狗", "host trims and publishes accepted name");
+        transport.Now = 20; client.AdvanceTo(20); service.Tick();
+        transport.ChangeName(1641, "original");
+        Assert(client.View.Name == "Renamed 狗" && transport.NameWrites.Count == 1,
+            "cached activity tick and stale metadata neither undo nor rewrite accepted name");
+        var removable = client.View.Members.First(m => m.IsCompanion);
+        Assert(client.Kick(removable.Id, removable.Presence) == "" && client.View.Name == "Renamed 狗",
+            "immediate companion removal cannot publish the pre-rename name from stale metadata");
+        Assert(client.SetAccess(RoomAccess.FriendsOnly) == "ok" && client.View.Name == "Renamed 狗",
+            "permission changes preserve the pending accepted name");
+        client.SetAppearance(20, 30, 1001);
+        Assert(client.View.Name == "Renamed 狗", "appearance refresh also preserves accepted rename");
+        Assert(client.SetName("Renamed 狗 ") == "ok" && transport.NameWrites.Count == 1,
+            "unchanged normalized name makes no write even before metadata echo");
+        transport.ChangeName(1641, "Renamed 狗");
+        transport.NameWriteSucceeds = false;
+        Assert(client.SetName("rejected") == "Rooms_NameUpdateFailed" && client.View.Name == "Renamed 狗",
+            "failed rename leaves the visible and authoritative name intact");
+        transport.NameWriteSucceeds = true;
+        foreach (var invalid in new[] { "", "   ", new string('名', 41), "a\nb", "\tname", "name\r", "\ud800", "\udc00" })
+            Assert(client.SetName(invalid) == "Rooms_InvalidName", "invalid room names reject before transport");
+        Assert(transport.NameWrites.Count == 1 && RoomRules.TryNormalizeName(new string('x', 38) + "🐕", out _)
+            && !RoomRules.TryNormalizeName(new string('x', 39) + "🐕", out _),
+            "name length is forty UTF16 units and preserves whole surrogate pairs");
+        client.Search();
+        Assert(client.SetName("busy") == "Rooms_NameUnavailable", "busy client cannot rename during a transition");
+        client.Cancel(); transport.CompleteSearch();
+        Assert(client.SetName("intermediate") == "ok" && client.SetName("latest") == "ok",
+            "rapid consecutive renames are accepted independently");
+        transport.ChangeName(1641, "intermediate");
+        transport.Now = 22; client.AdvanceTo(22); service.Tick();
+        Assert(client.View.Name == "latest", "a delayed intermediate echo cannot replace the latest accepted name");
+        using var stale = Client(service);
+        Assert(service.SetName(stale, "stale") == "Rooms_NameUnavailable", "unrelated client cannot rename another session");
+        transport.SetRemote(1641, new SteamRoomMemberData(88, "next host", "1:10:0:1001"));
+        transport.SetOwner(1641, 88);
+        Assert(client.SetName("forbidden") == "Rooms_NameNotOwner", "ownership is checked against current Steam data");
+        transport.ChangeName(1641, "successor name");
+        Assert(client.View.Name == "successor name", "new owner's name is not hidden by the previous local rename");
+        transport.SetRemote(1641, new SteamRoomMemberData(77, "", "1:10:0:1001"));
+        Assert(client.View.Members.Single(m => m.Id == client.Id).Name == "", "missing local persona reaches the UI fallback");
+        transport.SetRemote(1641, new SteamRoomMemberData(77, "\0\t", "1:10:0:1001"));
+        Assert(client.View.Members.Single(m => m.Id == client.Id).Name == "", "control-only local persona also reaches UI fallback");
+        transport.SetRemote(1641, new SteamRoomMemberData(77, "我的 Steam 昵称", "1:10:0:1001"));
+        Assert(client.View.Members.Single(m => m.Id == client.Id).Name == "我的 Steam 昵称", "real local nickname is preserved");
+    }
+
+    private static void CheckCompanionRemoval()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: now => RoomCompanionPlan.Create([10, 20], [0, 30], now, 809));
+        using var client = Client(service);
+        client.Create("remove companions"); transport.SucceedMembership(1651);
+        string originalWire = transport.Rooms[1651].Companions;
+        var bots = client.View.Members.Where(m => m.IsCompanion).ToArray();
+        transport.CompanionWriteSucceeds = false;
+        Assert(client.Kick(-3, bots[0].Presence) == "Rooms_KickUnavailable"
+            && client.View.Members.Count(m => m.IsCompanion) == 3,
+            "failed manual retirement does not disappear locally or claim success");
+        transport.CompanionWriteSucceeds = true;
+        Assert(client.Kick(-3, bots[0].Presence) == "" && client.View.Members.All(m => m.Id != -3)
+            && client.Kick(-1, bots[0].Presence) == "", "host can retire companions in arbitrary slot order");
+        Assert(client.View.Members.Where(m => m.IsCompanion).Select(m => m.Id).SequenceEqual(new[] { -2 })
+            && transport.BanWrites.Count == 0 && transport.Chats.Count == 0,
+            "companion retirement does not create human bans or send kick chat packets");
+        Assert(client.Kick(-3, bots[0].Presence) == "Rooms_KickInvalidTarget"
+            && client.Kick(-2, bots[0].Presence + 1) == "Rooms_KickInvalidTarget"
+            && client.Kick(int.MinValue, bots[0].Presence) == "Rooms_KickInvalidTarget",
+            "retired, stale-generation and out-of-range companion targets are rejected");
+        transport.ChangeCompanions(1651, originalWire);
+        Assert(client.View.Members.Where(m => m.IsCompanion).Select(m => m.Id).SequenceEqual(new[] { -2 }),
+            "late pre-removal metadata cannot restore manually retired companions");
+        transport.SetRemote(1651, new SteamRoomMemberData(88, "successor", "1:10:0:1001"));
+        transport.SetOwner(1651, 88);
+        Assert(client.Kick(-2, bots[0].Presence) == "Rooms_KickNotOwner", "non-owner cannot remove a companion");
+        transport.SetOwner(1651, 77);
+        Assert(client.View.Members.Where(m => m.IsCompanion).Select(m => m.Id).SequenceEqual(new[] { -2 }),
+            "owner roundtrip preserves arbitrary manual retirement mask");
+        transport.RemoveRemote(1651, 88);
+        transport.CompanionWriteNotifies = true;
+        Assert(client.Kick(-2, bots[0].Presence) == "", "last companion removal succeeds with synchronous metadata notification");
+        service.Tick();
+        Assert(client.View.Members.Length == 1 && transport.BanWrites.Count == 0,
+            "no companion replenishes after player departure or host changes");
+        Assert(RoomCompanionPlan.TryRead(transport.Rooms[1651].Companions, out var finalPlan)
+            && finalPlan.RetiredMask == 7, "all manual removals are persisted for future joiners and successors");
     }
 
     private static void CheckAccessProtocol()
@@ -979,9 +1131,15 @@ public static class SteamRoomChecks
         foreach (var id in new ulong[] { 1, 31, 32, 109775242000000000, ulong.MaxValue })
         {
             var code = SteamRoomProtocol.Encode(id);
-            Assert(SteamRoomProtocol.TryDecode(code.ToLowerInvariant(), out var decoded) && decoded == id,
+            Assert(code.Length == 13 && !code.StartsWith("LD-", StringComparison.Ordinal)
+                && SteamRoomProtocol.TryDecode("  " + code.ToLowerInvariant() + "  ", out var decoded) && decoded == id,
                 "room code must round-trip every 64-bit id");
+            Assert(SteamRoomProtocol.TryDecode("ld-" + code.ToLowerInvariant(), out decoded) && decoded == id,
+                "legacy LD prefix remains accepted on input");
         }
+        foreach (var invalid in new[] { "0000000000000", "Z000000000000", "000000000000I", "000000000000O",
+            "000000000000L", "000000000000", "00000000000000", "LD-000000000000", "LD-LD-0000000000001" })
+            Assert(!SteamRoomProtocol.TryDecode(invalid, out _), "malformed or zero bare room code is rejected");
         Assert(!SteamRoomProtocol.TryDecode("LD-Z000000000000", out _), "overflow rejected");
         Assert(!SteamRoomProtocol.TryDecode("LD-0000000000000", out _), "zero rejected");
         Assert(!SteamRoomProtocol.TryDecode("LD-000000000000I", out _), "invalid alphabet rejected");
@@ -1220,6 +1378,9 @@ public static class SteamRoomChecks
         public int CompanionWriteAttempts;
         public bool CompanionWriteSucceeds = true;
         public bool CompanionWriteNotifies;
+        public readonly List<(ulong Lobby, string Name)> NameWrites = new();
+        public bool NameWriteSucceeds = true;
+        public bool DelayNameEcho;
         public bool Disposed;
         public double Now;
         public long ServerTime => 100000 + (long)Now;
@@ -1323,6 +1484,18 @@ public static class SteamRoomChecks
         {
             Rooms[lobbyId] = Rooms[lobbyId] with { Game = game };
             return true;
+        }
+        public bool SetName(ulong lobbyId, string name)
+        {
+            if (!NameWriteSucceeds || Rooms[lobbyId].OwnerId != LocalSteamId) return false;
+            NameWrites.Add((lobbyId, name));
+            if (!DelayNameEcho) ChangeName(lobbyId, name, false);
+            return true;
+        }
+        public void ChangeName(ulong lobbyId, string name, bool notify = true)
+        {
+            Rooms[lobbyId] = Rooms[lobbyId] with { Name = name };
+            if (notify) LobbyChanged(lobbyId);
         }
         public bool SetAccess(ulong lobbyId, RoomAccess access)
         {

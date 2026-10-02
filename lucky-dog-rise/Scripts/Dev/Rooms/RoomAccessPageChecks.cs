@@ -22,7 +22,8 @@ internal static class RoomAccessPageChecks
             await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
             await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
         }
-        static void Click(Button button) => button.EmitSignal(BaseButton.SignalName.Pressed);
+        static void Pick(OptionButton option, RoomAccess access) =>
+            option.EmitSignal(OptionButton.SignalName.ItemSelected, (long)access);
         string originalLocale = TranslationServer.GetLocale();
         try
         {
@@ -30,48 +31,45 @@ internal static class RoomAccessPageChecks
             var client = page.CurrentClient;
             client.Create("Access test");
             await Frame();
-            var current = page.GetNode<Button>("Room/Access/Current");
-            var choices = page.GetNode<Control>("Room/Access/Choices");
-            var publicChoice = page.GetNode<Button>("Room/Access/Choices/Public");
-            var friendsChoice = page.GetNode<Button>("Room/Access/Choices/FriendsOnly");
-            var inviteChoice = page.GetNode<Button>("Room/Access/Choices/InviteOnly");
+            var current = page.GetNode<OptionButton>("Room/Access/Current");
+            var choices = current.GetPopup();
             var status = page.GetNode<Label>("Status");
 
-            Check(!current.Disabled && !choices.Visible && publicChoice.ButtonPressed,
-                "new host can edit default public access without opening an OS popup");
-            Click(current);
-            Check(choices.Visible, "host opens inline room access choices");
-            Click(friendsChoice);
+            Check(!current.Disabled && !choices.Visible && current.GetSelectedId() == (int)RoomAccess.Public,
+                "new host can edit default public access using the settings OptionButton");
+            current.ShowPopup();
+            Check(choices.Visible, "host opens the settings-style permission popup");
+            Pick(current, RoomAccess.FriendsOnly);
             await Frame();
             Check(client.View.Access == RoomAccess.FriendsOnly && !choices.Visible
-                && friendsChoice.ButtonPressed && service.AccessWrites == 1,
+                && current.GetSelectedId() == (int)RoomAccess.FriendsOnly && service.AccessWrites == 1,
                 "host change renders the accepted snapshot and closes the choices");
 
             service.AccessError = "Rooms_AccessUpdateFailed";
-            Click(current);
-            Click(inviteChoice);
+            current.ShowPopup();
+            Pick(current, RoomAccess.InviteOnly);
             await Frame();
-            Check(client.View.Access == RoomAccess.FriendsOnly && friendsChoice.ButtonPressed
-                && !inviteChoice.ButtonPressed && current.Text.Contains(L10n.Tr("Rooms_AccessFriendsOnly"))
+            Check(client.View.Access == RoomAccess.FriendsOnly && current.GetSelectedId() == (int)RoomAccess.FriendsOnly
+                && current.GetSelectedId() != (int)RoomAccess.InviteOnly && current.Text.Contains(L10n.Tr("Rooms_AccessFriendsOnly"))
                 && status.Visible && status.Text == L10n.Tr("Rooms_AccessUpdateFailed"),
                 "failed update retains the prior selection and shows a translated error");
 
             service.AccessError = "";
-            Click(current);
+            current.ShowPopup();
             service.OwnerId = 2;
             service.Publish(client);
             await Frame();
             int writes = service.AccessWrites;
             Check(current.Disabled && !choices.Visible, "host transfer closes and disables old host choices");
-            Click(inviteChoice);
-            Click(current);
+            Pick(current, RoomAccess.InviteOnly);
+            current.EmitSignal(BaseButton.SignalName.Pressed);
             Check(service.AccessWrites == writes && !choices.Visible,
                 "stale selection or forced disabled-button signal cannot change permissions");
 
             service.Access = RoomAccess.InviteOnly;
             service.Publish(client);
             await Frame();
-            Check(inviteChoice.ButtonPressed && current.Text.Contains(L10n.Tr("Rooms_AccessInviteOnly")),
+            Check(current.GetSelectedId() == (int)RoomAccess.InviteOnly && current.Text.Contains(L10n.Tr("Rooms_AccessInviteOnly")),
                 "ordinary members can read permission changes from the room snapshot");
             foreach (string locale in new[] { "zh_CN", "zh_TW", "en" })
             {
@@ -87,28 +85,28 @@ internal static class RoomAccessPageChecks
             service.OwnerId = client.Id;
             service.Publish(client);
             await Frame();
-            Check(!current.Disabled && inviteChoice.ButtonPressed,
+            Check(!current.Disabled && current.GetSelectedId() == (int)RoomAccess.InviteOnly,
                 "new host gains editing while preserving the current room permission");
-            Click(current);
+            current.ShowPopup();
             service.HoldSearch = true;
             client.Search();
             await Frame();
             Check(current.Disabled && !choices.Visible, "pending room request disables permission editing");
-            Click(friendsChoice);
+            Pick(current, RoomAccess.FriendsOnly);
             Check(service.AccessWrites == writes, "pending request rejects a stale selection signal");
             client.Cancel();
             await Frame();
             Check(!current.Disabled, "cancelled request restores editing on the current room");
 
-            Click(current);
+            current.ShowPopup();
             page.Hide();
             await Frame();
-            Check(!choices.Visible, "closing the page also closes its inline choices");
+            Check(!choices.Visible, "closing the page also closes its permission popup");
             page.Show();
-            Click(current);
+            current.ShowPopup();
             client.Leave();
             await Frame();
-            Click(publicChoice);
+            Pick(current, RoomAccess.Public);
             Check(service.AccessWrites == writes && !choices.Visible,
                 "leaving invalidates the menu's captured room session");
 

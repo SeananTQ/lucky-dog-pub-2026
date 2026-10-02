@@ -17,7 +17,28 @@ internal static class RoomRequestChecks
         RemovalRaceChecks();
         JoinFailureNoticeChecks();
         DirectoryCreateNoticeChecks();
+        DirectoryHumanCapacityChecks();
         return "ROOM_REQUEST_PASS: single-flight, cancellation, timeout, retained membership, closed/full targets, late callbacks, search/join, disposal, separate request/receive delays, removal cancellation, local join failure notices and reentrancy.";
+    }
+
+    private static void DirectoryHumanCapacityChecks()
+    {
+        var service = new LateResultService();
+        using var client = new RoomClient(service, 1, "Local", 1012);
+        var companionFilled = new RoomListing("bots", "Visible full", "social", 6, 6, HumanCount: 1);
+        Check(!companionFilled.IsFull, "visible companion count does not consume real admission slots");
+        client.FindAndJoin();
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.None, [companionFilled]));
+        Check(client.Operation == RoomOperation.Join && client.IsBusy,
+            "random matching uses human capacity even if all display places are filled");
+        client.Cancel();
+        var realFull = new RoomListing("humans", "Real full", "social", 1, 6, HumanCount: 6);
+        client.FindAndJoin();
+        client.TryComplete(client.ActiveRequestId, () => new RoomResult(RoomFailure.None, [realFull]));
+        Check(realFull.IsFull && client.Failure == RoomFailure.NoMatchingRoom,
+            "real member capacity controls matching even if the display count is stale");
+        Check(new RoomListing("old", "Legacy fake", "social", 6, 6).IsFull,
+            "legacy no-companion providers retain their original capacity behavior");
     }
 
     private static void DirectoryCreateNoticeChecks()

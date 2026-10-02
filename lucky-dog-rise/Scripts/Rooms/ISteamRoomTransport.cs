@@ -30,6 +30,7 @@ public interface ISteamRoomTransport : IDisposable
     SteamRoomData ReadLobby(ulong lobbyId, bool includeMembers);
     bool InitializeLobby(ulong lobbyId, string name);
     bool SetGame(ulong lobbyId, string game);
+    bool SetName(ulong lobbyId, string name) => false;
     // False guarantees the previous policy remains intact. Throw if compensation
     // fails and native admission can no longer be confirmed against metadata.
     bool SetAccess(ulong lobbyId, RoomAccess access);

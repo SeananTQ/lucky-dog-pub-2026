@@ -44,7 +44,7 @@ internal static class RoomEmptyDirectoryPageChecks
             service.Complete(RoomFailure.None);
             await Frame();
             Check(rows.GetChildCount() == 1 && rows.GetChild(0).GetNode<Label>("Count").Text == "3/6"
-                && rows.GetChild(0).GetNode<Label>("Name").Text == L10n.Tr("Rooms_Social")
+                && rows.GetChild(0).GetNode<Label>("Name").Text == L10n.Tr("Rooms_DefaultName")
                 && client.Listings.Length == 0 && client.JoinedCode.Length == 0 && service.CreateRequests == 0,
                 "successful empty directory displays one local 3/6 row without creating or inventing a lobby ID");
             var staleEntry = Entry();

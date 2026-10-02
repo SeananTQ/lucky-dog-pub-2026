@@ -228,6 +228,15 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         return SteamMatchmaking.SetLobbyData(new CSteamID(lobbyId), SteamRoomProtocol.GameKey, game);
     }
 
+    public bool SetName(ulong lobbyId, string name)
+    {
+        RequireAvailable();
+        var lobby = new CSteamID(lobbyId);
+        return SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID == LocalSteamId
+            && RoomRules.TryNormalizeName(name, out var normalized)
+            && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.NameKey, normalized);
+    }
+
     public bool SetAccess(ulong lobbyId, RoomAccess access)
     {
         RequireAvailable();

@@ -101,7 +101,9 @@ public sealed class RoomSandbox : IRoomService
     }
 
     public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public).OrderBy(r => r.Code)
-        .Select(r => new RoomListing(r.Code, r.Name, r.GameId, r.Members.Count, RoomRules.Capacity)).ToArray();
+        .Select(r => new RoomListing(r.Code, r.Name, r.GameId,
+            r.Members.Count + (r.Companions?.WithHumanCount(r.Members.Count).RemainingCount ?? 0),
+            RoomRules.Capacity, r.Members.Count)).ToArray();
 
     private RoomListing[] Search(RoomClient client) => Search()
         .Where(r => !_rooms[r.Code].BannedClients.Contains(client.Id)).ToArray();
@@ -110,8 +112,7 @@ public sealed class RoomSandbox : IRoomService
     public string Create(RoomClient client, string name) => FailureText(CreateResult(client, name).Failure);
     private RoomResult CreateResult(RoomClient client, string name)
     {
-        name = (name ?? "").Trim();
-        if (name.Length is < 1 or > 40) return new RoomResult(RoomFailure.InvalidName);
+        if (!RoomRules.TryNormalizeName(name, out name)) return new RoomResult(RoomFailure.InvalidName);
         Leave(client);
         var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name, Owner = client.Id };
         room.Companions = CompanionFactory?.Invoke((long)Now);
@@ -239,12 +240,43 @@ public sealed class RoomSandbox : IRoomService
         return "ok";
     }
 
+    public string SetName(RoomClient client, string name)
+    {
+        if (!_clients.TryGetValue(client.Id, out var actual) || !ReferenceEquals(actual, client)
+            || !_rooms.TryGetValue(client.JoinedCode, out var room)
+            || !room.Members.ContainsKey(client.Id) || client.IsBusy) return "Rooms_NameUnavailable";
+        if (room.Owner != client.Id) return "Rooms_NameNotOwner";
+        if (!RoomRules.TryNormalizeName(name, out var normalized)) return "Rooms_InvalidName";
+        if (room.Name == normalized) return "ok";
+        if (Settings(client).NextFailure != MockRoomFailure.None)
+        {
+            Settings(client).NextFailure = MockRoomFailure.None;
+            return "Rooms_NameUpdateFailed";
+        }
+        room.Name = normalized;
+        Broadcast(room);
+        return "ok";
+    }
+
     public string Kick(RoomClient client, int memberId, long presence)
     {
         if (!_clients.TryGetValue(client.Id, out var actual) || !ReferenceEquals(actual, client)
             || !_rooms.TryGetValue(client.JoinedCode, out var room)
             || !room.Members.ContainsKey(client.Id)) return "Rooms_KickUnavailable";
         if (room.Owner != client.Id) return "Rooms_KickNotOwner";
+        if (memberId < 0)
+        {
+            if (room.Companions == null || !room.Companions.TryRetire(memberId, presence, out var retired))
+                return "Rooms_KickInvalidTarget";
+            if (Settings(client).NextFailure != MockRoomFailure.None)
+            {
+                Settings(client).NextFailure = MockRoomFailure.None;
+                return "Rooms_KickUnavailable";
+            }
+            room.Companions = retired;
+            Broadcast(room);
+            return "";
+        }
         if (memberId == client.Id || !room.Members.TryGetValue(memberId, out var member)
             || member.Presence != presence) return "Rooms_KickInvalidTarget";
 

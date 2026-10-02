@@ -1,6 +1,8 @@
 [gd_scene format=3]
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/InGameRoomDirectoryRow.cs" id="script"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_SettingsOption.tres" id="option_label"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_ValueText.tres" id="value_label"]
 [node name="RoomRow" type="HBoxContainer" node_paths=PackedStringArray("_name", "_count", "_join", "_game")]
 custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
@@ -24,10 +26,12 @@ size_flags_horizontal = 3
 text_overrun_behavior = 3
 clip_text = true
 auto_translate_mode = 2
+label_settings = ExtResource("option_label")
 [node name="Count" type="Label" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(40, 0)
 horizontal_alignment = 2
+label_settings = ExtResource("value_label")
 [node name="Join" type="Button" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(64, 36)

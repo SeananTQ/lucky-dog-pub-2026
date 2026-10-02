@@ -24,5 +24,6 @@ public interface IRoomService
     string Kick(RoomClient client, int memberId, long presence);
     string SetGame(RoomClient client, string gameId);
     string SetAccess(RoomClient client, RoomAccess access);
+    string SetName(RoomClient client, string name) => "Rooms_NameUnavailable";
     string SendChat(RoomClient client, string text);
 }

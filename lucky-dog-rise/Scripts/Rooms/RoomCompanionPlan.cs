@@ -22,6 +22,7 @@ public sealed class RoomCompanionPlan
     public int Seed { get; }
     public long StartedAt { get; }
     public int RetiredMask { get; }
+    public int RemainingCount => Remaining(RetiredMask);
     public IReadOnlyList<RoomCompanionAppearance> Appearances => _appearances;
 
     private RoomCompanionPlan(int seed, long startedAt, int retiredMask,
@@ -70,6 +71,16 @@ public sealed class RoomCompanionPlan
         for (int slot = 0; slot < Count; slot++)
             if ((mask & (1 << slot)) == 0) count++;
         return count;
+    }
+
+    public bool TryRetire(int memberId, long presence, out RoomCompanionPlan retired)
+    {
+        retired = this;
+        if (presence != Seed || memberId >= 0 || memberId < -Count) return false;
+        int bit = 1 << (-memberId - 1);
+        if ((RetiredMask & bit) != 0) return false;
+        retired = new RoomCompanionPlan(Seed, StartedAt, RetiredMask | bit, _appearances);
+        return true;
     }
 
     public bool SameGeneration(RoomCompanionPlan other) => other != null

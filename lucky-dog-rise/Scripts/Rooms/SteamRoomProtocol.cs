@@ -150,7 +150,7 @@ public static class SteamRoomProtocol
             code[index] = Alphabet[(int)(lobbyId & 31)];
             lobbyId >>= 5;
         }
-        return "LD-" + new string(code);
+        return new string(code);
     }
 
     public static bool TryDecode(string code, out ulong lobbyId)
@@ -158,18 +158,19 @@ public static class SteamRoomProtocol
         lobbyId = 0;
         if (code == null || code.Length > 32) return false;
         code = code.Trim().ToUpperInvariant();
-        if (!code.StartsWith("LD-", StringComparison.Ordinal) || code.Length != 16) return false;
-        for (var index = 3; index < code.Length; index++)
+        // Display/copy the shorter code; previously shared codes remain usable.
+        if (code.StartsWith("LD-", StringComparison.Ordinal)) code = code[3..];
+        if (code.Length != 13) return false;
+        for (var index = 0; index < code.Length; index++)
         {
             var value = Alphabet.IndexOf(code[index]);
-            if (value < 0 || index == 3 && value > 15) { lobbyId = 0; return false; }
+            if (value < 0 || index == 0 && value > 15) { lobbyId = 0; return false; }
             lobbyId = (lobbyId << 5) | (uint)value;
         }
         return lobbyId != 0;
     }
 
-    public static bool IsNameValid(string name) => !string.IsNullOrWhiteSpace(name)
-        && name.Trim().Length <= 40 && !name.Any(char.IsControl);
+    public static bool IsNameValid(string name) => RoomRules.TryNormalizeName(name, out _);
 
     public static bool IsGameValid(string game) => !string.IsNullOrEmpty(game)
         && game.Length <= 32 && game.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-');

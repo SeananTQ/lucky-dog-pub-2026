@@ -3,7 +3,13 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomDirectoryRow.tscn" id="row"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomMemberRow.tscn" id="member"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_code", "_codeVisibility", "_invite", "_access", "_accessChoices", "_accessPublic", "_accessFriends", "_accessInvite", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel", "_kickConfirm", "_kickName", "_kickAccept", "_kickCancel")]
+[ext_resource type="LabelSettings" path="res://Themes/Label_SettingsGroupTitle.tres" id="group_title"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_SettingsOption.tres" id="option_label"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_ValueText.tres" id="value_label"]
+[ext_resource type="LabelSettings" path="res://Themes/Label_KeyText.tres" id="helper_label"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
+[ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -14,15 +20,12 @@ _rooms = NodePath("Lobby/RoomList")
 _members = NodePath("Room/Members")
 _nameInput = NodePath("Lobby/CreateRow/Name")
 _codeInput = NodePath("Lobby/JoinRow/Code")
-_roomTitle = NodePath("Room/Title")
+_roomTitle = NodePath("Room/TitleRow/Name")
+_roomCount = NodePath("Room/TitleRow/Count")
 _code = NodePath("Room/CodeRow/Code")
-_codeVisibility = NodePath("Room/CodeHeader/Visibility")
+_codeVisibility = NodePath("Room/CodeRow/Visibility")
 _invite = NodePath("Room/Invite")
 _access = NodePath("Room/Access/Current")
-_accessChoices = NodePath("Room/Access/Choices")
-_accessPublic = NodePath("Room/Access/Choices/Public")
-_accessFriends = NodePath("Room/Access/Choices/FriendsOnly")
-_accessInvite = NodePath("Room/Access/Choices/InviteOnly")
 _status = NodePath("Status")
 _empty = NodePath("Lobby/Empty")
 _connection = NodePath("Notice")
@@ -33,10 +36,6 @@ _random = NodePath("Lobby/Random")
 _refresh = NodePath("Lobby/Header/Refresh")
 _return = NodePath("Lobby/Return")
 _cancel = NodePath("Cancel")
-_kickConfirm = NodePath("Room/KickConfirm")
-_kickName = NodePath("Room/KickConfirm/Name")
-_kickAccept = NodePath("Room/KickConfirm/Actions/Confirm")
-_kickCancel = NodePath("Room/KickConfirm/Actions/Cancel")
 _directoryRow = ExtResource("row")
 _memberRow = ExtResource("member")
 
@@ -44,7 +43,7 @@ _memberRow = ExtResource("member")
 layout_mode = 2
 text = "Rooms_SteamUnavailable"
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 13
+label_settings = ExtResource("helper_label")
 
 [node name="Lobby" type="VBoxContainer" parent="."]
 layout_mode = 2
@@ -59,6 +58,7 @@ layout_mode = 2
 text = "Rooms_Title"
 autowrap_mode = 3
 size_flags_horizontal = 3
+label_settings = ExtResource("group_title")
 
 [node name="Refresh" type="Button" parent="Lobby/Header"]
 layout_mode = 2
@@ -72,6 +72,7 @@ layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="Name" type="LineEdit" parent="Lobby/CreateRow"]
+auto_translate_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 max_length = 40
@@ -116,6 +117,7 @@ layout_mode = 2
 layout_mode = 2
 text = "Rooms_Empty"
 autowrap_mode = 3
+label_settings = ExtResource("helper_label")
 
 
 [node name="RoomList" type="VBoxContainer" parent="Lobby"]
@@ -134,11 +136,23 @@ layout_mode = 2
 visible = false
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Room"]
+[node name="TitleRow" type="HBoxContainer" parent="Room"]
 layout_mode = 2
-text = ""
-autowrap_mode = 3
+theme_override_constants/separation = 8
+
+[node name="Name" type="LineEdit" parent="Room/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 40
+placeholder_text = "Rooms_Name"
+editable = false
 auto_translate_mode = 2
+
+[node name="Count" type="Label" parent="Room/TitleRow"]
+layout_mode = 2
+size_flags_vertical = 4
+auto_translate_mode = 2
+label_settings = ExtResource("value_label")
 
 [node name="Game" type="HBoxContainer" parent="Room"]
 layout_mode = 2
@@ -157,6 +171,7 @@ layout_mode = 2
 text = "Rooms_Social"
 autowrap_mode = 3
 size_flags_horizontal = 3
+label_settings = ExtResource("option_label")
 
 [node name="Access" type="VBoxContainer" parent="Room"]
 layout_mode = 2
@@ -166,84 +181,38 @@ theme_override_constants/separation = 4
 layout_mode = 2
 text = "Rooms_AccessTitle"
 autowrap_mode = 3
+label_settings = ExtResource("group_title")
 
-[node name="Current" type="Button" parent="Room/Access"]
+[node name="Current" type="OptionButton" parent="Room/Access"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
+custom_minimum_size = Vector2(172, 28)
 auto_translate_mode = 2
-text = ""
-alignment = 0
-clip_text = true
-
-[node name="Choices" type="VBoxContainer" parent="Room/Access"]
-layout_mode = 2
-theme_override_constants/separation = 4
-visible = false
-
-[node name="Public" type="Button" parent="Room/Access/Choices"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_AccessPublic"
-toggle_mode = true
-alignment = 0
-clip_text = true
-
-[node name="FriendsOnly" type="Button" parent="Room/Access/Choices"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_AccessFriendsOnly"
-toggle_mode = true
-alignment = 0
-clip_text = true
-
-[node name="InviteOnly" type="Button" parent="Room/Access/Choices"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_AccessInviteOnly"
-toggle_mode = true
-alignment = 0
-clip_text = true
-
-[node name="CodeHeader" type="HBoxContainer" parent="Room"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="CodeTitle" type="Label" parent="Room/CodeHeader"]
-layout_mode = 2
-text = "Rooms_CodeTitle"
-autowrap_mode = 3
-size_flags_horizontal = 3
-
-[node name="Visibility" type="Button" parent="Room/CodeHeader"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_HideCode"
-
-[node name="Copy" type="Button" parent="Room/CodeHeader"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_Copy"
-
+fit_to_longest_item = false
 
 [node name="CodeRow" type="HBoxContainer" parent="Room"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Code" type="Label" parent="Room/CodeRow"]
+[node name="Code" type="LinkButton" parent="Room/CodeRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 32)
-text = ""
 size_flags_horizontal = 3
-vertical_alignment = 1
-clip_text = true
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 18
+text = ""
+underline = 0
 auto_translate_mode = 2
 
+[node name="Visibility" type="Button" parent="Room/CodeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_type_variation = &"CapsuleButton"
+text = "Rooms_HideCode"
+
+[node name="Copy" type="Button" parent="Room/CodeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_type_variation = &"CapsuleButton"
+text = "Rooms_Copy"
 
 [node name="Divider" type="HSeparator" parent="Room"]
 layout_mode = 2
@@ -253,47 +222,12 @@ layout_mode = 2
 layout_mode = 2
 text = "Rooms_Members"
 autowrap_mode = 3
+label_settings = ExtResource("group_title")
 
 
 [node name="Members" type="VBoxContainer" parent="Room"]
 layout_mode = 2
 theme_override_constants/separation = 4
-
-[node name="KickConfirm" type="VBoxContainer" parent="Room"]
-layout_mode = 2
-theme_override_constants/separation = 6
-visible = false
-
-[node name="Divider" type="HSeparator" parent="Room/KickConfirm"]
-layout_mode = 2
-
-[node name="Name" type="Label" parent="Room/KickConfirm"]
-layout_mode = 2
-autowrap_mode = 3
-auto_translate_mode = 2
-
-[node name="Message" type="Label" parent="Room/KickConfirm"]
-layout_mode = 2
-text = "Rooms_KickConfirmMessage"
-autowrap_mode = 3
-
-[node name="Actions" type="HBoxContainer" parent="Room/KickConfirm"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Cancel" type="Button" parent="Room/KickConfirm/Actions"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-size_flags_horizontal = 3
-theme_type_variation = &"CapsuleButton"
-text = "Common_Cancel"
-
-[node name="Confirm" type="Button" parent="Room/KickConfirm/Actions"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-size_flags_horizontal = 3
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_KickConfirm"
 
 [node name="Invite" type="Button" parent="Room"]
 layout_mode = 2
@@ -304,14 +238,16 @@ text = "Rooms_InviteFriends"
 [node name="Browse" type="Button" parent="Room"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
+theme_type_variation = &"SecondaryButton"
+theme_override_styles/focus = ExtResource("browse_focus")
 text = "Rooms_Browse"
 
 
 [node name="Leave" type="Button" parent="Room"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
+theme_type_variation = &"DestructiveButton"
+theme_override_styles/focus = ExtResource("leave_focus")
 text = "Rooms_Leave"
 
 
@@ -320,6 +256,7 @@ layout_mode = 2
 text = ""
 autowrap_mode = 3
 auto_translate_mode = 2
+label_settings = ExtResource("helper_label")
 
 [node name="Cancel" type="Button" parent="."]
 layout_mode = 2
@@ -328,7 +265,7 @@ theme_type_variation = &"CapsuleButton"
 text = "Common_Cancel"
 visible = false
 
-[connection signal="pressed" from="Room/CodeHeader/Copy" to="." method="OnCopyCode"]
+[connection signal="pressed" from="Room/CodeRow/Copy" to="." method="OnCopyCode"]
 
 [connection signal="pressed" from="Room/Browse" to="." method="OnBrowse"]
 

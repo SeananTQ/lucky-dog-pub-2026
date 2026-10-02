@@ -38,6 +38,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private Pending _queued;
     private ulong _lobby;
     private ulong _accessOwner;
+    private string _acceptedName = "";
+    private ulong _renameOwner;
+    private readonly HashSet<string> _staleRenameNames = new(StringComparer.Ordinal);
     private RoomCompanionPlan _companionPlan;
     private bool _companionPlanAvailable;
     private SteamRoomData _lastRoomData;
@@ -227,8 +230,20 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                     if (!Compatible(data) || data.Access != RoomAccess.Public || _blockedLobbies.Contains(id)
                         || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
                         || bans.Contains(_transport.LocalSteamId)) continue;
+                    int visibleCount = data.Count;
+                    if (RoomCompanionPlan.TryRead(data.Companions, out var companions))
+                    {
+                        // Our current room may have already observed a later retirement
+                        // than this discovery callback. Never revive it just for the list.
+                        if (data.LobbyId == _lobby && _companionPlan != null)
+                            companions = companions.SameGeneration(_companionPlan)
+                                ? companions.MergeRetirements(_companionPlan) : null;
+                        if (companions != null)
+                            visibleCount += companions.WithHumanCount(data.Count).RemainingCount;
+                    }
                     listings.Add(new RoomListing(SteamRoomProtocol.Encode(data.LobbyId), data.Name,
-                        SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", data.Count, data.Capacity));
+                        SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", visibleCount,
+                        data.Capacity, data.Count));
                 }
             }
             pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(failure, listings.ToArray()));
@@ -301,6 +316,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 var previous = _lobby;
                 _lobby = result.LobbyId;
                 _accessOwner = data.OwnerId;
+                ClearRenameOverride();
                 ResetCompanions();
                 _identities.Clear();
                 _banned.Clear();
@@ -378,6 +394,57 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         catch { return "房间服务暂不可用。"; }
     }
 
+    public string SetName(RoomClient client, string name)
+    {
+        if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0 || client.IsBusy)
+            return "Rooms_NameUnavailable";
+        try
+        {
+            var lobby = _lobby;
+            var raw = _transport.ReadLobby(lobby, true);
+            if (raw?.OwnerId != _transport.LocalSteamId) return "Rooms_NameNotOwner";
+            if (!Compatible(raw) || raw.Members == null) return "Rooms_NameUnavailable";
+            if (!RoomRules.TryNormalizeName(name, out var normalized)) return "Rooms_InvalidName";
+            var data = ApplyRenameOverride(raw);
+            if (data.Name == normalized) return "ok";
+            if (!_transport.SetName(lobby, normalized)) return "Rooms_NameUpdateFailed";
+            if (_lobby != lobby) return "Rooms_NameUnavailable";
+            _staleRenameNames.Add(raw.Name);
+            _staleRenameNames.Add(data.Name);
+            if (_staleRenameNames.Count > 40)
+            {
+                _staleRenameNames.Clear();
+                _staleRenameNames.Add(raw.Name);
+                _staleRenameNames.Add(data.Name);
+            }
+            _acceptedName = normalized;
+            _renameOwner = data.OwnerId;
+            Publish(data with { Name = normalized });
+            return "ok";
+        }
+        catch { return "Rooms_NameUpdateFailed"; }
+    }
+
+    private SteamRoomData ApplyRenameOverride(SteamRoomData data)
+    {
+        if (data == null || _acceptedName.Length == 0) return data;
+        if (data.OwnerId != _renameOwner || data.Name == _acceptedName || !_staleRenameNames.Contains(data.Name))
+        {
+            ClearRenameOverride();
+            return data;
+        }
+        // An accepted SetLobbyData updates the local name immediately. A delayed
+        // callback with its old value must not flicker it backwards or write it back.
+        return data with { Name = _acceptedName };
+    }
+
+    private void ClearRenameOverride()
+    {
+        _acceptedName = "";
+        _renameOwner = 0;
+        _staleRenameNames.Clear();
+    }
+
     public string SetAccess(RoomClient client, RoomAccess access)
     {
         if (!IsAvailable || !ReferenceEquals(client, _client) || _lobby == 0 || client.IsBusy
@@ -410,11 +477,30 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         try
         {
             var lobby = _lobby;
-            var data = _transport.ReadLobby(lobby, true);
+            var data = ApplyRenameOverride(_transport.ReadLobby(lobby, true));
             if (data?.OwnerId != _transport.LocalSteamId) return "Rooms_KickNotOwner";
             if (!Compatible(data) || data.Members == null
                 || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
                 return "Rooms_KickUnavailable";
+            if (memberId < 0)
+            {
+                if (!RoomCompanionPlan.TryRead(data.Companions, out var plan)
+                    || _companionPlan != null && !plan.SameGeneration(_companionPlan))
+                    return "Rooms_KickInvalidTarget";
+                plan = plan.MergeRetirements(_companionPlan).WithHumanCount(data.Count);
+                if (!plan.TryRetire(memberId, presence, out var retired)) return "Rooms_KickInvalidTarget";
+                bool written;
+                _companionWriteInProgress = true;
+                try { written = _transport.SetCompanions(lobby, retired.ToWire()); }
+                finally { _companionWriteInProgress = false; }
+                if (!written) return "Rooms_KickUnavailable";
+                if (_lobby != lobby) return "Rooms_KickUnavailable";
+                _companionPlan = retired.MergeRetirements(_companionPlan);
+                _pendingCompanions = "";
+                _companionWriteFailures = 0;
+                Publish(data with { Companions = _companionPlan.ToWire() });
+                return "";
+            }
             var identity = _identities.FirstOrDefault(pair => pair.Value.Id == memberId
                 && pair.Value.Presence == presence);
             var target = data.Members.FirstOrDefault(member => member.SteamId == identity.Key);
@@ -546,7 +632,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         if (!IsAvailable) { Disconnect(); return; }
         try
         {
-            var data = _transport.ReadLobby(_lobby, true);
+            var data = ApplyRenameOverride(_transport.ReadLobby(_lobby, true));
             if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
                 || !data.Members.Any(m => m.SteamId == _transport.LocalSteamId))
             {
@@ -615,7 +701,10 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             var valid = SteamRoomProtocol.TryDecodeAppearance(appearance, out var skin, out var hat, out var reaction);
             var activity = raw.SteamId == _transport.LocalSteamId ? ActivityOf(_client) : raw.Activity;
             bool validActivity = SteamRoomProtocol.TryDecodeActivity(activity, out var sequence, out var active);
-            members.Add(new RoomMember(identity.Id, SteamRoomProtocol.SafePersonaName(raw.Name),
+            var visibleName = new string((raw.Name ?? "").Where(c => !char.IsControl(c)).Take(64).ToArray());
+            var name = raw.SteamId == _transport.LocalSteamId && string.IsNullOrWhiteSpace(visibleName)
+                ? "" : SteamRoomProtocol.SafePersonaName(raw.Name);
+            members.Add(new RoomMember(identity.Id, name,
                 valid && _validSkin(skin) ? skin : _defaultSkin,
                 valid && (hat == 0 || _validHeadwear(hat)) ? hat : 0,
                 valid && _validReaction(reaction) ? reaction : 1001, identity.Presence,
@@ -735,6 +824,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         var old = _lobby;
         _lobby = 0;
         _accessOwner = 0;
+        ClearRenameOverride();
         ResetCompanions();
         _identities.Clear();
         _banned.Clear();

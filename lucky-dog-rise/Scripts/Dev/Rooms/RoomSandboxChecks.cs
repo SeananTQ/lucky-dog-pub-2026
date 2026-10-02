@@ -20,10 +20,11 @@ internal static class RoomSandboxChecks
         server.Create(host, "Companions"); server.Tick(0);
         var code = host.JoinedCode;
         Check(host.View.Members.Length == 4 && host.View.Members.Count(m => m.IsCompanion) == 3
-            && server.Search().Single().Count == 1, "companions are displayed but do not occupy Steam human slots");
+            && server.Search().Single().Count == 4 && server.Search().Single().HumanCount == 1,
+            "directory counts companions while admission retains the real human count");
         var appearance = host.View.Members.Where(m => m.IsCompanion).Select(m => (m.Id, m.SkinId, m.HeadwearId)).ToArray();
         var bot = host.View.Members.First(m => m.IsCompanion);
-        Check(host.Kick(bot.Id, bot.Presence) == "Rooms_KickInvalidTarget", "companion is not a human moderation target");
+        Check(host.Kick(bot.Id, bot.Presence + 1) == "Rooms_KickInvalidTarget", "stale companion generation cannot be removed");
         host.Receive(new RoomChat(1, code, bot.Id, bot.Presence, "forged bot chat", server.Now + 6), server.Now);
         Check(host.Bubbles.Count == 0, "companion cannot impersonate a human chat sender");
         server.Tick(35);
@@ -31,12 +32,15 @@ internal static class RoomSandboxChecks
             "scripted activity never rerolls companion cosmetics");
         server.Join(clients[1], code); server.Tick(0);
         Check(host.View.Members.Length == 4 && host.View.Members.Count(m => m.IsCompanion) == 2
-            && host.View.Members.SequenceEqual(clients[1].View.Members), "new human replaces one companion for all viewers");
+            && host.View.Members.SequenceEqual(clients[1].View.Members)
+            && server.Search().Single().Count == 4 && server.Search().Single().HumanCount == 2,
+            "new human replaces one companion for all viewers and the directory remains four characters");
         var retiredId = bot.Id;
         host.Leave(); server.Tick(0);
         var successor = clients[1];
         Check(successor.View.OwnerId == successor.Id && successor.View.Members.Count(m => m.IsCompanion) == 2
-            && !successor.View.Members.Any(m => m.Id == retiredId) && generated == 1,
+            && !successor.View.Members.Any(m => m.Id == retiredId) && generated == 1
+            && server.Search().Single().Count == 3 && server.Search().Single().HumanCount == 1,
             "host handoff preserves remaining companions without regeneration or refill");
         server.Join(host, code); server.Tick(0);
         for (int i = 2; i < clients.Length; i++)
@@ -50,6 +54,8 @@ internal static class RoomSandboxChecks
         server.Tick(0);
         Check(clients[5].View.Members.Length == 1 && !clients[5].View.Members[0].IsCompanion,
             "departures never revive retired companions");
+        Check(server.Search().Single().Count == 1 && server.Search().Single().HumanCount == 1,
+            "directory does not replenish retired companions after departures");
         clients[5].Leave(); server.Tick(0);
         Check(server.Search().Length == 0, "last real player leaving ends room");
         server.Create(host, "Fresh companions"); server.Tick(0);
@@ -108,6 +114,7 @@ internal static class RoomSandboxChecks
         CheckKicking();
         CheckAccess();
         CheckCompanions();
+        CheckRenameAndCompanionRemoval();
         var server = new RoomSandbox();
         var a = server.AddClient(1, "A", 1012);
         var b = server.AddClient(2, "B", 1012);
@@ -248,6 +255,53 @@ internal static class RoomSandboxChecks
         b.StopInputActivity();
         server.Tick(0.31);
         Check(!a.IsTongueActive(2), "delayed stop reaches observer");
+    }
+
+    private static void CheckRenameAndCompanionRemoval()
+    {
+        var server = new RoomSandbox { CompanionFactory = now => RoomCompanionPlan.Create([1012], [0], now, 55) };
+        var owner = server.AddClient(1, "host", 1012);
+        var other = server.AddClient(2, "other", 1012);
+        server.Create(owner, "original"); server.Tick(0);
+        string code = owner.JoinedCode;
+        Check(owner.SetName("  renamed  ") == "ok", "host rename accepted");
+        server.Tick(0);
+        Check(owner.View.Name == "renamed" && server.Search().Single().Name == "renamed", "rename reaches room and directory");
+        long revision = owner.View.Revision;
+        Check(owner.SetName("renamed ") == "ok", "same normalized name is a no-op");
+        server.Tick(0);
+        Check(owner.View.Revision == revision, "no-op rename emits no snapshot");
+        server.Settings(owner).NextFailure = MockRoomFailure.Unavailable;
+        Check(owner.SetName("failed") == "Rooms_NameUpdateFailed", "rename transport fault is reported");
+        server.Tick(0);
+        Check(owner.View.Name == "renamed", "failed rename keeps original display");
+        foreach (var invalid in new[] { "", " ", new string('x', 41), "a\nb", "\ud800", "\udc00" })
+            Check(owner.SetName(invalid) == "Rooms_InvalidName", "shared name rules reject malformed input");
+        server.Join(other, code); server.Tick(0);
+        Check(other.SetName("intruder") == "Rooms_NameNotOwner", "guest cannot rename");
+        var target = owner.View.Members.Single(m => m.Id == -3);
+        Check(other.Kick(target.Id, target.Presence) == "Rooms_KickNotOwner", "guest cannot remove companion");
+        server.Settings(owner).NextFailure = MockRoomFailure.Unavailable;
+        Check(owner.Kick(target.Id, target.Presence) == "Rooms_KickUnavailable", "failed companion removal is explicit");
+        server.Tick(0);
+        Check(owner.View.Members.Any(m => m.Id == target.Id), "failed removal leaves companion visible");
+        Check(owner.Kick(target.Id, target.Presence) == "", "owner removes arbitrary live companion");
+        server.Tick(0);
+        Check(owner.View.Members.Where(m => m.IsCompanion).Select(m => m.Id).SequenceEqual(new[] { -2 })
+            && owner.View.Members.SequenceEqual(other.View.Members)
+            && server.Search().Single().Count == 3 && server.Search().Single().HumanCount == 2,
+            "arbitrary retirement is synchronized with its reduced directory count");
+        Check(owner.Kick(target.Id, target.Presence) == "Rooms_KickInvalidTarget"
+            && owner.Kick(int.MinValue, target.Presence) == "Rooms_KickInvalidTarget", "retired and invalid negative targets reject");
+        owner.Leave(); server.Tick(0);
+        Check(other.View.OwnerId == other.Id && other.View.Name == "renamed"
+            && other.View.Members.Count(m => m.IsCompanion) == 1, "successor inherits name and retired companions");
+        var last = other.View.Members.Single(m => m.IsCompanion);
+        Check(other.Kick(last.Id, last.Presence) == "", "successor can remove final companion");
+        server.Tick(0);
+        server.Join(owner, code); server.Tick(0);
+        Check(owner.JoinedCode == code && owner.View.Members.All(m => !m.IsCompanion),
+            "companion removal neither bans humans nor replenishes companions on later joins");
     }
 
     private static void CheckKicking()

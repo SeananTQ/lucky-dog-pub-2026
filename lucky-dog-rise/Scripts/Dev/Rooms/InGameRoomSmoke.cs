@@ -46,6 +46,9 @@ public static class InGameRoomSmoke
             await Frame();
             var host = panel.GetNode<VBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/RoomContent");
             var page = host.GetChild<InGameRoomPreview>(0);
+            var roomKickConfirm = panel.GetNode<ConfirmOverlayController>("RoomKickConfirm");
+            var roomKickAccept = roomKickConfirm.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/ConfirmButton");
+            var roomKickCancel = roomKickConfirm.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton");
             var client = page.PreviewClient;
             async Task Settle()
             {
@@ -392,7 +395,7 @@ public static class InGameRoomSmoke
             Check(localDog.GlobalPosition.IsEqualApprox(draggedOwn)
                 && remotes.Select((dog, i) => dog.Position.IsEqualApprox(draggedRemotes[i])).All(equal => equal),
                 "room snapshot refresh preserves dragged positions");
-            var codeLabel = page.GetNode<Label>("Room/CodeRow/Code");
+            var codeLabel = page.GetNode<LinkButton>("Room/CodeRow/Code");
             Check(codeLabel.Text == client.JoinedCode && codeLabel.Size.Y >= 20, "room code has visible text and height");
             var joinedCode = client.JoinedCode;
             title.GetNode<Button>("OutfitPresetTab").EmitSignal(BaseButton.SignalName.Pressed);
@@ -601,6 +604,65 @@ public static class InGameRoomSmoke
             var companionDogs = companionMembers.Select(member => desktop.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
             var companionAppearances = companionMembers.ToDictionary(member => member.Id,
                 member => (member.Name, member.SkinId, member.HeadwearId, member.Presence));
+            var roomName = page.GetNode<LineEdit>("Room/TitleRow/Name");
+            roomName.GrabFocus();
+            await Frame();
+            roomName.Text = "秋哥的朋友小屋";
+            page.AdvancePreview(1);
+            await Frame();
+            Check(roomName.Text == "秋哥的朋友小屋", "companion activity does not replace a room-name draft");
+            roomName.ReleaseFocus();
+            await Settle();
+            Check(client.View.Name == "秋哥的朋友小屋", "room name is committed when its input loses focus");
+            foreach (var locale in new[] { "en", "zh_CN" })
+            {
+                L10n.SetLocale(locale, save: false);
+                await Frame();
+                Check(roomName.Text == "秋哥的朋友小屋" && client.View.Name == "秋哥的朋友小屋",
+                    "changing language leaves the room's original name intact");
+            }
+            var accessOption = page.GetNode<OptionButton>("Room/Access/Current");
+            Check(panel.IsOpen && page.IsVisibleInTree() && !accessOption.Disabled,
+                "permission popup opens from a visible enabled host page");
+            accessOption.ShowPopup();
+            await Frame();
+            Check(accessOption.GetPopup().Visible && accessOption.GetPopup().ItemCount == 3,
+                "room access uses the settings-style dropdown");
+            var accessPopup = accessOption.GetPopup();
+            Check(panel.ContainsPoint((Vector2)accessPopup.Position + (Vector2)accessPopup.Size / 2),
+                "room permission popup participates in desktop click-through hit testing");
+            await Capture(main, "in-game-room-access-dropdown");
+            // Route through the window/embedded-popup dispatcher, not directly
+            // into the popup's child Controls (which bypasses Window shortcuts).
+            Input.ParseInputEvent(new InputEventKey { Pressed = true, Keycode = Key.Escape });
+            await Frame();
+            Input.ParseInputEvent(new InputEventKey { Pressed = false, Keycode = Key.Escape });
+            Check(!accessPopup.Visible, "Escape dismisses the permission popup through its native input path");
+            accessOption.ShowPopup();
+            title.GetNode<Button>("OutfitPresetTab").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!accessPopup.Visible, "switching away from the room tab closes its permission popup");
+            tab.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            accessOption.ShowPopup();
+            panel.Close();
+            Check(!accessPopup.Visible, "closing the panel immediately closes the permission popup before fading");
+            await main.ToSignal(tree.CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+            panel.Open();
+            await main.ToSignal(tree.CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+            await Frame();
+            var originalClipboard = DisplayServer.ClipboardGet();
+            try
+            {
+                page.GetNode<LinkButton>("Room/CodeRow/Code").EmitSignal(BaseButton.SignalName.Pressed);
+                Check(DisplayServer.ClipboardGet() == companionRoom, "clicking the underlined room code copies it");
+                Click("Room/CodeRow/Visibility");
+                Click("Room/CodeRow/Copy");
+                Check(DisplayServer.ClipboardGet() == companionRoom
+                    && page.GetNode<LinkButton>("Room/CodeRow/Code").Text != companionRoom,
+                    "the copy button remains usable when the code is hidden");
+                Click("Room/CodeRow/Visibility");
+            }
+            finally { DisplayServer.ClipboardSet(originalClipboard); }
             Check(companionMembers.Select(member => member.Name).Order().SequenceEqual(
                     new[] { "熬夜的程序员", "没洗头的美术", "打喷嚏的策划" }.Order()),
                 "companions use the agreed playful display names without extra labels");
@@ -616,11 +678,32 @@ public static class InGameRoomSmoke
                 var member = client.View.Members[index];
                 if (!member.IsCompanion) continue;
                 var kick = memberRows.GetChild(index).GetNode<Button>("Kick");
-                Check(!kick.Visible && kick.Disabled, "companion rows never offer host removal");
+                Check(kick.Visible && !kick.Disabled, "the host can remove companion dogs from the member list");
                 kick.EmitSignal(BaseButton.SignalName.Pressed);
-                Check(!page.GetNode<Control>("Room/KickConfirm").Visible,
-                    "a forced hidden companion kick signal cannot open confirmation");
+                Check(roomKickConfirm.Visible && roomKickConfirm.GetParent() == panel
+                    && roomKickConfirm.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").Text
+                        .StartsWith(member.Name + "\n", StringComparison.Ordinal),
+                    "companion removal opens the named modal above the whole settings panel");
+                roomKickCancel.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(!roomKickConfirm.Visible && client.View.Members.Length == 4,
+                    "canceling a companion confirmation leaves everyone in the room");
             }
+            var firstCompanionKick = memberRows.GetChild(1).GetNode<Button>("Kick");
+            firstCompanionKick.EmitSignal(BaseButton.SignalName.Pressed);
+            title.GetNode<Button>("OutfitPresetTab").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!roomKickConfirm.Visible, "switching away from the room tab immediately clears the removal modal");
+            tab.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            firstCompanionKick.EmitSignal(BaseButton.SignalName.Pressed);
+            panel.Close();
+            Check(!roomKickConfirm.Visible, "closing the settings panel clears the removal modal before fading");
+            roomKickAccept.EmitSignal(BaseButton.SignalName.Pressed);
+            await Wait(0.2);
+            panel.Open();
+            await Wait(0.2);
+            await Settle();
+            Check(!roomKickConfirm.Visible && client.View.Members.Length == 4,
+                "reopening the panel cannot revive or accept an old removal confirmation");
             foreach (var dog in companionDogs)
             {
                 int sends = 0;
@@ -639,6 +722,17 @@ public static class InGameRoomSmoke
                     companionAppearances[member.Id] == (member.Name, member.SkinId, member.HeadwearId, member.Presence))
                 && client.Bubbles.Count == 0, "companion appearance stays fixed across activity updates without automatic chat");
             await Capture(main, "in-game-companions-created");
+            Click("Room/Browse");
+            await Settle();
+            Check(client.Listings.Single(listing => listing.Code == companionRoom).Count == 4,
+                "browsing the owner's room displays one human plus three companions as 4/6");
+            var ownRoomRow = page.GetNode<VBoxContainer>("Lobby/RoomList").GetChildren()
+                .OfType<InGameRoomDirectoryRow>().Single();
+            Check(ownRoomRow.GetNode<Label>("Count").Text == "4/6",
+                "the actual directory row shows the same total population as the room");
+            await Capture(main, "in-game-directory-companion-count");
+            Click("Lobby/Return");
+            await Frame();
             static int ActivityRank(int reaction) => reaction switch
             { 1003 => 0, 1001 => 1, 1005 => 2, 1006 => 3, _ => -1 };
             var previousMoods = client.View.Members.Where(member => member.IsCompanion)
@@ -741,6 +835,101 @@ public static class InGameRoomSmoke
                     "newcomer receives the existing companion identities and fixed appearances");
             }
             await Capture(main, "in-game-companions-replaced");
+            var finalCompanion = client.View.Members.Single(member => member.IsCompanion);
+            var finalRows = page.GetNode<VBoxContainer>("Room/Members");
+            int finalIndex = Array.FindIndex(client.View.Members, member => member.Id == finalCompanion.Id);
+            panel.Open();
+            await Wait(0.2);
+            var scroll = panel.GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
+            T PanelState<T>(string field) => (T)typeof(SystemPanelController)
+                .GetField(field, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(panel);
+            async Task<Vector2> HoldButton(BaseButton button)
+            {
+                if (scroll.IsAncestorOf(button)) scroll.EnsureControlVisible(button);
+                await Frame();
+                var point = button.GetGlobalRect().GetCenter();
+                Input.ParseInputEvent(new InputEventMouseMotion { Position = point, GlobalPosition = point });
+                await Frame();
+                Check(main.GetViewport().GuiGetHoveredControl() == button, "pointer reaches the actual member/action button");
+                Input.ParseInputEvent(new InputEventMouseButton
+                    { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true });
+                await Frame();
+                return point;
+            }
+            void ReleaseAt(Vector2 point) => Input.ParseInputEvent(new InputEventMouseButton
+                { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = false });
+            var finalKick = finalRows.GetChild(finalIndex).GetNode<Button>("Kick");
+            var kickPoint = await HoldButton(finalKick);
+            Check(ReferenceEquals(PanelState<BaseButton>("_panelScrollPressedButton"), finalKick),
+                "actual pointer down participates in the panel's pending drag capture");
+            page.AdvancePreview(2);
+            await Frame();
+            Check(GodotObject.IsInstanceValid(finalKick) && finalKick.IsInsideTree(),
+                "member activity snapshots preserve the pressed member button");
+            ReleaseAt(kickPoint);
+            await Frame();
+            Check(roomKickConfirm.Visible,
+                "real press/release across snapshots opens companion removal confirmation");
+            var modalRect = roomKickConfirm.GetGlobalRect();
+            var panelRect = panel.GetNode<Control>("Panel").GetGlobalRect();
+            Check(modalRect.Position.IsEqualApprox(panelRect.Position) && modalRect.Size.IsEqualApprox(panelRect.Size)
+                && !scroll.IsAncestorOf(roomKickConfirm), "removal modal follows the full panel bounds outside scroll content");
+            await Capture(main, "in-game-room-kick-overlay");
+            var presetTab = title.GetNode<Button>("OutfitPresetTab");
+            var blockedTabPoint = presetTab.GetGlobalRect().GetCenter();
+            Input.ParseInputEvent(new InputEventMouseMotion { Position = blockedTabPoint, GlobalPosition = blockedTabPoint });
+            await Frame();
+            Check(main.GetViewport().GuiGetHoveredControl() != presetTab,
+                "the modal intercepts pointer hover over a background tab");
+            Input.ParseInputEvent(new InputEventMouseButton
+                { Position = blockedTabPoint, GlobalPosition = blockedTabPoint, ButtonIndex = MouseButton.Left, Pressed = true });
+            ReleaseAt(blockedTabPoint);
+            await Frame();
+            Check(roomKickConfirm.Visible && page.IsVisibleInTree(),
+                "clicking a covered background tab does not switch pages or dismiss confirmation");
+            int scrollBeforeModalDrag = scroll.ScrollVertical;
+            var blockedDragPoint = scroll.GetGlobalRect().Position + new Vector2(20, 20);
+            Input.ParseInputEvent(new InputEventMouseButton
+                { Position = blockedDragPoint, GlobalPosition = blockedDragPoint, ButtonIndex = MouseButton.Left, Pressed = true });
+            await Frame();
+            Input.ParseInputEvent(new InputEventMouseMotion
+                { Position = blockedDragPoint + new Vector2(0, 40), GlobalPosition = blockedDragPoint + new Vector2(0, 40),
+                    Relative = new Vector2(0, 40), ButtonMask = MouseButtonMask.Left });
+            ReleaseAt(blockedDragPoint + new Vector2(0, 40));
+            await Frame();
+            Check(roomKickConfirm.Visible && scroll.ScrollVertical == scrollBeforeModalDrag
+                && !PanelState<bool>("_panelScrollDragPotential") && !PanelState<bool>("_panelScrollDragging")
+                && PanelState<BaseButton>("_panelScrollPressedButton") == null,
+                "dragging the modal background cannot scroll or capture covered member controls");
+            var confirmPoint = await HoldButton(roomKickAccept);
+            ReleaseAt(confirmPoint);
+            await Frame(); // Dispatch the buffered pointer event before advancing simulated transport time.
+            Check(!roomKickConfirm.Visible, "real confirmation click completes the removal action");
+            await Settle();
+            Check(client.View.Members.All(member => !member.IsCompanion)
+                && secondHuman.View.Members.All(member => !member.IsCompanion)
+                && desktop.RemoteDogs.Count == 2,
+                "host removal retires a companion for all viewers without removing real members");
+            var leavingIndex = Array.FindIndex(client.View.Members, member => member.Id == secondHuman.Id);
+            var leavingButton = finalRows.GetChild(leavingIndex).GetNode<Button>("Kick");
+            var leavingPoint = await HoldButton(leavingButton);
+            secondHuman.Leave();
+            await Settle();
+            Check(!GodotObject.IsInstanceValid(leavingButton), "departing member removes the captured button between mouse down and up");
+            Input.ParseInputEvent(new InputEventMouseMotion
+                { Position = leavingPoint + new Vector2(0, 20), Relative = new Vector2(0, 20), ButtonMask = MouseButtonMask.Left });
+            ReleaseAt(leavingPoint + new Vector2(0, 20));
+            await Frame();
+            Check(!PanelState<bool>("_panelScrollDragPotential") && !PanelState<bool>("_panelScrollDragging")
+                && PanelState<BaseButton>("_panelScrollPressedButton") == null,
+                "disposed capture is safely cleared after motion and release without sticking the panel");
+            int remainingIndex = Array.FindIndex(client.View.Members, member => member.Id == thirdHuman.Id);
+            var recoveryPoint = await HoldButton(finalRows.GetChild(remainingIndex).GetNode<Button>("Kick"));
+            ReleaseAt(recoveryPoint);
+            await Frame();
+            Check(roomKickConfirm.Visible, "member buttons remain clickable after captured row removal");
+            roomKickCancel.EmitSignal(BaseButton.SignalName.Pressed);
             client.Leave();
             secondHuman.Leave();
             thirdHuman.Leave();

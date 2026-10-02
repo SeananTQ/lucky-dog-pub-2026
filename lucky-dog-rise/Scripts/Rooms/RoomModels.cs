@@ -6,7 +6,13 @@ namespace LuckyDogRise.Rooms;
 public sealed record RoomMember(int Id, string Name, int SkinId, int HeadwearId,
     int Reaction, long Presence, long ActivitySequence = 0, bool TongueActive = false,
     bool IsCompanion = false);
-public sealed record RoomListing(string Code, string Name, string GameId, int Count, int Capacity);
+// Count is the number of visible characters. Only real Steam members consume
+// admission slots; older development providers without companions can omit HumanCount.
+public sealed record RoomListing(string Code, string Name, string GameId, int Count, int Capacity,
+    int? HumanCount = null)
+{
+    public bool IsFull => (HumanCount ?? Count) >= Capacity;
+}
 public enum RoomAccess { Public = 0, FriendsOnly = 1, InviteOnly = 2 }
 public sealed record RoomSnapshot(string Code, string Name, string GameId, int OwnerId,
     long Revision, RoomMember[] Members, RoomAccess Access = RoomAccess.Public);
@@ -15,6 +21,21 @@ public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
 
 public static class RoomRules
 {
+    public const int MaxNameCharacters = 40;
+    public static bool TryNormalizeName(string value, out string name)
+    {
+        name = "";
+        if (value == null) return false;
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (char.IsControl(value[i])) return false;
+            if (!char.IsSurrogate(value[i])) continue;
+            if (!char.IsHighSurrogate(value[i]) || i + 1 >= value.Length || !char.IsLowSurrogate(value[++i]))
+                return false;
+        }
+        name = value.Trim();
+        return name.Length is > 0 and <= MaxNameCharacters;
+    }
     public static string ValidateChat(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return "Rooms_ChatEmpty";

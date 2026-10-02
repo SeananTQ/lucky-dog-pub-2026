@@ -177,13 +177,18 @@ internal static class SteamRoomPageChecks
                 {
                     L10n.SetLocale(locale, save: false);
                     await Frame();
-                    var code = page.GetNode<Label>("Room/CodeRow/Code");
-                    code.Text = "LD-0WWWWWWWWWWWW"; // Wide glyphs, full legacy code length.
+                    var code = page.GetNode<LinkButton>("Room/CodeRow/Code");
+                    code.Text = "0WWWWWWWWWWWW"; // Wide glyphs, full prefix-free code length.
                     await Frame();
                     var textWidth = code.GetThemeFont("font").GetStringSize(code.Text,
                         fontSize: code.GetThemeFontSize("font_size")).X;
                     Check(textWidth <= code.Size.X + 1 && page.Size.X <= panel.PanelSize.X,
                         "full uppercase code and hide/copy controls fit the real settings panel in " + locale);
+                    var copy = page.GetNode<Button>("Room/CodeRow/Copy");
+                    Check(Mathf.Abs(code.GetGlobalRect().GetCenter().Y - copy.GetGlobalRect().GetCenter().Y) <= 1
+                        && code.Size.Y <= code.GetMinimumSize().Y + 1
+                        && code.GetThemeFontSize("font_size") == copy.GetThemeFontSize("font_size"),
+                        "room-code text uses its natural height, matching font size and vertical center in " + locale);
                 }
             }
             finally { L10n.SetLocale(originalLocale, save: false); }
@@ -211,8 +216,8 @@ internal static class SteamRoomPageChecks
             await Frame();
             var client = page.CurrentClient;
             var invite = page.GetNode<Button>("Room/Invite");
-            var code = page.GetNode<Label>("Room/CodeRow/Code");
-            var visibility = page.GetNode<Button>("Room/CodeHeader/Visibility");
+            var code = page.GetNode<LinkButton>("Room/CodeRow/Code");
+            var visibility = page.GetNode<Button>("Room/CodeRow/Visibility");
             var codeInput = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
             var status = page.GetNode<Label>("Status");
             Check(!page.Visible && client.JoinedCode == "PROVIDER1" && service.JoinRequests == 1,
@@ -299,6 +304,10 @@ internal static class SteamRoomPageChecks
             .Instantiate<InGameRoomPreview>();
         page.Configure(provider, null);
         parent.AddChild(page);
+        var confirm = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
+            .Instantiate<ConfirmOverlayController>();
+        parent.AddChild(confirm);
+        page.BindKickConfirmation(confirm);
         async Task Frame()
         {
             await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -312,9 +321,8 @@ internal static class SteamRoomPageChecks
             await Frame();
             var members = page.GetNode<VBoxContainer>("Room/Members");
             Button Kick(int index) => members.GetChild(index).GetNode<Button>("Kick");
-            var confirm = page.GetNode<Control>("Room/KickConfirm");
-            var accept = confirm.GetNode<Button>("Actions/Confirm");
-            var cancel = confirm.GetNode<Button>("Actions/Cancel");
+            var accept = confirm.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/ConfirmButton");
+            var cancel = confirm.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton");
             var status = page.GetNode<Label>("Status");
             Check(!Kick(0).Visible && !Kick(1).Visible, "non-host has no removal controls");
 
@@ -342,10 +350,28 @@ internal static class SteamRoomPageChecks
                 "first removal button is shaped with translated text without changing language");
             expectedKick.Free();
             Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            string prompt = confirm.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").Text;
             Check(confirm.Visible && service.KickRequests == 0
-                && confirm.GetNode<Label>("Name").Text == "Remote member", "removal waits for a named confirmation");
+                && prompt.StartsWith("Remote member\n", StringComparison.Ordinal)
+                && prompt.EndsWith(L10n.Tr("Rooms_KickConfirmMessage"), StringComparison.Ordinal)
+                && confirm.GetNode<Label>("OverlayPanel/Margin/Content/Title").Text == L10n.Tr("Rooms_KickConfirm")
+                && !page.IsAncestorOf(confirm), "removal waits for a named confirmation outside the page's scroll content");
             cancel.EmitSignal(BaseButton.SignalName.Pressed);
             Check(!confirm.Visible && service.KickRequests == 0, "canceling confirmation does not remove anyone");
+
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            page.CancelKickConfirmation();
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!confirm.Visible && service.KickRequests == 0,
+                "external cancellation invalidates an already queued accept signal");
+            Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
+            page.Hide();
+            await Frame();
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!confirm.Visible && service.KickRequests == 0,
+                "hiding an independent room page closes its external confirmation without removing anyone");
+            page.Show();
+            await Frame();
 
             Kick(1).EmitSignal(BaseButton.SignalName.Pressed);
             service.OwnerId = 2;
@@ -408,9 +434,9 @@ internal static class SteamRoomPageChecks
             await Frame();
             Check(!status.Visible && service.SearchRequests == searches + 1,
                 "explicit refresh clears the old notice without implicitly joining");
-            GD.Print("[RoomKickPageChecks] PASS ownership, confirmation, stale membership/session, translated errors and forced-exit notice (fake service).");
+            GD.Print("[RoomKickPageChecks] PASS ownership, external modal confirmation/cancellation, hidden-page cleanup, stale membership/session, translated errors and forced-exit notice (fake service).");
         }
-        finally { page.Free(); }
+        finally { page.Free(); confirm.Free(); }
     }
 
     private static async Task CheckChatInteraction(Node parent)

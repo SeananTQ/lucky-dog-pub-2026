@@ -58,6 +58,8 @@ public sealed class RoomClient : IDisposable
     public string SetGame(string gameId) => _disposed ? "房间连接已关闭。" : _service.SetGame(this, gameId);
     public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy
         ? "Rooms_AccessUnavailable" : _service.SetAccess(this, access);
+    public string SetName(string name) => _disposed || _committing || IsBusy
+        ? "Rooms_NameUnavailable" : _service.SetName(this, name);
     public string SendChat(string text) => _disposed ? "房间连接已关闭。" : _service.SendChat(this, text);
     public string Kick(int memberId, long presence) => _disposed || _committing
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
@@ -110,7 +112,7 @@ public sealed class RoomClient : IDisposable
             Listings = (RoomListing[])(result.Rooms ?? Array.Empty<RoomListing>()).Clone();
             if (autoJoin)
             {
-                var room = Listings.FirstOrDefault(r => r.Count < r.Capacity && r.Code != JoinedCode);
+                var room = Listings.FirstOrDefault(r => !r.IsFull && r.Code != JoinedCode);
                 if (room != null) { Join(room.Code); return true; }
                 Failure = RoomFailure.NoMatchingRoom;
                 RequestState = RoomRequestState.Failed;

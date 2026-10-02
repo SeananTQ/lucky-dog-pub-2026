@@ -17,7 +17,7 @@ public partial class InGameRoomDirectoryRow : HBoxContainer
         _name.TooltipText = room.Name;
         _game.TooltipText = InGameRoomPreview.GameName(room.GameId);
         _count.Text = $"{room.Count}/{room.Capacity}";
-        _full = room.Count >= room.Capacity;
+        _full = room.IsFull;
         SetBusy(busy);
         _join.Pressed += join;
     }

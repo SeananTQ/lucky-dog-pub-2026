@@ -982,6 +982,9 @@ public partial class ModeManager : Control
 #endif
 
         if (what == NotificationWMWindowFocusOut && _settingsPanel != null && _settingsPanel.IsOpen
+#if !DEMO_BUILD && !RECORDING_BUILD
+            && !_settingsPanel.HasOpenDropdown
+#endif
             && SettingsManager.LoadAutoHidePanel())
         {
             var mouse = DisplayServer.MouseGetPosition();
