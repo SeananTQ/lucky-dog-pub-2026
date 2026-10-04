@@ -89,9 +89,6 @@ public partial class InGameRoomPreview
             _awaitingArrivalFrame = arrival;
             ObserveArrivalAfterDraw(_client, arrival);
         }
-        foreach (var (identity, row) in _memberRows)
-            row.Modulate = new Color(1, 1, 1, arrival.Phase == RoomArrivalPhase.Departing
-                && identity.Id == arrival.HostMemberId ? 1f - (float)arrival.DepartureProgress : 1f);
     }
 
     private async void ObserveArrivalAfterDraw(RoomClient client, RoomArrivalState arrival)

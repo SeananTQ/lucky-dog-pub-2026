@@ -23,6 +23,8 @@ public partial class DesktopRiseIntroController : Node2D
     private Vector2 _dogPosition;
     private Vector2 _dogScale = Vector2.One;
     private float _taskbarTopY;
+    private Vector2 _reverseTonguePosition;
+    private bool _reverseShowsTongue;
 
     [Export] private float _playbackTimeScale = 2.0f;
     [Export] private float _clawRiseOffset = 80f;
@@ -178,6 +180,94 @@ public partial class DesktopRiseIntroController : Node2D
         _tongueTween?.Kill();
         _tongueTween = null;
         HideVisuals();
+    }
+
+    // Reuse the startup parts and mask inside a room avatar's own canvas. A new
+    // CanvasLayer would escape its parent's position, scale and visibility.
+    // Copy the displayed pose, never bind the remote dog to local equipment.
+    public void BeginReverse(DogVisual source)
+    {
+        HideImmediate();
+        _revealClip.Reparent(this, keepGlobalTransform: false);
+        _frontRoot.Reparent(this, keepGlobalTransform: false);
+        _dogPosition = new Vector2(_taskbarClipWidth / 2f, _revealClip.Size.Y);
+        Position = source.Position - _dogPosition;
+        _dogScale = source.Scale;
+        foreach (var dog in new[] { _headDog, _clawDog, _frontTongueDog })
+        {
+            CopyPose(source, dog);
+            dog.SetProcess(false);
+        }
+        ApplyDogTransform(_dogPosition);
+        _reverseTonguePosition = _maskedTongue.Position;
+        _reverseShowsTongue = _maskedTongue.Visible;
+        _headDog.GetNode<Node2D>("ClawLeft").Hide();
+        _headDog.GetNode<Node2D>("ClawRight").Hide();
+        foreach (var dog in new[] { _clawDog, _frontTongueDog })
+            foreach (var part in dog.GetNode<Node2D>("HeadRoot").GetChildren())
+                if (part is CanvasItem visual) visual.Hide();
+        _frontTongueDog.GetNode<Node2D>("ClawLeft").Hide();
+        _frontTongueDog.GetNode<Node2D>("ClawRight").Hide();
+        Show();
+        SeekReverse(0);
+    }
+
+    // Sample the startup timeline backwards. The room owns elapsed time, so a
+    // hidden window, skipped frame or delayed snapshot cannot restart departure.
+    public void SeekReverse(float progress)
+    {
+        float latchAt = Mathf.Max(_headPeekSeconds, _clawRiseSeconds);
+        float riseAt = latchAt + _postClawLatchPauseSeconds;
+        float time = (1f - Mathf.Clamp(progress, 0f, 1f)) * (riseAt + _headRiseSeconds + _endHoldSeconds);
+        float HeadOffset(float at) => at < riseAt
+            ? Mathf.Lerp(_headHiddenOffset, _headPeekOffset, EaseOut(at / _headPeekSeconds, 3))
+            : Mathf.Lerp(_headPeekOffset, 0f, EaseOut((at - riseAt) / _headRiseSeconds, 4));
+        _headDog.Position = _dogPosition + Vector2.Down * HeadOffset(time);
+
+        bool latched = time >= latchAt;
+        var clawParent = latched ? (Node)_frontRoot : _revealClip;
+        if (_clawDog.GetParent() != clawParent)
+        {
+            _clawDog.Reparent(clawParent, keepGlobalTransform: false);
+            if (latched) _clawDog.ShowClawBack();
+            else _clawDog.ShowClawPalm();
+        }
+        _clawDog.Position = _dogPosition + Vector2.Down * Mathf.Lerp(
+            _clawRiseOffset, _clawLatchOffset, EaseOut(time / _clawRiseSeconds, 4));
+
+        float squashAt = riseAt + _headRiseSeconds * _tongueTransitionHeadProgress;
+        float foregroundAt = squashAt + _tongueSquashSeconds;
+        bool foreground = time >= foregroundAt;
+        _maskedTongue.Visible = _reverseShowsTongue && time >= riseAt && !foreground;
+        _frontTongue.Visible = _reverseShowsTongue && foreground;
+        _frontTongueDog.Position = _dogPosition + Vector2.Down * HeadOffset(foregroundAt);
+        float tongueProgress = Mathf.Clamp((time - (foreground ? foregroundAt : squashAt)) / _tongueSquashSeconds, 0f, 1f);
+        var tongue = foreground ? _frontTongue : _maskedTongue;
+        float tongueScale = EaseOut(tongueProgress, 3);
+        tongue.Scale = new Vector2(1f, foreground
+            ? Mathf.Lerp(_tongueSquashScaleY, 1f, tongueScale)
+            : Mathf.Lerp(1f, _tongueSquashScaleY, tongueScale));
+        tongue.Position = _reverseTonguePosition + Vector2.Down * _tongueSquashOffsetY
+            * (foreground ? 1f - tongueProgress : tongueProgress);
+    }
+
+    private static float EaseOut(float progress, int power)
+        => 1f - Mathf.Pow(1f - Mathf.Clamp(progress, 0f, 1f), power);
+
+    private static void CopyPose(Node2D source, Node2D target)
+    {
+        target.Transform = source.Transform;
+        target.Visible = source.Visible;
+        target.ZIndex = source.ZIndex;
+        target.ZAsRelative = source.ZAsRelative;
+        if (source is Sprite2D sprite && target is Sprite2D copy)
+        {
+            copy.Texture = sprite.Texture;
+            copy.Material = sprite.Material;
+        }
+        foreach (var child in source.GetChildren())
+            if (child is Node2D part && target.GetNodeOrNull<Node2D>(new NodePath(part.Name)) is { } other)
+                CopyPose(part, other);
     }
 
     private void StartTongueForegroundTransition(

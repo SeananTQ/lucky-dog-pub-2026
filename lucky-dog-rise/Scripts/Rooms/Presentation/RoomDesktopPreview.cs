@@ -113,11 +113,11 @@ public partial class RoomDesktopPreview : Node2D
             dog.Scale = Vector2.One * scale;
             dog.Position = placement.Position;
             dog.Visible = !client.HiddenMembers.Contains(member.Id);
-            dog.Modulate = new Color(1, 1, 1, client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival
-                && member.Id == arrival.HostMemberId ? 1f - (float)arrival.DepartureProgress : 1f);
             dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
                 client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
                 client.IsTongueActive(member.Id));
+            dog.SetDepartureProgress(client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival
+                && member.Id == arrival.HostMemberId ? (float)arrival.DepartureProgress : null);
         }
         // Same anchor as RoomDogView, aligned to the original countdown balloon.
         // ModeManager temporarily retracts that balloon while local chat is active.

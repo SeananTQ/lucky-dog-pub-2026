@@ -12,6 +12,8 @@ public partial class RoomDogView : Node2D
     [Export] private Label _name = null!;
     [Export] public RoomChatView Chat { get; private set; } = null!;
     [Export] private Godot.Collections.Array<Button> _dogHits = new();
+    [Export] private PackedScene _departureScene = null!;
+    private DesktopRiseIntroController _departure;
     public event Action<string> SendRequested;
     private RoomMember _member;
     private bool _isLocal;
@@ -47,9 +49,33 @@ public partial class RoomDogView : Node2D
         Dog.SetRoomTongueActivity(tongueActive);
         _member = member;
         _name.Text = (owner ? "♛ " : "") + member.Name + (local ? " · 本机" : "");
-        _nameBar.Visible = showName;
+        _nameBar.Visible = showName && _departure == null;
         _currentBubble = bubble;
         Chat.Present(local, IsPointerOverDog(), bubble);
+    }
+
+    public void SetDepartureProgress(float? progress)
+    {
+        if (progress == null)
+        {
+            if (_departure == null) return;
+            _departure.HideImmediate();
+            _departure.QueueFree();
+            _departure = null;
+            Dog.Show();
+            return;
+        }
+        if (_departure == null)
+        {
+            _departure = _departureScene.Instantiate<DesktopRiseIntroController>();
+            _departure.Name = "Departure";
+            AddChild(_departure);
+            _departure.BeginReverse(Dog);
+            Dog.Hide();
+        }
+        _nameBar.Hide();
+        CloseChat();
+        _departure.SeekReverse(progress.Value);
     }
 
     public void ApplyNameBarLayout(Rect2 idleRect, Font font, StyleBox style,

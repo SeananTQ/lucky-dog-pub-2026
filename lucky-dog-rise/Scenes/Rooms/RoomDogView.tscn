@@ -4,6 +4,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomDogView.cs" id="script"]
 [ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+[ext_resource type="PackedScene" path="res://Scenes/Desktop/DesktopRiseIntro.tscn" id="departure"]
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="counter_font"]
 
 [sub_resource type="StyleBoxFlat" id="counter_bg"]
@@ -32,6 +33,7 @@ _nameBar = NodePath("NameBar")
 _name = NodePath("NameBar/Name")
 Chat = NodePath("Chat")
 _dogHits = [NodePath("Dog/HitButton"), NodePath("Dog/ClawLeftHitButton"), NodePath("Dog/ClawRightHitButton")]
+_departureScene = ExtResource("departure")
 
 [node name="Dog" parent="." instance=ExtResource("dog")]
 scale = Vector2(0.25, 0.25)

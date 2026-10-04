@@ -86,11 +86,34 @@ internal static class RoomArrivalMainChecks
             await Step(0.351); // Configured main-page sandbox request latency.
             Check(client.Arrival.Phase == RoomArrivalPhase.Departing && client.View.OwnerId == hostId,
                 "native preparation starts the old host's departure while retaining temporary ownership");
+            var departure = hostDog.GetNode<DesktopRiseIntroController>("Departure");
+            var clip = departure.GetNode<Control>("RevealClip");
+            var head = clip.GetNode<DogVisual>("HeadDog");
+            float headStart = head.Position.Y;
+            var clipStart = clip.GetGlobalTransformWithCanvas();
+            Check(clip.ClipContents && !hostDog.Dog.Visible
+                && !hostDog.GetNode<Control>("NameBar").Visible
+                && head.GetNode<Sprite2D>("HeadRoot/Headwear").Texture == hostDog.Dog.GetNode<Sprite2D>("HeadRoot/Headwear").Texture
+                && head.GetNode<Sprite2D>("HeadRoot/Head").Texture == hostDog.Dog.GetNode<Sprite2D>("HeadRoot/Head").Texture,
+                "reverse rise uses the same skin and hat behind the startup mask, with the name bar retracted");
             await Step(RoomRules.ArrivalDepartureSeconds / 2);
-            Check(hostDog.Modulate.A > 0.1f && hostDog.Modulate.A < 0.9f,
-                "the departing host visibly fades over its departure interval");
+            Check(Mathf.IsEqualApprox(hostDog.Modulate.A, 1f) && head.Position.Y > headStart
+                && clip.GetGlobalTransformWithCanvas().IsEqualApprox(clipStart)
+                && departure.GetNodeOrNull<DogVisual>("FrontRoot/ClawDog") != null,
+                "the head retracts below its fixed edge while the opaque paws stay in front");
             await Capture("arrival-main-departure");
-            await Step(RoomRules.ArrivalDepartureSeconds / 2 + 0.001);
+            float headMiddle = head.Position.Y;
+            await Step(RoomRules.ArrivalDepartureSeconds * 0.4);
+            Check(head.Position.Y > headMiddle
+                && clip.GetNodeOrNull<DogVisual>("ClawDog")?.Position.Y > headStart
+                && !head.GetNode<Sprite2D>("HeadRoot/Tonghe").Visible
+                && !departure.GetNode<Sprite2D>("FrontRoot/FrontTongueDog/HeadRoot/Tonghe").Visible,
+                "paws follow the head behind the mask and no tongue remains floating outside it");
+            await Capture("arrival-main-departure-end");
+            hostDog.Hide();
+            Check(!head.IsVisibleInTree(), "departure inherits its avatar's visibility");
+            hostDog.Show();
+            await Step(RoomRules.ArrivalDepartureSeconds * 0.1 + 0.001);
             Check(!client.IsLocalArrival && client.View.OwnerId == client.Id && client.View.Members.Length == 3
                 && client.LayoutSession == layout && desktop.RemoteDogs.Count == 2,
                 "real membership replaces local arrival with two companions and the same layout session");
@@ -129,7 +152,7 @@ internal static class RoomArrivalMainChecks
             Check(client.View == null && !client.IsLocalArrival && !main.RoomDesktopWindowActive
                 && client.Listings.Length == 0,
                 "leaving before observation completes never publishes a room and restores the single dog");
-            GD.Print("[RoomArrivalMainChecks] PASS actual main window: observation gate, random companion crown, departure fade, stable identity/layout, host-transfer bubble, one-for-one replacements and early exit (Mock).");
+            GD.Print("[RoomArrivalMainChecks] PASS actual main window: observation gate, random companion crown, masked reverse-rise departure, stable identity/layout, host-transfer bubble, one-for-one replacements and early exit (Mock).");
         }
         finally { page.SetProcess(processing); }
     }
