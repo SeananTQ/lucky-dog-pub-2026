@@ -151,12 +151,17 @@ public partial class InGameRoomPreview
 
     private void RefreshRoomAge()
     {
-        bool show = _client?.View?.CreatedAt != null && !_client.IsLocalArrival && _client.JoinedCode.Length > 0;
+        var arrival = _client?.Arrival;
+        bool show = _client?.JoinedCode.Length > 0 && (arrival != null || _client.View?.CreatedAt != null);
         _connection.Visible = show;
         if (!show) return;
-        long seconds = (long)Math.Min(long.MaxValue / 2.0, Math.Max(0, _client.RoomAgeSeconds));
+        // The local room uses its observed lifetime until real lobby metadata is available.
+        double age = arrival?.Elapsed ?? _client.RoomAgeSeconds;
+        long seconds = (long)Math.Min(long.MaxValue / 2.0, Math.Max(0, age));
         long days = seconds / 86400;
-        string time = string.Format(L10n.Tr("Rooms_AgeHoursMinutes"), seconds / 3600 % 24, seconds / 60 % 60);
+        string time = seconds < 60
+            ? string.Format(L10n.Tr("Rooms_AgeHoursMinutesSeconds"), 0, 0, seconds)
+            : string.Format(L10n.Tr("Rooms_AgeHoursMinutes"), seconds / 3600 % 24, seconds / 60 % 60);
         if (days > 0) time = string.Format(L10n.Tr("Rooms_AgeDays"), days, time);
         string text = string.Format(L10n.Tr("Rooms_Age"), time);
         if (_connection.Text != text) _connection.Text = text;

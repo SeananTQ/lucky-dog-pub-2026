@@ -27,15 +27,11 @@ public partial class InGameRoomPreview
     private void RenderArrival()
     {
         var arrival = _client?.Arrival;
-        _arrivalPanel.Visible = arrival != null;
-        _arrivalRetry.Visible = arrival?.Phase == RoomArrivalPhase.Failed;
+        bool failed = arrival?.Phase == RoomArrivalPhase.Failed;
+        _arrivalPanel.Visible = failed;
+        _arrivalRetry.Visible = failed;
         _arrivalRetry.Disabled = _client?.IsBusy == true;
-        _arrivalMessage.Text = arrival == null ? "" : L10n.Tr(arrival.Phase switch
-        {
-            RoomArrivalPhase.Failed => "Rooms_ArrivalFailed",
-            RoomArrivalPhase.Departing => "Rooms_ArrivalDeparting",
-            _ => "Rooms_ArrivalPreparing"
-        });
+        _arrivalMessage.Text = failed ? L10n.Tr("Rooms_ArrivalFailed") : "";
         GetNode<Button>("Room/Browse").Disabled = arrival != null;
     }
 

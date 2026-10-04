@@ -33,7 +33,7 @@ public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
 
 public static class RoomRules
 {
-    public const double ArrivalObserveSeconds = 3;
+    public const double ArrivalObserveSeconds = 30;
     public const double ArrivalDepartureSeconds = 0.75;
     public const double GameChangeLifetime = 60;
     public const double CompanionVoteDelay = 1;

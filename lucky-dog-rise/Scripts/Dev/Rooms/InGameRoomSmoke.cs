@@ -62,6 +62,7 @@ public static class InGameRoomSmoke
             if (OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke"))
             {
                 await RoomArrivalMainChecks.Run(main, page);
+                await RoomArrivalPageChecks.Run(main);
                 tree.Quit();
                 return;
             }
