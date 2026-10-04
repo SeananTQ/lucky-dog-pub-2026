@@ -44,6 +44,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private GameData _gameData;
     private bool _isMock;
     private bool _restartRequired;
+    private bool _roomServiceUnavailable;
     private static readonly List<Translation> Translations = new();
     private static int _translationUsers;
     private bool _registeredTranslations;
@@ -217,6 +218,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (!_isMock && _client != null) _client.AdvanceTo(_service.Now);
         ConsumeAcceptedInvite();
         UpdateRoomReconnect();
+        UpdateRoomConnection(delta);
         if (!IsVisibleInTree())
         {
             CancelKick();
@@ -259,6 +261,7 @@ public partial class InGameRoomPreview : VBoxContainer
             _dirty = true;
         }
         var current = provider?.RoomService;
+        _roomServiceUnavailable = current == null;
         if (ReferenceEquals(current, _service)) return;
         // A local arrival owns its cast independently of the platform session.
         // Retain it during connection recovery; retry uses the replacement service.
@@ -698,6 +701,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
+        if (RenderConnectionWait()) return;
         RenderRoomReconnect();
         RenderArrival();
         RenderCodePrivacy();

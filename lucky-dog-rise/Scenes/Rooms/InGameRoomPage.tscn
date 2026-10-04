@@ -9,7 +9,8 @@
 [ext_resource type="LabelSettings" path="res://Themes/Label_KeyText.tres" id="helper_label"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel")]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -36,6 +37,9 @@ _random = NodePath("Lobby/Random")
 _refresh = NodePath("Lobby/Header/Refresh")
 _return = NodePath("Lobby/Return")
 _cancel = NodePath("Cancel")
+_connectionWait = NodePath("ConnectionWait")
+_connectionWaitMessage = NodePath("ConnectionWait/Content/Message")
+_connectionWaitCancel = NodePath("ConnectionWait/Content/Cancel")
 _directoryRow = ExtResource("row")
 _memberRow = ExtResource("member")
 
@@ -63,22 +67,39 @@ custom_minimum_size = Vector2(0, 28)
 theme_type_variation = &"CapsuleButton"
 text = "Rooms_ReconnectCancel"
 
-[node name="Arrival" type="VBoxContainer" parent="."]
+[node name="ConnectionWait" type="CenterContainer" parent="."]
 visible = false
+custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
-theme_override_constants/separation = 6
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="Message" type="Label" parent="Arrival"]
+[node name="Content" type="VBoxContainer" parent="ConnectionWait"]
+custom_minimum_size = Vector2(320, 176)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LoadingIndicator" parent="ConnectionWait/Content" instance=ExtResource("loading_indicator")]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Message" type="Label" parent="ConnectionWait/Content"]
+custom_minimum_size = Vector2(320, 92)
 layout_mode = 2
 auto_translate_mode = 2
 autowrap_mode = 3
-label_settings = ExtResource("helper_label")
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 16
 
-[node name="Retry" type="Button" parent="Arrival"]
+[node name="Cancel" type="Button" parent="ConnectionWait/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 28)
 theme_type_variation = &"CapsuleButton"
-text = "Rooms_ArrivalRetry"
+auto_translate_mode = 2
+autowrap_mode = 3
+text = "Rooms_Leave"
 
 [node name="Lobby" type="VBoxContainer" parent="."]
 layout_mode = 2

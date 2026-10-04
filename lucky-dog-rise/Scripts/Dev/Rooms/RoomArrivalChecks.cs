@@ -18,10 +18,13 @@ public static class RoomArrivalChecks
         CheckCancelAndLateCallback();
         CheckTimeoutAndInvitation();
         CheckServiceReplacement();
+        CheckRecoveryBeforePresentation();
         CheckPublishingFailure();
+        CheckJoinDuringDeparture();
+        CheckDisconnectDuringDeparture();
         CheckOrdinaryCreate();
         CheckMockHandoff();
-        return "[RoomArrivalChecks] PASS presentation-gated observation, three host choices, private-before-public handoff, stable identities and appearance, local chat, retries, cancellation, timeout, invitation priority and Mock parity (fake Steam).";
+        return "[RoomArrivalChecks] PASS presentation-gated observation, three host choices, public commit before local departure, stable identities, silent bounded retries, availability recovery, concurrent arrival, cancellation, timeout, invitation priority and Mock parity (fake Steam).";
     }
 
     private static void CheckPresentationGateAndHandoffs()
@@ -39,28 +42,34 @@ public static class RoomArrivalChecks
             Check(test.Transport.CreateCalls == 0 && test.Client.Arrival.Elapsed == 0,
                 "time before the first presented frame never creates a Steam lobby");
             test.Client.MarkArrivalPresented();
-            test.Step(22.999);
+            double createdAt = 20 + RoomRules.ArrivalObserveSeconds;
+            test.Step(createdAt - 0.001);
             Check(test.Transport.CreateCalls == 0, "the full observation interval elapses before native creation");
-            test.Step(23);
+            test.Step(createdAt);
             Check(test.Transport.PrivateCreateCalls == 1 && test.Transport.CreateCalls == 1
                 && test.Client.Arrival.Phase == RoomArrivalPhase.Creating,
                 "observation dispatches exactly one private native create");
-            test.Step(23.1);
+            test.Step(createdAt + 0.1);
             Check(test.Transport.CreateCalls == 1, "waiting for a native callback never submits another create");
             ulong lobby = Lobby + (ulong)(-host);
             test.Transport.SucceedMembership(lobby);
             Check(test.Client.IsLocalArrival && test.Client.Arrival.Phase == RoomArrivalPhase.Departing
-                && test.Transport.NativeAccess[lobby] == RoomAccess.InviteOnly
-                && !test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public),
-                "native success remains private while the local host departs");
-            test.Step(23.849);
-            Check(test.Client.IsLocalArrival && test.Transport.NativeAccess[lobby] == RoomAccess.InviteOnly,
-                "a partial departure cannot expose the new room publicly");
-            test.Step(23.851);
+                && test.Client.Arrival.Committed && !test.Client.IsBusy
+                && test.Client.JoinedCode == SteamRoomProtocol.Encode(lobby)
+                && test.Client.View.OwnerId == host && test.Transport.NativeAccess[lobby] == RoomAccess.Public,
+                "native membership is public and committed before the local host starts departing");
+            int accessWrites = test.Transport.AccessWrites.Count;
+            test.Step(createdAt + 0.1 + RoomRules.ArrivalDepartureSeconds - 0.001);
+            Check(test.Client.IsLocalArrival && test.Client.View.OwnerId == host
+                && test.Transport.NativeAccess[lobby] == RoomAccess.Public,
+                "partial departure retains the old visible host over already committed membership");
+            test.Step(createdAt + 0.1 + RoomRules.ArrivalDepartureSeconds + 0.001);
             Check(!test.Client.IsLocalArrival && test.Client.JoinedCode == SteamRoomProtocol.Encode(lobby)
                 && test.Client.View.OwnerId == test.Client.Id && test.Client.View.Members.Length == 3
                 && test.Client.View.Access == RoomAccess.Public && test.Transport.NativeAccess[lobby] == RoomAccess.Public,
                 "finished departure commits one real player and two companions to the public lobby");
+            Check(test.Transport.AccessWrites.Count == accessWrites,
+                "finishing the visual departure has no fallible native publication step");
             Check(test.Client.LayoutSession == layout, "native handoff preserves the local layout session");
             var bots = test.Client.View.Members.Where(m => m.IsCompanion).ToArray();
             Check(bots.Length == 2 && bots.All(m => m.Id != host && SameIdentityAndLook(m, appearance[m.Id])),
@@ -112,18 +121,39 @@ public static class RoomArrivalChecks
     {
         using var test = new Fixture();
         test.Begin(-3);
+        int failures = 0;
+        test.Client.JoinFailed += (_, _) => failures++;
+        var plan = test.Client.Arrival.Plan;
         long layout = test.Client.LayoutSession;
         test.Transport.FailMembership(RoomFailure.Unavailable);
         Check(test.Client.Arrival?.Phase == RoomArrivalPhase.Failed && !test.Client.IsBusy
-            && test.Client.View.OwnerId == -3 && test.Client.View.Members.Length == 4,
-            "creation failure retains the visible local companions and offers an explicit retry");
-        test.Step(100);
-        Check(test.Transport.CreateCalls == 1 && !test.Service.ReconnectContext.IsPending,
-            "failed arrival does not restart itself or arm room recovery");
-        Check(test.Client.RetryArrival() && !test.Client.RetryArrival() && test.Transport.PrivateCreateCalls == 2,
-            "one explicit retry immediately makes one fresh private create");
+            && !test.Client.Arrival.WaitingForConnection && test.Client.Arrival.FailureCount == 1
+            && test.Client.View.OwnerId == -3 && test.Client.View.Members.Length == 4 && failures == 0,
+            "a transient failure silently retains the original cast without a join-failure notification");
+        double now = RoomRules.ArrivalObserveSeconds;
+        foreach (int delay in new[] { 5, 15, 30, 60, 60 })
+        {
+            int calls = test.Transport.CreateCalls;
+            Check(Math.Abs(test.Client.Arrival.RetrySecondsRemaining - delay) < 0.001,
+                "retry delay follows the bounded backoff sequence");
+            test.Step(now + delay - 0.001);
+            Check(test.Transport.CreateCalls == calls, "idle frames do not bypass retry backoff");
+            now += delay;
+            test.Step(now);
+            Check(test.Transport.PrivateCreateCalls == calls + 1 && test.Client.IsBusy,
+                "retry deadline dispatches exactly one new private creation");
+            if (calls > 1) Check(test.Client.Arrival.WaitingForConnection,
+                "prolonged preparation exposes connection waiting while retaining automatic retry");
+            test.Transport.FailMembership(RoomFailure.Unavailable);
+        }
+        Check(!test.Service.ReconnectContext.IsPending && failures == 0,
+            "uncommitted preparation never arms real-room recovery or emits ordinary join errors");
+        test.Step(now + 60);
         test.Transport.SucceedMembership(Lobby);
-        test.Step(100.751);
+        Check(test.Client.Arrival.Committed && !test.Client.Arrival.WaitingForConnection
+            && ReferenceEquals(test.Client.Arrival.Plan, plan),
+            "successful retry clears waiting while retaining the original companion plan");
+        test.Step(now + 60 + RoomRules.ArrivalDepartureSeconds + 0.001);
         Check(!test.Client.IsLocalArrival && test.Client.View.Members.Length == 3
             && test.Client.LayoutSession == layout && test.Client.View.Members.All(m => m.Id != -3),
             "retry uses the same local identities and chosen departing host");
@@ -136,15 +166,15 @@ public static class RoomArrivalChecks
             using var test = new Fixture();
             test.Client.BeginArrival("cancel", test.Plan, -1);
             test.Client.MarkArrivalPresented();
-            if (stage > 0) test.Step(3);
+            if (stage > 0) test.Step(RoomRules.ArrivalObserveSeconds);
             if (stage > 1) test.Transport.SucceedMembership(Lobby);
             test.Client.Leave();
             if (stage == 1) test.Transport.SucceedMembership(Lobby);
-            test.Step(30);
+            test.Step(RoomRules.ArrivalObserveSeconds + 120);
             Check(!test.Client.IsLocalArrival && test.Client.View == null && test.Client.JoinedCode.Length == 0
                 && !test.Service.ReconnectContext.IsPending
-                && !test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public),
-                "leaving at each arrival phase cancels the local flow without exposing or restoring a room");
+                && (stage == 2 || !test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public)),
+                "leaving every phase cancels arrival and recovery, including already committed native membership");
             Check(stage == 0 ? test.Transport.CreateCalls == 0 : test.Transport.Left.Contains(Lobby),
                 "unstarted arrivals never create; late/private native memberships are cleaned up");
         }
@@ -158,9 +188,18 @@ public static class RoomArrivalChecks
                 if (test.Client.Arrival?.Phase != RoomArrivalPhase.Creating) return;
                 if (dispose) test.Client.Dispose(); else test.Client.Leave();
             };
-            test.Step(3);
+            test.Step(RoomRules.ArrivalObserveSeconds);
             Check(test.Transport.CreateCalls == 0 && (dispose || test.Client.View == null),
                 "a cancellation or disposal in the creation notification prevents the native request");
+        }
+        using (var test = new Fixture())
+        {
+            test.Begin(-2);
+            test.Transport.FailMembership(RoomFailure.Unavailable);
+            test.Client.Leave();
+            test.Step(RoomRules.ArrivalObserveSeconds + 120);
+            Check(test.Transport.CreateCalls == 1 && test.Client.View == null && !test.Client.IsLocalArrival,
+                "leaving during retry backoff prevents every later automatic create");
         }
     }
 
@@ -169,11 +208,11 @@ public static class RoomArrivalChecks
         using (var test = new Fixture())
         {
             test.Begin(-1);
-            test.Step(3 + RoomRules.RequestTimeout);
+            test.Step(RoomRules.ArrivalObserveSeconds + RoomRules.RequestTimeout);
             Check(test.Client.Arrival?.Phase == RoomArrivalPhase.Failed && !test.Client.IsBusy,
-                "missing creation callback fails at the bounded request deadline");
+                "missing creation callback enters backoff at the bounded request deadline");
             test.Transport.SucceedMembership(Lobby);
-            test.Step(30);
+            test.Step(RoomRules.ArrivalObserveSeconds + RoomRules.RequestTimeout + 0.1);
             Check(test.Client.IsLocalArrival && test.Transport.Left.Contains(Lobby)
                 && !test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public),
                 "late success after timeout cannot commit or publish the stale private room");
@@ -188,7 +227,7 @@ public static class RoomArrivalChecks
             Check(test.Transport.Left.Contains(Lobby) && !test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public),
                 "old arrival callback is cleaned while the invited join waits for serialization");
             test.Transport.SucceedMembership(Lobby + 10);
-            test.Step(30);
+            test.Step(RoomRules.ArrivalObserveSeconds + 120);
             Check(!test.Client.IsLocalArrival && test.Client.JoinedCode == SteamRoomProtocol.Encode(Lobby + 10)
                 && test.Transport.CreateCalls == 1, "new invitation wins permanently over the abandoned arrival");
         }
@@ -198,14 +237,19 @@ public static class RoomArrivalChecks
     {
         using var test = new Fixture();
         test.Begin(-1);
-        test.Transport.SucceedMembership(Lobby);
         test.Transport.AccessNativeResults.Enqueue(true); // Existing private-owner reconciliation.
         test.Transport.AccessNativeResults.Enqueue(false);
-        test.Step(3.751);
+        test.Transport.SucceedMembership(Lobby);
         Check(test.Client.Arrival?.Phase == RoomArrivalPhase.Failed && test.Client.View.OwnerId == -1
+            && !test.Client.Arrival.Committed && test.Client.Arrival.DepartureProgress == 0
             && test.Transport.Left.Contains(Lobby) && test.Transport.NativeAccess[Lobby] == RoomAccess.InviteOnly
             && !test.Service.ReconnectContext.IsPending,
-            "failure to publish leaves the private room and returns to retryable local presentation");
+            "publication failure leaves the private room without ever starting the host departure");
+        test.Step(RoomRules.ArrivalObserveSeconds + 5);
+        test.Transport.SucceedMembership(Lobby + 1);
+        test.Step(RoomRules.ArrivalObserveSeconds + 5 + RoomRules.ArrivalDepartureSeconds + 0.001);
+        Check(!test.Client.IsLocalArrival && test.Client.View.OwnerId == test.Client.Id,
+            "publication failure automatically retries and performs the single successful departure");
     }
 
     private static void CheckServiceReplacement()
@@ -217,27 +261,85 @@ public static class RoomArrivalChecks
         test.Transport.IsAvailable = false;
         test.Service.CheckAvailability();
         Check(test.Client.Arrival?.Phase == RoomArrivalPhase.Failed && !test.Client.IsBusy
+            && test.Client.Arrival.WaitingForConnection
             && !test.Service.ReconnectContext.IsPending, "native loss retains local arrival without treating it as real membership recovery");
         var nextTransport = new SteamRoomChecks.FakeTransport { Now = 100 };
         using var nextService = new SteamRoomService(nextTransport, 10, _ => true, _ => true, _ => true,
             () => nextTransport.Now);
         Check(test.Client.RebindArrivalService(nextService) && ReferenceEquals(test.Client.Arrival.Plan, localPlan)
-            && test.Client.LayoutSession == layout && test.Client.Arrival.Phase == RoomArrivalPhase.Failed
-            && nextTransport.CreateCalls == 0, "binding a new service preserves local presentation without silently retrying");
-        Check(test.Client.RetryArrival() && nextTransport.PrivateCreateCalls == 1, "explicit retry uses the replacement service");
+            && test.Client.LayoutSession == layout, "binding a new service preserves the original local presentation");
+        test.Client.AdvanceTo(nextTransport.Now);
+        nextService.Tick();
+        Check(nextTransport.PrivateCreateCalls == 1,
+            "restored service automatically continues preparation without a user retry");
         test.Transport.SucceedMembership(Lobby);
         Check(test.Transport.Left.Contains(Lobby) && test.Client.Arrival.Phase == RoomArrivalPhase.Creating
             && test.Client.IsBusy, "old native callback only cleans its membership and cannot cancel the new request");
         test.Service.Dispose();
         Check(test.Client.IsBusy && test.Client.IsLocalArrival, "old service disposal cannot clear the rebound local client");
         nextTransport.SucceedMembership(Lobby + 20);
-        nextTransport.Now = 100.751;
+        nextTransport.Now = 100 + RoomRules.ArrivalDepartureSeconds + 0.001;
         test.Client.AdvanceTo(nextTransport.Now);
         nextService.Tick();
         Check(!test.Client.IsLocalArrival && test.Client.LayoutSession == layout
             && test.Client.JoinedCode == SteamRoomProtocol.Encode(Lobby + 20)
             && test.Client.View.Members.All(m => m.Id != -2),
             "replacement service completes the same selected-host presentation using its own clock epoch");
+    }
+
+    private static void CheckJoinDuringDeparture()
+    {
+        using var test = new Fixture();
+        test.Begin(-2);
+        test.Transport.SucceedMembership(Lobby);
+        test.Transport.SetRemote(Lobby, new SteamRoomMemberData(88, "joined during fade", "1:10:0:1001"));
+        Check(test.Client.Arrival is { Committed: true, Phase: RoomArrivalPhase.Departing }
+            && test.Client.View.OwnerId == -2 && test.Client.View.Members.Length == 4,
+            "native member updates during the fade do not prematurely replace the visible local cast");
+        test.Step(RoomRules.ArrivalObserveSeconds + RoomRules.ArrivalDepartureSeconds + 0.001);
+        Check(!test.Client.IsLocalArrival && test.Client.View.Members.Length == 3
+            && test.Client.View.Members.Count(m => m.IsCompanion) == 1
+            && test.Client.View.Members.Any(m => m.Name == "joined during fade"),
+            "departure ends with the newest real membership instead of a stale creation snapshot");
+    }
+
+    private static void CheckRecoveryBeforePresentation()
+    {
+        using var test = new Fixture();
+        test.Client.BeginArrival("not yet drawn", test.Plan, -1);
+        test.Transport.IsAvailable = false;
+        test.Service.CheckAvailability();
+        test.Client.AdvanceTo(0);
+        Check(test.Client.Arrival.WaitingForConnection, "unavailable Steam waits even before a cast has been presented");
+        var transport = new SteamRoomChecks.FakeTransport { Now = 100 };
+        using var service = new SteamRoomService(transport, 10, _ => true, _ => true, _ => true, () => transport.Now);
+        Check(test.Client.RebindArrivalService(service), "a pre-presentation arrival can bind a recovered service");
+        test.Client.AdvanceTo(transport.Now);
+        Check(!test.Client.Arrival.WaitingForConnection && !test.Client.Arrival.Presented
+            && transport.CreateCalls == 0,
+            "recovery before the first frame exposes the cast without prematurely creating or trapping it behind waiting");
+        test.Client.MarkArrivalPresented();
+        transport.Now += RoomRules.ArrivalObserveSeconds - 0.001;
+        test.Client.AdvanceTo(transport.Now);
+        Check(transport.CreateCalls == 0, "recovery preserves the full observation interval for an unseen cast");
+        transport.Now += 0.001;
+        test.Client.AdvanceTo(transport.Now);
+        Check(transport.PrivateCreateCalls == 1, "the recovered unseen cast begins preparation after its first observation interval");
+    }
+
+    private static void CheckDisconnectDuringDeparture()
+    {
+        using var test = new Fixture();
+        test.Begin(-3);
+        test.Transport.SucceedMembership(Lobby);
+        test.Step(RoomRules.ArrivalObserveSeconds + RoomRules.ArrivalDepartureSeconds / 2);
+        test.Transport.IsAvailable = false;
+        test.Service.CheckAvailability();
+        Check(!test.Client.IsLocalArrival && test.Client.View == null && test.Service.ReconnectContext.IsPending,
+            "network loss after native commit follows ordinary membership recovery without resurrecting the companion host");
+        test.Step(RoomRules.ArrivalObserveSeconds + 100);
+        Check(test.Transport.CreateCalls == 1 && test.Client.View == null,
+            "late animation frames never recreate a room after committed membership disconnects");
     }
 
     private static void CheckOrdinaryCreate()
@@ -259,11 +361,11 @@ public static class RoomArrivalChecks
             var plan = RoomCompanionPlan.Create([10, 20], [0, 30], 0, 701);
             client.BeginArrival("mock arrival", plan, host);
             client.MarkArrivalPresented();
-            mock.Tick(2.999);
+            mock.Tick(RoomRules.ArrivalObserveSeconds - 0.001);
             Check(client.IsLocalArrival && client.Arrival.Phase == RoomArrivalPhase.Waiting,
                 "Mock uses the same observation interval");
             mock.Tick(0.002);
-            mock.Tick(0.751);
+            mock.Tick(RoomRules.ArrivalDepartureSeconds + 0.001);
             Check(!client.IsLocalArrival && client.View.OwnerId == 1 && client.View.Members.Length == 3
                 && client.View.Members.All(m => m.Id != host), "Mock completes the same selected-host handoff");
             var activity = client.View.Members.Where(m => m.IsCompanion).ToDictionary(m => m.Id, m => m.ActivitySequence);
@@ -298,7 +400,7 @@ public static class RoomArrivalChecks
         {
             Check(Client.BeginArrival("Arrival room", Plan, host), "arrival fixture starts");
             Client.MarkArrivalPresented();
-            Step(3);
+            Step(RoomRules.ArrivalObserveSeconds);
         }
         public void Step(double time) { Transport.Now = time; Client.AdvanceTo(time); Service.Tick(); }
         public void Dispose() { Client.Dispose(); Service.Dispose(); }

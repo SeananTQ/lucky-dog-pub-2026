@@ -102,8 +102,8 @@ internal static class RoomEmptyDirectoryPageChecks
             await Frame();
             Check(client.IsLocalArrival && client.View.Members.Length == 4
                 && client.Arrival.Phase == RoomArrivalPhase.Failed && client.RequestState == RoomRequestState.Failed
-                && failures.Count == 1 && failures[0] == (RoomFailure.Unavailable, false),
-                "failed arrival remains in local presentation and uses the join-failure notice path");
+                && failures.Count == 0 && !page.GetNode<Control>("ConnectionWait").Visible,
+                "transient arrival failure silently retains the local presentation without a join-failure notice");
 
             client.Leave();
             page.RefreshRooms();

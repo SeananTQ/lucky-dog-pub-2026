@@ -55,8 +55,9 @@ internal static class RoomReconnectPageChecks
         {
             L10n.SetLocale(language, save: false);
             await test.Frame();
-            Check(test.Recovery.Visible && test.Message.Text == L10n.Tr("Rooms_ReconnectWaiting")
-                && test.Message.Text != "Rooms_ReconnectWaiting" && test.Cancel.Visible && !test.Cancel.Disabled,
+            Check(test.Waiting.Visible && test.WaitMessage.Text == L10n.Tr("Rooms_ConnectingService")
+                && test.WaitMessage.Text != "Rooms_ConnectingService" && test.WaitCancel.Visible && !test.WaitCancel.Disabled
+                && !test.Page.GetNode<Control>("Lobby").Visible && !test.Page.GetNode<Control>("Room").Visible,
                 "offline recovery shows translated waiting status and an enabled cancellation button in " + language);
         }
 
@@ -95,10 +96,9 @@ internal static class RoomReconnectPageChecks
         await test.JoinInitially();
         test.Disconnect();
         await test.Frame();
-        test.Cancel.EmitSignal(BaseButton.SignalName.Pressed);
+        test.WaitCancel.EmitSignal(BaseButton.SignalName.Pressed);
         await test.Frame();
-        Check(!test.Context.IsPending && !test.Cancel.Visible
-            && test.Message.Text == L10n.Tr("Rooms_ReconnectCancelled"),
+        Check(!test.Context.IsPending && !test.WaitCancel.Visible,
             "cancellation works while both the service and local client are absent");
         test.ReplaceService();
         await test.Frame();
@@ -172,8 +172,8 @@ internal static class RoomReconnectPageChecks
             var wrapperProvider = (IPlatformRoomServiceProvider)test.DebugWrapper;
             Check(wrapperProvider.RoomService == null && test.Page.CurrentClient == null
                 && ReferenceEquals(wrapperProvider.RoomReconnect, test.Context)
-                && test.Context.IsPending && test.Recovery.Visible && test.Cancel.Visible && !test.Cancel.Disabled
-                && test.Message.Text == L10n.Tr("Rooms_ReconnectWaiting"),
+                && test.Context.IsPending && test.Waiting.Visible && test.WaitCancel.Visible && !test.WaitCancel.Disabled
+                && test.WaitMessage.Text == L10n.Tr("Rooms_ConnectingService"),
                 "the integrated-debug wrapper exposes offline recovery intent after losing its room service and client");
 
             if (enterMock)
@@ -189,10 +189,9 @@ internal static class RoomReconnectPageChecks
             }
             else
             {
-                test.Cancel.EmitSignal(BaseButton.SignalName.Pressed);
+                test.WaitCancel.EmitSignal(BaseButton.SignalName.Pressed);
                 await test.Frame();
-                Check(!test.Context.IsPending && !test.Cancel.Visible
-                    && test.Message.Text == L10n.Tr("Rooms_ReconnectCancelled"),
+                Check(!test.Context.IsPending && !test.WaitCancel.Visible,
                     "the integrated-debug environment can cancel recovery while its inner service is absent");
             }
 
@@ -251,6 +250,9 @@ internal static class RoomReconnectPageChecks
         public Control Recovery => Page.GetNode<Control>("Recovery");
         public Label Message => Page.GetNode<Label>("Recovery/Message");
         public Button Cancel => Page.GetNode<Button>("Recovery/Cancel");
+        public Control Waiting => Page.GetNode<Control>("ConnectionWait");
+        public Label WaitMessage => Page.GetNode<Label>("ConnectionWait/Content/Message");
+        public Button WaitCancel => Page.GetNode<Button>("ConnectionWait/Content/Cancel");
 
         public Fixture(Node parent, bool useDebugWrapper = false)
         {

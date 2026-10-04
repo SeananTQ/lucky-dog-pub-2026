@@ -30,7 +30,7 @@ public partial class InGameRoomPreview
 
     public PopupMenu GamePopup => GodotObject.IsInstanceValid(_gameChoice) ? _gameChoice.GetPopup() : null;
     public bool GameProposalVisible => GodotObject.IsInstanceValid(_gameProposalOverlay) && _gameProposalOverlay.Visible;
-    public bool HasPendingGameProposalPresentation => _proposalPendingPresentation && ProposalIsCurrent;
+    public bool HasPendingGameProposalPresentation => !_waitingForRoomConnection && _proposalPendingPresentation && ProposalIsCurrent;
     private bool ProposalIsCurrent => ReferenceEquals(_proposalClient, _client) && _client != null
         && _client.Session == _proposalSession && _client.View?.GameChange?.Id == _proposalId
         && _client.View.OwnerId == _proposalOwner && _client.GameChangeSecondsRemaining > 0;
@@ -152,7 +152,8 @@ public partial class InGameRoomPreview
     private void RefreshRoomAge()
     {
         var arrival = _client?.Arrival;
-        bool show = _client?.JoinedCode.Length > 0 && (arrival != null || _client.View?.CreatedAt != null);
+        bool show = !_waitingForRoomConnection && _client?.JoinedCode.Length > 0
+            && (arrival != null || _client.View?.CreatedAt != null);
         _connection.Visible = show;
         if (!show) return;
         // The local room uses its observed lifetime until real lobby metadata is available.
@@ -208,6 +209,7 @@ public partial class InGameRoomPreview
 
     private void ProcessGameProposal()
     {
+        if (_waitingForRoomConnection) { HideGameProposal(); return; }
         var proposal = _client?.View?.GameChange;
         if (proposal == null || _client.GameChangeSecondsRemaining <= 0)
         {

@@ -20,8 +20,10 @@ internal static class RoomArrivalPageChecks
         {
             await CheckHandoff(parent);
             await CheckRetry(parent);
+            await CheckUnavailableAndRestore(parent);
+            await CheckOfflineLeave(parent);
             await CheckLeave(parent);
-            GD.Print("[RoomArrivalPageChecks] PASS local entry, hidden code/invite, local filtered chat, observation, private handoff, retained layout, localized retry and Leave wiring (fake Steam).");
+            GD.Print("[RoomArrivalPageChecks] PASS local entry, silent retry/backoff, complete connection-page replacement, localized guidance, original-cast recovery, public-before-departure handoff, retained layout and offline Leave wiring (fake Steam).");
         }
         finally { L10n.SetLocale(locale, save: false); }
     }
@@ -37,8 +39,8 @@ internal static class RoomArrivalPageChecks
         Check(client.Arrival is { Phase: RoomArrivalPhase.Waiting, Presented: true }
             && client.View.OwnerId == host && test.Transport.CreateCalls == 0,
             "clicking the empty-directory entry presents a local companion host before any native create");
-        Check(!test.Arrival.Visible && test.Age.Visible && test.Room.Visible && !test.LobbyPanel.Visible
-            && !test.CodeRow.Visible && test.Invite.Disabled && !test.Retry.Visible,
+        Check(!test.Waiting.Visible && test.Age.Visible && test.Room.Visible && !test.LobbyPanel.Visible
+            && !test.CodeRow.Visible && test.Invite.Disabled && test.Page.GetNodeOrNull<Control>("Arrival/Retry") == null,
             "local room shows its age without preparation text, native room code or enabled invitation");
         foreach (string language in new[] { "zh_CN", "en" })
         {
@@ -63,16 +65,16 @@ internal static class RoomArrivalPageChecks
         await test.Frame();
         Check(test.Transport.PrivateCreateCalls == 1 && client.Arrival.Phase == RoomArrivalPhase.Creating,
             "the page clock starts one private create at the observation deadline");
-        Check(!test.Arrival.Visible && test.Age.Visible, "native preparation preserves the ordinary room-age heading");
+        Check(!test.Waiting.Visible && test.Age.Visible, "native preparation preserves the ordinary room-age heading");
         test.Transport.SucceedMembership(Lobby);
         await test.Frame();
         Check(client.Arrival.Phase == RoomArrivalPhase.Departing && !test.CodeRow.Visible
-            && test.Transport.NativeAccess[Lobby] == RoomAccess.InviteOnly,
-            "native preparation does not reveal the code or publish the room during departure");
-        Check(!test.Arrival.Visible && test.Age.Visible, "departure never announces itself in the room heading");
+            && test.Transport.NativeAccess[Lobby] == RoomAccess.Public && client.Arrival.Committed,
+            "native preparation is public before departure but does not reveal the code before the visual handoff");
+        Check(!test.Waiting.Visible && test.Age.Visible, "departure never announces itself in the room heading");
         test.Now += RoomRules.ArrivalDepartureSeconds + 0.001;
         await test.Frame();
-        Check(!client.IsLocalArrival && !test.Arrival.Visible && test.CodeRow.Visible && !test.Invite.Disabled
+        Check(!client.IsLocalArrival && !test.Waiting.Visible && test.CodeRow.Visible && !test.Invite.Disabled
             && client.LayoutSession == layout && client.View.OwnerId == client.Id
             && test.Page.GetNode<Label>("Room/TitleRow/Count").Text == "3/6",
             "handoff exposes the real room controls and three-member count without resetting layout");
@@ -93,33 +95,112 @@ internal static class RoomArrivalPageChecks
         var client = test.Page.CurrentClient;
         var plan = client.Arrival.Plan;
         long layout = client.LayoutSession;
+        int failures = 0;
+        client.JoinFailed += (_, _) => failures++;
         test.Now = RoomRules.ArrivalObserveSeconds;
         await test.Frame();
         test.Transport.FailMembership(RoomFailure.Unavailable);
         await test.Frame();
-        Check(client.Arrival.Phase == RoomArrivalPhase.Failed && test.Arrival.Visible
-            && test.Retry.Visible && !test.Retry.Disabled && !test.Leave.Disabled
-            && test.Room.Visible && !test.CodeRow.Visible,
-            "failed creation retains the local room with usable retry and leave controls");
-        Check(test.Message.Text == L10n.Tr("Rooms_ArrivalFailed") && test.Age.Visible,
-            "failure remains actionable without replacing the room-age heading");
+        Check(client.Arrival.Phase == RoomArrivalPhase.Failed && !test.Waiting.Visible
+            && !test.Leave.Disabled && test.Room.Visible && !test.CodeRow.Visible && failures == 0,
+            "transient failure retains the ordinary room without an error notice or manual retry");
+        Check(test.Age.Visible && !test.Page.GetNode<Label>("Status").Visible,
+            "silent retry keeps only the ordinary room-age heading");
         int searches = test.Transport.SearchCalls;
         test.Page.OnBrowse();
-        test.Now += 40;
+        test.Now += 4.999;
         await test.Frame();
         Check(test.Transport.CreateCalls == 1 && test.Transport.SearchCalls == searches && test.Room.Visible,
-            "a failed local room neither auto-retries nor browses into an unrelated request");
-        Click(test.Retry);
-        Click(test.Retry);
+            "retry backoff prevents premature native requests or unrelated browsing");
+        test.Now += 0.001;
         await test.Frame();
         Check(test.Transport.PrivateCreateCalls == 2 && client.Arrival.Phase == RoomArrivalPhase.Creating
-            && ReferenceEquals(client.Arrival.Plan, plan) && client.LayoutSession == layout && !test.Retry.Visible,
-            "retry signal starts one request and retains the existing local room presentation");
+            && ReferenceEquals(client.Arrival.Plan, plan) && client.LayoutSession == layout && !test.Waiting.Visible,
+            "the first retry automatically starts once and retains the original local room presentation");
+        test.Transport.FailMembership(RoomFailure.Unavailable);
+        test.Now += 5;
+        await test.Frame();
+        Check(client.Arrival.WaitingForConnection && test.Waiting.Visible
+            && !test.Room.Visible && !test.LobbyPanel.Visible && !test.Age.Visible
+            && !test.Page.GetNode<Control>("Status").Visible && !test.Page.GetNode<Control>("Recovery").Visible
+            && test.Waiting.GetNode<Control>("Content/LoadingIndicator").Visible
+            && test.Cancel.Visible && !test.Cancel.Disabled && failures == 0,
+            "prolonged failure replaces every room control with Steam waiting and a usable Leave action");
+        foreach (string language in new[] { "zh_CN", "zh_TW", "en" })
+        {
+            L10n.SetLocale(language, save: false);
+            test.Page._Process(10.001);
+            await test.Frame();
+            Check(test.Message.Text == L10n.Tr("Rooms_ConnectingService") + "\n\n" + L10n.Tr("Rooms_ConnectionAdvice")
+                && !test.Message.Text.Contains("Rooms_", StringComparison.Ordinal)
+                && test.Cancel.Text == L10n.Tr("Rooms_Leave"),
+                "persistent connection waiting uses localized room guidance and Leave in " + language);
+        }
+        test.Now += 10;
+        await test.Frame();
+        Check(test.Transport.PrivateCreateCalls == 3 && test.Waiting.Visible,
+            "background retries continue beneath the connection page without needing a button");
         test.Transport.SucceedMembership(Lobby);
+        await test.Frame();
+        Check(!test.Waiting.Visible && test.Room.Visible && client.Arrival.Committed,
+            "successful native preparation restores the same room before beginning the handoff animation");
         test.Now += RoomRules.ArrivalDepartureSeconds + 0.001;
         await test.Frame();
         Check(!client.IsLocalArrival && client.View.Members.Length == 3 && client.LayoutSession == layout,
             "successful UI retry completes the original arrival presentation");
+    }
+
+    private static async Task CheckUnavailableAndRestore(Node parent)
+    {
+        using var test = new Fixture(parent);
+        await test.Enter();
+        var client = test.Page.CurrentClient;
+        var plan = client.Arrival.Plan;
+        int host = client.Arrival.HostMemberId;
+        long layout = client.LayoutSession;
+        test.Now = RoomRules.ArrivalObserveSeconds;
+        await test.Frame();
+        var oldTransport = test.Transport;
+        oldTransport.IsAvailable = false;
+        await test.Frame();
+        Check(test.Waiting.Visible && !test.Room.Visible && !test.LobbyPanel.Visible
+            && ReferenceEquals(test.Page.CurrentClient, client) && client.Arrival.WaitingForConnection,
+            "provider loss immediately replaces the room page while retaining its local cast and client");
+        test.Page.Hide();
+        test.Now = 1000;
+        test.ReplaceService();
+        await test.Frame();
+        Check(ReferenceEquals(test.Page.CurrentClient, client) && ReferenceEquals(client.Arrival.Plan, plan)
+            && client.Arrival.HostMemberId == host && client.LayoutSession == layout
+            && test.Transport.PrivateCreateCalls == 1 && test.Transport.SearchCalls == 0,
+            "a restored provider continues the same arrival even when its tab is hidden");
+        oldTransport.SucceedMembership(Lobby);
+        Check(oldTransport.Left.Contains(Lobby) && client.IsBusy,
+            "an obsolete callback cleans only its old private lobby without disturbing restored preparation");
+        test.Transport.SucceedMembership(Lobby + 1);
+        test.Now += RoomRules.ArrivalDepartureSeconds + 0.001;
+        await test.Frame();
+        Check(!client.IsLocalArrival && !test.Waiting.Visible && !test.Page.Visible
+            && client.JoinedCode == SteamRoomProtocol.Encode(Lobby + 1) && client.LayoutSession == layout,
+            "hidden automatic recovery completes the original handoff without opening the page");
+    }
+
+    private static async Task CheckOfflineLeave(Node parent)
+    {
+        using var test = new Fixture(parent);
+        await test.Enter();
+        test.Transport.IsAvailable = false;
+        await test.Frame();
+        Check(test.Waiting.Visible && test.Cancel.Visible, "offline local arrival still exposes Leave");
+        Click(test.Cancel);
+        await test.Frame();
+        Check(test.Page.CurrentClient?.IsLocalArrival != true && !test.Cancel.Visible,
+            "Leave clears the local arrival even while its Steam provider is unavailable");
+        test.Now = 1000;
+        test.ReplaceService();
+        await test.Frame();
+        Check(test.Transport.CreateCalls == 0 && test.Transport.SearchCalls == 1,
+            "connectivity restoration after Leave browses normally without recreating the abandoned room");
     }
 
     private static async Task CheckLeave(Node parent)
@@ -138,13 +219,13 @@ internal static class RoomArrivalPageChecks
             Click(test.Leave);
             await test.Frame();
             Check(!test.Page.CurrentClient.IsLocalArrival && test.Page.CurrentClient.View == null
-                && test.LobbyPanel.Visible && !test.Arrival.Visible && !test.Service.ReconnectContext.IsPending,
+                && test.LobbyPanel.Visible && !test.Waiting.Visible && !test.Service.ReconnectContext.IsPending,
                 "the existing room Leave button cancels local arrival and returns to browsing");
             test.Now += RoomRules.ArrivalObserveSeconds + 1;
             await test.Frame();
-            Check(!test.Transport.AccessWrites.Any(w => w.Access == RoomAccess.Public)
-                && (prepared ? test.Transport.Left.Contains(Lobby) : test.Transport.CreateCalls == 0),
-                "leaving never publishes a prepared lobby or later restarts an uncreated one");
+            Check(prepared ? test.Transport.Left.Contains(Lobby) && test.Transport.CreateCalls == 1
+                    : test.Transport.CreateCalls == 0,
+                "leaving cleans an already committed lobby or prevents an uncreated arrival from starting later");
         }
     }
 
@@ -155,14 +236,16 @@ internal static class RoomArrivalPageChecks
     private sealed class Fixture : IDisposable
     {
         private readonly Node _parent;
+        private readonly Provider _provider = new();
+        private readonly List<SteamRoomService> _services = new();
         public double Now;
-        public readonly SteamRoomChecks.FakeTransport Transport = new();
-        public readonly SteamRoomService Service;
+        public SteamRoomChecks.FakeTransport Transport { get; private set; }
+        public SteamRoomService Service { get; private set; }
         public readonly InGameRoomPreview Page;
-        public Control Arrival => Page.GetNode<Control>("Arrival");
-        public Label Message => Page.GetNode<Label>("Arrival/Message");
+        public Control Waiting => Page.GetNode<Control>("ConnectionWait");
+        public Label Message => Page.GetNode<Label>("ConnectionWait/Content/Message");
         public Label Age => Page.GetNode<Label>("Notice");
-        public Button Retry => Page.GetNode<Button>("Arrival/Retry");
+        public Button Cancel => Page.GetNode<Button>("ConnectionWait/Content/Cancel");
         public Button Leave => Page.GetNode<Button>("Room/Leave");
         public Button Invite => Page.GetNode<Button>("Room/Invite");
         public Control CodeRow => Page.GetNode<Control>("Room/CodeRow");
@@ -171,11 +254,11 @@ internal static class RoomArrivalPageChecks
         public Fixture(Node parent)
         {
             _parent = parent;
-            Service = new SteamRoomService(Transport, 10, _ => true, _ => true, _ => true, () => Now);
+            ReplaceService();
             Page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
             Page.Theme = GD.Load<Theme>("res://Themes/DefaultTheme.tres");
             Page.Size = new Vector2(396, 700);
-            Page.Configure(new Provider(Service), null);
+            Page.Configure(_provider, null);
             parent.AddChild(Page);
         }
         public async Task Enter()
@@ -196,16 +279,28 @@ internal static class RoomArrivalPageChecks
             await _parent.ToSignal(_parent.GetTree(), SceneTree.SignalName.ProcessFrame);
             await _parent.ToSignal(_parent.GetTree(), SceneTree.SignalName.ProcessFrame);
         }
-        public void Dispose() { Page.Free(); Service.Dispose(); }
+        public void ReplaceService()
+        {
+            Transport = new SteamRoomChecks.FakeTransport { Now = Now };
+            Service = new SteamRoomService(Transport, 10, _ => true, _ => true, _ => true, () => Now);
+            _services.Add(Service);
+            _provider.Service = Service;
+        }
+        public void Dispose()
+        {
+            Page.Free();
+            foreach (var service in _services) service.Dispose();
+        }
     }
 
-    private sealed class Provider(SteamRoomService service) : IGamePlatformService, IPlatformRoomServiceProvider
+    private sealed class Provider : IGamePlatformService, IPlatformRoomServiceProvider
     {
-        public IRoomService RoomService => service.CheckAvailability() ? service : null;
-        public RoomReconnectContext RoomReconnect => service.ReconnectContext;
+        public SteamRoomService Service;
+        public IRoomService RoomService => Service.CheckAvailability() ? Service : null;
+        public RoomReconnectContext RoomReconnect => Service.ReconnectContext;
         public string ProviderName => "Steam";
         public string StatusMessage => "";
-        public bool IsAvailable => service.IsAvailable;
+        public bool IsAvailable => Service.IsAvailable;
         public uint AppId => 2583700;
         public string PersonaName => "Arrival page test";
         public string AccountProvider => "steam";

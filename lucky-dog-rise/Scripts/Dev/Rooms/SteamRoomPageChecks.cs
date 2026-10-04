@@ -77,13 +77,16 @@ internal static class SteamRoomPageChecks
             await Frame();
             Check(page.CurrentClient == null && first.JoinedCode.Length == 0,
                 "lost provider clears old local membership");
-            Check(changes.Contains(null) && page.GetNode<Button>("Lobby/CreateRow/Create").Disabled,
-                "unavailable provider emits detach and disables room actions");
+            Check(changes.Contains(null) && !page.GetNode<Control>("Lobby").Visible,
+                "unavailable provider emits detach and removes the room actions from view");
+            Check(page.GetNode<Control>("ConnectionWait").Visible
+                && !page.GetNode<Control>("Lobby").Visible && !page.GetNode<Control>("Room").Visible,
+                "unavailable provider replaces the complete room page with the Steam connection view");
             provider.RoomRestartRequired = true;
             await Frame();
-            Check(page.GetNode<Label>("Status").Visible
-                && page.GetNode<Label>("Status").Text == L10n.Tr("Rooms_SteamRestartRequired")
-                && page.GetNode<Label>("Status").Text != "Rooms_SteamRestartRequired",
+            Check(page.GetNode<Control>("ConnectionWait").Visible
+                && page.GetNode<Label>("ConnectionWait/Content/Message").Text == L10n.Tr("Rooms_SteamRestartRequired")
+                && page.GetNode<Label>("ConnectionWait/Content/Message").Text != "Rooms_SteamRestartRequired",
                 "unsettled native request shows translated restart guidance even while provider stays null");
             provider.RoomRestartRequired = false;
             var secondService = new Service { Now = 100 };

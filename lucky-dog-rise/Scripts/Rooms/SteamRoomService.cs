@@ -21,8 +21,6 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         public bool Cancelled;
         public double RequestedAt;
         public double StartedAt;
-        public ulong PreparedLobby;
-        public double PreparedAt;
         public bool MembershipCleaned;
     }
 
@@ -88,6 +86,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     private readonly Dictionary<ulong, Guid> _chatSessions = new();
     private readonly Dictionary<ulong, double> _receivedChatAt = new();
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
+    // A timed-out create must settle before another create can be sent.
+    internal bool CanPrepareArrival => IsAvailable && !_completing && _inFlight == null && _queued == null;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
     public double Now => _now();
     public long CompanionTime => _transport.ServerTime;
@@ -248,17 +248,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     {
         if (_queued?.Client == client && _queued.Request.Id == requestId) _queued = null;
         if (_inFlight?.Client == client && _inFlight.Request.Id == requestId)
-        {
             _inFlight.Cancelled = true;
-            if (_inFlight.PreparedLobby != 0)
-            {
-                var pending = _inFlight;
-                SafeLeave(pending.PreparedLobby);
-                pending.MembershipCleaned = true;
-                pending.PreparedLobby = 0;
-                Finish(pending);
-            }
-        }
         // Keep the native CallResult registered: cancellation is local, not remote.
     }
 
@@ -362,12 +352,11 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         finally { Finish(pending); }
     }
 
-    private void CompleteMembership(Pending pending, SteamRoomJoinResult result, bool publishingArrival = false)
+    private void CompleteMembership(Pending pending, SteamRoomJoinResult result)
     {
         if (_inFlight != pending) return;
         _completing = true;
         var accepted = false;
-        var heldForDeparture = false;
         try
         {
             if (!CanCommit(pending)) return;
@@ -379,11 +368,11 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             if (pending.Request.Operation == RoomOperation.Join && Decode(pending.Request.Value) != result.LobbyId)
                 throw new InvalidOperationException("Steam returned a different lobby.");
             bool arrival = pending.Request.Arrival != null;
-            if (pending.Request.Operation == RoomOperation.Create && !publishingArrival
+            if (pending.Request.Operation == RoomOperation.Create
                 && !(arrival ? _transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim(), RoomAccess.InviteOnly)
                     : _transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim())))
                 throw new InvalidOperationException("Steam lobby metadata could not be initialized.");
-            if (pending.Request.Operation == RoomOperation.Create && !publishingArrival && (arrival || _createCompanions != null))
+            if (pending.Request.Operation == RoomOperation.Create && (arrival || _createCompanions != null))
             {
                 var companions = arrival
                     ? pending.Request.Arrival.Plan.ForArrivalHandoff(pending.Request.Arrival.HostMemberId)
@@ -427,19 +416,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             _transport.SetActivity(result.LobbyId, activity);
             var chatSession = Guid.NewGuid();
             _transport.SetChatSession(result.LobbyId, chatSession.ToString("N"));
-            if (arrival && !publishingArrival)
-            {
-                if (!CanCommit(pending)) return;
-                pending.PreparedLobby = result.LobbyId;
-                pending.PreparedAt = Now;
-                heldForDeparture = pending.Client.PrepareArrival(pending.Request.Id) && CanCommit(pending);
-                return;
-            }
             if (arrival)
             {
                 if (!CanCommit(pending)) return;
                 if (!_transport.SetAccess(result.LobbyId, RoomAccess.Public))
                     throw new InvalidOperationException("Arrival room could not be published.");
+                // Publishing admits other players immediately. Read their latest
+                // membership before committing; callbacks during the setter may
+                // precede _lobby and cannot be relied on to replay this change.
+                data = _transport.ReadLobby(result.LobbyId, true);
+                if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
+                    || !data.Members.Any(member => member.SteamId == _transport.LocalSteamId))
+                    throw new InvalidOperationException("Published arrival membership could not be confirmed.");
                 data = data with { Access = RoomAccess.Public };
             }
             pending.Client.TryComplete(pending.Request.Id, () =>
@@ -464,7 +452,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 _chatSequence = 0;
                 _chatSessions.Clear();
                 _receivedChatAt.Clear();
-                pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival);
+                pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival, preserveArrival: arrival);
+                if (arrival) pending.Client.PrepareArrival(pending.Request.Id, committed: true);
                 Publish(data);
                 if (pending.Request.RecoveryGeneration != 0)
                     _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.None);
@@ -476,12 +465,6 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         catch { CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: !_transport.IsAvailable); }
         finally
         {
-            if (heldForDeparture)
-            {
-                _completing = false;
-            }
-            else
-            {
             if (!accepted && pending.Request.RecoveryGeneration != 0)
                 _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.Unavailable);
             if (!accepted && !pending.MembershipCleaned && result.Failure == RoomFailure.None && result.LobbyId != 0 && result.LobbyId != _lobby)
@@ -490,7 +473,6 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 SafeLeave(result.LobbyId);
             }
             Finish(pending);
-            }
         }
     }
 
@@ -1245,17 +1227,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         // needed, and we must not reset the shared inventory session speculatively.
         if (_inFlight != null && _now() - _inFlight.StartedAt >= 45) _settlementTimedOut = true;
         CheckAvailability();
-        if (_inFlight is { PreparedLobby: not 0 } prepared)
-        {
-            prepared.Client.AdvanceTo(Now);
-            if (ReferenceEquals(_inFlight, prepared))
-            {
-                var progress = (Now - prepared.PreparedAt) / RoomRules.ArrivalDepartureSeconds;
-                prepared.Client.AdvanceArrivalDeparture(prepared.Request.Id, progress);
-                if (!CanCommit(prepared) || progress >= 1)
-                    CompleteMembership(prepared, new SteamRoomJoinResult(RoomFailure.None, prepared.PreparedLobby), publishingArrival: true);
-            }
-        }
+        // The membership is already committed. Only presentation time advances;
+        // the end of the fade must never perform another fallible network action.
+        if (_client?.Arrival is { Committed: true }) _client.AdvanceTo(Now);
         if (!_disposed && IsAvailable && _lobby != 0 && _lastRoomData != null)
         {
             try
@@ -1321,9 +1295,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             _inFlight.Cancelled = true;
             CompleteMembershipFailure(_inFlight, RoomFailure.Unavailable);
         }
-        if (_client?.IsLocalArrival == true && !_suspended && kind != DisconnectKind.Terminal)
+        if (_client?.Arrival is { Committed: false } && !_suspended)
         {
-            if (_inFlight is { PreparedLobby: not 0 } prepared) Cancel(prepared.Client, prepared.Request.Id);
             _client.FailArrival(RoomFailure.Unavailable);
             return;
         }

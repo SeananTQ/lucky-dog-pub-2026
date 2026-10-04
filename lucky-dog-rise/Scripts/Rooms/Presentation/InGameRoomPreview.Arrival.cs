@@ -5,33 +5,77 @@ namespace LuckyDogRise.Rooms;
 
 public partial class InGameRoomPreview
 {
-    private VBoxContainer _arrivalPanel;
-    private Label _arrivalMessage;
-    private Button _arrivalRetry;
+    [Export] private CenterContainer _connectionWait = null!;
+    [Export] private Label _connectionWaitMessage = null!;
+    [Export] private Button _connectionWaitCancel = null!;
+    private bool _waitingForRoomConnection;
+    private double _connectionWaitElapsed;
+    private const double ConnectionAdviceDelaySeconds = 10;
     private RoomArrivalState _awaitingArrivalFrame;
 
     private void InitializeArrivalControls()
     {
-        _arrivalPanel = GetNode<VBoxContainer>("Arrival");
-        _arrivalMessage = GetNode<Label>("Arrival/Message");
-        _arrivalRetry = GetNode<Button>("Arrival/Retry");
-        _arrivalRetry.Pressed += () =>
+        _connectionWaitCancel.Pressed += () =>
         {
-            RefreshService();
-            _noticeKey = "";
-            _client?.RetryArrival();
+            if (_client?.IsLocalArrival == true) OnLeave();
+            else CancelRoomReconnect();
             _dirty = true;
         };
+    }
+
+    private void UpdateRoomConnection(double delta)
+    {
+        // Inventory synchronization is not a room outage. Use the current room
+        // service plus the arrival retry state, not the inventory's Ready gate.
+        bool unavailable = !_isMock && (_roomServiceUnavailable || _service == null || _restartRequired
+            || _service is SteamRoomService { IsAvailable: false });
+        bool waiting = unavailable || _client?.Arrival?.WaitingForConnection == true;
+        if (waiting != _waitingForRoomConnection)
+        {
+            _waitingForRoomConnection = waiting;
+            _connectionWaitElapsed = 0;
+            _dirty = true;
+            if (waiting)
+            {
+                CancelKick();
+                CancelNameEdit();
+                CloseRoomDropdowns();
+                HideGameProposal();
+            }
+            NotifyPageChanged();
+        }
+        if (!waiting) return;
+        double previous = _connectionWaitElapsed;
+        _connectionWaitElapsed += System.Math.Max(0, delta);
+        if (previous < ConnectionAdviceDelaySeconds && _connectionWaitElapsed >= ConnectionAdviceDelaySeconds)
+            _dirty = true;
+    }
+
+    private bool RenderConnectionWait()
+    {
+        _connectionWait.Visible = _waitingForRoomConnection;
+        if (!_waitingForRoomConnection) return false;
+        _connection.Hide();
+        _lobby.Hide();
+        _room.Hide();
+        _status.Hide();
+        _cancel.Hide();
+        _reconnectPanel.Hide();
+        _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = true;
+        _invite.Disabled = true;
+        string message = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired" : "Rooms_ConnectingService");
+        if (!_restartRequired && _connectionWaitElapsed >= ConnectionAdviceDelaySeconds)
+            message += "\n\n" + L10n.Tr("Rooms_ConnectionAdvice");
+        _connectionWaitMessage.Text = message;
+        bool arrival = _client?.IsLocalArrival == true;
+        _connectionWaitCancel.Visible = arrival || Reconnect?.IsPending == true;
+        _connectionWaitCancel.Text = L10n.Tr(arrival ? "Rooms_Leave" : "Rooms_ReconnectCancel");
+        return true;
     }
 
     private void RenderArrival()
     {
         var arrival = _client?.Arrival;
-        bool failed = arrival?.Phase == RoomArrivalPhase.Failed;
-        _arrivalPanel.Visible = failed;
-        _arrivalRetry.Visible = failed;
-        _arrivalRetry.Disabled = _client?.IsBusy == true;
-        _arrivalMessage.Text = failed ? L10n.Tr("Rooms_ArrivalFailed") : "";
         GetNode<Button>("Room/Browse").Disabled = arrival != null;
     }
 
@@ -39,7 +83,8 @@ public partial class InGameRoomPreview
     {
         var arrival = _client?.Arrival;
         if (arrival == null) { _awaitingArrivalFrame = null; return; }
-        if (!arrival.Presented && !ReferenceEquals(_awaitingArrivalFrame, arrival) && IsVisibleInTree())
+        if (!arrival.Presented && !ReferenceEquals(_awaitingArrivalFrame, arrival)
+            && IsVisibleInTree() && !_waitingForRoomConnection)
         {
             _awaitingArrivalFrame = arrival;
             ObserveArrivalAfterDraw(_client, arrival);
@@ -64,7 +109,7 @@ public partial class InGameRoomPreview
         if (GodotObject.IsInstanceValid(this) && !_exitingTree && IsInsideTree()
             && ReferenceEquals(_client, client) && ReferenceEquals(client.Arrival, arrival))
         {
-            if (IsVisibleInTree()) client.MarkArrivalPresented();
+            if (IsVisibleInTree() && !_waitingForRoomConnection) client.MarkArrivalPresented();
             else _awaitingArrivalFrame = null;
         }
     }
