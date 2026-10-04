@@ -46,11 +46,13 @@ public sealed class RoomSandbox : IRoomService
         RoomSnapshot Snapshot, RoomChat Chat);
     private sealed record PendingRequest(RoomClient Client, RoomRequest Request,
         double Due, MockRoomFailure Failure);
+    private sealed record PreparedArrival(PendingRequest Pending, double PreparedAt);
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, RoomClient> _clients = new();
     private readonly Dictionary<int, MockRoomSettings> _settings = new();
     private readonly List<Delivery> _pending = new();
     private readonly List<PendingRequest> _requests = new();
+    private readonly List<PreparedArrival> _arrivals = new();
     private readonly Dictionary<int, double> _lastChat = new();
     private readonly HashSet<(int, int)> _friends = new();
     private int _nextRoom;
@@ -91,7 +93,10 @@ public sealed class RoomSandbox : IRoomService
     }
 
     public void Cancel(RoomClient client, long requestId)
-        => _requests.RemoveAll(r => ReferenceEquals(r.Client, client) && r.Request.Id == requestId);
+    {
+        _requests.RemoveAll(r => ReferenceEquals(r.Client, client) && r.Request.Id == requestId);
+        _arrivals.RemoveAll(r => ReferenceEquals(r.Pending.Client, client) && r.Pending.Request.Id == requestId);
+    }
 
     private RoomResult Complete(PendingRequest pending)
     {
@@ -105,7 +110,7 @@ public sealed class RoomSandbox : IRoomService
         };
     }
 
-    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public).OrderBy(r => r.Code)
+    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public && r.Members.Count < RoomRules.Capacity).OrderBy(r => r.Code)
         .Select(r => new RoomListing(r.Code, r.Name, r.GameId,
             r.Members.Count + (r.Companions?.WithHumanCount(r.Members.Count).RemainingCount ?? 0),
             RoomRules.Capacity, r.Members.Count)).ToArray();
@@ -124,6 +129,23 @@ public sealed class RoomSandbox : IRoomService
         room.Companions = CompanionFactory?.Invoke((long)Now);
         _rooms.Add(room.Code, room);
         return JoinResult(client, room.Code);
+    }
+
+    private RoomResult CompleteArrival(PendingRequest pending)
+    {
+        var client = pending.Client;
+        var arrival = pending.Request.Arrival;
+        if (arrival == null || !ReferenceEquals(arrival, client.Arrival)
+            || !RoomRules.TryNormalizeName(arrival.Name, out var name)) return new RoomResult(RoomFailure.Unavailable);
+        var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name,
+            Owner = client.Id, CreatedAt = (long)Now,
+            Companions = arrival.Plan.ForArrivalHandoff(arrival.HostMemberId) };
+        _rooms.Add(room.Code, room);
+        client.BeginSession(room.Code, preserveLayout: true);
+        room.Members.Add(client.Id, new RoomMember(client.Id, client.Name,
+            client.SkinId, client.HeadwearId, client.Reaction, ++_nextPresence, client.ActivitySequence));
+        Broadcast(room);
+        return RoomResult.Success;
     }
 
     public string Join(RoomClient client, string code) => FailureText(JoinResult(client, code).Failure);
@@ -169,6 +191,7 @@ public sealed class RoomSandbox : IRoomService
 
     public void Leave(RoomClient client)
     {
+        _arrivals.RemoveAll(r => ReferenceEquals(r.Pending.Client, client));
         var previous = client.JoinedCode;
         client.BeginSession("");
         _pending.RemoveAll(d => d.ClientId == client.Id);
@@ -458,7 +481,25 @@ public sealed class RoomSandbox : IRoomService
         var requests = _requests.Where(r => r.Due <= Now).OrderBy(r => r.Due).ToArray();
         _requests.RemoveAll(r => r.Due <= Now);
         foreach (var pending in requests)
-            pending.Client.TryComplete(pending.Request.Id, () => Complete(pending));
+        {
+            if (pending.Request.Arrival != null && pending.Failure == MockRoomFailure.None
+                && pending.Client.IsRequestCurrent(pending.Request.Id))
+            {
+                var prepared = new PreparedArrival(pending, Now);
+                _arrivals.Add(prepared);
+                if (!pending.Client.PrepareArrival(pending.Request.Id)) _arrivals.Remove(prepared);
+            }
+            else pending.Client.TryComplete(pending.Request.Id, () => Complete(pending));
+        }
+        foreach (var prepared in _arrivals.ToArray())
+        {
+            var pending = prepared.Pending;
+            double progress = (Now - prepared.PreparedAt) / RoomRules.ArrivalDepartureSeconds;
+            pending.Client.AdvanceArrivalDeparture(pending.Request.Id, progress);
+            if (progress < 1) continue;
+            _arrivals.Remove(prepared);
+            pending.Client.TryComplete(pending.Request.Id, () => CompleteArrival(pending));
+        }
         foreach (var room in _rooms.Values)
         {
             bool changed = UpdateGameChange(room);

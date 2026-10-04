@@ -16,11 +16,15 @@ public interface IRoomService
     // Monotonic seconds in this service's time domain. Client.AdvanceTo and
     // RoomChat.ExpiresAt must use this clock, not an independent engine clock.
     double Now { get; }
+    long CompanionTime => (long)Now;
     void Request(RoomClient client, RoomRequest request);
     void Cancel(RoomClient client, long requestId);
     void Leave(RoomClient client);
     // Replacing a disconnected UI client is lifecycle cleanup, not user intent.
     void Release(RoomClient client) => Leave(client);
+    // Local arrival has no committed room. A replacement Steam session may
+    // detach the presentation client without resetting its local snapshot.
+    void DetachLocalArrival(RoomClient client) { }
     void UpdateAppearance(RoomClient client);
     void UpdateActivity(RoomClient client);
     string Kick(RoomClient client, int memberId, long presence);
@@ -32,4 +36,5 @@ public interface IRoomService
     string SetAccess(RoomClient client, RoomAccess access);
     string SetName(RoomClient client, string name) => "Rooms_NameUnavailable";
     string SendChat(RoomClient client, string text);
+    string FilterLocalChatForDisplay(string text) => text;
 }

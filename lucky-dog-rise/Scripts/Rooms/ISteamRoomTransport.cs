@@ -30,9 +30,17 @@ public interface ISteamRoomTransport : IDisposable
     bool OpenInviteDialog(ulong lobbyId);
     IDisposable Search(Action<SteamRoomSearchResult> completed);
     IDisposable Create(Action<SteamRoomJoinResult> completed);
+    // Never silently fall back to public creation for local arrival staging.
+    IDisposable CreatePrivate(Action<SteamRoomJoinResult> completed)
+    {
+        completed(new SteamRoomJoinResult(RoomFailure.Unavailable, 0));
+        return null;
+    }
     IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed);
     SteamRoomData ReadLobby(ulong lobbyId, bool includeMembers);
     bool InitializeLobby(ulong lobbyId, string name);
+    bool InitializeLobby(ulong lobbyId, string name, RoomAccess access)
+        => InitializeLobby(lobbyId, name) && SetAccess(lobbyId, access);
     bool SetGame(ulong lobbyId, string game);
     bool SetGameState(ulong lobbyId, string state) => false;
     void SetGameVote(ulong lobbyId, string vote) { }

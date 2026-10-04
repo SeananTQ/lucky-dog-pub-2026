@@ -21,6 +21,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         public bool Cancelled;
         public double RequestedAt;
         public double StartedAt;
+        public ulong PreparedLobby;
+        public double PreparedAt;
+        public bool MembershipCleaned;
     }
 
     private readonly ISteamRoomTransport _transport;
@@ -87,6 +90,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     public bool IsAvailable => !_disposed && !_suspended && !_settlementTimedOut && _transport.IsAvailable;
     public bool RestartRequired => !_disposed && _settlementTimedOut;
     public double Now => _now();
+    public long CompanionTime => _transport.ServerTime;
     public bool HasPendingJoinRequest => IsAvailable && _invitations.HasPending;
     public RoomReconnectContext ReconnectContext => _reconnect;
 
@@ -145,6 +149,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         {
             if (_reconnect.IsSourceCurrent(_reconnectSource)) _reconnect.Cancel();
             CancelObsoleteRecovery();
+            if (_client?.IsLocalArrival == true) _client.Cancel();
         }
     }
 
@@ -242,7 +247,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     public void Cancel(RoomClient client, long requestId)
     {
         if (_queued?.Client == client && _queued.Request.Id == requestId) _queued = null;
-        if (_inFlight?.Client == client && _inFlight.Request.Id == requestId) _inFlight.Cancelled = true;
+        if (_inFlight?.Client == client && _inFlight.Request.Id == requestId)
+        {
+            _inFlight.Cancelled = true;
+            if (_inFlight.PreparedLobby != 0)
+            {
+                var pending = _inFlight;
+                SafeLeave(pending.PreparedLobby);
+                pending.MembershipCleaned = true;
+                pending.PreparedLobby = 0;
+                Finish(pending);
+            }
+        }
         // Keep the native CallResult registered: cancellation is local, not remote.
     }
 
@@ -267,7 +283,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             var handle = pending.Request.Operation switch
             {
                 RoomOperation.Search => _transport.Search(result => CompleteSearch(pending, result)),
-                RoomOperation.Create => _transport.Create(result => CompleteMembership(pending, result)),
+                RoomOperation.Create => pending.Request.Arrival == null
+                    ? _transport.Create(result => CompleteMembership(pending, result))
+                    : _transport.CreatePrivate(result => CompleteMembership(pending, result)),
                 RoomOperation.Join => _transport.Join(Decode(pending.Request.Value), result => CompleteMembership(pending, result)),
                 _ => throw new InvalidOperationException("Unsupported room operation.")
             };
@@ -288,6 +306,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private bool CanCommitState(Pending pending) => !_disposed && !pending.Cancelled && IsAvailable
         && ReferenceEquals(_client, pending.Client)
+        && (pending.Request.Arrival == null || ReferenceEquals(pending.Request.Arrival, pending.Client.Arrival))
         && (pending.Request.RecoveryGeneration == 0 || _reconnect.IsAttemptCurrent(_reconnectSource, pending.Request.RecoveryGeneration))
         && _now() - pending.RequestedAt < RoomRules.RequestTimeout;
 
@@ -343,11 +362,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         finally { Finish(pending); }
     }
 
-    private void CompleteMembership(Pending pending, SteamRoomJoinResult result)
+    private void CompleteMembership(Pending pending, SteamRoomJoinResult result, bool publishingArrival = false)
     {
         if (_inFlight != pending) return;
         _completing = true;
         var accepted = false;
+        var heldForDeparture = false;
         try
         {
             if (!CanCommit(pending)) return;
@@ -358,12 +378,16 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             }
             if (pending.Request.Operation == RoomOperation.Join && Decode(pending.Request.Value) != result.LobbyId)
                 throw new InvalidOperationException("Steam returned a different lobby.");
-            if (pending.Request.Operation == RoomOperation.Create
-                && !_transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim()))
+            bool arrival = pending.Request.Arrival != null;
+            if (pending.Request.Operation == RoomOperation.Create && !publishingArrival
+                && !(arrival ? _transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim(), RoomAccess.InviteOnly)
+                    : _transport.InitializeLobby(result.LobbyId, pending.Request.Value.Trim())))
                 throw new InvalidOperationException("Steam lobby metadata could not be initialized.");
-            if (pending.Request.Operation == RoomOperation.Create && _createCompanions != null)
+            if (pending.Request.Operation == RoomOperation.Create && !publishingArrival && (arrival || _createCompanions != null))
             {
-                var companions = _createCompanions(_transport.ServerTime);
+                var companions = arrival
+                    ? pending.Request.Arrival.Plan.ForArrivalHandoff(pending.Request.Arrival.HostMemberId)
+                    : _createCompanions(_transport.ServerTime);
                 if (companions != null && !_transport.SetCompanions(result.LobbyId, companions.ToWire()))
                     throw new InvalidOperationException("Steam room companions could not be initialized.");
             }
@@ -374,6 +398,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 CompleteMembershipFailure(pending, RoomFailure.NotFound);
                 return;
             }
+            if (arrival && (data.OwnerId != _transport.LocalSteamId || data.Access != RoomAccess.InviteOnly || data.Count != 1))
+                throw new InvalidOperationException("Arrival preparation lost its private owner-only membership.");
             if (!SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
             {
                 CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: false);
@@ -401,6 +427,21 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             _transport.SetActivity(result.LobbyId, activity);
             var chatSession = Guid.NewGuid();
             _transport.SetChatSession(result.LobbyId, chatSession.ToString("N"));
+            if (arrival && !publishingArrival)
+            {
+                if (!CanCommit(pending)) return;
+                pending.PreparedLobby = result.LobbyId;
+                pending.PreparedAt = Now;
+                heldForDeparture = pending.Client.PrepareArrival(pending.Request.Id) && CanCommit(pending);
+                return;
+            }
+            if (arrival)
+            {
+                if (!CanCommit(pending)) return;
+                if (!_transport.SetAccess(result.LobbyId, RoomAccess.Public))
+                    throw new InvalidOperationException("Arrival room could not be published.");
+                data = data with { Access = RoomAccess.Public };
+            }
             pending.Client.TryComplete(pending.Request.Id, () =>
             {
                 // TryComplete owns the client request gate. Recheck only the service
@@ -423,7 +464,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 _chatSequence = 0;
                 _chatSessions.Clear();
                 _receivedChatAt.Clear();
-                pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby));
+                pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival);
                 Publish(data);
                 if (pending.Request.RecoveryGeneration != 0)
                     _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.None);
@@ -435,11 +476,21 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         catch { CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: !_transport.IsAvailable); }
         finally
         {
+            if (heldForDeparture)
+            {
+                _completing = false;
+            }
+            else
+            {
             if (!accepted && pending.Request.RecoveryGeneration != 0)
                 _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.Unavailable);
-            if (!accepted && result.Failure == RoomFailure.None && result.LobbyId != 0 && result.LobbyId != _lobby)
+            if (!accepted && !pending.MembershipCleaned && result.Failure == RoomFailure.None && result.LobbyId != 0 && result.LobbyId != _lobby)
+            {
+                pending.MembershipCleaned = true;
                 SafeLeave(result.LobbyId);
+            }
             Finish(pending);
+            }
         }
     }
 
@@ -867,6 +918,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         catch { return "Rooms_ChatUnavailable"; }
     }
 
+    public string FilterLocalChatForDisplay(string text)
+        => IsAvailable ? _transport.FilterChatForDisplay(_transport.LocalSteamId, text) : throw new InvalidOperationException("Steam unavailable.");
+
     private void OnChatReceived(ulong lobby, ulong sender, byte[] bytes)
     {
         if (!IsAvailable || _lobby == 0 || lobby != _lobby || sender == _transport.LocalSteamId) return;
@@ -1149,11 +1203,19 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     public void Release(RoomClient client) => LeaveRoom(client);
 
+    public void DetachLocalArrival(RoomClient client)
+    {
+        if (!ReferenceEquals(client, _client) || !client.IsLocalArrival || _lobby != 0) return;
+        if (_queued?.Client == client) _queued = null;
+        if (_inFlight?.Client == client) Cancel(client, _inFlight.Request.Id);
+        _client = null;
+    }
+
     private void LeaveRoom(RoomClient client)
     {
         if (!ReferenceEquals(client, _client)) return;
         if (_queued?.Client == client) _queued = null;
-        if (_inFlight?.Client == client) _inFlight.Cancelled = true;
+        if (_inFlight?.Client == client) Cancel(client, _inFlight.Request.Id);
         var old = _lobby;
         _lobby = 0;
         _accessOwner = 0;
@@ -1183,6 +1245,17 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         // needed, and we must not reset the shared inventory session speculatively.
         if (_inFlight != null && _now() - _inFlight.StartedAt >= 45) _settlementTimedOut = true;
         CheckAvailability();
+        if (_inFlight is { PreparedLobby: not 0 } prepared)
+        {
+            prepared.Client.AdvanceTo(Now);
+            if (ReferenceEquals(_inFlight, prepared))
+            {
+                var progress = (Now - prepared.PreparedAt) / RoomRules.ArrivalDepartureSeconds;
+                prepared.Client.AdvanceArrivalDeparture(prepared.Request.Id, progress);
+                if (!CanCommit(prepared) || progress >= 1)
+                    CompleteMembership(prepared, new SteamRoomJoinResult(RoomFailure.None, prepared.PreparedLobby), publishingArrival: true);
+            }
+        }
         if (!_disposed && IsAvailable && _lobby != 0 && _lastRoomData != null)
         {
             try
@@ -1247,6 +1320,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         {
             _inFlight.Cancelled = true;
             CompleteMembershipFailure(_inFlight, RoomFailure.Unavailable);
+        }
+        if (_client?.IsLocalArrival == true && !_suspended && kind != DisconnectKind.Terminal)
+        {
+            if (_inFlight is { PreparedLobby: not 0 } prepared) Cancel(prepared.Client, prepared.Request.Id);
+            _client.FailArrival(RoomFailure.Unavailable);
+            return;
         }
         // A freshly accepted invitation may outlive a transient platform disconnect.
         // Recovery owns the inbox; unlike an explicit Leave/kick, teardown does not discard it.

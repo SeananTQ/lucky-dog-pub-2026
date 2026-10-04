@@ -593,6 +593,7 @@ public partial class RoomLab : Control
             GD.Print(RoomCompanionChecks.Run());
             SteamRoomChecks.Run();
             GD.Print(RoomReconnectChecks.Run());
+            GD.Print(RoomArrivalChecks.Run());
             GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat, removal, invitation admission/queue/recovery and startup args (fake transport and filter API delegates; no native Steam).");
             await SteamRoomPageChecks.Run(this);
             await RoomReconnectPageChecks.Run(this);
@@ -600,6 +601,7 @@ public partial class RoomLab : Control
             await RoomSettingsPageChecks.Run(this);
             await RoomGameChangePageChecks.Run(this);
             await RoomEmptyDirectoryPageChecks.Run(this);
+            await RoomArrivalPageChecks.Run(this);
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }

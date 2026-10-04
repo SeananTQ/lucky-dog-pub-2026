@@ -1510,7 +1510,7 @@ public static class SteamRoomChecks
 
     internal sealed class FakeTransport : ISteamRoomTransport
     {
-        private readonly Queue<(Action<SteamRoomJoinResult> Callback, FakeHandle Handle)> _membership = new();
+        private readonly Queue<(Action<SteamRoomJoinResult> Callback, FakeHandle Handle, bool PrivateCreate)> _membership = new();
         private Action<SteamRoomSearchResult> _search;
         private FakeHandle _searchHandle;
         public ulong LocalSteamId { get; set; } = 77;
@@ -1578,7 +1578,9 @@ public static class SteamRoomChecks
         public void DeliverChat(ulong lobby, ulong sender, byte[] message) => ChatReceived(lobby, sender, message);
         public int MembershipCalls;
         public int CreateCalls;
+        public int PrivateCreateCalls;
         public int SearchCalls;
+        public readonly List<string> ArrivalEvents = new();
         public readonly List<ulong> JoinTargets = new();
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
         public readonly List<ulong> Left = new();
@@ -1606,13 +1608,25 @@ public static class SteamRoomChecks
             CreateCalls++;
             return Join(0, completed);
         }
+        public IDisposable CreatePrivate(Action<SteamRoomJoinResult> completed)
+        {
+            CreateCalls++;
+            PrivateCreateCalls++;
+            MembershipCalls++;
+            JoinTargets.Add(0);
+            ArrivalEvents.Add("create-private");
+            var handle = new FakeHandle();
+            RequestHandles.Add(handle);
+            _membership.Enqueue((completed, handle, true));
+            return handle;
+        }
         public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
         {
             MembershipCalls++;
             JoinTargets.Add(lobbyId);
             var handle = new FakeHandle();
             RequestHandles.Add(handle);
-            _membership.Enqueue((completed, handle));
+            _membership.Enqueue((completed, handle, false));
             return handle;
         }
         public IDisposable Search(Action<SteamRoomSearchResult> completed)
@@ -1631,6 +1645,11 @@ public static class SteamRoomChecks
         {
             if (!Rooms.ContainsKey(lobby)) Seed(lobby);
             var request = _membership.Dequeue();
+            if (request.PrivateCreate)
+            {
+                NativeAccess[lobby] = RoomAccess.InviteOnly;
+                Rooms[lobby] = Rooms[lobby] with { Access = RoomAccess.InviteOnly };
+            }
             request.Handle.CallbackDelivered = true;
             request.Callback(new SteamRoomJoinResult(RoomFailure.None, lobby));
         }
@@ -1645,6 +1664,13 @@ public static class SteamRoomChecks
         {
             if (!InitializeSucceeds) return false;
             Rooms[lobbyId] = Rooms[lobbyId] with { Name = name };
+            return true;
+        }
+        public bool InitializeLobby(ulong lobbyId, string name, RoomAccess access)
+        {
+            ArrivalEvents.Add("initialize:" + (int)access);
+            if (!InitializeSucceeds) return false;
+            Rooms[lobbyId] = Rooms[lobbyId] with { Name = name, Access = access };
             return true;
         }
         public bool SetGame(ulong lobbyId, string game)
@@ -1684,6 +1710,7 @@ public static class SteamRoomChecks
         }
         public bool SetAccess(ulong lobbyId, RoomAccess access)
         {
+            ArrivalEvents.Add("access:" + (int)access);
             AccessWrites.Add((lobbyId, access));
             return SteamRoomProtocol.WriteAccess(Rooms[lobbyId].Access, access,
                 value =>
@@ -1705,6 +1732,7 @@ public static class SteamRoomChecks
             if (!CompanionWriteSucceeds || Rooms[lobbyId].OwnerId != LocalSteamId
                 || !RoomCompanionPlan.TryRead(companions, out _)) return false;
             CompanionWrites.Add((lobbyId, companions));
+            ArrivalEvents.Add("companions");
             ChangeCompanions(lobbyId, companions, CompanionWriteNotifies);
             return true;
         }
@@ -1715,7 +1743,7 @@ public static class SteamRoomChecks
         }
         public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
         public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);
-        public void Leave(ulong lobbyId) => Left.Add(lobbyId);
+        public void Leave(ulong lobbyId) { Left.Add(lobbyId); ArrivalEvents.Add("leave:" + lobbyId); }
         public void Dispose() => Disposed = true;
         public void SetBans(ulong lobbyId, string value, bool notify = true)
         {

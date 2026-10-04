@@ -66,8 +66,16 @@ internal static class RoomGameChangeChecks
                 Check(players[1].ConfirmGameChange(id) == "Rooms_GameChangeNotOwner", "only the host commits");
             Check(host.ConfirmGameChange(id) == "ok", "host manually commits an accepted proposal");
             server.Tick(0);
-            Check(players.All(p => p.JoinedCode == code && p.View.GameId == "work" && p.View.GameChange == null)
-                && server.Search().Single().GameId == "work", "opposed and unanswered members follow the commit without leaving");
+            Check(players.All(p => p.JoinedCode == code && p.View.GameId == "work" && p.View.GameChange == null),
+                "opposed and unanswered members follow the commit without leaving");
+            if (total == RoomRules.Capacity)
+            {
+                Check(server.Search().Length == 0, "a full room stays out of the directory after a mode change");
+                players[^1].Leave();
+                server.Tick(0);
+            }
+            Check(server.Search().Single().GameId == "work",
+                "the committed mode is advertised whenever the room has an available real-player slot");
             Check(!host.CanConfirmGameChange, "commit consumes the proposal exactly once");
         }
     }

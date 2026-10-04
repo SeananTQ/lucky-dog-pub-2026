@@ -31,10 +31,11 @@ public partial class RoomDogView : Node2D
     public void Display(RoomMember member, bool local, bool owner, bool showName, string bubble,
         bool tongueActive = false)
     {
-        // Companions share the ordinary avatar presentation, but never local
-        // input or authority even if a caller accidentally supplies those flags.
+        // Companions share avatar presentation, but never local input even if
+        // a caller accidentally supplies the local-player flag.
         local &= !member.IsCompanion;
-        owner &= !member.IsCompanion;
+        // A companion can wear the temporary local host marker during arrival.
+        // Ownership permissions remain in RoomClient and the platform service.
         if (_member?.Id != member.Id || _isLocal != local) CloseChat();
         _isLocal = local;
         if (_member?.SkinId != member.SkinId)

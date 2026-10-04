@@ -263,12 +263,15 @@ internal static class RoomRequestChecks
 
         server.Create(b, "Becomes full");
         target = b.JoinedCode;
+        Check(server.Search().Single(r => r.Code == target).Count == 1,
+            "join target is discoverable with free capacity before the request begins");
         a.Join(target);
+        Check(a.IsBusy && a.JoinedCode == original, "the old membership remains while the target join is pending");
         for (var id = 3; id <= 7; id++) server.Join(server.AddClient(id, $"P{id}", 1012), target);
         server.Tick(1);
         Check(a.Failure == RoomFailure.Full && a.JoinedCode == original
-            && server.Search().Single(r => r.Code == target).Count == RoomRules.Capacity,
-            "capacity checked at completion rather than request time");
+            && b.View.Members.Length == RoomRules.Capacity && !server.Search().Any(r => r.Code == target),
+            "a target that fills during the join is rejected at completion and is no longer discoverable");
 
         server.Settings(a).RequestDelay = 0;
         a.Join(original);

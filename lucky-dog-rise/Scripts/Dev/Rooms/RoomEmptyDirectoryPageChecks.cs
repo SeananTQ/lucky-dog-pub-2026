@@ -63,16 +63,18 @@ internal static class RoomEmptyDirectoryPageChecks
             page.Show();
             Click(entry);
             Click(entry);
-            Check(service.CreateRequests == 1 && service.Pending.Operation == RoomOperation.Create && client.IsBusy,
-                "joining the local row dispatches one ordinary Create despite repeated clicks");
+            Check(service.CreateRequests == 0 && client.Arrival?.Phase == RoomArrivalPhase.Waiting,
+                "joining the local row starts local presentation without a premature native create");
             await Frame();
-            Check(rows.GetChildCount() == 0 && page.GetNode<Button>("Lobby/CreateRow/Create").Disabled,
-                "pending creation hides the virtual row and locks duplicate operations");
+            Check(page.GetNode<Control>("Room").Visible && !page.GetNode<Control>("Lobby").Visible,
+                "local arrival leaves the directory and displays its temporary room");
+            client.Leave();
+            Check(client.Create("Existing real room"), "ordinary room fixture can still create immediately");
             service.Complete(RoomFailure.None);
             await Frame();
             Check(client.View.OwnerId == client.Id && client.View.Members.Length == 4
                 && client.View.Members.Count(member => member.IsCompanion) == 3 && service.JoinRequests == 0,
-                "explicit virtual-row join becomes a real room owned by the player with three companions");
+                "ordinary explicit creation retains its existing three-companion behavior");
             string firstCode = client.JoinedCode;
 
             page.OnBrowse();
@@ -88,13 +90,22 @@ internal static class RoomEmptyDirectoryPageChecks
             Check(ReferenceEquals(stableRow, rows.GetChild(0)),
                 "background room snapshots do not rebuild the empty-directory row or lose a pending click");
             Click(Entry());
+            await Frame();
+            Check(client.IsLocalArrival && client.JoinedCode != firstCode,
+                "choosing another local room leaves the previous real membership");
+            client.MarkArrivalPresented();
+            service.Now += RoomRules.ArrivalObserveSeconds;
+            await Frame();
+            Check(service.Pending?.Operation == RoomOperation.Create && service.CreateRequests == 2,
+                "arrival submits its single creation only after the observation interval");
             service.Complete(RoomFailure.Unavailable);
             await Frame();
-            Check(client.JoinedCode == firstCode && client.View.Members.Length == 4
-                && client.RequestState == RoomRequestState.Failed && rows.GetChildCount() == 0
+            Check(client.IsLocalArrival && client.View.Members.Length == 4
+                && client.Arrival.Phase == RoomArrivalPhase.Failed && client.RequestState == RoomRequestState.Failed
                 && failures.Count == 1 && failures[0] == (RoomFailure.Unavailable, false),
-                "failed virtual creation retains the previous room and uses the join-failure notice path");
+                "failed arrival remains in local presentation and uses the join-failure notice path");
 
+            client.Leave();
             page.RefreshRooms();
             client.Cancel();
             await Frame();
@@ -137,7 +148,7 @@ internal static class RoomEmptyDirectoryPageChecks
             page.Configure(provider, null);
             Click(staleEntry);
             Check(service.CreateRequests == creations, "service replacement invalidates its old entry immediately");
-            GD.Print("[RoomEmptyDirectoryPageChecks] PASS honest empty-search gating, local 3/6 row, explicit single create, stale/hidden callbacks, stable row, retained old room and ordinary failures (fake service).");
+            GD.Print("[RoomEmptyDirectoryPageChecks] PASS successful-empty-search gating, local 3/6 row, observation-gated creation, stale/hidden callbacks, stable row and retained failed local presentation (fake service).");
         }
         finally { page.Free(); }
     }

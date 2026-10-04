@@ -33,6 +33,8 @@ public sealed record RoomChat(long Id, string Code, int SenderId, long Presence,
 
 public static class RoomRules
 {
+    public const double ArrivalObserveSeconds = 3;
+    public const double ArrivalDepartureSeconds = 0.75;
     public const double GameChangeLifetime = 60;
     public const double CompanionVoteDelay = 1;
     public static bool IsRoomMode(string mode) => mode is "social" or "work";
@@ -79,7 +81,12 @@ public static class RoomRules
 public enum RoomOperation { None, Search, Create, Join }
 public enum RoomRequestState { Idle, Pending, Succeeded, Failed, Cancelled, TimedOut }
 public enum RoomFailure { None, InvalidName, NotFound, Full, Unavailable, NoMatchingRoom, Removed, Banned, AccessDenied }
-public sealed record RoomRequest(long Id, RoomOperation Operation, string Value, long RecoveryGeneration = 0);
+public sealed record RoomRequest(long Id, RoomOperation Operation, string Value, long RecoveryGeneration = 0)
+{
+#if !DEMO_BUILD && !RECORDING_BUILD
+    public RoomArrivalState Arrival { get; init; }
+#endif
+}
 public sealed record RoomResult(RoomFailure Failure, RoomListing[] Rooms = null)
 {
     public static RoomResult Success { get; } = new(RoomFailure.None);

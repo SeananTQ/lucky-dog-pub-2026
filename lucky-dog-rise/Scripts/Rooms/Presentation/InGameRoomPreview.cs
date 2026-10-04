@@ -200,6 +200,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _roomTitle.FocusExited += QueueNameCommit;
         _roomTitle.TextSubmitted += _ => { if (!_nameImeAtKey && !HasNameIme) CommitNameEdit(); };
         _code.Pressed += OnCopyCode;
+        InitializeArrivalControls();
         InitializeGameControls();
         L10n.Changed += OnLanguageChanged;
         InitializeMock();
@@ -223,6 +224,7 @@ public partial class InGameRoomPreview : VBoxContainer
             if (_nameEditClient != null && !_nameCommitQueued) QueueNameCommit();
         }
         if (_dirty) { _dirty = false; Render(); }
+        UpdateArrivalPresentation();
         RefreshRoomAge();
         ProcessGameProposal();
     }
@@ -258,6 +260,13 @@ public partial class InGameRoomPreview : VBoxContainer
         }
         var current = provider?.RoomService;
         if (ReferenceEquals(current, _service)) return;
+        // A local arrival owns its cast independently of the platform session.
+        // Retain it during connection recovery; retry uses the replacement service.
+        if (_client?.IsLocalArrival == true)
+        {
+            if (current != null && _client.RebindArrivalService(current)) _service = current;
+            return;
+        }
         ReplaceClient(null);
         _service = current;
         if (current == null) return;
@@ -342,11 +351,11 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         if (GodotObject.IsInstanceValid(this) && IsInsideTree()) PageChanged?.Invoke();
     }).CallDeferred();
-    public void OnBrowse() { CancelKick(); HideGameProposal(); CommitNameEdit(); CloseRoomDropdowns(); _browsing = true; RefreshRooms(); _dirty = true; NotifyPageChanged(); }
+    public void OnBrowse() { if (_client?.IsLocalArrival == true) return; CancelKick(); HideGameProposal(); CommitNameEdit(); CloseRoomDropdowns(); _browsing = true; RefreshRooms(); _dirty = true; NotifyPageChanged(); }
     public void OnLeave() { CancelRoomReconnect(); CancelKick(); HideGameProposal(); CancelNameEdit(); CloseRoomDropdowns(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
     public void OnCopyCode()
     {
-        if (_client == null || _client.JoinedCode.Length == 0) return;
+        if (_client == null || _client.IsLocalArrival || _client.JoinedCode.Length == 0) return;
         DisplayServer.ClipboardSet(_client.JoinedCode);
         _noticeKey = "Rooms_CodeCopied";
         _dirty = true;
@@ -362,7 +371,9 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void RenderCodePrivacy()
     {
-        string code = _client?.JoinedCode ?? "";
+        bool local = _client?.IsLocalArrival == true;
+        GetNode<Control>("Room/CodeRow").Visible = !local;
+        string code = local ? "" : _client?.JoinedCode ?? "";
         _code.Text = _hideRoomCode && code.Length > 0 ? "••••••••••••" : code;
         _code.TooltipText = _hideRoomCode ? "" : code;
         _codeVisibility.Text = _hideRoomCode ? "Rooms_ShowCode" : "Rooms_HideCode";
@@ -371,7 +382,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void InviteFriends()
     {
-        if (_client == null || _client.JoinedCode.Length == 0 || _client.IsBusy
+        if (_client == null || _client.IsLocalArrival || _client.JoinedCode.Length == 0 || _client.IsBusy
             || _isMock || _service is not IRoomInviteService invitations) return;
         string result = invitations.InviteFriends(_client);
         // Opening the picker does not mean the player has sent an invitation.
@@ -674,13 +685,21 @@ public partial class InGameRoomPreview : VBoxContainer
             || !_lobby.IsVisibleInTree() || !GodotObject.IsInstanceValid(row)
             || row.GetParent() != _rooms) return;
         _noticeKey = "";
-        client.Create(name, joiningFromDirectory: true);
+        var skins = LubanData.Tables.TbDogSkin.DataList
+            .Where(s => BuildInfo.IncludesCurrentChannel(s.BuildChannelMask)).Select(s => s.Id).ToArray();
+        var hats = LubanData.Tables.TbItem.DataList
+            .Where(i => i.ItemType == EItemType.Headwear && BuildInfo.IncludesCurrentChannel(i.BuildChannelMask))
+            .Select(i => i.Id).Prepend(0).ToArray();
+        if (skins.Length == 0) return;
+        var plan = RoomCompanionPlan.Create(skins, hats, client.CompanionTime);
+        client.BeginArrival(name, plan, -1 - Random.Shared.Next(RoomCompanionPlan.Count));
         _dirty = true;
     }
 
     private void Render()
     {
         RenderRoomReconnect();
+        RenderArrival();
         RenderCodePrivacy();
         RenderAccess();
         RenderName();
@@ -706,11 +725,11 @@ public partial class InGameRoomPreview : VBoxContainer
         _room.Visible = !_lobby.Visible;
         _return.Visible = joined;
         _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = _client.IsBusy;
-        _cancel.Visible = _client.IsBusy && Reconnect?.IsPending != true;
-        _invite.Disabled = !joined || _client.IsBusy || _isMock || _service is not IRoomInviteService;
+        _cancel.Visible = _client.IsBusy && !_client.IsLocalArrival && Reconnect?.IsPending != true;
+        _invite.Disabled = !joined || _client.IsLocalArrival || _client.IsBusy || _isMock || _service is not IRoomInviteService;
         _invite.TooltipText = _isMock || _service is not IRoomInviteService
             ? L10n.Tr("Rooms_InviteUnavailable") : "";
-        _status.Text = L10n.Tr(_noticeKey.Length > 0 ? _noticeKey : StatusKey());
+        _status.Text = L10n.Tr(_noticeKey.Length > 0 ? _noticeKey : _client.IsLocalArrival ? "" : StatusKey());
         _status.Visible = _status.Text.Length > 0;
         bool companionEntry = HasEmptySearchResult && Reconnect?.IsPending != true;
         // Empty successful searches offer the local companion entry. Pending or
@@ -781,7 +800,7 @@ public partial class InGameRoomPreview : VBoxContainer
             // each live member's button across mouse-down/up and scroll gestures.
             if (row.GetIndex() != index) _members.MoveChild(row, index);
             var name = string.IsNullOrWhiteSpace(member.Name) && member.Id == _client.Id ? L10n.Tr("Rooms_You") : member.Name;
-            row.GetNode<Label>("Name").Text = (!member.IsCompanion && member.Id == view.OwnerId ? "♛ " : "") + name;
+            row.GetNode<Label>("Name").Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
             var kick = row.GetNode<Button>("Kick");
             kick.Visible = view.OwnerId == _client.Id && member.Id != _client.Id;
             kick.Disabled = _client.IsBusy || !kick.Visible;

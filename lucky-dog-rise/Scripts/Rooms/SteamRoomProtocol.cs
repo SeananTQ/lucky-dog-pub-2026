@@ -16,8 +16,8 @@ public sealed record SteamRoomGameState(long Revision, string Game, SteamRoomGam
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Earlier clients can bypass voting and cannot enforce work-mode chat rules.
-    public const string Version = "lucky-dog-room-5";
+    // Earlier clients cannot preserve the arrival handoff's companion retirements.
+    public const string Version = "lucky-dog-room-6";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";

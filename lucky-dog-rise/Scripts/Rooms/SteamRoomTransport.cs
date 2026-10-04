@@ -144,9 +144,15 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     }
 
     public IDisposable Create(Action<SteamRoomJoinResult> completed)
+        => CreateLobby(ELobbyType.k_ELobbyTypePublic, completed);
+
+    public IDisposable CreatePrivate(Action<SteamRoomJoinResult> completed)
+        => CreateLobby(ELobbyType.k_ELobbyTypePrivate, completed);
+
+    private IDisposable CreateLobby(ELobbyType access, Action<SteamRoomJoinResult> completed)
     {
         RequireAvailable();
-        var handle = SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, RoomRules.Capacity);
+        var handle = SteamMatchmaking.CreateLobby(access, RoomRules.Capacity);
         if (handle == SteamAPICall_t.Invalid)
         {
             completed(new SteamRoomJoinResult(RoomFailure.Unavailable, 0));
@@ -230,6 +236,9 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     }
 
     public bool InitializeLobby(ulong lobbyId, string name)
+        => InitializeLobby(lobbyId, name, RoomAccess.Public);
+
+    public bool InitializeLobby(ulong lobbyId, string name, RoomAccess access)
     {
         RequireAvailable();
         var lobby = new CSteamID(lobbyId);
@@ -242,7 +251,7 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 createdAt.ToString(System.Globalization.CultureInfo.InvariantCulture))
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.BanListKey, "1:")
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.AccessKey,
-                SteamRoomProtocol.EncodeAccess(RoomAccess.Public))
+                SteamRoomProtocol.EncodeAccess(access))
             && SteamMatchmaking.SetLobbyData(lobby, SteamRoomProtocol.ProtocolKey, SteamRoomProtocol.Version);
     }
 

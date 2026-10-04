@@ -13,7 +13,8 @@ public static class InGameRoomSmoke
 {
     public static bool DemoRequested => OS.GetCmdlineUserArgs().Contains("--rooms-page-demo-smoke");
     public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke")
-        || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke");
+        || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
     {
         try
@@ -58,6 +59,12 @@ public static class InGameRoomSmoke
             }
             void Click(string path) => page.GetNode<Button>(path).EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke"))
+            {
+                await RoomArrivalMainChecks.Run(main, page);
+                tree.Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke"))
             {
                 await Wait(2);
@@ -600,8 +607,20 @@ public static class InGameRoomSmoke
             await Capture(main, "in-game-empty-lobby-companions");
             companionEntry.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
             companionEntry.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
-            Check(client.Operation == RoomOperation.Create && client.IsBusy,
-                "joining the local room starts one real creation request");
+            Check(client.IsLocalArrival && !client.IsBusy && client.View.Members.Length == 4
+                && client.View.OwnerId != client.Id,
+                "joining the empty-list entry starts a local room led by a companion");
+            await Settle();
+            page.AdvancePreview(RoomRules.ArrivalObserveSeconds + 0.1);
+            await Settle();
+            page.AdvancePreview(RoomRules.ArrivalDepartureSeconds + 0.1);
+            await Frame();
+            Check(!client.IsLocalArrival && client.View.OwnerId == client.Id && client.View.Members.Length == 3,
+                "local room becomes a real three-character room after host departure");
+            // The rest of this broad smoke covers the existing explicit-create
+            // path, whose baseline remains one human plus three companions.
+            client.Leave();
+            client.Create("Companion regression");
             await Settle();
             string companionRoom = client.JoinedCode;
             var companionMembers = client.View.Members.Where(member => member.IsCompanion).ToArray();
@@ -720,9 +739,9 @@ public static class InGameRoomSmoke
                     local: true, owner: true, showName: true, bubble: "");
                 dog.OpenChat();
                 dog.SubmitChatForSmoke("must not send");
-                Check(!dog.Editing && sends == 0 && !dog.GetNode<Label>("NameBar/Name").Text.Contains("♛")
+                Check(!dog.Editing && sends == 0 && dog.GetNode<Label>("NameBar/Name").Text.Contains("♛")
                     && !dog.GetNode<Label>("NameBar/Name").Text.Contains("本机"),
-                    "companion presentation rejects accidental local input and host badges");
+                    "companion presentation permits a host marker without granting local input");
             }
             page.AdvancePreview(9);
             await Frame();

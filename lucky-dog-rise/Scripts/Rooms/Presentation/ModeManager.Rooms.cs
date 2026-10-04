@@ -86,6 +86,10 @@ public partial class ModeManager
     private string _roomJoinNoticeKey = "";
     private double _roomJoinNoticeRemaining;
     private bool _roomJoinNoticeWasVisible;
+    private bool _roomNoticeIsHostChange;
+    private string _roomNoticeHostName = "";
+    private int _roomNoticeOwnerId;
+    private long _roomNoticeLayoutSession = -1;
     private bool RoomChatSuppressesBlindBoxHint => _roomChatBubbleActive || _roomChatBlindBoxRestoreRemaining > 0;
     // Includes the loading handoff and pending/restored rewards, not just the
     // overlay's animation tween. A ready, unopened box does not block chatting.
@@ -139,6 +143,8 @@ public partial class ModeManager
         _roomDesktop?.Clear();
         _roomLastLayoutSnapshot = null;
         _desktopRoomClient = client;
+        _roomNoticeOwnerId = client?.View?.OwnerId ?? 0;
+        _roomNoticeLayoutSession = client?.LayoutSession ?? -1;
         if (client != null)
         {
             client.JoinFailed += OnRoomJoinFailed;
@@ -211,6 +217,7 @@ public partial class ModeManager
 
     private void OnRoomJoinFailed(RoomFailure failure, bool timedOut)
     {
+        _roomNoticeIsHostChange = false;
         _roomJoinNoticeKey = timedOut ? "Rooms_TimedOut" : InGameRoomPreview.FailureKey(failure);
         _roomJoinNoticeRemaining = RoomRules.ChatLifetime;
         _roomJoinNoticeWasVisible = false;
@@ -219,6 +226,24 @@ public partial class ModeManager
     private void OnRoomJoinNoticeStateChanged()
     {
         if (_desktopRoomClient == null) return;
+        var client = _desktopRoomClient;
+        int owner = client.View?.OwnerId ?? 0;
+        bool sameRoom = _roomNoticeLayoutSession == client.LayoutSession;
+        bool transferred = sameRoom && _roomNoticeOwnerId != 0 && owner != 0 && owner != _roomNoticeOwnerId;
+        _roomNoticeLayoutSession = client.LayoutSession;
+        // BeginSession briefly clears the snapshot during the local-to-real
+        // commit. Preserve its old owner until the first committed snapshot.
+        if (owner != 0 || !sameRoom) _roomNoticeOwnerId = owner;
+        if (transferred)
+        {
+            _roomNoticeIsHostChange = true;
+            _roomNoticeHostName = client.View.Members.FirstOrDefault(m => m.Id == owner)?.Name ?? "";
+            _roomJoinNoticeKey = owner == client.Id ? "Rooms_HostTransferredSelf" : "Rooms_HostTransferredOther";
+            _roomJoinNoticeRemaining = RoomRules.ChatLifetime;
+            _roomJoinNoticeWasVisible = false;
+            return;
+        }
+        if (_roomNoticeIsHostChange && sameRoom && client.JoinedCode.Length > 0 && !client.IsBusy) return;
         // A new attempt, successful switch or explicit cancellation supersedes an old error.
         if (_desktopRoomClient.IsBusy || _desktopRoomClient.Operation == RoomOperation.None
             || _desktopRoomClient.RequestState is RoomRequestState.Succeeded or RoomRequestState.Cancelled)
@@ -228,6 +253,8 @@ public partial class ModeManager
     private void ClearRoomJoinNotice()
     {
         _roomJoinNoticeKey = "";
+        _roomNoticeIsHostChange = false;
+        _roomNoticeHostName = "";
         _roomJoinNoticeRemaining = 0;
         _roomJoinNoticeWasVisible = false;
         _roomJoinNotice?.Hide();
@@ -263,8 +290,10 @@ public partial class ModeManager
         _roomJoinNotice.Position = _bossDogVisual.GlobalPosition + new Vector2(-49, -140) * _desktopPetScaleFactor;
         _roomJoinNoticeLayer.Visible = true;
         _roomJoinNotice.Show();
-        _roomJoinNotice.Present(false, false, string.Format(InGameRoomPreview.ChatText("Rooms_JoinFailedNotice"),
-            InGameRoomPreview.ChatText(_roomJoinNoticeKey)));
+        string text = _roomNoticeIsHostChange
+            ? string.Format(InGameRoomPreview.ChatText(_roomJoinNoticeKey), _roomNoticeHostName)
+            : string.Format(InGameRoomPreview.ChatText("Rooms_JoinFailedNotice"), InGameRoomPreview.ChatText(_roomJoinNoticeKey));
+        _roomJoinNotice.Present(false, false, text);
         // Announce the notice before retracting chat so their shared blind-box delay stays continuous.
         _roomDesktop?.LocalChat.SetDisplaySuppressed(true);
         _roomJoinNoticeWasVisible = true;
@@ -366,7 +395,7 @@ public partial class ModeManager
     private bool RoomDragMemberIsCurrent() => _desktopRoomClient.Session == _roomDragSession
         && !_desktopRoomClient.HiddenMembers.Contains(_roomDragMember)
         && _desktopRoomClient.View?.Members.Any(m => m.Id == _roomDragMember && m.Presence == _roomDragPresence) == true
-        && _roomDesktop.HasMember(_roomDragSession, _roomDragMember, _roomDragPresence);
+        && _roomDesktop.HasMember(_desktopRoomClient.LayoutSession, _roomDragMember, _roomDragPresence);
 
     private void HandleRoomPointerInput(InputEvent @event)
     {
@@ -393,7 +422,7 @@ public partial class ModeManager
             // Network snapshots can change after the previous presentation frame.
             // Ignore a dog whose old node has not been removed/replaced yet.
             var member = _desktopRoomClient.View?.Members.FirstOrDefault(m => m.Id == memberId);
-            if (member == null || !_roomDesktop.HasMember(_desktopRoomClient.Session, memberId, member.Presence)) return;
+            if (member == null || !_roomDesktop.HasMember(_desktopRoomClient.LayoutSession, memberId, member.Presence)) return;
             _roomDragMember = memberId;
             _roomDragSession = _desktopRoomClient.Session;
             _roomDragPresence = member.Presence;

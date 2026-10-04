@@ -151,7 +151,7 @@ public partial class InGameRoomPreview
 
     private void RefreshRoomAge()
     {
-        bool show = _client?.View?.CreatedAt != null && _client.JoinedCode.Length > 0;
+        bool show = _client?.View?.CreatedAt != null && !_client.IsLocalArrival && _client.JoinedCode.Length > 0;
         _connection.Visible = show;
         if (!show) return;
         long seconds = (long)Math.Min(long.MaxValue / 2.0, Math.Max(0, _client.RoomAgeSeconds));

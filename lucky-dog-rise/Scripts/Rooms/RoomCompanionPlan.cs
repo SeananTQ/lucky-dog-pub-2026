@@ -22,15 +22,17 @@ public sealed class RoomCompanionPlan
     public int Seed { get; }
     public long StartedAt { get; }
     public int RetiredMask { get; }
+    public int TargetMemberCount { get; }
     public int RemainingCount => Remaining(RetiredMask);
     public IReadOnlyList<RoomCompanionAppearance> Appearances => _appearances;
 
     private RoomCompanionPlan(int seed, long startedAt, int retiredMask,
-        IEnumerable<RoomCompanionAppearance> appearances)
+        IEnumerable<RoomCompanionAppearance> appearances, int targetMemberCount = 4)
     {
         Seed = seed;
         StartedAt = startedAt;
         RetiredMask = retiredMask;
+        TargetMemberCount = targetMemberCount;
         _appearances = Array.AsReadOnly(appearances.ToArray());
     }
 
@@ -58,11 +60,24 @@ public sealed class RoomCompanionPlan
             throw new ArgumentOutOfRangeException(nameof(humanCount));
         // No human means the room has ended. A temporary decrease never brings
         // retired companions back, and real players always have capacity priority.
-        int remaining = humanCount == 0 ? 0 : Math.Max(0, 4 - humanCount);
+        int remaining = humanCount == 0 ? 0 : Math.Max(0, TargetMemberCount - humanCount);
         int mask = RetiredMask;
         for (int slot = 0; slot < Count && Remaining(mask) > remaining; slot++)
             mask |= 1 << slot;
-        return mask == RetiredMask ? this : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances);
+        return mask == RetiredMask ? this
+            : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances, TargetMemberCount);
+    }
+
+    // The local arrival's host leaves before the room becomes public. Keep the
+    // remaining identities and activity clock, but now fill to three members:
+    // one human + two companions, then two + one, then three + none.
+    public RoomCompanionPlan ForArrivalHandoff(int hostMemberId)
+    {
+        if (hostMemberId >= 0 || hostMemberId < -Count)
+            throw new ArgumentOutOfRangeException(nameof(hostMemberId));
+        int mask = RetiredMask | (1 << (-hostMemberId - 1));
+        return TargetMemberCount == 3 && mask == RetiredMask ? this
+            : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances, 3);
     }
 
     private static int Remaining(int mask)
@@ -79,33 +94,51 @@ public sealed class RoomCompanionPlan
         if (presence != Seed || memberId >= 0 || memberId < -Count) return false;
         int bit = 1 << (-memberId - 1);
         if ((RetiredMask & bit) != 0) return false;
-        retired = new RoomCompanionPlan(Seed, StartedAt, RetiredMask | bit, _appearances);
+        retired = new RoomCompanionPlan(Seed, StartedAt, RetiredMask | bit, _appearances, TargetMemberCount);
         return true;
     }
 
     public bool SameGeneration(RoomCompanionPlan other) => other != null
         && Seed == other.Seed && StartedAt == other.StartedAt
+        && TargetMemberCount == other.TargetMemberCount
         && _appearances.SequenceEqual(other._appearances);
 
     public RoomCompanionPlan MergeRetirements(RoomCompanionPlan previous)
     {
         if (!SameGeneration(previous)) return this;
         int mask = RetiredMask | previous.RetiredMask;
-        return mask == RetiredMask ? this : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances);
+        return mask == RetiredMask ? this
+            : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances, TargetMemberCount);
     }
 
-    public string ToWire() => string.Create(CultureInfo.InvariantCulture,
-        $"1:{Seed}:{StartedAt}:{RetiredMask}:{_appearances[0].SkinId}:{_appearances[0].HeadwearId}:{_appearances[1].SkinId}:{_appearances[1].HeadwearId}:{_appearances[2].SkinId}:{_appearances[2].HeadwearId}");
+    public string ToWire()
+    {
+        // Preserve v1 for ordinary rooms. v2 adds the arrival replacement target
+        // without changing any appearance, retirement or generation field offsets.
+        string value = string.Create(CultureInfo.InvariantCulture,
+            $"{(TargetMemberCount == 4 ? 1 : 2)}:{Seed}:{StartedAt}:{RetiredMask}:{_appearances[0].SkinId}:{_appearances[0].HeadwearId}:{_appearances[1].SkinId}:{_appearances[1].HeadwearId}:{_appearances[2].SkinId}:{_appearances[2].HeadwearId}");
+        return TargetMemberCount == 4 ? value
+            : value + ":" + TargetMemberCount.ToString(CultureInfo.InvariantCulture);
+    }
 
     public static bool TryRead(string value, out RoomCompanionPlan plan)
     {
         plan = null;
         if (string.IsNullOrEmpty(value) || value.Length > MaxWireLength) return false;
         var fields = value.Split(':');
-        if (fields.Length != 10 || fields[0] != "1"
+        bool version1 = fields.Length == 10 && fields[0] == "1";
+        bool version2 = fields.Length == 11 && fields[0] == "2";
+        if ((!version1 && !version2)
             || !TryNumber(fields[1], out long seed) || seed is <= 0 or > int.MaxValue
             || !TryNumber(fields[2], out long startedAt)
             || !TryNumber(fields[3], out long mask) || mask > 7) return false;
+        int targetMemberCount = 4;
+        if (version2)
+        {
+            if (!TryNumber(fields[10], out long target) || target is < 3 or > 4
+                || target == 3 && mask == 0) return false;
+            targetMemberCount = (int)target;
+        }
         var appearances = new RoomCompanionAppearance[Count];
         for (int slot = 0; slot < Count; slot++)
         {
@@ -113,7 +146,7 @@ public sealed class RoomCompanionPlan
                 || !TryNumber(fields[5 + slot * 2], out long hat) || hat > int.MaxValue) return false;
             appearances[slot] = new RoomCompanionAppearance((int)skin, (int)hat);
         }
-        plan = new RoomCompanionPlan((int)seed, startedAt, (int)mask, appearances);
+        plan = new RoomCompanionPlan((int)seed, startedAt, (int)mask, appearances, targetMemberCount);
         return true;
     }
 

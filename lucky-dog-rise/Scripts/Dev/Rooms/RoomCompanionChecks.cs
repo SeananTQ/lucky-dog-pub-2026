@@ -13,8 +13,9 @@ internal static class RoomCompanionChecks
     {
         CheckCreationAndWire();
         CheckRetirements();
+        CheckArrivalHandoff();
         CheckActivity();
-        return "Companion plans: fixed appearances, bounded codec, monotonic retirements, input-led mood rises and quiet cooldowns passed.";
+        return "Companion plans: fixed appearances, bounded v1/v2 codec, random-host arrival handoff, monotonic retirements, input-led mood rises and quiet cooldowns passed.";
     }
 
     private static void CheckCreationAndWire()
@@ -40,8 +41,18 @@ internal static class RoomCompanionChecks
             .MembersAt(0).All(m => m.HeadwearId == 0), "empty headwear pool is supported without a hat");
         Check(RoomCompanionPlan.Create(new[] { 1012 }, null, 0, int.MaxValue).Seed == int.MaxValue,
             "largest explicit seed remains valid");
-        Check(RoomCompanionPlan.TryRead("1:1:0:0:1012:0:1012:0:1012:0", out _),
-            "mock rooms may start at zero");
+        Check(RoomCompanionPlan.TryRead("1:1:0:0:1012:0:1012:0:1012:0", out var legacy)
+            && legacy.TargetMemberCount == 4 && legacy.WithHumanCount(1).RemainingCount == 3,
+            "legacy plans retain ordinary-room replacement rules and may start at zero");
+        Check(RoomCompanionPlan.TryRead("2:1:0:1:1012:0:1012:0:1012:0:3", out var arrival)
+            && arrival.TargetMemberCount == 3 && arrival.WithHumanCount(2).RemainingCount == 1,
+            "arrival plans read their own replacement target");
+        var maximum = RoomCompanionPlan.Create(new[] { int.MaxValue }, new[] { int.MaxValue },
+            long.MaxValue, int.MaxValue).ForArrivalHandoff(-3);
+        Check(maximum.ToWire().Length <= RoomCompanionPlan.MaxWireLength
+            && RoomCompanionPlan.TryRead(maximum.ToWire(), out var maximumCopy)
+            && maximumCopy.ToWire() == maximum.ToWire(),
+            "all largest supported wire fields still fit the metadata bound");
 
         var oldCulture = CultureInfo.CurrentCulture;
         try
@@ -63,7 +74,12 @@ internal static class RoomCompanionChecks
             "1:1:0:0:1012:2147483648:1012:0:1012:0", "1:1:0:0:1012:0:1012:0",
             "1:1:0:0:1012:0:1012:0:1012:0:0", "1:+1:0:0:1012:0:1012:0:1012:0",
             "1:01:0:0:1012:0:1012:0:1012:0", "1:1:0:0:1012:0:1012:0:1012:0 ",
-            "1:１:0:0:1012:0:1012:0:1012:0", "1:1:0:0:1012:0:1012:0:1012:\n0"
+            "1:１:0:0:1012:0:1012:0:1012:0", "1:1:0:0:1012:0:1012:0:1012:\n0",
+            "3:1:0:1:1012:0:1012:0:1012:0:3", "1:1:0:1:1012:0:1012:0:1012:0:3",
+            "2:1:0:0:1012:0:1012:0:1012:0:3", "2:1:0:1:1012:0:1012:0:1012:0:2",
+            "2:1:0:1:1012:0:1012:0:1012:0:5", "2:1:0:1:1012:0:1012:0:1012:0:-3",
+            "2:1:0:1:1012:0:1012:0:1012:0:03", "2:1:0:1:1012:0:1012:0:1012:0:",
+            "2:1:0:1:1012:0:1012:0:1012:0:3:0", "2:1:0:1:1012:0:1012:0:1012:0:3 "
         })
             Check(!RoomCompanionPlan.TryRead(bad, out var rejected) && rejected == null,
                 "malformed or noncanonical plans are rejected");
@@ -72,6 +88,65 @@ internal static class RoomCompanionChecks
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, new[] { -1 }, 0), "invalid hat rejected");
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, null, -1), "negative creation time rejected");
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, null, 0, 0), "zero seed rejected");
+    }
+
+    private static void CheckArrivalHandoff()
+    {
+        var original = RoomCompanionPlan.Create(new[] { 1012, 1013, 1014 }, new[] { 0, 2201, 2202 }, 100, 99);
+        var originalMembers = original.MembersAt(127);
+        for (int host = -1; host >= -RoomCompanionPlan.Count; host--)
+        {
+            var arrival = original.ForArrivalHandoff(host);
+            int hostBit = 1 << (-host - 1);
+            Check(arrival.TargetMemberCount == 3 && arrival.RetiredMask == hostBit,
+                "any of the three companions can be the departing arrival host");
+            Check(arrival.Seed == original.Seed && arrival.StartedAt == original.StartedAt
+                && arrival.Appearances.SequenceEqual(original.Appearances),
+                "handoff keeps the shared identity, visual choices and activity clock");
+            Check(arrival.MembersAt(127).SequenceEqual(originalMembers.Where(m => m.Id != host)),
+                "handoff removes only the chosen host without renumbering or replaying survivors");
+            Check(ReferenceEquals(arrival.ForArrivalHandoff(host), arrival),
+                "the same handoff can be applied twice without retiring another companion");
+            Check(!arrival.SameGeneration(original)
+                && original.MergeRetirements(arrival).RetiredMask == 0
+                && arrival.MergeRetirements(original).RetiredMask == hostBit,
+                "plans with different replacement rules cannot merge each other's retirements");
+            Check(RoomCompanionPlan.TryRead(arrival.ToWire(), out var copy)
+                && copy.ToWire() == arrival.ToWire() && arrival.SameGeneration(copy)
+                && copy.MembersAt(127).SequenceEqual(arrival.MembersAt(127)),
+                "v2 metadata preserves handoff rules and both remaining members");
+
+            var current = copy;
+            for (int humans = 1; humans <= RoomRules.Capacity; humans++)
+            {
+                var before = current;
+                current = current.WithHumanCount(humans);
+                Check(current.RemainingCount == Math.Max(0, 3 - humans)
+                    && (current.RetiredMask & before.RetiredMask) == before.RetiredMask,
+                    "arrival room replaces one companion per arriving human and never restores one");
+                Check(current.MembersAt(128).All(m => m.Id != host)
+                    && arrival.SameGeneration(current),
+                    "replacement never revives the departed host or changes the arrival generation");
+                Check(current.WithHumanCount(1).RetiredMask == current.RetiredMask,
+                    "a later human departure never fills an arrival room with companions again");
+            }
+            var oneReplaced = arrival.WithHumanCount(2);
+            Check(arrival.MergeRetirements(oneReplaced).RemainingCount == 1
+                && oneReplaced.MergeRetirements(arrival).RemainingCount == 1,
+                "late metadata cannot restore an arrival companion after replacement");
+            var survivor = arrival.MembersAt(127)[0];
+            Check(arrival.TryRetire(survivor.Id, survivor.Presence, out var kicked)
+                && kicked.TargetMemberCount == 3 && kicked.RemainingCount == 1
+                && kicked.WithHumanCount(1).RemainingCount == 1,
+                "manually removing a survivor preserves arrival rules and does not refill");
+            Check(arrival.WithHumanCount(0).RemainingCount == 0,
+                "no arrival companion survives the last real member");
+        }
+        Check(original.RetiredMask == 0 && original.TargetMemberCount == 4
+            && original.WithHumanCount(1).RemainingCount == 3,
+            "arrival conversion leaves ordinary room creation unchanged");
+        foreach (int invalid in new[] { 0, 1, -RoomCompanionPlan.Count - 1, int.MinValue, int.MaxValue })
+            Throws(() => original.ForArrivalHandoff(invalid), "only a room companion may be the arrival host");
     }
 
     private static void CheckRetirements()

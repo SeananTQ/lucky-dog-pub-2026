@@ -6,7 +6,7 @@ namespace LuckyDogRise.Rooms;
 
 public sealed class RoomClient : IDisposable
 {
-    private readonly IRoomService _service;
+    private IRoomService _service;
     private readonly Dictionary<int, RoomChat> _bubbles = new();
     private readonly Dictionary<int, long> _chatSequences = new();
     private readonly Dictionary<int, double> _receivedChatAt = new();
@@ -18,12 +18,23 @@ public sealed class RoomClient : IDisposable
     public long ActivitySequence { get; private set; }
     public bool TongueActive { get; private set; }
     public int Id { get; }
+    public long CompanionTime => _service.CompanionTime;
     public string Name { get; }
     public int SkinId { get; private set; }
     public int HeadwearId { get; private set; }
     public int Reaction { get; private set; } = 1001;
     public string JoinedCode { get; private set; } = "";
     public long Session { get; private set; }
+    public long LayoutSession { get; private set; }
+#if !DEMO_BUILD && !RECORDING_BUILD
+    public RoomArrivalState Arrival { get; private set; }
+    public bool IsLocalArrival => Arrival != null;
+    private long _arrivalRevision;
+    private long _arrivalChatSequence;
+    private double _arrivalLastChatAt = double.NegativeInfinity;
+#else
+    public bool IsLocalArrival => false;
+#endif
     public RoomSnapshot View { get; private set; }
     public float LocalScale { get; set; } = 1;
     public HashSet<int> HiddenMembers { get; } = new();
@@ -59,6 +70,9 @@ public sealed class RoomClient : IDisposable
     public bool Search() => BeginRequest(RoomOperation.Search, "");
     public bool FindAndJoin()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival) Cancel();
+#endif
         if (IsBusy || _disposed || _committing) return false;
         CancelReconnect();
         _joinAfterSearch = true;
@@ -69,24 +83,37 @@ public sealed class RoomClient : IDisposable
     public string RespondGameChange(string proposalId, bool accept) => CanChangeGame() ? _service.RespondGameChange(this, proposalId, accept) : "Rooms_GameChangeUnavailable";
     public string ConfirmGameChange(string proposalId) => CanChangeGame() ? _service.ConfirmGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
     public string CancelGameChange(string proposalId) => CanChangeGame() ? _service.CancelGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
-    private bool CanChangeGame() => !_disposed && !_committing && !IsBusy && View != null;
-    public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy
+    private bool CanChangeGame() => !_disposed && !_committing && !IsBusy && !IsLocalArrival && View != null;
+    public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy || IsLocalArrival
         ? "Rooms_AccessUnavailable" : _service.SetAccess(this, access);
-    public string SetName(string name) => _disposed || _committing || IsBusy
+    public string SetName(string name) => _disposed || _committing || IsBusy || IsLocalArrival
         ? "Rooms_NameUnavailable" : _service.SetName(this, name);
-    public string SendChat(string text) => _disposed ? "Rooms_ChatUnavailable"
-        : View != null && !ChatAllowed ? "Rooms_ChatDisabled" : _service.SendChat(this, text);
-    public string Kick(int memberId, long presence) => _disposed || _committing
+    public string SendChat(string text)
+    {
+        if (_disposed) return "Rooms_ChatUnavailable";
+        if (View != null && !ChatAllowed) return "Rooms_ChatDisabled";
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival) return SendArrivalChat(text);
+#endif
+        return _service.SendChat(this, text);
+    }
+    public string Kick(int memberId, long presence) => _disposed || _committing || IsLocalArrival
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
-    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0)
+    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0, bool arrivalCreation = false)
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival && !arrivalCreation && operation is RoomOperation.Create or RoomOperation.Join) Cancel();
+#endif
         if (IsBusy || _disposed || _committing) return false;
         if (recoveryGeneration == 0 && operation is RoomOperation.Create or RoomOperation.Join) CancelReconnect();
         Operation = operation;
         RequestState = RoomRequestState.Pending;
         Failure = RoomFailure.None;
         _request = new RoomRequest(++_nextRequestId, operation, value ?? "", recoveryGeneration);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (arrivalCreation) _request = _request with { Arrival = Arrival };
+#endif
         // This is presentation intent for one accepted request, not a different
         // transport operation. Busy/reentrant rejected calls cannot overwrite it.
         _directoryCreateRequestId = operation == RoomOperation.Create && joiningFromDirectory ? _request.Id : 0;
@@ -124,6 +151,14 @@ public sealed class RoomClient : IDisposable
         _request = null;
         Failure = result.Failure;
         RequestState = Failure == RoomFailure.None ? RoomRequestState.Succeeded : RoomRequestState.Failed;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival && Operation == RoomOperation.Create && Failure != RoomFailure.None)
+        {
+            Arrival.Phase = RoomArrivalPhase.Failed;
+            Arrival.Failure = Failure;
+            Arrival.DepartureProgress = 0;
+        }
+#endif
         if (Operation == RoomOperation.Search && Failure == RoomFailure.None)
         {
             Listings = (RoomListing[])(result.Rooms ?? Array.Empty<RoomListing>()).Clone();
@@ -143,7 +178,26 @@ public sealed class RoomClient : IDisposable
     }
 
     private void CancelReconnect() => (_service as IRoomReconnectService)?.CancelReconnect(this);
-    public void Cancel() { CancelReconnect(); CancelPending(RoomRequestState.Cancelled); }
+    public void Cancel()
+    {
+        bool wasCommitting = _committing;
+        _committing = true;
+        try
+        {
+            CancelReconnect();
+            CancelPending(RoomRequestState.Cancelled);
+#if !DEMO_BUILD && !RECORDING_BUILD
+            if (IsLocalArrival)
+            {
+                Arrival = null;
+                _service.Release(this);
+                if (JoinedCode.Length > 0 || View != null) BeginSession("");
+            }
+#endif
+        }
+        finally { _committing = wasCommitting; }
+        if (!wasCommitting && !_disposed) Changed?.Invoke();
+    }
     internal void CancelRecoveryRequest(long id)
     {
         if (_request?.Id == id && _request.RecoveryGeneration != 0) CancelPending(RoomRequestState.Cancelled);
@@ -160,6 +214,14 @@ public sealed class RoomClient : IDisposable
         RequestState = state;
         Failure = RoomFailure.None;
         _service.Cancel(this, id);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (state == RoomRequestState.TimedOut && Arrival != null)
+        {
+            Arrival.Phase = RoomArrivalPhase.Failed;
+            Arrival.Failure = RoomFailure.Unavailable;
+            Arrival.DepartureProgress = 0;
+        }
+#endif
         // Cancellation adapters can reenter; an old timeout must not overwrite
         // a newer attempt or an explicit leave from that callback.
         if (_disposed || _nextRequestId != id || RequestState != state) return;
@@ -215,6 +277,9 @@ public sealed class RoomClient : IDisposable
         if (!double.IsFinite(now) || now < _now) throw new ArgumentOutOfRangeException(nameof(now));
         _now = now;
         if (_request != null && now >= _deadline) CancelPending(RoomRequestState.TimedOut);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        AdvanceArrival();
+#endif
         if (TongueActive)
         {
             if (now >= _inputActiveUntil) StopInputActivity();
@@ -243,12 +308,149 @@ public sealed class RoomClient : IDisposable
     public RoomClient(IRoomService service, int id, string name, int skinId)
         => (_service, Id, Name, SkinId) = (service, id, name, skinId);
 
+#if !DEMO_BUILD && !RECORDING_BUILD
+    public bool BeginArrival(string name, RoomCompanionPlan plan, int hostMemberId)
+    {
+        if (_disposed || _committing || !RoomRules.TryNormalizeName(name, out name)
+            || plan == null || plan.RemainingCount != RoomCompanionPlan.Count
+            || !plan.MembersAt(plan.StartedAt).Any(m => m.Id == hostMemberId)) return false;
+        _committing = true;
+        try
+        {
+            Cancel();
+            _service.Leave(this);
+            BeginSession($"@arrival:{Session + 1}");
+            Arrival = new RoomArrivalState(name, plan, hostMemberId);
+            Operation = RoomOperation.None;
+            RequestState = RoomRequestState.Idle;
+            Failure = RoomFailure.None;
+            _arrivalRevision = _arrivalChatSequence = 0;
+            _arrivalLastChatAt = double.NegativeInfinity;
+            PublishArrival();
+        }
+        finally { _committing = false; }
+        Changed?.Invoke();
+        return !_disposed && Arrival != null;
+    }
+
+    public void MarkArrivalPresented()
+    {
+        if (Arrival == null || Arrival.Presented) return;
+        Arrival.Presented = true;
+        Arrival.PresentedAt = _now;
+    }
+
+    public bool RetryArrival()
+    {
+        if (_disposed || _committing || IsBusy || Arrival?.Phase != RoomArrivalPhase.Failed) return false;
+        return StartArrivalRequest();
+    }
+
+    public bool RebindArrivalService(IRoomService service)
+    {
+        if (_disposed || _committing || IsBusy || Arrival?.Phase != RoomArrivalPhase.Failed || service == null) return false;
+        if (ReferenceEquals(_service, service)) return true;
+        _service.DetachLocalArrival(this);
+        _service = service;
+        // A replacement service can use another monotonic epoch. Preserve the
+        // observed duration, but reset message timing instead of comparing clocks.
+        _now = service.Now;
+        Arrival.PresentedAt = _now - Arrival.Elapsed;
+        _arrivalLastChatAt = double.NegativeInfinity;
+        _bubbles.Clear(); _chatSequences.Clear(); _receivedChatAt.Clear();
+        _activity.Clear();
+        _inputActiveUntil = _nextActivityRenewal = 0;
+        TongueActive = false;
+        PublishArrival();
+        return true;
+    }
+
+    internal void FailArrival(RoomFailure failure)
+    {
+        if (Arrival == null || Arrival.Phase == RoomArrivalPhase.Failed && Arrival.Failure == failure) return;
+        Arrival.Phase = RoomArrivalPhase.Failed;
+        Arrival.Failure = failure;
+        Arrival.DepartureProgress = 0;
+        Failure = failure;
+        RequestState = RoomRequestState.Failed;
+        Changed?.Invoke();
+    }
+
+    private bool StartArrivalRequest()
+    {
+        var arrival = Arrival;
+        if (arrival == null || IsBusy) return false;
+        arrival.Phase = RoomArrivalPhase.Creating;
+        arrival.Failure = RoomFailure.None;
+        arrival.DepartureProgress = 0;
+        return BeginRequest(RoomOperation.Create, arrival.Name, joiningFromDirectory: true, arrivalCreation: true);
+    }
+
+    private void AdvanceArrival()
+    {
+        var arrival = Arrival;
+        if (arrival == null) return;
+        arrival.Elapsed = arrival.Presented ? Math.Max(0, _now - arrival.PresentedAt) : 0;
+        if (arrival.Phase == RoomArrivalPhase.Waiting && arrival.Presented
+            && arrival.Elapsed >= RoomRules.ArrivalObserveSeconds) StartArrivalRequest();
+        if (!ReferenceEquals(arrival, Arrival)) return;
+        if (Math.Floor(arrival.Elapsed) > arrival.LastAppearanceAt)
+        {
+            arrival.LastAppearanceAt = Math.Floor(arrival.Elapsed);
+            PublishArrival();
+        }
+    }
+
+    internal bool PrepareArrival(long requestId)
+    {
+        if (!IsRequestCurrent(requestId) || Arrival == null || !ReferenceEquals(_request.Arrival, Arrival)) return false;
+        Arrival.Phase = RoomArrivalPhase.Departing;
+        Arrival.DepartureProgress = 0;
+        Changed?.Invoke();
+        return IsRequestCurrent(requestId) && Arrival?.Phase == RoomArrivalPhase.Departing;
+    }
+
+    internal void AdvanceArrivalDeparture(long requestId, double progress)
+    {
+        if (IsRequestCurrent(requestId) && Arrival?.Phase == RoomArrivalPhase.Departing)
+            Arrival.DepartureProgress = Math.Clamp(progress, 0, 1);
+    }
+
+    private void PublishArrival()
+    {
+        var arrival = Arrival;
+        if (arrival == null) return;
+        var self = new RoomMember(Id, Name, SkinId, HeadwearId, Reaction, Session, ActivitySequence, TongueActive);
+        var members = new[] { self }.Concat(arrival.Plan.MembersAt(arrival.Plan.StartedAt + (long)arrival.Elapsed)).ToArray();
+        Receive(new RoomSnapshot(JoinedCode, arrival.Name, "social", arrival.HostMemberId,
+            ++_arrivalRevision, members, RoomAccess.InviteOnly));
+    }
+
+    private string SendArrivalChat(string text)
+    {
+        var error = RoomRules.ValidateChat(text);
+        if (error.Length > 0) return error;
+        if (_now - _arrivalLastChatAt < RoomRules.ChatCooldown) return "Rooms_ChatTooFast";
+        string display;
+        try { display = _service.FilterLocalChatForDisplay(text.Trim()); }
+        catch { return "Rooms_ChatUnavailable"; }
+        if (RoomRules.ValidateChat(display).Length > 0) return "Rooms_ChatUnavailable";
+        _arrivalLastChatAt = _now;
+        Receive(new RoomChat(++_arrivalChatSequence, JoinedCode, Id, Session, display,
+            _now + RoomRules.ChatLifetime), _now);
+        return "";
+    }
+#endif
+
     public void SetAppearance(int skinId, int headwearId, int reaction)
     {
         if (_disposed) return;
         SkinId = skinId;
         HeadwearId = headwearId;
         Reaction = reaction;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival) { PublishArrival(); return; }
+#endif
         _service.UpdateAppearance(this);
     }
 
@@ -278,15 +480,22 @@ public sealed class RoomClient : IDisposable
     {
         ActivitySequence++;
         _nextActivityRenewal = _now + RoomRules.ActivityRenewal;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (IsLocalArrival) { PublishArrival(); return; }
+#endif
         _service.UpdateActivity(this);
     }
 
     public bool IsTongueActive(int memberId) => _activity.TryGetValue(memberId, out var value)
         && value.Until > _now;
 
-    internal void BeginSession(string code)
+    internal void BeginSession(string code, bool preserveLayout = false)
     {
         Session++;
+        if (!preserveLayout) LayoutSession++;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        Arrival = null;
+#endif
         JoinedCode = code;
         View = null;
         _roomAgeAtReceipt = _roomClockReceipt = 0;

@@ -28,13 +28,14 @@ public partial class RoomDesktopPreview : Node2D
     private readonly Dictionary<int, RoomDogView> _dogs = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)
     {
-        public readonly long Presence = presence;
+        public long Presence = presence;
         public readonly int Slot = slot;
         public Vector2 Position = position;
         public bool TaskbarSnapped = taskbarSnapped;
     }
     private readonly Dictionary<int, Placement> _placements = new();
     private long _session = -1;
+    private RoomArrivalState _awaitingArrivalFrame;
     public IReadOnlyCollection<RoomDogView> RemoteDogs => _dogs.Values;
 
     public override void _Notification(int what)
@@ -52,15 +53,23 @@ public partial class RoomDesktopPreview : Node2D
     public Vector2 Present(RoomClient client, Rect2 usable, float scale, float spacing,
         float taskbarAnchorOffsetY, bool snapEnabled)
     {
-        if (_session != client.Session)
+        if (_session != client.LayoutSession)
         {
             Clear();
-            _session = client.Session;
+            _session = client.LayoutSession;
         }
         _remoteLayer.Visible = IsVisibleInTree();
         _chatLayer.Visible = IsVisibleInTree();
         _client = client;
+        // Promotion can invalidate the protocol snapshot before its replacement
+        // arrives (notably under simulated receive latency). This is still the
+        // same visible room; keep all seats until the new membership is known.
+        if (client.View == null && _placements.TryGetValue(client.Id, out var previousSelf))
+            return previousSelf.Position;
         var members = client.View?.Members ?? Array.Empty<RoomMember>();
+        var self = members.FirstOrDefault(member => member.Id == client.Id);
+        if (self != null && _placements.TryGetValue(client.Id, out var selfPlacement))
+            selfPlacement.Presence = self.Presence;
         foreach (var id in _placements.Keys.Where(id => !members.Any(member =>
                      member.Id == id && member.Presence == _placements[id].Presence)).ToArray())
             _placements.Remove(id);
@@ -104,7 +113,9 @@ public partial class RoomDesktopPreview : Node2D
             dog.Scale = Vector2.One * scale;
             dog.Position = placement.Position;
             dog.Visible = !client.HiddenMembers.Contains(member.Id);
-            dog.Display(member, false, !member.IsCompanion && member.Id == client.View.OwnerId, client.ShowNames,
+            dog.Modulate = new Color(1, 1, 1, client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival
+                && member.Id == arrival.HostMemberId ? 1f - (float)arrival.DepartureProgress : 1f);
+            dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
                 client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
                 client.IsTongueActive(member.Id));
         }
@@ -113,7 +124,22 @@ public partial class RoomDesktopPreview : Node2D
         LocalChat.Position = localPosition + new Vector2(-49, -140) * scale;
         LocalChat.Scale = Vector2.One * scale;
         LocalChat.Present(true, false, client.Bubbles.TryGetValue(client.Id, out var localBubble) ? localBubble.Text : "");
+        if (client.Arrival is { Presented: false } pending && IsVisibleInTree()
+            && DisplayServer.GetName() != "headless" && !ReferenceEquals(_awaitingArrivalFrame, pending))
+        {
+            _awaitingArrivalFrame = pending;
+            ObserveArrivalAfterDraw(client, pending);
+        }
         return localPosition;
+    }
+
+    private async void ObserveArrivalAfterDraw(RoomClient client, RoomArrivalState arrival)
+    {
+        await GetTree().ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        if (!IsInstanceValid(this) || !IsInsideTree()) return;
+        _awaitingArrivalFrame = null;
+        if (IsVisibleInTree() && ReferenceEquals(_client, client) && ReferenceEquals(client.Arrival, arrival))
+            client.MarkArrivalPresented();
     }
 
     public int HitTest(Vector2 windowPoint)
@@ -162,6 +188,7 @@ public partial class RoomDesktopPreview : Node2D
         foreach (var dog in _dogs.Values) { dog.Hide(); dog.QueueFree(); }
         _dogs.Clear();
         _placements.Clear();
+        _awaitingArrivalFrame = null;
         _session = -1;
     }
 }
