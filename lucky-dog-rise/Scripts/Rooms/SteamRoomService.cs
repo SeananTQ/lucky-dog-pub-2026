@@ -10,8 +10,9 @@ namespace LuckyDogRise.Rooms;
 /// Steam owns lobby membership. This adapter owns one local client and maps Steam identities
 /// to display identities without reading/writing inventory, statistics or local saves.
 /// </summary>
-public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDisposable
+public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomReconnectService, IDisposable
 {
+    private enum DisconnectKind { NetworkLost, Terminal, SessionDisposed }
     private sealed class Pending(RoomClient client, RoomRequest request)
     {
         public readonly RoomClient Client = client;
@@ -23,6 +24,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     }
 
     private readonly ISteamRoomTransport _transport;
+    private readonly RoomReconnectContext _reconnect;
+    private readonly long _reconnectSource;
     private readonly SteamRoomInviteInbox _invitations;
     private readonly int _defaultSkin;
     private readonly Func<int, bool> _validSkin;
@@ -85,13 +88,26 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     public bool RestartRequired => !_disposed && _settlementTimedOut;
     public double Now => _now();
     public bool HasPendingJoinRequest => IsAvailable && _invitations.HasPending;
+    public RoomReconnectContext ReconnectContext => _reconnect;
+
+    // A provider must settle an observed outage before withdrawing this service:
+    // the page releases its old client as soon as the provider returns null.
+    public bool CheckAvailability()
+    {
+        if (IsAvailable) return true;
+        if (!_disposed)
+            Disconnect(_suspended || _settlementTimedOut ? DisconnectKind.Terminal : DisconnectKind.NetworkLost);
+        return false;
+    }
 
     public SteamRoomService(ISteamRoomTransport transport, int defaultSkin,
         Func<int, bool> validSkin, Func<int, bool> validHeadwear, Func<int, bool> validReaction,
         Func<double> now = null, SteamRoomInviteInbox invitations = null,
-        Func<long, RoomCompanionPlan> companions = null)
+        Func<long, RoomCompanionPlan> companions = null, RoomReconnectContext reconnect = null, uint appId = 0)
     {
         _transport = transport;
+        _reconnect = reconnect ?? new RoomReconnectContext(now);
+        _reconnectSource = _reconnect.Bind(transport.LocalSteamId, appId);
         _invitations = invitations ?? new SteamRoomInviteInbox();
         _defaultSkin = defaultSkin;
         _validSkin = validSkin;
@@ -101,6 +117,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         _now = now ?? (() => (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency);
         _transport.LobbyChanged += OnLobbyChanged;
         _transport.MemberDeparted += OnMemberDeparted;
+        _transport.MemberDeparture += OnMemberDeparture;
+        _transport.ConnectionLost += OnConnectionLost;
         _transport.ChatReceived += OnChatReceived;
         _transport.JoinRequested += OnJoinRequested;
     }
@@ -123,7 +141,41 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     private void OnJoinRequested(ulong lobbyId)
     {
-        if (!_disposed && !_suspended) _invitations.Queue(lobbyId);
+        if (!_disposed && !_suspended && _invitations.Queue(lobbyId))
+        {
+            if (_reconnect.IsSourceCurrent(_reconnectSource)) _reconnect.Cancel();
+            CancelObsoleteRecovery();
+        }
+    }
+
+    public void CancelReconnect(RoomClient client)
+    {
+        if (!_disposed && _reconnect.IsSourceCurrent(_reconnectSource)
+            && (_client == null || ReferenceEquals(_client, client))) _reconnect.Cancel();
+    }
+
+    public bool TryReconnect(RoomClient client)
+    {
+        _reconnect.Tick();
+        CancelObsoleteRecovery();
+        if (!IsAvailable || client == null || client.IsBusy || client.JoinedCode.Length > 0
+            || _invitations.HasPending || _inFlight != null || _queued != null
+            || _client != null && !ReferenceEquals(_client, client) && (_client.IsBusy || _client.JoinedCode.Length > 0)) return false;
+        if (!_reconnect.TryBeginAttempt(_reconnectSource, out var lobby, out var generation)) return false;
+        if (client.JoinForRecovery(SteamRoomProtocol.Encode(lobby), generation)) return true;
+        _reconnect.CompleteAttempt(_reconnectSource, generation, RoomFailure.Unavailable);
+        return false;
+    }
+
+    private void CancelObsoleteRecovery()
+    {
+        foreach (var pending in new[] { _queued, _inFlight })
+        {
+            if (pending == null || pending.Request.RecoveryGeneration == 0
+                || _reconnect.IsAttemptCurrent(_reconnectSource, pending.Request.RecoveryGeneration)) continue;
+            pending.Cancelled = true;
+            pending.Client.CancelRecoveryRequest(pending.Request.Id);
+        }
     }
 
     public bool TryTakeJoinRequest(out string roomCode)
@@ -144,32 +196,39 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
 
     public void Request(RoomClient client, RoomRequest request)
     {
+        if (request.RecoveryGeneration != 0 && !_reconnect.IsAttemptCurrent(_reconnectSource, request.RecoveryGeneration))
+        {
+            client.TryComplete(request.Id, () => new RoomResult(RoomFailure.Unavailable));
+            return;
+        }
         if (!IsAvailable || client.Id != 1 || _client != null && !ReferenceEquals(_client, client)
             && (_client.JoinedCode.Length > 0 || _client.IsBusy))
         {
-            client.TryComplete(request.Id, () => new RoomResult(RoomFailure.Unavailable));
+            CompleteRequestFailure(client, request, RoomFailure.Unavailable);
             return;
         }
         _client = client;
         if (request.Operation == RoomOperation.Create && !SteamRoomProtocol.IsNameValid(request.Value))
         {
-            client.TryComplete(request.Id, () => new RoomResult(RoomFailure.InvalidName));
+            CompleteRequestFailure(client, request, RoomFailure.InvalidName);
             return;
         }
         if (request.Operation == RoomOperation.Join)
         {
             if (!SteamRoomProtocol.TryDecode(request.Value, out var lobby))
             {
-                client.TryComplete(request.Id, () => new RoomResult(RoomFailure.NotFound));
+                CompleteRequestFailure(client, request, RoomFailure.NotFound);
                 return;
             }
             if (_blockedLobbies.Contains(lobby))
             {
-                client.TryComplete(request.Id, () => new RoomResult(RoomFailure.Banned));
+                CompleteRequestFailure(client, request, RoomFailure.Banned);
                 return;
             }
             if (lobby == _lobby)
             {
+                if (request.RecoveryGeneration != 0)
+                    _reconnect.CompleteAttempt(_reconnectSource, request.RecoveryGeneration, RoomFailure.None);
                 client.TryComplete(request.Id, () => RoomResult.Success);
                 return;
             }
@@ -198,7 +257,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         if (_now() - pending.RequestedAt >= RoomRules.RequestTimeout) return;
         if (!IsAvailable)
         {
-            pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+            CompleteMembershipFailure(pending, RoomFailure.Unavailable);
             return;
         }
         _inFlight = pending;
@@ -225,9 +284,25 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     private static ulong Decode(string code)
         => SteamRoomProtocol.TryDecode(code, out var lobby) ? lobby : 0;
 
-    private bool CanCommit(Pending pending) => !_disposed && !pending.Cancelled && IsAvailable
-        && ReferenceEquals(_client, pending.Client) && pending.Client.IsRequestCurrent(pending.Request.Id)
+    private bool CanCommit(Pending pending) => pending.Client.IsRequestCurrent(pending.Request.Id) && CanCommitState(pending);
+
+    private bool CanCommitState(Pending pending) => !_disposed && !pending.Cancelled && IsAvailable
+        && ReferenceEquals(_client, pending.Client)
+        && (pending.Request.RecoveryGeneration == 0 || _reconnect.IsAttemptCurrent(_reconnectSource, pending.Request.RecoveryGeneration))
         && _now() - pending.RequestedAt < RoomRules.RequestTimeout;
+
+    private void CompleteMembershipFailure(Pending pending, RoomFailure failure, bool retryable = true)
+        => CompleteRequestFailure(pending.Client, pending.Request, failure, retryable);
+
+    private void CompleteRequestFailure(RoomClient client, RoomRequest request, RoomFailure failure, bool retryable = true)
+    {
+        if (request.RecoveryGeneration != 0)
+        {
+            if (!retryable && _reconnect.IsAttemptCurrent(_reconnectSource, request.RecoveryGeneration)) _reconnect.Stop(failure);
+            else _reconnect.CompleteAttempt(_reconnectSource, request.RecoveryGeneration, failure);
+        }
+        client.TryComplete(request.Id, () => new RoomResult(failure));
+    }
 
     private void CompleteSearch(Pending pending, SteamRoomSearchResult result)
     {
@@ -278,8 +353,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             if (!CanCommit(pending)) return;
             if (result.Failure != RoomFailure.None || result.LobbyId == 0)
             {
-                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(
-                    result.Failure == RoomFailure.None ? RoomFailure.Unavailable : result.Failure));
+                CompleteMembershipFailure(pending, result.Failure == RoomFailure.None ? RoomFailure.Unavailable : result.Failure);
                 return;
             }
             if (pending.Request.Operation == RoomOperation.Join && Decode(pending.Request.Value) != result.LobbyId)
@@ -297,18 +371,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
                 || !data.Members.Any(member => member.SteamId == _transport.LocalSteamId))
             {
-                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.NotFound));
+                CompleteMembershipFailure(pending, RoomFailure.NotFound);
                 return;
             }
             if (!SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans))
             {
-                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+                CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: false);
                 return;
             }
             if (bans.Contains(_transport.LocalSteamId) || _blockedLobbies.Contains(result.LobbyId))
             {
                 _blockedLobbies.Add(result.LobbyId);
-                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Banned));
+                CompleteMembershipFailure(pending, RoomFailure.Banned);
                 return;
             }
             // The stored policy survives the former host. Reconcile native
@@ -316,7 +390,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             if (data.OwnerId == _transport.LocalSteamId
                 && !_transport.SetAccess(result.LobbyId, data.Access))
             {
-                pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+                CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: false);
                 return;
             }
             // Publish local appearance before switching our committed view. A failed join
@@ -329,6 +403,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             _transport.SetChatSession(result.LobbyId, chatSession.ToString("N"));
             pending.Client.TryComplete(pending.Request.Id, () =>
             {
+                // TryComplete owns the client request gate. Recheck only the service
+                // state and recovery deadline after the native metadata writes.
+                if (!CanCommitState(pending)) return new RoomResult(RoomFailure.Unavailable);
                 var previous = _lobby;
                 _lobby = result.LobbyId;
                 _accessOwner = data.OwnerId;
@@ -348,14 +425,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                 _receivedChatAt.Clear();
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby));
                 Publish(data);
+                if (pending.Request.RecoveryGeneration != 0)
+                    _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.None);
                 accepted = true;
                 if (previous != 0 && previous != _lobby) SafeLeave(previous);
                 return RoomResult.Success;
             });
         }
-        catch { pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable)); }
+        catch { CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: !_transport.IsAvailable); }
         finally
         {
+            if (!accepted && pending.Request.RecoveryGeneration != 0)
+                _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.Unavailable);
             if (!accepted && result.Failure == RoomFailure.None && result.LobbyId != 0 && result.LobbyId != _lobby)
                 SafeLeave(result.LobbyId);
             Finish(pending);
@@ -394,7 +475,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             _lastAppearance = appearance;
             OnLobbyChanged(_lobby);
         }
-        catch { Disconnect(); }
+        catch { DisconnectForCurrentAvailability(); }
     }
 
     public string SetGame(RoomClient client, string gameId) => "Rooms_GameChangeRequired";
@@ -750,7 +831,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             _lastActivity = activity;
             OnLobbyChanged(_lobby);
         }
-        catch { Disconnect(); }
+        catch { DisconnectForCurrentAvailability(); }
     }
 
     public string SendChat(RoomClient client, string text)
@@ -842,6 +923,28 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         }
     }
 
+    private void OnConnectionLost()
+    {
+        if (!_disposed && !_suspended) Disconnect(DisconnectKind.NetworkLost);
+    }
+
+    private void OnMemberDeparture(ulong lobby, ulong member, SteamRoomDepartureKind reason)
+    {
+        if (_disposed || lobby != _lobby || member != _transport.LocalSteamId) return;
+        if (reason == SteamRoomDepartureKind.Disconnected) { Disconnect(DisconnectKind.NetworkLost); return; }
+        if (reason is SteamRoomDepartureKind.Removed or SteamRoomDepartureKind.Banned)
+        {
+            _blockedLobbies.Add(lobby);
+            _client?.RemoveFromRoom(reason == SteamRoomDepartureKind.Banned ? RoomFailure.Banned : RoomFailure.Removed);
+            return;
+        }
+        Disconnect();
+    }
+
+    private void DisconnectForCurrentAvailability()
+        => Disconnect(!_suspended && !_settlementTimedOut && !_transport.IsAvailable
+            ? DisconnectKind.NetworkLost : DisconnectKind.Terminal);
+
     private void OnLobbyChanged(ulong lobby)
     {
         if (_disposed || _lobby == 0 || lobby != 0 && lobby != _lobby) return;
@@ -852,7 +955,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             _refreshLobbyAfterCompanionWrite = true;
             return;
         }
-        if (!IsAvailable) { Disconnect(); return; }
+        if (!IsAvailable) { DisconnectForCurrentAvailability(); return; }
         try
         {
             var data = ApplyRenameOverride(_transport.ReadLobby(_lobby, true));
@@ -879,7 +982,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
             }
             Publish(data);
         }
-        catch { Disconnect(); }
+        catch { DisconnectForCurrentAvailability(); }
     }
 
     private bool ApplyBans(HashSet<ulong> bans)
@@ -1037,11 +1140,14 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     public void Leave(RoomClient client)
     {
         if (!ReferenceEquals(client, _client)) return;
+        CancelReconnect(client);
         // The page also disposes its old client when a platform session becomes
         // unavailable. That teardown must not erase the shared recovery inbox.
         if (IsAvailable) _invitations.Clear();
         LeaveRoom(client);
     }
+
+    public void Release(RoomClient client) => LeaveRoom(client);
 
     private void LeaveRoom(RoomClient client)
     {
@@ -1068,13 +1174,15 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     // Called from the existing platform service before and after its Steam callback pump.
     public void Tick()
     {
+        _reconnect.Tick();
+        CancelObsoleteRecovery();
         // A callback can be delayed beyond the UI's 15-second timeout. After a bounded
         // grace period, fail the room service closed instead of trapping new requests in
         // an endless queue. Keep the callback for late membership cleanup; it can restore
         // availability after settlement. If Steam never settles, a platform restart is
         // needed, and we must not reset the shared inventory session speculatively.
         if (_inFlight != null && _now() - _inFlight.StartedAt >= 45) _settlementTimedOut = true;
-        if (!_disposed && !IsAvailable) Disconnect();
+        CheckAvailability();
         if (!_disposed && IsAvailable && _lobby != 0 && _lastRoomData != null)
         {
             try
@@ -1105,7 +1213,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
                     Publish(_lastRoomData, refreshCompanions: false);
                 }
             }
-            catch { Disconnect(); }
+            catch { DisconnectForCurrentAvailability(); }
         }
     }
 
@@ -1116,15 +1224,29 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
         if (suspended && !_disposed) Disconnect();
     }
 
-    private void Disconnect()
+    private void Disconnect(DisconnectKind kind = DisconnectKind.Terminal)
     {
+        if (_reconnect.IsSourceCurrent(_reconnectSource))
+        {
+            bool explicitMembershipPending = new[] { _queued, _inFlight }.Any(p => p != null && !p.Cancelled
+                && p.Request.RecoveryGeneration == 0 && p.Request.Operation is RoomOperation.Create or RoomOperation.Join);
+            if (kind == DisconnectKind.NetworkLost && !_suspended && !_settlementTimedOut
+                && !_invitations.HasPending && !explicitMembershipPending
+                && _lobby != 0 && _client?.View != null && RoomRules.IsRoomMode(_client.View.GameId))
+                _reconnect.Interrupt(_reconnectSource, _lobby);
+            else if (kind == DisconnectKind.Terminal)
+            {
+                if (_reconnect.IsPending) _reconnect.Stop();
+                else if (_lobby != 0) _reconnect.Clear();
+            }
+        }
         if (_queued != null)
-            _queued.Client.TryComplete(_queued.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+            CompleteMembershipFailure(_queued, RoomFailure.Unavailable);
         _queued = null;
         if (_inFlight != null)
         {
             _inFlight.Cancelled = true;
-            _inFlight.Client.TryComplete(_inFlight.Request.Id, () => new RoomResult(RoomFailure.Unavailable));
+            CompleteMembershipFailure(_inFlight, RoomFailure.Unavailable);
         }
         // A freshly accepted invitation may outlive a transient platform disconnect.
         // Recovery owns the inbox; unlike an explicit Leave/kick, teardown does not discard it.
@@ -1140,10 +1262,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IDispos
     public void Dispose()
     {
         if (_disposed) return;
-        Disconnect();
+        Disconnect(DisconnectKind.SessionDisposed);
         _disposed = true;
         _transport.LobbyChanged -= OnLobbyChanged;
         _transport.MemberDeparted -= OnMemberDeparted;
+        _transport.MemberDeparture -= OnMemberDeparture;
+        _transport.ConnectionLost -= OnConnectionLost;
         _transport.ChatReceived -= OnChatReceived;
         _transport.JoinRequested -= OnJoinRequested;
         _inFlight?.Handle?.Dispose();

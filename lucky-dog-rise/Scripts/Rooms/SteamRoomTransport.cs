@@ -15,11 +15,15 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     private readonly Callback<LobbyChatMsg_t> _chatReceived;
     private readonly Callback<PersonaStateChange_t> _personaChanged;
     private readonly Callback<SteamServersDisconnected_t> _disconnected;
+    private readonly Callback<SteamServersConnected_t> _connected;
     private readonly Callback<GameLobbyJoinRequested_t> _joinRequested;
     private bool _disposed;
+    private bool _serverDisconnected;
     public ulong LocalSteamId { get; }
     public event Action<ulong> LobbyChanged = delegate { };
     public event Action<ulong, ulong> MemberDeparted = delegate { };
+    public event Action<ulong, ulong, SteamRoomDepartureKind> MemberDeparture = delegate { };
+    public event Action ConnectionLost = delegate { };
     public event Action<ulong, ulong, byte[]> ChatReceived = delegate { };
     public event Action<ulong> JoinRequested = delegate { };
     public long ServerTime => CanUseApi ? SteamUtils.GetServerRealTime() : 0;
@@ -56,15 +60,33 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
                 | EChatMemberStateChange.k_EChatMemberStateChangeDisconnected
                 | EChatMemberStateChange.k_EChatMemberStateChangeKicked
                 | EChatMemberStateChange.k_EChatMemberStateChangeBanned;
-            if (((EChatMemberStateChange)data.m_rgfChatMemberStateChange & departing) != 0)
+            var change = (EChatMemberStateChange)data.m_rgfChatMemberStateChange;
+            if ((change & departing) != 0)
+            {
+                var reason = (change & EChatMemberStateChange.k_EChatMemberStateChangeBanned) != 0 ? SteamRoomDepartureKind.Banned
+                    : (change & EChatMemberStateChange.k_EChatMemberStateChangeKicked) != 0 ? SteamRoomDepartureKind.Removed
+                    : (change & EChatMemberStateChange.k_EChatMemberStateChangeDisconnected) != 0 ? SteamRoomDepartureKind.Disconnected
+                    : SteamRoomDepartureKind.Left;
+                MemberDeparture(data.m_ulSteamIDLobby, data.m_ulSteamIDUserChanged, reason);
                 MemberDeparted(data.m_ulSteamIDLobby, data.m_ulSteamIDUserChanged);
+            }
             LobbyChanged(data.m_ulSteamIDLobby);
         });
         _personaChanged = Callback<PersonaStateChange_t>.Create(_ =>
         {
             if (CanUseApi) LobbyChanged(0);
         });
-        _disconnected = Callback<SteamServersDisconnected_t>.Create(_ => LobbyChanged(0));
+        _disconnected = Callback<SteamServersDisconnected_t>.Create(_ =>
+        {
+            _serverDisconnected = true;
+            ConnectionLost();
+            LobbyChanged(0);
+        });
+        _connected = Callback<SteamServersConnected_t>.Create(_ =>
+        {
+            _serverDisconnected = false;
+            LobbyChanged(0);
+        });
     }
 
     private bool CanUseApi => !_disposed && _runtime.IsInitialized
@@ -74,7 +96,7 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
     {
         get
         {
-            try { return CanUseApi && SteamUser.BLoggedOn(); }
+            try { return CanUseApi && !_serverDisconnected && SteamUser.BLoggedOn(); }
             catch { return false; }
         }
     }
@@ -313,6 +335,7 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         _joinRequested.Dispose();
         _chatReceived.Dispose();
         _disconnected.Dispose();
+        _connected.Dispose();
         _personaChanged.Dispose();
         _membersChanged.Dispose();
         _dataChanged.Dispose();

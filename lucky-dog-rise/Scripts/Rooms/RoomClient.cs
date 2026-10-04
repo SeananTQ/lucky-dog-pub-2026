@@ -55,10 +55,12 @@ public sealed class RoomClient : IDisposable
     public bool Create(string name, bool joiningFromDirectory = false)
         => BeginRequest(RoomOperation.Create, name, joiningFromDirectory);
     public bool Join(string code) => BeginRequest(RoomOperation.Join, code);
+    internal bool JoinForRecovery(string code, long generation) => BeginRequest(RoomOperation.Join, code, recoveryGeneration: generation);
     public bool Search() => BeginRequest(RoomOperation.Search, "");
     public bool FindAndJoin()
     {
         if (IsBusy || _disposed || _committing) return false;
+        CancelReconnect();
         _joinAfterSearch = true;
         return BeginRequest(RoomOperation.Search, "");
     }
@@ -77,13 +79,14 @@ public sealed class RoomClient : IDisposable
     public string Kick(int memberId, long presence) => _disposed || _committing
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
-    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false)
+    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0)
     {
         if (IsBusy || _disposed || _committing) return false;
+        if (recoveryGeneration == 0 && operation is RoomOperation.Create or RoomOperation.Join) CancelReconnect();
         Operation = operation;
         RequestState = RoomRequestState.Pending;
         Failure = RoomFailure.None;
-        _request = new RoomRequest(++_nextRequestId, operation, value ?? "");
+        _request = new RoomRequest(++_nextRequestId, operation, value ?? "", recoveryGeneration);
         // This is presentation intent for one accepted request, not a different
         // transport operation. Busy/reentrant rejected calls cannot overwrite it.
         _directoryCreateRequestId = operation == RoomOperation.Create && joiningFromDirectory ? _request.Id : 0;
@@ -115,6 +118,7 @@ public sealed class RoomClient : IDisposable
         if (!IsRequestCurrent(id)) return false;
         var autoJoin = _joinAfterSearch && Operation == RoomOperation.Search;
         bool directoryJoin = _directoryCreateRequestId == id && Operation == RoomOperation.Create;
+        bool recovering = _request.RecoveryGeneration != 0;
         _directoryCreateRequestId = 0;
         _joinAfterSearch = false;
         _request = null;
@@ -131,17 +135,24 @@ public sealed class RoomClient : IDisposable
                 RequestState = RoomRequestState.Failed;
             }
         }
-        if ((Operation == RoomOperation.Join || autoJoin || directoryJoin) && RequestState == RoomRequestState.Failed)
+        if ((Operation == RoomOperation.Join || autoJoin || directoryJoin) && RequestState == RoomRequestState.Failed
+            && (!recovering || (_service as IRoomReconnectService)?.ReconnectContext.IsPending != true))
             JoinFailed?.Invoke(Failure, false);
         Changed?.Invoke();
         return true;
     }
 
-    public void Cancel() => CancelPending(RoomRequestState.Cancelled);
+    private void CancelReconnect() => (_service as IRoomReconnectService)?.CancelReconnect(this);
+    public void Cancel() { CancelReconnect(); CancelPending(RoomRequestState.Cancelled); }
+    internal void CancelRecoveryRequest(long id)
+    {
+        if (_request?.Id == id && _request.RecoveryGeneration != 0) CancelPending(RoomRequestState.Cancelled);
+    }
     private void CancelPending(RoomRequestState state)
     {
         if (_request == null) return;
         bool joining = Operation == RoomOperation.Join || _joinAfterSearch || _directoryCreateRequestId == _request.Id;
+        bool recovering = _request.RecoveryGeneration != 0;
         var id = _request.Id;
         _directoryCreateRequestId = 0;
         _request = null; // Invalidate before invoking a possibly reentrant adapter.
@@ -152,7 +163,7 @@ public sealed class RoomClient : IDisposable
         // Cancellation adapters can reenter; an old timeout must not overwrite
         // a newer attempt or an explicit leave from that callback.
         if (_disposed || _nextRequestId != id || RequestState != state) return;
-        if (joining && state == RoomRequestState.TimedOut) JoinFailed?.Invoke(RoomFailure.None, true);
+        if (joining && state == RoomRequestState.TimedOut && !recovering) JoinFailed?.Invoke(RoomFailure.None, true);
         if (!_committing) Changed?.Invoke();
     }
     public void Leave()
@@ -178,6 +189,7 @@ public sealed class RoomClient : IDisposable
     internal void RemoveFromRoom(RoomFailure reason)
     {
         if (_disposed) return;
+        CancelReconnect();
         var wasCommitting = _committing;
         _committing = true;
         try
@@ -225,7 +237,7 @@ public sealed class RoomClient : IDisposable
         Changed = null;
         JoinFailed = null;
         CancelPending(RoomRequestState.Cancelled);
-        _service.Leave(this);
+        _service.Release(this);
     }
 
     public RoomClient(IRoomService service, int id, string name, int skinId)

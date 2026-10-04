@@ -1501,19 +1501,19 @@ public static class SteamRoomChecks
         Assert(!client.TongueActive && client.View == null && !client.IsTongueActive(remoteId), "disconnect clears transient state");
     }
 
-    private sealed class FakeHandle : IDisposable
+    internal sealed class FakeHandle : IDisposable
     {
         public bool CallbackDelivered;
         public bool DisposedBeforeCallback;
         public void Dispose() { if (!CallbackDelivered) DisposedBeforeCallback = true; }
     }
 
-    private sealed class FakeTransport : ISteamRoomTransport
+    internal sealed class FakeTransport : ISteamRoomTransport
     {
         private readonly Queue<(Action<SteamRoomJoinResult> Callback, FakeHandle Handle)> _membership = new();
         private Action<SteamRoomSearchResult> _search;
         private FakeHandle _searchHandle;
-        public ulong LocalSteamId => 77;
+        public ulong LocalSteamId { get; set; } = 77;
         public bool IsAvailable { get; set; } = true;
         public bool InitializeSucceeds = true;
         public readonly List<(ulong Lobby, RoomAccess Access)> AccessWrites = new();
@@ -1577,6 +1577,9 @@ public static class SteamRoomChecks
         }
         public void DeliverChat(ulong lobby, ulong sender, byte[] message) => ChatReceived(lobby, sender, message);
         public int MembershipCalls;
+        public int CreateCalls;
+        public int SearchCalls;
+        public readonly List<ulong> JoinTargets = new();
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
         public readonly List<ulong> Left = new();
         public readonly List<string> AppearanceWrites = new();
@@ -1584,19 +1587,29 @@ public static class SteamRoomChecks
         public readonly List<FakeHandle> RequestHandles = new();
         public event Action<ulong> LobbyChanged = delegate { };
         public event Action<ulong, ulong> MemberDeparted = delegate { };
+        public event Action<ulong, ulong, SteamRoomDepartureKind> MemberDeparture = delegate { };
+        public event Action ConnectionLost = delegate { };
+        public void Disconnect() => ConnectionLost();
+        public void Depart(ulong lobby, SteamRoomDepartureKind reason)
+            => MemberDeparture(lobby, LocalSteamId, reason);
 
         public void Seed(ulong lobby, params SteamRoomMemberData[] other)
         {
-            var members = new[] { new SteamRoomMemberData(77, "local Steam name", "1:10:0:1001") }.Concat(other).ToArray();
-            Rooms[lobby] = new SteamRoomData(lobby, SteamRoomProtocol.Version, "room", "social", 77,
+            var members = new[] { new SteamRoomMemberData(LocalSteamId, "local Steam name", "1:10:0:1001") }.Concat(other).ToArray();
+            Rooms[lobby] = new SteamRoomData(lobby, SteamRoomProtocol.Version, "room", "social", LocalSteamId,
                 members.Length, 6, members, CreatedAt: ServerTime,
                 GameState: SteamRoomProtocol.EncodeGameState(new SteamRoomGameState(1, "social")));
             NativeAccess[lobby] = RoomAccess.Public;
         }
-        public IDisposable Create(Action<SteamRoomJoinResult> completed) => Join(0, completed);
+        public IDisposable Create(Action<SteamRoomJoinResult> completed)
+        {
+            CreateCalls++;
+            return Join(0, completed);
+        }
         public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
         {
             MembershipCalls++;
+            JoinTargets.Add(lobbyId);
             var handle = new FakeHandle();
             RequestHandles.Add(handle);
             _membership.Enqueue((completed, handle));
@@ -1604,6 +1617,7 @@ public static class SteamRoomChecks
         }
         public IDisposable Search(Action<SteamRoomSearchResult> completed)
         {
+            SearchCalls++;
             _search = completed;
             _searchHandle = new FakeHandle();
             return _searchHandle;

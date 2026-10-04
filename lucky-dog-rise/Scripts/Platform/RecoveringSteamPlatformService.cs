@@ -29,6 +29,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     private SteamInitializationFailureKind _lastInitializationFailure;
 #if !DEMO_BUILD && !RECORDING_BUILD
     private readonly Rooms.SteamRoomInviteInbox _roomInvitations;
+    private readonly Rooms.RoomReconnectContext _roomReconnect = new();
 #endif
 
     public RecoveringSteamPlatformService(bool enableInventory = true)
@@ -60,6 +61,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         ? _session?.RoomService : null;
     public bool RoomRestartRequired => !_disposed && !HasAccountIdentityConflict
         && _session?.RoomRestartRequired == true;
+    public Rooms.RoomReconnectContext RoomReconnect => !_disposed && !HasAccountIdentityConflict ? _roomReconnect : null;
 #endif
     public System.Threading.Tasks.Task<bool> SaveScreenshotAsync(byte[] rgb, int width, int height)
     {
@@ -307,6 +309,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         DisposeSession();
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomInvitations.Clear();
+        _roomReconnect.Clear();
 #endif
         _disposed = true;
         SetConnectionState(PlatformConnectionState.Offline);
@@ -342,7 +345,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
 
         _session = new SteamGamePlatformService(runtime
 #if !DEMO_BUILD && !RECORDING_BUILD
-            , _roomInvitations
+            , _roomInvitations, _roomReconnect
 #endif
             );
         _session.UserStatsReady += OnUserStatsReady;
@@ -372,6 +375,7 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
         DisposeSession();
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomInvitations.Clear();
+        _roomReconnect.Clear();
 #endif
         SetConnectionState(PlatformConnectionState.Unavailable);
         AccountIdentityConflictDetected(_accountId, actualAccountId);

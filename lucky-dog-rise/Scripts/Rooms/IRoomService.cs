@@ -19,6 +19,8 @@ public interface IRoomService
     void Request(RoomClient client, RoomRequest request);
     void Cancel(RoomClient client, long requestId);
     void Leave(RoomClient client);
+    // Replacing a disconnected UI client is lifecycle cleanup, not user intent.
+    void Release(RoomClient client) => Leave(client);
     void UpdateAppearance(RoomClient client);
     void UpdateActivity(RoomClient client);
     string Kick(RoomClient client, int memberId, long presence);

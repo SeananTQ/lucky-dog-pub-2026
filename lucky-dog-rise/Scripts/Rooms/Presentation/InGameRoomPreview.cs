@@ -71,6 +71,14 @@ public partial class InGameRoomPreview : VBoxContainer
     private bool _nameImeAtKey;
     private bool _nameCommitQueued;
     private bool _exitingTree;
+    private VBoxContainer _reconnectPanel;
+    private Label _reconnectMessage;
+    private Button _reconnectCancel;
+    private string _lastReconnectStatus = "";
+    private bool _lastReconnectPending;
+    private RoomReconnectContext Reconnect => _isMock ? null
+        : (_platform as IPlatformRoomServiceProvider)?.RoomReconnect
+            ?? (_service as IRoomReconnectService)?.ReconnectContext;
     public event Action<RoomClient> ClientChanged;
     public event Action PageChanged;
     public RoomClient CurrentClient => _client;
@@ -166,6 +174,10 @@ public partial class InGameRoomPreview : VBoxContainer
         _random.Pressed += () => { _noticeKey = ""; _client?.FindAndJoin(); };
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
+        _reconnectPanel = GetNode<VBoxContainer>("Recovery");
+        _reconnectMessage = GetNode<Label>("Recovery/Message");
+        _reconnectCancel = GetNode<Button>("Recovery/Cancel");
+        _reconnectCancel.Pressed += CancelRoomReconnect;
         _return.Pressed += () => { _browsing = false; _dirty = true; NotifyPageChanged(); };
         _codeVisibility.Pressed += ToggleCodeVisibility;
         _invite.Pressed += InviteFriends;
@@ -203,6 +215,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // different origin, so mixing them leaves otherwise valid bubbles stuck.
         if (!_isMock && _client != null) _client.AdvanceTo(_service.Now);
         ConsumeAcceptedInvite();
+        UpdateRoomReconnect();
         if (!IsVisibleInTree())
         {
             CancelKick();
@@ -216,6 +229,7 @@ public partial class InGameRoomPreview : VBoxContainer
     public override void _ExitTree()
     {
         _exitingTree = true;
+        Reconnect?.Clear();
         L10n.Changed -= OnLanguageChanged;
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         ReplaceClient(null);
@@ -253,7 +267,8 @@ public partial class InGameRoomPreview : VBoxContainer
         ReplaceClient(client);
         // A known invite already supplies the target. Do not put an unnecessary
         // directory search in front of the cold-start join on Steam's callback queue.
-        if (current is not IRoomInviteService { HasPendingJoinRequest: true }) client.Search();
+        if (Reconnect?.IsPending != true
+            && current is not IRoomInviteService { HasPendingJoinRequest: true }) client.Search();
     }
 
     private void ReplaceClient(RoomClient client)
@@ -328,7 +343,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (GodotObject.IsInstanceValid(this) && IsInsideTree()) PageChanged?.Invoke();
     }).CallDeferred();
     public void OnBrowse() { CancelKick(); HideGameProposal(); CommitNameEdit(); CloseRoomDropdowns(); _browsing = true; RefreshRooms(); _dirty = true; NotifyPageChanged(); }
-    public void OnLeave() { CancelKick(); HideGameProposal(); CancelNameEdit(); CloseRoomDropdowns(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
+    public void OnLeave() { CancelRoomReconnect(); CancelKick(); HideGameProposal(); CancelNameEdit(); CloseRoomDropdowns(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
     public void OnCopyCode()
     {
         if (_client == null || _client.JoinedCode.Length == 0) return;
@@ -542,6 +557,7 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         if (_isMock || _client == null || _service is not IRoomInviteService invitations
             || !invitations.TryTakeJoinRequest(out string code)) return;
+        CancelRoomReconnect();
         CancelKick();
         _noticeKey = "";
         _client.Cancel();
@@ -550,6 +566,45 @@ public partial class InGameRoomPreview : VBoxContainer
         if (!string.Equals(_client.JoinedCode, code, StringComparison.OrdinalIgnoreCase))
             _client.Join(code);
         _dirty = true;
+    }
+
+    private void CancelRoomReconnect()
+    {
+        if (Reconnect?.IsPending != true) return;
+        if (_service is IRoomReconnectService reconnect && _client != null)
+            reconnect.CancelReconnect(_client);
+        else Reconnect.Cancel();
+        _dirty = true;
+    }
+
+    private void UpdateRoomReconnect()
+    {
+        var context = Reconnect;
+        context?.Tick();
+        if (context?.IsPending == true && _restartRequired) context.Stop();
+        if (context?.IsPending == true && _client != null
+            && _service is IRoomReconnectService service)
+            service.TryReconnect(_client);
+        string status = context?.StatusKey ?? "";
+        bool pending = context?.IsPending == true;
+        if (status != _lastReconnectStatus || pending != _lastReconnectPending)
+        {
+            _lastReconnectStatus = status;
+            _lastReconnectPending = pending;
+            _dirty = true;
+        }
+    }
+
+    private void RenderRoomReconnect()
+    {
+        var context = Reconnect;
+        string key = context?.StatusKey ?? "";
+        _reconnectPanel.Visible = key.Length > 0;
+        string text = key.Length > 0 ? L10n.Tr(key) : "";
+        if (key == "Rooms_ReconnectStopped" && context.LastFailure is not RoomFailure.None and not RoomFailure.Unavailable)
+            text += "\n" + L10n.Tr(FailureKey(context.LastFailure));
+        _reconnectMessage.Text = text;
+        _reconnectCancel.Visible = context?.IsPending == true;
     }
 
     private string KickTargetError(RoomClient client, long session, int memberId, long presence)
@@ -625,6 +680,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
+        RenderRoomReconnect();
         RenderCodePrivacy();
         RenderAccess();
         RenderName();
@@ -650,13 +706,13 @@ public partial class InGameRoomPreview : VBoxContainer
         _room.Visible = !_lobby.Visible;
         _return.Visible = joined;
         _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = _client.IsBusy;
-        _cancel.Visible = _client.IsBusy;
+        _cancel.Visible = _client.IsBusy && Reconnect?.IsPending != true;
         _invite.Disabled = !joined || _client.IsBusy || _isMock || _service is not IRoomInviteService;
         _invite.TooltipText = _isMock || _service is not IRoomInviteService
             ? L10n.Tr("Rooms_InviteUnavailable") : "";
         _status.Text = L10n.Tr(_noticeKey.Length > 0 ? _noticeKey : StatusKey());
         _status.Visible = _status.Text.Length > 0;
-        bool companionEntry = HasEmptySearchResult;
+        bool companionEntry = HasEmptySearchResult && Reconnect?.IsPending != true;
         // Empty successful searches offer the local companion entry. Pending or
         // failed requests must not imply that the actual Steam directory is empty.
         _empty.Hide();

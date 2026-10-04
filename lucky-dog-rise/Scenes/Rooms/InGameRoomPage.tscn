@@ -46,6 +46,23 @@ auto_translate_mode = 2
 autowrap_mode = 3
 label_settings = ExtResource("group_title")
 
+[node name="Recovery" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Message" type="Label" parent="Recovery"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+label_settings = ExtResource("helper_label")
+
+[node name="Cancel" type="Button" parent="Recovery"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+theme_type_variation = &"CapsuleButton"
+text = "Rooms_ReconnectCancel"
+
 [node name="Lobby" type="VBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 8

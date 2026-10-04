@@ -592,8 +592,10 @@ public partial class RoomLab : Control
             GD.Print(RoomSandboxChecks.Run());
             GD.Print(RoomCompanionChecks.Run());
             SteamRoomChecks.Run();
+            GD.Print(RoomReconnectChecks.Run());
             GD.Print("[SteamRoomChecks] PASS protocol, callbacks, membership, appearance, activity leases, chat, removal, invitation admission/queue/recovery and startup args (fake transport and filter API delegates; no native Steam).");
             await SteamRoomPageChecks.Run(this);
+            await RoomReconnectPageChecks.Run(this);
             await RoomAccessPageChecks.Run(this);
             await RoomSettingsPageChecks.Run(this);
             await RoomGameChangePageChecks.Run(this);

@@ -79,7 +79,7 @@ public static class RoomRules
 public enum RoomOperation { None, Search, Create, Join }
 public enum RoomRequestState { Idle, Pending, Succeeded, Failed, Cancelled, TimedOut }
 public enum RoomFailure { None, InvalidName, NotFound, Full, Unavailable, NoMatchingRoom, Removed, Banned, AccessDenied }
-public sealed record RoomRequest(long Id, RoomOperation Operation, string Value);
+public sealed record RoomRequest(long Id, RoomOperation Operation, string Value, long RecoveryGeneration = 0);
 public sealed record RoomResult(RoomFailure Failure, RoomListing[] Rooms = null)
 {
     public static RoomResult Success { get; } = new(RoomFailure.None);

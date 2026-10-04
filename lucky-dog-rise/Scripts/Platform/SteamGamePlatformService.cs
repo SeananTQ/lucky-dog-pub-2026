@@ -39,12 +39,19 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 #if !DEMO_BUILD && !RECORDING_BUILD
     private Rooms.SteamRoomService _roomService;
     private readonly Rooms.SteamRoomInviteInbox _roomInvitations;
+    private readonly Rooms.RoomReconnectContext _roomReconnect;
+    public Rooms.RoomReconnectContext RoomReconnect => _roomReconnect;
     public bool RoomRestartRequired => _roomService?.RestartRequired == true;
     public Rooms.IRoomService RoomService
     {
         get
         {
-            if (!BuildCapabilities.SteamRooms || !IsAvailable) return null;
+            if (!BuildCapabilities.SteamRooms) return null;
+            if (!IsAvailable)
+            {
+                _roomService?.CheckAvailability();
+                return null;
+            }
             if (_roomService == null)
             {
                 var tables = LubanData.Tables;
@@ -60,9 +67,10 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
                 _roomService = new Rooms.SteamRoomService(new Rooms.SteamRoomTransport(_runtime),
                     tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains,
                     invitations: _roomInvitations, companions: companionSkins.Length > 0
-                        ? now => Rooms.RoomCompanionPlan.Create(companionSkins, companionHats, now) : null);
+                        ? now => Rooms.RoomCompanionPlan.Create(companionSkins, companionHats, now) : null,
+                    reconnect: _roomReconnect, appId: AppId);
             }
-            return _roomService.IsAvailable ? _roomService : null;
+            return _roomService.CheckAvailability() ? _roomService : null;
         }
     }
 #endif
@@ -75,12 +83,14 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     public SteamGamePlatformService(SteamworksRuntime runtime
 #if !DEMO_BUILD && !RECORDING_BUILD
         , Rooms.SteamRoomInviteInbox roomInvitations = null
+        , Rooms.RoomReconnectContext roomReconnect = null
 #endif
         )
     {
         _runtime = runtime;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomInvitations = roomInvitations ?? new Rooms.SteamRoomInviteInbox();
+        _roomReconnect = roomReconnect ?? new Rooms.RoomReconnectContext();
 #endif
         _userStatsReceivedCallback = Callback<UserStatsReceived_t>.Create(OnUserStatsReceived);
         _userStatsStoredCallback = Callback<UserStatsStored_t>.Create(OnUserStatsStored);

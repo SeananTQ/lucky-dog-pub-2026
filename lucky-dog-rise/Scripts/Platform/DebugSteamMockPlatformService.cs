@@ -115,6 +115,8 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
     private Rooms.SteamRoomService _realRoomService;
     public bool RoomRestartRequired => !_disposed && !IsMockActive
         && (_inner as Rooms.IPlatformRoomServiceProvider)?.RoomRestartRequired == true;
+    public Rooms.RoomReconnectContext RoomReconnect => !_disposed && !IsMockActive
+        ? (_inner as Rooms.IPlatformRoomServiceProvider)?.RoomReconnect : null;
     public Rooms.IRoomService RoomService
     {
         get
@@ -133,6 +135,7 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
         if ((_inner as Rooms.IPlatformRoomServiceProvider)?.RoomService is Rooms.SteamRoomService real)
             _realRoomService = real;
         _realRoomService?.SetSuspended(true);
+        (_inner as Rooms.IPlatformRoomServiceProvider)?.RoomReconnect?.Clear();
     }
 #endif
     public bool CanUseRealSteam => _canUseRealSteam;

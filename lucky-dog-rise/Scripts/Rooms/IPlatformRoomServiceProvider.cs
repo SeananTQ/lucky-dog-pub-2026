@@ -6,5 +6,6 @@ public interface IPlatformRoomServiceProvider
 {
     IRoomService RoomService { get; }
     bool RoomRestartRequired => false;
+    RoomReconnectContext RoomReconnect => null;
 }
 #endif

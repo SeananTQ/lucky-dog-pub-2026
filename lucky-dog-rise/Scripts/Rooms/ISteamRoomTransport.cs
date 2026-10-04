@@ -9,6 +9,7 @@ public sealed record SteamRoomData(ulong LobbyId, string Protocol, string Name, 
     RoomAccess Access = RoomAccess.Public, string Companions = "", long? CreatedAt = null, string GameState = "");
 public sealed record SteamRoomJoinResult(RoomFailure Failure, ulong LobbyId);
 public sealed record SteamRoomSearchResult(RoomFailure Failure, ulong[] LobbyIds);
+public enum SteamRoomDepartureKind { Left, Disconnected, Removed, Banned }
 
 /// <summary>
 /// All callbacks run on the shared platform callback pump. Disposing a request handle
@@ -21,6 +22,9 @@ public interface ISteamRoomTransport : IDisposable
     long ServerTime { get; }
     event Action<ulong> LobbyChanged;
     event Action<ulong, ulong> MemberDeparted;
+    // Optional richer causes; legacy fakes retain their existing event contract.
+    event Action<ulong, ulong, SteamRoomDepartureKind> MemberDeparture { add { } remove { } }
+    event Action ConnectionLost { add { } remove { } }
     event Action<ulong, ulong, byte[]> ChatReceived;
     event Action<ulong> JoinRequested;
     bool OpenInviteDialog(ulong lobbyId);
