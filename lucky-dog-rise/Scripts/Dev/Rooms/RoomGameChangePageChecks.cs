@@ -57,11 +57,14 @@ internal static class RoomGameChangePageChecks
                 string expected = string.Format(L10n.Tr("Rooms_Age"), string.Format(L10n.Tr("Rooms_AgeHoursMinutes"), 1, 1));
                 Check(age.Visible && age.Text == expected && age.LabelSettings == GD.Load<LabelSettings>("res://Themes/Label_SettingsGroupTitle.tres"),
                     "room age uses the settings heading style and omits zero days and seconds");
-                var row = page.GetNode<HBoxContainer>("Room/Game");
+                var row = page.GetNode<VBoxContainer>("Room/Game");
+                var heading = page.GetNode<Label>("Room/Game/Name");
                 var controls = page.GetNode<HBoxContainer>("Room/Game/Choices");
                 Check(row.Size.X <= 396.1f && controls.Position.X + controls.Size.X <= row.Size.X + .1f
-                    && apply.Position.X + apply.Size.X <= controls.Size.X + .1f,
-                    "Chinese and English activity controls fit a single settings-panel row");
+                    && apply.Position.X + apply.Size.X <= controls.Size.X + .1f
+                    && controls.Position.Y >= heading.Position.Y + heading.Size.Y
+                    && Mathf.IsEqualApprox(controls.Size.X, row.Size.X),
+                    "activity heading sits above a full-width controls row in Chinese and English");
             }
             service.Now = 90065;
             service.Publish(client);
@@ -157,7 +160,7 @@ internal static class RoomGameChangePageChecks
             Check(service.ResponseWrites == 2, "a queued answer cannot cross the captured room session");
             await Frame();
             Check(!overlay.Visible && !page.HasPendingGameProposalPresentation, "session replacement removes old proposal presentation");
-            GD.Print("[RoomGameChangePageChecks] PASS host/guest proposals, manual majority, cancellation, response/dismiss/review, expiry/session guards, draft retention, localized room age and single-row layout (fake service).");
+            GD.Print("[RoomGameChangePageChecks] PASS host/guest proposals, manual majority, cancellation, response/dismiss/review, expiry/session guards, draft retention, localized room age and two-row layout (fake service).");
         }
         finally
         {
