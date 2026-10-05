@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Tests/StoreDialogueSmoke.cs" id="1_smoke"]
+[ext_resource type="PackedScene" path="res://Tools/StoreDialogue/StoreDialogueStage.tscn" id="2_stage"]
+[ext_resource type="PackedScene" path="res://Tools/DogSkinEditor/DogAppearanceEditor.tscn" id="3_editor"]
+[ext_resource type="PackedScene" path="res://Tools/StoreDialogue/StoreDialogue.tscn" id="4_controller"]
+
+[node name="StoreDialogueSmoke" type="Node" node_paths=PackedStringArray("_viewport", "_stage", "_alphaProbe")]
+script = ExtResource("1_smoke")
+_viewport = NodePath("Viewport")
+_stage = NodePath("Viewport/Stage")
+_appearanceEditorScene = ExtResource("3_editor")
+_controllerScene = ExtResource("4_controller")
+_alphaProbe = NodePath("Viewport/AlphaProbe")
+
+[node name="Viewport" type="SubViewport" parent="."]
+transparent_bg = true
+size = Vector2i(1170, 430)
+disable_3d = true
+render_target_update_mode = 4
+
+[node name="Stage" parent="Viewport" instance=ExtResource("2_stage")]
+
+[node name="AlphaProbe" type="ColorRect" parent="Viewport"]
+visible = false
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 16.0
+offset_bottom = 16.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0.5)

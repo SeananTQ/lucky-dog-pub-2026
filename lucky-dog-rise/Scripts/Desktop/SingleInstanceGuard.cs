@@ -53,6 +53,11 @@ public partial class SingleInstanceGuard : Node
     {
         _instance = this;
 #if DEBUG && !RECORDING_BUILD
+        // Standalone dialogue authoring owns no player identity or game mutex.
+        if (OS.GetCmdlineArgs().Any(argument =>
+                argument.Replace('\\', '/').EndsWith("/Tools/StoreDialogue/StoreDialogue.tscn", StringComparison.OrdinalIgnoreCase)
+                || argument.Replace('\\', '/').EndsWith("/Scenes/Dev/Tests/StoreDialogueSmoke.tscn", StringComparison.OrdinalIgnoreCase)))
+            return;
         // The standalone room lab has no account or player state. Do not let it
         // publish/replace the normal Dev identity or acquire its instance mutex.
         if (OS.GetCmdlineArgs().Any(argument => argument.Replace('\\', '/').EndsWith(

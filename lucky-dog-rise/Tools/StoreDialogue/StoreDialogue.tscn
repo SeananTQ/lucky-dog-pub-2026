@@ -1,0 +1,586 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://Tools/StoreDialogue/StoreDialogueController.cs" id="1"]
+[ext_resource type="Theme" path="res://Tools/DogSkinEditor/EditorFiles/DogSkinEditorTheme.tres" id="2"]
+[ext_resource type="PackedScene" path="res://Tools/StoreDialogue/StoreDialogueStage.tscn" id="3"]
+[sub_resource type="Shader" id="checker"]
+code = "shader_type canvas_item;
+void fragment() { vec2 p = floor(UV * vec2(60.0, 28.0)); float c = mod(p.x+p.y, 2.0); COLOR = vec4(vec3(mix(0.23,0.29,c)),1.0); }"
+[sub_resource type="ShaderMaterial" id="checker_mat"]
+shader = SubResource("checker")
+
+[sub_resource type="Shader" id="viewport_preview"]
+code = "shader_type canvas_item;
+render_mode blend_premul_alpha;"
+
+[sub_resource type="ShaderMaterial" id="viewport_preview_mat"]
+shader = SubResource("viewport_preview")
+
+[node name="StoreDialogue" type="Control" node_paths=PackedStringArray("_layout", "_new", "_open", "_save", "_saveAs", "_back", "_locale", "_preview", "_leftGuide", "_rightGuide", "_play", "_stop", "_time", "_scrub", "_progress", "_status", "_settings", "_width", "_height", "_count", "_scale", "_gap", "_nameSize", "_bubbleSize", "_bubbleWidth", "_lead", "_lineGap", "_tail", "_dogList", "_name", "_editAppearance", "_hat", "_idleReaction", "_idlePreview", "_speakReaction", "_speakPreview", "_localeCode", "_addLocale", "_lines", "_addLine", "_removeLine", "_upLine", "_downLine", "_speaker", "_dialogue", "_duration", "_fps", "_format", "_exportFolder", "_chooseFolder", "_ffmpeg", "_chooseFfmpeg", "_export", "_exportAll", "_cancelExport", "_viewport", "_stage", "_overlay", "_fileDialog", "_confirm")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+auto_translate_mode = 2
+_layout = NodePath("Layout")
+_new = NodePath("Layout/Toolbar/New")
+_open = NodePath("Layout/Toolbar/Open")
+_save = NodePath("Layout/Toolbar/Save")
+_saveAs = NodePath("Layout/Toolbar/SaveAs")
+_back = NodePath("Layout/Toolbar/Back")
+_locale = NodePath("Layout/Toolbar/Locale")
+_preview = NodePath("Layout/Body/PreviewColumn/PreviewArea/Preview")
+_leftGuide = NodePath("Layout/Body/PreviewColumn/PreviewArea/ReferenceGuides/Left")
+_rightGuide = NodePath("Layout/Body/PreviewColumn/PreviewArea/ReferenceGuides/Right")
+_play = NodePath("Layout/Body/PreviewColumn/Transport/Play")
+_stop = NodePath("Layout/Body/PreviewColumn/Transport/Stop")
+_time = NodePath("Layout/Body/PreviewColumn/Transport/Time")
+_scrub = NodePath("Layout/Body/PreviewColumn/Scrub")
+_progress = NodePath("Layout/Body/PreviewColumn/Progress")
+_status = NodePath("Layout/Body/PreviewColumn/Status")
+_settings = NodePath("Layout/Body/Settings")
+_width = NodePath("Layout/Body/Settings/布局/Fields/Width")
+_height = NodePath("Layout/Body/Settings/布局/Fields/Height")
+_count = NodePath("Layout/Body/Settings/布局/Fields/Count")
+_scale = NodePath("Layout/Body/Settings/布局/Fields/Scale")
+_gap = NodePath("Layout/Body/Settings/布局/Fields/Gap")
+_nameSize = NodePath("Layout/Body/Settings/布局/Fields/NameSize")
+_bubbleSize = NodePath("Layout/Body/Settings/布局/Fields/BubbleSize")
+_bubbleWidth = NodePath("Layout/Body/Settings/布局/Fields/BubbleWidth")
+_lead = NodePath("Layout/Body/Settings/布局/Fields/Lead")
+_lineGap = NodePath("Layout/Body/Settings/布局/Fields/LineGap")
+_tail = NodePath("Layout/Body/Settings/布局/Fields/Tail")
+_dogList = NodePath("Layout/Body/Settings/狗狗/Fields/Dogs")
+_name = NodePath("Layout/Body/Settings/狗狗/Fields/Name")
+_editAppearance = NodePath("Layout/Body/Settings/狗狗/Fields/Appearance")
+_hat = NodePath("Layout/Body/Settings/狗狗/Fields/Hat")
+_idleReaction = NodePath("Layout/Body/Settings/狗狗/Fields/IdleReaction")
+_idlePreview = NodePath("Layout/Body/Settings/狗狗/Fields/Idle")
+_speakReaction = NodePath("Layout/Body/Settings/狗狗/Fields/SpeakingReaction")
+_speakPreview = NodePath("Layout/Body/Settings/狗狗/Fields/Speaking")
+_localeCode = NodePath("Layout/Body/Settings/对白/Fields/LanguageCode")
+_addLocale = NodePath("Layout/Body/Settings/对白/Fields/AddLocale")
+_lines = NodePath("Layout/Body/Settings/对白/Fields/Lines")
+_addLine = NodePath("Layout/Body/Settings/对白/Fields/LineButtons/Add")
+_removeLine = NodePath("Layout/Body/Settings/对白/Fields/LineButtons/Remove")
+_upLine = NodePath("Layout/Body/Settings/对白/Fields/LineButtons/Up")
+_downLine = NodePath("Layout/Body/Settings/对白/Fields/LineButtons/Down")
+_speaker = NodePath("Layout/Body/Settings/对白/Fields/Speaker")
+_dialogue = NodePath("Layout/Body/Settings/对白/Fields/Text")
+_duration = NodePath("Layout/Body/Settings/对白/Fields/Duration")
+_fps = NodePath("Layout/Body/Settings/导出/Fields/Fps")
+_format = NodePath("Layout/Body/Settings/导出/Fields/Format")
+_exportFolder = NodePath("Layout/Body/Settings/导出/Fields/Folder")
+_chooseFolder = NodePath("Layout/Body/Settings/导出/Fields/ChooseFolder")
+_ffmpeg = NodePath("Layout/Body/Settings/导出/Fields/Ffmpeg")
+_chooseFfmpeg = NodePath("Layout/Body/Settings/导出/Fields/ChooseFfmpeg")
+_export = NodePath("Layout/Body/Settings/导出/Fields/Export")
+_exportAll = NodePath("Layout/Body/Settings/导出/Fields/ExportAll")
+_cancelExport = NodePath("Layout/Body/Settings/导出/Fields/Cancel")
+_viewport = NodePath("Viewport")
+_stage = NodePath("Viewport/Stage")
+_overlay = NodePath("OverlayLayer/Overlay")
+_fileDialog = NodePath("FileDialog")
+_confirm = NodePath("Confirm")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.12,0.14,0.18,1)
+mouse_filter = 2
+
+[node name="Layout" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 10
+
+[node name="Toolbar" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "商店页对话视频"
+
+[node name="New" type="Button" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "新方案"
+
+[node name="Open" type="Button" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "打开 JSON"
+
+[node name="Save" type="Button" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "保存"
+
+[node name="SaveAs" type="Button" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "另存为"
+
+[node name="Back" type="Button" parent="Layout/Toolbar"]
+layout_mode = 2
+text = "返回皮肤编辑器"
+
+[node name="Space" type="Control" parent="Layout/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Locale" type="OptionButton" parent="Layout/Toolbar"]
+layout_mode = 2
+custom_minimum_size = Vector2(130,0)
+
+[node name="Body" type="HSplitContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 780
+
+[node name="PreviewColumn" type="VBoxContainer" parent="Layout/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(500,0)
+
+[node name="PreviewArea" type="Control" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(400,260)
+
+[node name="Checker" type="ColorRect" parent="Layout/Body/PreviewColumn/PreviewArea"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+material = SubResource("checker_mat")
+mouse_filter = 2
+
+[node name="Preview" type="TextureRect" parent="Layout/Body/PreviewColumn/PreviewArea"]
+material = SubResource("viewport_preview_mat")
+texture_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 0
+
+[node name="ReferenceGuides" type="Control" parent="Layout/Body/PreviewColumn/PreviewArea"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+clip_contents = true
+mouse_filter = 2
+
+[node name="Left" type="ColorRect" parent="Layout/Body/PreviewColumn/PreviewArea/ReferenceGuides"]
+mouse_filter = 2
+color = Color(0.45, 0.82, 0.9, 0.95)
+
+[node name="Right" type="ColorRect" parent="Layout/Body/PreviewColumn/PreviewArea/ReferenceGuides"]
+mouse_filter = 2
+color = Color(0.45, 0.82, 0.9, 0.95)
+
+[node name="Help" type="Label" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+text = "左右参考线间距 720 px；在「布局」中调整小狗缩放、数量和间距。\n点击小狗选择角色。参考线和棋盘格不导出；导出尺寸由画布宽高决定。"
+autowrap_mode = 3
+
+[node name="Transport" type="HBoxContainer" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+
+[node name="Play" type="Button" parent="Layout/Body/PreviewColumn/Transport"]
+layout_mode = 2
+text = "循环预览"
+
+[node name="Stop" type="Button" parent="Layout/Body/PreviewColumn/Transport"]
+layout_mode = 2
+text = "停止 / Idle"
+
+[node name="Time" type="Label" parent="Layout/Body/PreviewColumn/Transport"]
+layout_mode = 2
+text = "0.00s"
+
+[node name="Scrub" type="HSlider" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+step = 0.01
+max_value = 12.0
+
+[node name="Progress" type="ProgressBar" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+
+[node name="Status" type="Label" parent="Layout/Body/PreviewColumn"]
+layout_mode = 2
+autowrap_mode = 3
+custom_minimum_size = Vector2(0,70)
+
+[node name="Settings" type="TabContainer" parent="Layout/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(420,0)
+
+[node name="布局" type="ScrollContainer" parent="Layout/Body/Settings"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Fields" type="VBoxContainer" parent="Layout/Body/Settings/布局"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="WidthLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "画布宽度（px）"
+
+[node name="Width" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 64
+max_value = 4096
+step = 2
+value = 1170
+
+[node name="HeightLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "画布高度（px）"
+
+[node name="Height" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 64
+max_value = 2160
+step = 2
+value = 430
+
+[node name="CountLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "小狗数量"
+
+[node name="Count" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 1
+max_value = 12
+step = 1
+value = 6
+
+[node name="ScaleLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "小狗素材缩放"
+
+[node name="Scale" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 0.05
+max_value = 1.0
+step = 0.001
+value = 0.18
+
+[node name="GapLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "小狗间距（px）"
+
+[node name="Gap" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 0
+max_value = 500
+step = 1
+value = 12
+
+[node name="NameSizeLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "名字字号"
+
+[node name="NameSize" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 8
+max_value = 96
+step = 1
+value = 18
+
+[node name="BubbleSizeLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "气泡字号"
+
+[node name="BubbleSize" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 8
+max_value = 96
+step = 1
+value = 24
+
+[node name="BubbleWidthLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "气泡最大宽度（px，长句自动折行）"
+
+[node name="BubbleWidth" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 64
+max_value = 4096
+step = 10
+value = 380
+
+[node name="LeadLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "开头 Idle（秒）"
+
+[node name="Lead" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 0
+max_value = 30
+step = 0.1
+value = 0.5
+
+[node name="LineGapLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "对白间隔（秒）"
+
+[node name="LineGap" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 0
+max_value = 30
+step = 0.1
+value = 0.2
+
+[node name="TailLabel" type="Label" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+text = "结尾 Idle（秒）"
+
+[node name="Tail" type="SpinBox" parent="Layout/Body/Settings/布局/Fields"]
+layout_mode = 2
+min_value = 0
+max_value = 30
+step = 0.1
+value = 0.8
+
+[node name="狗狗" type="ScrollContainer" parent="Layout/Body/Settings"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Fields" type="VBoxContainer" parent="Layout/Body/Settings/狗狗"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="Dogs" type="ItemList" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+custom_minimum_size = Vector2(0,150)
+
+[node name="NameLabel" type="Label" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "当前语言中的名字"
+
+[node name="Name" type="LineEdit" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+
+[node name="Appearance" type="Button" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "编辑外观（复用皮肤编辑界面）"
+
+[node name="HatLabel" type="Label" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "帽子"
+
+[node name="Hat" type="OptionButton" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+clip_text = true
+
+[node name="IdleReactionLabel" type="Label" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "Idle · 动作"
+
+[node name="IdleReaction" type="OptionButton" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+clip_text = true
+
+[node name="Idle" type="Button" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "预览 Idle"
+
+[node name="SpeakingReactionLabel" type="Label" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "说话 · 动作"
+
+[node name="SpeakingReaction" type="OptionButton" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+clip_text = true
+
+[node name="Speaking" type="Button" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "预览 Speaking"
+
+[node name="Paws" type="Label" parent="Layout/Body/Settings/狗狗/Fields"]
+layout_mode = 2
+text = "爪子始终保持手背，不播放抬爪动画。"
+
+[node name="对白" type="ScrollContainer" parent="Layout/Body/Settings"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Fields" type="VBoxContainer" parent="Layout/Body/Settings/对白"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="LanguageCodeLabel" type="Label" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "新增语言代码（例如 ja、de）"
+
+[node name="LanguageCode" type="LineEdit" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+
+[node name="AddLocale" type="Button" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "新增空白翻译"
+
+[node name="LanguageHint" type="Label" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "名字、对白、时长按语言独立保存。"
+
+[node name="Lines" type="ItemList" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+custom_minimum_size = Vector2(0,135)
+
+[node name="LineButtons" type="HBoxContainer" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+
+[node name="Add" type="Button" parent="Layout/Body/Settings/对白/Fields/LineButtons"]
+layout_mode = 2
+text = "添加"
+
+[node name="Remove" type="Button" parent="Layout/Body/Settings/对白/Fields/LineButtons"]
+layout_mode = 2
+text = "删除"
+
+[node name="Up" type="Button" parent="Layout/Body/Settings/对白/Fields/LineButtons"]
+layout_mode = 2
+text = "上移"
+
+[node name="Down" type="Button" parent="Layout/Body/Settings/对白/Fields/LineButtons"]
+layout_mode = 2
+text = "下移"
+
+[node name="SpeakerLabel" type="Label" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "说话的小狗"
+
+[node name="Speaker" type="OptionButton" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+clip_text = true
+
+[node name="TextLabel" type="Label" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "气泡文字"
+
+[node name="Text" type="TextEdit" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+custom_minimum_size = Vector2(0,100)
+wrap_mode = 1
+
+[node name="DurationLabel" type="Label" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+text = "当前对白停留（秒）"
+
+[node name="Duration" type="SpinBox" parent="Layout/Body/Settings/对白/Fields"]
+layout_mode = 2
+min_value = 0.01
+max_value = 30
+step = 0.01
+value = 2
+
+[node name="导出" type="ScrollContainer" parent="Layout/Body/Settings"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Fields" type="VBoxContainer" parent="Layout/Body/Settings/导出"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="FpsLabel" type="Label" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "帧率"
+
+[node name="Fps" type="SpinBox" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+min_value = 1
+max_value = 60
+step = 1
+value = 30
+
+[node name="FormatLabel" type="Label" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "输出格式"
+
+[node name="Format" type="OptionButton" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+clip_text = true
+
+[node name="FolderLabel" type="Label" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "输出文件夹"
+
+[node name="Folder" type="LineEdit" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+
+[node name="ChooseFolder" type="Button" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "选择文件夹"
+
+[node name="FfmpegLabel" type="Label" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "FFmpeg 可执行文件（视频 / WebP 必需）"
+
+[node name="Ffmpeg" type="LineEdit" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+
+[node name="ChooseFfmpeg" type="Button" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "选择 FFmpeg"
+
+[node name="Export" type="Button" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "导出当前语言"
+
+[node name="ExportAll" type="Button" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "导出全部语言"
+
+[node name="Cancel" type="Button" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+text = "取消导出"
+
+[node name="ExportHint" type="Label" parent="Layout/Body/Settings/导出/Fields"]
+layout_mode = 2
+autowrap_mode = 3
+text = "导出保留透明通道。Steam 会重新转码，上传后的透明效果需另外验证。每种语言最长 12 秒。"
+
+[node name="Viewport" type="SubViewport" parent="."]
+size = Vector2i(2340,860)
+size_2d_override = Vector2i(1170,430)
+size_2d_override_stretch = true
+oversampling = true
+transparent_bg = true
+disable_3d = true
+render_target_update_mode = 4
+
+[node name="Stage" parent="Viewport" instance=ExtResource("3")]
+
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="Overlay" type="Control" parent="OverlayLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="FileDialog" type="FileDialog" parent="."]
+title = "选择文件"
+size = Vector2i(950,620)
+access = 2
+use_native_dialog = true
+
+[node name="Confirm" type="ConfirmationDialog" parent="."]
+title = "未保存的方案"
+dialog_text = "当前方案尚未保存，确定放弃修改？"

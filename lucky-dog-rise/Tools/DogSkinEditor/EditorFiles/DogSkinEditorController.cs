@@ -12,6 +12,10 @@ namespace LuckyDogRise.Tools;
 
 public partial class DogSkinEditorController : Control
 {
+    [Export] public bool EmbeddedAppearanceEditor { get; set; }
+    [Export] private PanelContainer _embeddedContent = null!;
+    [Export] private Label _embeddedStatus = null!;
+
     private const string DraftResourcePath = "res://Tools/DogSkinEditor/EditorFiles/output/DogSkinCatalogDraft.json";
     private const string CsvResourcePath = "res://Tools/DogSkinEditor/EditorFiles/output/DogSkin.csv";
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -40,6 +44,64 @@ public partial class DogSkinEditorController : Control
     private EDogReactionTrigger _overviewReaction = EDogReactionTrigger.Default;
     private int _overviewReactionRevision;
     private readonly List<OverviewPreview> _overviewPreviews = new();
+    private Action<DogSkinDraft> _appearanceApplied;
+    private Action _appearanceCanceled;
+    private bool _appearanceEditFinished;
+
+    /// <summary>
+    /// Edits an isolated appearance copy. Use DogAppearanceEditor.tscn; this mode
+    /// never loads or saves the skin catalog and never changes the host window.
+    /// May be called before or after the scene is added to the tree.
+    /// </summary>
+    public void BeginEdit(DogSkinDraft draft, Action<DogSkinDraft> onApply, Action onCancel)
+    {
+        if (!EmbeddedAppearanceEditor)
+            throw new InvalidOperationException("BeginEdit requires DogAppearanceEditor.tscn.");
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentNullException.ThrowIfNull(onApply);
+        _appearanceApplied = onApply;
+        _appearanceCanceled = onCancel;
+        _appearanceEditFinished = false;
+        _editingDraft = draft.CloneWithId(draft.Id);
+        SetDirtyState(false);
+        if (IsNodeReady())
+            ShowEditor(_editingDraft);
+    }
+
+    public void ApplyAppearanceEdit()
+    {
+        if (!EmbeddedAppearanceEditor || _appearanceEditFinished || _editingDraft == null)
+            return;
+        _appearanceEditFinished = true;
+        var result = _editingDraft.CloneWithId(_editingDraft.Id);
+        var onApply = _appearanceApplied;
+        _appearanceApplied = null;
+        _appearanceCanceled = null;
+        Hide();
+        onApply?.Invoke(result);
+        QueueFree();
+    }
+
+    public void CancelAppearanceEdit()
+    {
+        if (!EmbeddedAppearanceEditor || _appearanceEditFinished)
+            return;
+        _appearanceEditFinished = true;
+        var onCancel = _appearanceCanceled;
+        _appearanceApplied = null;
+        _appearanceCanceled = null;
+        Hide();
+        onCancel?.Invoke();
+        QueueFree();
+    }
+
+    public override void _UnhandledKeyInput(InputEvent @event)
+    {
+        if (!EmbeddedAppearanceEditor || @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+            return;
+        GetViewport().SetInputAsHandled();
+        CancelAppearanceEdit();
+    }
 
     private sealed class OverviewPreview
     {
@@ -76,6 +138,8 @@ public partial class DogSkinEditorController : Control
 
     public override void _EnterTree()
     {
+        if (EmbeddedAppearanceEditor)
+            return;
         DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Borderless, false);
         DisplayServer.WindowSetFlag(DisplayServer.WindowFlags.Transparent, false);
@@ -87,6 +151,15 @@ public partial class DogSkinEditorController : Control
     public override void _Ready()
     {
         Theme = GD.Load<Theme>("res://Tools/DogSkinEditor/EditorFiles/DogSkinEditorTheme.tres");
+        _assets = new DogSkinAssetCatalog();
+        if (EmbeddedAppearanceEditor)
+        {
+            _content = _embeddedContent ?? throw new InvalidOperationException("Appearance editor content is not bound.");
+            _status = _embeddedStatus ?? throw new InvalidOperationException("Appearance editor status is not bound.");
+            if (_editingDraft != null)
+                ShowEditor(_editingDraft);
+            return;
+        }
         GetWindow().Title = "Lucky Dog Rise - DogSkin Editor";
         GetWindow().MinSize = new Vector2I(1180, 720);
         var usable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen()).Size;
@@ -94,7 +167,6 @@ public partial class DogSkinEditorController : Control
         CenterWindow();
         Callable.From(RestoreWindowAfterSceneChange).CallDeferred();
 
-        _assets = new DogSkinAssetCatalog();
         _iconExportService = new DogSkinIconExportService();
         AddChild(_iconExportService);
         LoadCatalog();
@@ -143,6 +215,7 @@ public partial class DogSkinEditorController : Control
         toolbar.AddChild(CreateButton("导出完整 CSV", ExportCsv));
         toolbar.AddChild(CreateButton("合成道具图标", ShowIconComposer));
         toolbar.AddChild(CreateButton("商店页录屏演出", OpenCapture));
+        toolbar.AddChild(CreateButton("商店页对话视频", OpenStoreDialogue));
         toolbar.AddChild(CreateButton("退出工具", ExitEditor));
 
         _status = new Label
@@ -169,6 +242,16 @@ public partial class DogSkinEditorController : Control
             return;
         }
         GetTree().ChangeSceneToFile("res://Tools/DogSkinEditor/SteamStoreCapture.tscn");
+    }
+
+    private void OpenStoreDialogue()
+    {
+        if (_hasUnsavedChanges)
+        {
+            SetStatus("当前草稿尚未保存。请先保存草稿，再打开商店页对话视频。", true);
+            return;
+        }
+        GetTree().ChangeSceneToFile("res://Tools/StoreDialogue/StoreDialogue.tscn");
     }
 
     private void ExitEditor()
@@ -428,7 +511,7 @@ public partial class DogSkinEditorController : Control
         var previewColumn = new VBoxContainer { CustomMinimumSize = new Vector2(700, 0) };
         split.AddChild(previewColumn);
         var previewHeader = new HBoxContainer();
-        previewHeader.AddChild(CreateTitle($"#{draft.Id} 实际渲染预览", 18));
+        previewHeader.AddChild(CreateTitle(EmbeddedAppearanceEditor ? "当前小狗外观预览" : $"#{draft.Id} 实际渲染预览", 18));
         AddSpacer(previewHeader);
         var reactionOption = new OptionButton { CustomMinimumSize = new Vector2(230, 38) };
         foreach (var trigger in Enum.GetValues<EDogReactionTrigger>())
@@ -450,9 +533,13 @@ public partial class DogSkinEditorController : Control
             SelectReaction(index);
         }
         reactionOption.ItemSelected += index => SelectReaction((int)index);
-        previewHeader.AddChild(new Label { Text = "表情：", VerticalAlignment = VerticalAlignment.Center });
-        previewHeader.AddChild(CreateButton("上一个", () => StepReaction(-1)));
-        previewHeader.AddChild(CreateButton("下一个", () => StepReaction(1)));
+        if (!EmbeddedAppearanceEditor)
+        {
+            previewHeader.AddChild(new Label { Text = "表情：", VerticalAlignment = VerticalAlignment.Center });
+            previewHeader.AddChild(CreateButton("上一个", () => StepReaction(-1)));
+            previewHeader.AddChild(CreateButton("下一个", () => StepReaction(1)));
+        }
+        reactionOption.Visible = !EmbeddedAppearanceEditor;
         previewHeader.AddChild(reactionOption);
         previewColumn.AddChild(previewHeader);
 
@@ -470,13 +557,16 @@ public partial class DogSkinEditorController : Control
         var form = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         form.AddThemeConstantOverride("separation", 12);
         editorScroll.AddChild(form);
-        form.AddChild(CreateTitle("DogSkin 草稿", 18));
+        form.AddChild(CreateTitle(EmbeddedAppearanceEditor ? "当前小狗外观" : "DogSkin 草稿", 18));
         form.AddChild(CreateSaveActions());
 
-        var basicSection = CreateFormSection(form, "基础信息", "编号、策划识别名与素材来源");
-        AddIdField(basicSection, draft);
-        AddTextField(basicSection, "Alias", draft.Alias, value => draft.Alias = value);
-        AddPngNameField(basicSection, "IconName", draft.IconName, value => draft.IconName = value);
+        var basicSection = CreateFormSection(form, "基础信息", EmbeddedAppearanceEditor ? "为当前小狗选择素材来源" : "编号、策划识别名与素材来源");
+        if (!EmbeddedAppearanceEditor)
+        {
+            AddIdField(basicSection, draft);
+            AddTextField(basicSection, "Alias", draft.Alias, value => draft.Alias = value);
+            AddPngNameField(basicSection, "IconName", draft.IconName, value => draft.IconName = value);
+        }
         AddChoiceField(basicSection, "FolderPath", draft.FolderPath, _assets.FolderPaths, value =>
         {
             draft.FolderPath = value;
@@ -524,6 +614,12 @@ public partial class DogSkinEditorController : Control
         _dirtyIndicators.Add(dirtyIndicator);
         UpdateDirtyIndicator(dirtyIndicator);
         row.AddChild(dirtyIndicator);
+        if (EmbeddedAppearanceEditor)
+        {
+            row.AddChild(CreateButton("取消", CancelAppearanceEdit));
+            row.AddChild(CreateButton("应用到当前小狗", ApplyAppearanceEdit));
+            return row;
+        }
         row.AddChild(CreateButton("放弃并返回", ConfirmDiscardAndReturn));
         row.AddChild(CreateButton("仅保存草稿", SaveCatalog));
         row.AddChild(CreateButton("保存并返回总览", SaveAndReturnToOverview));
@@ -577,7 +673,7 @@ public partial class DogSkinEditorController : Control
 
     private void UpdateDirtyIndicator(Label indicator)
     {
-        indicator.Text = _hasUnsavedChanges ? "● 未保存" : "";
+        indicator.Text = _hasUnsavedChanges ? (EmbeddedAppearanceEditor ? "● 未应用" : "● 未保存") : "";
     }
 
     private static VBoxContainer CreateFormSection(VBoxContainer form, string title, string description)
@@ -661,7 +757,7 @@ public partial class DogSkinEditorController : Control
         dog.SetHitButtonEnabled(false);
         dog.CallDeferred(nameof(DogVisual.SetHitButtonEnabled), false);
         if (thumbnail && !overview)
-            dog.CallDeferred(nameof(DogVisual.ShowInspectionClaws));
+            dog.CallDeferred(EmbeddedAppearanceEditor ? nameof(DogVisual.ShowClawBack) : nameof(DogVisual.ShowInspectionClaws));
         if (overview)
         {
             viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
@@ -797,7 +893,7 @@ public partial class DogSkinEditorController : Control
         {
             var displayName = DisplayEyewear(draft.FixedEyewear);
             var usage = _catalog.DogSkins.Count(item => item.FixedEyewear == draft.FixedEyewear);
-            selected.Text = $"{displayName}  ×{usage}";
+            selected.Text = EmbeddedAppearanceEditor ? displayName : $"{displayName}  ×{usage}";
             selected.TooltipText = DogSkinAssetCatalog.NormalizeEyewearPath(draft.FixedEyewear);
         }
         RefreshSelectedLabel();
@@ -820,7 +916,7 @@ public partial class DogSkinEditorController : Control
         {
             var usage = _catalog.DogSkins.Count(item =>
                 string.Equals(item.Head, draft.Head, StringComparison.OrdinalIgnoreCase));
-            selected.Text = $"{DisplayAssetName(draft.Head)}  ×{usage}";
+            selected.Text = EmbeddedAppearanceEditor ? DisplayAssetName(draft.Head) : $"{DisplayAssetName(draft.Head)}  ×{usage}";
             selected.TooltipText = $"素材：{draft.FolderPath}\\{draft.Head}";
         }
         RefreshSelectedLabel();
@@ -901,7 +997,7 @@ public partial class DogSkinEditorController : Control
                 cardLayout.AddChild(preview);
                 var usage = _catalog.DogSkins.Count(item =>
                     string.Equals(item.Head, head, StringComparison.OrdinalIgnoreCase));
-                var choose = CreateButton($"{DisplayAssetName(head)}  ×{usage}", () =>
+                var choose = CreateButton(EmbeddedAppearanceEditor ? DisplayAssetName(head) : $"{DisplayAssetName(head)}  ×{usage}", () =>
                 {
                     draft.Head = head;
                     selectionChanged();
@@ -1001,7 +1097,7 @@ public partial class DogSkinEditorController : Control
                 preview.CustomMinimumSize = new Vector2(220, 145);
                 cardLayout.AddChild(preview);
                 var usage = _catalog.DogSkins.Count(item => item.FixedEyewear == eyewear);
-                var choose = CreateButton($"{DisplayEyewear(eyewear)}  ×{usage}", () =>
+                var choose = CreateButton(EmbeddedAppearanceEditor ? DisplayEyewear(eyewear) : $"{DisplayEyewear(eyewear)}  ×{usage}", () =>
                 {
                     draft.FixedEyewear = eyewear;
                     selectionChanged();
@@ -1042,9 +1138,15 @@ public partial class DogSkinEditorController : Control
 
     private void ApplyEditorPreviewReaction()
     {
-        if (_editorPreview == null)
+        if (_editorPreview == null || !_editorPreview.IsNodeReady())
             return;
 
+        if (EmbeddedAppearanceEditor)
+        {
+            _editorPreview.ApplyReaction(EDogReactionTrigger.Default);
+            _editorPreview.ShowClawBack();
+            return;
+        }
         _editorPreview.ApplyReaction(_editorReaction);
         // Only the default asset-inspection pose overrides paws. Reaction
         // previews must retain the real pose and any running paw animation.
@@ -1079,6 +1181,8 @@ public partial class DogSkinEditorController : Control
 
     private void LoadCatalog()
     {
+        if (EmbeddedAppearanceEditor)
+            return;
         var path = ProjectSettings.GlobalizePath(DraftResourcePath);
         try
         {
@@ -1157,6 +1261,8 @@ public partial class DogSkinEditorController : Control
 
     private void SaveCatalog()
     {
+        if (EmbeddedAppearanceEditor)
+            return;
         var path = ProjectSettings.GlobalizePath(DraftResourcePath);
         try
         {
@@ -1198,6 +1304,8 @@ public partial class DogSkinEditorController : Control
 
     private void ExportCsv()
     {
+        if (EmbeddedAppearanceEditor)
+            return;
         var errors = ValidateCatalog();
         if (errors.Count > 0)
         {

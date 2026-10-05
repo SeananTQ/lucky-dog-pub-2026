@@ -394,6 +394,23 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     }
 
     /// <summary>
+    /// Tool-only expression pose, resolved from the same reaction table as gameplay.
+    /// Hold paws on their backs and omit timed tongue motion for deterministic capture.
+    /// </summary>
+    public void ApplyPreviewExpression(EDogReactionTrigger trigger)
+    {
+        if (!IsNodeReady()) return;
+        _temporaryReactionActive = false;
+        _currentReaction = trigger;
+        var visual = ResolveReaction(trigger);
+        visual.IsHello = false;
+        visual.LeftPawAnimation = "手背";
+        visual.RightPawAnimation = "手背";
+        visual.TongueAnimation = "正常";
+        ApplyReactionVisual(visual);
+    }
+
+    /// <summary>
     /// Development-tool preview entry point. Runtime equipment remains untouched.
     /// Pass null to return to the equipped DogSkin.
     /// </summary>
