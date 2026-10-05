@@ -3715,6 +3715,20 @@ public partial class ModeManager : Control
         var windowPosition = DisplayServer.WindowGetPosition();
         var anchor = windowPosition + RoundToVector2I(_bossTaskBarAnchor.GlobalPosition);
         _bossDogVisual.SetHeadClippingEnabled(IsDesktopDogAtTaskbar(anchor));
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Room layout bypasses single-dog work-area tracking. Each displayed dog
+        // still needs its own clipping decision after its placement is updated.
+        if (_roomWindowActive && _roomDesktop != null)
+        {
+            foreach (var remote in _roomDesktop.RemoteDogs)
+            {
+                var remoteAnchor = remote.GetGlobalTransformWithCanvas().Origin
+                    + Vector2.Down * RoomTaskbarAnchorOffsetY;
+                remote.Dog.SetHeadClippingEnabled(IsDesktopDogAtTaskbar(
+                    windowPosition + RoundToVector2I(remoteAnchor)));
+            }
+        }
+#endif
     }
 
     private static bool IsDesktopDogAtTaskbar(Vector2I anchor)
