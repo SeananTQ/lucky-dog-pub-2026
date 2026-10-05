@@ -40,6 +40,7 @@ public partial class SteamStoreCaptureSmoke : Node
             var rows = (int)settings.GetType().GetProperty("Rows")!.GetValue(settings)!;
             CheckBackgrounds(tiles, columns, rows);
             CheckLayering(tiles);
+            CheckHeadClipping(tiles, true);
             settings.GetType().GetProperty("RandomBackgrounds")!.SetValue(settings, true);
             settings.GetType().GetProperty("FlightSeconds")!.SetValue(settings, 0.2);
             settings.GetType().GetProperty("StaggerSeconds")!.SetValue(settings, 0.005);
@@ -49,6 +50,7 @@ public partial class SteamStoreCaptureSmoke : Node
             Check(GetField(stage, "_state").ToString() == "Playing", "countdown did not enter playback");
             CheckBackgrounds(tiles, columns, rows);
             CheckLayering(tiles);
+            CheckHeadClipping(tiles, true);
             var actions = (IList<int>)settings.GetType().GetProperty("Actions")!.GetValue(settings)!;
             var dog = (DogVisual)tiles[0]!.GetType().GetField("Dog")!.GetValue(tiles[0])!;
             Check((int)GetField(dog, "_currentReaction") == actions[0], "first action did not start");
@@ -58,9 +60,11 @@ public partial class SteamStoreCaptureSmoke : Node
                 "expression must switch directly to the next action without restoring Default");
             CheckBackgrounds(tiles, columns, rows);
             CheckLayering(tiles);
+            CheckHeadClipping(tiles, true);
 
             stage.GetType().GetMethod("BeginOutro", Private)!.Invoke(stage, null);
             Check(GetField(stage, "_state").ToString() == "Outro", "ending did not start");
+            CheckHeadClipping(tiles, true);
             await ToSignal(GetTree().CreateTimer(2), SceneTreeTimer.SignalName.Timeout);
             Check(GetField(stage, "_state").ToString() == "Finished", "ending did not finish");
             var visibleCount = 0;
@@ -73,6 +77,14 @@ public partial class SteamStoreCaptureSmoke : Node
                 visibleDogId = (int)dogId.GetValue(tile)!;
             }
             Check(visibleCount == 1 && visibleDogId == 1001, "final frame must keep only 1001");
+            foreach (var tile in tiles)
+            {
+                var tileType = tile!.GetType();
+                var tileDog = (DogVisual)tileType.GetField("Dog")!.GetValue(tile)!;
+                var isFinalDog = (int)dogId.GetValue(tile)! == 1001;
+                Check(IsHeadClippingEnabled(tileDog) != isFinalDog,
+                    "only the final dog must show its full chin after its background disappears");
+            }
 
             stage.GetType().GetMethod("ReturnToConfiguration", Private)!.Invoke(stage, null);
             Check(GetField(stage, "_state").ToString() == "Configure", "return to settings failed");
@@ -83,7 +95,8 @@ public partial class SteamStoreCaptureSmoke : Node
                 Check(root.Visible, "reset did not restore every tile");
             }
             CheckLayering(tiles);
-            GD.Print("SteamStoreCaptureSmoke: settings, backgrounds, back/palm paw depth, action switching, ending, and reset passed.");
+            CheckHeadClipping(tiles, true);
+            GD.Print("SteamStoreCaptureSmoke: matrix chin clipping, final dog full chin, reset, and playback passed.");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -115,6 +128,25 @@ public partial class SteamStoreCaptureSmoke : Node
         }
         Check(SteamStoreCaptureLayout.NeighborsAreDistinct(values, width, rows + 2),
             "adjacent backgrounds or scroll seam repeat");
+    }
+
+    private static void CheckHeadClipping(IList tiles, bool expected)
+    {
+        foreach (var tile in tiles)
+        {
+            var dog = (DogVisual)tile!.GetType().GetField("Dog")!.GetValue(tile)!;
+            Check(IsHeadClippingEnabled(dog) == expected,
+                "matrix dogs must keep the taskbar-style chin clipping");
+        }
+    }
+
+    private static bool IsHeadClippingEnabled(DogVisual dog)
+    {
+        var enabled = (bool)GetField(dog, "_headClippingEnabled");
+        var head = dog.GetNode<Sprite2D>("HeadRoot/Head");
+        var shaderEnabled = ((ShaderMaterial)head.Material).GetShaderParameter("clip_enabled").AsBool();
+        Check(enabled == shaderEnabled, "head clip state and shader must agree");
+        return enabled;
     }
 
     private static void CheckLayering(IList tiles)

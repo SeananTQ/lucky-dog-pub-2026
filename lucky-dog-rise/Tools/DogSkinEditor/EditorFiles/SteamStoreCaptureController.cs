@@ -144,8 +144,13 @@ public partial class SteamStoreCaptureController : Control
             BeginOutro();
         else if (key.Keycode == Key.Escape)
         {
-            if (_state == PlayState.Configure) ReturnToEditor();
-            else ReturnToConfiguration();
+            if (_state == PlayState.Configure)
+            {
+                GetViewport().SetInputAsHandled();
+                ReturnToEditor();
+                return;
+            }
+            ReturnToConfiguration();
         }
         else if (key.Keycode == Key.F5 && _state == PlayState.Configure)
             BeginCountdown();
@@ -456,6 +461,7 @@ public partial class SteamStoreCaptureController : Control
         dog.Position = new Vector2(dogOrigin.X, cellSize.Y);
         dog.ZIndex = 2;
         root.AddChild(dog);
+        dog.SetHeadClippingEnabled(true);
         dog.SetHitButtonEnabled(false);
         dog.ApplyReaction(EDogReactionTrigger.Default);
         dog.ShowInspectionClaws();
@@ -640,6 +646,7 @@ public partial class SteamStoreCaptureController : Control
             if (isFinal)
             {
                 tile.Background.Hide();
+                tile.Dog.SetHeadClippingEnabled(false);
                 _state = PlayState.Finished;
             }
         }));
@@ -662,6 +669,7 @@ public partial class SteamStoreCaptureController : Control
             tile.Root.Show();
             tile.Root.ZIndex = 0;
             tile.Background.Show();
+            tile.Dog.SetHeadClippingEnabled(true);
             tile.Dog.ApplyReaction(EDogReactionTrigger.Default);
             tile.Dog.ShowInspectionClaws();
             ApplyCapturePawDepths(tile.Dog);
