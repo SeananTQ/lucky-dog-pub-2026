@@ -923,6 +923,7 @@ public partial class ModeManager : Control
         SyncRoomActivity();
 #endif
         UpdateBossWorkAreaTracking();
+        UpdateDesktopDogHeadClipping();
 
         if (_hiddenByFullscreenApp)
             return;
@@ -1824,6 +1825,7 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
 #endif
+        UpdateDesktopDogHeadClipping();
     }
 
     private void RefreshBossDogVisuals()
@@ -3703,6 +3705,36 @@ public partial class ModeManager : Control
             usableRect,
             currentAnchorScreenPosition,
             updateAnchor: _isDragging || workAreaChanged || _taskbarSnapped);
+    }
+
+    private void UpdateDesktopDogHeadClipping()
+    {
+        if (CurrentMode != Mode.BossKey || _bossDogVisual == null)
+            return;
+
+        var windowPosition = DisplayServer.WindowGetPosition();
+        var anchor = windowPosition + RoundToVector2I(_bossTaskBarAnchor.GlobalPosition);
+        _bossDogVisual.SetHeadClippingEnabled(IsDesktopDogAtTaskbar(anchor));
+    }
+
+    private static bool IsDesktopDogAtTaskbar(Vector2I anchor)
+    {
+        int screenIndex = FindScreenIndexAtPoint(anchor);
+        if (screenIndex < 0) return false;
+        var screen = new Rect2I(
+            DisplayServer.ScreenGetPosition(screenIndex),
+            DisplayServer.ScreenGetSize(screenIndex));
+        return ShouldClipDesktopDogHead(anchor, screen, DisplayServer.ScreenGetUsableRect(screenIndex));
+    }
+
+    internal static bool ShouldClipDesktopDogHead(Vector2I anchor, Rect2I screen, Rect2I usable)
+    {
+        // A free dog near the screen edge is not necessarily on a taskbar.
+        // Use actual bottom taskbar geometry, independent of the snap setting;
+        // allow only one physical pixel for coordinate rounding, not SnapThreshold.
+        return usable.End.Y < screen.End.Y
+            && anchor.X >= usable.Position.X && anchor.X < usable.End.X
+            && Math.Abs((long)anchor.Y - usable.End.Y) <= 1;
     }
 
     private void CaptureBossWorkAreaSnapshot(
