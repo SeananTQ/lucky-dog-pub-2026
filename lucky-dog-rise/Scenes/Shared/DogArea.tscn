@@ -13,10 +13,11 @@
 
 [sub_resource type="Shader" id="Shader_head_clip"]
 code = "shader_type canvas_item;
+uniform bool clip_enabled = true;
 uniform float cutoff_y = 137.0;
 varying float local_y;
 void vertex() { local_y = VERTEX.y; }
-void fragment() { if (local_y > cutoff_y) { discard; } }
+void fragment() { if (clip_enabled && local_y > cutoff_y) { discard; } }
 "
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_head_clip"]
