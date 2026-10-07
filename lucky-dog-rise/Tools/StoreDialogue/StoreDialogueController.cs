@@ -398,12 +398,7 @@ public partial class StoreDialogueController : Control
 
     private void RebuildStage()
     {
-        var canvasSize = new Vector2I(_project.CanvasWidth, _project.CanvasHeight);
-        // Render small lettering above export resolution, including font oversampling.
-        // Bound the offscreen target to about 8 million pixels for large authoring canvases.
-        var renderScale = (long)canvasSize.X * canvasSize.Y * 4 <= 8_388_608 ? 2 : 1;
-        _viewport.Size2DOverride = canvasSize;
-        _viewport.Size = canvasSize * renderScale;
+        StoreDialogueExport.ConfigureViewport(_viewport, _project);
         UpdateReferenceGuides();
         _stage.Configure(_project, _language);
         _scrub.MaxValue = _stage.Timeline.DurationSeconds;
@@ -428,11 +423,7 @@ public partial class StoreDialogueController : Control
 
     public Image CaptureExportFrame()
     {
-        var image = _viewport.GetTexture().GetImage();
-        // Average premultiplied pixels first; the exporter then converts to straight alpha.
-        if (image.GetWidth() != _project.CanvasWidth || image.GetHeight() != _project.CanvasHeight)
-            image.Resize(_project.CanvasWidth, _project.CanvasHeight, Image.Interpolation.Bilinear);
-        return image;
+        return StoreDialogueExport.CaptureFrame(_viewport, _project);
     }
 
     private void Stop()
@@ -618,8 +609,9 @@ public partial class StoreDialogueController : Control
         };
     }
 
-    private IEnumerable<string> ValidateAssets(StoreDialogueProject project)
+    internal static IEnumerable<string> ValidateAssets(StoreDialogueProject project)
     {
+        var assets = new DogSkinAssetCatalog();
         foreach (var dog in project.Dogs)
         {
             var skin = dog.Appearance;
@@ -629,9 +621,9 @@ public partial class StoreDialogueController : Control
             foreach (var file in new[] { skin.Head, skin.DefaultEyes, skin.DefaultEars, skin.ClawLeftBack, skin.TongueRegular }
                 .Concat(new[] { skin.DefaultNose, skin.DefaultMouse, dog.Idle.Eyes, dog.Idle.Ears, dog.Speaking.Eyes, dog.Speaking.Ears }
                 .Where(value => !string.IsNullOrWhiteSpace(value))))
-                if (!_assets.ResourceExists(skin.FolderPath, file))
+                if (!assets.ResourceExists(skin.FolderPath, file))
                     yield return $"小狗素材不存在：{skin.FolderPath}/{file}";
-            if (!_assets.EyewearExists(skin.FixedEyewear)) yield return "眼镜素材不存在：" + skin.FixedEyewear;
+            if (!assets.EyewearExists(skin.FixedEyewear)) yield return "眼镜素材不存在：" + skin.FixedEyewear;
             if (dog.HeadwearItemId != 0)
             {
                 var item = LubanData.Tables.TbItem.GetOrDefault(dog.HeadwearItemId);

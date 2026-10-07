@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Tools/StoreDialogue/StoreDialogueBatch.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Tools/StoreDialogue/StoreDialogueStage.tscn" id="2"]
+
+[node name="StoreDialogueBatch" type="Node" node_paths=PackedStringArray("_viewport", "_stage")]
+script = ExtResource("1")
+_viewport = NodePath("Viewport")
+_stage = NodePath("Viewport/Stage")
+
+[node name="Viewport" type="SubViewport" parent="."]
+size = Vector2i(1440, 640)
+size_2d_override = Vector2i(720, 320)
+size_2d_override_stretch = true
+oversampling = true
+transparent_bg = true
+disable_3d = true
+render_target_update_mode = 4
+
+[node name="Stage" parent="Viewport" instance=ExtResource("2")]

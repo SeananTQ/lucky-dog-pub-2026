@@ -15,6 +15,23 @@ namespace LuckyDogRise.Tools;
 /// </summary>
 public static class StoreDialogueExport
 {
+    public static void ConfigureViewport(SubViewport viewport, StoreDialogueProject project)
+    {
+        var size = new Vector2I(project.CanvasWidth, project.CanvasHeight);
+        var scale = (long)size.X * size.Y * 4 <= 8_388_608 ? 2 : 1;
+        viewport.Size2DOverride = size;
+        viewport.Size = size * scale;
+    }
+
+    public static Image CaptureFrame(SubViewport viewport, StoreDialogueProject project)
+    {
+        var image = viewport.GetTexture().GetImage();
+        // Resize premultiplied pixels before converting to straight alpha.
+        if (image.GetWidth() != project.CanvasWidth || image.GetHeight() != project.CanvasHeight)
+            image.Resize(project.CanvasWidth, project.CanvasHeight, Image.Interpolation.Bilinear);
+        return image;
+    }
+
     public static void ValidateOptions(StoreDialogueExportOptions options) => StoreDialogueExportCore.ValidateOptions(options);
     public static string DiscoverFfmpegPath(string explicitPath = "") => StoreDialogueExportCore.DiscoverFfmpegPath(explicitPath);
 
