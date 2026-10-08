@@ -254,6 +254,37 @@ public partial class StoreDialogueSmoke : Node
         Check(reused.NameFits && Mathf.IsEqualApprox(reusedBar.Size.X, expectedWidth),
             "shortening a name must restore its normal sizing without stale minimum widths");
 
+        project.NameFontSize = 12;
+        project.Locales["zh-CN"].Names[project.Dogs[1].Id] = "Υπερφορτωμένος προγραμματιστής";
+        _stage.Configure(project, "zh-CN");
+        await NextFrame();
+        var wrapped = GetField<Label>(_stage.Dogs[1], "_name");
+        Check(wrapped.GetLineCount() == 2 && wrapped.GetVisibleLineCount() == wrapped.GetLineCount(),
+            "localized job titles must fit in two fully visible lines");
+        Check(wrapped.GetThemeConstant("line_spacing") == -2,
+            "name bars must use compact line spacing independently of speech bubbles");
+        Check(_stage.Dogs.All(dog => dog.NameFits && dog.NameFontSize == _stage.Dogs[0].NameFontSize
+            && dog.NameBarSize.IsEqualApprox(_stage.Dogs[0].NameBarSize)),
+            "wrapped and short names must still share one centered bar size and font size");
+        foreach (var view in _stage.Dogs)
+        {
+            var panel = GetField<PanelContainer>(view, "_bar");
+            var label = GetField<Label>(view, "_name");
+            var style = (StyleBoxFlat)panel.GetThemeStylebox("panel");
+            var faceCenterY = (style.BorderWidthTop + panel.Size.Y - style.BorderWidthBottom) / 2;
+            Check(Mathf.IsEqualApprox(label.Position.Y + label.Size.Y / 2, faceCenterY),
+                "single- and two-line names must center on the light face, excluding the bottom border");
+            Check(label.GetLineCount() == label.GetVisibleLineCount(),
+                "compact line spacing must preserve all visible name lines");
+        }
+
+
+        project.Locales["zh-CN"].Names[project.Dogs[1].Id] = "Μόνιμα υπερφορτωμένος προγραμματιστής";
+        _stage.Configure(project, "zh-CN");
+        await NextFrame();
+        Check(!_stage.Dogs[1].NameFits && _stage.ValidatePresentation().Any(error => error.Contains("最多两行")),
+            "a three-line title must fail preflight before any video frames are exported");
+
         foreach (var dog in project.Dogs) project.Locales["zh-CN"].Names[dog.Id] = "玩家";
         _stage.Configure(project, "zh-CN");
         await NextFrame();

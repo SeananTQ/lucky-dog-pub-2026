@@ -45,7 +45,8 @@ public partial class StoreDialogueStage : Node2D
         // The longest localized name determines one font size for the entire row.
         // Share the largest measured panel bounds as well, including fallback-font height.
         var sharedFontSize = _views.Min(view => view.NameFontSize);
-        var sharedBarSize = new Vector2(_views.Max(view => view.NameBarSize.X), _views.Max(view => view.NameBarSize.Y));
+        var requiredBars = _views.Select(view => view.GetRequiredNameBarSize(sharedFontSize)).ToArray();
+        var sharedBarSize = new Vector2(requiredBars.Max(size => size.X), requiredBars.Max(size => size.Y));
         foreach (var view in _views) view.ApplySharedNameBarLayout(sharedFontSize, sharedBarSize);
         // Keep an actual pixel margin below the tallest localized name bar.
         baseline = project.CanvasHeight - 12 - _views.Max(view => view.NameBarBottom);
@@ -108,7 +109,7 @@ public partial class StoreDialogueStage : Node2D
         var errors = new List<string>();
         if (!LayoutFits) errors.Add("狗狗超出画布，请增加宽高，或减小数量、大小、间距。");
         foreach (var view in _views)
-            if (!view.NameFits) errors.Add("名字过长，请缩短名字或增大小狗显示尺寸：" + view.DogId);
+            if (!view.NameFits) errors.Add("姓名板最多两行，请缩短名字或增大小狗显示尺寸：" + view.DogId);
         // Check each bubble, including long translations, before creating export output.
         var count = (int)Math.Ceiling(_timeline.DurationSeconds * _project.Fps);
         for (var i = 0; i < count; i++)

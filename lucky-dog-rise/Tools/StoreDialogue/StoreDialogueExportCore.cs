@@ -21,6 +21,8 @@ public sealed record StoreDialogueExportOptions
     public int FramesPerSecond { get; init; } = 30;
     public int FrameCount { get; init; }
     public string FfmpegPath { get; init; } = "";
+    public int WebmCrf { get; init; } = 18;
+    public bool WebmLossless { get; init; }
     // PNG stores straight alpha. Raw Godot transparent viewport captures may
     // be premultiplied; the Image adapter converts them when explicitly asked.
     public StoreDialogueAlphaMode InputAlpha { get; init; } = StoreDialogueAlphaMode.Straight;
@@ -43,6 +45,8 @@ public static class StoreDialogueExportCore
     public static void ValidateOptions(StoreDialogueExportOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        if (options.WebmCrf is < 0 or > 63)
+            throw new ArgumentException("WebM CRF must be between 0 and 63.", nameof(options));
         if (string.IsNullOrWhiteSpace(options.OutputPath) || !Path.IsPathFullyQualified(options.OutputPath))
             throw new ArgumentException("导出位置必须是完整路径。", nameof(options));
         if (!Enum.IsDefined(options.Format) || !Enum.IsDefined(options.InputAlpha))
@@ -189,7 +193,10 @@ public static class StoreDialogueExportCore
                 // Alpha is stored by libvpx as a second VP9 stream. FFmpeg's
                 // native VP9 decoder may ignore it; use libvpx-vp9 to validate.
                 args.AddRange(new[] { "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0",
-                    "-crf", "18", "-auto-alt-ref", "0", "-metadata:s:v:0", "alpha_mode=1" });
+                    "-crf", (options.WebmLossless ? 0 : options.WebmCrf).ToString(CultureInfo.InvariantCulture),
+                    "-auto-alt-ref", "0", "-metadata:s:v:0", "alpha_mode=1" });
+                // Lossless refers to VP9 encoding after conversion to YUVA 4:2:0.
+                if (options.WebmLossless) args.AddRange(new[] { "-lossless", "1" });
                 break;
             case StoreDialogueExportFormat.WebP:
                 args.AddRange(new[] { "-c:v", "libwebp_anim", "-pix_fmt", "bgra", "-lossless", "1",

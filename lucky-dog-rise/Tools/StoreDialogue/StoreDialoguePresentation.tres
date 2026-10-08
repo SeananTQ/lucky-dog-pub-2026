@@ -1,11 +1,25 @@
-[gd_resource type="Theme" load_steps=5 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="1"]
 [ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="2"]
 
+[sub_resource type="SystemFont" id="korean"]
+font_names = PackedStringArray("Malgun Gothic")
+font_weight = 700
+
+[sub_resource type="SystemFont" id="thai"]
+font_names = PackedStringArray("Leelawadee UI")
+font_weight = 700
+
 [sub_resource type="FontVariation" id="font"]
 base_font = ExtResource("1")
-fallbacks = Array[Font]([ExtResource("2")])
+fallbacks = Array[Font]([ExtResource("2"), SubResource("korean"), SubResource("thai")])
+
+[sub_resource type="FontVariation" id="name_font"]
+base_font = ExtResource("1")
+spacing_top = -1
+spacing_bottom = 1
+fallbacks = Array[Font]([ExtResource("2"), SubResource("korean"), SubResource("thai")])
 
 [sub_resource type="StyleBoxFlat" id="bubble"]
 content_margin_left = 14.0
@@ -22,6 +36,8 @@ corner_radius_bottom_right = 5
 default_font = SubResource("font")
 default_font_size = 18
 Label/colors/font_color = Color(0.10, 0.12, 0.14, 1)
+DialogueNameLabel/base_type = &"Label"
+DialogueNameLabel/fonts/font = SubResource("name_font")
 DialogueBubbleLabel/base_type = &"Label"
 DialogueBubbleLabel/colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
 PanelContainer/styles/panel = SubResource("bubble")
