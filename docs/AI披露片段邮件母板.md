@@ -1,0 +1,1 @@
+For transparency, all in-game visual artwork is created by hand, including the dogs, hats, glasses, and other visual elements. We use AI-assisted programming to speed up game development. The background music is AI-generated to suit the game's relaxed atmosphere, then carefully selected by us.
