@@ -44,7 +44,7 @@ JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_d
 
 ## 第一批审阅
 
-2026-10-14 已整理意大利语、俄语、泰语的完整文案，以及繁体中文的末尾关键词段落，当前待主人审阅。
+2026-10-14 已整理意大利语、俄语、泰语的完整文案，以及繁体中文的末尾关键词段落。2026-10-15 主人确认本批可以通过并进入第二批；导入与实际页面检查范围见审阅说明。
 
 - 审阅入口：[第一批说明](text/review/batch-01-review.md)。
 - 待上传文件：[storepage_1315198_batch-01_review.json](text/upload/storepage_1315198_batch-01_review.json)。

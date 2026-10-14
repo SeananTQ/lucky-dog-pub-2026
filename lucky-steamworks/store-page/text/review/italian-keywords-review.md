@@ -2,7 +2,7 @@
 
 日期：2026-10-14。状态：待主人审阅。
 
-本次审阅对象：[关于此游戏-Italiano.bbcode.txt](../about/关于此游戏-Italiano.bbcode.txt) 的最后一个段落。只重写关键词区域，前面的正文、Slogan、邀请句和媒体引用保持原样。原始下载 JSON、旧 Markdown、第一批待上传 JSON 和旧 HTML 预览未同步本次改写。
+本次审阅对象：[关于此游戏-Italiano.bbcode.txt](../about/关于此游戏-Italiano.bbcode.txt) 的最后一个段落。只重写关键词区域，前面的正文、Slogan、邀请句和媒体引用保持原样。2026-10-14，第一批待上传 JSON 已同步当前 BBCode，包括此前确认的邀请句及本次关键词段落；原始下载 JSON 保持不变，旧 Markdown 和旧 HTML 预览仍为初稿。
 
 ## 选词思路
 

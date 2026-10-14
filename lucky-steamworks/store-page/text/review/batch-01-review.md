@@ -1,15 +1,21 @@
 # 第一批商店文案审阅
 
-状态：待主人审阅。日期：2026-10-14。
+状态：第一批已完成主人审阅与导入测试，可以进入第二批。更新日期：2026-10-15。
 
 本批完成意大利语、俄语、泰语的长描述和简介，并为繁体中文追加正文末尾的关键词段落。第二、三批尚未开展。
 
+主人已手动上传 JSON，并提供泰语页面截图确认显示正常；俄语 Demo 公开页面已核对最新正文与尾段，并以 1440px 桌面宽度检查居中、右对齐、媒体与尾段，未见排版异常。意大利语此前已由主人粘贴测试。以上不等于全部语言、简介和屏幕尺寸均已完成视觉验收；下面保留初稿阶段的检查记录。
+
+2026-10-14 上传稿同步：待上传 JSON 的意大利语、俄语、泰语和繁中长描述已更新为各自当前 `.bbcode.txt` 内容；三份新语言简介与已确认文件一致，繁中简介保留原始下载值。当前共保留 30 个语言键，其中 16 种完整、14 种仍为空。
+
+下文各语言的具体取舍和旧 HTML 预览记录的是第一版审阅快照。最新尾段、词表与中文说明分别见[意大利语](italian-keywords-review.md)、[俄语](russian-keywords-review.md)、[泰语](thai-keywords-review.md)、[繁中](tchinese-keywords-review.md)审阅材料。上传测试请使用下面列出的待上传 JSON。
+
 ## 文件与来源
 
-- 意大利语：[长描述](../about/关于此游戏-Italiano.md)、[简介](../short/简介-Italiano.md)。
-- 俄语：[长描述](../about/关于此游戏-Русский.md)、[简介](../short/简介-Русский.md)。
-- 泰语：[长描述](../about/关于此游戏-ไทย.md)、[简介](../short/简介-ไทย.md)。
-- 繁体中文：[长描述](../about/关于此游戏-繁体中文.md)。
+- 意大利语：[长描述 BBCode](../about/关于此游戏-Italiano.bbcode.txt)、[简介](../short/简介-Italiano.md)。
+- 俄语：[长描述 BBCode](../about/关于此游戏-Русский.bbcode.txt)、[简介](../short/简介-Русский.md)。
+- 泰语：[长描述 BBCode](../about/关于此游戏-ไทย.bbcode.txt)、[简介](../short/简介-ไทย.md)。
+- 繁体中文：[长描述 BBCode](../about/关于此游戏-繁体中文.bbcode.txt)。
 - 待上传 JSON：[storepage_1315198_batch-01_review.json](../upload/storepage_1315198_batch-01_review.json)。
 - 本地排版参考：[batch-01-preview.html](batch-01-preview.html)。媒体为占位标记，不是实际播放文件；页面不是 Steam 官方预览。
 - 原始依据：[storepage_1315198_all.json](../downloads/storepage_1315198_all.json)，对应 Demo 商店页编辑记录 `1315198`，AppID 为 `5220880`。原文件未修改。
