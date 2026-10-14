@@ -36,10 +36,19 @@ G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\store-page\text\d
 - `text/about/archive/`：旧文字草稿；现有无语言后缀的 `关于此游戏.md` 保留于此。
 - `text/short/`：各语言简介 / 概述的可读、可编辑 Markdown 文档。
 - `text/upload/`：整理和翻译后供 Steamworks 导入的 JSON，与下载原件分开保存。
+- `text/review/`：各批次的审阅说明、关键句回译、用语依据和本地排版参考。
 
-目前 `text/about/` 的 12 种语言文件仍为整理目录前的原文，尚未与下载文件同步。最新下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空。
+原始下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空。除下面记录的第一批处理范围外，既有 Markdown 仍待按下载原文核对。
 
 JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_description]`；文件还带有系统需求等其他字段。
+
+## 第一批审阅
+
+2026-10-14 已整理意大利语、俄语、泰语的完整文案，以及繁体中文的末尾关键词段落，当前待主人审阅。
+
+- 审阅入口：[第一批说明](text/review/batch-01-review.md)。
+- 待上传文件：[storepage_1315198_batch-01_review.json](text/upload/storepage_1315198_batch-01_review.json)。
+- 原始下载文件保持不变；待上传版本有 16 种完整文案，另 14 种仍为空。
 
 ## 插图目录
 
