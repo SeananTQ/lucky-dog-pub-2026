@@ -32,9 +32,9 @@ G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\store-page\text\d
 ## 文字目录
 
 - `text/downloads/`：Steamworks 手动下载的原始 JSON；原样保留，作为该次核对的网页内容依据。
-- `text/about/`：各语言“关于此游戏”的可读、可编辑 Markdown 文档。
+- `text/about/`：各语言“关于此游戏”的可编辑文案。新稿保存为 `.bbcode.txt`，只包含可直接粘贴到 Steam 的 BBCode；既有 `.md` 稿按批次核对，不默认代表当前定稿。
 - `text/about/archive/`：旧文字草稿；现有无语言后缀的 `关于此游戏.md` 保留于此。
-- `text/short/`：各语言简介 / 概述的可读、可编辑 Markdown 文档。
+- `text/short/`：各语言简介 / 概述。第二批起使用不带标题的纯文本 `.txt`；第一批保留现有 `.md`，复制时不包含 Markdown 标题。
 - `text/upload/`：整理和翻译后供 Steamworks 导入的 JSON，与下载原件分开保存。
 - `text/review/`：各批次的审阅说明、关键句回译、用语依据和本地排版参考。
 
@@ -49,6 +49,15 @@ JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_d
 - 审阅入口：[第一批说明](text/review/batch-01-review.md)。
 - 待上传文件：[storepage_1315198_batch-01_review.json](text/upload/storepage_1315198_batch-01_review.json)。
 - 原始下载文件保持不变；待上传版本有 16 种完整文案，另 14 种仍为空。
+
+## 第二批审阅
+
+2026-10-15 已补齐荷兰语、丹麦语、挪威语、瑞典语、芬兰语、波兰语、乌克兰语的长描述与简介。主人已提供挪威语实际页面截图，长描述排版与关键语义抽查正常；其余语言及简介的实际排版尚未逐项确认，检查范围见审阅说明。
+
+- 审阅入口：[第二批说明、选词依据与中文回译](text/review/batch-02-review.md)。
+- 待上传累积稿：[storepage_1315198_batch-02_review.json](text/upload/storepage_1315198_batch-02_review.json)，包含已确认的第一批内容，只需导入这一份即可。
+- 第二批版本有 23 种完整文案，另 7 种仍为空；原始下载和第一批 JSON 保持不变。
+- 第三批范围：保加利亚语、匈牙利语、印度尼西亚语、土耳其语、希腊语、罗马尼亚语、马来语。
 
 ## 插图目录
 
