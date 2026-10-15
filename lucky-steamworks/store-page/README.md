@@ -19,13 +19,15 @@ Demo 与正式版商店页共用本目录的一套长描述和短描述。
 
 下载文件放入 `text/downloads/`，保留 Steamworks 给出的原文件名。
 
-当前已放入的文件来自 **Lucky Dog Rise Demo（AppID 5220880）**：
+最初放入的文件来自 **Lucky Dog Rise Demo（AppID 5220880）**：
 
 ```text
 G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\store-page\text\downloads\storepage_1315198_all.json
 ```
 
 其中 `1315198` 是商店页编辑记录 ID，不是游戏 AppID。两页共用文字，但导出文件各自带有所属页面的身份信息。
+
+2026-10-15 补充正式版 **Lucky Dog Rise（AppID 2583700）** 的原始导出：[storepage_602645_all_Main.json](text/downloads/storepage_602645_all_Main.json)。保留主人添加的 `_Main` 文件名标记；实际正式版身份已通过 JSON 内的字符串 `itemid = "602645"` 核对，不靠文件名判断。
 
 如需保留多次下载，可在 `text/downloads/` 下建立日期子目录，再放入保持原名的文件。
 
@@ -38,7 +40,7 @@ G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\store-page\text\d
 - `text/upload/`：整理和翻译后供 Steamworks 导入的 JSON，与下载原件分开保存。
 - `text/review/`：各批次的审阅说明、关键句回译、用语依据和本地排版参考。
 
-原始下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空。除下面记录的第一批处理范围外，既有 Markdown 仍待按下载原文核对。
+最初 Demo 下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空；本次正式版原始导出也是同一填充范围。除下面记录的批次处理范围外，既有 Markdown 仍待按下载原文核对。
 
 JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_description]`；文件还带有系统需求等其他字段。
 
@@ -64,9 +66,18 @@ JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_d
 2026-10-15 已补齐第三批 7 种语言的长描述与简介，当前完整累积 JSON 中 30 种语言均有长短描述。主人已提供马来语实际页面截图，长描述排版与关键语义抽查正常；其余语言及简介的实际排版尚未逐项确认，检查范围见审阅说明。
 
 - 审阅入口：[第三批说明、选词依据与中文回译](text/review/batch-03-review.md)。
-- **最新完整累积稿**：[storepage_1315198_batch-03_review.json](text/upload/storepage_1315198_batch-03_review.json)，包含原始已有内容、第一批、第二批和第三批，不需要手动合并前两批。
+- **Demo 最新完整累积稿**：[storepage_1315198_batch-03_review.json](text/upload/storepage_1315198_batch-03_review.json)，包含原始已有内容、第一批、第二批和第三批，不需要手动合并前两批。
 - 本文件保留 Demo 编辑记录 `1315198` 的身份。正式版共用文字，但必须以正式版自身导出身份生成导入文件。
 - 原始下载和前两批 JSON 保持不变。30/30 表示字段填齐，不表示全部旧 Markdown 已核对，也不表示全部语言已完成页面预览或母语审校。
+
+## 正式版共用文案导入稿
+
+2026-10-15 已以正式版原始导出为底稿，同步上述 30 种语言的共用长描述与简介。
+
+- **正式版待上传文件**：[storepage_602645_all_Main_review.json](text/upload/storepage_602645_all_Main_review.json)。上传目标为正式版商店编辑记录 `602645`，不能导入 Demo 的 `1315198` 页面。
+- 仅同步 `app[content][about]` 和 `app[content][short_description]`，全部 60 个文字字段与 Demo 完整累积稿相同；正式版身份、系统需求和其他字段保留正式版原件值。
+- 核对记录：[正式版同步说明](text/review/main-sync-review.md)。下载原件按字节归档，下载目录外的主人文件也保持原样。
+- 主人已提供正式版芬兰语、荷兰语实际页面截图，两种语言的长描述排版与关键语义抽查通过；其余语言及简介仍待页面核对。AI 没有执行 Steam 上传、保存或发布，静态截图不替代完整媒体播放验证。
 
 ## 插图目录
 
