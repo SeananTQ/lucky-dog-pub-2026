@@ -36,11 +36,11 @@ G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\store-page\text\d
 - `text/downloads/`：Steamworks 手动下载的原始 JSON；原样保留，作为该次核对的网页内容依据。
 - `text/about/`：各语言“关于此游戏”的可编辑文案。新稿保存为 `.bbcode.txt`，只包含可直接粘贴到 Steam 的 BBCode；既有 `.md` 稿按批次核对，不默认代表当前定稿。
 - `text/about/archive/`：旧文字草稿；现有无语言后缀的 `关于此游戏.md` 保留于此。
-- `text/short/`：各语言简介 / 概述。第二批起使用不带标题的纯文本 `.txt`；第一批保留现有 `.md`，复制时不包含 Markdown 标题。
+- `text/short/`：各语言简介 / 概述，整理稿使用不带标题的纯文本 `.txt`；此前补译第一批的意大利语、俄语、泰语仍保留 `.md`，另列格式收尾，复制时不包含 Markdown 标题。
 - `text/upload/`：整理和翻译后供 Steamworks 导入的 JSON，与下载原件分开保存。
 - `text/review/`：各批次的审阅说明、关键句回译、用语依据和本地排版参考。
 
-最初 Demo 下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空；本次正式版原始导出也是同一填充范围。除下面记录的批次处理范围外，既有 Markdown 仍待按下载原文核对。
+最初 Demo 下载的 JSON 中，13 种语言已有长描述和短描述，17 种语言为空；本次正式版原始导出也是同一填充范围。前面的三个补译批次已补齐 17 种空白语言；原有 13 种语言按[原文备份与尾段补充分批](text/review/existing-languages-plan.md)执行，不重新翻译正文或简介。三个整理批次均已完成本地文件，共 8 种新增尾段待审阅与页面抽查。
 
 JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_description]`；文件还带有系统需求等其他字段。
 
@@ -66,7 +66,7 @@ JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_d
 2026-10-15 已补齐第三批 7 种语言的长描述与简介，当前完整累积 JSON 中 30 种语言均有长短描述。主人已提供马来语实际页面截图，长描述排版与关键语义抽查正常；其余语言及简介的实际排版尚未逐项确认，检查范围见审阅说明。
 
 - 审阅入口：[第三批说明、选词依据与中文回译](text/review/batch-03-review.md)。
-- **Demo 最新完整累积稿**：[storepage_1315198_batch-03_review.json](text/upload/storepage_1315198_batch-03_review.json)，包含原始已有内容、第一批、第二批和第三批，不需要手动合并前两批。
+- **Demo 补译完成快照**：[storepage_1315198_batch-03_review.json](text/upload/storepage_1315198_batch-03_review.json)，包含原始已有内容及三个补译批次。此文件保持不变；追加原有语言尾段的最新完整导入稿见下文。
 - 本文件保留 Demo 编辑记录 `1315198` 的身份。正式版共用文字，但必须以正式版自身导出身份生成导入文件。
 - 原始下载和前两批 JSON 保持不变。30/30 表示字段填齐，不表示全部旧 Markdown 已核对，也不表示全部语言已完成页面预览或母语审校。
 
@@ -74,10 +74,51 @@ JSON 中对应的文字字段是 `app[content][about]` 和 `app[content][short_d
 
 2026-10-15 已以正式版原始导出为底稿，同步上述 30 种语言的共用长描述与简介。
 
-- **正式版待上传文件**：[storepage_602645_all_Main_review.json](text/upload/storepage_602645_all_Main_review.json)。上传目标为正式版商店编辑记录 `602645`，不能导入 Demo 的 `1315198` 页面。
+- **正式版首次同步快照**：[storepage_602645_all_Main_review.json](text/upload/storepage_602645_all_Main_review.json)。上传目标为正式版商店编辑记录 `602645`；此文件保持不变，最新完整导入稿见下文。
 - 仅同步 `app[content][about]` 和 `app[content][short_description]`，全部 60 个文字字段与 Demo 完整累积稿相同；正式版身份、系统需求和其他字段保留正式版原件值。
 - 核对记录：[正式版同步说明](text/review/main-sync-review.md)。下载原件按字节归档，下载目录外的主人文件也保持原样。
 - 主人已提供正式版芬兰语、荷兰语实际页面截图，两种语言的长描述排版与关键语义抽查通过；其余语言及简介仍待页面核对。AI 没有执行 Steam 上传、保存或发布，静态截图不替代完整媒体播放验证。
+
+## 原有语言整理分组
+
+详见[原有语言整理分批与文件盘点](text/review/existing-languages-plan.md)。本轮采用 3＋5＋5：
+
+- 第一批：简体中文、英语、日语。
+- 第二批：法语、德语、捷克语、韩语、越南语。
+- 第三批：繁体中文、西班牙语（西班牙／拉丁美洲）、葡萄牙语（葡萄牙／巴西），共 5 种。
+
+长描述从当前已确认 JSON 原样备份为 `.bbcode.txt`，简介备份为 `.txt`，对应旧 Markdown 原样归档。英语、中文（简体与繁体）、日语、捷克语保留既有尾段；其余 8 种已有语言仅研究并追加缺失的尾部关键词段，原正文与简介不改。意大利语、俄语、泰语的遗留 Markdown 单列为格式收尾。
+
+### 原有语言第一批：JSON 原文备份
+
+2026-10-15 已将简体中文、英语、日语的完整 BBCode 与简介从已确认 JSON 原样备份到本地，并将三份旧 Markdown 原样移入归档。此前临时进行的正文排版、英日邀请语、简介及关键词尾段改写已撤回，说明见[第一批备份记录](text/review/existing-01-review.md)。本批只做格式归档，无需重新上传。
+
+| 页面 | 第一批备份来源 JSON | 编辑记录 ID |
+| --- | --- | --- |
+| Demo | [storepage_1315198_batch-03_review.json](text/upload/storepage_1315198_batch-03_review.json) | `1315198` |
+| 正式版 | [storepage_602645_all_Main_review.json](text/upload/storepage_602645_all_Main_review.json) | `602645` |
+
+两份文件均含 30 种语言，全部 60 个文字字段保持共用。本批没有修改任何 JSON；两份临时改写的 `existing-01` 上传稿已撤回删除。原始下载和此前 JSON 快照保持原样，没有执行后台上传、保存或发布。
+
+### 原有语言第二批
+
+2026-10-15 已将法语、德语、捷克语、韩语、越南语保存为完整 BBCode 和独立简介，并原样归档四份旧 Markdown。仅法、德、韩、越在原正文媒体之后追加关键词段；捷克语已有尾段保留。所有原正文及简介均不改写。
+
+- 审阅入口：[第二批选词依据、中文回译与文件入口](text/review/existing-02-review.md)。新增尾段待主人审阅及 Steam 页面抽查。
+- **Demo 第二批快照**：[storepage_1315198_existing-02_review.json](text/upload/storepage_1315198_existing-02_review.json)，编辑记录 `1315198`。
+- **正式版第二批快照**：[storepage_602645_existing-02_Main_review.json](text/upload/storepage_602645_existing-02_Main_review.json)，编辑记录 `602645`。
+- 两份均含完整 30 种语言，可分别导入对应页面，无需手动合并。相比各自起始快照，仅四个长描述字段追加尾段；其余语言、全部简介、各自身份及非文字字段保留。
+- 原始下载和此前 JSON 快照保持原样。没有执行 Steam 上传、保存或发布；当前最新累积稿见第三批。
+
+### 原有语言第三批与当前完整导入稿
+
+2026-10-15 已整理繁中、西语两地区版、葡语两地区版的完整 BBCode 与独立简介，并原样归档五份旧 Markdown。繁中保留已确认尾段；仅四种地区版本在原正文媒体后各追加一个关键词段。原正文与全部简介不改写。
+
+- 审阅入口：[第三批地区选词、中文回译与文件入口](text/review/existing-03-review.md)。新增尾段待主人审阅及 Steam 页面抽查。
+- **Demo 当前完整导入稿**：[storepage_1315198_existing-03_review.json](text/upload/storepage_1315198_existing-03_review.json)，编辑记录 `1315198`。
+- **正式版当前完整导入稿**：[storepage_602645_existing-03_Main_review.json](text/upload/storepage_602645_existing-03_Main_review.json)，编辑记录 `602645`。
+- 两份均包含完整 30 种语言及第二、三批合计 8 种新增尾段，分别直接导入对应页面即可，无需手动合并。相比各自第二批，只追加本批四个长描述尾段；所有简介、其他语言、各自身份及非文字字段保持原值。
+- 本轮原有 13 种语言已全部有 BBCode 和独立纯文本简介。原始下载及此前 JSON 快照保持原样，没有执行 Steam 上传、保存、发布或 Git 提交。
 
 ## 插图目录
 
