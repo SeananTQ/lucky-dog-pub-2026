@@ -468,9 +468,6 @@ public partial class CollectionEventPageController : VBoxContainer
         _victoryRewardButton.Disabled = preview || !claimable;
         SetVictoryRewardCursor(claimable);
         SetRewardCellsClaimable(claimable);
-        _victoryRewardButton.TooltipText = preview
-            ? "当前为调试预览，不会发放奖励"
-            : claimable ? "点击铭牌，一起欢庆" : string.Empty;
 
         if (state == VictoryNameplateVisualState.Claimed)
         {

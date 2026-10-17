@@ -112,3 +112,6 @@ lucky-dog-rise/Tools/DogSkinEditor/EditorFiles/output/
 
 # 盲盒掉率编辑器导出的 Excel 回填 CSV
 lucky-item-loot-editor/output/
+
+# Store dialogue generated media and translation review packages
+/store-media/store-dialogue/
