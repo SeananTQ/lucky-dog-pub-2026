@@ -2083,7 +2083,9 @@ public partial class GameData : Node
                 ownedCounts[item.Id] = desiredCount;
                 if (desiredCount > previousCount && !item.IsHiddenInBag)
                 {
-                    newItemIds.Add(item.Id);
+                    // Keep unread markers from the save, but duplicate copies are not new outfits.
+                    if (previousCount == 0)
+                        newItemIds.Add(item.Id);
                     var positiveDelta = desiredCount - previousCount;
                     var expectedDelta = Math.Min(
                         positiveDelta,
@@ -3311,7 +3313,6 @@ public partial class GameData : Node
         if (headwearItemId != 0)
         {
             AddItem(headwearItemId, 1, markNew: true, source: PlayerProgressSource.Gameplay);
-            EquipItem(headwearItemId);
         }
         _collectionEventVictoryCompletedAtUnixSecondsByEvent[normalizedEventId] =
             DateTimeOffset.UtcNow.ToUnixTimeSeconds();
