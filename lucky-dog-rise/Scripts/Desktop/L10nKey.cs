@@ -148,4 +148,18 @@ public static class L10nKey
     public const string WishlistCallToAction_Title = nameof(WishlistCallToAction_Title);
     public const string WishlistCallToAction_ExitGameButton = nameof(WishlistCallToAction_ExitGameButton);
     public const string WishlistCallToAction_SuppressExitReminder = nameof(WishlistCallToAction_SuppressExitReminder);
+    public const string PokerHelp_OperationTitle = nameof(PokerHelp_OperationTitle);
+    public const string PokerHelp_BuildTab = nameof(PokerHelp_BuildTab);
+    public const string PokerHelp_RanksTab = nameof(PokerHelp_RanksTab);
+    public const string PokerHelp_Close = nameof(PokerHelp_Close);
+    public const string PokerHelp_FaceUpKeep = nameof(PokerHelp_FaceUpKeep);
+    public const string PokerHelp_FaceDownReplace = nameof(PokerHelp_FaceDownReplace);
+    public const string PokerHelp_PairGoal = nameof(PokerHelp_PairGoal);
+    public const string PokerHelp_FlushGoal = nameof(PokerHelp_FlushGoal);
+    public const string PokerHelp_YourCards = nameof(PokerHelp_YourCards);
+    public const string PokerHelp_PossibleResult = nameof(PokerHelp_PossibleResult);
+    public const string PokerHelp_PairNote = nameof(PokerHelp_PairNote);
+    public const string PokerHelp_FlushNote = nameof(PokerHelp_FlushNote);
+    public const string PokerHelp_ResultWarning = nameof(PokerHelp_ResultWarning);
+    public const string PokerHelp_MinimumHand = nameof(PokerHelp_MinimumHand);
 }

@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scenes/Dev/Tests/PokerHandHelpPreview.cs" id="1_test"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandShowcase.tscn" id="2_help"]
+
+[node name="PokerHandHelpPreview" type="Control" unique_id=1292889246 node_paths=PackedStringArray("_showcase")]
+offset_right = 1200.0
+offset_bottom = 1200.0
+script = ExtResource("1_test")
+_showcase = NodePath("PokerHandShowcase")
+
+[node name="BehindHelp" type="Button" parent="."]
+offset_right = 1200.0
+offset_bottom = 1200.0
+
+[node name="PokerHandShowcase" parent="." instance=ExtResource("2_help")]

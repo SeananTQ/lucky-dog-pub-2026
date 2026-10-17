@@ -1,0 +1,1764 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="tex_1"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/PokerHelpArrow.svg" id="tex_2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade9.png" id="tex_3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart9.png" id="tex_4"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club4.png" id="tex_5"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond6.png" id="tex_6"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade13.png" id="tex_7"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond9.png" id="tex_8"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club2.png" id="tex_9"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade11.png" id="tex_10"]
+[ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/ThreeOfAKind.png" id="tex_11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart2.png" id="tex_12"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart6.png" id="tex_13"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart13.png" id="tex_14"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond8.png" id="tex_15"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart12.png" id="tex_16"]
+[ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/Flush.png" id="tex_17"]
+
+
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/PokerHelpCursor.svg" id="tex_cursor"]
+
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Any.png" id="tex_any"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Arm_ColorChip_Type3.svg" id="tex_hand"]
+
+[sub_resource type="Animation" id="Animation_RESET"]
+resource_name = "RESET"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card/Front:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Pointer:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(152, 120)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Pointer:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_flip_demo"]
+resource_name = "flip_demo"
+length = 7.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.8, 2.0, 2.2, 4.4, 4.6, 4.8, 7.0),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card/Front:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 2.0, 4.6),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [true, false, true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 2.0, 4.6),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Pointer:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 1.0, 1.6, 2.5, 3.0, 3.6, 4.2, 5.15, 5.65, 7.0),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(152, 120), Vector2(152, 120), Vector2(112, 84), Vector2(112, 84), Vector2(152, 120), Vector2(152, 120), Vector2(112, 84), Vector2(112, 84), Vector2(152, 120), Vector2(152, 120)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Pointer:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1.6, 1.75, 1.9, 4.2, 4.35, 4.5, 7.0),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_flip"]
+_data = {
+&"RESET": SubResource("Animation_RESET"),
+&"flip_demo": SubResource("Animation_flip_demo")
+}
+
+[sub_resource type="Animation" id="Animation_draw_RESET"]
+resource_name = "RESET"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card3:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card3/InitialFace:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card3/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Card3/ResultFace:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Card4:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Card4/InitialFace:visible")
+tracks/5/interp = 1
+tracks/5/loop_wrap = false
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Card4/Back:visible")
+tracks/6/interp = 1
+tracks/6/loop_wrap = false
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Card4/ResultFace:visible")
+tracks/7/interp = 1
+tracks/7/loop_wrap = false
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Card5:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = false
+tracks/8/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("Card5/InitialFace:visible")
+tracks/9/interp = 1
+tracks/9/loop_wrap = false
+tracks/9/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("Card5/Back:visible")
+tracks/10/interp = 1
+tracks/10/loop_wrap = false
+tracks/10/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("Card5/ResultFace:visible")
+tracks/11/interp = 1
+tracks/11/loop_wrap = false
+tracks/11/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("Pointer:position")
+tracks/12/interp = 1
+tracks/12/loop_wrap = false
+tracks/12/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(424, 208)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("Pointer:scale")
+tracks/13/interp = 1
+tracks/13/loop_wrap = false
+tracks/13/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("Pointer:modulate")
+tracks/14/interp = 1
+tracks/14/loop_wrap = false
+tracks/14/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("Hand:scale")
+tracks/15/interp = 1
+tracks/15/loop_wrap = false
+tracks/15/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("Reward:modulate")
+tracks/16/interp = 1
+tracks/16/loop_wrap = false
+tracks/16/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_draw_demo"]
+resource_name = "draw_demo"
+length = 8.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card3:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.4, 1.54, 1.6800000000000002, 3.9, 4.1, 4.3, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card3/InitialFace:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1.54),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card3/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 1.54, 4.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Card3/ResultFace:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 4.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Card4:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1.98, 2.12, 2.2600000000000002, 3.9, 4.1, 4.3, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Card4/InitialFace:visible")
+tracks/5/interp = 1
+tracks/5/loop_wrap = false
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 2.12),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Card4/Back:visible")
+tracks/6/interp = 1
+tracks/6/loop_wrap = false
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 2.12, 4.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Card4/ResultFace:visible")
+tracks/7/interp = 1
+tracks/7/loop_wrap = false
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 4.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Card5:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = false
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 2.56, 2.7, 2.8400000000000003, 3.9, 4.1, 4.3, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("Card5/InitialFace:visible")
+tracks/9/interp = 1
+tracks/9/loop_wrap = false
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 2.7),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("Card5/Back:visible")
+tracks/10/interp = 1
+tracks/10/loop_wrap = false
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 2.7, 4.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("Card5/ResultFace:visible")
+tracks/11/interp = 1
+tracks/11/loop_wrap = false
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 4.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("Pointer:position")
+tracks/12/interp = 1
+tracks/12/loop_wrap = false
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 0.8, 1.3, 1.6, 1.86, 2.18, 2.44, 2.86, 3.45, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(424, 208), Vector2(424, 208), Vector2(230, 76), Vector2(230, 76), Vector2(328, 76), Vector2(328, 76), Vector2(426, 76), Vector2(426, 76), Vector2(40, 196), Vector2(40, 196)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("Pointer:scale")
+tracks/13/interp = 1
+tracks/13/loop_wrap = false
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 1.3, 1.42, 1.54, 1.86, 1.98, 2.1, 2.44, 2.56, 2.68, 3.5, 3.65, 3.8, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("Pointer:modulate")
+tracks/14/interp = 1
+tracks/14/loop_wrap = false
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 4.3, 4.5, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0), Color(1, 1, 1, 0)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("Hand:scale")
+tracks/15/interp = 1
+tracks/15/loop_wrap = false
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 3.5, 3.65, 3.8, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0.9, 0.9), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("Reward:modulate")
+tracks/16/interp = 1
+tracks/16/loop_wrap = false
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 4.3, 4.65, 8),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_draw"]
+_data = {
+&"RESET": SubResource("Animation_draw_RESET"),
+&"draw_demo": SubResource("Animation_draw_demo")
+}
+
+[sub_resource type="Animation" id="Animation_flush_RESET"]
+resource_name = "RESET"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card5:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card5/InitialFace:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card5/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Card5/ResultFace:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Pointer:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(424, 208)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Pointer:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = false
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Pointer:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = false
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Hand:scale")
+tracks/7/interp = 1
+tracks/7/loop_wrap = false
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Reward:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = false
+tracks/8/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_flush_demo"]
+resource_name = "flush_demo"
+length = 6.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Card5:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.4, 1.54, 1.68, 2.9, 3.1, 3.3, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Card5/InitialFace:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1.54),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Card5/Back:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 1.54, 3.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Card5/ResultFace:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 3.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Pointer:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.8, 1.3, 1.85, 2.4, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(424, 208), Vector2(424, 208), Vector2(426, 76), Vector2(426, 76), Vector2(40, 196), Vector2(40, 196)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Pointer:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = false
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 1.3, 1.42, 1.54, 2.45, 2.6, 2.75, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1), Vector2(0.82, 0.82), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Pointer:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = false
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 3.3, 3.5, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0), Color(1, 1, 1, 0)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Hand:scale")
+tracks/7/interp = 1
+tracks/7/loop_wrap = false
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 2.45, 2.6, 2.75, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(0.9, 0.9), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Reward:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = false
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 3.3, 3.65, 6.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_flush"]
+_data = {
+&"RESET": SubResource("Animation_flush_RESET"),
+&"flush_demo": SubResource("Animation_flush_demo")
+}
+
+[node name="PokerHandBasics" type="VBoxContainer"]
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 32
+
+[node name="OperationTitle" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeading"
+text = "PokerHelp_OperationTitle"
+autowrap_mode = 3
+
+[node name="Legend" type="PanelContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpLegend"
+
+[node name="Row" type="HBoxContainer" parent="Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+
+
+[node name="FaceUp" type="HBoxContainer" parent="Legend/Row"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Card" type="TextureRect" parent="Legend/Row/FaceUp"]
+custom_minimum_size = Vector2(96, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_3")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Text" type="Label" parent="Legend/Row/FaceUp"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_FaceUpKeep"
+autowrap_mode = 3
+vertical_alignment = 1
+size_flags_horizontal = 3
+
+
+[node name="Flip" type="Control" parent="Legend/Row"]
+custom_minimum_size = Vector2(192, 176)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Card" type="Control" parent="Legend/Row/Flip"]
+offset_left = 48.0
+offset_top = 8.0
+offset_right = 144.0
+offset_bottom = 148.0
+pivot_offset = Vector2(48, 70)
+mouse_filter = 2
+
+[node name="Front" type="TextureRect" parent="Legend/Row/Flip/Card"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Back" type="TextureRect" parent="Legend/Row/Flip/Card"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Pointer" type="Control" parent="Legend/Row/Flip"]
+offset_left = 152.0
+offset_top = 120.0
+offset_right = 188.0
+offset_bottom = 172.0
+mouse_filter = 2
+
+[node name="Shadow" type="TextureRect" parent="Legend/Row/Flip/Pointer"]
+modulate = Color(0, 0, 0, 0.75)
+offset_left = 3.0
+offset_top = 4.0
+offset_right = 39.0
+offset_bottom = 56.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Icon" type="TextureRect" parent="Legend/Row/Flip/Pointer"]
+offset_right = 36.0
+offset_bottom = 52.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Legend/Row/Flip"]
+libraries = {
+&"": SubResource("AnimationLibrary_flip")
+}
+
+[node name="FaceDown" type="HBoxContainer" parent="Legend/Row"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Card" type="TextureRect" parent="Legend/Row/FaceDown"]
+custom_minimum_size = Vector2(96, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Text" type="Label" parent="Legend/Row/FaceDown"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_FaceDownReplace"
+autowrap_mode = 3
+vertical_alignment = 1
+size_flags_horizontal = 3
+
+
+[node name="Pair" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+
+[node name="Goal" type="Label" parent="Pair"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeading"
+text = "PokerHelp_PairGoal"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Comparison" type="HBoxContainer" parent="Pair"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+
+[node name="Before" type="VBoxContainer" parent="Pair/Comparison"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Caption" type="Label" parent="Pair/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_YourCards"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Cards" type="HBoxContainer" parent="Pair/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+
+[node name="Card1" type="TextureRect" parent="Pair/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_3")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card2" type="TextureRect" parent="Pair/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_4")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card3" type="TextureRect" parent="Pair/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_5")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card4" type="TextureRect" parent="Pair/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_6")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card5" type="TextureRect" parent="Pair/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_7")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Markers" type="HBoxContainer" parent="Pair/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+
+[node name="Keep" type="HBoxContainer" parent="Pair/Comparison/Before/Markers"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+alignment = 1
+
+
+[node name="Icon" type="TextureRect" parent="Pair/Comparison/Before/Markers/Keep"]
+custom_minimum_size = Vector2(30, 44)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_3")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Count" type="Label" parent="Pair/Comparison/Before/Markers/Keep"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "x 2"
+autowrap_mode = 3
+vertical_alignment = 1
+custom_minimum_size = Vector2(64, 0)
+
+
+[node name="Replace" type="HBoxContainer" parent="Pair/Comparison/Before/Markers"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+alignment = 1
+
+
+[node name="Icon" type="TextureRect" parent="Pair/Comparison/Before/Markers/Replace"]
+custom_minimum_size = Vector2(30, 44)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_any")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Count" type="Label" parent="Pair/Comparison/Before/Markers/Replace"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "x 3"
+autowrap_mode = 3
+vertical_alignment = 1
+custom_minimum_size = Vector2(64, 0)
+
+
+[node name="ResultArrow" type="Control" parent="Pair/Comparison"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Image" type="TextureRect" parent="Pair/Comparison/ResultArrow"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_2")
+expand_mode = 1
+stretch_mode = 5
+offset_top = 96.0
+offset_right = 56.0
+offset_bottom = 132.0
+
+
+[node name="After" type="VBoxContainer" parent="Pair/Comparison"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Caption" type="Label" parent="Pair/Comparison/After"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_PossibleResult"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Demo" type="Control" parent="Pair/Comparison/After"]
+custom_minimum_size = Vector2(480, 260)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Pair/Comparison/After/Demo"]
+offset_left = 0.0
+offset_right = 88.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card2" type="TextureRect" parent="Pair/Comparison/After/Demo"]
+offset_left = 98.0
+offset_right = 186.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card3" type="Control" parent="Pair/Comparison/After/Demo"]
+offset_left = 196.0
+offset_right = 284.0
+offset_bottom = 140.0
+pivot_offset = Vector2(44, 70)
+mouse_filter = 2
+
+[node name="InitialFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card3"]
+visible = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Back" type="TextureRect" parent="Pair/Comparison/After/Demo/Card3"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card3"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_8")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card4" type="Control" parent="Pair/Comparison/After/Demo"]
+offset_left = 294.0
+offset_right = 382.0
+offset_bottom = 140.0
+pivot_offset = Vector2(44, 70)
+mouse_filter = 2
+
+[node name="InitialFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card4"]
+visible = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Back" type="TextureRect" parent="Pair/Comparison/After/Demo/Card4"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card4"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_9")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.38)
+
+[node name="Card5" type="Control" parent="Pair/Comparison/After/Demo"]
+offset_left = 392.0
+offset_right = 480.0
+offset_bottom = 140.0
+pivot_offset = Vector2(44, 70)
+mouse_filter = 2
+
+[node name="InitialFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card5"]
+visible = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_7")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Back" type="TextureRect" parent="Pair/Comparison/After/Demo/Card5"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultFace" type="TextureRect" parent="Pair/Comparison/After/Demo/Card5"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_10")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.38)
+
+[node name="Hand" type="TextureRect" parent="Pair/Comparison/After/Demo"]
+offset_top = 164.0
+offset_right = 80.0
+offset_bottom = 240.0
+pivot_offset = Vector2(40, 38)
+mouse_filter = 2
+texture = ExtResource("tex_hand")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Reward" type="HBoxContainer" parent="Pair/Comparison/After/Demo"]
+modulate = Color(1, 1, 1, 0)
+offset_left = 96.0
+offset_top = 164.0
+offset_right = 480.0
+offset_bottom = 260.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="Pair/Comparison/After/Demo/Reward"]
+custom_minimum_size = Vector2(48, 56)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("tex_11")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="Pair/Comparison/After/Demo/Reward"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="Pointer" type="Control" parent="Pair/Comparison/After/Demo"]
+offset_left = 424.0
+offset_top = 208.0
+offset_right = 460.0
+offset_bottom = 260.0
+mouse_filter = 2
+
+[node name="Shadow" type="TextureRect" parent="Pair/Comparison/After/Demo/Pointer"]
+modulate = Color(0, 0, 0, 0.75)
+offset_left = 3.0
+offset_top = 4.0
+offset_right = 39.0
+offset_bottom = 56.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Icon" type="TextureRect" parent="Pair/Comparison/After/Demo/Pointer"]
+offset_right = 36.0
+offset_bottom = 52.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Pair/Comparison/After/Demo"]
+libraries = {
+&"": SubResource("AnimationLibrary_draw")
+}
+
+[node name="Note" type="Label" parent="Pair"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_PairNote"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="PairSeparator" type="HSeparator" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpSeparator"
+
+[node name="Flush" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+
+[node name="Goal" type="Label" parent="Flush"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeading"
+text = "PokerHelp_FlushGoal"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Comparison" type="HBoxContainer" parent="Flush"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+
+[node name="Before" type="VBoxContainer" parent="Flush/Comparison"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Caption" type="Label" parent="Flush/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_YourCards"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Cards" type="HBoxContainer" parent="Flush/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+
+[node name="Card1" type="TextureRect" parent="Flush/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_12")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card2" type="TextureRect" parent="Flush/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_13")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card3" type="TextureRect" parent="Flush/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_4")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card4" type="TextureRect" parent="Flush/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_14")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Card5" type="TextureRect" parent="Flush/Comparison/Before/Cards"]
+custom_minimum_size = Vector2(88, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_15")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Markers" type="HBoxContainer" parent="Flush/Comparison/Before"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+
+[node name="Keep" type="HBoxContainer" parent="Flush/Comparison/Before/Markers"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 4.0
+alignment = 1
+
+
+[node name="Icon" type="TextureRect" parent="Flush/Comparison/Before/Markers/Keep"]
+custom_minimum_size = Vector2(30, 44)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_12")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Count" type="Label" parent="Flush/Comparison/Before/Markers/Keep"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "x 4"
+autowrap_mode = 3
+vertical_alignment = 1
+custom_minimum_size = Vector2(64, 0)
+
+
+[node name="Replace" type="HBoxContainer" parent="Flush/Comparison/Before/Markers"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+alignment = 1
+
+
+[node name="Icon" type="TextureRect" parent="Flush/Comparison/Before/Markers/Replace"]
+custom_minimum_size = Vector2(30, 44)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Count" type="Label" parent="Flush/Comparison/Before/Markers/Replace"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "x 1"
+autowrap_mode = 3
+vertical_alignment = 1
+custom_minimum_size = Vector2(64, 0)
+
+
+[node name="ResultArrow" type="Control" parent="Flush/Comparison"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Image" type="TextureRect" parent="Flush/Comparison/ResultArrow"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_2")
+expand_mode = 1
+stretch_mode = 5
+offset_top = 96.0
+offset_right = 56.0
+offset_bottom = 132.0
+
+
+[node name="After" type="VBoxContainer" parent="Flush/Comparison"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Caption" type="Label" parent="Flush/Comparison/After"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_PossibleResult"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Demo" type="Control" parent="Flush/Comparison/After"]
+custom_minimum_size = Vector2(480, 260)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 0.0
+offset_right = 88.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_12")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card2" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 98.0
+offset_right = 186.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_13")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card3" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 196.0
+offset_right = 284.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card4" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 294.0
+offset_right = 382.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_14")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card5" type="Control" parent="Flush/Comparison/After/Demo"]
+offset_left = 392.0
+offset_right = 480.0
+offset_bottom = 140.0
+pivot_offset = Vector2(44, 70)
+mouse_filter = 2
+
+[node name="InitialFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+visible = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_15")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Back" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_16")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Hand" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_top = 164.0
+offset_right = 80.0
+offset_bottom = 240.0
+pivot_offset = Vector2(40, 38)
+mouse_filter = 2
+texture = ExtResource("tex_hand")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Reward" type="HBoxContainer" parent="Flush/Comparison/After/Demo"]
+modulate = Color(1, 1, 1, 0)
+offset_left = 96.0
+offset_top = 164.0
+offset_right = 480.0
+offset_bottom = 260.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="Flush/Comparison/After/Demo/Reward"]
+custom_minimum_size = Vector2(48, 56)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("tex_17")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="Flush/Comparison/After/Demo/Reward"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="Pointer" type="Control" parent="Flush/Comparison/After/Demo"]
+offset_left = 424.0
+offset_top = 208.0
+offset_right = 460.0
+offset_bottom = 260.0
+mouse_filter = 2
+
+[node name="Shadow" type="TextureRect" parent="Flush/Comparison/After/Demo/Pointer"]
+modulate = Color(0, 0, 0, 0.75)
+offset_left = 3.0
+offset_top = 4.0
+offset_right = 39.0
+offset_bottom = 56.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Icon" type="TextureRect" parent="Flush/Comparison/After/Demo/Pointer"]
+offset_right = 36.0
+offset_bottom = 52.0
+mouse_filter = 2
+texture = ExtResource("tex_cursor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Flush/Comparison/After/Demo"]
+libraries = {
+&"": SubResource("AnimationLibrary_flush")
+}
+
+[node name="Note" type="Label" parent="Flush"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_FlushNote"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="FlushSeparator" type="HSeparator" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpSeparator"
+
+[node name="Footer" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+
+[node name="Warning" type="Label" parent="Footer"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_ResultWarning"
+autowrap_mode = 3
+vertical_alignment = 1
+
+
+[node name="Minimum" type="Label" parent="Footer"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_MinimumHand"
+autowrap_mode = 3
+vertical_alignment = 1
