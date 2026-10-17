@@ -256,22 +256,30 @@ public partial class PokerHandHelpPreview : Control
             _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Legend/Row/Flip/AnimationPlayer"),
             _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Pair/Comparison/After/Demo/AnimationPlayer")
         };
-        var kept = Enumerable.Range(1, 4).Select(i => demo.GetNode<TextureRect>($"Card{i}")).ToArray();
-        var initial = demo.GetNode<TextureRect>("Card5/InitialFace");
-        var back = demo.GetNode<TextureRect>("Card5/Back");
-        var result = demo.GetNode<TextureRect>("Card5/ResultFace");
-        var card = demo.GetNode<Control>("Card5");
+        var kept = new[] { 1, 3, 4, 5 }.Select(i => demo.GetNode<TextureRect>($"Card{i}")).ToArray();
+        var initial = demo.GetNode<TextureRect>("Card2/InitialFace");
+        var back = demo.GetNode<TextureRect>("Card2/Back");
+        var result = demo.GetNode<TextureRect>("Card2/ResultFace");
+        var card = demo.GetNode<Control>("Card2");
         var pointer = demo.GetNode<Control>("Pointer");
         var hand = demo.GetNode<Control>("Hand");
         var reward = demo.GetNode<Control>("Reward");
         Require(kept.Select(item => System.IO.Path.GetFileName(item.Texture.ResourcePath))
-            .SequenceEqual(new[] { "Heart2.png", "Heart6.png", "Heart9.png", "Heart13.png" }), "Keep the original four hearts.");
-        Require(initial.Texture.ResourcePath.EndsWith("Diamond8.png") && result.Texture.ResourcePath.EndsWith("Heart12.png"),
-            "Replace the diamond with a fifth heart in the example.");
+            .SequenceEqual(new[] { "Spade9.png", "Spade4.png", "Spade6.png", "Spade13.png" }), "Keep the four spades at positions 1, 3, 4 and 5.");
+        var before = Enumerable.Range(1, 5).Select(i => section.GetNode<TextureRect>($"Comparison/Before/Cards/Card{i}")).ToArray();
+        Require(before.Select(item => System.IO.Path.GetFileName(item.Texture.ResourcePath))
+            .SequenceEqual(new[] { "Spade9.png", "Heart9.png", "Spade4.png", "Spade6.png", "Spade13.png" }),
+            "The lower example must start with 9, 9, 4, 6, K and only the second card in hearts.");
+        var pairBefore = Enumerable.Range(1, 5).Select(i => _showcase.GetNode<TextureRect>(BasicsPath + $"/Pair/Comparison/Before/Cards/Card{i}")).ToArray();
+        Require(pairBefore.Select(item => System.IO.Path.GetFileName(item.Texture.ResourcePath))
+            .SequenceEqual(new[] { "Spade9.png", "Heart9.png", "Club4.png", "Diamond6.png", "Spade13.png" }),
+            "The upper example must retain its original mixed suits for the strategy comparison.");
+        Require(initial.Texture.ResourcePath.EndsWith("Heart9.png") && result.Texture.ResourcePath.EndsWith("Spade12.png"),
+            "Replace the second card, the 9 of hearts, with a fifth spade in the example.");
         Require(demo.GetNode<TextureRect>("Reward/Icon").Texture.ResourcePath.EndsWith("ChipStack/Flush.png"),
             "The reward must use the flush chip asset.");
         Require(player.IsPlaying() && initial.Visible && !back.Visible && !result.Visible && reward.Modulate.A == 0,
-            "The flush demo must start automatically with the original diamond and no reward.");
+            "The flush demo must start automatically with the 9 of hearts and no reward.");
         bool sawCardClick = false, sawBack = false, sawHandClick = false, sawReward = false, sawLoop = false;
         double previousPosition = player.CurrentAnimationPosition;
         ulong start = Time.GetTicksMsec(), nextCapture = start;
@@ -280,25 +288,25 @@ public partial class PokerHandHelpPreview : Control
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Require(kept.All(item => item.Visible && item.Scale == Vector2.One && item.Modulate.A == 1),
-                "All four kept hearts must stay face-up and undimmed throughout the animation.");
+                "All four kept spades must stay face-up and undimmed throughout the animation.");
             Require(new[] { initial.Visible, back.Visible, result.Visible }.Count(value => value) == 1,
                 "The replacement card must show exactly one face.");
             sawCardClick |= pointer.Scale.X < .9f && card.GetGlobalRect().HasPoint(pointer.GlobalPosition);
             if (back.Visible)
             {
-                Require(sawCardClick, "The diamond must turn over only after the pointer presses it.");
+                Require(sawCardClick, "The second card must turn over only after the pointer presses it.");
                 sawBack = true;
             }
             if (hand.Scale.X < .95f)
             {
                 Require(sawBack && back.Visible && hand.GetGlobalRect().HasPoint(pointer.GlobalPosition),
-                    "Press the hand after selecting the diamond, with the pointer over the hand.");
+                    "Press the hand after selecting the 9 of hearts, with the pointer over the hand.");
                 sawHandClick = true;
             }
-            if (result.Visible) Require(sawHandClick, "The new heart must appear only after pressing the hand.");
+            if (result.Visible) Require(sawHandClick, "The new spade must appear only after pressing the hand.");
             if (reward.Modulate.A > .01f)
             {
-                Require(result.Visible && card.Scale.X > .99f, "Show the flush reward after the fifth heart finishes turning face-up.");
+                Require(result.Visible && card.Scale.X > .99f, "Show the flush reward after the fifth spade finishes turning face-up.");
                 Require(demo.GetNode<Label>("Reward/Name").Text == L10n.Tr(L10n.GetHandRankKey(DataTables.EHandRank.Flush)),
                     "The reward must name the flush hand.");
                 sawReward = true;
@@ -307,7 +315,7 @@ public partial class PokerHandHelpPreview : Control
             if (position + 1 < previousPosition)
             {
                 Require(initial.Visible && !back.Visible && !result.Visible && reward.Modulate.A == 0,
-                    "The next loop must reset to the diamond and hide the previous reward.");
+                    "The next loop must reset to the 9 of hearts and hide the previous reward.");
                 sawLoop = true;
             }
             previousPosition = position;
@@ -323,13 +331,13 @@ public partial class PokerHandHelpPreview : Control
         await Click(_showcase.GetNode<Button>("Header/RanksTab"));
         Require(!player.IsPlaying() && otherPlayers.All(item => !item.IsPlaying()), "All demos must stop on the ranks page.");
         await Click(_showcase.GetNode<Button>("Header/BasicsTab"));
-        Require(player.IsPlaying() && initial.Visible && reward.Modulate.A == 0, "Returning must restart the flush from the diamond.");
+        Require(player.IsPlaying() && initial.Visible && reward.Modulate.A == 0, "Returning must restart the flush from the 9 of hearts.");
         _showcase.HideOverlay();
         Require(!player.IsPlaying() && otherPlayers.All(item => !item.IsPlaying()), "Closing must stop every demo.");
         _showcase.ShowOverlay();
         await Settle();
         Require(player.IsPlaying() && initial.Visible && reward.Modulate.A == 0, "Reopening must restart the flush example.");
-        GD.Print($"[PokerHelp] Four retained hearts, diamond selection, hand press, fifth heart, flush reward, loop and all demo lifecycles passed; {frame} flush frames captured.");
+        GD.Print($"[PokerHelp] Matching ranks across examples, four retained spades, second-card selection, hand press, fifth spade, flush reward, loop and all demo lifecycles passed; {frame} flush frames captured.");
     }
 
     private async Task CheckScrolling(string name)
@@ -442,7 +450,7 @@ public partial class PokerHandHelpPreview : Control
         if (DisplayServer.GetName() == "headless") return;
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         string directory = ProjectSettings.GlobalizePath(OS.GetCmdlineUserArgs().Contains("--poker-help-flush")
-            ? "res://../.local-build/poker-help/screenshots-flush"
+            ? "res://../.local-build/poker-help/screenshots-spade"
             : "res://../.local-build/poker-help/screenshots-draw");
         System.IO.Directory.CreateDirectory(directory);
         var error = GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(directory, locale + ".png"));

@@ -11,11 +11,9 @@
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club2.png" id="tex_9"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade11.png" id="tex_10"]
 [ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/ThreeOfAKind.png" id="tex_11"]
-[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart2.png" id="tex_12"]
-[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart6.png" id="tex_13"]
-[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart13.png" id="tex_14"]
-[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond8.png" id="tex_15"]
-[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart12.png" id="tex_16"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade4.png" id="tex_spade4"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade6.png" id="tex_spade6"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade12.png" id="tex_spade12"]
 [ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/Flush.png" id="tex_17"]
 
 
@@ -588,7 +586,7 @@ length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Card5:scale")
+tracks/0/path = NodePath("Card2:scale")
 tracks/0/interp = 1
 tracks/0/loop_wrap = false
 tracks/0/keys = {
@@ -600,7 +598,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Card5/InitialFace:visible")
+tracks/1/path = NodePath("Card2/InitialFace:visible")
 tracks/1/interp = 1
 tracks/1/loop_wrap = false
 tracks/1/keys = {
@@ -612,7 +610,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Card5/Back:visible")
+tracks/2/path = NodePath("Card2/Back:visible")
 tracks/2/interp = 1
 tracks/2/loop_wrap = false
 tracks/2/keys = {
@@ -624,7 +622,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Card5/ResultFace:visible")
+tracks/3/path = NodePath("Card2/ResultFace:visible")
 tracks/3/interp = 1
 tracks/3/loop_wrap = false
 tracks/3/keys = {
@@ -701,7 +699,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Card5:scale")
+tracks/0/path = NodePath("Card2:scale")
 tracks/0/interp = 1
 tracks/0/loop_wrap = false
 tracks/0/keys = {
@@ -713,7 +711,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Card5/InitialFace:visible")
+tracks/1/path = NodePath("Card2/InitialFace:visible")
 tracks/1/interp = 1
 tracks/1/loop_wrap = false
 tracks/1/keys = {
@@ -725,7 +723,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Card5/Back:visible")
+tracks/2/path = NodePath("Card2/Back:visible")
 tracks/2/interp = 1
 tracks/2/loop_wrap = false
 tracks/2/keys = {
@@ -737,7 +735,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Card5/ResultFace:visible")
+tracks/3/path = NodePath("Card2/ResultFace:visible")
 tracks/3/interp = 1
 tracks/3/loop_wrap = false
 tracks/3/keys = {
@@ -756,7 +754,7 @@ tracks/4/keys = {
 "times": PackedFloat32Array(0, 0.8, 1.3, 1.85, 2.4, 6.8),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(424, 208), Vector2(424, 208), Vector2(426, 76), Vector2(426, 76), Vector2(40, 196), Vector2(40, 196)]
+"values": [Vector2(424, 208), Vector2(424, 208), Vector2(132, 76), Vector2(132, 76), Vector2(40, 196), Vector2(40, 196)]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
@@ -1435,7 +1433,7 @@ alignment = 1
 custom_minimum_size = Vector2(88, 140)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_12")
+texture = ExtResource("tex_3")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1444,7 +1442,7 @@ stretch_mode = 5
 custom_minimum_size = Vector2(88, 140)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_13")
+texture = ExtResource("tex_4")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1453,7 +1451,7 @@ stretch_mode = 5
 custom_minimum_size = Vector2(88, 140)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_4")
+texture = ExtResource("tex_spade4")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1462,7 +1460,7 @@ stretch_mode = 5
 custom_minimum_size = Vector2(88, 140)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_14")
+texture = ExtResource("tex_spade6")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1471,7 +1469,7 @@ stretch_mode = 5
 custom_minimum_size = Vector2(88, 140)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_15")
+texture = ExtResource("tex_7")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1495,7 +1493,7 @@ alignment = 1
 custom_minimum_size = Vector2(30, 44)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_12")
+texture = ExtResource("tex_3")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1523,7 +1521,7 @@ alignment = 1
 custom_minimum_size = Vector2(30, 44)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_1")
+texture = ExtResource("tex_4")
 expand_mode = 1
 stretch_mode = 5
 
@@ -1582,45 +1580,18 @@ offset_left = 0.0
 offset_right = 88.0
 offset_bottom = 140.0
 mouse_filter = 2
-texture = ExtResource("tex_12")
+texture = ExtResource("tex_3")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Card2" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+[node name="Card2" type="Control" parent="Flush/Comparison/After/Demo"]
 offset_left = 98.0
 offset_right = 186.0
-offset_bottom = 140.0
-mouse_filter = 2
-texture = ExtResource("tex_13")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Card3" type="TextureRect" parent="Flush/Comparison/After/Demo"]
-offset_left = 196.0
-offset_right = 284.0
-offset_bottom = 140.0
-mouse_filter = 2
-texture = ExtResource("tex_4")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Card4" type="TextureRect" parent="Flush/Comparison/After/Demo"]
-offset_left = 294.0
-offset_right = 382.0
-offset_bottom = 140.0
-mouse_filter = 2
-texture = ExtResource("tex_14")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Card5" type="Control" parent="Flush/Comparison/After/Demo"]
-offset_left = 392.0
-offset_right = 480.0
 offset_bottom = 140.0
 pivot_offset = Vector2(44, 70)
 mouse_filter = 2
 
-[node name="InitialFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+[node name="InitialFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card2"]
 visible = true
 layout_mode = 1
 anchors_preset = 15
@@ -1629,11 +1600,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("tex_15")
+texture = ExtResource("tex_4")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Back" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+[node name="Back" type="TextureRect" parent="Flush/Comparison/After/Demo/Card2"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -1646,7 +1617,7 @@ texture = ExtResource("tex_1")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ResultFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card5"]
+[node name="ResultFace" type="TextureRect" parent="Flush/Comparison/After/Demo/Card2"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -1655,7 +1626,34 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("tex_16")
+texture = ExtResource("tex_spade12")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card3" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 196.0
+offset_right = 284.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_spade4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card4" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 294.0
+offset_right = 382.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_spade6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Card5" type="TextureRect" parent="Flush/Comparison/After/Demo"]
+offset_left = 392.0
+offset_right = 480.0
+offset_bottom = 140.0
+mouse_filter = 2
+texture = ExtResource("tex_7")
 expand_mode = 1
 stretch_mode = 5
 
