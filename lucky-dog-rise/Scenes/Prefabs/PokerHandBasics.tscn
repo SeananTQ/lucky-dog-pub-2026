@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="tex_1"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/PokerHelpArrow.svg" id="tex_2"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Hint/PokerHelpArrow.svg" id="tex_2"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade9.png" id="tex_3"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart9.png" id="tex_4"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club4.png" id="tex_5"]
@@ -17,10 +17,12 @@
 [ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/Flush.png" id="tex_17"]
 
 
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/PokerHelpCursor.svg" id="tex_cursor"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Hint/PokerHelpCursor.svg" id="tex_cursor"]
 
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Any.png" id="tex_any"]
-[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Arm_ColorChip_Type3.svg" id="tex_hand"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Hint/Arm_ColorChip_Type3.svg" id="tex_hand"]
+
+[ext_resource type="Texture2D" path="res://Assets/UI/Hint/Spade.svg" id="tex_suit_spade"]
 
 [sub_resource type="Animation" id="Animation_RESET"]
 resource_name = "RESET"
@@ -834,32 +836,6 @@ mouse_filter = 2
 theme_override_constants/separation = 24
 
 
-[node name="FaceUp" type="HBoxContainer" parent="Legend/Row"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 16
-size_flags_horizontal = 3
-
-
-[node name="Card" type="TextureRect" parent="Legend/Row/FaceUp"]
-custom_minimum_size = Vector2(96, 140)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("tex_3")
-expand_mode = 1
-stretch_mode = 5
-
-
-[node name="Text" type="Label" parent="Legend/Row/FaceUp"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"PokerHelpBodyLabel"
-text = "PokerHelp_FaceUpKeep"
-autowrap_mode = 3
-vertical_alignment = 1
-size_flags_horizontal = 3
-
-
 [node name="Flip" type="Control" parent="Legend/Row"]
 custom_minimum_size = Vector2(192, 176)
 layout_mode = 2
@@ -929,6 +905,32 @@ stretch_mode = 5
 libraries = {
 &"": SubResource("AnimationLibrary_flip")
 }
+
+[node name="FaceUp" type="HBoxContainer" parent="Legend/Row"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+size_flags_horizontal = 3
+
+
+[node name="Card" type="TextureRect" parent="Legend/Row/FaceUp"]
+custom_minimum_size = Vector2(96, 140)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("tex_5")
+expand_mode = 1
+stretch_mode = 5
+
+
+[node name="Text" type="Label" parent="Legend/Row/FaceUp"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_FaceUpKeep"
+autowrap_mode = 3
+vertical_alignment = 1
+size_flags_horizontal = 3
+
 
 [node name="FaceDown" type="HBoxContainer" parent="Legend/Row"]
 layout_mode = 2
@@ -1046,6 +1048,7 @@ stretch_mode = 5
 
 
 [node name="Markers" type="HBoxContainer" parent="Pair/Comparison/Before"]
+custom_minimum_size = Vector2(0, 92)
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 10
@@ -1060,14 +1063,14 @@ size_flags_stretch_ratio = 2.0
 alignment = 1
 
 
-[node name="Icon" type="TextureRect" parent="Pair/Comparison/Before/Markers/Keep"]
+[node name="Rank" type="Label" parent="Pair/Comparison/Before/Markers/Keep"]
 custom_minimum_size = Vector2(30, 44)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_3")
-expand_mode = 1
-stretch_mode = 5
-
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "9"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Count" type="Label" parent="Pair/Comparison/Before/Markers/Keep"]
 layout_mode = 2
@@ -1255,7 +1258,7 @@ mouse_filter = 2
 texture = ExtResource("tex_9")
 expand_mode = 1
 stretch_mode = 5
-modulate = Color(1, 1, 1, 0.38)
+modulate = Color(0.9, 0.9, 0.9, 1)
 
 [node name="Card5" type="Control" parent="Pair/Comparison/After/Demo"]
 offset_left = 392.0
@@ -1302,7 +1305,7 @@ mouse_filter = 2
 texture = ExtResource("tex_10")
 expand_mode = 1
 stretch_mode = 5
-modulate = Color(1, 1, 1, 0.38)
+modulate = Color(0.9, 0.9, 0.9, 1)
 
 [node name="Hand" type="TextureRect" parent="Pair/Comparison/After/Demo"]
 offset_top = 164.0
@@ -1475,6 +1478,7 @@ stretch_mode = 5
 
 
 [node name="Markers" type="HBoxContainer" parent="Flush/Comparison/Before"]
+custom_minimum_size = Vector2(0, 92)
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 10
@@ -1489,14 +1493,20 @@ size_flags_stretch_ratio = 4.0
 alignment = 1
 
 
-[node name="Icon" type="TextureRect" parent="Flush/Comparison/Before/Markers/Keep"]
-custom_minimum_size = Vector2(30, 44)
+[node name="Icon" type="PanelContainer" parent="Flush/Comparison/Before/Markers/Keep"]
+custom_minimum_size = Vector2(36, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PokerHelpSuitMarker"
+
+[node name="Suit" type="TextureRect" parent="Flush/Comparison/Before/Markers/Keep/Icon"]
+custom_minimum_size = Vector2(28, 32)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("tex_3")
+texture = ExtResource("tex_suit_spade")
 expand_mode = 1
 stretch_mode = 5
-
 
 [node name="Count" type="Label" parent="Flush/Comparison/Before/Markers/Keep"]
 layout_mode = 2

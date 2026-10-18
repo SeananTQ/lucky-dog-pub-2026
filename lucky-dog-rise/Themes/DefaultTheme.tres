@@ -705,9 +705,25 @@ bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
 color = Color(0.27450982, 0.3529412, 0.37254903, 1)
 thickness = 2
 
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_help_header"]
-color = Color(0.60446244, 0.7101088, 0.7392709, 1)
-thickness = 4
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_header"]
+content_margin_top = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_left = 4
+corner_radius_bottom_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_suit_marker"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
 
 [resource]
 default_font = ExtResource("4_inter_bold")
@@ -1007,15 +1023,15 @@ PokerHelpTab/fonts/font = SubResource("FontVariation_help_bold")
 PokerHelpTab/font_sizes/font_size = 36
 PokerHelpTab/styles/hover_pressed = SubResource("StyleBoxFlat_panel_top_tab_hover")
 PokerHelpTabSelected/base_type = &"PokerHelpTab"
-PokerHelpTabSelected/colors/font_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-PokerHelpTabSelected/colors/font_hover_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-PokerHelpTabSelected/colors/font_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-PokerHelpTabSelected/colors/font_hover_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-PokerHelpTabSelected/colors/font_focus_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
+PokerHelpTabSelected/colors/font_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_hover_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_pressed_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_hover_pressed_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_focus_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
 PokerHelpTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
-PokerHelpTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_pressed")
-PokerHelpTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
-PokerHelpTabSelected/styles/hover_pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
+PokerHelpTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/hover_pressed = SubResource("StyleBoxFlat_panel_top_tab_selected")
 PokerHelpTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selected")
 PokerHelpClose/base_type = &"PanelCloseButton"
 PokerHelpClose/constants/icon_max_width = 40
@@ -1027,4 +1043,7 @@ PokerHelpClose/styles/disabled = SubResource("StyleBoxFlat_help_close")
 PokerHelpSeparator/base_type = &"HSeparator"
 PokerHelpSeparator/styles/separator = SubResource("StyleBoxLine_help_separator")
 PokerHelpHeaderSeparator/base_type = &"HSeparator"
-PokerHelpHeaderSeparator/styles/separator = SubResource("StyleBoxLine_help_header")
+PokerHelpHeaderSeparator/constants/separation = 0
+PokerHelpHeaderSeparator/styles/separator = SubResource("StyleBoxFlat_help_header")
+PokerHelpSuitMarker/base_type = &"PanelContainer"
+PokerHelpSuitMarker/styles/panel = SubResource("StyleBoxFlat_help_suit_marker")

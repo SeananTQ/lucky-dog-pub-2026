@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqq314tg57us"
-path="res://.godot/imported/PokerHelpArrow.svg-ef9b9588a0280889890c96fa52fb3a53.ctex"
+uid="uid://nsgkx3hvou3u"
+path="res://.godot/imported/Spade.svg-b43ec8933d89ed42dede9a1785c0da32.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/UI/Icon/PokerHelpArrow.svg"
-dest_files=["res://.godot/imported/PokerHelpArrow.svg-ef9b9588a0280889890c96fa52fb3a53.ctex"]
+source_file="res://Assets/UI/Hint/Spade.svg"
+dest_files=["res://.godot/imported/Spade.svg-b43ec8933d89ed42dede9a1785c0da32.ctex"]
 
 [params]
 

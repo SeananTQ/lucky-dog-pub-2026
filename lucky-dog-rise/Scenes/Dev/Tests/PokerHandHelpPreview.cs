@@ -50,7 +50,7 @@ public partial class PokerHandHelpPreview : Control
             Require(_showcase.GetNode<Control>(RanksPath).Visible, "Mouse click must select the hand-rank tab.");
             await Click(_showcase.GetNode<Button>("Header/BasicsTab"));
             Require(_showcase.GetNode<Control>(BasicsPath).Visible, "Mouse click must return to the basics tab.");
-            if (frenchReview || drawReview) await CheckFlipDemo();
+            if (frenchReview || drawReview || OS.GetCmdlineUserArgs().Contains("--poker-help-layout")) await CheckFlipDemo();
             if (drawReview) await CheckPairDemo();
             if (flushReview) await CheckFlushDemo();
             string[] locales = drawReview ? ["en", "fr", "zh_CN", "zh_TW"] : frenchReview ? ["en", "fr"] : englishOnly ? ["en"] : Locales;
@@ -67,6 +67,8 @@ public partial class PokerHandHelpPreview : Control
                     _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Flush/Comparison/After/Demo/AnimationPlayer").Seek(4.3, update: true);
                     await Settle();
                     CheckLayout($"{locale}/safe={safe}/basics-result");
+                    CheckMarkerAlignment();
+                    CheckGuideLayout();
                     if (locale is "en" or "fr" or "zh_CN" or "zh_TW")
                         await Capture($"{locale}-{(safe ? "safe" : "standard")}-basics-result");
                     var legend = _showcase.GetNode<Control>(BasicsPath + "/Legend");
@@ -172,8 +174,8 @@ public partial class PokerHandHelpPreview : Control
             .Select(name => _showcase.GetNode<Control>("Header/" + name)).ToArray();
         Require(tabs.All(tab => Math.Abs(tab.GetGlobalRect().GetCenter().Y - tabs[0].GetGlobalRect().GetCenter().Y) < 1),
             "Both tabs and close must be centered on the same row.");
-        Require(_showcase.GetNode<Control>("Header/Separator").GetGlobalRect().Position.Y > tabs.Max(tab => tab.GetGlobalRect().End.Y),
-            "The header separator must sit below the tabs.");
+        Require(Math.Abs(_showcase.GetNode<Control>("Header/Separator").GetGlobalRect().Position.Y - tabs[0].GetGlobalRect().End.Y) < 1,
+            "The header separator must meet the bottom of the tabs without a gap.");
         var marker = _showcase.GetNode<TextureRect>(BasicsPath + "/Pair/Comparison/Before/Markers/Replace/Icon");
         Require(marker.Texture.ResourcePath.EndsWith("Any.png"), "The unmatched-card marker must use a question card.");
         var demo = _showcase.GetNode<Control>(BasicsPath + "/Pair/Comparison/After/Demo");
@@ -340,6 +342,43 @@ public partial class PokerHandHelpPreview : Control
         GD.Print($"[PokerHelp] Matching ranks across examples, four retained spades, second-card selection, hand press, fifth spade, flush reward, loop and all demo lifecycles passed; {frame} flush frames captured.");
     }
 
+    private void CheckGuideLayout()
+    {
+        var tab = _showcase.GetNode<Control>("Header/BasicsTab");
+        var line = _showcase.GetNode<Control>("Header/Separator");
+        Require(Math.Abs(line.GetGlobalRect().Position.Y - tab.GetGlobalRect().End.Y) < 1 && Math.Abs(line.Size.Y - 6) < 1,
+            "Header tabs must meet the settings-style separator at the correct scaled thickness.");
+        var legend = _showcase.GetNode<Control>(BasicsPath + "/Legend/Row");
+        Require(legend.GetNode<Control>("Flip").GetRect().End.X <= legend.GetNode<Control>("FaceUp").Position.X
+            && legend.GetNode<Control>("FaceUp").GetRect().End.X <= legend.GetNode<Control>("FaceDown").Position.X,
+            "Legend order must be automatic flip, face-up explanation, face-down explanation.");
+        foreach (string section in new[] { "Pair", "Flush" })
+            Require(_showcase.GetNode<Label>(BasicsPath + $"/{section}/Comparison/Before/Caption").Text == L10n.Tr(L10nKey.PokerHelp_YourCards),
+                "Both examples must use the localized before-draw caption.");
+    }
+
+    private void CheckMarkerAlignment()
+    {
+        var rank = _showcase.GetNode<Label>(BasicsPath + "/Pair/Comparison/Before/Markers/Keep/Rank");
+        Require(rank.Text == "9", "The pair marker must show only the rank 9, not a card or suit.");
+        var suit = _showcase.GetNode<TextureRect>(BasicsPath + "/Flush/Comparison/Before/Markers/Keep/Icon/Suit");
+        Require(suit.Texture.ResourcePath == "res://Assets/UI/Hint/Spade.svg", "The flush marker must use the standalone spade SVG.");
+        foreach (string section in new[] { "Pair", "Flush" })
+        {
+            var hand = _showcase.GetNode<Control>(BasicsPath + $"/{section}/Comparison/After/Demo/Hand");
+            float center = hand.GetGlobalRect().GetCenter().Y;
+            foreach (string marker in new[] { "Keep/Count", "Replace/Count", "Replace/Icon" })
+            {
+                var item = _showcase.GetNode<Control>(BasicsPath + $"/{section}/Comparison/Before/Markers/{marker}");
+                Require(Math.Abs(item.GetGlobalRect().GetCenter().Y - center) < 1,
+                    $"{section}/{marker} must be vertically centered with the hand.");
+            }
+            var keep = section == "Pair" ? (Control)rank : suit;
+            Require(Math.Abs(keep.GetGlobalRect().GetCenter().Y - center) < 1,
+                $"{section} keep symbol must align with the hand.");
+        }
+    }
+
     private async Task CheckScrolling(string name)
     {
         var scroll = _showcase.GetNode<ScrollContainer>("Content/Scroll");
@@ -449,7 +488,11 @@ public partial class PokerHandHelpPreview : Control
     {
         if (DisplayServer.GetName() == "headless") return;
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        string directory = ProjectSettings.GlobalizePath(OS.GetCmdlineUserArgs().Contains("--poker-help-flush")
+        string directory = ProjectSettings.GlobalizePath(OS.GetCmdlineUserArgs().Contains("--poker-help-layout")
+            ? "res://../.local-build/poker-help/screenshots-layout"
+            : OS.GetCmdlineUserArgs().Contains("--poker-help-markers")
+            ? "res://../.local-build/poker-help/screenshots-markers"
+            : OS.GetCmdlineUserArgs().Contains("--poker-help-flush")
             ? "res://../.local-build/poker-help/screenshots-spade"
             : "res://../.local-build/poker-help/screenshots-draw");
         System.IO.Directory.CreateDirectory(directory);
