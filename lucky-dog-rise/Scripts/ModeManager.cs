@@ -946,6 +946,9 @@ public partial class ModeManager : Control
         if (what == NotificationApplicationFocusIn)
             (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
+        if (what == NotificationWMWindowFocusOut && (_potentialDrag || _isDragging))
+            CancelWindowDrag();
+
         if (what == NotificationWMWindowFocusOut && _settingsPanel != null && _settingsPanel.IsOpen
             && SettingsManager.LoadAutoHidePanel())
         {
@@ -1061,6 +1064,7 @@ public partial class ModeManager : Control
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
             // 赔率表提示在 InfoPanel（SubViewport 之外），只能由外层转发教学引导图的显隐。
             _gameManager.TutorialOverlayVisibilityChanged += _infoPanel.SetOddsTableGuideVisible;
+            _gameManager.PokerHandShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -1165,6 +1169,8 @@ public partial class ModeManager : Control
     {
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
+        if (_gameManager != null)
+            _gameManager.PokerHandShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
         DisposePlatformService();
@@ -2517,6 +2523,12 @@ public partial class ModeManager : Control
             _gameManager?.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
     }
 
+    private void OnPokerHandShowcaseVisibilityChanged(bool visible)
+    {
+        if (visible)
+            CancelWindowDrag();
+    }
+
     private void OnPaytableRequested()
     {
         if (_gameManager == null)
@@ -3837,6 +3849,15 @@ public partial class ModeManager : Control
             {
                 var mouseScreenPosition = DisplayServer.MouseGetPosition();
                 var localPos = ScreenToWindowLocal(mouseScreenPosition);
+                if (CurrentMode != Mode.BossKey
+                    && _gameManager?.IsPokerHandShowcaseVisible == true
+                    && GetPlayGameScreenRect().HasPoint(mouseScreenPosition))
+                {
+                    // Leave the entire press/move/release gesture to the help UI in the SubViewport.
+                    // Arming window drag here would later swallow the scrollbar's release event.
+                    CancelWindowDrag();
+                    return;
+                }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
 #if DEBUG
                 if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;

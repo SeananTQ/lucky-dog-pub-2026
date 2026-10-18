@@ -26,8 +26,10 @@ public partial class GameManager : Node2D
 
     public bool IsCollectionProgressNoticeVisible => _collectionProgressDialog?.IsOverlayVisible == true;
     public bool IsTutorialOverlayVisible => _tutorial?.IsOverlayVisible == true;
+    public bool IsPokerHandShowcaseVisible => _pokerHandShowcase?.IsOverlayVisible == true;
 
     public event Action<bool> TutorialOverlayVisibilityChanged;
+    public event Action<bool> PokerHandShowcaseVisibilityChanged;
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
@@ -515,8 +517,9 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
-    private void OnPokerHandShowcaseVisibilityChanged(bool _)
+    private void OnPokerHandShowcaseVisibilityChanged(bool visible)
     {
+        PokerHandShowcaseVisibilityChanged?.Invoke(visible);
         RefreshOverlayInteractionContexts();
     }
 
