@@ -195,6 +195,12 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
+    public bool TryScrollPokerHandShowcase(Vector2 viewportPosition, double wheelSteps)
+    {
+        return _isPokerModeActive
+            && _pokerHandShowcase?.TryScrollAt(viewportPosition, wheelSteps) == true;
+    }
+
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
     {
         // Repeated open requests must not restart an active reveal animation.

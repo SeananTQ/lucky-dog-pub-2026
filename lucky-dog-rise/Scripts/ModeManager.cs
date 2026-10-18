@@ -3793,6 +3793,25 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
+
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel
+            && CurrentMode != Mode.BossKey
+            && _gameManager?.IsPokerHandShowcaseVisible == true
+            && _playViewport != null
+            && GetViewport().GuiGetHoveredControl() == _playViewport)
+        {
+            // Route by current hover, not the SubViewport's previous mouse capture.
+            // A window drag can consume its release before the SubViewport receives it.
+            using var localWheel = (InputEventMouseButton)_playViewport.MakeInputLocal(wheel);
+            double steps = wheel.Pressed ? wheel.Factor * (wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1) : 0;
+            if (_gameManager.TryScrollPokerHandShowcase(localWheel.Position, steps))
+            {
+                // Handle both press and release; native GUI scrolling must not run a second time.
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
+
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
             && TryOpenSettingsFromDesktopDog(DisplayServer.MouseGetPosition()))
         {

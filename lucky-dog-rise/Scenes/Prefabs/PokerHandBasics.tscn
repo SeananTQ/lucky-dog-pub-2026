@@ -818,6 +818,13 @@ size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 32
 
+[node name="ScrollHint" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_ScrollHint"
+autowrap_mode = 3
+
 [node name="OperationTitle" type="Label" parent="."]
 layout_mode = 2
 mouse_filter = 2

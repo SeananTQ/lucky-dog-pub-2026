@@ -38,7 +38,7 @@
 [ext_resource type="Theme" path="res://Themes/PokerHelpScroll.tres" id="37_scroll_theme"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="38_close_icon"]
 
-[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel")]
+[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel")]
 visible = false
 layer = 19
 script = ExtResource("1_controller")
@@ -59,6 +59,7 @@ _basicsTab = NodePath("Header/BasicsTab")
 _ranksTab = NodePath("Header/RanksTab")
 _closeButton = NodePath("Header/CloseButton")
 _operationTitleLabel = NodePath("Content/Scroll/Pages/Basics/OperationTitle")
+_scrollHintLabel = NodePath("Content/Scroll/Pages/Basics/ScrollHint")
 _faceUpLabel = NodePath("Content/Scroll/Pages/Basics/Legend/Row/FaceUp/Text")
 _faceDownLabel = NodePath("Content/Scroll/Pages/Basics/Legend/Row/FaceDown/Text")
 _flipDemo = NodePath("Content/Scroll/Pages/Basics/Legend/Row/Flip/AnimationPlayer")

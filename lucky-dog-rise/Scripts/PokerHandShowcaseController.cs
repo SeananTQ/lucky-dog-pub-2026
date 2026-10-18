@@ -24,6 +24,7 @@ public partial class PokerHandShowcaseController : CanvasLayer
     [Export] private Button _ranksTab = null!;
     [Export] private Button _closeButton = null!;
     [Export] private Label _operationTitleLabel = null!;
+    [Export] private Label _scrollHintLabel = null!;
     [Export] private Label _faceUpLabel = null!;
     [Export] private Label _faceDownLabel = null!;
     [Export] private AnimationPlayer _flipDemo = null!;
@@ -82,6 +83,22 @@ public partial class PokerHandShowcaseController : CanvasLayer
         EmitSignal(SignalName.ShowcaseVisibilityChanged, false);
     }
 
+    public bool TryScrollAt(Vector2 viewportPosition, double wheelSteps)
+    {
+        if (!Visible)
+            return false;
+
+        var localPosition = _contentScroll.GetGlobalTransformWithCanvas().AffineInverse() * viewportPosition;
+        if (!new Rect2(Vector2.Zero, _contentScroll.Size).HasPoint(localPosition))
+            return false;
+
+        // Match Godot's ScrollContainer: each wheel notch scrolls one eighth of a page.
+        // Return true at either end too, so the wheel cannot fall through to the table.
+        var scrollbar = _contentScroll.GetVScrollBar();
+        scrollbar.Value += scrollbar.Page / 8.0 * wheelSteps;
+        return true;
+    }
+
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (Visible && @event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -131,6 +148,7 @@ public partial class PokerHandShowcaseController : CanvasLayer
         _twoPairLabel.Text = GetHandName(EHandRank.TwoPair);
         _onePairLabel.Text = GetHandName(EHandRank.OnePair);
         _operationTitleLabel.Text = L10n.Tr(L10nKey.PokerHelp_OperationTitle);
+        _scrollHintLabel.Text = L10n.Tr(L10nKey.PokerHelp_ScrollHint);
         _basicsTab.Text = L10n.Tr(L10nKey.PokerHelp_BuildTab);
         _ranksTab.Text = L10n.Tr(L10nKey.PokerHelp_RanksTab);
         _closeButton.TooltipText = L10n.Tr(L10nKey.PokerHelp_Close);
