@@ -38,7 +38,7 @@
 [ext_resource type="Theme" path="res://Themes/PokerHelpScroll.tres" id="37_scroll_theme"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="38_close_icon"]
 
-[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel")]
+[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel", "_ranksIntroLabel", "_ranksNoteLabel")]
 visible = false
 layer = 19
 script = ExtResource("1_controller")
@@ -77,6 +77,8 @@ _pairNoteLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Note")
 _flushNoteLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Note")
 _warningLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Warning")
 _minimumLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Minimum")
+_ranksIntroLabel = NodePath("Content/Scroll/Pages/Rows/Intro")
+_ranksNoteLabel = NodePath("Content/Scroll/Pages/Rows/Note")
 
 [node name="Background" type="Panel" parent="."]
 offset_right = 1200.0
@@ -125,6 +127,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 24
 mouse_filter = 2
+
+[node name="Intro" type="Label" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeading"
+text = "PokerHelp_RanksIntro"
+autowrap_mode = 3
 
 [node name="RoyalFlush" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
 custom_minimum_size = Vector2(0, 152)
@@ -675,6 +684,18 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
+
+[node name="NoteSeparator" type="HSeparator" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpSeparator"
+
+[node name="Note" type="Label" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_RanksNote"
+autowrap_mode = 3
 
 [node name="Basics" parent="Content/Scroll/Pages" instance=ExtResource("36_help_basics")]
 layout_mode = 2

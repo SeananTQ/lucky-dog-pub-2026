@@ -427,7 +427,7 @@ public partial class PokerHandHelpPreview : Control
         Require(scroll.ScrollVertical >= bar.MaxValue - bar.Page - 2, "Dragging the scrollbar must reach the last content.");
         Require(header.GetGlobalRect() == headerRect, "Header must remain fixed while scrolling.");
         Require(_showcase.IsOverlayVisible, "Scrolling must not dismiss the help.");
-        var last = _showcase.GetNode<Control>(name.EndsWith("basics") ? BasicsPath + "/Footer/Minimum" : RanksPath + "/OnePair");
+        var last = _showcase.GetNode<Control>(name.EndsWith("basics") ? BasicsPath + "/Footer/Minimum" : RanksPath + "/Note");
         Require(last.GetGlobalRect().End.Y <= scroll.GetGlobalRect().End.Y + 1, "Last content must be fully reachable.");
         CheckLayout(name + "-bottom");
         await Capture(name + "-bottom");

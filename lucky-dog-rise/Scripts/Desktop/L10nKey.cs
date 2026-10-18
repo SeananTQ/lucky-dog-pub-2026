@@ -152,6 +152,8 @@ public static class L10nKey
     public const string PokerHelp_ScrollHint = nameof(PokerHelp_ScrollHint);
     public const string PokerHelp_BuildTab = nameof(PokerHelp_BuildTab);
     public const string PokerHelp_RanksTab = nameof(PokerHelp_RanksTab);
+    public const string PokerHelp_RanksIntro = nameof(PokerHelp_RanksIntro);
+    public const string PokerHelp_RanksNote = nameof(PokerHelp_RanksNote);
     public const string PokerHelp_Close = nameof(PokerHelp_Close);
     public const string PokerHelp_FaceUpKeep = nameof(PokerHelp_FaceUpKeep);
     public const string PokerHelp_FaceDownReplace = nameof(PokerHelp_FaceDownReplace);

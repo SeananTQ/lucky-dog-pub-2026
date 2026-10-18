@@ -42,6 +42,8 @@ public partial class PokerHandShowcaseController : CanvasLayer
     [Export] private Label _flushNoteLabel = null!;
     [Export] private Label _warningLabel = null!;
     [Export] private Label _minimumLabel = null!;
+    [Export] private Label _ranksIntroLabel = null!;
+    [Export] private Label _ranksNoteLabel = null!;
 
     public bool IsOverlayVisible => Visible;
 
@@ -165,6 +167,8 @@ public partial class PokerHandShowcaseController : CanvasLayer
         _flushNoteLabel.Text = L10n.Tr(L10nKey.PokerHelp_FlushNote);
         _warningLabel.Text = L10n.Tr(L10nKey.PokerHelp_ResultWarning);
         _minimumLabel.Text = L10n.Format(L10nKey.PokerHelp_MinimumHand, GetHandName(EHandRank.OnePair));
+        _ranksIntroLabel.Text = L10n.Tr(L10nKey.PokerHelp_RanksIntro);
+        _ranksNoteLabel.Text = L10n.Tr(L10nKey.PokerHelp_RanksNote);
     }
 
     private static string GetHandName(EHandRank rank)
