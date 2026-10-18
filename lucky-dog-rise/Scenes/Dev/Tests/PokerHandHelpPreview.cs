@@ -28,6 +28,7 @@ public partial class PokerHandHelpPreview : Control
         bool frenchReview = OS.GetCmdlineUserArgs().Contains("--poker-help-french");
         bool drawReview = OS.GetCmdlineUserArgs().Contains("--poker-help-draw");
         bool flushReview = OS.GetCmdlineUserArgs().Contains("--poker-help-flush");
+        bool localizationReview = OS.GetCmdlineUserArgs().Contains("--poker-help-localization");
         L10n.SetLocale(englishOnly ? "en" : "zh_CN", save: false);
         L10n.SetSafeMode(false);
         _showcase.ShowOverlay();
@@ -65,6 +66,14 @@ public partial class PokerHandHelpPreview : Control
                     CheckLayout($"{locale}/safe={safe}/basics");
                     _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Pair/Comparison/After/Demo/AnimationPlayer").Seek(5, update: true);
                     _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Flush/Comparison/After/Demo/AnimationPlayer").Seek(4.3, update: true);
+                    if (localizationReview)
+                    {
+                        // Keep the result captions visible and stable throughout the language captures.
+                        _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Pair/Comparison/After/Demo/AnimationPlayer").Pause();
+                        _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Flush/Comparison/After/Demo/AnimationPlayer").Pause();
+                        _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Legend/Row/Flip/AnimationPlayer").Seek(0, update: true);
+                        _showcase.GetNode<AnimationPlayer>(BasicsPath + "/Legend/Row/Flip/AnimationPlayer").Pause();
+                    }
                     await Settle();
                     CheckLayout($"{locale}/safe={safe}/basics-result");
                     CheckMarkerAlignment();
@@ -75,12 +84,12 @@ public partial class PokerHandHelpPreview : Control
                     if (locale == "en") englishLegendHeight = legend.Size.Y;
                     if (locale == "fr" && englishLegendHeight > 0)
                         Require(Math.Abs(legend.Size.Y - englishLegendHeight) < 1, "French must not increase the legend height compared with English.");
-                    if (locale is "en" or "fr" or "zh_CN" or "zh_TW") await CheckScrolling($"{locale}-{(safe ? "safe" : "standard")}-basics");
+                    if (localizationReview || locale is "en" or "fr" or "zh_CN" or "zh_TW") await CheckScrolling($"{locale}-{(safe ? "safe" : "standard")}-basics");
                     _showcase.GetNode<Button>("Header/RanksTab").EmitSignal(Button.SignalName.Pressed);
                     await Settle();
                     Require(_showcase.GetNode<Control>(RanksPath).Visible, "Rank tab must show the original hand guide.");
                     CheckLayout($"{locale}/safe={safe}/ranks");
-                    if (locale is "en" or "fr" or "zh_CN" or "zh_TW") await CheckScrolling($"{locale}-{(safe ? "safe" : "standard")}-ranks");
+                    if (localizationReview || locale is "en" or "fr" or "zh_CN" or "zh_TW") await CheckScrolling($"{locale}-{(safe ? "safe" : "standard")}-ranks");
                     _showcase.GetNode<Button>("Header/BasicsTab").EmitSignal(Button.SignalName.Pressed);
                 }
             }
@@ -488,7 +497,9 @@ public partial class PokerHandHelpPreview : Control
     {
         if (DisplayServer.GetName() == "headless") return;
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        string directory = ProjectSettings.GlobalizePath(OS.GetCmdlineUserArgs().Contains("--poker-help-layout")
+        string directory = ProjectSettings.GlobalizePath(OS.GetCmdlineUserArgs().Contains("--poker-help-localization")
+            ? "res://../.local-build/poker-help/screenshots-localization"
+            : OS.GetCmdlineUserArgs().Contains("--poker-help-layout")
             ? "res://../.local-build/poker-help/screenshots-layout"
             : OS.GetCmdlineUserArgs().Contains("--poker-help-markers")
             ? "res://../.local-build/poker-help/screenshots-markers"
