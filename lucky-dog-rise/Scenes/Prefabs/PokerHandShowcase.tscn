@@ -38,7 +38,31 @@
 [ext_resource type="Theme" path="res://Themes/PokerHelpScroll.tres" id="37_scroll_theme"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="38_close_icon"]
 
-[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel", "_ranksIntroLabel", "_ranksNoteLabel")]
+[ext_resource type="Script" path="res://Scripts/PokerHandExampleController.cs" id="39_example"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club1.png" id="face_club1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club2.png" id="face_club2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club3.png" id="face_club3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club11.png" id="face_club11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club12.png" id="face_club12"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club13.png" id="face_club13"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond1.png" id="face_diamond1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond2.png" id="face_diamond2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond3.png" id="face_diamond3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond11.png" id="face_diamond11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond12.png" id="face_diamond12"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond13.png" id="face_diamond13"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart3.png" id="face_heart3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart5.png" id="face_heart5"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart9.png" id="face_heart9"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade1.png" id="face_spade1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade2.png" id="face_spade2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade3.png" id="face_spade3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade4.png" id="face_spade4"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade10.png" id="face_spade10"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade11.png" id="face_spade11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade13.png" id="face_spade13"]
+
+[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel", "_ranksIntroLabel", "_ranksExamplesLabel", "_ranksNoteLabel", "_rankExamples")]
 visible = false
 layer = 19
 script = ExtResource("1_controller")
@@ -77,8 +101,12 @@ _pairNoteLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Note")
 _flushNoteLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Note")
 _warningLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Warning")
 _minimumLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Minimum")
-_ranksIntroLabel = NodePath("Content/Scroll/Pages/Rows/Intro")
+_ranksIntroLabel = NodePath("Content/Scroll/Pages/Rows/Intro/Heading")
+_ranksExamplesLabel = NodePath("Content/Scroll/Pages/Rows/Intro/Examples")
 _ranksNoteLabel = NodePath("Content/Scroll/Pages/Rows/Note")
+_rankExamples = [NodePath("Content/Scroll/Pages/Rows/RoyalFlush/Cards"), NodePath("Content/Scroll/Pages/Rows/StraightFlush/Cards"), NodePath("Content/Scroll/Pages/Rows/FourOfAKind/Cards"), NodePath("Content/Scroll/Pages/Rows/FullHouse/Cards"), NodePath("Content/Scroll/Pages/Rows/Flush/Cards"), NodePath("Content/Scroll/Pages/Rows/Straight/Cards"), NodePath("Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"), NodePath("Content/Scroll/Pages/Rows/TwoPair/Cards"), NodePath("Content/Scroll/Pages/Rows/OnePair/Cards")]
+_rankCardFaces = Array[Texture2D]([ExtResource("face_club1"), ExtResource("face_club2"), ExtResource("face_club3"), ExtResource("27_club4"), ExtResource("22_club5"), ExtResource("16_club6"), ExtResource("13_club7"), ExtResource("24_club8"), ExtResource("29_club9"), ExtResource("18_club10"), ExtResource("face_club11"), ExtResource("face_club12"), ExtResource("face_club13"), ExtResource("face_diamond1"), ExtResource("face_diamond2"), ExtResource("face_diamond3"), ExtResource("28_diamond4"), ExtResource("23_diamond5"), ExtResource("17_diamond6"), ExtResource("14_diamond7"), ExtResource("25_diamond8"), ExtResource("30_diamond9"), ExtResource("19_diamond10"), ExtResource("face_diamond11"), ExtResource("face_diamond12"), ExtResource("face_diamond13"), ExtResource("7_heart1"), ExtResource("20_heart2"), ExtResource("face_heart3"), ExtResource("21_heart4"), ExtResource("face_heart5"), ExtResource("32_heart6"), ExtResource("15_heart7"), ExtResource("26_heart8"), ExtResource("face_heart9"), ExtResource("3_heart10"), ExtResource("4_heart11"), ExtResource("5_heart12"), ExtResource("6_heart13"), ExtResource("face_spade1"), ExtResource("face_spade2"), ExtResource("face_spade3"), ExtResource("face_spade4"), ExtResource("8_spade5"), ExtResource("9_spade6"), ExtResource("10_spade7"), ExtResource("11_spade8"), ExtResource("12_spade9"), ExtResource("face_spade10"), ExtResource("face_spade11"), ExtResource("31_spade12"), ExtResource("face_spade13")])
+_rankAnyCard = ExtResource("2_any")
 
 [node name="Background" type="Panel" parent="."]
 offset_right = 1200.0
@@ -128,11 +156,23 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 24
 mouse_filter = 2
 
-[node name="Intro" type="Label" parent="Content/Scroll/Pages/Rows"]
+[node name="Intro" type="VBoxContainer" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Heading" type="Label" parent="Content/Scroll/Pages/Rows/Intro"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PokerHelpHeading"
 text = "PokerHelp_RanksIntro"
+autowrap_mode = 3
+
+[node name="Examples" type="Label" parent="Content/Scroll/Pages/Rows/Intro"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_RanksExamples"
 autowrap_mode = 3
 
 [node name="RoyalFlush" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
@@ -151,12 +191,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/RoyalFlush"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/RoyalFlush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 10
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Heart10" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("3_heart10")
@@ -164,7 +207,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart11" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("4_heart11")
@@ -172,7 +215,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart12" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("5_heart12")
@@ -180,7 +223,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart13" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("6_heart13")
@@ -188,7 +231,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart1" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("7_heart1")
@@ -212,12 +255,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/StraightFlush"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/StraightFlush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 9
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Spade5" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("8_spade5")
@@ -225,7 +271,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade6" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("9_spade6")
@@ -233,7 +279,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade7" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("10_spade7")
@@ -241,7 +287,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade8" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("11_spade8")
@@ -249,7 +295,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade9" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("12_spade9")
@@ -273,12 +319,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FourOfAKind"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FourOfAKind" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 8
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club7" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("13_club7")
@@ -286,7 +335,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond7" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("14_diamond7")
@@ -294,7 +343,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart7" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("15_heart7")
@@ -302,7 +351,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade7" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("10_spade7")
@@ -310,7 +359,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -334,12 +383,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FullHouse"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FullHouse" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 7
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club6" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("16_club6")
@@ -347,7 +399,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond6" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("17_diamond6")
@@ -355,7 +407,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart6" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("32_heart6")
@@ -363,7 +415,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Club10" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("18_club10")
@@ -371,7 +423,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond10" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("19_diamond10")
@@ -395,12 +447,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Flush"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Flush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 6
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Heart2" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("20_heart2")
@@ -408,7 +463,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart4" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("21_heart4")
@@ -416,7 +471,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart7" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("15_heart7")
@@ -424,7 +479,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart10" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("3_heart10")
@@ -432,7 +487,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart13" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("6_heart13")
@@ -456,12 +511,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Straight"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Straight" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 5
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club5" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("22_club5")
@@ -469,7 +527,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond6" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("17_diamond6")
@@ -477,7 +535,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart7" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("15_heart7")
@@ -485,7 +543,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade8" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("11_spade8")
@@ -493,7 +551,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Club9" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("29_club9")
@@ -517,12 +575,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/ThreeOfAKind"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/ThreeOfAKind" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 4
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club8" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("24_club8")
@@ -530,7 +591,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond8" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("25_diamond8")
@@ -538,7 +599,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart8" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("26_heart8")
@@ -546,7 +607,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any1" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -554,7 +615,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any2" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -578,12 +639,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/TwoPair"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/TwoPair" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 3
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club4" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("27_club4")
@@ -591,7 +655,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond4" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("28_diamond4")
@@ -599,7 +663,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Heart12" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("5_heart12")
@@ -607,7 +671,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Spade12" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("31_spade12")
@@ -615,7 +679,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -639,12 +703,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/OnePair"]
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/OnePair" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 2
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
 layout_mode = 2
 theme_override_constants/separation = 10
 mouse_filter = 2
 
-[node name="Club9" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("29_club9")
@@ -652,7 +719,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Diamond9" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("30_diamond9")
@@ -660,7 +727,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any1" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -668,7 +735,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any2" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")
@@ -676,7 +743,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Any3" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
 custom_minimum_size = Vector2(100, 144)
 layout_mode = 2
 texture = ExtResource("2_any")

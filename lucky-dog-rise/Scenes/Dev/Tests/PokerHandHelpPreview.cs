@@ -1,5 +1,6 @@
 #if DEBUG
 using Godot;
+using DataTables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,6 +55,11 @@ public partial class PokerHandHelpPreview : Control
             if (frenchReview || drawReview || OS.GetCmdlineUserArgs().Contains("--poker-help-layout")) await CheckFlipDemo();
             if (drawReview) await CheckPairDemo();
             if (flushReview) await CheckFlushDemo();
+            if (OS.GetCmdlineUserArgs().Contains("--poker-help-examples"))
+            {
+                CheckExampleGeneration();
+                await CheckRankExamples();
+            }
             string[] locales = drawReview ? ["en", "fr", "zh_CN", "zh_TW"] : frenchReview ? ["en", "fr"] : englishOnly ? ["en"] : Locales;
             float englishLegendHeight = 0;
             foreach (bool safe in new[] { false, true })
@@ -118,6 +124,117 @@ public partial class PokerHandHelpPreview : Control
     {
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+    }
+
+    private static void CheckExampleGeneration()
+    {
+        var random = new Random(20261018);
+        foreach (var rank in Enum.GetValues<EHandRank>().Where(rank => rank != EHandRank.Nothing))
+        {
+            int visibleCount = PokerHandExamples.VisibleCardCount(rank);
+            var combinations = new HashSet<string>();
+            var ranksSeen = new HashSet<int>();
+            var suitsSeen = new HashSet<int>();
+            int[] previous = null;
+            for (int i = 0; i < 1000; i++)
+            {
+                var cards = PokerHandExamples.Next(rank, random, previous);
+                Require(cards.Length == 5 && cards.All(card => card is >= 0 and < 52)
+                    && cards.Distinct().Count() == 5, $"{rank}: must use five different legal cards.");
+                Require(CardEvaluator.Evaluate(cards) == rank, $"{rank}: sample must match the game's exact hand rank.");
+                string signature = string.Join(",", cards.Take(visibleCount));
+                Require(previous == null || signature != string.Join(",", previous.Take(visibleCount)),
+                    $"{rank}: consecutive visible examples must differ.");
+                combinations.Add(signature);
+                foreach (int card in cards.Take(visibleCount))
+                {
+                    ranksSeen.Add(CardEvaluator.GetRank(card));
+                    suitsSeen.Add(CardEvaluator.GetSuit(card));
+                }
+                if (rank == EHandRank.FullHouse)
+                    Require(cards.Take(3).Select(CardEvaluator.GetRank).Distinct().Count() == 1
+                        && cards.Skip(3).Select(CardEvaluator.GetRank).Distinct().Count() == 1,
+                        "Full house must keep its three-plus-two grouping.");
+                if (rank == EHandRank.TwoPair)
+                    Require(CardEvaluator.GetRank(cards[0]) == CardEvaluator.GetRank(cards[1])
+                        && CardEvaluator.GetRank(cards[2]) == CardEvaluator.GetRank(cards[3]),
+                        "Two pair must keep both pairs grouped.");
+                previous = cards;
+            }
+            Require(combinations.Count >= (rank == EHandRank.RoyalFlush ? 4 : 32), $"{rank}: insufficient variety.");
+            Require(suitsSeen.Count == 4, $"{rank}: all four suits must be possible.");
+            Require(ranksSeen.Count == (rank == EHandRank.RoyalFlush ? 5 : 13), $"{rank}: legal card values must not be omitted.");
+        }
+        GD.Print("[PokerHelp] 9,000 generated examples: exact ranks, unique cards, grouping and variety passed.");
+    }
+
+    private async Task CheckRankExamples()
+    {
+        var rows = _showcase.GetNode<Control>(RanksPath).GetChildren().OfType<HBoxContainer>()
+            .Select(row => row.GetNode<PokerHandExampleController>("Cards")).ToArray();
+        Require(rows.Length == 9, "All nine rank rows must have automatic examples.");
+        TextureRect[] Cards(PokerHandExampleController row) => row.GetChildren().OfType<TextureRect>().ToArray();
+        string Snapshot(PokerHandExampleController row) => string.Join(",", Cards(row).Select(card => card.Texture.ResourcePath));
+        _showcase.GetNode<Button>("Header/RanksTab").EmitSignal(Button.SignalName.Pressed);
+        await Settle();
+        Require(rows.All(row => row.IsProcessing()), "Showing ranks must start all examples.");
+        var before = rows.Select(Snapshot).ToArray();
+        var previousSnapshots = (string[])before.Clone();
+        var changed = new HashSet<int>();
+        var faded = new HashSet<int>();
+        double elapsed = 0;
+        double previousScale = Engine.TimeScale;
+        try
+        {
+            // Exercise real engine processing faster, without opening a visual review window.
+            Engine.TimeScale = 4;
+            while (elapsed < 24)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                elapsed += GetProcessDeltaTime();
+                int changesThisFrame = 0;
+                float sharedAlpha = Cards(rows[0])[0].SelfModulate.A;
+                for (int i = 0; i < rows.Length; i++)
+                {
+                    var cards = Cards(rows[i]);
+                    Require(Math.Abs(cards[0].SelfModulate.A - sharedAlpha) < 0.0001f,
+                        "All rank rows must fade together.");
+                    int visibleCount = PokerHandExamples.VisibleCardCount(rows[i].HandRank);
+                    Require(cards.Length == 5 && cards.All(card => card.Texture != null), "All card textures must be bound.");
+                    for (int cardIndex = 0; cardIndex < 5; cardIndex++)
+                    {
+                        var card = cards[cardIndex];
+                        Require(card.SelfModulate.A is >= 0 and <= 1, "Fade opacity must remain in range.");
+                        bool isQuestion = card.Texture.ResourcePath.EndsWith("/Any.png");
+                        Require(isQuestion == (cardIndex >= visibleCount), "Question cards must stay in their designated slots.");
+                        Require(Math.Abs(card.SelfModulate.A - sharedAlpha) < 0.0001f,
+                            "Every card, including question markers, must share the same fade.");
+                        if (!isQuestion) Require(card.Texture.ResourcePath.Contains("/CardFace/Classic/"), "Examples must never show card backs.");
+                    }
+                    if (cards[0].SelfModulate.A is > 0 and < 1) faded.Add(i);
+                    string snapshot = Snapshot(rows[i]);
+                    if (snapshot != before[i]) changed.Add(i);
+                    if (snapshot != previousSnapshots[i]) changesThisFrame++;
+                    previousSnapshots[i] = snapshot;
+                }
+                Require(changesThisFrame is 0 or 9, "All rank rows must switch examples in the same frame.");
+                if (elapsed < 9.5) Require(changed.Count == 0 && sharedAlpha == 1, "Examples must allow a ten-second reading pause.");
+                if (elapsed > 11.5) Require(changed.Count == 9, "Every row must have completed the first shared transition.");
+            }
+        }
+        finally { Engine.TimeScale = previousScale; }
+        Require(changed.Count == 9 && faded.Count == 9, "Every rank row must fade and show a new example.");
+        _showcase.GetNode<Button>("Header/BasicsTab").EmitSignal(Button.SignalName.Pressed);
+        Require(rows.All(row => !row.IsProcessing() && Cards(row).All(card => card.SelfModulate.A == 1)),
+            "Leaving the ranks tab must stop examples and restore opacity.");
+        _showcase.GetNode<Button>("Header/RanksTab").EmitSignal(Button.SignalName.Pressed);
+        _showcase.HideOverlay();
+        Require(rows.All(row => !row.IsProcessing()), "Closing help must stop rank examples.");
+        _showcase.ShowOverlay();
+        Require(rows.All(row => row.IsProcessing() && Cards(row).All(card => card.SelfModulate.A == 1)),
+            "Reopening help must restart with fully visible cards.");
+        _showcase.GetNode<Button>("Header/BasicsTab").EmitSignal(Button.SignalName.Pressed);
+        GD.Print("[PokerHelp] Ten-second holds, synchronized fades including unchanged question cards, and tab/close lifecycle passed.");
     }
 
     private async Task CheckFlipDemo()

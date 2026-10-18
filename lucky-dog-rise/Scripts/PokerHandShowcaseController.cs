@@ -43,12 +43,18 @@ public partial class PokerHandShowcaseController : CanvasLayer
     [Export] private Label _warningLabel = null!;
     [Export] private Label _minimumLabel = null!;
     [Export] private Label _ranksIntroLabel = null!;
+    [Export] private Label _ranksExamplesLabel = null!;
     [Export] private Label _ranksNoteLabel = null!;
+    [Export] private Godot.Collections.Array<PokerHandExampleController> _rankExamples = new();
+    [Export] private Godot.Collections.Array<Texture2D> _rankCardFaces = new();
+    [Export] private Texture2D _rankAnyCard = null!;
 
     public bool IsOverlayVisible => Visible;
 
     public override void _Ready()
     {
+        foreach (var example in _rankExamples)
+            example.Initialize(_rankCardFaces, _rankAnyCard);
         _dismissButton.Pressed += HideOverlay;
         _closeButton.Pressed += HideOverlay;
         _basicsTab.Pressed += () => SelectPage(showRanks: false);
@@ -79,9 +85,7 @@ public partial class PokerHandShowcaseController : CanvasLayer
             return;
 
         Visible = false;
-        _flipDemo.Stop();
-        _pairDemo.Stop();
-        _flushDemo.Stop();
+        RefreshDemos();
         EmitSignal(SignalName.ShowcaseVisibilityChanged, false);
     }
 
@@ -124,6 +128,8 @@ public partial class PokerHandShowcaseController : CanvasLayer
 
     private void RefreshDemos()
     {
+        foreach (var example in _rankExamples)
+            example.SetRunning(Visible && _ranksPage.Visible);
         _flipDemo.Stop();
         _pairDemo.Stop();
         _flushDemo.Stop();
@@ -168,6 +174,7 @@ public partial class PokerHandShowcaseController : CanvasLayer
         _warningLabel.Text = L10n.Tr(L10nKey.PokerHelp_ResultWarning);
         _minimumLabel.Text = L10n.Format(L10nKey.PokerHelp_MinimumHand, GetHandName(EHandRank.OnePair));
         _ranksIntroLabel.Text = L10n.Tr(L10nKey.PokerHelp_RanksIntro);
+        _ranksExamplesLabel.Text = L10n.Tr(L10nKey.PokerHelp_RanksExamples);
         _ranksNoteLabel.Text = L10n.Tr(L10nKey.PokerHelp_RanksNote);
     }
 
