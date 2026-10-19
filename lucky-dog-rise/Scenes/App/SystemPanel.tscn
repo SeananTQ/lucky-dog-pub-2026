@@ -370,6 +370,59 @@ size_flags_vertical = 4
 [node name="GeneralSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1721861634]
 layout_mode = 2
 
+[node name="GameplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+text = "Settings_Gameplay"
+label_settings = ExtResource("8_group_title")
+
+[node name="QuickStartAfterWinRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="QuickStartAfterWinLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_QuickStartAfterWin"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="QuickStartAfterWinToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
+layout_mode = 2
+
+[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_ProactiveInteractionHints"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
+layout_mode = 2
+
+[node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Settings_StreamerSafeMode"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
 [node name="DesktopPetLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1702498419]
 layout_mode = 2
 text = "Settings_DesktopPet"
@@ -536,59 +589,6 @@ layout_mode = 2
 size_flags_vertical = 4
 
 [node name="ConvenienceSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1226817093]
-layout_mode = 2
-
-[node name="GameplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-text = "Settings_Gameplay"
-label_settings = ExtResource("8_group_title")
-
-[node name="QuickStartAfterWinRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
-layout_mode = 2
-
-[node name="QuickStartAfterWinLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_QuickStartAfterWin"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="QuickStartAfterWinToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/QuickStartAfterWinRow"]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="ProactiveInteractionHintsRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=2048000123]
-layout_mode = 2
-
-[node name="ProactiveInteractionHintsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000124]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_ProactiveInteractionHints"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="ProactiveInteractionHintsToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow" unique_id=2048000125]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="StreamerSafeRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=450459869]
-layout_mode = 2
-
-[node name="StreamerSafeLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=779344376]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Settings_StreamerSafeMode"
-label_settings = ExtResource("9_option_label")
-autowrap_mode = 3
-
-[node name="StreamerSafeToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow" unique_id=1713453665]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
 
 [node name="DisplaySettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1003643989]
