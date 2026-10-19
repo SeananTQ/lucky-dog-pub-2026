@@ -36,9 +36,16 @@ public partial class PokerWelcomePreview : Control
         GetWindow().ContentScaleMode = Window.ContentScaleModeEnum.CanvasItems;
         GetWindow().Size = new Vector2I(600, 600);
         L10n.SetLocale("zh_CN", save: false);
-        _welcome.OverlayVisibilityChanged += visible => _bar.SetPinnedOpen(visible);
-        _welcome.Confirmed += () => _confirmed++;
+        _welcome.OverlayVisibilityChanged += visible => _bar.SetWelcomeContext(visible, _welcome.Layer);
+        _welcome.Confirmed += fromQuickBar =>
+        {
+            _confirmed++;
+            if (!fromQuickBar) _bar.RevealAfterWelcome();
+        };
+        _bar.FunctionActivated += _welcome.ConfirmFromQuickBar;
         _bar.HelpRequested += () => _toolbarClicks++;
+        _bar.TutorialRequested += () => _toolbarClicks++;
+        _bar.DesktopRequested += () => _toolbarClicks++;
         _bar.SetAvailable(true);
         _welcome.SetRequested(true);
         _welcome.SetContext(true, false);
@@ -102,15 +109,18 @@ public partial class PokerWelcomePreview : Control
     private async Task CheckInteractionAndLayout()
     {
         await Wait(.25);
-        Require(_welcome.IsOverlayVisible && _bar.IsExpanded, "Poker entry must reveal welcome and toolbar.");
+        Require(_welcome.IsOverlayVisible && !_bar.IsExpanded, "Poker entry must show welcome with the toolbar collapsed.");
         Pointer(false, 10);
-        Require(_bar.IsExpanded, "Welcome pins toolbar indefinitely outside its hot zone.");
-        await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/Help").GetGlobalRect().GetCenter());
+        Pointer(true, 10);
+        Require(_bar.IsExpanded && _bar.Layer > _welcome.Layer && _confirmed == 0,
+            "Hover reveals the toolbar above welcome without acknowledging it.");
+        Pointer(false, .51);
+        Require(!_bar.IsExpanded && _welcome.IsOverlayVisible, "Hover during welcome retains normal hide behavior.");
         await Click(new Vector2(50, 1000));
         GetViewport().PushInput(new InputEventKey { Keycode = Key.Escape, Pressed = true });
         GetViewport().PushInput(new InputEventKey { Keycode = Key.Escape, Pressed = false });
         Require(_toolbarClicks == 0 && _confirmed == 0 && _welcome.IsOverlayVisible,
-            "Outside clicks, toolbar clicks and Escape must not acknowledge or click through.");
+            "Outside clicks and Escape must not acknowledge or click through.");
         _welcome.SetContext(false, false);
         Require(!_welcome.IsOverlayVisible && _confirmed == 0, "Leaving poker must hide without acknowledgement.");
         _welcome.SetContext(true, false);
@@ -118,7 +128,7 @@ public partial class PokerWelcomePreview : Control
         _welcome.SetContext(true, true);
         Require(!_welcome.IsOverlayVisible, "Higher overlay temporarily suspends welcome.");
         _welcome.SetContext(true, false);
-        Require(_welcome.IsOverlayVisible && _bar.IsExpanded, "Suspended welcome resumes with toolbar pinned.");
+        Require(_welcome.IsOverlayVisible && !_bar.IsExpanded, "Suspended welcome resumes without revealing the toolbar.");
 
         var panel = _welcome.GetNode<Control>("InputShield/Center/Panel");
         foreach (string locale in Locales)
@@ -151,9 +161,9 @@ public partial class PokerWelcomePreview : Control
         }
 
         await Click(panel.GetNode<Control>("Margin/Content/Confirm").GetGlobalRect().GetCenter());
-        Require(_confirmed == 1 && !_welcome.IsOverlayVisible && _bar.IsExpanded, "Only confirm acknowledges; bar must stay open initially.");
-        Pointer(false, .49);
-        Require(_bar.IsExpanded, "Toolbar must wait 0.5 seconds after confirmation.");
+        Require(_confirmed == 1 && !_welcome.IsOverlayVisible && _bar.IsExpanded, "Only confirm acknowledges and then reveals the toolbar.");
+        Pointer(false, 4.99);
+        Require(_bar.IsExpanded, "Toolbar must wait five seconds after confirmation.");
         Pointer(false, .02);
         Require(!_bar.IsExpanded, "Toolbar must retract after its natural delay.");
         _welcome.SetContext(false, false);
@@ -164,6 +174,29 @@ public partial class PokerWelcomePreview : Control
         await Click(panel.GetNode<Control>("Margin/Content/Confirm").GetGlobalRect().GetCenter());
         Pointer(true, 10);
         Require(_bar.IsExpanded, "Pointer inside must retain toolbar after confirmation.");
+        Pointer(false, .51);
+        Require(!_bar.IsExpanded, "Leaving after confirmation's five seconds restores the normal delay.");
+
+        foreach (string action in new[] { "Help", "Tutorial", "DesktopPet" })
+        {
+            int beforeConfirmed = _confirmed;
+            int beforeActions = _toolbarClicks;
+            _bar.SetHasUsedFunction(false);
+            _welcome.SetRequested(true);
+            Pointer(true, .01);
+            await Wait(.25);
+            await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/" + action).GetGlobalRect().GetCenter());
+            Require(_confirmed == beforeConfirmed + 1 && _toolbarClicks == beforeActions + 1 && !_welcome.IsOverlayVisible,
+                action + ": one actual button click must acknowledge welcome and execute once.");
+            Require(!_bar.IsExpanded && _bar.Layer < _welcome.Layer,
+                action + ": direct action restores layer order and does not start the five-second reveal.");
+            Require(_bar.GetNode<Control>("HotZone").Size.Y == _bar.GetNode<Control>("Clip/Bar").Size.Y,
+                action + ": direct action must also mark toolbar discovery complete.");
+            Pointer(false, 1);
+            _welcome.SetContext(false, false);
+            _welcome.SetContext(true, false);
+            Require(!_welcome.IsOverlayVisible, action + ": welcome must not return after direct use.");
+        }
     }
 
     private void Pointer(bool inside, double delta) => _bar.UpdatePointer(true,

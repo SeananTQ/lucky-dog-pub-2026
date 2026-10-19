@@ -19,7 +19,6 @@ mouse_filter = 0
 theme = ExtResource("2_theme")
 
 [node name="Dim" type="ColorRect" parent="InputShield"]
-offset_top = 40.0
 offset_right = 600.0
 offset_bottom = 600.0
 mouse_filter = 2

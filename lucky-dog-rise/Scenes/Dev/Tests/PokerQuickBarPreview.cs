@@ -227,13 +227,29 @@ public partial class PokerQuickBarPreview : Control
         Require(!_bar.IsIdleReminderActive && !_bar.IsExpanded, "Persisted completion must suppress idle reminders.");
         _bar.SetHasUsedFunction(false);
         _bar.SetReminderContext(false);
-        _bar.SetPinnedOpen(true);
-        Pointer(false, 60);
-        _bar.NotifyEffectiveInteraction();
-        Pointer(false, 1);
-        Require(_bar.IsExpanded && !_bar.IsIdleReminderActive, "Welcome hold must remain separate from idle reminders.");
-        _bar.SetPinnedOpen(false);
-        Pointer(false, .6);
+        _bar.RevealAfterWelcome();
+        Pointer(false, 4.99);
+        Require(_bar.IsExpanded && !_bar.IsIdleReminderActive, "Explicit welcome reveal must remain separate from idle reminders.");
+        Pointer(false, .02);
+        Require(!_bar.IsExpanded, "Welcome confirmation reveals for five seconds before retracting.");
+        Pointer(true);
+        Pointer(false, .49);
+        Require(_bar.IsExpanded, "Later hover still uses the normal half-second delay.");
+        Pointer(false, .02);
+        Require(!_bar.IsExpanded, "The five-second exception must not leak into ordinary hover.");
+        _bar.RevealAfterWelcome();
+        Pointer(true, 5.1);
+        Require(_bar.IsExpanded, "Pointer inside keeps the toolbar visible after the five-second display.");
+        Pointer(false, .51);
+        Require(!_bar.IsExpanded, "Leaving after the five seconds uses the normal delay.");
+        _bar.RevealAfterWelcome();
+        _bar.SetAvailable(false);
+        _bar.RevealAfterWelcome();
+        Require(!_bar.IsExpanded, "A blocked toolbar must not be revealed by an explicit request.");
+        _bar.SetAvailable(true);
+        Pointer(true);
+        Pointer(false, .51);
+        Require(!_bar.IsExpanded, "Hiding the toolbar cancels any remaining welcome display time.");
         _bar.SetReminderContext(true);
         GD.Print("[PokerToolbar] Repeatable idle reminder, holds, effective actions and context suspension passed.");
     }
@@ -272,7 +288,53 @@ public partial class PokerQuickBarPreview : Control
         legacyComplete.SavePokerQuickBarUsed(false);
         Require(!legacyComplete.LoadOrMigratePokerQuickBarUsed(false), "Explicit debug reset must survive restart and migration.");
         CheckDiscoveryReplay(storage, account, run);
+        CheckDebugReplayPreferences(storage, account);
         GD.Print("[PokerToolbar] First-use persistence and independent welcome/account states passed.");
+    }
+
+    private static void CheckDebugReplayPreferences(AccountStorageContext storage, AccountStateManager account)
+    {
+        const string settingsPath = "user://settings.cfg";
+        var original = new ConfigFile();
+        original.Load(settingsPath);
+        try
+        {
+            new ConfigFile().Save(settingsPath);
+            Require(!SettingsManager.LoadRepeatPokerWelcomeOnStartup() && !SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
+                "Both Debug replay preferences must default to off.");
+            account.SavePokerWelcomeAcknowledged();
+            account.SavePokerQuickBarUsed();
+            string savedProgress = Godot.FileAccess.GetFileAsString(storage.AccountStatePath);
+            var currentWelcome = new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup());
+            var currentDiscovery = new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
+            SettingsManager.SaveRepeatPokerWelcomeOnStartup(true);
+            Require(SettingsManager.LoadRepeatPokerWelcomeOnStartup() && !SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
+                "Welcome replay must persist independently of discovery replay.");
+            SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup(true);
+            Require(currentWelcome.IsAcknowledged && currentDiscovery.HasUsedFunction,
+                "Changing startup preferences must not reset the active session.");
+            var replayWelcome = new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup());
+            var replayDiscovery = new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
+            Require(!replayWelcome.IsAcknowledged && !replayDiscovery.HasUsedFunction,
+                "The next startup must use the persisted replay preferences.");
+            replayWelcome.Acknowledge();
+            replayDiscovery.RecordUse();
+            SettingsManager.SaveRepeatPokerWelcomeOnStartup(false);
+            Require(!SettingsManager.LoadRepeatPokerWelcomeOnStartup() && SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
+                "Disabling welcome replay must leave discovery replay enabled.");
+            SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup(false);
+            Require(new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup()).IsAcknowledged
+                && new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup()).HasUsedFunction,
+                "Turning replay off must restore the saved formal progress on the next startup.");
+            replayDiscovery.Reset();
+            Require(Godot.FileAccess.GetFileAsString(storage.AccountStatePath) == savedProgress,
+                "Changing replay preferences must not change the running session's persistence policy or the real account file.");
+            GD.Print("[PokerToolbar] Persisted Debug replay preferences, next-startup application and formal progress preservation passed.");
+        }
+        finally
+        {
+            original.Save(settingsPath);
+        }
     }
 
     private static void CheckDiscoveryReplay(AccountStorageContext storage, AccountStateManager account, string run)

@@ -227,7 +227,12 @@ public partial class GameManager : Node2D
 
     public void SetPokerQuickBarUsed(bool used) => _quickBar.SetHasUsedFunction(used);
 
-    private void OnQuickBarFunctionActivated() => EmitSignal(SignalName.PokerQuickBarFunctionActivated);
+    private void OnQuickBarFunctionActivated()
+    {
+        // Close and acknowledge before opening help/controls or leaving poker.
+        _pokerWelcome.ConfirmFromQuickBar();
+        EmitSignal(SignalName.PokerQuickBarFunctionActivated);
+    }
 
     public bool IsPointOverPokerWelcomeConfirmButton(Vector2 viewportPosition) =>
         _pokerWelcome?.IsPointOverConfirmButton(viewportPosition) == true;
@@ -260,9 +265,10 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
-    private void OnPokerWelcomeConfirmed()
+    private void OnPokerWelcomeConfirmed(bool fromQuickBar)
     {
         _quickBar.NotifyEffectiveInteraction();
+        if (!fromQuickBar) _quickBar.RevealAfterWelcome();
         EmitSignal(SignalName.PokerWelcomeConfirmed);
     }
 
@@ -622,8 +628,8 @@ public partial class GameManager : Node2D
             && !showcaseVisible
             && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
+        _quickBar?.SetWelcomeContext(welcomeVisible, _pokerWelcome.Layer);
         _quickBar?.SetAvailable(pokerInputAvailable);
-        _quickBar?.SetPinnedOpen(welcomeVisible);
         // The system panel may stay open throughout play; it does not suspend idle discovery.
         _quickBar?.SetReminderContext(pokerInputAvailable && !welcomeVisible);
         var pokerHintsAvailable = pokerInputAvailable && !welcomeVisible && _quickBar?.IsPointerInside != true;

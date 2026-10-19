@@ -1062,6 +1062,32 @@ text = "启动时显示开发启动器"
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="PokerWelcomeReplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+tooltip_text = "仅 Dev，下次启动生效。开启后，每次启动重新体验扑克欢迎提示，本次确认仅保存在内存，不改写正式记录。关闭后下次启动恢复正式记录。"
+
+[node name="PokerWelcomeReplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "启动时重播扑克欢迎提示"
+
+[node name="PokerWelcomeReplayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="PokerQuickBarReplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+layout_mode = 2
+tooltip_text = "仅 Dev，下次启动生效。开启后，每次启动恢复快捷栏大热区和 20 秒闲置提醒，忽略正式记录与旧档迁移；本次功能点击及重置不改写正式记录。关闭后下次启动恢复正式记录与迁移。"
+
+[node name="PokerQuickBarReplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "启动时重置快捷栏发现"
+
+[node name="PokerQuickBarReplayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow"]
+layout_mode = 2
+size_flags_vertical = 4
+
 [node name="DisableGlobalMouseListeningRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
 tooltip_text = "仅用于诊断 Raw Input 全局点击监听。开启后暂停跨应用鼠标筹码、外部点击自动收起面板和 LinkTree 外部返回判定；键盘统计与游戏内鼠标交互不受影响。"
@@ -1295,7 +1321,7 @@ text = "Play"
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "重置快捷栏发现状态"
-tooltip_text = "恢复较大热区和闲置 20 秒提醒；临时验收或模拟环境仅本次运行生效，关闭临时验收后立即保存。"
+tooltip_text = "立即恢复较大热区和闲置 20 秒提醒。本次启动已启用快捷栏重播或处于模拟环境时仅重置内存；普通本地开发会立即保存，重启后保留。重播开关的修改从下次启动生效。"
 
 [node name="ResetSaveBtn" type="Button" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent" unique_id=240889279]
 layout_mode = 2

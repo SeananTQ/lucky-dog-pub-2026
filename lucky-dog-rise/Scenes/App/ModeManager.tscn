@@ -4,8 +4,6 @@
 
 [node name="ModeManager" type="Control" node_paths=PackedStringArray("_playPanelDismissOverlay")]
 script = ExtResource("1_ctrl")
-_repeatPokerWelcomeEveryLaunch = true
-_repeatPokerQuickBarDiscoveryEveryLaunch = true
 _playPanelDismissOverlay = NodePath("PlayPanelDismissLayer/DismissOverlay")
 
 [node name="PlayPanelDismissLayer" type="CanvasLayer" parent="."]

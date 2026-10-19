@@ -51,6 +51,52 @@ func click_host_control(control):
 func advance_idle(seconds):
 	game.call("UpdateQuickBarPointer", false, Vector2(1100, 950), false, false, seconds)
 
+func check_debug_replay_settings():
+	await click_control(welcome.get_node("InputShield/Center/Panel/Margin/Content/Confirm"))
+	await move_pointer(Vector2(200, 40))
+	await create_timer(.25).timeout
+	await click_control(bar.get_node("Clip/Bar/Buttons/Help"))
+	await click_control(game.get_node("PokerHandShowcase/Header/CloseButton"))
+	var settings = host.get_node("SettingsPanel")
+	settings.call("Open")
+	await create_timer(.3).timeout
+	await click_host_control(settings.get_node("Panel/RootVBox/TitleRow/DebugTab"))
+	var debug_content = settings.get_node("Panel/RootVBox/Scroll/ContentVBox/DebugContent")
+	var scroll = settings.get_node("Panel/RootVBox/Scroll")
+	var welcome_toggle = debug_content.get_node("PokerWelcomeReplayRow/PokerWelcomeReplayToggle")
+	var discovery_toggle = debug_content.get_node("PokerQuickBarReplayRow/PokerQuickBarReplayToggle")
+	check(debug_content.is_visible_in_tree() and not welcome_toggle.button_pressed and not discovery_toggle.button_pressed,
+		"Debug replay switches are visible and default to off")
+	for toggle in [welcome_toggle, discovery_toggle]:
+		scroll.ensure_control_visible(toggle)
+		await process_frame
+		await click_host_control(toggle)
+		check(toggle.button_pressed, "Actual Debug switch click enables " + toggle.name)
+		var saved = ConfigFile.new()
+		saved.load("user://settings.cfg")
+		check(saved.get_value("debug", "repeat_poker_welcome_on_startup", false), "Welcome replay is immediately saved")
+		check(saved.get_value("debug", "repeat_poker_quick_bar_discovery_on_startup", false) == (toggle == discovery_toggle),
+			"Discovery replay is independent and immediately saved")
+	check(not welcome.get("IsOverlayVisible") and bar.get_node("HotZone").size.y == 80,
+		"Changing replay switches preserves the current welcome and toolbar state")
+	var reset = debug_content.get_node("ResetSettingsBtn")
+	scroll.ensure_control_visible(reset)
+	await process_frame
+	await click_host_control(reset)
+	var defaults = ConfigFile.new()
+	defaults.load("user://settings.cfg")
+	check(not welcome_toggle.button_pressed and not discovery_toggle.button_pressed
+		and not defaults.get_value("debug", "repeat_poker_welcome_on_startup", false)
+		and not defaults.get_value("debug", "repeat_poker_quick_bar_discovery_on_startup", false),
+		"Reset settings clears both persisted preferences and refreshes both switches")
+	settings.call("CloseImmediate")
+	host.call("SwitchToBossKey")
+	await process_frame
+	host.call("SwitchToPlay")
+	await create_timer(.3).timeout
+	check(not welcome.get("IsOverlayVisible") and bar.get_node("HotZone").size.y == 80,
+		"Replay preference changes and settings reset do not replay onboarding within the same run")
+
 func check_idle_discovery(guide):
 	await move_pointer(Vector2(1150, 600))
 	bar.call("NotifyEffectiveInteraction")
@@ -138,12 +184,65 @@ func check_window_drag(point, description):
 	await move_pointer(point + Vector2(40, 20))
 	await move_pointer(point + Vector2(90, 40))
 	check(DisplayServer.window_get_position() != before, description + " moves host window")
-	check(welcome.get("IsOverlayVisible") and bar.get("IsExpanded"), description + " keeps welcome and pinned toolbar visible")
+	check(welcome.get("IsOverlayVisible") and not bar.get("IsExpanded"), description + " keeps welcome visible and toolbar collapsed")
 	await release_at_pointer()
 	var released_position = DisplayServer.window_get_position()
 	await move_pointer(Vector2(1000, 1000))
 	check(DisplayServer.window_get_position() == released_position, description + " releases without sticking")
 	check(game.get("State") == state_before, description + " does not click through to poker")
+
+func check_welcome_quickbar_action(action):
+	var counts = {"welcome": 0, "toolbar": 0}
+	game.connect("PokerWelcomeConfirmed", func(): counts.welcome += 1)
+	game.connect("PokerQuickBarFunctionActivated", func(): counts.toolbar += 1)
+	await move_pointer(Vector2(200, 40))
+	await create_timer(.25).timeout
+	check(welcome.get("IsOverlayVisible") and bar.get("IsExpanded"), action + ": hover reveals the bar over welcome")
+	check(counts.welcome == 0 and counts.toolbar == 0, action + ": hover alone records neither acknowledgement nor use")
+	var window_before = DisplayServer.window_get_position()
+	var state_before = game.get("State")
+	var button_point = bar.get_node("Clip/Bar/Buttons/" + action).get_global_rect().get_center()
+	await move_pointer(button_point)
+	await mouse_button(button_point, MOUSE_BUTTON_LEFT, true)
+	check(DisplayServer.window_get_position() == window_before, action + ": pressing the toolbar button does not start a window drag")
+	await mouse_button(button_point, MOUSE_BUTTON_LEFT, false)
+	check(counts.welcome == 1 and counts.toolbar == 1, action + ": one click acknowledges welcome and records toolbar use once")
+	check(not welcome.get("IsOverlayVisible") and not bar.get("IsExpanded"), action + ": direct use closes welcome without a five-second reveal")
+	check(bar.get_node("HotZone").size.y == bar.get_node("Clip/Bar").size.y, action + ": direct use shrinks discovery region")
+	check(game.get("State") == state_before, action + ": click does not play through the modal")
+	if action != "DesktopPet":
+		check(DisplayServer.window_get_position() == window_before, action + ": release does not drag the window")
+	if action == "Help":
+		var help = game.get_node("PokerHandShowcase")
+		check(help.get("IsOverlayVisible") and help.get_node("Content/Scroll/Pages/Basics").visible, "Direct welcome help opens the basics page")
+		await click_control(help.get_node("Header/CloseButton"))
+	elif action == "Tutorial":
+		var guide = game.get_node("TutorialManager")
+		check(guide.get("IsOverlayVisible"), "Direct welcome controls opens the manual guide")
+		await create_timer(2.1).timeout
+		await mouse_button(Vector2(900, 900), MOUSE_BUTTON_LEFT, true)
+		await mouse_button(Vector2(900, 900), MOUSE_BUTTON_LEFT, false)
+		check(not guide.get("IsOverlayVisible"), "Direct welcome controls guide can close normally")
+	else:
+		check(host.get("CurrentMode") == 0, "Direct welcome desktop action returns to desktop mode")
+		# Mode switching deliberately resizes/repositions the host before showing the pet.
+		await create_timer(.5).timeout
+		var desktop_position = DisplayServer.window_get_position()
+		await move_pointer(Vector2(1100, 950))
+		check(DisplayServer.window_get_position() == desktop_position, "Desktop mode handoff leaves no sticky window drag")
+	check(not welcome.get("IsOverlayVisible"), action + ": dismissing the target does not restore welcome")
+	if host.get("CurrentMode") != 0:
+		host.call("SwitchToBossKey")
+		await create_timer(.2).timeout
+	host.call("SwitchToPlay")
+	await create_timer(.4).timeout
+	await move_pointer(Vector2(1100, 950))
+	await create_timer(.6).timeout
+	advance_idle(20.1)
+	check(not welcome.get("IsOverlayVisible") and not bar.get("IsIdleReminderActive") and not bar.get("IsExpanded"), action + ": returning to poker remembers both records without lingering reveal")
+	var account = ConfigFile.new()
+	account.load("user://accounts/demo-debug/dev-steam_mock/account_state.cfg")
+	check(not account.has_section_key("tutorial_progress", "poker_quick_bar_used") and not account.has_section_key("tutorial_progress", "poker_welcome_acknowledged"), action + ": Steam Mock keeps both records in memory")
 
 func _initialize():
 	call_deferred("run")
@@ -181,13 +280,29 @@ func run():
 	bar = game.get_node("PokerQuickBar")
 	welcome = game.get_node("PokerWelcomeDialog")
 	var guide = game.get_node("TutorialManager")
-	check(welcome.get("IsOverlayVisible") and bar.get("IsExpanded"), "First entry shows welcome and pins toolbar")
+	await move_pointer(Vector2(1100, 1000))
+	await create_timer(.6).timeout
+	check(welcome.get("IsOverlayVisible") and not bar.get("IsExpanded"), "First entry shows welcome without revealing the toolbar")
 	check(not guide.get("IsOverlayVisible"), "Automatic new-player guide does not stack over welcome")
+	if "--debug-replay-settings" in OS.get_cmdline_user_args():
+		await check_debug_replay_settings()
+		print("[WelcomeIntegration] failures=", failures)
+		quit(0 if failures == 0 else 1)
+		return
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--welcome-action="):
+			var action = argument.trim_prefix("--welcome-action=")
+			check(action in ["Help", "Tutorial", "DesktopPet"], "Valid welcome action case")
+			if failures == 0:
+				await check_welcome_quickbar_action(action)
+			print("[WelcomeIntegration] failures=", failures)
+			quit(0 if failures == 0 else 1)
+			return
 	advance_idle(60)
-	check(not bar.get("IsIdleReminderActive"), "Welcome hold is independent of the idle reminder")
+	check(not bar.get("IsIdleReminderActive"), "Welcome suspends the idle reminder")
 	await move_pointer(Vector2(1100, 1000))
 	await create_timer(.8).timeout
-	check(bar.get("IsExpanded"), "Real host pointer outside cannot collapse pinned bar")
+	check(not bar.get("IsExpanded"), "Toolbar stays collapsed while welcome is visible")
 	await check_window_drag(Vector2(1000, 1000), "Blank overlay drag")
 	settings.set_value("system", "prevent_accidental_drag", true)
 	settings.save("user://settings.cfg")
@@ -211,8 +326,16 @@ func run():
 	check(host.get("CurrentMode") == 1 and welcome.get("IsOverlayVisible"), "Right click cannot switch mode through the welcome")
 	game.call("TogglePokerHandShowcase")
 	check(not game.get("IsPokerHandShowcaseVisible"), "Paytable help cannot cover the modal")
-	await click_control(bar.get_node("Clip/Bar/Buttons/Help"))
-	check(not game.get("IsPokerHandShowcaseVisible") and welcome.get("IsOverlayVisible"), "Pinned toolbar is visible without click-through")
+	await move_pointer(Vector2(200, 40))
+	await create_timer(.25).timeout
+	check(bar.get("IsExpanded") and welcome.get("IsOverlayVisible"), "Welcome allows hover discovery above its shield")
+	var toolbar_drag_start = DisplayServer.window_get_position()
+	await mouse_button(Vector2(200, 40), MOUSE_BUTTON_LEFT, true)
+	await move_pointer(Vector2(900, 950))
+	await release_at_pointer()
+	await create_timer(.6).timeout
+	check(DisplayServer.window_get_position() == toolbar_drag_start and not game.get("IsPokerHandShowcaseVisible") and welcome.get("IsOverlayVisible"), "Canceled toolbar gesture neither drags nor acknowledges welcome")
+	check(not bar.get("IsExpanded"), "Welcome hover uses the ordinary half-second hide delay")
 	host.call("SwitchToBossKey")
 	await create_timer(.4).timeout
 	check(not welcome.get("IsOverlayVisible"), "Leaving without acknowledgement hides welcome")
@@ -221,12 +344,14 @@ func run():
 	check(welcome.get("IsOverlayVisible") and not guide.get("IsOverlayVisible"), "Unacknowledged return shows welcome without guide")
 	await check_window_drag(Vector2(1000, 1000), "Drag immediately before acknowledgement")
 	await click_control(welcome.get_node("InputShield/Center/Panel/Margin/Content/Confirm"))
-	check(not welcome.get("IsOverlayVisible"), "Actual SubViewport acknowledgement button closes welcome")
+	check(not welcome.get("IsOverlayVisible") and bar.get("IsExpanded"), "Actual acknowledgement closes welcome and then reveals the toolbar")
 	check(not guide.get("IsOverlayVisible"), "Acknowledgement never automatically opens the controls guide")
 	await create_timer(.2).timeout
 	check(bar.get("IsExpanded"), "Toolbar remains during initial close delay")
 	await create_timer(.5).timeout
-	check(not bar.get("IsExpanded"), "Toolbar retracts naturally after acknowledgement")
+	check(bar.get("IsExpanded"), "Acknowledgement display lasts beyond the ordinary half-second delay")
+	await create_timer(4.5).timeout
+	check(not bar.get("IsExpanded"), "Toolbar retracts after five seconds outside following acknowledgement")
 	host.call("SwitchToBossKey")
 	await create_timer(.2).timeout
 	host.call("SwitchToPlay")

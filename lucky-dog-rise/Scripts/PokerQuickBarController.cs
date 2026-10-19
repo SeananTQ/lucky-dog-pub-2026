@@ -19,11 +19,14 @@ public partial class PokerQuickBarController : CanvasLayer
     [Export] private Button _desktopButton = null!;
 
     private const double HideDelaySeconds = 0.5;
+    private const double WelcomeRevealSeconds = 5.0;
     private const double ReminderIdleSeconds = 20.0;
     private bool _available;
-    private bool _pinnedOpen;
     private bool _waitForPointerExit;
     private double _outsideSeconds;
+    private double _welcomeRevealRemaining;
+    private int _normalLayer;
+    private bool _welcomeVisible;
     private Tween _slide;
     private float _discoveryHotZoneHeight;
     private bool _hasUsedFunction;
@@ -37,6 +40,7 @@ public partial class PokerQuickBarController : CanvasLayer
 
     public override void _Ready()
     {
+        _normalLayer = Layer;
         _discoveryHotZoneHeight = _hotZone.Size.Y;
         _bar.Resized += RefreshHotZoneHeight;
         _helpButton.Pressed += () => Activate(SignalName.HelpRequested);
@@ -97,20 +101,24 @@ public partial class PokerQuickBarController : CanvasLayer
             IsPointerInside = false;
             CollapseImmediately();
         }
-        else if (_pinnedOpen)
-            SetExpanded(true);
     }
 
-    public void SetPinnedOpen(bool pinned)
+    public void SetWelcomeContext(bool visible, int welcomeLayer)
     {
-        if (_pinnedOpen == pinned) return;
-        _pinnedOpen = pinned;
+        if (_welcomeVisible == visible) return;
+        _welcomeVisible = visible;
+        // Let only the toolbar sit above the welcome shield; the rest of the table stays modal.
+        Layer = visible ? welcomeLayer + 1 : _normalLayer;
+        if (visible) CollapseImmediately();
+    }
+
+    public void RevealAfterWelcome()
+    {
+        if (!_available) return;
+        _waitForPointerExit = false;
         _outsideSeconds = 0;
-        if (pinned)
-        {
-            _waitForPointerExit = false;
-            if (_available) SetExpanded(true);
-        }
+        _welcomeRevealRemaining = WelcomeRevealSeconds;
+        SetExpanded(true);
     }
 
     public bool ContainsPoint(Vector2 viewportPosition) => _available
@@ -120,6 +128,7 @@ public partial class PokerQuickBarController : CanvasLayer
     {
         IsPointerInside = overPoker && ContainsPoint(viewportPosition);
         if (!_available) return;
+        _welcomeRevealRemaining = Mathf.Max(0.0, _welcomeRevealRemaining - delta);
         if (_reminderContextActive && !_hasUsedFunction && !IsIdleReminderActive)
         {
             _idleSeconds += delta;
@@ -130,7 +139,7 @@ public partial class PokerQuickBarController : CanvasLayer
                 _waitForPointerExit = false;
             }
         }
-        if (_pinnedOpen || IsIdleReminderActive)
+        if (IsIdleReminderActive)
         {
             _outsideSeconds = 0;
             SetExpanded(true);
@@ -153,7 +162,8 @@ public partial class PokerQuickBarController : CanvasLayer
         {
             _outsideSeconds += delta;
             // 按住按钮移出时保留完整的释放事件，再允许收起。
-            if (_outsideSeconds >= HideDelaySeconds && !leftPressed) SetExpanded(false);
+            if (_outsideSeconds >= HideDelaySeconds && _welcomeRevealRemaining <= 0 && !leftPressed)
+                SetExpanded(false);
         }
     }
 
@@ -190,6 +200,7 @@ public partial class PokerQuickBarController : CanvasLayer
         _slide = null;
         IsExpanded = false;
         _outsideSeconds = 0;
+        _welcomeRevealRemaining = 0;
         _bar.Position = new Vector2(0, -_clip.Size.Y);
         _bar.Visible = false;
     }

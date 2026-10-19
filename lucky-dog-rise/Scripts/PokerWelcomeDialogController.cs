@@ -5,7 +5,7 @@ namespace LuckyDogRise;
 public partial class PokerWelcomeDialogController : CanvasLayer
 {
     [Signal] public delegate void OverlayVisibilityChangedEventHandler(bool visible);
-    [Signal] public delegate void ConfirmedEventHandler();
+    [Signal] public delegate void ConfirmedEventHandler(bool fromQuickBar);
 
     [Export] private Label _title = null!;
     [Export] private Label _message = null!;
@@ -20,7 +20,7 @@ public partial class PokerWelcomeDialogController : CanvasLayer
     {
         Visible = false;
         PrepareScaledFont();
-        _confirmButton.Pressed += Confirm;
+        _confirmButton.Pressed += () => Confirm(fromQuickBar: false);
         L10n.Changed += RefreshText;
         RefreshText();
     }
@@ -66,12 +66,14 @@ public partial class PokerWelcomeDialogController : CanvasLayer
         EmitSignal(SignalName.OverlayVisibilityChanged, show);
     }
 
-    private void Confirm()
+    public void ConfirmFromQuickBar() => Confirm(fromQuickBar: true);
+
+    private void Confirm(bool fromQuickBar)
     {
         if (!Visible) return;
         _requested = false;
         RefreshVisibility();
-        EmitSignal(SignalName.Confirmed);
+        EmitSignal(SignalName.Confirmed, fromQuickBar);
     }
 
     private void RefreshText()

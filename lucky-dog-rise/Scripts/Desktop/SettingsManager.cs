@@ -14,6 +14,8 @@ public static class SettingsManager
     // Use a new key because older builds consumed the one-shot value by writing
     // false. Debug now defaults to showing the launcher until explicitly disabled.
     private const string KeyShowDeveloperLauncherOnStartup = "show_developer_launcher_on_startup";
+    private const string KeyRepeatPokerWelcomeOnStartup = "repeat_poker_welcome_on_startup";
+    private const string KeyRepeatPokerQuickBarDiscoveryOnStartup = "repeat_poker_quick_bar_discovery_on_startup";
 #endif
     private const string KeyAudioEnabled = "enabled";
     private const string KeySfxVolume = "sfx_volume";
@@ -531,6 +533,34 @@ public static class SettingsManager
     {
         var config = Load();
         config.SetValue(SectionDebug, KeyShowDeveloperLauncherOnStartup, enabled);
+        config.Save(Path);
+    }
+
+    // Read once during startup: changing these preferences must not reset the
+    // current session or overwrite the account's real tutorial progress.
+    public static bool LoadRepeatPokerWelcomeOnStartup()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, false);
+    }
+
+    public static void SaveRepeatPokerWelcomeOnStartup(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadRepeatPokerQuickBarDiscoveryOnStartup()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, false);
+    }
+
+    public static void SaveRepeatPokerQuickBarDiscoveryOnStartup(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, enabled);
         config.Save(Path);
     }
 

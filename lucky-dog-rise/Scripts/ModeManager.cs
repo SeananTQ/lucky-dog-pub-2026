@@ -10,9 +10,6 @@ namespace LuckyDogRise;
 public partial class ModeManager : Control
 {
     [Export] private ColorRect _playPanelDismissOverlay = null!;
-    // Temporary acceptance control; ignored outside Debug builds. Disable after approval.
-    [Export] private bool _repeatPokerWelcomeEveryLaunch;
-    [Export] private bool _repeatPokerQuickBarDiscoveryEveryLaunch;
     private PokerWelcomeProgress _pokerWelcomeProgress = null!;
     private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
@@ -462,8 +459,8 @@ public partial class ModeManager : Control
         bool sessionOnlyPokerWelcome = startInSteamMock;
         bool sessionOnlyPokerQuickBar = startInSteamMock;
 #if DEBUG
-        sessionOnlyPokerWelcome |= _repeatPokerWelcomeEveryLaunch;
-        sessionOnlyPokerQuickBar |= _repeatPokerQuickBarDiscoveryEveryLaunch;
+        sessionOnlyPokerWelcome |= SettingsManager.LoadRepeatPokerWelcomeOnStartup();
+        sessionOnlyPokerQuickBar |= SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup();
 #endif
         _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
         _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyPokerQuickBar);
