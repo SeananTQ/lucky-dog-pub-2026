@@ -28,7 +28,8 @@ public partial class GameData : Node
     [Signal] public delegate void BlindBoxRewardClaimedEventHandler(
         int blindBoxId,
         int itemId,
-        bool firstOwnership);
+        bool firstOwnership,
+        int completedSequenceStep);
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
     [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
@@ -2354,6 +2355,13 @@ public partial class GameData : Node
                 PlayerProgressSource.BlindBox);
         }
         var currentProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
+        // Report only the sequence step completed by this claim, before any remote
+        // progress merge. Late rewards, loop rewards and repeated claims report zero.
+        var completedSequenceStep = completedSchedule
+            && currentProgressCheckpoint > previousProgressCheckpoint
+            && completedScheduleDefinition is { IsLoopTrack: false }
+                ? BlindBoxService.GetSequenceSchedules().FindIndex(schedule => schedule.Id == scheduleId) + 1
+                : 0;
         if (currentProgressCheckpoint > previousProgressCheckpoint)
         {
             DiagnosticLog.Record("blindbox_sequence_progress_recorded", new Dictionary<string, object>
@@ -2393,7 +2401,7 @@ public partial class GameData : Node
                 isPlatformReward,
                 completedSchedule);
         }
-        EmitSignal(SignalName.BlindBoxRewardClaimed, blindBoxId, itemId, firstOwnership);
+        EmitSignal(SignalName.BlindBoxRewardClaimed, blindBoxId, itemId, firstOwnership, completedSequenceStep);
         EmitSignal(SignalName.BlindBoxStateChanged);
         if (recoveredFromInterruptedReveal)
             SaveImmediatelyIfUsingLocalSave();
@@ -3347,11 +3355,6 @@ public partial class GameData : Node
             return;
 
         WishlistCallToActionPageOpened = opened;
-        if (opened)
-        {
-            _collectionEventPendingFirstDogItemIdsByEvent.Clear();
-            EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
-        }
         SaveImmediatelyIfUsingLocalSave();
     }
 

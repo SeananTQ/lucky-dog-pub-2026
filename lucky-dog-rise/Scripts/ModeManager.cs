@@ -1557,7 +1557,8 @@ public partial class ModeManager : Control
     private void OnBlindBoxRewardClaimedForCollectionEvent(
         int blindBoxId,
         int itemId,
-        bool firstOwnership)
+        bool firstOwnership,
+        int completedSequenceStep)
     {
         var completedCollection = _settingsPanel?.DidBlindBoxRewardCompleteCollectionEvent(
             blindBoxId,
@@ -1568,10 +1569,12 @@ public partial class ModeManager : Control
                 itemId,
                 firstOwnership) == true;
 
-        // Preserve the existing first-dog notice if both conditions ever coincide.
+        // A coinciding first-dog notice already leads to the collection page.
         if (queuedFirstDogProgress)
             PresentFirstDogProgress();
-        else if (completedCollection)
+        else if (completedCollection
+                 || _settingsPanel?.ShouldShowCollectionEventProgressReminder(
+                     blindBoxId, completedSequenceStep) == true)
             OpenCollectionProgressPage();
     }
 

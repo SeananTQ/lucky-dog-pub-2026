@@ -29,6 +29,8 @@ public partial class CollectionVictoryRewardSmoke : Node
             await VerifySettingsToggle();
             VerifyRewardSources();
             VerifyCelebrationReward();
+            VerifyFirstDogNoticeIndependentOfWishlist();
+            await VerifySixthBoxProgressReminder();
             GD.Print("[NewOutfitSmoke] PASS: new/duplicate outfits, old saves, platform sync, settings, reward sources.");
             GetTree().Quit();
         }
@@ -201,6 +203,186 @@ public partial class CollectionVictoryRewardSmoke : Node
             data.Free();
         }
         GD.Print("[CollectionVictorySmoke] Settings, new/duplicate hats, occupied/empty slots and duplicate claims: PASS.");
+    }
+
+    private void VerifyFirstDogNoticeIndependentOfWishlist()
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        const string eventId = "demo-next-fest-2026";
+        var previousChannel = BuildInfo.SelectedDebugGameplayChannel;
+        BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Demo);
+        try
+        {
+            // Exercise the real page definition and entry guards, without starting GameData/Steam.
+            foreach (var openedBeforeReward in new[] { false, true })
+            {
+                using var data = new GameData();
+                ResetInventory(data.Inventory);
+                typeof(GameData).GetField("_accountStorageFrozen", flags)!.SetValue(data, true);
+                var dogId = LubanData.Tables.TbBlindBoxItemWeight.DataList
+                    .Where(weight => weight.IsEnabled && weight.Weight > 0 && weight.BlindBoxId == 2003)
+                    .Select(weight => weight.ItemId)
+                    .First(id => LubanData.Tables.TbItem.GetOrDefault(id)?.ItemType == EItemType.Dog
+                        && !data.Inventory.Owns(id));
+                data.Inventory.AddItem(dogId, markNew: false, autoEquipNewOutfit: false);
+                var panel = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn")
+                    .Instantiate<SystemPanelController>();
+                try
+                {
+                    AddChild(panel);
+                    typeof(SystemPanelController).GetField("_gameData", flags)!.SetValue(panel, data);
+                    typeof(SystemPanelController).GetMethod("ConfigureCollectionEventPage", flags)!
+                        .Invoke(panel, null);
+                    data.SetWishlistExitCallToActionSuppressed(true);
+                    data.MarkWishlistCallToActionShown();
+                    data.SetWishlistCallToActionPageOpened(openedBeforeReward);
+                    Require(!panel.TryHandleCollectionEventBlindBoxReward(2003, dogId, false),
+                        "Duplicate ownership must not queue a first-dog notice.");
+                    Require(panel.TryHandleCollectionEventBlindBoxReward(2003, dogId, true)
+                        && panel.HasPendingCollectionEventFirstDogCallToAction(),
+                        "Wishlist state must not block the first-dog celebration notice.");
+                    data.SetWishlistCallToActionPageOpened(true);
+                    Require(data.GetPendingCollectionEventFirstDogItemId(eventId) == dogId
+                        && panel.HasPendingCollectionEventFirstDogCallToAction(),
+                        "Opening the store must preserve the pending celebration notice.");
+
+                    var profile = SaveManager.CreateDefaultProfile();
+                    profile.OwnedItemCounts[dogId] = 1;
+                    profile.CollectionEventPendingFirstDogItemIdsByEvent = new() { [eventId] = dogId };
+                    profile.WishlistCallToActionPageOpened = true;
+                    profile = SaveManager.CreateNormalizedDetachedSnapshotForTesting(
+                        JsonSerializer.Deserialize<SaveProfile>(JsonSerializer.Serialize(profile))!);
+                    typeof(GameData).GetMethod("LoadCollectionEventState", flags)!
+                        .Invoke(data, new object[] { profile });
+                    Require(panel.HasPendingCollectionEventFirstDogCallToAction()
+                        && !panel.TryShowWishlistCallToActionForExit(),
+                        "Restored celebration must remain pending while wishlist requests stay suppressed.");
+                    panel.AcknowledgeFirstDogProgressNotice();
+                    Require(!panel.HasPendingCollectionEventFirstDogCallToAction()
+                        && !panel.TryHandleCollectionEventBlindBoxReward(2003, dogId, true),
+                        "Acknowledging the celebration must prevent repeated first-dog notices.");
+                }
+                finally
+                {
+                    panel.Free();
+                    data.Free();
+                }
+            }
+        }
+        finally
+        {
+            BuildInfo.ConfigureDebugGameplayChannel(previousChannel);
+        }
+        GD.Print("[CollectionFirstDogSmoke] Wishlist before/after reward, pending recovery and one-time acknowledgement: PASS.");
+    }
+
+    private async Task VerifySixthBoxProgressReminder()
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        const string eventId = "demo-next-fest-2026";
+        var previousChannel = BuildInfo.SelectedDebugGameplayChannel;
+        BuildInfo.ConfigureDebugGameplayChannel(DebugGameplayChannel.Demo);
+        BlindBoxService.ConfigureDebugScheduleChannel(DebugGameplayChannel.Demo);
+        try
+        {
+            var schedules = BlindBoxService.GetSequenceSchedules();
+            foreach (var desktopMode in new[] { false, true })
+            {
+                using var data = new GameData();
+                ResetInventory(data.Inventory);
+                typeof(GameData).GetField("_accountStorageFrozen", flags)!.SetValue(data, true);
+                typeof(GameData).GetField("_blindBoxService", flags)!.SetValue(data, new BlindBoxService(data));
+                var state = new BlindBoxRuntimeState
+                {
+                    SequenceProgressInitialized = true,
+                    SequenceProgressCheckpoint = schedules[3].ProgressCheckpoint,
+                    SequenceIndex = 4,
+                };
+                typeof(GameData).GetField("_blindBoxRuntimeState", flags)!.SetValue(data, state);
+                var itemId = LubanData.Tables.TbBlindBoxItemWeight.DataList
+                    .Where(weight => weight.IsEnabled && weight.Weight > 0
+                        && weight.BlindBoxId == schedules[5].BlindBoxId)
+                    .Select(weight => weight.ItemId)
+                    .First(id => LubanData.Tables.TbItem.GetOrDefault(id)?.ItemType != EItemType.Dog);
+                data.Inventory.AddItem(itemId, markNew: false, autoEquipNewOutfit: false);
+                data.MarkCollectionEventItemsRevealed(eventId, data.Inventory.GetOwnedIds());
+                data.SetWishlistCallToActionPageOpened(true);
+                var step = -1;
+                var rewardEvents = 0;
+                data.BlindBoxRewardClaimed += (_, _, firstOwnership, completedStep) =>
+                {
+                    Require(!firstOwnership, "Duplicate rewards must still report completed sequence progress.");
+                    step = completedStep;
+                    rewardEvents++;
+                };
+                void Claim(BlindBoxSchedule schedule, bool completesSchedule = true)
+                {
+                    typeof(GameData).GetProperty(nameof(GameData.PendingBlindBoxReward))!.SetValue(data,
+                        new PendingBlindBoxReward
+                        {
+                            ScheduleId = schedule.Id, BlindBoxId = schedule.BlindBoxId,
+                            ItemId = itemId, RewardShown = true, CompletesSchedule = completesSchedule,
+                        });
+                    data.ClaimPendingBlindBoxReward();
+                }
+
+                var panel = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn")
+                    .Instantiate<SystemPanelController>();
+                try
+                {
+                    AddChild(panel);
+                    typeof(SystemPanelController).GetField("_gameData", flags)!.SetValue(panel, data);
+                    typeof(SystemPanelController).GetMethod("ConfigureCollectionEventPage", flags)!
+                        .Invoke(panel, null);
+                    panel.SetCurrentMode(desktopMode);
+                    Claim(schedules[4]);
+                    Require(step == 5 && !panel.ShouldShowCollectionEventProgressReminder(schedules[4].BlindBoxId, step),
+                        "The fifth reward must not open the progress reminder.");
+                    Claim(schedules[5], completesSchedule: false);
+                    Require(step == 0, "A late reward must not count as the sixth sequence claim.");
+                    Claim(schedules[5]);
+                    Require(step == 6 && panel.ShouldShowCollectionEventProgressReminder(schedules[5].BlindBoxId, step),
+                        "The sixth reward must allow the progress page, even after opening the wishlist store.");
+                    panel.ShowCollectionEventPage();
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                    var page = (CollectionEventPageController)typeof(SystemPanelController)
+                        .GetField("_collectionEventContent", flags)!.GetValue(panel)!;
+                    Require(panel.IsOpen && page.IsVisibleInTree()
+                        && !panel.ShouldShowCollectionEventProgressReminder(schedules[5].BlindBoxId, 6),
+                        $"Progress page must open once without re-entering it, desktop={desktopMode}.");
+                    panel.CloseImmediate();
+                    Require(!panel.ShouldShowCollectionEventProgressReminder(schedules[5].BlindBoxId, 6),
+                        "A recently closed celebration page must not reopen immediately.");
+                    typeof(SystemPanelController).GetField("_collectionEventLastVisitEndedAtSeconds", flags)!
+                        .SetValue(panel, Time.GetTicksMsec() / 1000.0 - 61.0);
+                    Require(panel.ShouldShowCollectionEventProgressReminder(schedules[5].BlindBoxId, 6),
+                        "A visit older than the short suppression window must not block the reminder.");
+                    var eventsBeforeDuplicateCallback = rewardEvents;
+                    data.ClaimPendingBlindBoxReward();
+                    Require(rewardEvents == eventsBeforeDuplicateCallback, "A duplicate claim callback must emit nothing.");
+                    // Round-trip the persisted progress, then replay a completed reward.
+                    state = JsonSerializer.Deserialize<BlindBoxRuntimeState>(JsonSerializer.Serialize(state))!;
+                    typeof(GameData).GetField("_blindBoxRuntimeState", flags)!.SetValue(data, state);
+                    Claim(schedules[5]);
+                    Require(step == 0, "Restored sixth-step progress must not trigger another sixth-step reminder.");
+                    Claim(schedules[6]);
+                    Require(step == 7 && !panel.ShouldShowCollectionEventProgressReminder(schedules[6].BlindBoxId, step),
+                        "The seventh reward must not repeat the sixth-step reminder.");
+                }
+                finally
+                {
+                    panel.Free();
+                    data.Free();
+                }
+            }
+        }
+        finally
+        {
+            BuildInfo.ConfigureDebugGameplayChannel(previousChannel);
+            BlindBoxService.ConfigureDebugScheduleChannel(previousChannel);
+        }
+        GD.Print("[CollectionSixthBoxSmoke] Real claims, duplicate/late rewards, restored progress, both modes and recent visits: PASS.");
     }
 
     private static void Require(bool condition, string message)

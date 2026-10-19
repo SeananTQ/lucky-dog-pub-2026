@@ -117,6 +117,9 @@ public partial class SystemPanelController : CanvasLayer
     private Tween _collectionEventRewardScrollTween;
     private bool _collectionEventRewardClaimInProgress;
     private bool _collectionEventCelebrationTestInProgress;
+    private const int CollectionEventReminderSequenceStep = 6;
+    private const double CollectionEventRecentVisitSeconds = 60.0;
+    private double _collectionEventLastVisitEndedAtSeconds = double.NegativeInfinity;
     private WishlistCallToActionOverlayController _wishlistCallToActionOverlay = null!;
     private WishlistCallToActionReason _wishlistCallToActionReason;
     private VBoxContainer _outfitPresetContent = null!;
@@ -973,6 +976,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SwitchTab(int index)
     {
+        RememberCollectionEventVisit();
         for (int i = 0; i < _tabs.Count; i++)
         {
             _tabContents[i].Visible = i == index;
@@ -1179,7 +1183,6 @@ public partial class SystemPanelController : CanvasLayer
         if (!BuildCapabilities.CollectionEvents
             || !firstOwnership
             || _gameData == null
-            || _gameData.WishlistCallToActionPageOpened
             || !_collectionEventContent.ContainsBlindBox(blindBoxId)
             || !_collectionEventContent.ContainsRewardItem(itemId)
             || LubanData.Tables.TbItem.GetOrDefault(itemId)?.ItemType != EItemType.Dog)
@@ -1204,9 +1207,25 @@ public partial class SystemPanelController : CanvasLayer
     public bool HasPendingCollectionEventFirstDogCallToAction() =>
         BuildCapabilities.CollectionEvents
         && _gameData != null
-        && !_gameData.WishlistCallToActionPageOpened
         && _gameData.GetPendingCollectionEventFirstDogItemId(
             _collectionEventContent.EventId) > 0;
+
+    public bool ShouldShowCollectionEventProgressReminder(int blindBoxId, int completedSequenceStep) =>
+        BuildCapabilities.CollectionEvents
+        && completedSequenceStep == CollectionEventReminderSequenceStep
+        && _gameData != null
+        && _collectionEventContent.ContainsBlindBox(blindBoxId)
+        && !_gameData.IsCollectionEventVictoryRewardClaimed(_collectionEventContent.EventId)
+        && !HasPendingCollectionEventFirstDogCallToAction()
+        && !(IsOpen && _collectionEventContent.Visible)
+        && Time.GetTicksMsec() / 1000.0 - _collectionEventLastVisitEndedAtSeconds
+            >= CollectionEventRecentVisitSeconds;
+
+    private void RememberCollectionEventVisit()
+    {
+        if (IsOpen && _collectionEventContent.Visible)
+            _collectionEventLastVisitEndedAtSeconds = Time.GetTicksMsec() / 1000.0;
+    }
 
     public void ShowCollectionEventPage()
     {
@@ -3044,6 +3063,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void Close()
     {
+        RememberCollectionEventVisit();
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
         _desktopScaleModeSwitchConfirm?.Hide();
@@ -3068,6 +3088,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+        RememberCollectionEventVisit();
         bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
