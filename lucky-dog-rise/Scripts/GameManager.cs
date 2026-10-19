@@ -60,7 +60,6 @@ public partial class GameManager : Node2D
             DetachGameData();
             _gameData = value;
             AttachGameData();
-            _tutorial?.BindGameData(_gameData);
         }
     }
 
@@ -89,11 +88,7 @@ public partial class GameManager : Node2D
         get => _settingsPanel;
         set
         {
-            if (_settingsPanel != null)
-                _settingsPanel.TutorialActivityTarget = null;
             _settingsPanel = value;
-            if (_settingsPanel != null)
-                _settingsPanel.TutorialActivityTarget = _tutorial;
         }
     }
 
@@ -110,10 +105,7 @@ public partial class GameManager : Node2D
         _itemArea = GetNode<ItemAreaController>("ItemArea");
         _interactionHints = GetNode<InteractionHintController>("InteractionHints");
         _tutorial = GetNode<TutorialManager>("TutorialManager");
-        if (SettingsPanel != null)
-            SettingsPanel.TutorialActivityTarget = _tutorial;
-        _tutorial.BindInteractionHints(_interactionHints);
-        _tutorial.BindGameData(_gameData);
+        _interactionHints.EffectiveInteractionOccurred += OnEffectivePokerInteraction;
         _tutorial.OverlayVisibilityChanged += OnTutorialOverlayVisibilityChanged;
         _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetBetStack, _chipStack);
         _interactionHints.RegisterTarget(InteractionHintKeys.WaitingForBetRefreshment, _itemArea);
@@ -162,6 +154,8 @@ public partial class GameManager : Node2D
 
     public override void _ExitTree()
     {
+        if (_interactionHints != null)
+            _interactionHints.EffectiveInteractionOccurred -= OnEffectivePokerInteraction;
         SettingsPanel = null;
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_tutorial != null)
@@ -219,7 +213,7 @@ public partial class GameManager : Node2D
         if (_pokerHandShowcase.IsOverlayVisible)
             _pokerHandShowcase.HideOverlay();
         else
-            _pokerHandShowcase.ShowOverlay();
+            _pokerHandShowcase.ShowRanks();
         RefreshOverlayInteractionContexts();
     }
 
@@ -246,8 +240,9 @@ public partial class GameManager : Node2D
     private void OnQuickBarInterfaceActivity()
     {
         _interactionHints.NotifyInteractionIgnored();
-        _tutorial.NotifyInterfaceActivity();
     }
+
+    private void OnEffectivePokerInteraction() => _quickBar.NotifyEffectiveInteraction();
 
     private void OnQuickBarHelpRequested() => _pokerHandShowcase.ShowBasics();
     private void OnQuickBarTutorialRequested() => _tutorial.ShowOnce();
@@ -267,7 +262,7 @@ public partial class GameManager : Node2D
 
     private void OnPokerWelcomeConfirmed()
     {
-        _tutorial.NotifyInterfaceActivity();
+        _quickBar.NotifyEffectiveInteraction();
         EmitSignal(SignalName.PokerWelcomeConfirmed);
     }
 
@@ -499,7 +494,6 @@ public partial class GameManager : Node2D
         _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
-        _gameData.TryCompletePokerBasicsGuidance(rank, _currentHandProgressSource);
         _gameData.EmitHandResolved(rank, payout);
         _gameData.RecordPokerHandResolved(rank, payout, _dogHint.HasGivenHint, _currentHandProgressSource);
         _dogVisual.ApplyReaction(GetSawReaction(rank));
@@ -630,6 +624,8 @@ public partial class GameManager : Node2D
             && !_tutorial.IsOverlayVisible;
         _quickBar?.SetAvailable(pokerInputAvailable);
         _quickBar?.SetPinnedOpen(welcomeVisible);
+        // The system panel may stay open throughout play; it does not suspend idle discovery.
+        _quickBar?.SetReminderContext(pokerInputAvailable && !welcomeVisible);
         var pokerHintsAvailable = pokerInputAvailable && !welcomeVisible && _quickBar?.IsPointerInside != true;
         _interactionHints.SetInputContextActive(pokerHintsAvailable);
         _interactionHints.SetProactiveHintContextActive(pokerHintsAvailable);

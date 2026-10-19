@@ -12,8 +12,9 @@ public partial class ModeManager : Control
     [Export] private ColorRect _playPanelDismissOverlay = null!;
     // Temporary acceptance control; ignored outside Debug builds. Disable after approval.
     [Export] private bool _repeatPokerWelcomeEveryLaunch;
+    [Export] private bool _repeatPokerQuickBarDiscoveryEveryLaunch;
     private PokerWelcomeProgress _pokerWelcomeProgress = null!;
-    private bool _hasUsedPokerQuickBar;
+    private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
 #if DEBUG
     private const int DeveloperLauncherWindowWidth = 620;
@@ -458,12 +459,14 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
-        _hasUsedPokerQuickBar = !startInSteamMock && _accountStateManager.LoadPokerQuickBarUsed();
         bool sessionOnlyPokerWelcome = startInSteamMock;
+        bool sessionOnlyPokerQuickBar = startInSteamMock;
 #if DEBUG
         sessionOnlyPokerWelcome |= _repeatPokerWelcomeEveryLaunch;
+        sessionOnlyPokerQuickBar |= _repeatPokerQuickBarDiscoveryEveryLaunch;
 #endif
         _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
+        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyPokerQuickBar);
         var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
@@ -473,6 +476,18 @@ public partial class ModeManager : Control
         _gameData.StartInSteamMockSimulation = startInSteamMock;
 #endif
         AddChild(_gameData);
+        if (!startInSteamMock && _gameData.IsUsingLocalSave)
+        {
+            try
+            {
+                _pokerQuickBarProgress.MigrateLegacyGuidance(
+                    _gameData.LegacyNeedsPokerBasicsGuidance);
+            }
+            catch (Exception error)
+            {
+                GD.PushWarning($"[PokerQuickBar] Could not migrate legacy guidance: {error.Message}");
+            }
+        }
         _gameData.BindPlatformInventoryService(_platformService);
         if (BuildCapabilities.Achievements)
             _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
@@ -557,6 +572,7 @@ public partial class ModeManager : Control
         _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
         _settingsPanel.SteamMockPanelVisibilityChanged += OnSteamMockPanelVisibilityChanged;
         _settingsPanel.DebugDemoExperienceResetRequested += OnDebugDemoExperienceResetRequested;
+        _settingsPanel.DebugPokerQuickBarDiscoveryResetRequested += OnDebugPokerQuickBarDiscoveryResetRequested;
         _steamMockPanelRequestedVisible = startInSteamMock;
         _settingsPanel.SetSteamMockPanelToggle(_steamMockPanelRequestedVisible);
 #endif
@@ -1080,7 +1096,7 @@ public partial class ModeManager : Control
             _gameManager.PokerWelcomeConfirmed += OnPokerWelcomeConfirmed;
             _gameManager.PokerWelcomeVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
             _gameManager.PokerQuickBarFunctionActivated += OnPokerQuickBarFunctionActivated;
-            _gameManager.SetPokerQuickBarUsed(_hasUsedPokerQuickBar);
+            _gameManager.SetPokerQuickBarUsed(_pokerQuickBarProgress.HasUsedFunction);
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -2527,9 +2543,18 @@ public partial class ModeManager : Control
         if (!_gameData.ResetDemoExperienceForDebug())
             return;
 
+        OnDebugPokerQuickBarDiscoveryResetRequested();
+
         RefreshBossBlindBoxHint();
         _infoPanel?.RefreshBlindBoxButton();
         GD.Print("[DemoDebug] Demo experience reset completed.");
+    }
+
+    private void OnDebugPokerQuickBarDiscoveryResetRequested()
+    {
+        _pokerQuickBarProgress.Reset(allowPersistence: _gameData.IsUsingLocalSave
+            && !_gameData.IsBlindBoxLocalTestMode && !_gameData.IsSteamMockSimulationActive);
+        _gameManager?.SetPokerQuickBarUsed(false);
     }
 #endif
 
@@ -2565,15 +2590,14 @@ public partial class ModeManager : Control
 
     private void OnPokerQuickBarFunctionActivated()
     {
-        if (_hasUsedPokerQuickBar) return;
+        if (_pokerQuickBarProgress.HasUsedFunction) return;
 #if DEBUG
         // The bar has already changed in memory. Do not consume the account's first use in a sandbox.
-        if (_gameData.IsBlindBoxLocalTestMode || _gameData.IsSteamMockSimulationActive) return;
+        if (!_gameData.IsUsingLocalSave || _gameData.IsBlindBoxLocalTestMode || _gameData.IsSteamMockSimulationActive) return;
 #endif
         try
         {
-            _accountStateManager.SavePokerQuickBarUsed();
-            _hasUsedPokerQuickBar = true;
+            _pokerQuickBarProgress.RecordUse();
         }
         catch (Exception error)
         {

@@ -19,6 +19,7 @@ public partial class PokerQuickBarController : CanvasLayer
     [Export] private Button _desktopButton = null!;
 
     private const double HideDelaySeconds = 0.5;
+    private const double ReminderIdleSeconds = 20.0;
     private bool _available;
     private bool _pinnedOpen;
     private bool _waitForPointerExit;
@@ -26,6 +27,10 @@ public partial class PokerQuickBarController : CanvasLayer
     private Tween _slide;
     private float _discoveryHotZoneHeight;
     private bool _hasUsedFunction;
+    private bool _reminderContextActive;
+    private double _idleSeconds;
+
+    public bool IsIdleReminderActive { get; private set; }
 
     public bool IsExpanded { get; private set; }
     public bool IsPointerInside { get; private set; }
@@ -55,7 +60,24 @@ public partial class PokerQuickBarController : CanvasLayer
     public void SetHasUsedFunction(bool used)
     {
         _hasUsedFunction = used;
+        ClearIdleReminder();
         RefreshHotZoneHeight();
+    }
+
+    public void SetReminderContext(bool active)
+    {
+        if (_reminderContextActive == active) return;
+        _reminderContextActive = active;
+        ClearIdleReminder();
+    }
+
+    public void NotifyEffectiveInteraction() => ClearIdleReminder();
+
+    private void ClearIdleReminder()
+    {
+        _idleSeconds = 0;
+        IsIdleReminderActive = false;
+        _outsideSeconds = 0;
     }
 
     private void RefreshHotZoneHeight()
@@ -98,7 +120,17 @@ public partial class PokerQuickBarController : CanvasLayer
     {
         IsPointerInside = overPoker && ContainsPoint(viewportPosition);
         if (!_available) return;
-        if (_pinnedOpen)
+        if (_reminderContextActive && !_hasUsedFunction && !IsIdleReminderActive)
+        {
+            _idleSeconds += delta;
+            // Blank clicks do not count as effective play; defer revealing until the gesture ends.
+            if (_idleSeconds >= ReminderIdleSeconds && !dragging && !leftPressed)
+            {
+                IsIdleReminderActive = true;
+                _waitForPointerExit = false;
+            }
+        }
+        if (_pinnedOpen || IsIdleReminderActive)
         {
             _outsideSeconds = 0;
             SetExpanded(true);

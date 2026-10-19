@@ -75,6 +75,12 @@ public partial class PokerHandShowcaseController : CanvasLayer
         ShowOverlay();
     }
 
+    public void ShowRanks()
+    {
+        SelectPage(showRanks: true);
+        ShowOverlay();
+    }
+
     public void ShowOverlay()
     {
         if (Visible)

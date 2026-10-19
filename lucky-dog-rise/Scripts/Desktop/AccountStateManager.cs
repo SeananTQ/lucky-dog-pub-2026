@@ -45,10 +45,23 @@ public sealed class AccountStateManager
     public bool LoadPokerQuickBarUsed() =>
         (bool)Load().GetValue(SectionTutorialProgress, PokerQuickBarUsedKey, false);
 
-    public void SavePokerQuickBarUsed()
+    public bool LoadOrMigratePokerQuickBarUsed(bool legacyNeedsPokerBasicsGuidance)
     {
         var config = Load();
-        config.SetValue(SectionTutorialProgress, PokerQuickBarUsedKey, true);
+        if (config.HasSectionKey(SectionTutorialProgress, PokerQuickBarUsedKey))
+            return (bool)config.GetValue(SectionTutorialProgress, PokerQuickBarUsedKey);
+
+        // Preserve old completion, not the retired machine-level guide toggle.
+        bool used = !legacyNeedsPokerBasicsGuidance;
+        config.SetValue(SectionTutorialProgress, PokerQuickBarUsedKey, used);
+        Save(config);
+        return used;
+    }
+
+    public void SavePokerQuickBarUsed(bool used = true)
+    {
+        var config = Load();
+        config.SetValue(SectionTutorialProgress, PokerQuickBarUsedKey, used);
         Save(config);
     }
 

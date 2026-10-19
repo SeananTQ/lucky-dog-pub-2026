@@ -72,6 +72,7 @@ public partial class PokerQuickBarPreview : Control
     {
         _tutorial.SetPokerContext(!_desktop, _help.IsOverlayVisible);
         _bar.SetAvailable(!_desktop && !_help.IsOverlayVisible && !_tutorial.IsOverlayVisible);
+        _bar.SetReminderContext(!_desktop && !_help.IsOverlayVisible && !_tutorial.IsOverlayVisible);
     }
 
     private void Pointer(bool inside, double delta = 0, bool pressed = false, bool dragging = false) =>
@@ -81,6 +82,7 @@ public partial class PokerQuickBarPreview : Control
     {
         CheckPersistence();
         await Frames();
+        CheckIdleReminder();
         Require(!_bar.IsExpanded, "Entry must not automatically reveal the toolbar.");
         var discoveryPoint = new Vector2(200, 120);
         Require(_bar.ContainsPoint(discoveryPoint), "An unused toolbar must include the larger discovery region.");
@@ -154,18 +156,16 @@ public partial class PokerQuickBarPreview : Control
 
         string settingsPath = ProjectSettings.GlobalizePath("user://settings.cfg");
         byte[] before = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : [];
-        bool guideSetting = SettingsManager.LoadPokerGuideOverlayEnabled();
         _bar.SetHasUsedFunction(false);
         await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/Tutorial"));
         Require(_tutorial.IsOverlayVisible && !_bar.IsExpanded, "Tutorial action must show the existing guide.");
         RequireCompactHotZone("Tutorial as the first action");
         await Wait(2.05);
         await Click(_tutorial.GetNode<Control>("OverlayInput"));
-        Require(!_tutorial.IsOverlayVisible, "A one-shot guide must dismiss even if automatic guidance is disabled.");
-        Require(SettingsManager.LoadPokerGuideOverlayEnabled() == guideSetting, "One-shot guide must not change the automatic setting.");
+        Require(!_tutorial.IsOverlayVisible, "The manual controls guide must dismiss after its two-second lock.");
         byte[] after = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : [];
         Require(before.SequenceEqual(after), "Opening and dismissing the guide must not write settings.");
-        GD.Print($"[PokerToolbar] One-shot guide preserved automatic setting={guideSetting} and settings file bytes.");
+        GD.Print("[PokerToolbar] Manual controls guide preserved settings file bytes.");
 
         Pointer(false);
         Pointer(true);
@@ -189,6 +189,53 @@ public partial class PokerQuickBarPreview : Control
         Require(_bar.IsExpanded, "The smaller region must preserve the 0.5-second hide delay.");
         _bar.UpdatePointer(true, discoveryPoint, false, false, .02);
         Require(!_bar.IsExpanded, "The removed discovery region now counts as outside.");
+        Pointer(false, 60);
+        Require(!_bar.IsIdleReminderActive && !_bar.IsExpanded, "A toolbar action permanently disables idle reminders.");
+    }
+
+    private void CheckIdleReminder()
+    {
+        _bar.SetHasUsedFunction(false);
+        Pointer(false, 19.9);
+        Require(!_bar.IsExpanded && !_tutorial.IsOverlayVisible, "Entry and the first 19.9 seconds must not show any guide.");
+        Pointer(false, .2);
+        Require(_bar.IsExpanded && _bar.IsIdleReminderActive && !_tutorial.IsOverlayVisible,
+            "Idle time must reveal only the toolbar.");
+        Pointer(false, 60);
+        Pointer(true);
+        Pointer(false, 1);
+        Require(_bar.IsExpanded, "Idle reminder must persist through absence and hover/leave.");
+        _bar.NotifyEffectiveInteraction();
+        Pointer(false, .49);
+        Require(_bar.IsExpanded && !_bar.IsIdleReminderActive, "Effective play must release the hold with the normal hide delay.");
+        Pointer(false, .02);
+        Require(!_bar.IsExpanded, "Effective play must allow normal retraction.");
+        Pointer(false, 19.5);
+        Require(_bar.IsIdleReminderActive, "A new idle period must remind again until a toolbar action is used.");
+        _bar.SetReminderContext(false);
+        Pointer(false, 60);
+        Require(!_bar.IsIdleReminderActive && !_bar.IsExpanded, "Other interfaces suspend and clear the idle reminder.");
+        _bar.SetReminderContext(true);
+        Pointer(false, 19.9);
+        Require(!_bar.IsExpanded, "Returning to the table must begin a fresh 20-second interval.");
+        Pointer(false, .2, pressed: true);
+        Require(!_bar.IsExpanded, "Reminder must wait for an in-progress mouse gesture.");
+        Pointer(false);
+        Require(_bar.IsIdleReminderActive, "An ineffective click must not reset the idle timer.");
+        _bar.SetHasUsedFunction(true);
+        Pointer(false, 60);
+        Require(!_bar.IsIdleReminderActive && !_bar.IsExpanded, "Persisted completion must suppress idle reminders.");
+        _bar.SetHasUsedFunction(false);
+        _bar.SetReminderContext(false);
+        _bar.SetPinnedOpen(true);
+        Pointer(false, 60);
+        _bar.NotifyEffectiveInteraction();
+        Pointer(false, 1);
+        Require(_bar.IsExpanded && !_bar.IsIdleReminderActive, "Welcome hold must remain separate from idle reminders.");
+        _bar.SetPinnedOpen(false);
+        Pointer(false, .6);
+        _bar.SetReminderContext(true);
+        GD.Print("[PokerToolbar] Repeatable idle reminder, holds, effective actions and context suspension passed.");
     }
 
     private void RequireCompactHotZone(string action)
@@ -215,7 +262,57 @@ public partial class PokerQuickBarPreview : Control
         Require(!other.LoadPokerQuickBarUsed(), "First use must not cross accounts.");
         other.SavePokerQuickBarUsed();
         Require(!other.LoadPokerWelcomeAcknowledged(), "Using the toolbar must not acknowledge the welcome.");
+        var legacyComplete = new AccountStateManager(AccountStorageContext.ForDevelopment("quickbar-complete-" + run));
+        Require(legacyComplete.LoadOrMigratePokerQuickBarUsed(false), "Completed legacy guidance must migrate to no reminder.");
+        Require(!legacyComplete.LoadPokerWelcomeAcknowledged(), "Legacy guidance migration must not acknowledge the new welcome.");
+        var legacyBeginner = new AccountStateManager(AccountStorageContext.ForDevelopment("quickbar-beginner-" + run));
+        Require(!legacyBeginner.LoadOrMigratePokerQuickBarUsed(true), "Legacy beginners and fresh profiles retain discovery reminders.");
+        Require(!legacyBeginner.LoadOrMigratePokerQuickBarUsed(false), "A recorded false value must not be overwritten by repeated migration.");
+        Require(reloaded.LoadOrMigratePokerQuickBarUsed(true), "A genuine toolbar click must win over an old incomplete marker.");
+        legacyComplete.SavePokerQuickBarUsed(false);
+        Require(!legacyComplete.LoadOrMigratePokerQuickBarUsed(false), "Explicit debug reset must survive restart and migration.");
+        CheckDiscoveryReplay(storage, account, run);
         GD.Print("[PokerToolbar] First-use persistence and independent welcome/account states passed.");
+    }
+
+    private static void CheckDiscoveryReplay(AccountStorageContext storage, AccountStateManager account, string run)
+    {
+        foreach (bool savedUsed in new[] { false, true })
+        {
+            account.SavePokerQuickBarUsed(savedUsed);
+            string before = Godot.FileAccess.GetFileAsString(storage.AccountStatePath);
+            var replay = new PokerQuickBarProgress(account, sessionOnly: true);
+            replay.MigrateLegacyGuidance(false);
+            Require(!replay.HasUsedFunction, "Every replay launch must start undiscovered, regardless of saved or legacy progress.");
+            replay.RecordUse();
+            Require(replay.HasUsedFunction, "Replay must still remember a toolbar action within the same run.");
+            Require(!new PokerQuickBarProgress(account, sessionOnly: true).HasUsedFunction,
+                "Restarting replay must restore discovery without a manual debug reset.");
+            replay.Reset();
+            Require(!replay.HasUsedFunction, "Manual replay reset must restore discovery in memory.");
+            Require(Godot.FileAccess.GetFileAsString(storage.AccountStatePath) == before,
+                "Replay load, migration, click and reset must leave the account file byte-for-byte unchanged.");
+        }
+
+        var untouchedStorage = AccountStorageContext.ForDevelopment("quickbar-replay-" + run);
+        var untouchedAccount = new AccountStateManager(untouchedStorage);
+        var freshReplay = new PokerQuickBarProgress(untouchedAccount, sessionOnly: true);
+        freshReplay.MigrateLegacyGuidance(false);
+        freshReplay.RecordUse();
+        freshReplay.Reset();
+        Require(!Godot.FileAccess.FileExists(untouchedStorage.AccountStatePath),
+            "Replay must not create a persisted discovery flag on an account without one.");
+
+        var formal = new PokerQuickBarProgress(untouchedAccount, sessionOnly: false);
+        formal.MigrateLegacyGuidance(false);
+        Require(formal.HasUsedFunction, "Disabling replay must restore the normal legacy migration.");
+        formal.Reset();
+        Require(!new PokerQuickBarProgress(untouchedAccount, sessionOnly: false).HasUsedFunction,
+            "Formal reset must persist after disabling replay.");
+        formal.RecordUse();
+        Require(new PokerQuickBarProgress(untouchedAccount, sessionOnly: false).HasUsedFunction,
+            "Formal first use must persist after disabling replay.");
+        GD.Print("[PokerToolbar] Per-launch discovery replay, unchanged account files and formal persistence passed.");
     }
 
     private async Task Click(Control control)

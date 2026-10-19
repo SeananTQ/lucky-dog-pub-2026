@@ -21,6 +21,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void GlobalMouseListeningDisabledChangedEventHandler(bool disabled);
     [Signal] public delegate void SteamMockPanelVisibilityChangedEventHandler(bool visible);
     [Signal] public delegate void DebugDemoExperienceResetRequestedEventHandler();
+    [Signal] public delegate void DebugPokerQuickBarDiscoveryResetRequestedEventHandler();
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -52,7 +53,6 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
-    public TutorialManager TutorialActivityTarget { private get; set; }
     public Rect2 PanelRect => new(_panel.Position, PanelSize);
 
     public float TopActionAreaHeight
@@ -168,7 +168,6 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _saveDataModeOption = null!;
 #endif
     private CheckButton _blindBoxBubbleToggle = null!;
-    private CheckButton _pokerGuideOverlayToggle = null!;
     private CheckButton _quickStartAfterWinToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
@@ -247,9 +246,6 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _gameData = value;
-            SettingsManager.InitializePokerGuideOverlaySetting(_gameData.NeedsPokerBasicsGuidance);
-            _pokerGuideOverlayToggle?.SetPressedNoSignal(
-                SettingsManager.LoadPokerGuideOverlayEnabled());
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
             _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
@@ -384,7 +380,6 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Ready()
     {
-        BindTutorialPopupActivity(this);
         _panel = GetNode<PanelContainer>("Panel");
         _panelScroll = GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
 
@@ -556,10 +551,6 @@ public partial class SystemPanelController : CanvasLayer
         _quickStartAfterWinToggle.ButtonPressed = SettingsManager.LoadQuickStartAfterWin();
         _quickStartAfterWinToggle.Toggled += SettingsManager.SaveQuickStartAfterWin;
 
-        _pokerGuideOverlayToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow/PokerGuideOverlayToggle");
-        _pokerGuideOverlayToggle.ButtonPressed = SettingsManager.LoadPokerGuideOverlayEnabled();
-        _pokerGuideOverlayToggle.Toggled += SettingsManager.SavePokerGuideOverlayEnabled;
-        SettingsManager.PokerGuideOverlayEnabledChanged += OnPokerGuideOverlayEnabledChanged;
 
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
@@ -651,7 +642,7 @@ public partial class SystemPanelController : CanvasLayer
         _wishlistPageOpenedDebugToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow/WishlistPageOpenedDebugToggle");
         var wishlistPageOpenedDebugRow = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
-        var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
+        var resetPokerQuickBarDiscoveryBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPokerQuickBarDiscoveryBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         var resetPlayerProgressBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPlayerProgressBtn");
         var resetDemoExperienceBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetDemoExperienceBtn");
@@ -682,7 +673,7 @@ public partial class SystemPanelController : CanvasLayer
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
-        markPokerBeginnerBtn.Pressed += () => _gameData.MarkPokerBasicsGuidanceNeededForDebug();
+        resetPokerQuickBarDiscoveryBtn.Pressed += () => EmitSignal(SignalName.DebugPokerQuickBarDiscoveryResetRequested);
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         resetSaveBtn.Pressed += ConfirmResetSave;
         _resetSaveConfirm.Confirmed += OnResetConfirmed;
@@ -829,7 +820,6 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _ExitTree()
     {
-        SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
         if (_collectionEventContent != null)
         {
             _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
@@ -874,7 +864,6 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
-        TrackTutorialInterfaceActivity(@event);
         if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true)
         {
             ResetPanelScrollDrag();
@@ -909,35 +898,6 @@ public partial class SystemPanelController : CanvasLayer
 
         _panelScroll.ScrollVertical = _panelScrollDragStartValue - Mathf.RoundToInt(delta.Y);
         GetViewport().SetInputAsHandled();
-    }
-
-    private void BindTutorialPopupActivity(Node node)
-    {
-        // PopupMenu is a separate Viewport; its input does not reach this _Input.
-        if (node is OptionButton option)
-            option.GetPopup().WindowInput += input => TrackTutorialInterfaceActivity(input, true);
-        foreach (var child in node.GetChildren())
-            BindTutorialPopupActivity(child);
-    }
-
-    private void TrackTutorialInterfaceActivity(InputEvent input, bool fromPopup = false)
-    {
-        // No hit tests, focus queries or settings reads once beginner guidance ends.
-        if (TutorialActivityTarget?.NeedsInterfaceActivity != true || !IsOpen)
-            return;
-
-        bool activity = input switch
-        {
-            InputEventMouseButton mouse => mouse.Pressed && (fromPopup || ContainsPoint(mouse.Position)),
-            InputEventMouseMotion motion => motion.ButtonMask != 0
-                && motion.Relative != Vector2.Zero && (fromPopup || ContainsPoint(motion.Position)),
-            InputEventKey key => key.Pressed && (fromPopup
-                || (GetViewport().GuiGetFocusOwner() is Control focus
-                    && focus.IsVisibleInTree() && IsAncestorOf(focus))),
-            _ => false,
-        };
-        if (activity)
-            TutorialActivityTarget.NotifyInterfaceActivity();
     }
 
     private void BeginPanelScrollDrag(Vector2 mousePosition)
@@ -3873,7 +3833,6 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
-        _pokerGuideOverlayToggle.SetPressedNoSignal(SettingsManager.LoadPokerGuideOverlayEnabled());
         _quickStartAfterWinToggle.SetPressedNoSignal(SettingsManager.LoadQuickStartAfterWin());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
@@ -3905,11 +3864,6 @@ public partial class SystemPanelController : CanvasLayer
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
 #endif
         RefreshLocalizedOptionText();
-    }
-
-    private void OnPokerGuideOverlayEnabledChanged(bool enabled)
-    {
-        _pokerGuideOverlayToggle?.SetPressedNoSignal(enabled);
     }
 
     private void RefreshAudioControlsFromStorage()
