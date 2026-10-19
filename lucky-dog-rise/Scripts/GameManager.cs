@@ -25,6 +25,7 @@ public partial class GameManager : Node2D
     [Signal] public delegate void CollectionProgressConfirmedEventHandler();
     [Signal] public delegate void DesktopModeRequestedEventHandler();
     [Signal] public delegate void PokerWelcomeConfirmedEventHandler();
+    [Signal] public delegate void PokerQuickBarFunctionActivatedEventHandler();
 
     public bool IsPokerWelcomeVisible => _pokerWelcome?.IsOverlayVisible == true;
     public event Action<bool> PokerWelcomeVisibilityChanged;
@@ -138,6 +139,7 @@ public partial class GameManager : Node2D
         _quickBar.TutorialRequested += OnQuickBarTutorialRequested;
         _quickBar.DesktopRequested += OnQuickBarDesktopRequested;
         _quickBar.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _quickBar.FunctionActivated += OnQuickBarFunctionActivated;
         _pokerWelcome.OverlayVisibilityChanged += OnPokerWelcomeVisibilityChanged;
         _pokerWelcome.Confirmed += OnPokerWelcomeConfirmed;
         _collectionProgressDialog = GetNode<PokerCollectionProgressDialogController>("CollectionProgressDialog");
@@ -172,6 +174,7 @@ public partial class GameManager : Node2D
             _quickBar.TutorialRequested -= OnQuickBarTutorialRequested;
             _quickBar.DesktopRequested -= OnQuickBarDesktopRequested;
             _quickBar.InterfaceActivity -= OnQuickBarInterfaceActivity;
+            _quickBar.FunctionActivated -= OnQuickBarFunctionActivated;
         }
         if (_pokerWelcome != null)
         {
@@ -227,6 +230,10 @@ public partial class GameManager : Node2D
     }
 
     public bool IsPointOverQuickBar(Vector2 viewportPosition) => _quickBar?.ContainsPoint(viewportPosition) == true;
+
+    public void SetPokerQuickBarUsed(bool used) => _quickBar.SetHasUsedFunction(used);
+
+    private void OnQuickBarFunctionActivated() => EmitSignal(SignalName.PokerQuickBarFunctionActivated);
 
     public bool IsPointOverPokerWelcomeConfirmButton(Vector2 viewportPosition) =>
         _pokerWelcome?.IsPointOverConfirmButton(viewportPosition) == true;

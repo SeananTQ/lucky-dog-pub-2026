@@ -143,15 +143,36 @@ func run():
 	check(bar.get("IsExpanded"), "Toolbar remains during initial close delay")
 	await create_timer(.5).timeout
 	check(not bar.get("IsExpanded"), "Toolbar retracts naturally after acknowledgement")
-	await move_pointer(Vector2(200, 40))
+	await move_pointer(Vector2(200, 120))
+	await create_timer(.25).timeout
+	check(bar.get("IsExpanded"), "Welcome acknowledgement alone keeps the larger discovery region")
 	await create_timer(.25).timeout
 	await click_control(bar.get_node("Clip/Bar/Buttons/Help"))
 	check(game.get("IsPokerHandShowcaseVisible"), "Help works normally after acknowledgement")
+	check(bar.get_node("HotZone").size.y == bar.get_node("Clip/Bar").size.y, "First real toolbar action shrinks the input region to the bar body")
 	await click_control(game.get_node("PokerHandShowcase/Header/CloseButton"))
+	await move_pointer(Vector2(200, 120))
+	await create_timer(.25).timeout
+	check(not bar.get("IsExpanded"), "The former lower hot zone no longer reveals the toolbar")
+	await move_pointer(Vector2(200, 40))
+	await create_timer(.25).timeout
+	check(bar.get("IsExpanded"), "The compact hot zone still reveals the toolbar")
+	await click_control(bar.get_node("Clip/Bar/Buttons/DesktopPet"))
+	check(host.get("CurrentMode") == 0, "Desktop toolbar action still switches mode after shrinking")
 	host.call("SwitchToBossKey")
 	await create_timer(.4).timeout
 	host.call("SwitchToPlay")
 	await create_timer(.4).timeout
 	check(not welcome.get("IsOverlayVisible"), "Confirmed welcome stays closed on same-run mode re-entry")
+	await move_pointer(Vector2(1000, 120))
+	await create_timer(.25).timeout
+	check(not bar.get("IsExpanded"), "Compact hot zone survives mode re-entry")
+	var before_lower_drag = DisplayServer.window_get_position()
+	await mouse_button(Vector2(1000, 120), MOUSE_BUTTON_LEFT, true)
+	await create_timer(.15).timeout
+	await move_pointer(Vector2(1040, 120))
+	await move_pointer(Vector2(1090, 120))
+	check(DisplayServer.window_get_position() != before_lower_drag, "Removed hot-zone area allows normal window dragging")
+	await release_at_pointer()
 	print("[WelcomeIntegration] failures=", failures)
 	quit(0 if failures == 0 else 1)

@@ -9,6 +9,7 @@ public partial class PokerQuickBarController : CanvasLayer
     [Signal] public delegate void TutorialRequestedEventHandler();
     [Signal] public delegate void DesktopRequestedEventHandler();
     [Signal] public delegate void InterfaceActivityEventHandler();
+    [Signal] public delegate void FunctionActivatedEventHandler();
 
     [Export] private Control _hotZone = null!;
     [Export] private Control _clip = null!;
@@ -23,12 +24,16 @@ public partial class PokerQuickBarController : CanvasLayer
     private bool _waitForPointerExit;
     private double _outsideSeconds;
     private Tween _slide;
+    private float _discoveryHotZoneHeight;
+    private bool _hasUsedFunction;
 
     public bool IsExpanded { get; private set; }
     public bool IsPointerInside { get; private set; }
 
     public override void _Ready()
     {
+        _discoveryHotZoneHeight = _hotZone.Size.Y;
+        _bar.Resized += RefreshHotZoneHeight;
         _helpButton.Pressed += () => Activate(SignalName.HelpRequested);
         _tutorialButton.Pressed += () => Activate(SignalName.TutorialRequested);
         _desktopButton.Pressed += () => Activate(SignalName.DesktopRequested);
@@ -43,7 +48,21 @@ public partial class PokerQuickBarController : CanvasLayer
     public override void _ExitTree()
     {
         L10n.Changed -= RefreshText;
+        _bar.Resized -= RefreshHotZoneHeight;
         _slide?.Kill();
+    }
+
+    public void SetHasUsedFunction(bool used)
+    {
+        _hasUsedFunction = used;
+        RefreshHotZoneHeight();
+    }
+
+    private void RefreshHotZoneHeight()
+    {
+        // Match the visible bar body, not its animated position or the shadow below it.
+        _hotZone.Size = new Vector2(_hotZone.Size.X,
+            _hasUsedFunction ? _bar.Size.Y : _discoveryHotZoneHeight);
     }
 
     public void SetAvailable(bool available)
@@ -114,6 +133,9 @@ public partial class PokerQuickBarController : CanvasLayer
 
     private void Activate(StringName signal)
     {
+        SetHasUsedFunction(true);
+        // Record before the action can hide poker or open another overlay.
+        EmitSignal(SignalName.FunctionActivated);
         Dismiss();
         EmitSignal(SignalName.InterfaceActivity);
         EmitSignal(signal);

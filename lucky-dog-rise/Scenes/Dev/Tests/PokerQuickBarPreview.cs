@@ -20,14 +20,25 @@ public partial class PokerQuickBarPreview : Control
     private static readonly string[] Locales =
         ["en", "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT", "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk"];
 
+    public override void _EnterTree()
+    {
+        _automated = OS.GetCmdlineUserArgs().Contains("--poker-toolbar-validate");
+        if (!_automated) return;
+        const string sandbox = "LuckyDogRise/Tests/PokerQuickBar";
+        ProjectSettings.SetSetting("application/config/use_custom_user_dir", true);
+        ProjectSettings.SetSetting("application/config/custom_user_dir_name", sandbox);
+        Require(ProjectSettings.GlobalizePath("user://").Replace('\\', '/').EndsWith(sandbox + "/"),
+            "Test storage must be isolated.");
+        Directory.CreateDirectory(ProjectSettings.GlobalizePath("user://"));
+    }
+
     public override async void _Ready()
     {
-        // 不创建 GameData/平台服务，不修改设置或玩家存档。
+        // 不创建 GameData/平台服务；自动验收仅在隔离目录读写测试账号。
         GetWindow().ContentScaleSize = new Vector2I(1200, 1200);
         GetWindow().ContentScaleMode = Window.ContentScaleModeEnum.CanvasItems;
         GetWindow().Size = new Vector2I(600, 600);
         L10n.SetLocale("zh_CN", save: false);
-        _automated = OS.GetCmdlineUserArgs().Contains("--poker-toolbar-validate");
         _bar.HelpRequested += _help.ShowBasics;
         _bar.TutorialRequested += _tutorial.ShowOnce;
         _bar.DesktopRequested += () => { _desktop = true; _desktopRequests++; _status.Text = "桌宠入口已触发（独立预览）"; RefreshContext(); };
@@ -39,7 +50,7 @@ public partial class PokerQuickBarPreview : Control
         try
         {
             await RunChecks();
-            GD.Print("[PokerToolbar] Hover/delay/re-entry/drag blocking, help/tutorial/desktop actions, settings preservation and 20 locales passed.");
+            GD.Print("[PokerToolbar] Hover/delay/re-entry/drag blocking, first-use hot zone, account persistence, help/tutorial/desktop actions, settings preservation and 20 locales passed.");
             GetTree().Quit();
         }
         catch (Exception error)
@@ -68,8 +79,15 @@ public partial class PokerQuickBarPreview : Control
 
     private async Task RunChecks()
     {
+        CheckPersistence();
         await Frames();
         Require(!_bar.IsExpanded, "Entry must not automatically reveal the toolbar.");
+        var discoveryPoint = new Vector2(200, 120);
+        Require(_bar.ContainsPoint(discoveryPoint), "An unused toolbar must include the larger discovery region.");
+        _bar.UpdatePointer(true, discoveryPoint, false, false, 0);
+        Require(_bar.IsExpanded, "The discovery-only region must reveal the unused toolbar.");
+        Pointer(false, .6);
+        Require(_bar.ContainsPoint(discoveryPoint), "Hovering alone must not shrink the hot zone.");
         Pointer(true);
         await Wait(.22);
         Require(_bar.IsExpanded, "Hover must expand.");
@@ -121,20 +139,26 @@ public partial class PokerQuickBarPreview : Control
         await Frames();
         await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/Help"));
         Require(_help.IsOverlayVisible && !_bar.IsExpanded, "Help action must open help and retract the toolbar.");
+        RequireCompactHotZone("Help as the first action");
         Require(_help.GetNode<Control>("Content/Scroll/Pages/Basics").Visible, "Help must open the basics page.");
         Require(!_bar.ContainsPoint(new Vector2(100, 50)), "Help overlay must release the toolbar hot zone.");
         await Click(_help.GetNode<Button>("Header/CloseButton"));
         Pointer(true);
         Require(!_bar.IsExpanded, "Closing help over the hot zone must not immediately reopen the toolbar.");
         Pointer(false);
+        _bar.UpdatePointer(true, discoveryPoint, false, false, 0);
+        Require(!_bar.IsExpanded && !_bar.ContainsPoint(discoveryPoint),
+            "After first use, the old discovery-only region must neither reveal nor intercept.");
         Pointer(true);
         await Wait(.22);
 
         string settingsPath = ProjectSettings.GlobalizePath("user://settings.cfg");
         byte[] before = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : [];
         bool guideSetting = SettingsManager.LoadPokerGuideOverlayEnabled();
+        _bar.SetHasUsedFunction(false);
         await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/Tutorial"));
         Require(_tutorial.IsOverlayVisible && !_bar.IsExpanded, "Tutorial action must show the existing guide.");
+        RequireCompactHotZone("Tutorial as the first action");
         await Wait(2.05);
         await Click(_tutorial.GetNode<Control>("OverlayInput"));
         Require(!_tutorial.IsOverlayVisible, "A one-shot guide must dismiss even if automatic guidance is disabled.");
@@ -146,7 +170,9 @@ public partial class PokerQuickBarPreview : Control
         Pointer(false);
         Pointer(true);
         await Wait(.22);
+        _bar.SetHasUsedFunction(false);
         await Click(_bar.GetNode<Button>("Clip/Bar/Buttons/DesktopPet"));
+        RequireCompactHotZone("Desktop as the first action");
         Require(_desktopRequests == 1 && !_bar.IsExpanded && !_bar.ContainsPoint(new Vector2(100, 50)),
             "Desktop action must fire once and disable poker controls.");
         Require(_behindClicks == 0, "Toolbar actions must not click through to the table.");
@@ -154,6 +180,42 @@ public partial class PokerQuickBarPreview : Control
         RefreshContext();
         Pointer(true);
         Require(!_bar.IsExpanded, "Returning from desktop must not automatically reopen the toolbar.");
+        Pointer(false);
+        _bar.UpdatePointer(true, discoveryPoint, false, false, 0);
+        Require(!_bar.IsExpanded, "Returning to poker must retain the compact hot zone.");
+        Pointer(true);
+        Require(_bar.IsExpanded, "The actual bar region must still reveal the toolbar after first use.");
+        _bar.UpdatePointer(true, discoveryPoint, false, false, .49);
+        Require(_bar.IsExpanded, "The smaller region must preserve the 0.5-second hide delay.");
+        _bar.UpdatePointer(true, discoveryPoint, false, false, .02);
+        Require(!_bar.IsExpanded, "The removed discovery region now counts as outside.");
+    }
+
+    private void RequireCompactHotZone(string action)
+    {
+        Require(Math.Abs(_bar.GetNode<Control>("HotZone").Size.Y - _bar.GetNode<Control>("Clip/Bar").Size.Y) < .01,
+            action + " must shrink the actual input control to the bar height, excluding its shadow.");
+    }
+
+    private static void CheckPersistence()
+    {
+        string run = Guid.NewGuid().ToString("N");
+        var storage = AccountStorageContext.ForDevelopment("quickbar-" + run);
+        var account = new AccountStateManager(storage);
+        Require(!account.LoadPokerQuickBarUsed(), "Missing first-use flag must retain the discovery region.");
+        account.SavePokerWelcomeAcknowledged();
+        Require(!account.LoadPokerQuickBarUsed(), "Welcome acknowledgement must not imply using the toolbar.");
+        account.SavePokerQuickBarUsed();
+        var reloaded = new AccountStateManager(storage);
+        Require(reloaded.LoadPokerQuickBarUsed() && reloaded.LoadPokerWelcomeAcknowledged(),
+            "First use must survive a new account-state instance and preserve welcome acknowledgement.");
+        Require(!new PokerWelcomeProgress(reloaded, sessionOnly: true).IsAcknowledged && reloaded.LoadPokerQuickBarUsed(),
+            "The temporary welcome replay must not reset toolbar discovery progress.");
+        var other = new AccountStateManager(AccountStorageContext.ForDevelopment("quickbar-other-" + run));
+        Require(!other.LoadPokerQuickBarUsed(), "First use must not cross accounts.");
+        other.SavePokerQuickBarUsed();
+        Require(!other.LoadPokerWelcomeAcknowledged(), "Using the toolbar must not acknowledge the welcome.");
+        GD.Print("[PokerToolbar] First-use persistence and independent welcome/account states passed.");
     }
 
     private async Task Click(Control control)

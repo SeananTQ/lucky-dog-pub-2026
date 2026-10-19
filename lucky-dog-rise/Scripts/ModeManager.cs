@@ -13,6 +13,7 @@ public partial class ModeManager : Control
     // Temporary acceptance control; ignored outside Debug builds. Disable after approval.
     [Export] private bool _repeatPokerWelcomeEveryLaunch;
     private PokerWelcomeProgress _pokerWelcomeProgress = null!;
+    private bool _hasUsedPokerQuickBar;
 
 #if DEBUG
     private const int DeveloperLauncherWindowWidth = 620;
@@ -457,6 +458,7 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
+        _hasUsedPokerQuickBar = !startInSteamMock && _accountStateManager.LoadPokerQuickBarUsed();
         bool sessionOnlyPokerWelcome = startInSteamMock;
 #if DEBUG
         sessionOnlyPokerWelcome |= _repeatPokerWelcomeEveryLaunch;
@@ -1077,6 +1079,8 @@ public partial class ModeManager : Control
             _gameManager.DesktopModeRequested += SwitchToBossKey;
             _gameManager.PokerWelcomeConfirmed += OnPokerWelcomeConfirmed;
             _gameManager.PokerWelcomeVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.PokerQuickBarFunctionActivated += OnPokerQuickBarFunctionActivated;
+            _gameManager.SetPokerQuickBarUsed(_hasUsedPokerQuickBar);
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -1188,6 +1192,7 @@ public partial class ModeManager : Control
             _gameManager.DesktopModeRequested -= SwitchToBossKey;
             _gameManager.PokerWelcomeConfirmed -= OnPokerWelcomeConfirmed;
             _gameManager.PokerWelcomeVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.PokerQuickBarFunctionActivated -= OnPokerQuickBarFunctionActivated;
         }
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
@@ -2556,6 +2561,25 @@ public partial class ModeManager : Control
             && GetViewport().GuiGetHoveredControl() == _playViewport;
         _gameManager.UpdateQuickBarPointer(overPoker, ToPokerViewportPosition(screenPosition),
             _potentialDrag || _isDragging, Input.IsMouseButtonPressed(MouseButton.Left), delta);
+    }
+
+    private void OnPokerQuickBarFunctionActivated()
+    {
+        if (_hasUsedPokerQuickBar) return;
+#if DEBUG
+        // The bar has already changed in memory. Do not consume the account's first use in a sandbox.
+        if (_gameData.IsBlindBoxLocalTestMode || _gameData.IsSteamMockSimulationActive) return;
+#endif
+        try
+        {
+            _accountStateManager.SavePokerQuickBarUsed();
+            _hasUsedPokerQuickBar = true;
+        }
+        catch (Exception error)
+        {
+            // Keep the reduced hot zone for this session; a later action can retry saving.
+            GD.PushWarning($"[PokerQuickBar] Could not save first use: {error.Message}");
+        }
     }
 
     private void OnPokerWelcomeConfirmed()
