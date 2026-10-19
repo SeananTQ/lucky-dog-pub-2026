@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/PokerWelcomeDialogController.cs" id="1_controller"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[node name="PokerWelcomeDialog" type="CanvasLayer" unique_id=1152275614 node_paths=PackedStringArray("_title", "_message", "_confirmButton")]
+layer = 21
+visible = false
+script = ExtResource("1_controller")
+_title = NodePath("InputShield/Center/Panel/Margin/Content/Title")
+_message = NodePath("InputShield/Center/Panel/Margin/Content/Message")
+_confirmButton = NodePath("InputShield/Center/Panel/Margin/Content/Confirm")
+
+[node name="InputShield" type="Control" parent="."]
+offset_right = 600.0
+offset_bottom = 600.0
+scale = Vector2(2, 2)
+mouse_filter = 0
+theme = ExtResource("2_theme")
+
+[node name="Dim" type="ColorRect" parent="InputShield"]
+offset_top = 40.0
+offset_right = 600.0
+offset_bottom = 600.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Center" type="CenterContainer" parent="InputShield"]
+offset_left = 40.0
+offset_top = 80.0
+offset_right = 560.0
+offset_bottom = 560.0
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="InputShield/Center"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="InputShield/Center/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeMargin"
+
+[node name="Content" type="VBoxContainer" parent="InputShield/Center/Panel/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeContent"
+
+[node name="Title" type="Label" parent="InputShield/Center/Panel/Margin/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeTitle"
+text = "Welcome to the table!"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Message" type="Label" parent="InputShield/Center/Panel/Margin/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeBody"
+text = "Want to learn how to build scoring hands or check the controls?\nMove your mouse to the top of the table and select “How to play” or “Controls”."
+autowrap_mode = 3
+
+[node name="Confirm" type="Button" parent="InputShield/Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(160, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"PokerWelcomeConfirm"
+text = "Got it"

@@ -24,6 +24,10 @@ public partial class GameManager : Node2D
     [Signal] public delegate void InsufficientBetAttemptedEventHandler();
     [Signal] public delegate void CollectionProgressConfirmedEventHandler();
     [Signal] public delegate void DesktopModeRequestedEventHandler();
+    [Signal] public delegate void PokerWelcomeConfirmedEventHandler();
+
+    public bool IsPokerWelcomeVisible => _pokerWelcome?.IsOverlayVisible == true;
+    public event Action<bool> PokerWelcomeVisibilityChanged;
 
     public bool IsCollectionProgressNoticeVisible => _collectionProgressDialog?.IsOverlayVisible == true;
     public bool IsTutorialOverlayVisible => _tutorial?.IsOverlayVisible == true;
@@ -75,6 +79,7 @@ public partial class GameManager : Node2D
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     [Export] private PokerQuickBarController _quickBar = null!;
+    [Export] private PokerWelcomeDialogController _pokerWelcome = null!;
     private PokerCollectionProgressDialogController _collectionProgressDialog = null!;
     private bool _isPokerModeActive;
     private SystemPanelController _settingsPanel;
@@ -133,6 +138,8 @@ public partial class GameManager : Node2D
         _quickBar.TutorialRequested += OnQuickBarTutorialRequested;
         _quickBar.DesktopRequested += OnQuickBarDesktopRequested;
         _quickBar.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _pokerWelcome.OverlayVisibilityChanged += OnPokerWelcomeVisibilityChanged;
+        _pokerWelcome.Confirmed += OnPokerWelcomeConfirmed;
         _collectionProgressDialog = GetNode<PokerCollectionProgressDialogController>("CollectionProgressDialog");
         _collectionProgressDialog.OverlayVisibilityChanged += OnCollectionProgressDialogVisibilityChanged;
         _collectionProgressDialog.Confirmed += OnCollectionProgressConfirmed;
@@ -166,6 +173,11 @@ public partial class GameManager : Node2D
             _quickBar.DesktopRequested -= OnQuickBarDesktopRequested;
             _quickBar.InterfaceActivity -= OnQuickBarInterfaceActivity;
         }
+        if (_pokerWelcome != null)
+        {
+            _pokerWelcome.OverlayVisibilityChanged -= OnPokerWelcomeVisibilityChanged;
+            _pokerWelcome.Confirmed -= OnPokerWelcomeConfirmed;
+        }
         if (_collectionProgressDialog != null)
         {
             _collectionProgressDialog.OverlayVisibilityChanged -= OnCollectionProgressDialogVisibilityChanged;
@@ -198,7 +210,7 @@ public partial class GameManager : Node2D
 
     public void TogglePokerHandShowcase()
     {
-        if (!_isPokerModeActive || _pokerHandShowcase == null)
+        if (!_isPokerModeActive || _pokerHandShowcase == null || IsPokerWelcomeVisible)
             return;
 
         if (_pokerHandShowcase.IsOverlayVisible)
@@ -216,6 +228,9 @@ public partial class GameManager : Node2D
 
     public bool IsPointOverQuickBar(Vector2 viewportPosition) => _quickBar?.ContainsPoint(viewportPosition) == true;
 
+    public bool IsPointOverPokerWelcomeConfirmButton(Vector2 viewportPosition) =>
+        _pokerWelcome?.IsPointOverConfirmButton(viewportPosition) == true;
+
     public void UpdateQuickBarPointer(bool overPoker, Vector2 viewportPosition, bool dragging, bool leftPressed, double delta)
     {
         _quickBar?.UpdatePointer(overPoker, viewportPosition, dragging, leftPressed, delta);
@@ -230,6 +245,24 @@ public partial class GameManager : Node2D
     private void OnQuickBarHelpRequested() => _pokerHandShowcase.ShowBasics();
     private void OnQuickBarTutorialRequested() => _tutorial.ShowOnce();
     private void OnQuickBarDesktopRequested() => EmitSignal(SignalName.DesktopModeRequested);
+
+    public void RequestPokerWelcome(bool required)
+    {
+        _pokerWelcome.SetRequested(required);
+        RefreshOverlayInteractionContexts();
+    }
+
+    private void OnPokerWelcomeVisibilityChanged(bool visible)
+    {
+        PokerWelcomeVisibilityChanged?.Invoke(visible);
+        RefreshOverlayInteractionContexts();
+    }
+
+    private void OnPokerWelcomeConfirmed()
+    {
+        _tutorial.NotifyInterfaceActivity();
+        EmitSignal(SignalName.PokerWelcomeConfirmed);
+    }
 
     public void ShowPendingBlindBoxReward(PendingBlindBoxReward pending)
     {
@@ -570,22 +603,27 @@ public partial class GameManager : Node2D
             || _blindBoxOverlay == null
             || _tutorial == null
             || _pokerHandShowcase == null
-            || _collectionProgressDialog == null)
+            || _collectionProgressDialog == null
+            || _pokerWelcome == null)
             return;
 
         var blindBoxVisible = _blindBoxOverlay.Visible;
         var showcaseVisible = _pokerHandShowcase.IsOverlayVisible;
         var collectionProgressVisible = _collectionProgressDialog.IsOverlayVisible;
+        _pokerWelcome.SetContext(_isPokerModeActive,
+            blindBoxVisible || showcaseVisible || collectionProgressVisible);
+        bool welcomeVisible = _pokerWelcome.IsOverlayVisible;
         _tutorial.SetPokerContext(
             _isPokerModeActive,
-            blindBoxVisible || showcaseVisible || collectionProgressVisible);
+            blindBoxVisible || showcaseVisible || collectionProgressVisible || welcomeVisible);
         var pokerInputAvailable = _isPokerModeActive
             && !blindBoxVisible
             && !showcaseVisible
             && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
         _quickBar?.SetAvailable(pokerInputAvailable);
-        var pokerHintsAvailable = pokerInputAvailable && _quickBar?.IsPointerInside != true;
+        _quickBar?.SetPinnedOpen(welcomeVisible);
+        var pokerHintsAvailable = pokerInputAvailable && !welcomeVisible && _quickBar?.IsPointerInside != true;
         _interactionHints.SetInputContextActive(pokerHintsAvailable);
         _interactionHints.SetProactiveHintContextActive(pokerHintsAvailable);
     }

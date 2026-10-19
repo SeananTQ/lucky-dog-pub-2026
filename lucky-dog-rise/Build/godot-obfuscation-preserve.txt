@@ -34,6 +34,7 @@ ModeManager
 PokerHandShowcaseController
 PokerHandExampleController
 PokerQuickBarController
+PokerWelcomeDialogController
 PokerCollectionProgressDialogController
 SingleInstanceGuard
 SystemPanelController

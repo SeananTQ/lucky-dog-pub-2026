@@ -10,6 +10,9 @@ namespace LuckyDogRise;
 public partial class ModeManager : Control
 {
     [Export] private ColorRect _playPanelDismissOverlay = null!;
+    // Temporary acceptance control; ignored outside Debug builds. Disable after approval.
+    [Export] private bool _repeatPokerWelcomeEveryLaunch;
+    private PokerWelcomeProgress _pokerWelcomeProgress = null!;
 
 #if DEBUG
     private const int DeveloperLauncherWindowWidth = 620;
@@ -454,6 +457,11 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
+        bool sessionOnlyPokerWelcome = startInSteamMock;
+#if DEBUG
+        sessionOnlyPokerWelcome |= _repeatPokerWelcomeEveryLaunch;
+#endif
+        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
         var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
@@ -1067,6 +1075,8 @@ public partial class ModeManager : Control
             _gameManager.TutorialOverlayVisibilityChanged += _infoPanel.SetOddsTableGuideVisible;
             _gameManager.PokerHandShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
             _gameManager.DesktopModeRequested += SwitchToBossKey;
+            _gameManager.PokerWelcomeConfirmed += OnPokerWelcomeConfirmed;
+            _gameManager.PokerWelcomeVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -1095,6 +1105,7 @@ public partial class ModeManager : Control
 #endif
         ResetPokerViewportRendering();
         AudioManager.Instance.SetBgmPaused(false);
+        _gameManager.RequestPokerWelcome(!_pokerWelcomeProgress.IsAcknowledged);
         _gameManager.SetInteractionHintPokerModeActive(true);
         RefreshSettingsPanelModeActions();
     }
@@ -1175,6 +1186,8 @@ public partial class ModeManager : Control
         {
             _gameManager.PokerHandShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
             _gameManager.DesktopModeRequested -= SwitchToBossKey;
+            _gameManager.PokerWelcomeConfirmed -= OnPokerWelcomeConfirmed;
+            _gameManager.PokerWelcomeVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
         }
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
@@ -2545,6 +2558,23 @@ public partial class ModeManager : Control
             _potentialDrag || _isDragging, Input.IsMouseButtonPressed(MouseButton.Left), delta);
     }
 
+    private void OnPokerWelcomeConfirmed()
+    {
+        bool allowPersistence = true;
+#if DEBUG
+        allowPersistence = !_gameData.IsBlindBoxLocalTestMode && !_gameData.IsSteamMockSimulationActive;
+#endif
+        try
+        {
+            _pokerWelcomeProgress.Acknowledge(allowPersistence);
+        }
+        catch (Exception error)
+        {
+            // Keep the acknowledgement unset so the next entry can retry saving it.
+            GD.PushWarning($"[PokerWelcome] Could not save acknowledgement: {error.Message}");
+        }
+    }
+
     private Vector2 ToPokerViewportPosition(Vector2I screenPosition) =>
         _playViewport.GetGlobalTransformWithCanvas().AffineInverse() * (Vector2)ScreenToWindowLocal(screenPosition);
 
@@ -3813,6 +3843,16 @@ public partial class ModeManager : Control
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
 
+        if (CurrentMode != Mode.BossKey && _gameManager?.IsPokerWelcomeVisible == true
+            && (@event is InputEventKey
+                || @event is InputEventMouseButton { ButtonIndex: MouseButton.Right }
+                    && GetPlayGameScreenRect().HasPoint(DisplayServer.MouseGetPosition())))
+        {
+            // Keep modal keyboard/right-click behavior; ordinary left-button dragging remains available.
+            CancelWindowDrag();
+            return;
+        }
+
         if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel
             && CurrentMode != Mode.BossKey
             && _gameManager?.IsPokerHandShowcaseVisible == true
@@ -3897,6 +3937,13 @@ public partial class ModeManager : Control
                     return;
                 }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
+                if (CurrentMode != Mode.BossKey && _playViewport != null
+                    && _gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                {
+                    // A gesture that starts on the action belongs to the button, even after moving outside.
+                    CancelWindowDrag();
+                    return;
+                }
                 if (CurrentMode != Mode.BossKey && _playViewport != null
                     && GetViewport().GuiGetHoveredControl() == _playViewport
                     && _gameManager?.IsPointOverQuickBar(ToPokerViewportPosition(mouseScreenPosition)) == true)

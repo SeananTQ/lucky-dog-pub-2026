@@ -19,6 +19,7 @@ public partial class PokerQuickBarController : CanvasLayer
 
     private const double HideDelaySeconds = 0.5;
     private bool _available;
+    private bool _pinnedOpen;
     private bool _waitForPointerExit;
     private double _outsideSeconds;
     private Tween _slide;
@@ -55,6 +56,20 @@ public partial class PokerQuickBarController : CanvasLayer
             IsPointerInside = false;
             CollapseImmediately();
         }
+        else if (_pinnedOpen)
+            SetExpanded(true);
+    }
+
+    public void SetPinnedOpen(bool pinned)
+    {
+        if (_pinnedOpen == pinned) return;
+        _pinnedOpen = pinned;
+        _outsideSeconds = 0;
+        if (pinned)
+        {
+            _waitForPointerExit = false;
+            if (_available) SetExpanded(true);
+        }
     }
 
     public bool ContainsPoint(Vector2 viewportPosition) => _available
@@ -64,6 +79,12 @@ public partial class PokerQuickBarController : CanvasLayer
     {
         IsPointerInside = overPoker && ContainsPoint(viewportPosition);
         if (!_available) return;
+        if (_pinnedOpen)
+        {
+            _outsideSeconds = 0;
+            SetExpanded(true);
+            return;
+        }
         if (!IsPointerInside) _waitForPointerExit = false;
         if (dragging)
         {

@@ -110,6 +110,13 @@ public partial class TutorialManager : CanvasLayer
             return;
         }
 
+        // A welcome/help/reward overlay takes precedence over automatic entry guidance.
+        if (_blockedByHigherOverlay)
+        {
+            _secondsSinceEffectiveInteraction = 0.0;
+            return;
+        }
+
         if (_manualShowPending)
         {
             _manualShowPending = false;
@@ -144,7 +151,7 @@ public partial class TutorialManager : CanvasLayer
             return;
         }
 
-        if (_pokerModeActive)
+        if (_pokerModeActive && !_blockedByHigherOverlay)
             ShowOverlay();
         else
             _manualShowPending = true;
@@ -160,7 +167,7 @@ public partial class TutorialManager : CanvasLayer
 
     private void ShowOverlay(bool force = false)
     {
-        if (Visible || !force && !SettingsManager.LoadPokerGuideOverlayEnabled())
+        if (Visible || _blockedByHigherOverlay || !force && !SettingsManager.LoadPokerGuideOverlayEnabled())
             return;
 
         Visible = true;

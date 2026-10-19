@@ -774,6 +774,21 @@ corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
 
 [resource]
+PokerWelcomeMargin/base_type = &"MarginContainer"
+PokerWelcomeMargin/constants/margin_left = 8
+PokerWelcomeMargin/constants/margin_top = 8
+PokerWelcomeMargin/constants/margin_right = 8
+PokerWelcomeMargin/constants/margin_bottom = 8
+PokerWelcomeContent/base_type = &"VBoxContainer"
+PokerWelcomeContent/constants/separation = 14
+PokerWelcomeTitle/base_type = &"PokerHelpHeading"
+PokerWelcomeTitle/font_sizes/font_size = 20
+PokerWelcomeTitle/constants/line_spacing = 3
+PokerWelcomeBody/base_type = &"PokerHelpBodyLabel"
+PokerWelcomeBody/font_sizes/font_size = 18
+PokerWelcomeBody/constants/line_spacing = 3
+PokerWelcomeConfirm/base_type = &"Button"
+PokerWelcomeConfirm/fonts/font = SubResource("FontVariation_help_bold")
 default_font = ExtResource("4_inter_bold")
 PokerToolbarPanel/base_type = &"PanelContainer"
 PokerToolbarPanel/styles/panel = SubResource("StyleBoxFlat_poker_toolbar")

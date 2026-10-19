@@ -12,6 +12,7 @@ namespace LuckyDogRise;
 public sealed class AccountStateManager
 {
     private const string SectionTutorialProgress = "tutorial_progress";
+    private const string PokerWelcomeAcknowledgedKey = "poker_welcome_acknowledged";
 
     public const int InitialMeetingTutorialId = 1001;
 
@@ -27,6 +28,17 @@ public sealed class AccountStateManager
         NotStarted = 0,
         Shown = 1,
         Completed = 2,
+    }
+
+    // Missing means unacknowledged for both new and existing accounts. Never infer from gameplay.
+    public bool LoadPokerWelcomeAcknowledged() =>
+        (bool)Load().GetValue(SectionTutorialProgress, PokerWelcomeAcknowledgedKey, false);
+
+    public void SavePokerWelcomeAcknowledged()
+    {
+        var config = Load();
+        config.SetValue(SectionTutorialProgress, PokerWelcomeAcknowledgedKey, true);
+        Save(config);
     }
 
     public TutorialStepState LoadTutorialStepState(int tutorialId)
