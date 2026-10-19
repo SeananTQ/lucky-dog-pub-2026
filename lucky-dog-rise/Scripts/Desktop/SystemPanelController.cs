@@ -3436,6 +3436,8 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var (button, tab) in _filterTabs)
             button.TooltipText = GetWardrobeTabTooltip(tab);
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.Banner.TooltipText = ResolveLinkTreeTooltip(entry.Data);
         if (_outfitPresetTab != null)
             _outfitPresetTab.TooltipText = L10n.Tr(L10nKey.Settings_Tab_OutfitPresets);
         if (_outfitPresetContent?.Visible == true)

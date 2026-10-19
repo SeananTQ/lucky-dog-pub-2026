@@ -7,8 +7,10 @@ public static class L10nKey
     public const string Common_Desktop = nameof(Common_Desktop);
     public const string Common_Cancel = nameof(Common_Cancel);
     public const string Common_Confirm = nameof(Common_Confirm);
+    public const string Common_ReturnToGame = nameof(Common_ReturnToGame);
     public const string Settings_Tab_Wardrobe = nameof(Settings_Tab_Wardrobe);
     public const string Settings_Tab_LinkTree = nameof(Settings_Tab_LinkTree);
+    public const string Settings_Tab_CollectionEvents = nameof(Settings_Tab_CollectionEvents);
     public const string Settings_Tab_OutfitPresets = nameof(Settings_Tab_OutfitPresets);
     public const string Settings_Tab_Settings = nameof(Settings_Tab_Settings);
     public const string Settings_Tab_Debug = nameof(Settings_Tab_Debug);
@@ -137,6 +139,8 @@ public static class L10nKey
     public const string CollectionEvent_WishlistShyRequest = nameof(CollectionEvent_WishlistShyRequest);
     public const string CollectionEvent_WishlistButton = nameof(CollectionEvent_WishlistButton);
     public const string CollectionEvent_SaveScreenshot = nameof(CollectionEvent_SaveScreenshot);
+    public const string CollectionEvent_ScreenshotSaved = nameof(CollectionEvent_ScreenshotSaved);
+    public const string CollectionEvent_ScreenshotUnconfirmed = nameof(CollectionEvent_ScreenshotUnconfirmed);
     public const string CollectionEvent_RoadmapTitle = nameof(CollectionEvent_RoadmapTitle);
     public const string CollectionEvent_RoadmapBody = nameof(CollectionEvent_RoadmapBody);
     public const string CollectionEvent_BackToTop = nameof(CollectionEvent_BackToTop);

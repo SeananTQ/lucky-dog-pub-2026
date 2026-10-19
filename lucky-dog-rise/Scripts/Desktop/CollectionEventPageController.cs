@@ -381,7 +381,7 @@ public partial class CollectionEventPageController : VBoxContainer
             {
                 _wishlistShareButton.Disabled = false;
                 _screenshotResultKey = saved
-                    ? "CollectionEvent_ScreenshotSaved" : "CollectionEvent_ScreenshotUnconfirmed";
+                    ? L10nKey.CollectionEvent_ScreenshotSaved : L10nKey.CollectionEvent_ScreenshotUnconfirmed;
                 _wishlistShareButton.Text = L10n.Tr(_screenshotResultKey);
             }
         }
