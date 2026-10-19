@@ -133,7 +133,9 @@ lucky-dog-rise/
 │   ├── AudioManager.cs       # 音效管理（autoload 单例）
 │   ├── DogProverbs.cs        # Game Over 格言
 │   ├── HUDController.cs      # HUD（消息/Overlay）
-│   ├── TutorialManager.cs    # 新手引导弹跳
+│   ├── TutorialManager.cs    # 快捷栏手动呼出的 SVG 操作说明覆盖层
+│   ├── PokerQuickBarController.cs # 顶部快捷栏、20 秒闲置提醒和首次使用热区
+│   ├── PokerWelcomeDialogController.cs # 按账号确认状态显示的扑克欢迎提示
 │   └── CardTableController.cs # 卡牌显示/保留/动画
 ├── Scripts/DataTables/       # Luban 生成的 C# 表类型（namespace DataTables）
 │   ├── Tables.cs             # 所有表的访问入口
@@ -234,6 +236,15 @@ lucky-dog-rise/
 - 0-51 整数编码：`suit = card / 13` (0=Club,1=Diamond,2=Heart,3=Spade)，`rank = card % 13` (0=Ace,...,12=King)
 - 文件名：`CardToString()` → `Club1` ~ `Spade13`（rank+1，美术资源从 1 开始）
 - **保留/弃牌交互**：默认全保留（正面朝上），点击卡牌翻到背面（弃牌），再点击反悔翻回。补牌时背面的牌翻转变成新牌
+
+## 扑克帮助与引导
+
+操作说明仅从快捷栏手动呼出；20 秒无有效操作时的提醒改为展开快捷栏，系统面板交互不影响计时。欢迎确认、快捷栏使用记录与牌桌目标动画提示分别管理。
+
+修改相关功能前，参阅：
+
+- [扑克玩法帮助说明](docs/game-design/扑克玩法帮助说明.md)：入口、欢迎提示、快捷栏行为、存档迁移与 Debug 重播。
+- [交互提示系统说明](docs/game-design/交互提示系统说明.md)：有效操作、提示节奏与覆盖层协调。
 
 ## 透明窗口（桌宠）技术说明
 
