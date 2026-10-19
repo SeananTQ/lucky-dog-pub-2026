@@ -724,8 +724,64 @@ corner_radius_top_right = 2
 corner_radius_bottom_left = 2
 corner_radius_bottom_right = 2
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
+border_width_bottom = 4
+border_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_button"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_hover"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_pressed"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
 [resource]
 default_font = ExtResource("4_inter_bold")
+PokerToolbarPanel/base_type = &"PanelContainer"
+PokerToolbarPanel/styles/panel = SubResource("StyleBoxFlat_poker_toolbar")
+PokerToolbarButtons/base_type = &"HBoxContainer"
+PokerToolbarButtons/constants/separation = 8
+PokerToolbarButton/base_type = &"Button"
+PokerToolbarButton/fonts/font = SubResource("FontVariation_help_bold")
+PokerToolbarButton/font_sizes/font_size = 36
+PokerToolbarButton/colors/font_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/colors/font_hover_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/colors/font_pressed_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/constants/icon_max_width = 48
+PokerToolbarButton/constants/h_separation = 12
+PokerToolbarButton/styles/normal = SubResource("StyleBoxFlat_poker_toolbar_button")
+PokerToolbarButton/styles/hover = SubResource("StyleBoxFlat_poker_toolbar_hover")
+PokerToolbarButton/styles/pressed = SubResource("StyleBoxFlat_poker_toolbar_pressed")
+PokerToolbarButton/styles/hover_pressed = SubResource("StyleBoxFlat_poker_toolbar_pressed")
+PokerToolbarButton/styles/focus = SubResource("StyleBoxFlat_poker_toolbar_hover")
+PokerToolbarButton/styles/disabled = SubResource("StyleBoxFlat_poker_toolbar_button")
 ActionButton/base_type = &"Button"
 ActionButton/styles/disabled = ExtResource("1_5li03")
 ActionButton/styles/focus = SubResource("StyleBoxFlat_7288i")

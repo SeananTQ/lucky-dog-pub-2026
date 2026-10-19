@@ -33,6 +33,7 @@ SteamMockPanelController
 ModeManager
 PokerHandShowcaseController
 PokerHandExampleController
+PokerQuickBarController
 PokerCollectionProgressDialogController
 SingleInstanceGuard
 SystemPanelController

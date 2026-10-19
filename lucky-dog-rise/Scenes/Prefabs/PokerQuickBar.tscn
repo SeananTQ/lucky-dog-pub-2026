@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/PokerQuickBarController.cs" id="1_script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/ToolbarIcon_Help.svg" id="3_help"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/ToolbarIcon_Tutorial.svg" id="4_tutorial"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/ToolbarIcon_DesktopPet.svg" id="5_desktop"]
+
+[node name="PokerQuickBar" type="CanvasLayer" unique_id=1611484449 node_paths=PackedStringArray("_hotZone", "_clip", "_bar", "_helpButton", "_tutorialButton", "_desktopButton")]
+layer = 17
+script = ExtResource("1_script")
+_hotZone = NodePath("HotZone")
+_clip = NodePath("Clip")
+_bar = NodePath("Clip/Bar")
+_helpButton = NodePath("Clip/Bar/Buttons/Help")
+_tutorialButton = NodePath("Clip/Bar/Buttons/Tutorial")
+_desktopButton = NodePath("Clip/Bar/Buttons/DesktopPet")
+
+[node name="HotZone" type="Control" parent="."]
+offset_right = 1200.0
+offset_bottom = 160.0
+mouse_filter = 0
+
+[node name="Clip" type="Control" parent="."]
+clip_contents = true
+offset_right = 1200.0
+offset_bottom = 96.0
+mouse_filter = 2
+
+[node name="Bar" type="PanelContainer" parent="Clip"]
+offset_right = 1200.0
+offset_bottom = 96.0
+mouse_filter = 0
+theme = ExtResource("2_theme")
+theme_type_variation = &"PokerToolbarPanel"
+
+[node name="Buttons" type="HBoxContainer" parent="Clip/Bar"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerToolbarButtons"
+
+[node name="Help" type="Button" parent="Clip/Bar/Buttons"]
+layout_mode = 2
+theme_type_variation = &"PokerToolbarButton"
+text = "How to play"
+icon = ExtResource("3_help")
+
+[node name="Tutorial" type="Button" parent="Clip/Bar/Buttons"]
+layout_mode = 2
+theme_type_variation = &"PokerToolbarButton"
+text = "Controls"
+icon = ExtResource("4_tutorial")
+
+[node name="Spacer" type="Control" parent="Clip/Bar/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="DesktopPet" type="Button" parent="Clip/Bar/Buttons"]
+layout_mode = 2
+theme_type_variation = &"PokerToolbarButton"
+text = "Desktop pet"
+icon = ExtResource("5_desktop")

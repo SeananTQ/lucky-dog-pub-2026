@@ -149,6 +149,9 @@ public static class L10nKey
     public const string WishlistCallToAction_ExitGameButton = nameof(WishlistCallToAction_ExitGameButton);
     public const string WishlistCallToAction_SuppressExitReminder = nameof(WishlistCallToAction_SuppressExitReminder);
     public const string PokerHelp_OperationTitle = nameof(PokerHelp_OperationTitle);
+    public const string PokerToolbar_Help = nameof(PokerToolbar_Help);
+    public const string PokerToolbar_Tutorial = nameof(PokerToolbar_Tutorial);
+    public const string PokerToolbar_DesktopPet = nameof(PokerToolbar_DesktopPet);
     public const string PokerHelp_ScrollHint = nameof(PokerHelp_ScrollHint);
     public const string PokerHelp_BuildTab = nameof(PokerHelp_BuildTab);
     public const string PokerHelp_RanksTab = nameof(PokerHelp_RanksTab);

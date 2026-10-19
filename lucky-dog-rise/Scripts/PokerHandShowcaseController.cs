@@ -69,6 +69,12 @@ public partial class PokerHandShowcaseController : CanvasLayer
         L10n.Changed -= RefreshLocalizedText;
     }
 
+    public void ShowBasics()
+    {
+        SelectPage(showRanks: false);
+        ShowOverlay();
+    }
+
     public void ShowOverlay()
     {
         if (Visible)

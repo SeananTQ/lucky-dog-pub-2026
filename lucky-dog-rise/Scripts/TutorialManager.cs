@@ -19,6 +19,7 @@ public partial class TutorialManager : CanvasLayer
     private double _secondsSinceEffectiveInteraction;
     private double _dismissLockRemaining;
     private bool _guideEnabled;
+    private bool _oneShot;
 
     public bool NeedsInterfaceActivity => _pokerModeActive
         && _gameData?.NeedsPokerBasicsGuidance == true && _guideEnabled && !Visible;
@@ -104,7 +105,10 @@ public partial class TutorialManager : CanvasLayer
         _blockedByHigherOverlay = blockedByHigherOverlay;
 
         if (!_pokerModeActive)
+        {
+            if (_oneShot) HideOverlay();
             return;
+        }
 
         if (_manualShowPending)
         {
@@ -146,9 +150,17 @@ public partial class TutorialManager : CanvasLayer
             _manualShowPending = true;
     }
 
-    private void ShowOverlay()
+    // 快捷栏只临时打开一次，不更改自动引导设置或新手存档标记。
+    public void ShowOnce()
     {
-        if (Visible || !SettingsManager.LoadPokerGuideOverlayEnabled())
+        if (!_pokerModeActive || _blockedByHigherOverlay || Visible) return;
+        _oneShot = true;
+        ShowOverlay(force: true);
+    }
+
+    private void ShowOverlay(bool force = false)
+    {
+        if (Visible || !force && !SettingsManager.LoadPokerGuideOverlayEnabled())
             return;
 
         Visible = true;
@@ -162,6 +174,7 @@ public partial class TutorialManager : CanvasLayer
             return;
 
         Visible = false;
+        _oneShot = false;
         _dismissLockRemaining = 0.0;
         _secondsSinceEffectiveInteraction = 0.0;
         EmitSignal(SignalName.OverlayVisibilityChanged, false);
@@ -176,12 +189,12 @@ public partial class TutorialManager : CanvasLayer
             })
             return;
 
-        // 一秒锁定期内仍然吃掉输入，避免点穿牌桌，但不关闭教程。
+        // 两秒锁定期内仍然吃掉输入，避免点穿牌桌，但不关闭教程。
         _overlayInput.AcceptEvent();
         if (_dismissLockRemaining > 0.0)
             return;
 
-        if (_gameData?.NeedsPokerBasicsGuidance == true)
+        if (_oneShot || _gameData?.NeedsPokerBasicsGuidance == true)
         {
             // 新手仅关闭本次；设置保持开启，之后再次无有效操作 20 秒会重新出现。
             HideOverlay();

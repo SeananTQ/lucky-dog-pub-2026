@@ -887,6 +887,7 @@ public partial class ModeManager : Control
             _gameData?.RecordPokerModeSeconds(_);
 
         UpdateFullscreenVisibility(_);
+        UpdatePokerQuickBarPointer(_);
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
@@ -1065,6 +1066,7 @@ public partial class ModeManager : Control
             // 赔率表提示在 InfoPanel（SubViewport 之外），只能由外层转发教学引导图的显隐。
             _gameManager.TutorialOverlayVisibilityChanged += _infoPanel.SetOddsTableGuideVisible;
             _gameManager.PokerHandShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.DesktopModeRequested += SwitchToBossKey;
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -1170,7 +1172,10 @@ public partial class ModeManager : Control
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
         if (_gameManager != null)
+        {
             _gameManager.PokerHandShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.DesktopModeRequested -= SwitchToBossKey;
+        }
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
         DisposePlatformService();
@@ -2529,6 +2534,20 @@ public partial class ModeManager : Control
             CancelWindowDrag();
     }
 
+    private void UpdatePokerQuickBarPointer(double delta)
+    {
+        if (_gameManager == null || _playViewport == null) return;
+        var screenPosition = DisplayServer.MouseGetPosition();
+        bool overPoker = CurrentMode != Mode.BossKey && !_hiddenByFullscreenApp
+            && GetPlayGameScreenRect().HasPoint(screenPosition)
+            && GetViewport().GuiGetHoveredControl() == _playViewport;
+        _gameManager.UpdateQuickBarPointer(overPoker, ToPokerViewportPosition(screenPosition),
+            _potentialDrag || _isDragging, Input.IsMouseButtonPressed(MouseButton.Left), delta);
+    }
+
+    private Vector2 ToPokerViewportPosition(Vector2I screenPosition) =>
+        _playViewport.GetGlobalTransformWithCanvas().AffineInverse() * (Vector2)ScreenToWindowLocal(screenPosition);
+
     private void OnPaytableRequested()
     {
         if (_gameManager == null)
@@ -3878,6 +3897,14 @@ public partial class ModeManager : Control
                     return;
                 }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
+                if (CurrentMode != Mode.BossKey && _playViewport != null
+                    && GetViewport().GuiGetHoveredControl() == _playViewport
+                    && _gameManager?.IsPointOverQuickBar(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                {
+                    // 顶部热区及按钮的完整鼠标手势交给 UI，不能启动拖窗。
+                    CancelWindowDrag();
+                    return;
+                }
 #if DEBUG
                 if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;
 #endif
