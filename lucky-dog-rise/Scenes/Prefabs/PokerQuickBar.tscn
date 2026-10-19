@@ -24,12 +24,12 @@ mouse_filter = 0
 [node name="Clip" type="Control" parent="."]
 clip_contents = true
 offset_right = 1200.0
-offset_bottom = 96.0
+offset_bottom = 88.0
 mouse_filter = 2
 
 [node name="Bar" type="PanelContainer" parent="Clip"]
 offset_right = 1200.0
-offset_bottom = 96.0
+offset_bottom = 80.0
 mouse_filter = 0
 theme = ExtResource("2_theme")
 theme_type_variation = &"PokerToolbarPanel"
@@ -41,12 +41,14 @@ theme_type_variation = &"PokerToolbarButtons"
 
 [node name="Help" type="Button" parent="Clip/Bar/Buttons"]
 layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"PokerToolbarButton"
 text = "How to play"
 icon = ExtResource("3_help")
 
 [node name="Tutorial" type="Button" parent="Clip/Bar/Buttons"]
 layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"PokerToolbarButton"
 text = "Controls"
 icon = ExtResource("4_tutorial")
@@ -58,6 +60,17 @@ mouse_filter = 2
 
 [node name="DesktopPet" type="Button" parent="Clip/Bar/Buttons"]
 layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"PokerToolbarButton"
-text = "Desktop pet"
+text = "Back to desktop"
 icon = ExtResource("5_desktop")
+
+[node name="ShadowAnchor" type="Node2D" parent="Clip/Bar"]
+position = Vector2(0, 80)
+
+[node name="BottomShadow" type="Panel" parent="Clip/Bar/ShadowAnchor"]
+offset_right = 1200.0
+offset_bottom = 8.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"PokerToolbarShadow"
