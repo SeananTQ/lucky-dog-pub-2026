@@ -12,8 +12,8 @@
     "Key": "Poker.WaitingForBet.BetStack",
     "Description": "准备下注：提示点击下注筹码",
     "ProactiveEnabled": true,
-    "ProactiveIdleSeconds": 5,
-    "ProactiveRepeatSeconds": 0.8,
+    "ProactiveIdleSeconds": 9,
+    "ProactiveRepeatSeconds": 1.2,
     "PassiveCooldownSeconds": 0,
     "Priority": 100
   },
@@ -30,8 +30,8 @@
     "Key": "Poker.Dealt.CardSelection",
     "Description": "发牌后：提示选择需要替换的牌",
     "ProactiveEnabled": true,
-    "ProactiveIdleSeconds": 6,
-    "ProactiveRepeatSeconds": 0.8,
+    "ProactiveIdleSeconds": 12,
+    "ProactiveRepeatSeconds": 1.6,
     "PassiveCooldownSeconds": 0.5,
     "Priority": 100
   },
@@ -57,7 +57,7 @@
     "Key": "Poker.Holding.HandConfirm",
     "Description": "调整保留牌后：提示敲桌确认",
     "ProactiveEnabled": true,
-    "ProactiveIdleSeconds": 9,
+    "ProactiveIdleSeconds": 14,
     "ProactiveRepeatSeconds": 1.2,
     "PassiveCooldownSeconds": 1.2,
     "Priority": 100
@@ -66,8 +66,8 @@
     "Key": "Poker.Settled.RewardStack",
     "Description": "结算后：提示领取奖励筹码",
     "ProactiveEnabled": true,
-    "ProactiveIdleSeconds": 5,
-    "ProactiveRepeatSeconds": 0.8,
+    "ProactiveIdleSeconds": 9,
+    "ProactiveRepeatSeconds": 1.2,
     "PassiveCooldownSeconds": 0,
     "Priority": 100
   }
