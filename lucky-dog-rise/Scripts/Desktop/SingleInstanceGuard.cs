@@ -58,10 +58,12 @@ public partial class SingleInstanceGuard : Node
                 argument.Replace('\\', '/').EndsWith("/Tools/StoreDialogue/StoreDialogue.tscn", StringComparison.OrdinalIgnoreCase)
                 || argument.Replace('\\', '/').EndsWith("/Scenes/Dev/Tests/StoreDialogueSmoke.tscn", StringComparison.OrdinalIgnoreCase)))
             return;
-        // The standalone room lab has no account or player state. Do not let it
+        // Standalone room labs have no account or player state. Do not let them
         // publish/replace the normal Dev identity or acquire its instance mutex.
         if (OS.GetCmdlineArgs().Any(argument => argument.Replace('\\', '/').EndsWith(
-                "/Scenes/Dev/Rooms/RoomLab.tscn", StringComparison.OrdinalIgnoreCase)))
+                "/Scenes/Dev/Rooms/RoomLab.tscn", StringComparison.OrdinalIgnoreCase)
+                || argument.Replace('\\', '/').EndsWith(
+                    "/Scenes/Dev/Rooms/RoomNameBarLocalizationLab.tscn", StringComparison.OrdinalIgnoreCase)))
             return;
 #endif
 #if DEBUG

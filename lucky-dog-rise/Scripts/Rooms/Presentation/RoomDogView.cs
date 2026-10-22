@@ -120,10 +120,18 @@ public partial class RoomDogView : Node2D
         _measuredCompanion = companion;
         // Preserve the compact single-line nickname and crown. Only a few
         // translations need a one-point reduction; human name styling is unchanged.
+        int size = NameFontSize(font, _name.Text, width, companion);
+        if (_name.GetThemeFontSize("font_size") != size) _name.AddThemeFontSizeOverride("font_size", size);
+    }
+
+    // Shared with the standalone localization matrix, so it exercises the
+    // production fit rule without instantiating dogs, chat or a room service.
+    internal static int NameFontSize(Font font, string text, float width, bool companion)
+    {
         int size = 14;
         if (companion && width > 0)
-            while (size > 12 && font.GetStringSize(_name.Text, HorizontalAlignment.Left, -1, size).X > width) size--;
-        if (_name.GetThemeFontSize("font_size") != size) _name.AddThemeFontSizeOverride("font_size", size);
+            while (size > 12 && font.GetStringSize(text, HorizontalAlignment.Left, -1, size).X > width) size--;
+        return size;
     }
 
     public override void _Process(double delta)

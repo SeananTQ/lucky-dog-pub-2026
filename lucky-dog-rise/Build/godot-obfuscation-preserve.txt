@@ -61,6 +61,7 @@ LuckyDogRise.Rooms.RoomDogView
 LuckyDogRise.Rooms.RoomChatView
 LuckyDogRise.Rooms.RoomGameProposalOverlay
 LuckyDogRise.Rooms.RoomLab
+LuckyDogRise.Rooms.RoomNameBarLocalizationLab
 LuckyDogRise.Rooms.RoomListRow
 LuckyDogRise.Rooms.RoomMemberRow
 LuckyDogRise.Tools.StoreDialogueController

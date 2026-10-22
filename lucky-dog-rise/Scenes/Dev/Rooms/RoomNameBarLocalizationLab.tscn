@@ -1,0 +1,200 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomNameBarLocalizationLab.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomNameBar.tscn" id="bar"]
+
+[node name="RoomNameBarLocalizationLab" type="Control" unique_id=2045161892 node_paths=PackedStringArray("_gridArea", "_grid", "_template", "_scaleOption", "_crown", "_summary", "_pageLabel", "_previous", "_next", "_capture", "_fit", "_minimize", "_close", "_title")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+auto_translate_mode = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_gridArea = NodePath("Margin/Content/GridArea")
+_grid = NodePath("Margin/Content/GridArea/Grid")
+_template = NodePath("LanguageTemplate")
+_scaleOption = NodePath("Margin/Content/Toolbar/Scale")
+_crown = NodePath("Margin/Content/Toolbar/Crown")
+_summary = NodePath("Margin/Content/Summary")
+_pageLabel = NodePath("Margin/Content/Footer/Page")
+_previous = NodePath("Margin/Content/Footer/Previous")
+_next = NodePath("Margin/Content/Footer/Next")
+_capture = NodePath("Margin/Content/Footer/Capture")
+_fit = NodePath("Margin/Content/TitleBar/Fit")
+_minimize = NodePath("Margin/Content/TitleBar/Minimize")
+_close = NodePath("Margin/Content/TitleBar/Close")
+_title = NodePath("Margin/Content/TitleBar/Title")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.16, 0.17, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleBar" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+tooltip_text = "拖动标题移动窗口；双击恢复大小，底部保留反馈空间"
+text = "计数器栏 · 多语言昵称矩阵"
+
+[node name="Fit" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "适应屏幕"
+
+[node name="Minimize" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "最小化"
+
+[node name="Close" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "关闭"
+
+[node name="Toolbar" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ScaleLabel" type="Label" parent="Margin/Content/Toolbar"]
+layout_mode = 2
+text = "桌宠倍率"
+
+[node name="Scale" type="OptionButton" parent="Margin/Content/Toolbar"]
+custom_minimum_size = Vector2(100, 28)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Crown" type="CheckButton" parent="Margin/Content/Toolbar"]
+layout_mode = 2
+text = "显示房主皇冠"
+
+[node name="Order" type="Label" parent="Margin/Content/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.64, 0.77, 0.81, 1)
+theme_override_font_sizes/font_size = 14
+text = "每格从上到下：程序员 / 美术 / 策划"
+horizontal_alignment = 2
+
+[node name="Summary" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.64, 0.77, 0.81, 1)
+theme_override_font_sizes/font_size = 14
+text = "载入正式译文……"
+autowrap_mode = 3
+
+[node name="Separator" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="GridArea" type="Control" parent="Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Grid" type="GridContainer" parent="Margin/Content/GridArea"]
+layout_mode = 0
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 14
+columns = 8
+
+[node name="Footer" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Previous" type="Button" parent="Margin/Content/Footer"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "上一页"
+
+[node name="Page" type="Label" parent="Margin/Content/Footer"]
+layout_mode = 2
+text = "第 1 / 1 页"
+
+[node name="Next" type="Button" parent="Margin/Content/Footer"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "下一页"
+
+[node name="Spacer" type="Control" parent="Margin/Content/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Capture" type="Button" parent="Margin/Content/Footer"]
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "保存当前页截图"
+
+[node name="LanguageTemplate" type="Control" parent="."]
+visible = false
+layout_mode = 0
+offset_right = 208.0
+offset_bottom = 163.0
+
+[node name="Locale" type="Label" parent="LanguageTemplate"]
+offset_left = 12.0
+offset_right = 208.0
+offset_bottom = 28.0
+theme_override_colors/font_color = Color(0.86, 0.91, 0.93, 1)
+theme_override_font_sizes/font_size = 13
+text = "00 · locale  Language"
+vertical_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Coder" parent="LanguageTemplate" instance=ExtResource("bar")]
+offset_left = 12.0
+offset_top = 32.0
+offset_right = 188.0
+offset_bottom = 61.0
+mouse_filter = 0
+
+[node name="Artist" parent="LanguageTemplate" instance=ExtResource("bar")]
+offset_left = 12.0
+offset_top = 69.0
+offset_right = 188.0
+offset_bottom = 98.0
+mouse_filter = 0
+
+[node name="Designer" parent="LanguageTemplate" instance=ExtResource("bar")]
+offset_left = 12.0
+offset_top = 106.0
+offset_right = 188.0
+offset_bottom = 135.0
+mouse_filter = 0
+
+[node name="Status" type="Label" parent="LanguageTemplate"]
+offset_left = 12.0
+offset_top = 139.0
+offset_right = 196.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 12
+text = "14 / 14 / 14 px · 完整"
