@@ -831,6 +831,8 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _ExitTree()
     {
+        ResetPanelScrollDrag();
+        L10n.Changed -= RefreshLocalizedOptionText;
         if (_collectionEventContent != null)
         {
             _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
