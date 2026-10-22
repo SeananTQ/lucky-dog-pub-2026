@@ -232,6 +232,6 @@ theme_override_colors/font_pressed_color = Color(0.11372549, 0.11372549, 0.11372
 theme_override_colors/font_focus_color = Color(0.11372549, 0.11372549, 0.11372549, 1)
 theme_override_fonts/font = SubResource("font_title")
 theme_override_font_sizes/font_size = 28
-tooltip_text = "返回游戏"
+tooltip_text = "Common_ReturnToGame"
 flat = true
 text = "×"

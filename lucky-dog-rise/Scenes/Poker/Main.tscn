@@ -15,6 +15,8 @@
 [ext_resource type="Script" uid="uid://bj45cgrcpjeor" path="res://Scripts/InteractionHintController.cs" id="15_interaction_hints"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandShowcase.tscn" id="16_hand_showcase"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerCollectionProgressDialog.tscn" id="17_collection_progress_dialog"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerQuickBar.tscn" id="18_quick_bar"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerWelcomeDialog.tscn" id="19_welcome"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msg_panel"]
 content_margin_left = 28.0
@@ -38,9 +40,11 @@ corner_radius_top_right = 20
 corner_radius_bottom_right = 20
 corner_radius_bottom_left = 20
 
-[node name="Main" type="Node2D" unique_id=317845186 node_paths=PackedStringArray("_pokerHandShowcase")]
+[node name="Main" type="Node2D" unique_id=317845186 node_paths=PackedStringArray("_pokerHandShowcase", "_quickBar", "_pokerWelcome")]
 script = ExtResource("3_gm")
 _pokerHandShowcase = NodePath("PokerHandShowcase")
+_quickBar = NodePath("PokerQuickBar")
+_pokerWelcome = NodePath("PokerWelcomeDialog")
 
 [node name="Background" type="TextureRect" parent="." unique_id=296527543]
 offset_right = 1200.0
@@ -102,6 +106,10 @@ expand_mode = 1
 script = ExtResource("15_interaction_hints")
 
 [node name="PokerHandShowcase" parent="." unique_id=1321110329 instance=ExtResource("16_hand_showcase")]
+
+[node name="PokerQuickBar" parent="." instance=ExtResource("18_quick_bar")]
+
+[node name="PokerWelcomeDialog" parent="." instance=ExtResource("19_welcome")]
 
 [node name="CollectionProgressDialog" parent="." unique_id=1184599284 instance=ExtResource("17_collection_progress_dialog")]
 

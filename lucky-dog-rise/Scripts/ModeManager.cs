@@ -10,6 +10,8 @@ namespace LuckyDogRise;
 public partial class ModeManager : Control
 {
     [Export] private ColorRect _playPanelDismissOverlay = null!;
+    private PokerWelcomeProgress _pokerWelcomeProgress = null!;
+    private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
 #if DEBUG
     private const int DeveloperLauncherWindowWidth = 620;
@@ -468,6 +470,14 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
+        bool sessionOnlyPokerWelcome = startInSteamMock;
+        bool sessionOnlyPokerQuickBar = startInSteamMock;
+#if DEBUG
+        sessionOnlyPokerWelcome |= SettingsManager.LoadRepeatPokerWelcomeOnStartup();
+        sessionOnlyPokerQuickBar |= SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup();
+#endif
+        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
+        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyPokerQuickBar);
         var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
@@ -477,6 +487,18 @@ public partial class ModeManager : Control
         _gameData.StartInSteamMockSimulation = startInSteamMock;
 #endif
         AddChild(_gameData);
+        if (!startInSteamMock && _gameData.IsUsingLocalSave)
+        {
+            try
+            {
+                _pokerQuickBarProgress.MigrateLegacyGuidance(
+                    _gameData.LegacyNeedsPokerBasicsGuidance);
+            }
+            catch (Exception error)
+            {
+                GD.PushWarning($"[PokerQuickBar] Could not migrate legacy guidance: {error.Message}");
+            }
+        }
         _gameData.BindPlatformInventoryService(_platformService);
         if (BuildCapabilities.Achievements)
             _achievementSynchronizer = new PlatformAchievementSynchronizer(_platformService, _gameData.PlayerProgress);
@@ -564,6 +586,7 @@ public partial class ModeManager : Control
         _settingsPanel.GlobalMouseListeningDisabledChanged += OnGlobalMouseListeningDisabledChanged;
         _settingsPanel.SteamMockPanelVisibilityChanged += OnSteamMockPanelVisibilityChanged;
         _settingsPanel.DebugDemoExperienceResetRequested += OnDebugDemoExperienceResetRequested;
+        _settingsPanel.DebugPokerQuickBarDiscoveryResetRequested += OnDebugPokerQuickBarDiscoveryResetRequested;
         _steamMockPanelRequestedVisible = startInSteamMock;
         _settingsPanel.SetSteamMockPanelToggle(_steamMockPanelRequestedVisible);
 #endif
@@ -916,6 +939,7 @@ public partial class ModeManager : Control
         UpdateRoomJoinNotice(_);
         UpdateRoomChatBlindBoxDelay(_);
 #endif
+        UpdatePokerQuickBarPointer(_);
         UpdatePokerViewportRendering(_);
         UpdateEnhancedTopmost(_);
         UpdateDesktopActivityState(_);
@@ -978,10 +1002,12 @@ public partial class ModeManager : Control
         if (what == NotificationApplicationFocusIn)
             (_platformService as IRecoverablePlatformService)?.RequestReconnect();
 
+        if (what == NotificationWMWindowFocusOut && (_potentialDrag || _isDragging
 #if !DEMO_BUILD && !RECORDING_BUILD
-        if (what == NotificationWMWindowFocusOut && _roomWindowActive)
-            CancelWindowDrag();
+            || _roomWindowActive
 #endif
+            ))
+            CancelWindowDrag();
 
         if (what == NotificationWMWindowFocusOut && _settingsPanel != null && _settingsPanel.IsOpen
 #if !DEMO_BUILD && !RECORDING_BUILD
@@ -1104,6 +1130,12 @@ public partial class ModeManager : Control
             _gameManager.InsufficientBetAttempted += _infoPanel.FlashInsufficientBet;
             // 赔率表提示在 InfoPanel（SubViewport 之外），只能由外层转发教学引导图的显隐。
             _gameManager.TutorialOverlayVisibilityChanged += _infoPanel.SetOddsTableGuideVisible;
+            _gameManager.PokerHandShowcaseVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.DesktopModeRequested += SwitchToBossKey;
+            _gameManager.PokerWelcomeConfirmed += OnPokerWelcomeConfirmed;
+            _gameManager.PokerWelcomeVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.PokerQuickBarFunctionActivated += OnPokerQuickBarFunctionActivated;
+            _gameManager.SetPokerQuickBarUsed(_pokerQuickBarProgress.HasUsedFunction);
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
             // InfoPanel 绑定 GameData
@@ -1132,6 +1164,7 @@ public partial class ModeManager : Control
 #endif
         ResetPokerViewportRendering();
         AudioManager.Instance.SetBgmPaused(false);
+        _gameManager.RequestPokerWelcome(!_pokerWelcomeProgress.IsAcknowledged);
         _gameManager.SetInteractionHintPokerModeActive(true);
         RefreshSettingsPanelModeActions();
     }
@@ -1208,6 +1241,14 @@ public partial class ModeManager : Control
     {
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
+        if (_gameManager != null)
+        {
+            _gameManager.PokerHandShowcaseVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.DesktopModeRequested -= SwitchToBossKey;
+            _gameManager.PokerWelcomeConfirmed -= OnPokerWelcomeConfirmed;
+            _gameManager.PokerWelcomeVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
+            _gameManager.PokerQuickBarFunctionActivated -= OnPokerQuickBarFunctionActivated;
+        }
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
         DisposePlatformService();
@@ -1630,7 +1671,8 @@ public partial class ModeManager : Control
     private void OnBlindBoxRewardClaimedForCollectionEvent(
         int blindBoxId,
         int itemId,
-        bool firstOwnership)
+        bool firstOwnership,
+        int completedSequenceStep)
     {
         var completedCollection = _settingsPanel?.DidBlindBoxRewardCompleteCollectionEvent(
             blindBoxId,
@@ -1641,10 +1683,12 @@ public partial class ModeManager : Control
                 itemId,
                 firstOwnership) == true;
 
-        // Preserve the existing first-dog notice if both conditions ever coincide.
+        // A coinciding first-dog notice already leads to the collection page.
         if (queuedFirstDogProgress)
             PresentFirstDogProgress();
-        else if (completedCollection)
+        else if (completedCollection
+                 || _settingsPanel?.ShouldShowCollectionEventProgressReminder(
+                     blindBoxId, completedSequenceStep) == true)
             OpenCollectionProgressPage();
     }
 
@@ -2608,9 +2652,18 @@ public partial class ModeManager : Control
         if (!_gameData.ResetDemoExperienceForDebug())
             return;
 
+        OnDebugPokerQuickBarDiscoveryResetRequested();
+
         RefreshBossBlindBoxHint();
         _infoPanel?.RefreshBlindBoxButton();
         GD.Print("[DemoDebug] Demo experience reset completed.");
+    }
+
+    private void OnDebugPokerQuickBarDiscoveryResetRequested()
+    {
+        _pokerQuickBarProgress.Reset(allowPersistence: _gameData.IsUsingLocalSave
+            && !_gameData.IsBlindBoxLocalTestMode && !_gameData.IsSteamMockSimulationActive);
+        _gameManager?.SetPokerQuickBarUsed(false);
     }
 #endif
 
@@ -2654,6 +2707,61 @@ public partial class ModeManager : Control
                  && _gameData.PendingBlindBoxReward != null)
             _gameManager?.ShowPendingBlindBoxReward(_gameData.PendingBlindBoxReward);
     }
+
+    private void OnPokerHandShowcaseVisibilityChanged(bool visible)
+    {
+        if (visible)
+            CancelWindowDrag();
+    }
+
+    private void UpdatePokerQuickBarPointer(double delta)
+    {
+        if (_gameManager == null || _playViewport == null) return;
+        var screenPosition = DisplayServer.MouseGetPosition();
+        bool overPoker = CurrentMode != Mode.BossKey && !_hiddenByFullscreenApp
+            && GetPlayGameScreenRect().HasPoint(screenPosition)
+            && GetViewport().GuiGetHoveredControl() == _playViewport;
+        _gameManager.UpdateQuickBarPointer(overPoker, ToPokerViewportPosition(screenPosition),
+            _potentialDrag || _isDragging, Input.IsMouseButtonPressed(MouseButton.Left), delta);
+    }
+
+    private void OnPokerQuickBarFunctionActivated()
+    {
+        if (_pokerQuickBarProgress.HasUsedFunction) return;
+#if DEBUG
+        // The bar has already changed in memory. Do not consume the account's first use in a sandbox.
+        if (!_gameData.IsUsingLocalSave || _gameData.IsBlindBoxLocalTestMode || _gameData.IsSteamMockSimulationActive) return;
+#endif
+        try
+        {
+            _pokerQuickBarProgress.RecordUse();
+        }
+        catch (Exception error)
+        {
+            // Keep the reduced hot zone for this session; a later action can retry saving.
+            GD.PushWarning($"[PokerQuickBar] Could not save first use: {error.Message}");
+        }
+    }
+
+    private void OnPokerWelcomeConfirmed()
+    {
+        bool allowPersistence = true;
+#if DEBUG
+        allowPersistence = !_gameData.IsBlindBoxLocalTestMode && !_gameData.IsSteamMockSimulationActive;
+#endif
+        try
+        {
+            _pokerWelcomeProgress.Acknowledge(allowPersistence);
+        }
+        catch (Exception error)
+        {
+            // Keep the acknowledgement unset so the next entry can retry saving it.
+            GD.PushWarning($"[PokerWelcome] Could not save acknowledgement: {error.Message}");
+        }
+    }
+
+    private Vector2 ToPokerViewportPosition(Vector2I screenPosition) =>
+        _playViewport.GetGlobalTransformWithCanvas().AffineInverse() * (Vector2)ScreenToWindowLocal(screenPosition);
 
     private void OnPaytableRequested()
     {
@@ -4002,6 +4110,7 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
+
         if (BuildInfo.IsRecording && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F4 })
         {
@@ -4016,6 +4125,35 @@ public partial class ModeManager : Control
             GetViewport().SetInputAsHandled();
             return;
         }
+
+        if (CurrentMode != Mode.BossKey && _gameManager?.IsPokerWelcomeVisible == true
+            && (@event is InputEventKey
+                || @event is InputEventMouseButton { ButtonIndex: MouseButton.Right }
+                    && GetPlayGameScreenRect().HasPoint(DisplayServer.MouseGetPosition())))
+        {
+            // Keep modal keyboard/right-click behavior; ordinary left-button dragging remains available.
+            CancelWindowDrag();
+            return;
+        }
+
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel
+            && CurrentMode != Mode.BossKey
+            && _gameManager?.IsPokerHandShowcaseVisible == true
+            && _playViewport != null
+            && GetViewport().GuiGetHoveredControl() == _playViewport)
+        {
+            // Route by current hover, not the SubViewport's previous mouse capture.
+            // A window drag can consume its release before the SubViewport receives it.
+            using var localWheel = (InputEventMouseButton)_playViewport.MakeInputLocal(wheel);
+            double steps = wheel.Pressed ? wheel.Factor * (wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1) : 0;
+            if (_gameManager.TryScrollPokerHandShowcase(localWheel.Position, steps))
+            {
+                // Handle both press and release; native GUI scrolling must not run a second time.
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
+
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
             && TryOpenSettingsFromDesktopDog(DisplayServer.MouseGetPosition()))
         {
@@ -4080,7 +4218,31 @@ public partial class ModeManager : Control
             {
                 var mouseScreenPosition = DisplayServer.MouseGetPosition();
                 var localPos = ScreenToWindowLocal(mouseScreenPosition);
+                if (CurrentMode != Mode.BossKey
+                    && _gameManager?.IsPokerHandShowcaseVisible == true
+                    && GetPlayGameScreenRect().HasPoint(mouseScreenPosition))
+                {
+                    // Leave the entire press/move/release gesture to the help UI in the SubViewport.
+                    // Arming window drag here would later swallow the scrollbar's release event.
+                    CancelWindowDrag();
+                    return;
+                }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
+                if (CurrentMode != Mode.BossKey && _playViewport != null
+                    && _gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                {
+                    // A gesture that starts on the action belongs to the button, even after moving outside.
+                    CancelWindowDrag();
+                    return;
+                }
+                if (CurrentMode != Mode.BossKey && _playViewport != null
+                    && GetViewport().GuiGetHoveredControl() == _playViewport
+                    && _gameManager?.IsPointOverQuickBar(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                {
+                    // 顶部热区及按钮的完整鼠标手势交给 UI，不能启动拖窗。
+                    CancelWindowDrag();
+                    return;
+                }
 #if DEBUG
                 if (_steamMockPanel != null && _steamMockPanel.ContainsPoint(localPos)) return;
 #endif

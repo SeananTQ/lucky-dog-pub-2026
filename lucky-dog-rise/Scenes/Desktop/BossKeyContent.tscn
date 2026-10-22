@@ -86,7 +86,7 @@ alignment = 1
 [node name="ModeSwitch" type="Button" parent="CanvasLayer/Panel/HBoxContainer" unique_id=1908140136]
 custom_minimum_size = Vector2(28, 22)
 layout_mode = 2
-tooltip_text = "切换到游玩模式"
+tooltip_text = "Common_Play"
 focus_mode = 0
 theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
 theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
@@ -118,7 +118,7 @@ text_overrun_behavior = 3
 [node name="SystemButton" type="Button" parent="CanvasLayer/Panel/HBoxContainer" unique_id=293346023]
 custom_minimum_size = Vector2(28, 22)
 layout_mode = 2
-tooltip_text = "系统功能"
+tooltip_text = "InfoPanel_Menu"
 focus_mode = 0
 theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
 theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)

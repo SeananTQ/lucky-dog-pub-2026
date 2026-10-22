@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scenes/Dev/Tests/PokerWelcomePreview.cs" id="1_preview"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerWelcomeDialog.tscn" id="2_welcome"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerQuickBar.tscn" id="3_bar"]
+[ext_resource type="Texture2D" path="res://Assets/v1/Background/GreenB.png" id="4_background"]
+
+[node name="PokerWelcomePreview" type="Control" unique_id=70909775 node_paths=PackedStringArray("_welcome", "_bar")]
+offset_right = 1200.0
+offset_bottom = 1200.0
+mouse_filter = 2
+script = ExtResource("1_preview")
+_welcome = NodePath("PokerWelcomeDialog")
+_bar = NodePath("PokerQuickBar")
+
+[node name="Background" type="TextureRect" parent="."]
+offset_right = 1200.0
+offset_bottom = 1200.0
+mouse_filter = 2
+texture = ExtResource("4_background")
+expand_mode = 1
+
+[node name="PokerQuickBar" parent="." instance=ExtResource("3_bar")]
+
+[node name="PokerWelcomeDialog" parent="." instance=ExtResource("2_welcome")]

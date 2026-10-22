@@ -12,6 +12,8 @@ namespace LuckyDogRise;
 public sealed class AccountStateManager
 {
     private const string SectionTutorialProgress = "tutorial_progress";
+    private const string PokerWelcomeAcknowledgedKey = "poker_welcome_acknowledged";
+    private const string PokerQuickBarUsedKey = "poker_quick_bar_used";
 
     public const int InitialMeetingTutorialId = 1001;
 
@@ -27,6 +29,40 @@ public sealed class AccountStateManager
         NotStarted = 0,
         Shown = 1,
         Completed = 2,
+    }
+
+    // Missing means unacknowledged for both new and existing accounts. Never infer from gameplay.
+    public bool LoadPokerWelcomeAcknowledged() =>
+        (bool)Load().GetValue(SectionTutorialProgress, PokerWelcomeAcknowledgedKey, false);
+
+    public void SavePokerWelcomeAcknowledged()
+    {
+        var config = Load();
+        config.SetValue(SectionTutorialProgress, PokerWelcomeAcknowledgedKey, true);
+        Save(config);
+    }
+
+    public bool LoadPokerQuickBarUsed() =>
+        (bool)Load().GetValue(SectionTutorialProgress, PokerQuickBarUsedKey, false);
+
+    public bool LoadOrMigratePokerQuickBarUsed(bool legacyNeedsPokerBasicsGuidance)
+    {
+        var config = Load();
+        if (config.HasSectionKey(SectionTutorialProgress, PokerQuickBarUsedKey))
+            return (bool)config.GetValue(SectionTutorialProgress, PokerQuickBarUsedKey);
+
+        // Preserve old completion, not the retired machine-level guide toggle.
+        bool used = !legacyNeedsPokerBasicsGuidance;
+        config.SetValue(SectionTutorialProgress, PokerQuickBarUsedKey, used);
+        Save(config);
+        return used;
+    }
+
+    public void SavePokerQuickBarUsed(bool used = true)
+    {
+        var config = Load();
+        config.SetValue(SectionTutorialProgress, PokerQuickBarUsedKey, used);
+        Save(config);
     }
 
     public TutorialStepState LoadTutorialStepState(int tutorialId)

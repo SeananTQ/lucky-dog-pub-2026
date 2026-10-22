@@ -495,6 +495,133 @@ bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 
+[sub_resource type="SystemFont" id="SystemFont_help_fallback"]
+font_names = PackedStringArray("Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "Arial")
+font_weight = 700
+
+[sub_resource type="FontVariation" id="FontVariation_help_bold"]
+fallbacks = Array[Font]([ExtResource("2_wn4m6"), SubResource("SystemFont_help_fallback")])
+base_font = ExtResource("4_inter_bold")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_close"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0, 0.78039217, 0.40392157, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_close_hover"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.02, 0.86, 0.46, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_close_pressed"]
+content_margin_left = 16.0
+content_margin_top = 18.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+bg_color = Color(0.025, 0.255, 0.13, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_header"]
+content_margin_top = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.6039216, 0.70980394, 0.7411765, 1)
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_top = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_legend"]
+content_margin_left = 24.0
+content_margin_top = 24.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_panel"]
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.60446244, 0.7101088, 0.7392709, 1)
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_help_separator"]
+color = Color(0.27450982, 0.3529412, 0.37254903, 1)
+thickness = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_suit_marker"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_button"]
+content_margin_left = 16.0
+content_margin_top = 4.0
+content_margin_right = 16.0
+content_margin_bottom = 4.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_hover"]
+content_margin_left = 16.0
+content_margin_top = 4.0
+content_margin_right = 16.0
+content_margin_bottom = 4.0
+bg_color = Color(0.10980392, 0.27450982, 0.30980393, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar_pressed"]
+content_margin_left = 16.0
+content_margin_top = 4.0
+content_margin_right = 16.0
+content_margin_bottom = 4.0
+bg_color = Color(0.13725491, 0.34117648, 0.3882353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_poker_toolbar"]
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+bg_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
+
+[sub_resource type="Gradient" id="Gradient_poker_toolbar_shadow"]
+colors = PackedColorArray(0, 0, 0, 0.3, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_poker_toolbar_shadow"]
+gradient = SubResource("Gradient_poker_toolbar_shadow")
+width = 1
+height = 8
+fill_to = Vector2(0, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_poker_toolbar_shadow"]
+texture = SubResource("GradientTexture2D_poker_toolbar_shadow")
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_hover"]
 content_margin_left = 4.0
 content_margin_top = 2.0
@@ -885,6 +1012,89 @@ PanelTopTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selec
 PanelTopTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
 PanelTopTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
 PanelTopTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_pressed")
+PokerHelpBodyLabel/base_type = &"Label"
+PokerHelpBodyLabel/colors/font_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerHelpBodyLabel/constants/line_spacing = 6
+PokerHelpBodyLabel/constants/outline_size = 0
+PokerHelpBodyLabel/constants/shadow_offset_x = 0
+PokerHelpBodyLabel/constants/shadow_offset_y = 0
+PokerHelpBodyLabel/constants/shadow_outline_size = 0
+PokerHelpBodyLabel/font_sizes/font_size = 36
+PokerHelpBodyLabel/fonts/font = SubResource("FontVariation_help_bold")
+PokerHelpClose/base_type = &"PanelCloseButton"
+PokerHelpClose/constants/icon_max_width = 40
+PokerHelpClose/styles/disabled = SubResource("StyleBoxFlat_help_close")
+PokerHelpClose/styles/focus = SubResource("StyleBoxFlat_help_close_hover")
+PokerHelpClose/styles/hover = SubResource("StyleBoxFlat_help_close_hover")
+PokerHelpClose/styles/normal = SubResource("StyleBoxFlat_help_close")
+PokerHelpClose/styles/pressed = SubResource("StyleBoxFlat_help_close_pressed")
+PokerHelpHeaderSeparator/base_type = &"HSeparator"
+PokerHelpHeaderSeparator/constants/separation = 0
+PokerHelpHeaderSeparator/styles/separator = SubResource("StyleBoxFlat_help_header")
+PokerHelpHeading/base_type = &"PokerHelpBodyLabel"
+PokerHelpHeading/colors/font_color = Color(0.6627451, 0.8352941, 0.85882354, 1)
+PokerHelpHeading/font_sizes/font_size = 36
+PokerHelpHeading/fonts/font = SubResource("FontVariation_help_bold")
+PokerHelpLegend/base_type = &"PanelContainer"
+PokerHelpLegend/styles/panel = SubResource("StyleBoxFlat_help_legend")
+PokerHelpPanel/base_type = &"Panel"
+PokerHelpPanel/styles/panel = SubResource("StyleBoxFlat_help_panel")
+PokerHelpRankLabel/base_type = &"PokerHelpHeading"
+PokerHelpRankLabel/font_sizes/font_size = 36
+PokerHelpSeparator/base_type = &"HSeparator"
+PokerHelpSeparator/styles/separator = SubResource("StyleBoxLine_help_separator")
+PokerHelpSuitMarker/base_type = &"PanelContainer"
+PokerHelpSuitMarker/styles/panel = SubResource("StyleBoxFlat_help_suit_marker")
+PokerHelpTab/base_type = &"PanelTopTab"
+PokerHelpTab/font_sizes/font_size = 36
+PokerHelpTab/fonts/font = SubResource("FontVariation_help_bold")
+PokerHelpTab/styles/hover_pressed = SubResource("StyleBoxFlat_panel_top_tab_hover")
+PokerHelpTabSelected/base_type = &"PokerHelpTab"
+PokerHelpTabSelected/colors/font_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_focus_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_hover_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_hover_pressed_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/colors/font_pressed_color = Color(0.05882353, 0.14117648, 0.21960784, 1)
+PokerHelpTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/hover_pressed = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerHelpTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected")
+PokerToolbarButton/base_type = &"Button"
+PokerToolbarButton/colors/font_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/colors/font_hover_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/colors/font_pressed_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
+PokerToolbarButton/constants/h_separation = 12
+PokerToolbarButton/constants/icon_max_width = 48
+PokerToolbarButton/font_sizes/font_size = 36
+PokerToolbarButton/fonts/font = SubResource("FontVariation_help_bold")
+PokerToolbarButton/styles/disabled = SubResource("StyleBoxFlat_poker_toolbar_button")
+PokerToolbarButton/styles/focus = SubResource("StyleBoxFlat_poker_toolbar_hover")
+PokerToolbarButton/styles/hover = SubResource("StyleBoxFlat_poker_toolbar_hover")
+PokerToolbarButton/styles/hover_pressed = SubResource("StyleBoxFlat_poker_toolbar_pressed")
+PokerToolbarButton/styles/normal = SubResource("StyleBoxFlat_poker_toolbar_button")
+PokerToolbarButton/styles/pressed = SubResource("StyleBoxFlat_poker_toolbar_pressed")
+PokerToolbarButtons/base_type = &"HBoxContainer"
+PokerToolbarButtons/constants/separation = 8
+PokerToolbarPanel/base_type = &"PanelContainer"
+PokerToolbarPanel/styles/panel = SubResource("StyleBoxFlat_poker_toolbar")
+PokerToolbarShadow/base_type = &"Panel"
+PokerToolbarShadow/styles/panel = SubResource("StyleBoxTexture_poker_toolbar_shadow")
+PokerWelcomeBody/base_type = &"PokerHelpBodyLabel"
+PokerWelcomeBody/constants/line_spacing = 3
+PokerWelcomeBody/font_sizes/font_size = 18
+PokerWelcomeConfirm/base_type = &"Button"
+PokerWelcomeConfirm/fonts/font = SubResource("FontVariation_help_bold")
+PokerWelcomeContent/base_type = &"VBoxContainer"
+PokerWelcomeContent/constants/separation = 14
+PokerWelcomeMargin/base_type = &"MarginContainer"
+PokerWelcomeMargin/constants/margin_bottom = 8
+PokerWelcomeMargin/constants/margin_left = 8
+PokerWelcomeMargin/constants/margin_right = 8
+PokerWelcomeMargin/constants/margin_top = 8
+PokerWelcomeTitle/base_type = &"PokerHelpHeading"
+PokerWelcomeTitle/constants/line_spacing = 3
+PokerWelcomeTitle/font_sizes/font_size = 20
 PopupMenu/colors/font_color = Color(1, 1, 1, 1)
 PopupMenu/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 PopupMenu/colors/font_hover_color = Color(1, 1, 1, 1)

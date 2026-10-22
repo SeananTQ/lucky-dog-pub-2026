@@ -9,7 +9,7 @@
     "CostChips": 1000,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": true
@@ -24,7 +24,7 @@
     "CostChips": 1000,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": true
@@ -39,7 +39,7 @@
     "CostChips": 1000,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": false,
     "IsEnabled": true
@@ -51,10 +51,10 @@
     "BoxType": 1,
     "RewardSelectionMode": 2,
     "DisplayMode": 1,
-    "CostChips": 1000,
+    "CostChips": 100,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": false,
     "IsEnabled": true
@@ -66,10 +66,10 @@
     "BoxType": 1,
     "RewardSelectionMode": 2,
     "DisplayMode": 1,
-    "CostChips": 1000,
+    "CostChips": 100,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": false,
     "IsEnabled": true
@@ -84,7 +84,7 @@
     "CostChips": 0,
     "HintValueMode": 2,
     "MaxRevealClickCount": 0,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": false
@@ -99,7 +99,7 @@
     "CostChips": 0,
     "HintValueMode": 2,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common_Ticket.png",
     "IsPlatformInventoryRequired": true,
     "IsEnabled": false
@@ -114,7 +114,7 @@
     "CostChips": 1000,
     "HintValueMode": 1,
     "MaxRevealClickCount": 3,
-    "AutoCollectSeconds": 3,
+    "AutoCollectSeconds": 5,
     "HintIconPath": "UI\\BlindBox\\HintIcon_Common.png",
     "IsPlatformInventoryRequired": false,
     "IsEnabled": true

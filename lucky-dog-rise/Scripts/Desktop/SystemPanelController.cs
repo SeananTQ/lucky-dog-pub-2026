@@ -21,6 +21,7 @@ public partial class SystemPanelController : CanvasLayer
     [Signal] public delegate void GlobalMouseListeningDisabledChangedEventHandler(bool disabled);
     [Signal] public delegate void SteamMockPanelVisibilityChangedEventHandler(bool visible);
     [Signal] public delegate void DebugDemoExperienceResetRequestedEventHandler();
+    [Signal] public delegate void DebugPokerQuickBarDiscoveryResetRequestedEventHandler();
 #endif
     [Signal] public delegate void SwitchToPlayRequestedEventHandler();
     [Signal] public delegate void SwitchToBossKeyRequestedEventHandler();
@@ -52,7 +53,6 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private PackedScene _linkTreeBannerScene = null!;
 
     public bool IsOpen => _panel.Visible;
-    public TutorialManager TutorialActivityTarget { private get; set; }
     public Rect2 PanelRect => new(_panel.Position, PanelSize);
 
     public float TopActionAreaHeight
@@ -136,6 +136,9 @@ public partial class SystemPanelController : CanvasLayer
     private Tween _collectionEventRewardScrollTween;
     private bool _collectionEventRewardClaimInProgress;
     private bool _collectionEventCelebrationTestInProgress;
+    private const int CollectionEventReminderSequenceStep = 6;
+    private const double CollectionEventRecentVisitSeconds = 60.0;
+    private double _collectionEventLastVisitEndedAtSeconds = double.NegativeInfinity;
     private WishlistCallToActionOverlayController _wishlistCallToActionOverlay = null!;
     private WishlistCallToActionReason _wishlistCallToActionReason;
     private VBoxContainer _outfitPresetContent = null!;
@@ -187,7 +190,6 @@ public partial class SystemPanelController : CanvasLayer
     private OptionButton _saveDataModeOption = null!;
 #endif
     private CheckButton _blindBoxBubbleToggle = null!;
-    private CheckButton _pokerGuideOverlayToggle = null!;
     private CheckButton _quickStartAfterWinToggle = null!;
     private CheckButton _autoEquipToggle = null!;
     private CheckButton _taskbarSnapToggle = null!;
@@ -224,6 +226,8 @@ public partial class SystemPanelController : CanvasLayer
     private DebugResetConfirmation _resetConfirmation = DebugResetConfirmation.Save;
     private bool _steamMockActive;
     private CheckButton _showDeveloperLauncherNextStartupToggle = null!;
+    private CheckButton _repeatPokerWelcomeOnStartupToggle = null!;
+    private CheckButton _repeatPokerQuickBarDiscoveryOnStartupToggle = null!;
     private CheckButton _wishlistPageOpenedDebugToggle = null!;
 #endif
 
@@ -266,9 +270,6 @@ public partial class SystemPanelController : CanvasLayer
             }
 
             _gameData = value;
-            SettingsManager.InitializePokerGuideOverlaySetting(_gameData.NeedsPokerBasicsGuidance);
-            _pokerGuideOverlayToggle?.SetPressedNoSignal(
-                SettingsManager.LoadPokerGuideOverlayEnabled());
             _gameData.EquipmentChanged += RefreshWardrobeGrid;
             _gameData.InventoryChanged += RefreshWardrobeGrid;
             _gameData.RefreshmentStateChanged += RefreshWardrobeGrid;
@@ -406,7 +407,6 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Ready()
     {
-        BindTutorialPopupActivity(this);
         _panel = GetNode<PanelContainer>("Panel");
         _panelScroll = GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
 
@@ -579,10 +579,6 @@ public partial class SystemPanelController : CanvasLayer
         _quickStartAfterWinToggle.ButtonPressed = SettingsManager.LoadQuickStartAfterWin();
         _quickStartAfterWinToggle.Toggled += SettingsManager.SaveQuickStartAfterWin;
 
-        _pokerGuideOverlayToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerGuideOverlayRow/PokerGuideOverlayToggle");
-        _pokerGuideOverlayToggle.ButtonPressed = SettingsManager.LoadPokerGuideOverlayEnabled();
-        _pokerGuideOverlayToggle.Toggled += SettingsManager.SavePokerGuideOverlayEnabled;
-        SettingsManager.PokerGuideOverlayEnabledChanged += OnPokerGuideOverlayEnabledChanged;
 
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
@@ -671,10 +667,12 @@ public partial class SystemPanelController : CanvasLayer
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         _showDeveloperLauncherNextStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow/DeveloperLauncherToggle");
+        _repeatPokerWelcomeOnStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow/PokerWelcomeReplayToggle");
+        _repeatPokerQuickBarDiscoveryOnStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow/PokerQuickBarReplayToggle");
         _wishlistPageOpenedDebugToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow/WishlistPageOpenedDebugToggle");
         var wishlistPageOpenedDebugRow = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
-        var markPokerBeginnerBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/MarkPokerBeginnerBtn");
+        var resetPokerQuickBarDiscoveryBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetPokerQuickBarDiscoveryBtn");
         var resetSaveBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSaveBtn");
         GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/OpenSaveParentFolderBtn")
             .Pressed += OpenSaveParentFolder;
@@ -701,6 +699,10 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
         _showDeveloperLauncherNextStartupToggle.Toggled += SettingsManager.SaveShowDeveloperLauncherOnStartup;
+        _repeatPokerWelcomeOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerWelcomeOnStartup());
+        _repeatPokerWelcomeOnStartupToggle.Toggled += SettingsManager.SaveRepeatPokerWelcomeOnStartup;
+        _repeatPokerQuickBarDiscoveryOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
+        _repeatPokerQuickBarDiscoveryOnStartupToggle.Toggled += SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup;
         wishlistPageOpenedDebugRow.Visible = BuildCapabilities.CollectionEvents;
         _wishlistPageOpenedDebugToggle.Toggled += opened =>
             _gameData?.SetWishlistCallToActionPageOpened(opened);
@@ -709,7 +711,7 @@ public partial class SystemPanelController : CanvasLayer
         _disableGlobalMouseListeningToggle.Toggled += disabled =>
             EmitSignal(SignalName.GlobalMouseListeningDisabledChanged, disabled);
         resetSettingsBtn.Pressed += ResetSettingsToDefaults;
-        markPokerBeginnerBtn.Pressed += () => _gameData.MarkPokerBasicsGuidanceNeededForDebug();
+        resetPokerQuickBarDiscoveryBtn.Pressed += () => EmitSignal(SignalName.DebugPokerQuickBarDiscoveryResetRequested);
         _resetSaveConfirm = GetNode<ConfirmOverlayController>("ResetSaveConfirm");
         resetSaveBtn.Pressed += ConfirmResetSave;
         _resetSaveConfirm.Confirmed += OnResetConfirmed;
@@ -858,7 +860,6 @@ public partial class SystemPanelController : CanvasLayer
     {
         ResetPanelScrollDrag();
         L10n.Changed -= RefreshLocalizedOptionText;
-        SettingsManager.PokerGuideOverlayEnabledChanged -= OnPokerGuideOverlayEnabledChanged;
         if (_collectionEventContent != null)
         {
             _collectionEventContent.RewardsRevealed -= OnCollectionEventRewardsRevealed;
@@ -911,7 +912,6 @@ public partial class SystemPanelController : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
-        TrackTutorialInterfaceActivity(@event);
         if (!_panel.Visible || _wishlistCallToActionOverlay?.Visible == true
 #if !DEMO_BUILD && !RECORDING_BUILD
             || HasRoomModal
@@ -953,35 +953,6 @@ public partial class SystemPanelController : CanvasLayer
 
         _panelScroll.ScrollVertical = _panelScrollDragStartValue - Mathf.RoundToInt(delta.Y);
         GetViewport().SetInputAsHandled();
-    }
-
-    private void BindTutorialPopupActivity(Node node)
-    {
-        // PopupMenu is a separate Viewport; its input does not reach this _Input.
-        if (node is OptionButton option)
-            option.GetPopup().WindowInput += input => TrackTutorialInterfaceActivity(input, true);
-        foreach (var child in node.GetChildren())
-            BindTutorialPopupActivity(child);
-    }
-
-    private void TrackTutorialInterfaceActivity(InputEvent input, bool fromPopup = false)
-    {
-        // No hit tests, focus queries or settings reads once beginner guidance ends.
-        if (TutorialActivityTarget?.NeedsInterfaceActivity != true || !IsOpen)
-            return;
-
-        bool activity = input switch
-        {
-            InputEventMouseButton mouse => mouse.Pressed && (fromPopup || ContainsPoint(mouse.Position)),
-            InputEventMouseMotion motion => motion.ButtonMask != 0
-                && motion.Relative != Vector2.Zero && (fromPopup || ContainsPoint(motion.Position)),
-            InputEventKey key => key.Pressed && (fromPopup
-                || (GetViewport().GuiGetFocusOwner() is Control focus
-                    && focus.IsVisibleInTree() && IsAncestorOf(focus))),
-            _ => false,
-        };
-        if (activity)
-            TutorialActivityTarget.NotifyInterfaceActivity();
     }
 
     private void BeginPanelScrollDrag(Vector2 mousePosition)
@@ -1056,6 +1027,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SwitchTab(int index)
     {
+        RememberCollectionEventVisit();
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (index == _roomTabIndex) EnsureRoomPreview();
         else
@@ -1151,7 +1123,6 @@ public partial class SystemPanelController : CanvasLayer
             if (_roomContent.IsVisibleInTree()) _panelScroll.ScrollVertical = 0;
         };
         _roomContent.AddChild(_roomPreview);
-        BindTutorialPopupActivity(_roomPreview);
         ApplyPopupRenderQuality(_roomPreview);
         ApplyPopupRenderQuality(_roomKickConfirm);
         ApplyPopupRenderQuality(_roomGameProposal);
@@ -1351,7 +1322,6 @@ public partial class SystemPanelController : CanvasLayer
         if (!BuildCapabilities.CollectionEvents
             || !firstOwnership
             || _gameData == null
-            || _gameData.WishlistCallToActionPageOpened
             || !_collectionEventContent.ContainsBlindBox(blindBoxId)
             || !_collectionEventContent.ContainsRewardItem(itemId)
             || LubanData.Tables.TbItem.GetOrDefault(itemId)?.ItemType != EItemType.Dog)
@@ -1376,9 +1346,25 @@ public partial class SystemPanelController : CanvasLayer
     public bool HasPendingCollectionEventFirstDogCallToAction() =>
         BuildCapabilities.CollectionEvents
         && _gameData != null
-        && !_gameData.WishlistCallToActionPageOpened
         && _gameData.GetPendingCollectionEventFirstDogItemId(
             _collectionEventContent.EventId) > 0;
+
+    public bool ShouldShowCollectionEventProgressReminder(int blindBoxId, int completedSequenceStep) =>
+        BuildCapabilities.CollectionEvents
+        && completedSequenceStep == CollectionEventReminderSequenceStep
+        && _gameData != null
+        && _collectionEventContent.ContainsBlindBox(blindBoxId)
+        && !_gameData.IsCollectionEventVictoryRewardClaimed(_collectionEventContent.EventId)
+        && !HasPendingCollectionEventFirstDogCallToAction()
+        && !(IsOpen && _collectionEventContent.Visible)
+        && Time.GetTicksMsec() / 1000.0 - _collectionEventLastVisitEndedAtSeconds
+            >= CollectionEventRecentVisitSeconds;
+
+    private void RememberCollectionEventVisit()
+    {
+        if (IsOpen && _collectionEventContent.Visible)
+            _collectionEventLastVisitEndedAtSeconds = Time.GetTicksMsec() / 1000.0;
+    }
 
     public void ShowCollectionEventPage()
     {
@@ -3250,6 +3236,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void Close()
     {
+        RememberCollectionEventVisit();
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
@@ -3279,6 +3266,7 @@ public partial class SystemPanelController : CanvasLayer
 
     public void CloseImmediate()
     {
+        RememberCollectionEventVisit();
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
@@ -3668,6 +3656,8 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var (button, tab) in _filterTabs)
             button.TooltipText = GetWardrobeTabTooltip(tab);
+        foreach (var entry in _linkTreeRewardEntries)
+            entry.Banner.TooltipText = ResolveLinkTreeTooltip(entry.Data);
         if (_outfitPresetTab != null)
             _outfitPresetTab.TooltipText = L10n.Tr(L10nKey.Settings_Tab_OutfitPresets);
         if (_outfitPresetContent?.Visible == true)
@@ -4073,7 +4063,6 @@ public partial class SystemPanelController : CanvasLayer
             .SetPressedNoSignal(SettingsManager.LoadEnhancedTopmostMode());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ProactiveInteractionHintsRow/ProactiveInteractionHintsToggle")
             .SetPressedNoSignal(SettingsManager.LoadProactiveInteractionHints());
-        _pokerGuideOverlayToggle.SetPressedNoSignal(SettingsManager.LoadPokerGuideOverlayEnabled());
         _quickStartAfterWinToggle.SetPressedNoSignal(SettingsManager.LoadQuickStartAfterWin());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
@@ -4103,13 +4092,10 @@ public partial class SystemPanelController : CanvasLayer
             : (int)SettingsManager.LoadSaveDataMode());
         _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
+        _repeatPokerWelcomeOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerWelcomeOnStartup());
+        _repeatPokerQuickBarDiscoveryOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
 #endif
         RefreshLocalizedOptionText();
-    }
-
-    private void OnPokerGuideOverlayEnabledChanged(bool enabled)
-    {
-        _pokerGuideOverlayToggle?.SetPressedNoSignal(enabled);
     }
 
     private void RefreshAudioControlsFromStorage()

@@ -2,7 +2,8 @@
     "ignore_files": [
         "__beans__.xlsx",
         "__tables__.xlsx",
-        "新建 XLSX 工作表.xlsx"
+        "新建 XLSX 工作表.xlsx",
+        "Items_Demo_copy.xlsx"
     ],
     "ignore_sheets": []
 }
