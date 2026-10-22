@@ -358,9 +358,8 @@ public class PlayerInventory
 
     /// <summary>
     /// 将新获得的道具加入背包。
-    /// 自动装备只作用于首次拥有的非初始道具：可空槽位必须为空；不可空槽位则允许替换
-    /// EquipmentSlotConfig 中配置的基础物品。这样基础牌桌、背景等仍是实际道具，
-    /// 但不会阻止玩家的第一件同类收藏品带来外观变化。
+    /// 只有首次拥有且要求提示的道具才新增 New；重复获得保留原有 New 状态。
+    /// 开启自动装备时，首次获得的非初始装扮会替换同槽位装备，并保留 New 提示。
     /// </summary>
     public void AddItem(int itemId, int count = 1, bool markNew = true, bool autoEquipNewOutfit = true)
     {
@@ -369,12 +368,13 @@ public class PlayerInventory
             return;
 
         var wasOwned = Owns(itemId);
+        var newlyAcquired = markNew && !wasOwned;
         _ownedItemCounts[itemId] = GetCount(itemId) + count;
-        if (markNew)
+        if (newlyAcquired)
             _newItemIds.Add(itemId);
 
         var equipmentChanged = autoEquipNewOutfit
-            && !wasOwned
+            && newlyAcquired
             && item.AcquisitionType != EAcquisitionType.Initial
             && EquipNewlyAcquiredItem(item);
         if (equipmentChanged)
@@ -526,20 +526,10 @@ public class PlayerInventory
 
     private bool EquipNewlyAcquiredItem(Item item)
     {
-        var slot = GetEquipmentSlot(item.ItemType);
-        if (slot == null)
+        if (!IsEquipmentType(item.ItemType))
             return false;
 
-        if (!_equipped.TryGetValue(item.ItemType, out var equippedItemId))
-        {
-            _equipped[item.ItemType] = item.Id;
-            return true;
-        }
-
-        if (string.Equals(slot.CanUnequip, "True", StringComparison.OrdinalIgnoreCase)
-            || slot.DefaultItemId <= 0
-            || equippedItemId != slot.DefaultItemId
-            || item.Id == slot.DefaultItemId)
+        if (_equipped.TryGetValue(item.ItemType, out var equippedItemId) && equippedItemId == item.Id)
             return false;
 
         _equipped[item.ItemType] = item.Id;

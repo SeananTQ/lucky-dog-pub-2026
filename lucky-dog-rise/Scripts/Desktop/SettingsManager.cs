@@ -14,6 +14,8 @@ public static class SettingsManager
     // Use a new key because older builds consumed the one-shot value by writing
     // false. Debug now defaults to showing the launcher until explicitly disabled.
     private const string KeyShowDeveloperLauncherOnStartup = "show_developer_launcher_on_startup";
+    private const string KeyRepeatPokerWelcomeOnStartup = "repeat_poker_welcome_on_startup";
+    private const string KeyRepeatPokerQuickBarDiscoveryOnStartup = "repeat_poker_quick_bar_discovery_on_startup";
 #endif
     private const string KeyAudioEnabled = "enabled";
     private const string KeySfxVolume = "sfx_volume";
@@ -41,7 +43,6 @@ public static class SettingsManager
     private const string KeyOtherUiScaleStep = "other_ui_scale_step";
     private const string KeyAutoHideCounter = "auto_hide_counter";
     private const string KeyProactiveInteractionHints = "proactive_interaction_hints";
-    private const string KeyPokerGuideOverlayEnabled = "poker_guide_overlay_enabled";
     private const string LegacyKeyAvoidObscuringDogEyes = "avoid_obscuring_dog_eyes";
     private const string KeyRightClickQuickModeSwitch = "right_click_quick_mode_switch";
     private const string KeyPreventAccidentalDrag = "prevent_accidental_drag";
@@ -386,12 +387,6 @@ public static class SettingsManager
 
     public static event System.Action<bool> ProactiveInteractionHintsChanged;
 
-    public static bool LoadPokerGuideOverlayEnabled()
-    {
-        var config = Load();
-        return (bool)config.GetValue(SectionSystem, KeyPokerGuideOverlayEnabled, false);
-    }
-
     public const int DesktopPetScaleStepMin = 0;
     public const int DesktopPetScaleStepMax = 5;
     public const int DefaultDesktopPetScaleStep = 2;
@@ -401,30 +396,6 @@ public static class SettingsManager
     public const int DefaultOtherUiScaleStep = 1;
     private static readonly float[] OtherUiScaleFactors = [0.75f, 1f, 1.25f, 1.5f, 2f];
 
-    /// <summary>
-    /// 首次写入时由玩家存档决定默认值：新档开启，已有 V16 档关闭。
-    /// 一旦玩家主动改过设置，后续重置存档也不会覆盖其选择。
-    /// </summary>
-    public static void InitializePokerGuideOverlaySetting(bool enabledForNewPlayer)
-    {
-        var config = Load();
-        if (config.HasSectionKey(SectionSystem, KeyPokerGuideOverlayEnabled))
-            return;
-
-        config.SetValue(SectionSystem, KeyPokerGuideOverlayEnabled, enabledForNewPlayer);
-        config.Save(Path);
-        PokerGuideOverlayEnabledChanged?.Invoke(enabledForNewPlayer);
-    }
-
-    public static void SavePokerGuideOverlayEnabled(bool enabled)
-    {
-        var config = Load();
-        config.SetValue(SectionSystem, KeyPokerGuideOverlayEnabled, enabled);
-        config.Save(Path);
-        PokerGuideOverlayEnabledChanged?.Invoke(enabled);
-    }
-
-    public static event System.Action<bool> PokerGuideOverlayEnabledChanged;
 
     public static bool LoadRightClickQuickModeSwitch()
     {
@@ -565,6 +536,34 @@ public static class SettingsManager
         config.Save(Path);
     }
 
+    // Read once during startup: changing these preferences must not reset the
+    // current session or overwrite the account's real tutorial progress.
+    public static bool LoadRepeatPokerWelcomeOnStartup()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, false);
+    }
+
+    public static void SaveRepeatPokerWelcomeOnStartup(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, enabled);
+        config.Save(Path);
+    }
+
+    public static bool LoadRepeatPokerQuickBarDiscoveryOnStartup()
+    {
+        var config = Load();
+        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, false);
+    }
+
+    public static void SaveRepeatPokerQuickBarDiscoveryOnStartup(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, enabled);
+        config.Save(Path);
+    }
+
 #endif
 
     public static void ResetToDefaults()
@@ -575,7 +574,6 @@ public static class SettingsManager
         ApplyDisplayPerformanceSettings();
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
-        PokerGuideOverlayEnabledChanged?.Invoke(false);
         AutoHideCounterChanged?.Invoke(false);
     }
 

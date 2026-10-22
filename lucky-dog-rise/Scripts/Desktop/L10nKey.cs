@@ -7,8 +7,10 @@ public static class L10nKey
     public const string Common_Desktop = nameof(Common_Desktop);
     public const string Common_Cancel = nameof(Common_Cancel);
     public const string Common_Confirm = nameof(Common_Confirm);
+    public const string Common_ReturnToGame = nameof(Common_ReturnToGame);
     public const string Settings_Tab_Wardrobe = nameof(Settings_Tab_Wardrobe);
     public const string Settings_Tab_LinkTree = nameof(Settings_Tab_LinkTree);
+    public const string Settings_Tab_CollectionEvents = nameof(Settings_Tab_CollectionEvents);
     public const string Settings_Tab_OutfitPresets = nameof(Settings_Tab_OutfitPresets);
     public const string Settings_Tab_Settings = nameof(Settings_Tab_Settings);
     public const string Settings_Tab_Debug = nameof(Settings_Tab_Debug);
@@ -31,7 +33,6 @@ public static class L10nKey
     public const string Settings_ShowOverFullscreenApps = nameof(Settings_ShowOverFullscreenApps);
     public const string Settings_EnhancedAlwaysOnTop = nameof(Settings_EnhancedAlwaysOnTop);
     public const string Settings_ProactiveInteractionHints = nameof(Settings_ProactiveInteractionHints);
-    public const string Settings_PokerGuideOverlay = nameof(Settings_PokerGuideOverlay);
     public const string Settings_RightClickQuickModeSwitch = nameof(Settings_RightClickQuickModeSwitch);
     public const string Settings_PreventAccidentalDrag = nameof(Settings_PreventAccidentalDrag);
     public const string Settings_DesktopPet = nameof(Settings_DesktopPet);
@@ -138,6 +139,8 @@ public static class L10nKey
     public const string CollectionEvent_WishlistShyRequest = nameof(CollectionEvent_WishlistShyRequest);
     public const string CollectionEvent_WishlistButton = nameof(CollectionEvent_WishlistButton);
     public const string CollectionEvent_SaveScreenshot = nameof(CollectionEvent_SaveScreenshot);
+    public const string CollectionEvent_ScreenshotSaved = nameof(CollectionEvent_ScreenshotSaved);
+    public const string CollectionEvent_ScreenshotUnconfirmed = nameof(CollectionEvent_ScreenshotUnconfirmed);
     public const string CollectionEvent_RoadmapTitle = nameof(CollectionEvent_RoadmapTitle);
     public const string CollectionEvent_RoadmapBody = nameof(CollectionEvent_RoadmapBody);
     public const string CollectionEvent_BackToTop = nameof(CollectionEvent_BackToTop);
@@ -148,4 +151,28 @@ public static class L10nKey
     public const string WishlistCallToAction_Title = nameof(WishlistCallToAction_Title);
     public const string WishlistCallToAction_ExitGameButton = nameof(WishlistCallToAction_ExitGameButton);
     public const string WishlistCallToAction_SuppressExitReminder = nameof(WishlistCallToAction_SuppressExitReminder);
+    public const string PokerHelp_OperationTitle = nameof(PokerHelp_OperationTitle);
+    public const string PokerToolbar_Help = nameof(PokerToolbar_Help);
+    public const string PokerToolbar_Tutorial = nameof(PokerToolbar_Tutorial);
+    public const string PokerToolbar_DesktopPet = nameof(PokerToolbar_DesktopPet);
+    public const string PokerWelcome_Title = nameof(PokerWelcome_Title);
+    public const string PokerWelcome_Body = nameof(PokerWelcome_Body);
+    public const string PokerWelcome_Confirm = nameof(PokerWelcome_Confirm);
+    public const string PokerHelp_ScrollHint = nameof(PokerHelp_ScrollHint);
+    public const string PokerHelp_BuildTab = nameof(PokerHelp_BuildTab);
+    public const string PokerHelp_RanksTab = nameof(PokerHelp_RanksTab);
+    public const string PokerHelp_RanksIntro = nameof(PokerHelp_RanksIntro);
+    public const string PokerHelp_RanksExamples = nameof(PokerHelp_RanksExamples);
+    public const string PokerHelp_RanksNote = nameof(PokerHelp_RanksNote);
+    public const string PokerHelp_Close = nameof(PokerHelp_Close);
+    public const string PokerHelp_FaceUpKeep = nameof(PokerHelp_FaceUpKeep);
+    public const string PokerHelp_FaceDownReplace = nameof(PokerHelp_FaceDownReplace);
+    public const string PokerHelp_PairGoal = nameof(PokerHelp_PairGoal);
+    public const string PokerHelp_FlushGoal = nameof(PokerHelp_FlushGoal);
+    public const string PokerHelp_YourCards = nameof(PokerHelp_YourCards);
+    public const string PokerHelp_PossibleResult = nameof(PokerHelp_PossibleResult);
+    public const string PokerHelp_PairNote = nameof(PokerHelp_PairNote);
+    public const string PokerHelp_FlushNote = nameof(PokerHelp_FlushNote);
+    public const string PokerHelp_ResultWarning = nameof(PokerHelp_ResultWarning);
+    public const string PokerHelp_MinimumHand = nameof(PokerHelp_MinimumHand);
 }

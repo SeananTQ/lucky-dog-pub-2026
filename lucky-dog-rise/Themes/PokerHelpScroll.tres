@@ -1,0 +1,39 @@
+[gd_resource type="Theme" format=3 uid="uid://psqcybf8nuk3"]
+
+[sub_resource type="StyleBoxEmpty" id="ContentPadding"]
+
+[sub_resource type="StyleBoxFlat" id="Grabber"]
+content_margin_left = 5.0
+content_margin_top = 24.0
+content_margin_right = 5.0
+content_margin_bottom = 24.0
+bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="GrabberHover"]
+content_margin_left = 5.0
+content_margin_top = 24.0
+content_margin_right = 5.0
+content_margin_bottom = 24.0
+bg_color = Color(0.6745098, 0.76862746, 0.7921569, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Track"]
+content_margin_left = 5.0
+content_margin_right = 5.0
+bg_color = Color(0.047058824, 0.08235294, 0.09019608, 1)
+
+[resource]
+PokerHelpScroll/base_type = &"ScrollContainer"
+PokerHelpScroll/constants/scrollbar_h_separation = 12
+PokerHelpScroll/styles/panel = SubResource("ContentPadding")
+VScrollBar/styles/grabber = SubResource("Grabber")
+VScrollBar/styles/grabber_highlight = SubResource("GrabberHover")
+VScrollBar/styles/grabber_pressed = SubResource("GrabberHover")
+VScrollBar/styles/scroll = SubResource("Track")

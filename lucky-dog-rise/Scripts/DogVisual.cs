@@ -16,6 +16,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private Sprite2D _nose = null!;
     private Sprite2D _mouth = null!;
     private Marker2D _headClipBoundary = null!;
+    private bool _headClippingEnabled = true;
     private readonly Dictionary<Sprite2D, (string Path, Vector2 Position)> _partReferences = new();
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
@@ -668,11 +669,20 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         }
     }
 
+    public void SetHeadClippingEnabled(bool enabled)
+    {
+        if (_headClippingEnabled == enabled) return;
+        _headClippingEnabled = enabled;
+        if (!IsNodeReady()) return;
+        ((ShaderMaterial)_head.Material).SetShaderParameter("clip_enabled", enabled);
+    }
+
     private void ApplyFaceParts()
     {
         ApplyOptionalFacePart(_nose, CurrentDogSkin.DefaultNose);
         ApplyOptionalFacePart(_mouth, CurrentDogSkin.DefaultMouse);
         // Crop only the head; tongue and paws keep their existing foreground layers.
+        ((ShaderMaterial)_head.Material).SetShaderParameter("clip_enabled", _headClippingEnabled);
         ((ShaderMaterial)_head.Material).SetShaderParameter("cutoff_y",
             _head.GetParent<Node2D>().ToLocal(_headClipBoundary.GlobalPosition).Y - _head.Position.Y);
     }

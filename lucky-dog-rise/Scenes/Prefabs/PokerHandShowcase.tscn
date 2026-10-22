@@ -32,596 +32,88 @@
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club9.png" id="29_club9"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond9.png" id="30_diamond9"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade12.png" id="31_spade12"]
-[ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="33_showcase_inter_bold"]
-[ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="34_showcase_misans_bold"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="35_help_theme"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/PokerHandBasics.tscn" id="36_help_basics"]
 
-[sub_resource type="FontVariation" id="FontVariation_showcase_name"]
-fallbacks = Array[Font]([ExtResource("34_showcase_misans_bold")])
-base_font = ExtResource("33_showcase_inter_bold")
+[ext_resource type="Theme" path="res://Themes/PokerHelpScroll.tres" id="37_scroll_theme"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_Exit.svg" id="38_close_icon"]
 
-[sub_resource type="LabelSettings" id="LabelSettings_showcase_name"]
-font = SubResource("FontVariation_showcase_name")
-font_size = 28
+[ext_resource type="Script" path="res://Scripts/PokerHandExampleController.cs" id="39_example"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club1.png" id="face_club1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club2.png" id="face_club2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club3.png" id="face_club3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club11.png" id="face_club11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club12.png" id="face_club12"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Club13.png" id="face_club13"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond1.png" id="face_diamond1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond2.png" id="face_diamond2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond3.png" id="face_diamond3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond11.png" id="face_diamond11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond12.png" id="face_diamond12"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Diamond13.png" id="face_diamond13"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart3.png" id="face_heart3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart5.png" id="face_heart5"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Heart9.png" id="face_heart9"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade1.png" id="face_spade1"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade2.png" id="face_spade2"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade3.png" id="face_spade3"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade4.png" id="face_spade4"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade10.png" id="face_spade10"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade11.png" id="face_spade11"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardFace/Classic/Spade13.png" id="face_spade13"]
 
-[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel")]
+[node name="PokerHandShowcase" type="CanvasLayer" node_paths=PackedStringArray("_dismissButton", "_royalFlushLabel", "_straightFlushLabel", "_fourOfAKindLabel", "_fullHouseLabel", "_flushLabel", "_straightLabel", "_threeOfAKindLabel", "_twoPairLabel", "_onePairLabel", "_basicsPage", "_ranksPage", "_contentScroll", "_basicsTab", "_ranksTab", "_closeButton", "_operationTitleLabel", "_scrollHintLabel", "_faceUpLabel", "_faceDownLabel", "_flipDemo", "_pairDemo", "_flushDemo", "_pairGoalLabel", "_flushGoalLabel", "_pairBeforeLabel", "_flushBeforeLabel", "_pairAfterLabel", "_flushAfterLabel", "_pairResultLabel", "_flushResultLabel", "_pairNoteLabel", "_flushNoteLabel", "_warningLabel", "_minimumLabel", "_ranksIntroLabel", "_ranksExamplesLabel", "_ranksNoteLabel", "_rankExamples")]
 visible = false
 layer = 19
 script = ExtResource("1_controller")
 _dismissButton = NodePath("DismissButton")
-_royalFlushLabel = NodePath("Content/Rows/RoyalFlush/Name")
-_straightFlushLabel = NodePath("Content/Rows/StraightFlush/Name")
-_fourOfAKindLabel = NodePath("Content/Rows/FourOfAKind/Name")
-_fullHouseLabel = NodePath("Content/Rows/FullHouse/Name")
-_flushLabel = NodePath("Content/Rows/Flush/Name")
-_straightLabel = NodePath("Content/Rows/Straight/Name")
-_threeOfAKindLabel = NodePath("Content/Rows/ThreeOfAKind/Name")
-_twoPairLabel = NodePath("Content/Rows/TwoPair/Name")
-_onePairLabel = NodePath("Content/Rows/OnePair/Name")
+_royalFlushLabel = NodePath("Content/Scroll/Pages/Rows/RoyalFlush/Name")
+_straightFlushLabel = NodePath("Content/Scroll/Pages/Rows/StraightFlush/Name")
+_fourOfAKindLabel = NodePath("Content/Scroll/Pages/Rows/FourOfAKind/Name")
+_fullHouseLabel = NodePath("Content/Scroll/Pages/Rows/FullHouse/Name")
+_flushLabel = NodePath("Content/Scroll/Pages/Rows/Flush/Name")
+_straightLabel = NodePath("Content/Scroll/Pages/Rows/Straight/Name")
+_threeOfAKindLabel = NodePath("Content/Scroll/Pages/Rows/ThreeOfAKind/Name")
+_twoPairLabel = NodePath("Content/Scroll/Pages/Rows/TwoPair/Name")
+_onePairLabel = NodePath("Content/Scroll/Pages/Rows/OnePair/Name")
+_basicsPage = NodePath("Content/Scroll/Pages/Basics")
+_ranksPage = NodePath("Content/Scroll/Pages/Rows")
+_contentScroll = NodePath("Content/Scroll")
+_basicsTab = NodePath("Header/BasicsTab")
+_ranksTab = NodePath("Header/RanksTab")
+_closeButton = NodePath("Header/CloseButton")
+_operationTitleLabel = NodePath("Content/Scroll/Pages/Basics/OperationTitle")
+_scrollHintLabel = NodePath("Content/Scroll/Pages/Basics/ScrollHint")
+_faceUpLabel = NodePath("Content/Scroll/Pages/Basics/Legend/Row/FaceUp/Text")
+_faceDownLabel = NodePath("Content/Scroll/Pages/Basics/Legend/Row/FaceDown/Text")
+_flipDemo = NodePath("Content/Scroll/Pages/Basics/Legend/Row/Flip/AnimationPlayer")
+_pairDemo = NodePath("Content/Scroll/Pages/Basics/Pair/Comparison/After/Demo/AnimationPlayer")
+_flushDemo = NodePath("Content/Scroll/Pages/Basics/Flush/Comparison/After/Demo/AnimationPlayer")
+_pairGoalLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Goal")
+_flushGoalLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Goal")
+_pairBeforeLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Comparison/Before/Caption")
+_flushBeforeLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Comparison/Before/Caption")
+_pairAfterLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Comparison/After/Caption")
+_flushAfterLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Comparison/After/Caption")
+_pairResultLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Comparison/After/Demo/Reward/Name")
+_flushResultLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Comparison/After/Demo/Reward/Name")
+_pairNoteLabel = NodePath("Content/Scroll/Pages/Basics/Pair/Note")
+_flushNoteLabel = NodePath("Content/Scroll/Pages/Basics/Flush/Note")
+_warningLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Warning")
+_minimumLabel = NodePath("Content/Scroll/Pages/Basics/Footer/Minimum")
+_ranksIntroLabel = NodePath("Content/Scroll/Pages/Rows/Intro/Heading")
+_ranksExamplesLabel = NodePath("Content/Scroll/Pages/Rows/Intro/Examples")
+_ranksNoteLabel = NodePath("Content/Scroll/Pages/Rows/Note")
+_rankExamples = [NodePath("Content/Scroll/Pages/Rows/RoyalFlush/Cards"), NodePath("Content/Scroll/Pages/Rows/StraightFlush/Cards"), NodePath("Content/Scroll/Pages/Rows/FourOfAKind/Cards"), NodePath("Content/Scroll/Pages/Rows/FullHouse/Cards"), NodePath("Content/Scroll/Pages/Rows/Flush/Cards"), NodePath("Content/Scroll/Pages/Rows/Straight/Cards"), NodePath("Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"), NodePath("Content/Scroll/Pages/Rows/TwoPair/Cards"), NodePath("Content/Scroll/Pages/Rows/OnePair/Cards")]
+_rankCardFaces = Array[Texture2D]([ExtResource("face_club1"), ExtResource("face_club2"), ExtResource("face_club3"), ExtResource("27_club4"), ExtResource("22_club5"), ExtResource("16_club6"), ExtResource("13_club7"), ExtResource("24_club8"), ExtResource("29_club9"), ExtResource("18_club10"), ExtResource("face_club11"), ExtResource("face_club12"), ExtResource("face_club13"), ExtResource("face_diamond1"), ExtResource("face_diamond2"), ExtResource("face_diamond3"), ExtResource("28_diamond4"), ExtResource("23_diamond5"), ExtResource("17_diamond6"), ExtResource("14_diamond7"), ExtResource("25_diamond8"), ExtResource("30_diamond9"), ExtResource("19_diamond10"), ExtResource("face_diamond11"), ExtResource("face_diamond12"), ExtResource("face_diamond13"), ExtResource("7_heart1"), ExtResource("20_heart2"), ExtResource("face_heart3"), ExtResource("21_heart4"), ExtResource("face_heart5"), ExtResource("32_heart6"), ExtResource("15_heart7"), ExtResource("26_heart8"), ExtResource("face_heart9"), ExtResource("3_heart10"), ExtResource("4_heart11"), ExtResource("5_heart12"), ExtResource("6_heart13"), ExtResource("face_spade1"), ExtResource("face_spade2"), ExtResource("face_spade3"), ExtResource("face_spade4"), ExtResource("8_spade5"), ExtResource("9_spade6"), ExtResource("10_spade7"), ExtResource("11_spade8"), ExtResource("12_spade9"), ExtResource("face_spade10"), ExtResource("face_spade11"), ExtResource("31_spade12"), ExtResource("face_spade13")])
+_rankAnyCard = ExtResource("2_any")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="Panel" parent="."]
 offset_right = 1200.0
 offset_bottom = 1200.0
 mouse_filter = 2
-color = Color(0, 0, 0, 0.78)
-
-[node name="Content" type="Control" parent="."]
-offset_left = 50.0
-offset_top = 35.0
-offset_right = 1150.0
-offset_bottom = 1165.0
-mouse_filter = 2
-
-[node name="Rows" type="VBoxContainer" parent="Content"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-position = Vector2(-300, 0)
-scale = Vector2(1.3, 1.3)
-theme_override_constants/separation = 6
-mouse_filter = 2
-
-[node name="RoyalFlush" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/RoyalFlush"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/RoyalFlush"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Heart10" type="TextureRect" parent="Content/Rows/RoyalFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("3_heart10")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart11" type="TextureRect" parent="Content/Rows/RoyalFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("4_heart11")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart12" type="TextureRect" parent="Content/Rows/RoyalFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("5_heart12")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart13" type="TextureRect" parent="Content/Rows/RoyalFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("6_heart13")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart1" type="TextureRect" parent="Content/Rows/RoyalFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("7_heart1")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="StraightFlush" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/StraightFlush"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/StraightFlush"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Spade5" type="TextureRect" parent="Content/Rows/StraightFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("8_spade5")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade6" type="TextureRect" parent="Content/Rows/StraightFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("9_spade6")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade7" type="TextureRect" parent="Content/Rows/StraightFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("10_spade7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade8" type="TextureRect" parent="Content/Rows/StraightFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("11_spade8")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade9" type="TextureRect" parent="Content/Rows/StraightFlush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("12_spade9")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="FourOfAKind" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/FourOfAKind"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/FourOfAKind"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club7" type="TextureRect" parent="Content/Rows/FourOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("13_club7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond7" type="TextureRect" parent="Content/Rows/FourOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("14_diamond7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart7" type="TextureRect" parent="Content/Rows/FourOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("15_heart7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade7" type="TextureRect" parent="Content/Rows/FourOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("10_spade7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any" type="TextureRect" parent="Content/Rows/FourOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="FullHouse" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/FullHouse"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/FullHouse"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club6" type="TextureRect" parent="Content/Rows/FullHouse/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("16_club6")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond6" type="TextureRect" parent="Content/Rows/FullHouse/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("17_diamond6")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart6" type="TextureRect" parent="Content/Rows/FullHouse/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("32_heart6")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Club10" type="TextureRect" parent="Content/Rows/FullHouse/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("18_club10")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond10" type="TextureRect" parent="Content/Rows/FullHouse/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("19_diamond10")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Flush" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/Flush"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/Flush"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Heart2" type="TextureRect" parent="Content/Rows/Flush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("20_heart2")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart4" type="TextureRect" parent="Content/Rows/Flush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("21_heart4")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart7" type="TextureRect" parent="Content/Rows/Flush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("15_heart7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart10" type="TextureRect" parent="Content/Rows/Flush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("3_heart10")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart13" type="TextureRect" parent="Content/Rows/Flush/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("6_heart13")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Straight" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/Straight"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/Straight"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club5" type="TextureRect" parent="Content/Rows/Straight/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("22_club5")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond6" type="TextureRect" parent="Content/Rows/Straight/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("17_diamond6")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart7" type="TextureRect" parent="Content/Rows/Straight/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("15_heart7")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade8" type="TextureRect" parent="Content/Rows/Straight/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("11_spade8")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Club9" type="TextureRect" parent="Content/Rows/Straight/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("29_club9")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="ThreeOfAKind" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/ThreeOfAKind"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/ThreeOfAKind"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club8" type="TextureRect" parent="Content/Rows/ThreeOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("24_club8")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond8" type="TextureRect" parent="Content/Rows/ThreeOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("25_diamond8")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart8" type="TextureRect" parent="Content/Rows/ThreeOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("26_heart8")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any1" type="TextureRect" parent="Content/Rows/ThreeOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any2" type="TextureRect" parent="Content/Rows/ThreeOfAKind/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="TwoPair" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/TwoPair"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/TwoPair"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club4" type="TextureRect" parent="Content/Rows/TwoPair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("27_club4")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond4" type="TextureRect" parent="Content/Rows/TwoPair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("28_diamond4")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Heart12" type="TextureRect" parent="Content/Rows/TwoPair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("5_heart12")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Spade12" type="TextureRect" parent="Content/Rows/TwoPair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("31_spade12")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any" type="TextureRect" parent="Content/Rows/TwoPair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="OnePair" type="HBoxContainer" parent="Content/Rows"]
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-theme_override_constants/separation = 16
-mouse_filter = 2
-
-[node name="Name" type="Label" parent="Content/Rows/OnePair"]
-custom_minimum_size = Vector2(340, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_showcase_name")
-horizontal_alignment = 2
-vertical_alignment = 1
-mouse_filter = 2
-
-[node name="Cards" type="HBoxContainer" parent="Content/Rows/OnePair"]
-layout_mode = 2
-theme_override_constants/separation = 10
-mouse_filter = 2
-
-[node name="Club9" type="TextureRect" parent="Content/Rows/OnePair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("29_club9")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Diamond9" type="TextureRect" parent="Content/Rows/OnePair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("30_diamond9")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any1" type="TextureRect" parent="Content/Rows/OnePair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any2" type="TextureRect" parent="Content/Rows/OnePair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Any3" type="TextureRect" parent="Content/Rows/OnePair/Cards"]
-custom_minimum_size = Vector2(60, 84)
-layout_mode = 2
-texture = ExtResource("2_any")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
+theme = ExtResource("35_help_theme")
+theme_type_variation = &"PokerHelpPanel"
 
 [node name="DismissButton" type="Button" parent="."]
 offset_right = 1200.0
@@ -630,3 +122,689 @@ mouse_default_cursor_shape = 2
 focus_mode = 0
 flat = true
 text = ""
+
+[node name="Content" type="Control" parent="."]
+offset_left = 36.0
+offset_top = 132.0
+offset_right = 1184.0
+offset_bottom = 1164.0
+mouse_filter = 0
+theme = ExtResource("35_help_theme")
+
+[node name="Scroll" type="ScrollContainer" parent="Content"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+theme = ExtResource("37_scroll_theme")
+theme_type_variation = &"PokerHelpScroll"
+
+[node name="Pages" type="VBoxContainer" parent="Content/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme = ExtResource("35_help_theme")
+
+[node name="Rows" type="VBoxContainer" parent="Content/Scroll/Pages"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+mouse_filter = 2
+
+[node name="Intro" type="VBoxContainer" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Heading" type="Label" parent="Content/Scroll/Pages/Rows/Intro"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeading"
+text = "PokerHelp_RanksIntro"
+autowrap_mode = 3
+
+[node name="Examples" type="Label" parent="Content/Scroll/Pages/Rows/Intro"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_RanksExamples"
+autowrap_mode = 3
+
+[node name="RoyalFlush" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/RoyalFlush"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/RoyalFlush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 10
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("3_heart10")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("4_heart11")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("5_heart12")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("6_heart13")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/RoyalFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("7_heart1")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="StraightFlush" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/StraightFlush"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/StraightFlush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 9
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("8_spade5")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("9_spade6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("10_spade7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("11_spade8")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/StraightFlush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("12_spade9")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="FourOfAKind" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/FourOfAKind"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FourOfAKind" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 8
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("13_club7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("14_diamond7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("15_heart7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("10_spade7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/FourOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="FullHouse" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/FullHouse"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/FullHouse" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 7
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("16_club6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("17_diamond6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("32_heart6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("18_club10")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/FullHouse/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("19_diamond10")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Flush" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/Flush"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Flush" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 6
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("20_heart2")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("21_heart4")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("15_heart7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("3_heart10")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/Flush/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("6_heart13")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Straight" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/Straight"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/Straight" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 5
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("22_club5")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("17_diamond6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("15_heart7")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("11_spade8")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/Straight/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("29_club9")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="ThreeOfAKind" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/ThreeOfAKind"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/ThreeOfAKind" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 4
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("24_club8")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("25_diamond8")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("26_heart8")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/ThreeOfAKind/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="TwoPair" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/TwoPair"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/TwoPair" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 3
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("27_club4")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("28_diamond4")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("5_heart12")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("31_spade12")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/TwoPair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="OnePair" type="HBoxContainer" parent="Content/Scroll/Pages/Rows"]
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Content/Scroll/Pages/Rows/OnePair"]
+custom_minimum_size = Vector2(420, 152)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PokerHelpRankLabel"
+autowrap_mode = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Cards" type="HBoxContainer" parent="Content/Scroll/Pages/Rows/OnePair" node_paths=PackedStringArray("_cards")]
+script = ExtResource("39_example")
+HandRank = 2
+_cards = [NodePath("Card1"), NodePath("Card2"), NodePath("Card3"), NodePath("Card4"), NodePath("Card5")]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="Card1" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("29_club9")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card2" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("30_diamond9")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card3" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card4" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Card5" type="TextureRect" parent="Content/Scroll/Pages/Rows/OnePair/Cards"]
+custom_minimum_size = Vector2(100, 144)
+layout_mode = 2
+texture = ExtResource("2_any")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+
+[node name="NoteSeparator" type="HSeparator" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpSeparator"
+
+[node name="Note" type="Label" parent="Content/Scroll/Pages/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerHelpBodyLabel"
+text = "PokerHelp_RanksNote"
+autowrap_mode = 3
+
+[node name="Basics" parent="Content/Scroll/Pages" instance=ExtResource("36_help_basics")]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Header" type="Control" parent="."]
+offset_left = 36.0
+offset_top = 20.0
+offset_right = 1164.0
+offset_bottom = 120.0
+mouse_filter = 0
+theme = ExtResource("35_help_theme")
+
+[node name="BasicsTab" type="Button" parent="Header"]
+offset_right = 516.0
+offset_bottom = 84.0
+theme_type_variation = &"PokerHelpTabSelected"
+toggle_mode = true
+button_pressed = true
+text = "PokerHelp_BuildTab"
+
+[node name="RanksTab" type="Button" parent="Header"]
+offset_left = 528.0
+offset_right = 1044.0
+offset_bottom = 84.0
+theme_type_variation = &"PokerHelpTab"
+toggle_mode = true
+text = "PokerHelp_RanksTab"
+
+[node name="CloseButton" type="Button" parent="Header"]
+offset_left = 1056.0
+offset_top = 6.0
+offset_right = 1128.0
+offset_bottom = 78.0
+theme_type_variation = &"PokerHelpClose"
+icon = ExtResource("38_close_icon")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Separator" type="HSeparator" parent="Header"]
+offset_top = 84.0
+offset_right = 1128.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_type_variation = &"PokerHelpHeaderSeparator"

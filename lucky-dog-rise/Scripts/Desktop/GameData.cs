@@ -28,11 +28,11 @@ public partial class GameData : Node
     [Signal] public delegate void BlindBoxRewardClaimedEventHandler(
         int blindBoxId,
         int itemId,
-        bool firstOwnership);
+        bool firstOwnership,
+        int completedSequenceStep);
     [Signal] public delegate void BlindBoxStateChangedEventHandler();
     [Signal] public delegate void RefreshmentStateChangedEventHandler();
     [Signal] public delegate void RefreshmentSelectionRefusedEventHandler();
-    [Signal] public delegate void PokerBasicsGuidanceChangedEventHandler(bool needed);
 
     public void EmitHandResolved(EHandRank rank, int payout)
     {
@@ -47,7 +47,8 @@ public partial class GameData : Node
     public PlayerInventory Inventory { get; } = new();
     public int Chips { get; private set; } = StartingChips;
     public double TotalPlaySeconds { get; private set; }
-    public bool NeedsPokerBasicsGuidance { get; private set; }
+    // Read/write compatibility only: never changes based on new gameplay.
+    public bool LegacyNeedsPokerBasicsGuidance { get; private set; }
     public bool HasEnteredPokerMode { get; private set; }
     public bool HasOpenedDesktopMenu { get; private set; }
 
@@ -2085,7 +2086,9 @@ public partial class GameData : Node
                 ownedCounts[item.Id] = desiredCount;
                 if (desiredCount > previousCount && !item.IsHiddenInBag)
                 {
-                    newItemIds.Add(item.Id);
+                    // Keep unread markers from the save, but duplicate copies are not new outfits.
+                    if (previousCount == 0)
+                        newItemIds.Add(item.Id);
                     var positiveDelta = desiredCount - previousCount;
                     var expectedDelta = Math.Min(
                         positiveDelta,
@@ -2354,6 +2357,13 @@ public partial class GameData : Node
                 PlayerProgressSource.BlindBox);
         }
         var currentProgressCheckpoint = ActiveBlindBoxRuntimeState.SequenceProgressCheckpoint;
+        // Report only the sequence step completed by this claim, before any remote
+        // progress merge. Late rewards, loop rewards and repeated claims report zero.
+        var completedSequenceStep = completedSchedule
+            && currentProgressCheckpoint > previousProgressCheckpoint
+            && completedScheduleDefinition is { IsLoopTrack: false }
+                ? BlindBoxService.GetSequenceSchedules().FindIndex(schedule => schedule.Id == scheduleId) + 1
+                : 0;
         if (currentProgressCheckpoint > previousProgressCheckpoint)
         {
             DiagnosticLog.Record("blindbox_sequence_progress_recorded", new Dictionary<string, object>
@@ -2393,7 +2403,7 @@ public partial class GameData : Node
                 isPlatformReward,
                 completedSchedule);
         }
-        EmitSignal(SignalName.BlindBoxRewardClaimed, blindBoxId, itemId, firstOwnership);
+        EmitSignal(SignalName.BlindBoxRewardClaimed, blindBoxId, itemId, firstOwnership, completedSequenceStep);
         EmitSignal(SignalName.BlindBoxStateChanged);
         if (recoveredFromInterruptedReveal)
             SaveImmediatelyIfUsingLocalSave();
@@ -2859,28 +2869,6 @@ public partial class GameData : Node
             PlayerProgress.RecordPokerHandResolved(rank, payout, askedDogHint, source);
     }
 
-    public void TryCompletePokerBasicsGuidance(EHandRank rank, PlayerProgressSource source)
-    {
-        if (!NeedsPokerBasicsGuidance
-            || source != PlayerProgressSource.Gameplay
-            || rank < EHandRank.TwoPair)
-            return;
-
-#if DEBUG
-        // 固定种子、调试全道具、盲盒本地测试和 Steam Mock 都不能改变真实玩家的新手标记。
-        if (_saveDataMode != SettingsManager.SaveDataMode.LocalSave
-            || _blindBoxLocalTestMode
-            || _steamMockSimulationActive)
-            return;
-#endif
-
-        NeedsPokerBasicsGuidance = false;
-        if (CanRecordPlayerProgress)
-            PlayerProgress.RecordPokerBasicsGuidanceCompleted();
-        EmitSignal(SignalName.PokerBasicsGuidanceChanged, false);
-        QueueSaveIfUsingLocalSave();
-    }
-
     public void RecordPokerPayoutCollected(int payout, PlayerProgressSource source)
     {
         if (CanRecordPlayerProgress)
@@ -3033,26 +3021,6 @@ public partial class GameData : Node
     }
 
 #if DEBUG
-    public void MarkPokerBasicsGuidanceNeededForDebug()
-    {
-        NeedsPokerBasicsGuidance = true;
-        EmitSignal(SignalName.PokerBasicsGuidanceChanged, true);
-
-        // A real new profile starts with the guide enabled. Keep the debug action
-        // deterministic even if this developer installation disabled it earlier.
-        SettingsManager.SavePokerGuideOverlayEnabled(true);
-
-        if (_blindBoxLocalTestMode || _saveDataMode != SettingsManager.SaveDataMode.LocalSave)
-        {
-            // Mock/local-test state must stay isolated. Persist only the marker in
-            // the account's real profile, never the sandbox chips or inventory.
-            SaveManager.MarkPokerBasicsGuidanceNeededForDebug();
-            return;
-        }
-
-        SaveImmediatelyIfUsingLocalSave();
-    }
-
     public void ResetLocalSave()
     {
         EndBlindBoxLocalTestMode(force: true);
@@ -3067,7 +3035,7 @@ public partial class GameData : Node
             LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             LoadRefreshmentState(profile);
-            LoadPokerBasicsGuidanceState(profile);
+            LoadLegacyTutorialState(profile);
             LoadRecoveredItemsState(profile);
             LoadCollectionEventState(profile);
             _loadedExistingLocalSave = false;
@@ -3118,8 +3086,7 @@ public partial class GameData : Node
             defaults.NewItemIds,
             emitChanged: false);
         EnsureDefaultTableRefreshment();
-        NeedsPokerBasicsGuidance = true;
-        SettingsManager.SavePokerGuideOverlayEnabled(true);
+        LegacyNeedsPokerBasicsGuidance = true;
         _pendingFreshSaveOutfitPresetRestore = false;
 
         EmitSignal(SignalName.ChipsChanged, Chips);
@@ -3129,7 +3096,6 @@ public partial class GameData : Node
         EmitSignal(SignalName.RefreshmentStateChanged);
         EmitSignal(SignalName.RecoveredItemsChanged);
         EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
-        EmitSignal(SignalName.PokerBasicsGuidanceChanged, true);
 
         _saveDirty = true;
         _saveTimer = 0.0;
@@ -3159,7 +3125,7 @@ public partial class GameData : Node
         LoadLuckyDealBuffState(profile);
         Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
         LoadRefreshmentState(profile);
-        LoadPokerBasicsGuidanceState(profile);
+        LoadLegacyTutorialState(profile);
         LoadRecoveredItemsState(profile);
         LoadCollectionEventState(profile);
         QueueSaveIfUsingLocalSave();
@@ -3176,7 +3142,7 @@ public partial class GameData : Node
             LoadLuckyDealBuffState(profile);
             Inventory.LoadState(profile.OwnedItemCounts, profile.EquippedItemIdsByType, profile.NewItemIds, emitChanged: false);
             LoadRefreshmentState(profile);
-            LoadPokerBasicsGuidanceState(profile);
+            LoadLegacyTutorialState(profile);
             LoadRecoveredItemsState(profile);
             LoadCollectionEventState(profile);
             QueueSaveIfUsingLocalSave();
@@ -3198,7 +3164,7 @@ public partial class GameData : Node
         _luckyDealBuffState = new LuckyDealBuffState();
         _refreshmentRuntimeState = new RefreshmentRuntimeState();
         _collectionEventRevealedItemIdsByEvent.Clear();
-        NeedsPokerBasicsGuidance = false;
+        LegacyNeedsPokerBasicsGuidance = false;
         Inventory.ResetToDebugAllItems(emitChanged: false);
         EnsureDefaultTableRefreshment();
         _saveDirty = false;
@@ -3313,7 +3279,6 @@ public partial class GameData : Node
         if (headwearItemId != 0)
         {
             AddItem(headwearItemId, 1, markNew: true, source: PlayerProgressSource.Gameplay);
-            EquipItem(headwearItemId);
         }
         _collectionEventVictoryCompletedAtUnixSecondsByEvent[normalizedEventId] =
             DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -3392,11 +3357,6 @@ public partial class GameData : Node
             return;
 
         WishlistCallToActionPageOpened = opened;
-        if (opened)
-        {
-            _collectionEventPendingFirstDogItemIdsByEvent.Clear();
-            EmitSignal(SignalName.CollectionEventStateChanged, string.Empty);
-        }
         SaveImmediatelyIfUsingLocalSave();
     }
 
@@ -3521,7 +3481,7 @@ public partial class GameData : Node
                 _pendingBlindBoxCompletionReceiptItemDefId,
             LuckyDealBuffState = _luckyDealBuffState,
             RefreshmentRuntimeState = _refreshmentRuntimeState,
-            NeedsPokerBasicsGuidance = NeedsPokerBasicsGuidance,
+            NeedsPokerBasicsGuidance = LegacyNeedsPokerBasicsGuidance,
             HasEnteredPokerMode = HasEnteredPokerMode,
             HasOpenedDesktopMenu = HasOpenedDesktopMenu,
         });
@@ -3636,12 +3596,11 @@ public partial class GameData : Node
         EnsureDefaultTableRefreshment();
     }
 
-    private void LoadPokerBasicsGuidanceState(SaveProfile profile)
+    private void LoadLegacyTutorialState(SaveProfile profile)
     {
-        NeedsPokerBasicsGuidance = profile.NeedsPokerBasicsGuidance;
+        LegacyNeedsPokerBasicsGuidance = profile.NeedsPokerBasicsGuidance;
         HasEnteredPokerMode = profile.HasEnteredPokerMode;
         HasOpenedDesktopMenu = profile.HasOpenedDesktopMenu;
-        EmitSignal(SignalName.PokerBasicsGuidanceChanged, NeedsPokerBasicsGuidance);
     }
 
     private void EnsureDefaultTableRefreshment()

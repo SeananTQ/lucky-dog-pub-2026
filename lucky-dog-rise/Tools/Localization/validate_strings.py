@@ -12,6 +12,39 @@ KEYS_PATH = PROJECT_ROOT / "Scripts" / "Desktop" / "L10nKey.cs"
 KEY_RE = re.compile(r"^[A-Z][A-Za-z0-9]*(?:_[A-Z][A-Za-z0-9]*)*$")
 CONST_RE = re.compile(r"public const string ([A-Za-z_][A-Za-z0-9_]*) = nameof\(\1\);")
 EMPTY_TEXT_MARKER = "@empty"
+# These subtrees are development UI, not player-facing localized content.
+DEBUG_TOOLTIP_ROOTS = {
+    "App/SystemPanel.tscn": ("Panel/RootVBox/Scroll/ContentVBox/DebugContent",),
+    "Prefabs/CollectionEventPage.tscn": ("DebugToolsModule",),
+}
+
+
+def validate_scene_tooltips(keys: set[str]) -> None:
+    scenes = PROJECT_ROOT / "Scenes"
+    checked = 0
+    skipped_debug = 0
+    for scene in sorted(scenes.rglob("*.tscn")):
+        relative = scene.relative_to(scenes).as_posix()
+        if relative.startswith("Dev/"):
+            continue
+        node_path = ""
+        for line_no, line in enumerate(scene.read_text(encoding="utf-8").splitlines(), start=1):
+            node = re.match(r'\[node name="([^"]+)"(.*)\]', line)
+            if node:
+                parent = re.search(r'parent="([^"]+)"', node[2])
+                prefix = parent[1] + "/" if parent and parent[1] != "." else ""
+                node_path = prefix + node[1]
+            tooltip = re.fullmatch(r'tooltip_text\s*=\s*"((?:[^"\\]|\\.)*)"', line)
+            if not tooltip or not tooltip[1]:
+                continue
+            if any(node_path == root or node_path.startswith(root + "/")
+                   for root in DEBUG_TOOLTIP_ROOTS.get(relative, ())):
+                skipped_debug += 1
+                continue
+            if tooltip[1] not in keys:
+                fail(f"{relative}:{line_no} ({node_path}) tooltip must use a localization key: {tooltip[1]}")
+            checked += 1
+    print(f"[localization] OK: {checked} player scene tooltips use valid keys; {skipped_debug} Debug tooltips excluded")
 
 
 def fail(message: str) -> None:
@@ -79,6 +112,7 @@ def main() -> None:
     if stale_consts:
         fail("L10nKey.cs has stale constants: " + ", ".join(stale_consts))
 
+    validate_scene_tooltips(seen)
     locales = [name for _, name in language_columns]
     print(f"[localization] OK: {len(keys)} keys, locales: {', '.join(locales)}")
 

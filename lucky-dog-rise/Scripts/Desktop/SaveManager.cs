@@ -22,6 +22,7 @@ public sealed class SaveProfile
     public int Chips { get; set; } = GameData.StartingChips;
     public double TotalPlaySeconds { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    // Legacy V16 field: retained for signature verification and one-time toolbar migration.
     public bool NeedsPokerBasicsGuidance { get; set; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool HasEnteredPokerMode { get; set; }
@@ -491,13 +492,6 @@ public static class SaveManager
     }
 
 #if DEBUG
-    public static void MarkPokerBasicsGuidanceNeededForDebug()
-    {
-        var profile = LoadOrCreate();
-        profile.NeedsPokerBasicsGuidance = true;
-        Save(profile);
-    }
-
     public static SaveProfile ResetLocalSave()
     {
         var profile = CreateDefaultProfile();
