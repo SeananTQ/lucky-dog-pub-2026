@@ -47,8 +47,8 @@ Steam 库存物品动态属性
 其余试玩反馈暂作观察项，尚未决定修改。
 
 
-
-
+直达筛选链接
+https://store.steampowered.com/sale/nextfest?flavor=topwishlisted&tab=20&facets83019=2%3A30%7C51%2C4%3A1
 
 
 
