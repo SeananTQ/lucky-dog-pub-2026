@@ -88,6 +88,12 @@ def validate_catalog(path: Path, seen: set[str], seen_ids: dict[str, str]) -> tu
                 fail(f"key {key} is missing {locale} text at line {line_no}")
             if value.startswith("@") and value != EMPTY_TEXT_MARKER:
                 fail(f"key {key} has unknown localization marker {value} for {locale} at line {line_no}")
+            if path == ROOMS_CSV_PATH:
+                placeholders = lambda text: sorted(re.findall(r"\{[^{}]+\}", text))
+                if placeholders(value) != placeholders(row[1]):
+                    fail(f"key {key} has mismatched format placeholders for {locale}")
+                if key.startswith("Rooms_Companion") and any(c in value for c in ("\n", "\r", "\\n", "\\r")):
+                    fail(f"companion name {key} must stay on one line for {locale}")
         if id_column is not None:
             id_value = row[id_column].strip()
             if not id_value:

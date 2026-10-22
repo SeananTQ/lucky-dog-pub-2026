@@ -9,6 +9,8 @@ namespace LuckyDogRise.Rooms;
 
 internal static class RoomSettingsPageChecks
 {
+    internal static readonly string[] Locales = { "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT",
+        "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk", "en" };
     public static async Task Run(Node parent)
     {
         var service = new Service();
@@ -53,7 +55,12 @@ internal static class RoomSettingsPageChecks
                     && members.GetChildren().Select(row => row.GetNode<Button>("Kick").GetInstanceId()).SequenceEqual(originalButtons),
                     reason);
             }
-            foreach (string nextLocale in new[] { "zh_CN", "en" })
+            var nameBar = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDogView.tscn").Instantiate<RoomDogView>();
+            parent.AddChild(nameBar);
+            var nameLabel = nameBar.GetNode<Label>("NameBar/Name");
+            var companion = client.View.Members.First(member => member.IsCompanion);
+            var companionKeys = new[] { "Rooms_CompanionCoder", "Rooms_CompanionArtist", "Rooms_CompanionDesigner" };
+            foreach (string nextLocale in Locales)
             {
                 L10n.SetLocale(nextLocale, save: false);
                 await Frame();
@@ -61,7 +68,29 @@ internal static class RoomSettingsPageChecks
                     && page.GetNode<OptionButton>("Room/Game/Choices/Current").Text == InGameRoomPreview.GameName("social"),
                     "locale changes translate game labels and placeholders but never the room name");
                 CheckOriginalRows("locale changes preserve live member rows and their buttons");
+                Check(members.GetChild(0).GetNode<Label>("Name").Text == "♛ Rooms_Social"
+                    && members.GetChild(2).GetNode<Label>("Name").Text == L10n.Tr(companionKeys[0]),
+                    "locale changes translate companion names, never human personas");
+                // A real player can deliberately use a companion's name or even
+                // a translation key. Only the companion identity may localize.
+                Check(InGameRoomPreview.MemberName(companion with { IsCompanion = false }) == companion.Name,
+                    "human identities cannot accidentally receive translated companion names");
+                for (int slot = 0; slot < companionKeys.Length; slot++)
+                {
+                    string text = L10n.Tr(companionKeys[slot]);
+                    Check(text != companionKeys[slot] && !text.Contains('\n') && !text.Contains('\r')
+                        && !text.Contains("\\n"), $"{nextLocale} companion nickname is translated and single line");
+                    nameBar.Display(companion with { Id = -slot - 1 }, false, true, true, "");
+                    await Frame();
+                    Check(nameLabel.Text == "♛ " + text && nameLabel.GetLineCount() == 1,
+                        $"{nextLocale} companion name bar uses the translated single line");
+                    float width = nameLabel.GetThemeFont("font").GetStringSize(nameLabel.Text,
+                        HorizontalAlignment.Left, -1, nameLabel.GetThemeFontSize("font_size")).X;
+                    Check(width <= nameLabel.Size.X + 0.5f,
+                        $"{nextLocale} {text}: name including crown is {width}px, available {nameLabel.Size.X}px");
+                }
             }
+            nameBar.Free();
             Draft("  New room name  ");
             service.ActivitySequence++;
             service.Reaction++;
@@ -170,7 +199,7 @@ internal static class RoomSettingsPageChecks
             Check(kick.Visible && !kick.Disabled, "host can remove a companion using the member-row action");
             Click(kick);
             Check(confirm.Visible && confirm.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").Text
-                .StartsWith("熬夜的程序员\n", StringComparison.Ordinal),
+                .StartsWith(L10n.Tr("Rooms_CompanionCoder") + "\n", StringComparison.Ordinal),
                 "companion removal uses the shared named confirmation");
             Click(cancel);
             Check(!confirm.Visible && service.KickWrites == 0 && client.View.Members.Any(member => member.IsCompanion),
@@ -194,7 +223,7 @@ internal static class RoomSettingsPageChecks
             Check(members.GetChild(0).GetInstanceId() == beforeReplacementRows[0]
                 && members.GetChild(1).GetInstanceId() == beforeReplacementRows[1],
                 "removing a companion preserves every remaining member button");
-            GD.Print("[RoomSettingsPageChecks] PASS editable names, draft retention, blur/Enter/Escape, validation/IME guards, rollback, owner/session changes, literal personas, code link, stable member buttons and companion removal (fake service).");
+            GD.Print("[RoomSettingsPageChecks] PASS 20-locale single-line companion names with crown, literal personas, editable names, draft retention, blur/Enter/Escape, validation/IME guards, rollback, owner/session changes, code link, stable member buttons and companion removal (fake service).");
         }
         finally { L10n.SetLocale(locale, save: false); page.Free(); confirm.Free(); }
     }

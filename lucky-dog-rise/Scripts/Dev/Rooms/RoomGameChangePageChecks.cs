@@ -48,7 +48,7 @@ internal static class RoomGameChangePageChecks
                 choice.GetPopup().Hide();
             }
             Check(!choice.Disabled && apply.Disabled && choice.Selected == 0, "owner starts with the confirmed room activity");
-            foreach (string nextLocale in new[] { "zh_CN", "en" })
+            foreach (string nextLocale in RoomSettingsPageChecks.Locales)
             {
                 L10n.SetLocale(nextLocale, save: false);
                 service.Now = 3665;
@@ -64,7 +64,13 @@ internal static class RoomGameChangePageChecks
                     && apply.Position.X + apply.Size.X <= controls.Size.X + .1f
                     && controls.Position.Y >= heading.Position.Y + heading.Size.Y
                     && Mathf.IsEqualApprox(controls.Size.X, row.Size.X),
-                    "activity heading sits above a full-width controls row in Chinese and English");
+                    $"{nextLocale} activity heading and controls fit within the panel");
+                var codeLink = page.GetNode<LinkButton>("Room/CodeRow/Code");
+                codeLink.Text = "031G00WWWWWWW";
+                page.FitCodeRow();
+                await Frame();
+                Check(page.GetNode<Control>("Room/CodeRow").GetCombinedMinimumSize().X <= 396.1f,
+                    $"{nextLocale} 13-character room code, privacy and copy buttons fit on one row");
             }
             service.Now = 90065;
             service.Publish(client);
@@ -91,6 +97,18 @@ internal static class RoomGameChangePageChecks
             service.Publish(client);
             await Frame();
             Check(!primary.Disabled && client.View.GameId == "social", "majority enables a manual switch rather than switching automatically");
+            overlay.SetOverlayRect(Vector2.Zero, new Vector2(420, 600));
+            foreach (string nextLocale in RoomSettingsPageChecks.Locales)
+            {
+                L10n.SetLocale(nextLocale, save: false);
+                await Frame();
+                Check(content.Size.Y <= 544.1f && content.Size.X <= 364.1f,
+                    $"{nextLocale} proposal text and stacked actions fit the overlay");
+                var votes = content.GetNode<VBoxContainer>("MemberScroll/Members");
+                var companionName = votes.GetChild(votes.GetChildCount() - 1).GetNode<Label>("Name");
+                Check(companionName.Text == L10n.Tr("Rooms_CompanionCoder") && companionName.GetLineCount() == 1,
+                    $"{nextLocale} proposal uses the same single-line companion nickname");
+            }
             page.HideGameProposal();
             service.Publish(client);
             await Frame();

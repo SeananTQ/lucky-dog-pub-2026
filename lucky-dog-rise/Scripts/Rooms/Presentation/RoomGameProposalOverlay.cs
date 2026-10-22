@@ -134,7 +134,11 @@ public partial class RoomGameProposalOverlay : Control
             }
             if (row.GetIndex() != i) _members.MoveChild(row, i);
             var member = snapshot.Members.FirstOrDefault(value => value.Id == vote.MemberId && value.Presence == vote.Presence);
-            row.GetNode<Label>("Name").Text = member?.Name ?? L10n.Tr("Rooms_You");
+            var nameLabel = row.GetNode<Label>("Name");
+            nameLabel.Text = InGameRoomPreview.MemberName(member);
+            nameLabel.AutowrapMode = member?.IsCompanion == true ? TextServer.AutowrapMode.Off : TextServer.AutowrapMode.WordSmart;
+            nameLabel.ClipText = member?.IsCompanion == true;
+            nameLabel.TextOverrunBehavior = member?.IsCompanion == true ? TextServer.OverrunBehavior.TrimEllipsis : TextServer.OverrunBehavior.NoTrimming;
             row.GetNode<Label>("State").Text = L10n.Tr(vote.State switch
             {
                 RoomGameVoteState.Accepted => "Rooms_GameVoteAccepted",

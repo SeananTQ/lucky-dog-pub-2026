@@ -642,13 +642,25 @@ public static class InGameRoomSmoke
             roomName.ReleaseFocus();
             await Settle();
             Check(client.View.Name == "秋哥的朋友小屋", "room name is committed when its input loses focus");
-            foreach (var locale in new[] { "en", "zh_CN" })
+            foreach (var locale in RoomSettingsPageChecks.Locales)
             {
                 L10n.SetLocale(locale, save: false);
                 await Frame();
                 Check(roomName.Text == "秋哥的朋友小屋" && client.View.Name == "秋哥的朋友小屋",
                     "changing language leaves the room's original name intact");
+                var codeRow = page.GetNode<HBoxContainer>("Room/CodeRow");
+                Check(codeRow.GetCombinedMinimumSize().X <= page.Size.X + .5f
+                    && page.Size.X <= panel.PanelSize.X + .5f, $"{locale} room controls fit the actual settings panel");
+                foreach (var member in companionMembers)
+                {
+                    var label = desktop.RemoteDogs.Single(d => d.MemberId == member.Id).GetNode<Label>("NameBar/Name");
+                    Check(label.Text == InGameRoomPreview.MemberName(member) && label.GetLineCount() == 1,
+                        $"{locale} desktop companion nickname is localized and single line");
+                }
+                await Capture(main, "room-localized-" + locale);
             }
+            L10n.SetLocale("zh_CN", save: false);
+            await Frame();
             var accessOption = page.GetNode<OptionButton>("Room/Access/Current");
             Check(panel.IsOpen && page.IsVisibleInTree() && !accessOption.Disabled,
                 "permission popup opens from a visible enabled host page");
@@ -691,9 +703,9 @@ public static class InGameRoomSmoke
                 Click("Room/CodeRow/Visibility");
             }
             finally { DisplayServer.ClipboardSet(originalClipboard); }
-            Check(companionMembers.Select(member => member.Name).Order().SequenceEqual(
-                    new[] { "熬夜的程序员", "没洗头的美术", "打喷嚏的策划" }.Order()),
-                "companions use the agreed playful display names without extra labels");
+            Check(companionMembers.Select(InGameRoomPreview.MemberName).Order().SequenceEqual(
+                    new[] { "Rooms_CompanionCoder", "Rooms_CompanionArtist", "Rooms_CompanionDesigner" }.Select(L10n.Tr).Order()),
+                "companions use the agreed localized playful display names without extra labels");
             var companionUsable = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
             Check(Mathf.IsEqualApprox(localDog.GlobalPosition.X, companionUsable.Position.X
                 + companionUsable.Size.X / 2f - DisplayServer.WindowGetPosition().X)
@@ -710,7 +722,7 @@ public static class InGameRoomSmoke
                 kick.EmitSignal(BaseButton.SignalName.Pressed);
                 Check(roomKickConfirm.Visible && roomKickConfirm.GetParent() == panel
                     && roomKickConfirm.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").Text
-                        .StartsWith(member.Name + "\n", StringComparison.Ordinal),
+                        .StartsWith(InGameRoomPreview.MemberName(member) + "\n", StringComparison.Ordinal),
                     "companion removal opens the named modal above the whole settings panel");
                 roomKickCancel.EmitSignal(BaseButton.SignalName.Pressed);
                 Check(!roomKickConfirm.Visible && client.View.Members.Length == 4,

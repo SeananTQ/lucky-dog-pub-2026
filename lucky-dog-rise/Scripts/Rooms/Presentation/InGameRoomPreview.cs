@@ -48,6 +48,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private static readonly List<Translation> Translations = new();
     private static int _translationUsers;
     private bool _registeredTranslations;
+    private ScrollContainer _pageScroll;
     private RoomListing[] _lastListings;
     private bool _lastCompanionEntry;
     private readonly Dictionary<(int Id, long Presence), HBoxContainer> _memberRows = new();
@@ -153,8 +154,10 @@ public partial class InGameRoomPreview : VBoxContainer
     public override void _Ready()
     {
         if (!BuildCapabilities.SteamRooms) { QueueFree(); return; }
-        // All other supported locales currently carry an explicit English
-        // fallback; register each resource once for this page's lifetime.
+        // Register the room catalog for all supported locales once for this
+        // page's lifetime; Demo and Recording builds never load it.
+        for (Node ancestor = GetParent(); ancestor != null; ancestor = ancestor.GetParent())
+            if (ancestor is ScrollContainer scroll) { _pageScroll = scroll; break; }
         _registeredTranslations = true;
         if (_translationUsers++ == 0)
         foreach (var locale in new[] { "en", "zh_CN", "zh_TW", "ja", "es_ES", "es", "pt_BR", "pt_PT",
@@ -381,6 +384,29 @@ public partial class InGameRoomPreview : VBoxContainer
         _code.TooltipText = _hideRoomCode ? "" : code;
         _codeVisibility.Text = _hideRoomCode ? "Rooms_ShowCode" : "Rooms_HideCode";
         _codeInput.Secret = _hideRoomCode;
+        FitCodeRow();
+    }
+
+    internal void FitCodeRow()
+    {
+        // The settings panel has 396px of content before its scrollbar. Use the
+        // actual scroll viewport when hosted; standalone checks use that same cap.
+        // Do not use the row's own width: its text minimum may already have grown it.
+        float width = 396;
+        if (_pageScroll != null && _pageScroll.Size.X > 0)
+        {
+            width = Mathf.Min(width, _pageScroll.Size.X);
+            var bar = _pageScroll.GetVScrollBar();
+            if (bar.Visible) width -= bar.Size.X;
+        }
+        var row = _code.GetParent<HBoxContainer>();
+        width -= _codeVisibility.GetCombinedMinimumSize().X
+            + row.GetNode<Button>("Copy").GetCombinedMinimumSize().X
+            + 2 * row.GetThemeConstant("separation");
+        var font = _code.GetThemeFont("font");
+        int size = 18;
+        while (size > 12 && font.GetStringSize(_code.Text, HorizontalAlignment.Left, -1, size).X > width) size--;
+        if (_code.GetThemeFontSize("font_size") != size) _code.AddThemeFontSizeOverride("font_size", size);
     }
 
     private void InviteFriends()
@@ -642,7 +668,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _kickSession = session;
         _kickMemberId = memberId;
         _kickPresence = presence;
-        _kickName = client.View.Members.First(member => member.Id == memberId && member.Presence == presence).Name;
+        _kickName = MemberName(client.View.Members.First(member => member.Id == memberId && member.Presence == presence));
         ShowKickConfirmation();
         // Take focus off the covered page without preselecting either action.
         _kickConfirm.GrabFocus();
@@ -650,9 +676,15 @@ public partial class InGameRoomPreview : VBoxContainer
         _dirty = true;
     }
 
-    private void ShowKickConfirmation() => _kickConfirm.ShowConfirm(
-        L10n.Tr("Rooms_KickConfirm"), _kickName + "\n\n" + L10n.Tr("Rooms_KickConfirmMessage"),
-        L10n.Tr("Rooms_KickConfirm"), L10n.Tr(L10nKey.Common_Cancel));
+    private void ShowKickConfirmation()
+    {
+        var member = _kickClient?.View?.Members.FirstOrDefault(value =>
+            value.Id == _kickMemberId && value.Presence == _kickPresence);
+        if (member != null) _kickName = MemberName(member);
+        _kickConfirm.ShowConfirm(L10n.Tr("Rooms_KickConfirm"),
+            _kickName + "\n\n" + L10n.Tr("Rooms_KickConfirmMessage"),
+            L10n.Tr("Rooms_KickConfirm"), L10n.Tr(L10nKey.Common_Cancel));
+    }
 
     private void ConfirmKick()
     {
@@ -803,14 +835,30 @@ public partial class InGameRoomPreview : VBoxContainer
             // Activity snapshots replace the model array frequently. Preserve
             // each live member's button across mouse-down/up and scroll gestures.
             if (row.GetIndex() != index) _members.MoveChild(row, index);
-            var name = string.IsNullOrWhiteSpace(member.Name) && member.Id == _client.Id ? L10n.Tr("Rooms_You") : member.Name;
-            row.GetNode<Label>("Name").Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
+            var name = string.IsNullOrWhiteSpace(member.Name) && member.Id == _client.Id ? L10n.Tr("Rooms_You") : MemberName(member);
+            var nameLabel = row.GetNode<Label>("Name");
+            nameLabel.Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
+            nameLabel.AutowrapMode = member.IsCompanion ? TextServer.AutowrapMode.Off : TextServer.AutowrapMode.WordSmart;
+            nameLabel.ClipText = member.IsCompanion;
+            nameLabel.TextOverrunBehavior = member.IsCompanion ? TextServer.OverrunBehavior.TrimEllipsis : TextServer.OverrunBehavior.NoTrimming;
             var kick = row.GetNode<Button>("Kick");
             kick.Visible = view.OwnerId == _client.Id && member.Id != _client.Id;
             kick.Disabled = _client.IsBusy || !kick.Visible;
         }
     }
     partial void RenderMockNotice();
+    // Companion slots are stable room identities. Translate their display names
+    // locally; never translate a human persona or write translated text to Steam.
+    public static string MemberName(RoomMember member) => member == null ? L10n.Tr("Rooms_You")
+        : member.IsCompanion && member.Id is >= -RoomCompanionPlan.Count and < 0
+            ? L10n.Tr(member.Id switch
+            {
+                -1 => "Rooms_CompanionCoder",
+                -2 => "Rooms_CompanionArtist",
+                _ => "Rooms_CompanionDesigner"
+            })
+            : member.Name;
+
     public static string GameName(string gameId) => gameId switch
     {
         null or "" or "social" => L10n.Tr("Rooms_Social"),

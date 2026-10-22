@@ -18,6 +18,10 @@ public partial class RoomDogView : Node2D
     private RoomMember _member;
     private bool _isLocal;
     private Sprite2D _tongue;
+    private string _measuredName;
+    private Font _measuredNameFont;
+    private float _measuredNameWidth = -1;
+    private bool _measuredCompanion;
     public bool Editing => Chat.Editing;
     public int MemberId => _member?.Id ?? 0;
 
@@ -48,7 +52,8 @@ public partial class RoomDogView : Node2D
             Dog.ApplyReaction((EDogReactionTrigger)member.Reaction);
         Dog.SetRoomTongueActivity(tongueActive);
         _member = member;
-        _name.Text = (owner ? "♛ " : "") + member.Name + (local ? " · 本机" : "");
+        _name.Text = (owner ? "♛ " : "") + InGameRoomPreview.MemberName(member) + (local ? " · 本机" : "");
+        FitCompanionName();
         _nameBar.Visible = showName && _departure == null;
         _currentBubble = bubble;
         Chat.Present(local, IsPointerOverDog(), bubble);
@@ -98,6 +103,27 @@ public partial class RoomDogView : Node2D
         }
         _nameBar.Position = position;
         _nameBar.Size = idleRect.Size;
+        FitCompanionName();
+    }
+
+    private void FitCompanionName()
+    {
+        var font = _name.GetThemeFont("font");
+        var style = _nameBar.GetThemeStylebox("panel");
+        float width = _nameBar.Size.X - style.GetContentMargin(Side.Left) - style.GetContentMargin(Side.Right);
+        bool companion = _member?.IsCompanion == true;
+        if (_measuredName == _name.Text && _measuredNameFont == font
+            && Mathf.IsEqualApprox(_measuredNameWidth, width) && _measuredCompanion == companion) return;
+        _measuredName = _name.Text;
+        _measuredNameFont = font;
+        _measuredNameWidth = width;
+        _measuredCompanion = companion;
+        // Preserve the compact single-line nickname and crown. Only a few
+        // translations need a one-point reduction; human name styling is unchanged.
+        int size = 14;
+        if (companion && width > 0)
+            while (size > 12 && font.GetStringSize(_name.Text, HorizontalAlignment.Left, -1, size).X > width) size--;
+        if (_name.GetThemeFontSize("font_size") != size) _name.AddThemeFontSizeOverride("font_size", size);
     }
 
     public override void _Process(double delta)
