@@ -52,3 +52,5 @@ SteamInventoryTestController
 StartupAccountGateController
 LootConfigurationValidationRunner
 TestDogSkinParts
+
+PersistentTipController

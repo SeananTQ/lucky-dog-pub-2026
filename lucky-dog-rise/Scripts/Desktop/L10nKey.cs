@@ -2,6 +2,8 @@ namespace LuckyDogRise;
 
 public static class L10nKey
 {
+    public const string PersistentTip_PokerDraw = nameof(PersistentTip_PokerDraw);
+    public const string PersistentTip_Dismiss = nameof(PersistentTip_Dismiss);
     public const string Common_Quit = nameof(Common_Quit);
     public const string Common_Play = nameof(Common_Play);
     public const string Common_Desktop = nameof(Common_Desktop);

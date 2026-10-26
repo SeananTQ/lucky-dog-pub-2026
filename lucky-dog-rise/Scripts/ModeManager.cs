@@ -10,10 +10,13 @@ namespace LuckyDogRise;
 public partial class ModeManager : Control
 {
     [Export] private ColorRect _playPanelDismissOverlay = null!;
+    private PersistentTipProgress _persistentTips = null!;
     private PokerWelcomeProgress _pokerWelcomeProgress = null!;
     private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
 #if DEBUG
+    // Temporary acceptance switch. Disable after the sticky-note interaction is approved.
+    [Export] private bool _repeatPersistentTipsOnStartup = true;
     private const int DeveloperLauncherWindowWidth = 620;
     private const int DeveloperLauncherMinimumWindowHeight = 430;
     private const int DeveloperLauncherVerticalPadding = 50;
@@ -456,6 +459,12 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
+        bool sessionOnlyPersistentTips = startInSteamMock;
+#if DEBUG
+        sessionOnlyPersistentTips |= _repeatPersistentTipsOnStartup;
+#endif
+        _persistentTips = sessionOnlyPersistentTips ? new PersistentTipProgress()
+            : new PersistentTipProgress(_accountStateManager.LoadPersistentTip, _accountStateManager.SavePersistentTip);
         bool sessionOnlyPokerWelcome = startInSteamMock;
         bool sessionOnlyPokerQuickBar = startInSteamMock;
 #if DEBUG
@@ -1081,6 +1090,7 @@ public partial class ModeManager : Control
             // 连接 Main 中的 GameManager 信号
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             _gameManager.GameData = _gameData;
+            _gameManager.PersistentTips = _persistentTips;
             _gameManager.SettingsPanel = _settingsPanel;
             _infoPanel.PaytableRequested += OnPaytableRequested;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
@@ -3986,7 +3996,8 @@ public partial class ModeManager : Control
                 }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
                 if (CurrentMode != Mode.BossKey && _playViewport != null
-                    && _gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                    && (_gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true
+                        || _gameManager?.IsPointOverPersistentTip(ToPokerViewportPosition(mouseScreenPosition)) == true))
                 {
                     // A gesture that starts on the action belongs to the button, even after moving outside.
                     CancelWindowDrag();

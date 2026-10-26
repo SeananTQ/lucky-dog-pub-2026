@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scenes/Dev/Tests/PersistentTipPreview.cs" id="1_test"]
+[ext_resource type="PackedScene" path="res://Scenes/Poker/Main.tscn" id="2_main"]
+
+[node name="PersistentTipPreview" type="Node" node_paths=PackedStringArray("_game")]
+script = ExtResource("1_test")
+_game = NodePath("Main")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]

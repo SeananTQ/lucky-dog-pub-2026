@@ -80,6 +80,21 @@ public partial class GameManager : Node2D
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     [Export] private PokerQuickBarController _quickBar = null!;
     [Export] private PokerWelcomeDialogController _pokerWelcome = null!;
+    [Export] private PersistentTipController _drawTip = null!;
+    public PersistentTipProgress PersistentTips { get; set; }
+    private readonly PersistentTipProgress _sandboxTips = new();
+    private PersistentTipProgress CurrentTips
+    {
+        get
+        {
+#if DEBUG
+            if (_gameData == null || !_gameData.IsUsingLocalSave || _gameData.IsBlindBoxLocalTestMode
+                || _gameData.IsSteamMockSimulationActive) return _sandboxTips;
+#endif
+            return PersistentTips;
+        }
+    }
+    public bool IsPointOverPersistentTip(Vector2 position) => _drawTip?.ContainsPoint(position) == true;
     private PokerCollectionProgressDialogController _collectionProgressDialog = null!;
     private bool _isPokerModeActive;
     private SystemPanelController _settingsPanel;
@@ -131,6 +146,7 @@ public partial class GameManager : Node2D
         _quickBar.TutorialRequested += OnQuickBarTutorialRequested;
         _quickBar.DesktopRequested += OnQuickBarDesktopRequested;
         _quickBar.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _drawTip.InterfaceActivity += OnQuickBarInterfaceActivity;
         _quickBar.FunctionActivated += OnQuickBarFunctionActivated;
         _pokerWelcome.OverlayVisibilityChanged += OnPokerWelcomeVisibilityChanged;
         _pokerWelcome.Confirmed += OnPokerWelcomeConfirmed;
@@ -156,6 +172,7 @@ public partial class GameManager : Node2D
     {
         if (_interactionHints != null)
             _interactionHints.EffectiveInteractionOccurred -= OnEffectivePokerInteraction;
+        _drawTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
         SettingsPanel = null;
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_tutorial != null)
@@ -386,6 +403,11 @@ public partial class GameManager : Node2D
 
         _held[index] = !_held[index];
         _cardTable.SetHeld(index, _held[index]);
+        if (!_held[index])
+        {
+            try { CurrentTips?.Activate(PersistentTipProgress.PokerDraw); }
+            catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save activation: {error.Message}"); }
+        }
         SetState(GameState.Holding);
         _hud.SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
 
@@ -628,6 +650,7 @@ public partial class GameManager : Node2D
             && !showcaseVisible
             && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
+        _drawTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
         _quickBar?.SetWelcomeContext(welcomeVisible, _pokerWelcome.Layer);
         _quickBar?.SetAvailable(pokerInputAvailable);
         // The system panel may stay open throughout play; it does not suspend idle discovery.

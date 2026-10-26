@@ -772,6 +772,22 @@ content_margin_bottom = 0.0
 thickness = 3
 vertical = true
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sticky_note"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+content_margin_top = 14.0
+content_margin_bottom = 14.0
+bg_color = Color(0.98039216, 0.92941177, 0.7490196, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+shadow_color = Color(0, 0, 0, 0.16)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_sticky_button"]
+
 [resource]
 default_font = ExtResource("4_inter_bold")
 ActionButton/base_type = &"Button"
@@ -1128,3 +1144,20 @@ VScrollBar/styles/grabber_pressed = SubResource("StyleBoxTexture_scrollbar_grabb
 VScrollBar/styles/scroll = SubResource("StyleBoxTexture_scrollbar_track")
 VSeparator/constants/separation = 4
 VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")
+
+PersistentTipPanel/base_type = &"PanelContainer"
+PersistentTipPanel/styles/panel = SubResource("StyleBoxFlat_sticky_note")
+PersistentTipContent/base_type = &"VBoxContainer"
+PersistentTipContent/constants/separation = 10
+PersistentTipBody/base_type = &"PokerHelpBodyLabel"
+PersistentTipBody/font_sizes/font_size = 28
+PersistentTipBody/constants/line_spacing = 2
+PersistentTipBody/colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
+PersistentTipDismissLabel/base_type = &"PersistentTipBody"
+PersistentTipDismissLabel/font_sizes/font_size = 23
+PersistentTipDismissLabel/colors/font_color = Color(0.58, 0.42, 0.34, 1)
+PersistentTipButton/base_type = &"Button"
+PersistentTipButton/styles/normal = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/hover = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/pressed = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/focus = SubResource("StyleBoxEmpty_sticky_button")

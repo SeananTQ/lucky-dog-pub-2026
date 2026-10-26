@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/PersistentTipController.cs" id="1_script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="2_theme"]
+
+[node name="PersistentTip" type="Control" node_paths=PackedStringArray("_panel", "_message", "_dismissLabel", "_dismissButton")]
+offset_right = 240.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+_panel = NodePath("Panel")
+_message = NodePath("Panel/Content/Message")
+_dismissLabel = NodePath("Panel/Content/DismissLabel")
+_dismissButton = NodePath("Panel/Dismiss")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"PersistentTipPanel"
+
+[node name="Content" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PersistentTipContent"
+
+[node name="Message" type="Label" parent="Panel/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PersistentTipBody"
+text = "Ready? Click the arm to draw and score."
+autowrap_mode = 3
+
+[node name="DismissLabel" type="Label" parent="Panel/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PersistentTipDismissLabel"
+text = "Click this tip to close"
+autowrap_mode = 3
+
+[node name="Dismiss" type="Button" parent="Panel"]
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_type_variation = &"PersistentTipButton"
