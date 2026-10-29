@@ -590,6 +590,7 @@ public partial class RoomLab : Control
         try
         {
             GD.Print(RoomSandboxChecks.Run());
+            RoomPokerChecks.Layout();
             GD.Print(RoomCompanionChecks.Run());
             SteamRoomChecks.Run();
             GD.Print(RoomReconnectChecks.Run());

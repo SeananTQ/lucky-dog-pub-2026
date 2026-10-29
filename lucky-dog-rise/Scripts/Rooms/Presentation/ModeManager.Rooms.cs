@@ -28,10 +28,13 @@ public partial class ModeManager
         var notice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn").Instantiate<CanvasLayer>();
         var proposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
             .Instantiate<RoomGameProposalOverlay>();
+        var pokerChoice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomPokerDisplayChoice.tscn")
+            .Instantiate<RoomPokerDisplayChoice>();
         AddChild(row);
         AddChild(desktop);
         AddChild(notice);
         AddChild(proposal);
+        AddChild(pokerChoice);
         try
         {
             row.Hide();
@@ -52,6 +55,8 @@ public partial class ModeManager
                 new[] { new RoomGameVote(1, 1, RoomGameVoteState.Accepted), new RoomGameVote(2, 2, RoomGameVoteState.Pending) }) },
                 client.Id, 60, false, false, "");
             proposal.Hide();
+            pokerChoice.Present(_ => { });
+            pokerChoice.Dismiss();
             GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice, game proposal and remote dog bindings passed.");
         }
         finally
@@ -60,6 +65,7 @@ public partial class ModeManager
             row.Free();
             notice.Free();
             proposal.Free();
+            pokerChoice.Free();
         }
     }
 
@@ -128,6 +134,11 @@ public partial class ModeManager
     private void AttachRoomDesktopPreview(RoomClient client)
     {
         if (ReferenceEquals(_desktopRoomClient, client)) return;
+        _settingsPanel.DismissRoomPokerChoice();
+        _roomPokerChoiceSession = -1;
+        StopRoomPokerPresentation(restoreWindow: CurrentMode == Mode.Play);
+        if (IsInstanceValid(_roomPokerDogs) && _roomPokerDogs.IsInsideTree()) _roomPokerDogs.Clear();
+        else _roomPokerDogs = null;
         if (_desktopRoomClient != null)
         {
             _desktopRoomClient.JoinFailed -= OnRoomJoinFailed;
@@ -153,6 +164,15 @@ public partial class ModeManager
     {
         if (_desktopRoomClient == null) return;
         bool joined = _desktopRoomClient.JoinedCode.Length > 0;
+        if (_roomPokerChoiceSession >= 0 && (!joined || _roomPokerChoiceSession != _desktopRoomClient.LayoutSession))
+        { _settingsPanel.DismissRoomPokerChoice(); _roomPokerChoiceSession = -1; }
+        if (CurrentMode == Mode.Play)
+        {
+            RestoreRoomDesktopWindow();
+            UpdateRoomPokerPreview(joined);
+            if (!joined) _roomDesktop?.Clear();
+            return;
+        }
         if (!joined || CurrentMode != Mode.BossKey)
         {
             RestoreRoomDesktopWindow();
@@ -472,7 +492,7 @@ public partial class ModeManager
         if (_roomWindowActive) ApplyRoomDesktopLayout(force: true);
     }
     public bool RoomHitTestForSmoke(Vector2I point) => IsScreenPointOverInteractiveContent(point);
-    public void RoomModeForSmoke(bool poker) { if (poker) SwitchToPlay(); else SwitchToBossKey(); }
+    public void RoomModeForSmoke(bool poker) { if (poker) EnterPlay(); else SwitchToBossKey(); }
     public void RoomFullscreenHideForSmoke(bool hidden)
     {
         // Hold the simulated OS result through a few frames without changing the

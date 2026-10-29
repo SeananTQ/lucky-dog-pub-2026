@@ -13,6 +13,7 @@ public static class InGameRoomSmoke
 {
     public static bool DemoRequested => OS.GetCmdlineUserArgs().Contains("--rooms-page-demo-smoke");
     public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
@@ -59,6 +60,13 @@ public static class InGameRoomSmoke
             }
             void Click(string path) => page.GetNode<Button>(path).EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke"))
+            {
+                await Wait(2);
+                await RoomPokerChecks.Run(main, page);
+                tree.Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke"))
             {
                 await RoomArrivalMainChecks.Run(main, page);

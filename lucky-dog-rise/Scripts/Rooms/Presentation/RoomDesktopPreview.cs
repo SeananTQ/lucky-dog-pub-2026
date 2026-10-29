@@ -51,7 +51,7 @@ public partial class RoomDesktopPreview : Node2D
     }
 
     public Vector2 Present(RoomClient client, Rect2 usable, float scale, float spacing,
-        float taskbarAnchorOffsetY, bool snapEnabled)
+        float taskbarAnchorOffsetY, bool snapEnabled, bool showLocalChat = true)
     {
         if (_session != client.LayoutSession)
         {
@@ -123,7 +123,9 @@ public partial class RoomDesktopPreview : Node2D
         // ModeManager temporarily retracts that balloon while local chat is active.
         LocalChat.Position = localPosition + new Vector2(-49, -140) * scale;
         LocalChat.Scale = Vector2.One * scale;
-        LocalChat.Present(true, false, client.Bubbles.TryGetValue(client.Id, out var localBubble) ? localBubble.Text : "");
+        LocalChat.Visible = showLocalChat;
+        if (showLocalChat)
+            LocalChat.Present(true, false, client.Bubbles.TryGetValue(client.Id, out var localBubble) ? localBubble.Text : "");
         if (client.Arrival is { Presented: false } pending && IsVisibleInTree()
             && DisplayServer.GetName() != "headless" && !ReferenceEquals(_awaitingArrivalFrame, pending))
         {
@@ -131,6 +133,45 @@ public partial class RoomDesktopPreview : Node2D
             ObserveArrivalAfterDraw(client, pending);
         }
         return localPosition;
+    }
+
+    // This renderer is a separate instance from the desktop one. Its placements
+    // can be freely changed without overwriting the player's desktop arrangement.
+    public void PresentPoker(RoomClient client, Rect2 usable, float scale, Rect2? row,
+        RoomDesktopPreview desktopSeed, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY)
+    {
+        var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
+            ?? Array.Empty<RoomMember>();
+        Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY,
+            row == null && snapEnabled, showLocalChat: false);
+        if (row == null)
+            foreach (var member in fresh)
+            {
+                if (member.Id == client.Id || !_placements.TryGetValue(member.Id, out var placement)) continue;
+                if (desktopSeed?.HasMember(client.LayoutSession, member.Id, member.Presence) == true)
+                {
+                    placement.Position = desktopSeed.GetPosition(member.Id);
+                    placement.TaskbarSnapped = snapEnabled && desktopSeed.IsTaskbarSnapped(member.Id);
+                }
+                // Seed dogs outside the table; subsequent free drags belong to the player.
+                if (new Rect2(placement.Position - new Vector2(100, 150) * scale,
+                        new Vector2(200, 220) * scale).Intersects(table))
+                    placement.Position = new Vector2(placement.Position.X, usable.End.Y - taskbarAnchorOffsetY);
+                placement.Position = new Vector2(
+                    Mathf.Clamp(placement.Position.X, usable.Position.X + 100 * scale,
+                        Mathf.Max(usable.Position.X + 100 * scale, usable.End.X - 100 * scale)),
+                    Mathf.Clamp(placement.Position.Y, usable.Position.Y + 150 * scale,
+                        Mathf.Max(usable.Position.Y + 150 * scale, usable.End.Y - taskbarAnchorOffsetY)));
+            }
+        int index = 0;
+        var ordered = _dogs.Values.OrderBy(d => _placements[d.MemberId].Slot).ToArray();
+        foreach (var dog in ordered)
+        {
+            dog.Position = row is { } bounds
+                ? new Vector2(bounds.GetCenter().X + (index++ - (ordered.Length - 1) / 2f) * bounds.Size.X / 5f,
+                    bounds.End.Y - 72 * scale)
+                : _placements[dog.MemberId].Position;
+        }
     }
 
     private async void ObserveArrivalAfterDraw(RoomClient client, RoomArrivalState arrival)

@@ -59,5 +59,11 @@ public partial class InGameRoomPreview
     }
     public void AdvancePreview(double seconds) => _sandbox?.Tick(seconds);
     public RoomClient MockClientForSmoke(int id) => _mockClients.Single(client => client.Id == id);
+    public RoomClient AddMockClientForSmoke(int id)
+    {
+        var client = _sandbox.AddClient(id, $"测试玩家 {id}", LubanData.Tables.TbDogSkin.DataList[0].Id);
+        _mockClients.Add(client);
+        return client;
+    }
 }
 #endif

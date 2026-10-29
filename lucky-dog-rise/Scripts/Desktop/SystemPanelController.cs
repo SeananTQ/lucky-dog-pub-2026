@@ -111,9 +111,11 @@ public partial class SystemPanelController : CanvasLayer
     private Rooms.InGameRoomPreview _roomPreview;
     private ConfirmOverlayController _roomKickConfirm;
     private Rooms.RoomGameProposalOverlay _roomGameProposal;
+    private Rooms.RoomPokerDisplayChoice _roomPokerChoice;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
     private int _roomTabIndex = -1;
-    public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
+    public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true
+        || _roomPokerChoice?.Visible == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
 #endif
 #if DEBUG
@@ -1027,6 +1029,7 @@ public partial class SystemPanelController : CanvasLayer
             _roomPreview?.CloseRoomDropdowns();
             _roomPreview?.CancelKickConfirmation();
             _roomPreview?.HideGameProposal();
+            _roomPokerChoice?.Dismiss();
         }
 #endif
         for (int i = 0; i < _tabs.Count; i++)
@@ -1086,6 +1089,25 @@ public partial class SystemPanelController : CanvasLayer
         if (!HasPendingRoomGameProposal || !ShowRoomPage()) return false;
         return _roomPreview.TryShowPendingGameProposal();
     }
+
+    public void ShowRoomPokerChoice(Action<Rooms.RoomPokerDisplay> selected)
+    {
+        if (_roomPokerChoice == null)
+        {
+            _roomPokerChoice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomPokerDisplayChoice.tscn")
+                .Instantiate<Rooms.RoomPokerDisplayChoice>();
+            AddChild(_roomPokerChoice);
+            _roomPokerChoice.VisibilityChanged += ResetPanelScrollDrag;
+            ApplyPopupRenderQuality(_roomPokerChoice);
+        }
+        if (!IsOpen) Open();
+        _roomPokerChoice.Position = _panel.Position;
+        _roomPokerChoice.Size = PanelDesignSize;
+        _roomPokerChoice.Scale = _panel.Scale;
+        _roomPokerChoice.Present(selected);
+    }
+
+    public void DismissRoomPokerChoice() => _roomPokerChoice?.Dismiss();
 
     private void EnsureRoomPreview()
     {
@@ -3091,6 +3113,7 @@ public partial class SystemPanelController : CanvasLayer
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomKickConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _roomGameProposal?.SetOverlayRect(pos, PanelDesignSize);
+        if (_roomPokerChoice != null) _roomPokerChoice.Position = pos;
 #endif
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _desktopScaleModeSwitchConfirm?.SetOverlayRect(pos, PanelDesignSize);
@@ -3119,6 +3142,11 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomGameProposal.Scale = value;
             ApplyPopupRenderQuality(_roomGameProposal);
+        }
+        if (_roomPokerChoice != null)
+        {
+            _roomPokerChoice.Scale = value;
+            ApplyPopupRenderQuality(_roomPokerChoice);
         }
 #endif
         _desktopScaleConfirm.Scale = value;
@@ -3233,6 +3261,7 @@ public partial class SystemPanelController : CanvasLayer
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
         _roomPreview?.HideGameProposal();
+        _roomPokerChoice?.Dismiss();
 #endif
         CancelPendingDesktopPetScaleChange();
         CancelPendingOtherUiScaleChange();
@@ -3263,6 +3292,7 @@ public partial class SystemPanelController : CanvasLayer
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
         _roomPreview?.HideGameProposal();
+        _roomPokerChoice?.Dismiss();
 #endif
         bool wasOpen = _panel.Visible;
         CancelPendingDesktopPetScaleChange();

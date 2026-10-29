@@ -1097,6 +1097,14 @@ public partial class ModeManager : Control
 
     private void SwitchToPlay()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (ChooseRoomPokerDisplay()) return;
+#endif
+        EnterPlay();
+    }
+
+    private void EnterPlay()
+    {
         if (CurrentMode == Mode.Play) return;
         _openSettingsAfterDesktopPetScaleModeSwitch = false;
         _modeSwitchRevision++;
@@ -1184,20 +1192,21 @@ public partial class ModeManager : Control
         const int pad = 5;
         int infoWidth = GetPlayInfoPanelWidth();
         int gameSize = GetPlayGameSize();
-        int gameX = infoWidth;
+        int baseX = (int)_contentOffset.X;
+        int gameX = baseX + infoWidth;
         var usableScreen = GetBestScreenUsableRect(new Rect2I(
             winPos + new Vector2I(gameX, baseY),
             new Vector2I(gameSize, gameSize)));
 
         // 信息面板在左侧（默认）：屏幕范围 winPos.X ~ winPos.X + PlayInfoPanelWidth
-        bool leftOk = winPos.X >= usableScreen.Position.X - pad
-            && winPos.X + infoWidth <= usableScreen.End.X + pad;
+        bool leftOk = winPos.X + baseX >= usableScreen.Position.X - pad
+            && winPos.X + baseX + infoWidth <= usableScreen.End.X + pad;
 
         _infoPanelOnRight = !leftOk;
 
         // 游戏面板位置固定，信息面板自己绕到右侧
         _playViewport.Position = new Vector2(gameX, baseY);
-        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameSize + PlayGameSettingsGap : 0, baseY));
+        _infoPanel.SetPanelPosition(new Vector2(_infoPanelOnRight ? gameX + gameSize + PlayGameSettingsGap : baseX, baseY));
         UpdatePlayPanelDismissOverlay();
     }
 
@@ -1206,6 +1215,9 @@ public partial class ModeManager : Control
         if (CurrentMode == Mode.BossKey) return;
         int switchRevision = ++_modeSwitchRevision;
         var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
+#if !DEMO_BUILD && !RECORDING_BUILD
+        StopRoomPokerPresentation();
+#endif
         CancelWindowDrag();
         _settingsPanel.CancelPendingDesktopPetScaleChange();
         _settingsPanel.CancelPendingOtherUiScaleChange();
@@ -2029,7 +2041,11 @@ public partial class ModeManager : Control
         {
             SetupPlayFatWindow();
             UpdatePlayLayout();
-            if (preserveContentAnchor)
+            if (preserveContentAnchor
+#if !DEMO_BUILD && !RECORDING_BUILD
+                && !_roomPokerWindowActive
+#endif
+                )
             {
                 DisplayServer.WindowSetPosition(
                     oldPlayAnchor - RoundToVector2I(_playViewport.Position));
@@ -3018,6 +3034,13 @@ public partial class ModeManager : Control
     {
         _steamMockPanel?.SetPanelVisible(
             _steamMockPanelRequestedVisible && CurrentMode == Mode.Play);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (CurrentMode == Mode.Play && _roomPokerWindowActive)
+        {
+            SetupRoomPokerWindow();
+            UpdatePlayLayout();
+        }
+#endif
         if (CurrentMode == Mode.Play && _settingsPanel?.IsOpen == true)
             PositionPanelInBestSlot();
     }
@@ -3060,6 +3083,9 @@ public partial class ModeManager : Control
         }
         else if (CurrentMode == Mode.Play)
         {
+#if !DEMO_BUILD && !RECORDING_BUILD
+            over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.HitTest(localPos) != 0;
+#endif
             if (_playViewport != null)
             {
                 var gameRect = new Rect2(_playViewport.Position,
@@ -3068,7 +3094,7 @@ public partial class ModeManager : Control
             }
             if (_infoPanel != null && _infoPanel.Visible)
             {
-                int infoX = _infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0;
+                int infoX = (int)_contentOffset.X + (_infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0);
                 over |= new Rect2(infoX, _contentOffset.Y, GetPlayInfoPanelWidth(), GetPlayGameSize()).HasPoint(localPos);
             }
         }
@@ -3550,7 +3576,7 @@ public partial class ModeManager : Control
         {
             int infoX = _infoPanelOnRight
                 ? (int)aX + aw + PlayGameSettingsGap
-                : 0;
+                : (int)_contentOffset.X;
             infoPanelRect = new Rect2(
                 infoX,
                 (int)aY,
@@ -3568,6 +3594,10 @@ public partial class ModeManager : Control
                 aY - accessorySize.Y,
                 accessorySize.X,
                 accessorySize.Y);
+#if !DEMO_BUILD && !RECORDING_BUILD
+            if (_roomPokerWindowActive && _roomPokerDisplay == Rooms.RoomPokerDisplay.Row)
+                topAccessoryRect = new Rect2(Vector2.Zero, accessorySize);
+#endif
         }
 #endif
 
@@ -3898,6 +3928,9 @@ public partial class ModeManager : Control
 
     private void SetupPlayFatWindow()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (SetupRoomPokerWindow()) return;
+#endif
         var layout = _panelAvoidanceStrategy.CalculateHostLayout(
             new HostLayoutContext(
                 PanelHostMode.Play,
@@ -3922,6 +3955,14 @@ public partial class ModeManager : Control
 
     private void KeepPlayContentWithinScreen()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (_roomPokerWindowActive)
+        {
+            if (_roomPokerDisplay == Rooms.RoomPokerDisplay.Row) KeepRoomPokerRowWithinScreen();
+            else { ClampRoomPokerOrigin(); _contentOffset = _roomPokerOrigin; }
+            return;
+        }
+#endif
         int contentW = GetPlayInfoPanelWidth() + GetPlayGameSize();
         int contentH = GetPlayGameSize();
         const int pad = 5;
@@ -4212,6 +4253,7 @@ public partial class ModeManager : Control
         }
 
 #if !DEMO_BUILD && !RECORDING_BUILD
+        if (CurrentMode == Mode.Play && HandleRoomPokerPointer(@event)) return;
         // Room dragging moves one local presentation, never the native host.
         if (_roomWindowActive && (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left }
             || @event is InputEventMouseMotion))
@@ -4267,11 +4309,15 @@ public partial class ModeManager : Control
                 }
                 if (_infoPanel != null && _infoPanel.Visible)
                 {
-                    int infoX = _infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0;
+                    int infoX = (int)_contentOffset.X + (_infoPanelOnRight ? GetPlayInfoPanelWidth() + GetPlayGameSize() + PlayGameSettingsGap : 0);
                     if (new Rect2(infoX, _contentOffset.Y, GetPlayInfoPanelWidth(), GetPlayGameSize()).HasPoint(localPos)) return;
                 }
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();
+#if !DEMO_BUILD && !RECORDING_BUILD
+                _roomPokerTableDragStart = _roomPokerOrigin;
+                if (_roomPokerWindowActive && !_playViewport.GetGlobalRect().HasPoint(localPos)) return;
+#endif
                 _dragPressStartedAtMsec = Time.GetTicksMsec();
                 _potentialDrag = true;
             }
@@ -4301,11 +4347,17 @@ public partial class ModeManager : Control
                 _isDragging = true;
                 _mouseScreenStart = mouseScreenPosition;
                 _windowPosStart = DisplayServer.WindowGetPosition();
+#if !DEMO_BUILD && !RECORDING_BUILD
+                _roomPokerTableDragStart = _roomPokerOrigin;
+#endif
                 d = Vector2I.Zero;
                 SetClickThrough(false);
             }
             if (_isDragging)
             {
+#if !DEMO_BUILD && !RECORDING_BUILD
+                if (MoveRoomPokerTable(d)) { GetViewport().SetInputAsHandled(); return; }
+#endif
                 var newPos = _windowPosStart + d;
                 ApplyTaskbarSnap(ref newPos);
                 DisplayServer.WindowSetPosition(newPos);
@@ -4324,6 +4376,7 @@ public partial class ModeManager : Control
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomDragMember = 0;
+        _roomPokerDragMember = 0;
 #endif
         _isDragging = false;
         _potentialDrag = false;
