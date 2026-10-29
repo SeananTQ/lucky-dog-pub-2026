@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-10-24
+last_edit: 2026-10-26
 status: draft
 ---
 
@@ -50,7 +50,9 @@ Skill 位于 [lucky-dog-hats/SKILL.md](../../.agents/skills/lucky-dog-hats/SKILL
 
 ## 产出与交付
 
-默认输出到 `assets/output/hat-production/YYYY-MM-DD/<批次名>/`，包含编号原图、逐字提示词、参考来源与简短视觉评审。原图与失败尝试都保留；生成稿不覆盖正式 Headwear 或 ItemIcon，不自动入库。
+从 2026-10-26 起，默认输出到 `G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/`。`00_参考资料/内部参考` 保存项目原画、游戏截图及本项目生成方案，`00_参考资料/外部参考` 保存竞品、现实照片等外部资料；按内容来源分类，不按上传者分类，生成候选不自动视为画风正例；`01_生成批次/YYYY-MM-DD_<主题>/` 分开保存候选图、提示词、评审与预览；候选图按“待点评、已认可、需修改、未采用”整理。`02_已选方案` 收录主人明确认可的方案副本，按第一档、第二档、第三档和档位待定分目录；认可范围、来源和实际适配状态另附说明。候选状态不等于美术品质档位。
+
+旧 `assets/output/hat-production/` 已复制到工坊 `90_历史归档/hat-production/`，旧文件继续保留以维持历史链接。新的生成图片与逐图记录进入工坊；游戏仓库继续保存 Skill、提示词模板和规则文档。具体约定见 [目录与候选管理](../../.agents/skills/lucky-dog-hats/references/output-management.md)。生成稿不覆盖正式 Headwear 或 ItemIcon，不自动入库。
 
 主人拿到设计稿后在 Illustrator 重绘、简化、调整狗头位置并导出正式素材。生成阶段的“可用”指设计参考可用，不代表已完成游戏运行时适配。
 
