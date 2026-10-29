@@ -11,6 +11,7 @@ public sealed class PersistentTipProgress
 {
     public const string PokerDraw = "poker_draw";
     public const string PokerHelpBar = "poker_help_bar";
+    public const string PokerPaytable = "poker_paytable";
     private readonly Func<string, PersistentTipState> _load;
     private readonly Action<string, PersistentTipState> _save;
     private readonly Dictionary<string, PersistentTipState> _states = new();

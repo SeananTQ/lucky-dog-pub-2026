@@ -1091,6 +1091,7 @@ public partial class ModeManager : Control
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             _gameManager.GameData = _gameData;
             _gameManager.PersistentTips = _persistentTips;
+            _gameManager.PaytableTip = _infoPanel.PaytableTip;
             _gameManager.SettingsPanel = _settingsPanel;
             _infoPanel.PaytableRequested += OnPaytableRequested;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;

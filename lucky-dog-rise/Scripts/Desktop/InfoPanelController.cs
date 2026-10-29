@@ -23,6 +23,8 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private BalloonHintController _blindBoxHint = null!;
     [Export] private PanelContainer _payoutPanel = null!;
     [Export] private TextureRect _oddsTableGuideHint = null!;
+    [Export] private PersistentTipController _paytableTip = null!;
+    public PersistentTipController PaytableTip => _paytableTip;
 
     // ===== 动画参数 =====
     public static readonly Vector2 BasePanelSize = new(246, 600);
@@ -71,6 +73,8 @@ public partial class InfoPanelController : CanvasLayer
     public override void _Ready()
     {
         LockPanelSize();
+        _payoutPanel.ItemRectChanged += SyncPaytableTipRect;
+        CallDeferred(nameof(SyncPaytableTipRect));
         SetProcess(false); // 教学提示不可见时不需要每帧贴合
         // 复制专用设置，避免运行时闪烁污染场景资源；阴影参数会原样保留。
         _chipsLabelSettings = _chipsLabel.LabelSettings?.Duplicate() as LabelSettings;
@@ -316,11 +320,24 @@ public partial class InfoPanelController : CanvasLayer
     {
         _panel.Position = pos;
         LockPanelSize();
+        SyncPaytableTipRect();
     }
 
     public void SetRenderScale(float scale)
     {
         _panel.Scale = Vector2.One * Mathf.Max(0.01f, scale);
+        SyncPaytableTipRect();
+    }
+
+    private void SyncPaytableTipRect()
+    {
+        const float inset = 12f;
+        var rect = _payoutPanel.GetGlobalRect();
+        float scale = _panel.Scale.X;
+        // Reuse the 1200-space note theme at half scale to match its poker-table text size.
+        _paytableTip.Scale = Vector2.One * (scale * .5f);
+        _paytableTip.Size = new Vector2(Mathf.Max(1, _payoutPanel.Size.X - inset * 2) * 2, 0);
+        _paytableTip.GlobalPosition = new Vector2(rect.Position.X + inset * scale, rect.End.Y - inset * scale);
     }
 
     // 赔率表教学提示：可见性完全跟随扑克教学引导图。

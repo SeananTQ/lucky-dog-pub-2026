@@ -82,6 +82,24 @@ public partial class GameManager : Node2D
     [Export] private PokerWelcomeDialogController _pokerWelcome = null!;
     [Export] private PersistentTipController _drawTip = null!;
     [Export] private PersistentTipController _helpBarTip = null!;
+    private PersistentTipController _paytableTip;
+    // InfoPanel lives outside the poker SubViewport; only its context and progress belong here.
+    public PersistentTipController PaytableTip
+    {
+        get => _paytableTip;
+        set
+        {
+            if (_paytableTip == value) return;
+            if (GodotObject.IsInstanceValid(_paytableTip))
+                _paytableTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
+            _paytableTip = value;
+            if (_paytableTip != null)
+            {
+                _paytableTip.InterfaceActivity += OnQuickBarInterfaceActivity;
+                RefreshOverlayInteractionContexts();
+            }
+        }
+    }
     public PersistentTipProgress PersistentTips { get; set; }
     private readonly PersistentTipProgress _sandboxTips = new();
     private PersistentTipProgress CurrentTips
@@ -178,6 +196,7 @@ public partial class GameManager : Node2D
             _interactionHints.EffectiveInteractionOccurred -= OnEffectivePokerInteraction;
         _drawTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
         _helpBarTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
+        PaytableTip = null;
         SettingsPanel = null;
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_tutorial != null)
@@ -236,7 +255,14 @@ public partial class GameManager : Node2D
         if (_pokerHandShowcase.IsOverlayVisible)
             _pokerHandShowcase.HideOverlay();
         else
+        {
             _pokerHandShowcase.ShowRanks();
+            if (_pokerHandShowcase.IsOverlayVisible)
+            {
+                try { CurrentTips?.Complete(PersistentTipProgress.PokerPaytable); }
+                catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save paytable tip completion: {error.Message}"); }
+            }
+        }
         RefreshOverlayInteractionContexts();
     }
 
@@ -561,6 +587,10 @@ public partial class GameManager : Node2D
         else
         {
             _hud.SetMessage("");
+            // A resolved hand with no reward, not a chip debit or an unaffordable bet.
+            try { CurrentTips?.Activate(PersistentTipProgress.PokerPaytable); }
+            catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save paytable tip activation: {error.Message}"); }
+            RefreshOverlayInteractionContexts();
             // 等最后一张补牌开始翻面后，再与奖励筹码共用同一时序显示下注筹码。
             // 在此之前保持 Drawing，避免下注筹码提前出现。
         }
@@ -678,6 +708,7 @@ public partial class GameManager : Node2D
             && !_tutorial.IsOverlayVisible;
         _drawTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
         _helpBarTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
+        _paytableTip?.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
         _quickBar?.SetWelcomeContext(welcomeVisible, _pokerWelcome.Layer);
         _quickBar?.SetAvailable(pokerInputAvailable);
         // The system panel may stay open throughout play; it does not suspend idle discovery.
