@@ -41,6 +41,25 @@ public partial class PersistentTipPreview : Node
             _game.AddChips(1000);
             _game.PersistentTips = new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip);
             _game.SetInteractionHintPokerModeActive(true);
+            string directory = ProjectSettings.GlobalizePath("res://../.local-build/persistent-tips");
+            Directory.CreateDirectory(directory);
+            if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--help-bar-completion-only") >= 0)
+            {
+                await Wait(.1);
+                CheckHelpBarCompletion();
+                GD.Print("[PersistentTip] HELP BAR COMPLETION PASS");
+                GetTree().Quit();
+                return;
+            }
+            if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--help-bar-tip-only") >= 0)
+            {
+                await Wait(.3);
+                await CheckHelpBarTip(account, directory);
+                CheckHelpBarCompletion();
+                GD.Print("[PersistentTip] HELP BAR ONLY PASS");
+                GetTree().Quit();
+                return;
+            }
             var tip = _game.GetNode<PersistentTipController>("PersistentTips/DrawTip");
             var panel = tip.GetNode<Control>("Panel");
             await Wait(.3);
@@ -71,8 +90,8 @@ public partial class PersistentTipPreview : Node
             _game.TogglePokerHandShowcase();
             Require(tip.Visible, "Closing help restores unread note");
 
-            string directory = ProjectSettings.GlobalizePath("res://../.local-build/persistent-tips");
-            Directory.CreateDirectory(directory);
+            await CheckHelpBarTip(account, directory);
+            CheckHelpBarCompletion();
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             GetViewport().GetTexture().GetImage().SavePng(Path.Combine(directory, "first-show-zh_CN.png"));
             foreach (string locale in new[] { "en", "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT", "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk" })
@@ -133,5 +152,164 @@ public partial class PersistentTipPreview : Node
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
     }
     private async Task Wait(double seconds) => await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
+
+    private async Task CheckHelpBarTip(AccountStateManager account, string directory)
+    {
+        var bar = _game.GetNode<PokerQuickBarController>("PokerQuickBar");
+        var note = _game.GetNode<PersistentTipController>("PersistentTips/HelpBarTip");
+        var draw = _game.GetNode<PersistentTipController>("PersistentTips/DrawTip");
+        bool drawWasVisible = draw.Visible;
+        void Advance(double seconds, bool pressed = false) =>
+            _game.UpdateQuickBarPointer(true, new Vector2(1100, 700), false, pressed, seconds);
+
+        bar.RevealAfterWelcome();
+        Advance(5.1);
+        Require(!note.Visible, "Welcome reveal alone does not activate help bar note");
+        _game.UpdateQuickBarPointer(true, new Vector2(300, 40), false, false, .01);
+        Require(bar.IsExpanded && !note.Visible, "Hover reveal alone does not activate help bar note");
+        _game.SetPokerQuickBarUsed(false);
+        _game.RequestPokerWelcome(true);
+        Advance(60);
+        Require(!note.Visible && !bar.IsIdleReminderActive, "Welcome pauses help bar discovery");
+        _game.RequestPokerWelcome(false);
+        Advance(19.9);
+        Require(!note.Visible, "No note before twenty seconds");
+        Advance(.2, pressed: true);
+        Require(!note.Visible, "Idle threshold waits for mouse release");
+        Advance(0);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        Require(bar.IsExpanded && note.Visible && draw.Visible == drawWasVisible, "Idle reveal activates help note independently");
+        Require(account.LoadPersistentTip(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Active,
+            "Help bar activation is saved immediately");
+        foreach (string locale in new[] { "zh_CN", "en" })
+        {
+            L10n.SetLocale(locale, save: false);
+            await Wait(.25);
+            var rect = note.GetNode<Control>("Panel").GetGlobalRect();
+            Require(rect.Position.Y >= bar.GetNode<Control>("Clip/Bar").Size.Y && rect.Position.Y <= 108 && rect.End.Y < 500 && rect.End.X <= 404,
+                locale + ": help note sits just below the bar without stretching");
+            if (drawWasVisible)
+                Require(!rect.Intersects(draw.GetNode<Control>("Panel").GetGlobalRect()), locale + ": notes do not overlap");
+            Require(_game.IsPointOverPersistentTip(rect.GetCenter()), locale + ": help note is protected from host dragging");
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            GetViewport().GetTexture().GetImage().SavePng(Path.Combine(directory, "help-bar-" + locale + ".png"));
+        }
+        _game.GetNode<InteractionHintController>("InteractionHints").NotifyInteractionHandled();
+        Advance(.51);
+        Require(!bar.IsExpanded && note.Visible, "Effective play retracts the bar but preserves unread help note");
+        _game.PersistentTips = new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip);
+        _game.SetInteractionHintPokerModeActive(false);
+        Require(!note.Visible, "Help note hides in desktop mode");
+        _game.SetInteractionHintPokerModeActive(true);
+        Require(note.Visible, "Help note restores from disk on return");
+        _game.TogglePokerHandShowcase();
+        Require(!note.Visible, "Help overlay hides help note");
+        _game.TogglePokerHandShowcase();
+        Require(note.Visible, "Closing help restores help note");
+        // Click the part overlapping the discovery hot zone, not just the unobstructed footer.
+        var point = note.GetNode<Control>("Panel").GetGlobalRect().Position + new Vector2(20, 20);
+        GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point }, true);
+        foreach (bool pressed in new[] { true, false })
+        {
+            GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = pressed }, true);
+            await Wait(.05);
+        }
+        Require(!note.Visible && draw.Visible == drawWasVisible, "Click in discovery hot zone closes only the help note");
+        Require(account.LoadPersistentTip(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Dismissed,
+            "Help note dismissal persists independently");
+        Advance(20.1);
+        Require(bar.IsIdleReminderActive && !note.Visible, "Later idle reminder does not reopen dismissed note");
+        bar.NotifyEffectiveInteraction();
+        bar.Dismiss();
+        L10n.SetLocale("zh_CN", save: false);
+    }
+
+    private void CheckHelpBarCompletion()
+    {
+        var originalProgress = _game.PersistentTips;
+        var bar = _game.GetNode<PokerQuickBarController>("PokerQuickBar");
+        var note = _game.GetNode<PersistentTipController>("PersistentTips/HelpBarTip");
+        int desktopRequests = 0;
+        void OnDesktopRequested() => desktopRequests++;
+        _game.DesktopModeRequested += OnDesktopRequested;
+
+        AccountStateManager Prepare(bool active)
+        {
+            _game.SetInteractionHintPokerModeActive(false);
+            var account = new AccountStateManager(AccountStorageContext.ForDevelopment("tip-completion-" + Guid.NewGuid().ToString("N")));
+            if (active) account.SavePersistentTip(PersistentTipProgress.PokerHelpBar, PersistentTipState.Active);
+            // Only seed the arm state to detect accidental completion; no arm/card animation regression.
+            account.SavePersistentTip(PersistentTipProgress.PokerDraw, PersistentTipState.Active);
+            _game.PersistentTips = new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip);
+            _game.SetPokerQuickBarUsed(false);
+            _game.SetInteractionHintPokerModeActive(true);
+            return account;
+        }
+
+        void RequireCompleted(AccountStateManager account, string reason)
+        {
+            var reloaded = new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip);
+            reloaded.Activate(PersistentTipProgress.PokerHelpBar);
+            Require(!note.Visible && reloaded.GetState(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Dismissed,
+                reason + ": completed on disk and cannot reactivate");
+            Require(account.LoadPersistentTip(PersistentTipProgress.PokerDraw) == PersistentTipState.Active,
+                reason + ": arm note still requires manual acknowledgment");
+        }
+
+        try
+        {
+            foreach (bool active in new[] { false, true })
+            {
+                var account = Prepare(active);
+                account.SavePokerQuickBarUsed();
+                _game.SetPokerQuickBarUsed(account.LoadPokerQuickBarUsed());
+                _game.UpdateQuickBarPointer(true, new Vector2(1100, 700), false, false, 60);
+                Require(!bar.IsIdleReminderActive, "Existing toolbar use disables the idle reminder");
+                RequireCompleted(account, active ? "Existing account with unread note" : "Existing account with unseen note");
+                _game.SetPokerQuickBarUsed(false);
+                RequireCompleted(account, "Discovery reset does not undo completed note");
+            }
+
+            foreach (string button in new[] { "Help", "Tutorial", "DesktopPet" })
+            foreach (bool active in new[] { false, true })
+            {
+                var account = Prepare(active);
+                int beforeDesktop = desktopRequests;
+                _game.RequestPokerWelcome(true);
+                bar.GetNode<Button>("Clip/Bar/Buttons/" + button).EmitSignal(Button.SignalName.Pressed);
+                Require(!_game.IsPokerWelcomeVisible, button + ": toolbar action still acknowledges welcome");
+                RequireCompleted(account, button + (active ? " with unread note" : " before note activation"));
+                Require(button == "Help" ? _game.IsPokerHandShowcaseVisible
+                    : button == "Tutorial" ? _game.IsTutorialOverlayVisible : desktopRequests == beforeDesktop + 1,
+                    button + ": requested function still executes");
+                _game.SetInteractionHintPokerModeActive(false);
+                _game.SetInteractionHintPokerModeActive(true);
+                RequireCompleted(account, button + " after returning to poker");
+            }
+
+            var untouched = Prepare(true);
+            _game.UpdateQuickBarPointer(true, new Vector2(300, 40), false, false, .01);
+            Require(untouched.LoadPersistentTip(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Active,
+                "Hover alone does not complete the note");
+            _game.RequestPokerWelcome(true);
+            _game.GetNode<Button>("PokerWelcomeDialog/InputShield/Center/Panel/Margin/Content/Confirm").EmitSignal(Button.SignalName.Pressed);
+            Require(untouched.LoadPersistentTip(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Active,
+                "Welcome acknowledgment does not complete the note");
+            _game.TogglePokerHandShowcase();
+            _game.TogglePokerHandShowcase();
+            Require(note.Visible && untouched.LoadPersistentTip(PersistentTipProgress.PokerHelpBar) == PersistentTipState.Active,
+                "Paytable help does not complete the note");
+        }
+        finally
+        {
+            _game.DesktopModeRequested -= OnDesktopRequested;
+            _game.RequestPokerWelcome(false);
+            _game.SetInteractionHintPokerModeActive(false);
+            _game.PersistentTips = originalProgress;
+            _game.SetPokerQuickBarUsed(false);
+            bar.Dismiss();
+            _game.SetInteractionHintPokerModeActive(true);
+        }
+    }
 }
 #endif

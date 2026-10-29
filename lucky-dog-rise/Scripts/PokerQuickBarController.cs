@@ -10,6 +10,7 @@ public partial class PokerQuickBarController : CanvasLayer
     [Signal] public delegate void DesktopRequestedEventHandler();
     [Signal] public delegate void InterfaceActivityEventHandler();
     [Signal] public delegate void FunctionActivatedEventHandler();
+    [Signal] public delegate void IdleReminderStartedEventHandler();
 
     [Export] private Control _hotZone = null!;
     [Export] private Control _clip = null!;
@@ -137,6 +138,7 @@ public partial class PokerQuickBarController : CanvasLayer
             {
                 IsIdleReminderActive = true;
                 _waitForPointerExit = false;
+                EmitSignal(SignalName.IdleReminderStarted);
             }
         }
         if (IsIdleReminderActive)

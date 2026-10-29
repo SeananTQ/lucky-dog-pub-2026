@@ -12,6 +12,7 @@ public partial class PersistentTipController : Control
     [Export] private Button _dismissButton = null!;
     [Export] public string TipKey { get; set; } = PersistentTipProgress.PokerDraw;
     [Export] public string MessageKey { get; set; } = L10nKey.PersistentTip_PokerDraw;
+    [Export] public bool AnchorToBottom { get; set; } = true;
     public event Action InterfaceActivity = delegate { };
     private PersistentTipProgress _progress;
     private bool _layoutQueued;
@@ -49,7 +50,7 @@ public partial class PersistentTipController : Control
 
     public bool ContainsPoint(Vector2 point) => IsVisibleInTree() && _panel.GetGlobalRect().HasPoint(point);
     private void OnButtonDown() => InterfaceActivity();
-    private void AnchorPanel() => _panel.Position = new Vector2(0, -_panel.Size.Y);
+    private void AnchorPanel() => _panel.Position = new Vector2(0, AnchorToBottom ? -_panel.Size.Y : 0);
 
     private void QueueFitToContent()
     {
