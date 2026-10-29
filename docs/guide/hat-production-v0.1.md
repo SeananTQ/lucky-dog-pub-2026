@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-10-26
+last_edit: 2026-10-29
 status: draft
 ---
 
@@ -28,7 +28,7 @@ Skill 位于 [lucky-dog-hats/SKILL.md](../../.agents/skills/lucky-dog-hats/SKILL
 
 纸袋、蝴蝶、独角兽角与鬃毛等特殊头饰留作后续需求。另一个后续方向是表达玩家状态的头饰：卷纸表示去上厕所，满电电池表示活力充沛，空电电池表示今天上班很累，汉堡或拉面表示去吃饭。本次仅记录题材及表达用途，不启动这些设计，也不推定需要实现自动状态切换。
 
-主人提供 [Bongo Cat 市场链接](https://steamcommunity.com/market/search?category_itemslot=hat&appid=3419430) 与[市场截图](../../assets/参考图/帽子风格/BongoCat市场题材参考_2026-10-24.png)。该链接本次未能通过网页工具读取，讨论依据为主人说明与截图；截图只作题材参考，项目自身原画继续负责画风。上述后续例子不全是截图可见商品，未核实热度或销量。
+主人提供 [Bongo Cat 市场链接](https://steamcommunity.com/market/search?category_itemslot=hat&appid=3419430) 与[市场截图](G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/00_参考资料/外部参考/BongoCat市场题材参考_2026-10-24.png)。该链接本次未能通过网页工具读取，讨论依据为主人说明与截图；截图只作题材参考，项目自身原画继续负责画风。上述后续例子不全是截图可见商品，未核实热度或销量。
 
 ## 提示词入口
 
@@ -52,7 +52,7 @@ Skill 位于 [lucky-dog-hats/SKILL.md](../../.agents/skills/lucky-dog-hats/SKILL
 
 从 2026-10-26 起，默认输出到 `G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/`。`00_参考资料/内部参考` 保存项目原画、游戏截图及本项目生成方案，`00_参考资料/外部参考` 保存竞品、现实照片等外部资料；按内容来源分类，不按上传者分类，生成候选不自动视为画风正例；`01_生成批次/YYYY-MM-DD_<主题>/` 分开保存候选图、提示词、评审与预览；候选图按“待点评、已认可、需修改、未采用”整理。`02_已选方案` 收录主人明确认可的方案副本，按第一档、第二档、第三档和档位待定分目录；认可范围、来源和实际适配状态另附说明。候选状态不等于美术品质档位。
 
-旧 `assets/output/hat-production/` 已复制到工坊 `90_历史归档/hat-production/`，旧文件继续保留以维持历史链接。新的生成图片与逐图记录进入工坊；游戏仓库继续保存 Skill、提示词模板和规则文档。具体约定见 [目录与候选管理](../../.agents/skills/lucky-dog-hats/references/output-management.md)。生成稿不覆盖正式 Headwear 或 ItemIcon，不自动入库。
+2026-10-29 已将旧生产批次和早期实验完整归档到工坊 `90_历史归档/hat-production/` 与 `90_历史归档/hat-generation-lab/`，并核对逐文件哈希。浏览文档改用工坊路径，原始提示词和元数据保留历史来源；三个旧资料目录已由主人于 2026-10-29 删除，后续从工坊访问。新的生成图片与逐图记录进入工坊；游戏仓库继续保存 Skill、提示词模板和规则文档。具体约定见 [目录与候选管理](../../.agents/skills/lucky-dog-hats/references/output-management.md)。生成稿不覆盖正式 Headwear 或 ItemIcon，不自动入库。
 
 主人拿到设计稿后在 Illustrator 重绘、简化、调整狗头位置并导出正式素材。生成阶段的“可用”指设计参考可用，不代表已完成游戏运行时适配。
 
@@ -62,4 +62,4 @@ R05 的厚涂画风、R08 的错误理解及厚涂嫌疑均被主人否决；R07
 
 本次只完成规则、提示词与 Skill 的整理和流程检查，不再追加生图实验。后续按生产任务积累反馈；若另行验证 90%，需单独固定任务集、参考策略、提示词和验收规则。
 
-历史图片、提示词和原始反馈保存在 `assets/output/hat-generation-lab/2026-10-23/`；当前规则依据为该目录的 `reviews/evaluation-v8.md`。临时生产使用本 Skill，不需要每次重新阅读全部实验记录。
+历史图片、提示词和原始反馈保存在 `G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/90_历史归档/hat-generation-lab/2026-10-23/`；当前规则依据为该目录的 `reviews/evaluation-v8.md`。临时生产使用本 Skill，不需要每次重新阅读全部实验记录。

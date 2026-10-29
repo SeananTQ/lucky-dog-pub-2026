@@ -1,12 +1,12 @@
 ---
 last_editor: Codex
-last_edit: 2026-10-23
+last_edit: 2026-10-29
 status: draft
 ---
 
 # 参考选择与专项帽型
 
-以下项目路径均相对仓库根，文件和尺寸已于 2026-10-23 核对。若资源迁移，先查当前 Headwear 与 `lucky-dog-rise/Data/Json/tbitem.json` 的映射；不要静默改用 ItemIcon。
+正式素材路径相对仓库根；工坊参考使用绝对路径。原图尺寸于 2026-10-23 核对，参考迁移路径于 2026-10-29 核对。若资源迁移，先查当前 Headwear 与 `lucky-dog-rise/Data/Json/tbitem.json` 的映射；不要静默改用 ItemIcon。
 
 ## 原始画风参考
 
@@ -28,10 +28,10 @@ status: draft
 
 两张主人提供的实际佩戴拼图，均 2560×1440：
 
-- `assets/参考图/帽子风格/帽子佩戴与风格参考_2026-10-23.png`
-- `assets/参考图/帽子风格/帽子佩戴与风格参考_2026-10-23_02.png`
+- `G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/00_参考资料/内部参考/帽子佩戴与风格参考_2026-10-23.png`
+- `G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/00_参考资料/内部参考/帽子佩戴与风格参考_2026-10-23_02.png`
 
-只裁目标对应帽子的单格，并记录原图、裁切坐标与用途。已可用的蓝警帽佩戴局部：`assets/output/hat-generation-lab/2026-10-23/references/police-blue-wearing-crop.png`，265×183；来自第一张 `(1410,12,1675,195)`，含眼镜，因此明确只参考佩戴关系，不复制眼镜和狗。
+只裁目标对应帽子的单格，并记录原图、裁切坐标与用途。已可用的蓝警帽佩戴局部：`G:/Workspace/LuckyDogRise_DigitalDrops/HatDesignStudio/90_历史归档/hat-generation-lab/2026-10-23/references/police-blue-wearing-crop.png`，265×183；来自第一张 `(1410,12,1675,195)`，含眼镜，因此明确只参考佩戴关系，不复制眼镜和狗。
 
 现实帽子照片负责形体、材质或经典造型辨识，项目原画负责画法；两者职责分开。新帽子不必已有同名项目帽，也不要求主人每次提供现实照片。
 
