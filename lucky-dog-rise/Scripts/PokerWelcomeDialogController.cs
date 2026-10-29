@@ -16,6 +16,8 @@ public partial class PokerWelcomeDialogController : CanvasLayer
     private bool _blocked;
     public bool IsOverlayVisible => Visible;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         Visible = false;
@@ -59,7 +61,8 @@ public partial class PokerWelcomeDialogController : CanvasLayer
 
     private void RefreshVisibility()
     {
-        bool show = _requested && _pokerActive && !_blocked;
+        bool show = _requested && _pokerActive && !_blocked
+            && !UiInteractionOccupancy.IsOccupied(this, exceptRoot: this);
         if (Visible == show) return;
         Visible = show;
         if (show) GetViewport().GuiReleaseFocus();

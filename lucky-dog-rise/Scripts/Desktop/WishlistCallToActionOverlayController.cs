@@ -18,6 +18,8 @@ public partial class WishlistCallToActionOverlayController : Control
     private Label _message = null!;
     private bool _isExitPrompt;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         _primaryButton = GetNode<Button>("OverlayPanel/Margin/Content/ButtonColumn/PrimaryButton");

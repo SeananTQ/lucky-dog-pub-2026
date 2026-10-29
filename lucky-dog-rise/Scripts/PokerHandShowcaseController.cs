@@ -51,6 +51,8 @@ public partial class PokerHandShowcaseController : CanvasLayer
 
     public bool IsOverlayVisible => Visible;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         foreach (var example in _rankExamples)

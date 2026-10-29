@@ -220,6 +220,10 @@ public partial class ModeManager : Control
             return;
         }
         DiagnosticLog.Initialize();
+        // Covers the loading handoff and pending/restored rewards even before
+        // a reveal overlay is visible. Bound to this host's tree lifetime.
+        UiInteractionOccupancy.Track(this, () => _blindBoxOpeningUiActive
+            || _gameData?.PendingBlindBoxReward != null);
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested += OnExternalActivationRequested;
     }

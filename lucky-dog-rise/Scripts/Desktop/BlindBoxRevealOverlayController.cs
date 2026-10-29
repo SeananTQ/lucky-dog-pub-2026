@@ -66,6 +66,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private double _rewardAutoClaimRemaining;
     private ulong _rewardClickAllowedAtMsec;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         Visible = false;

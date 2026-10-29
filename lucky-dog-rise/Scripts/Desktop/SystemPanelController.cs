@@ -115,13 +115,6 @@ public partial class SystemPanelController : CanvasLayer
     private int _roomTabIndex = -1;
     public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
-    public bool HasBlockingPanelModal => _desktopScaleConfirm?.Visible == true
-        || _desktopScaleModeSwitchConfirm?.Visible == true || _otherUiScaleConfirm?.Visible == true
-        || _recoveredItemsOverlay?.Visible == true || _wishlistCallToActionOverlay?.Visible == true
-#if DEBUG
-        || _resetSaveConfirm?.Visible == true
-#endif
-        ;
 #endif
 #if DEBUG
     private Button _debugTab = null!;
@@ -403,6 +396,9 @@ public partial class SystemPanelController : CanvasLayer
     private const float OutfitPresetSeparatorRightInset = 10f;
     private static readonly Texture2D OutfitPresetDeleteIcon =
         GD.Load<Texture2D>("res://Assets/UI/Icon/Icon_OutfitPresetDelete.svg");
+
+    public override void _EnterTree() => UiInteractionOccupancy.Track(this,
+        () => GodotObject.IsInstanceValid(_panel) && HasOpenDropdown);
 
     public override void _Ready()
     {

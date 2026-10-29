@@ -103,12 +103,7 @@ public partial class ModeManager
     {
         if (_settingsPanel?.HasPendingRoomGameProposal != true
             || _startupState != StartupState.Interactive || _hiddenByFullscreenApp
-            || CurrentMode == Mode.Immersive || _blindBoxOpeningUiActive
-            || _gameData?.PendingBlindBoxReward != null || _bossBlindBoxOverlay?.Visible == true
-            || _settingsPanel.HasBlockingPanelModal || _settingsPanel.HasRoomModal || _settingsPanel.HasOpenDropdown
-            || CurrentMode == Mode.Play && (_gameManager?.IsTutorialOverlayVisible == true
-                || _gameManager?.IsCollectionProgressNoticeVisible == true
-                || _gameManager?.IsPokerHandShowcaseVisible == true)) return;
+            || CurrentMode == Mode.Immersive || UiInteractionOccupancy.IsOccupied(this)) return;
 
         // A pending proposal keeps its original deadline while a higher-priority
         // presentation is busy. Opening it never changes the player's poker mode.

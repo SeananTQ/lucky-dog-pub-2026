@@ -28,6 +28,8 @@ public partial class RoomGameProposalOverlay : Control
     private bool _canRespond;
     private bool _canConfirm;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         var content = GetNode<VBoxContainer>("OverlayPanel/Margin/Content");

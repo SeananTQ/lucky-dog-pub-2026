@@ -22,6 +22,8 @@ public partial class ConfirmOverlayController : Control
     private string _timedMessageKey = "";
     private int _lastDisplayedCountdown = -1;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         _titleLabel = GetNode<Label>("OverlayPanel/Margin/Content/Title");

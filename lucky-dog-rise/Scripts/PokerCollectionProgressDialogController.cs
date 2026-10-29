@@ -18,6 +18,8 @@ public partial class PokerCollectionProgressDialogController : CanvasLayer
 
     public bool IsOverlayVisible => Visible;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         _title = GetNode<Label>("Overlay/Center/Panel/Margin/Content/Title");

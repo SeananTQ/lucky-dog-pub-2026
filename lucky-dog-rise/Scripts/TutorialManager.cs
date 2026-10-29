@@ -15,6 +15,8 @@ public partial class TutorialManager : CanvasLayer
 
     public bool IsOverlayVisible => Visible;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         Visible = false;

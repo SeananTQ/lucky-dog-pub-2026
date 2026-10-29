@@ -70,6 +70,7 @@ public static class InGameRoomSmoke
             {
                 await Wait(2);
                 await RoomGameChangeMainChecks.Run(main, page);
+                await RoomInteractionMainChecks.Run(main, page);
                 tree.Quit();
                 return;
             }

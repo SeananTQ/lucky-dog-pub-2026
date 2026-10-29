@@ -19,6 +19,8 @@ public partial class RecoveredItemsOverlayController : Control
     private GridContainer _itemGrid = null!;
     private Button _confirmButton = null!;
 
+    public override void _EnterTree() => UiInteractionOccupancy.TrackVisibility(this);
+
     public override void _Ready()
     {
         _title = GetNode<Label>("OverlayPanel/Margin/Content/Title");

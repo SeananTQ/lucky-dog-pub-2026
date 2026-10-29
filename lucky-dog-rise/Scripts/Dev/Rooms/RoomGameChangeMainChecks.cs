@@ -49,7 +49,7 @@ internal static class RoomGameChangeMainChecks
         var confirm = content.GetNode<Button>("Actions/Primary");
         var cancel = content.GetNode<Button>("Actions/Secondary");
         Check(panel.IsOpen && overlay.Visible && !chat.Editing && input.Text == "preserved room-mode draft",
-            $"proposal opens the panel and retracts the composer without erasing its draft (open={panel.IsOpen}, modal={overlay.Visible}, editing={chat.Editing}, pending={panel.HasPendingRoomGameProposal}, blocking={panel.HasBlockingPanelModal}, draft={input.Text})");
+            $"proposal opens the panel and retracts the composer without erasing its draft (open={panel.IsOpen}, modal={overlay.Visible}, editing={chat.Editing}, pending={panel.HasPendingRoomGameProposal}, draft={input.Text})");
         Check(confirm.Disabled && !confirm.HasFocus() && !cancel.HasFocus(),
             "initial one-of-four votes cannot switch and neither action is preselected");
         Check(overlay.GetGlobalRect().Position.IsEqualApprox(panel.PanelRect.Position)
