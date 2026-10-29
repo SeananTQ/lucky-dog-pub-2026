@@ -207,8 +207,7 @@ public partial class SystemPanelController : CanvasLayer
     private DebugResetConfirmation _resetConfirmation = DebugResetConfirmation.Save;
     private bool _steamMockActive;
     private CheckButton _showDeveloperLauncherNextStartupToggle = null!;
-    private CheckButton _repeatPokerWelcomeOnStartupToggle = null!;
-    private CheckButton _repeatPokerQuickBarDiscoveryOnStartupToggle = null!;
+    private CheckButton _replayFirstUseGuidanceOnStartupToggle = null!;
     private CheckButton _wishlistPageOpenedDebugToggle = null!;
 #endif
 
@@ -644,8 +643,7 @@ public partial class SystemPanelController : CanvasLayer
         var grantLuckyDealsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/GrantLuckyDealsBtn");
         var steamMockPanelToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/LinkTreeSyncSimulationRow/LinkTreeSyncSimulationToggle");
         _showDeveloperLauncherNextStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DeveloperLauncherRow/DeveloperLauncherToggle");
-        _repeatPokerWelcomeOnStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow/PokerWelcomeReplayToggle");
-        _repeatPokerQuickBarDiscoveryOnStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow/PokerQuickBarReplayToggle");
+        _replayFirstUseGuidanceOnStartupToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/FirstUseGuidanceReplayRow/FirstUseGuidanceReplayToggle");
         _wishlistPageOpenedDebugToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow/WishlistPageOpenedDebugToggle");
         var wishlistPageOpenedDebugRow = GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/WishlistPageOpenedDebugRow");
         var resetSettingsBtn = GetNode<Button>("Panel/RootVBox/Scroll/ContentVBox/DebugContent/ResetSettingsBtn");
@@ -672,10 +670,8 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
         _showDeveloperLauncherNextStartupToggle.Toggled += SettingsManager.SaveShowDeveloperLauncherOnStartup;
-        _repeatPokerWelcomeOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerWelcomeOnStartup());
-        _repeatPokerWelcomeOnStartupToggle.Toggled += SettingsManager.SaveRepeatPokerWelcomeOnStartup;
-        _repeatPokerQuickBarDiscoveryOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
-        _repeatPokerQuickBarDiscoveryOnStartupToggle.Toggled += SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup;
+        _replayFirstUseGuidanceOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadReplayFirstUseGuidanceOnStartup());
+        _replayFirstUseGuidanceOnStartupToggle.Toggled += SettingsManager.SaveReplayFirstUseGuidanceOnStartup;
         wishlistPageOpenedDebugRow.Visible = BuildCapabilities.CollectionEvents;
         _wishlistPageOpenedDebugToggle.Toggled += opened =>
             _gameData?.SetWishlistCallToActionPageOpened(opened);
@@ -3895,8 +3891,7 @@ public partial class SystemPanelController : CanvasLayer
             : (int)SettingsManager.LoadSaveDataMode());
         _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
-        _repeatPokerWelcomeOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerWelcomeOnStartup());
-        _repeatPokerQuickBarDiscoveryOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
+        _replayFirstUseGuidanceOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadReplayFirstUseGuidanceOnStartup());
 #endif
         RefreshLocalizedOptionText();
     }

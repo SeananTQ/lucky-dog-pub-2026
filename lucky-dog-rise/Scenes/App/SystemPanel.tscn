@@ -1062,29 +1062,16 @@ text = "启动时显示开发启动器"
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="PokerWelcomeReplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
+[node name="FirstUseGuidanceReplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
 layout_mode = 2
-tooltip_text = "仅 Dev，下次启动生效。开启后，每次启动重新体验扑克欢迎提示，本次确认仅保存在内存，不改写正式记录。关闭后下次启动恢复正式记录。"
+tooltip_text = "下次启动起，重播欢迎、帮助栏发现和便签提示。保留正式引导记录、筹码、装扮及盲盒进度；关闭后恢复。"
 
-[node name="PokerWelcomeReplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "启动时重播扑克欢迎提示"
-
-[node name="PokerWelcomeReplayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerWelcomeReplayRow"]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="PokerQuickBarReplayRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent"]
-layout_mode = 2
-tooltip_text = "仅 Dev，下次启动生效。开启后，每次启动恢复快捷栏大热区和 20 秒闲置提醒，忽略正式记录与旧档迁移；本次功能点击及重置不改写正式记录。关闭后下次启动恢复正式记录与迁移。"
-
-[node name="PokerQuickBarReplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow"]
+[node name="FirstUseGuidanceReplayLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/FirstUseGuidanceReplayRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "启动时重置快捷栏发现"
+text = "启动时重播首次使用引导"
 
-[node name="PokerQuickBarReplayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/PokerQuickBarReplayRow"]
+[node name="FirstUseGuidanceReplayToggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/DebugContent/FirstUseGuidanceReplayRow"]
 layout_mode = 2
 size_flags_vertical = 4
 

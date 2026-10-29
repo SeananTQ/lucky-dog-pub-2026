@@ -63,20 +63,16 @@ func check_debug_replay_settings():
 	await click_host_control(settings.get_node("Panel/RootVBox/TitleRow/DebugTab"))
 	var debug_content = settings.get_node("Panel/RootVBox/Scroll/ContentVBox/DebugContent")
 	var scroll = settings.get_node("Panel/RootVBox/Scroll")
-	var welcome_toggle = debug_content.get_node("PokerWelcomeReplayRow/PokerWelcomeReplayToggle")
-	var discovery_toggle = debug_content.get_node("PokerQuickBarReplayRow/PokerQuickBarReplayToggle")
-	check(debug_content.is_visible_in_tree() and not welcome_toggle.button_pressed and not discovery_toggle.button_pressed,
-		"Debug replay switches are visible and default to off")
-	for toggle in [welcome_toggle, discovery_toggle]:
-		scroll.ensure_control_visible(toggle)
-		await process_frame
-		await click_host_control(toggle)
-		check(toggle.button_pressed, "Actual Debug switch click enables " + toggle.name)
-		var saved = ConfigFile.new()
-		saved.load("user://settings.cfg")
-		check(saved.get_value("debug", "repeat_poker_welcome_on_startup", false), "Welcome replay is immediately saved")
-		check(saved.get_value("debug", "repeat_poker_quick_bar_discovery_on_startup", false) == (toggle == discovery_toggle),
-			"Discovery replay is independent and immediately saved")
+	var toggle = debug_content.get_node("FirstUseGuidanceReplayRow/FirstUseGuidanceReplayToggle")
+	check(debug_content.is_visible_in_tree() and not toggle.button_pressed,
+		"Unified Debug replay switch is visible and defaults off")
+	scroll.ensure_control_visible(toggle)
+	await process_frame
+	await click_host_control(toggle)
+	var saved = ConfigFile.new()
+	saved.load("user://settings.cfg")
+	check(toggle.button_pressed and saved.get_value("debug", "replay_first_use_guidance_on_startup", false),
+		"Actual Debug switch click immediately saves unified replay")
 	check(not welcome.get("IsOverlayVisible") and bar.get_node("HotZone").size.y == 80,
 		"Changing replay switches preserves the current welcome and toolbar state")
 	var reset = debug_content.get_node("ResetSettingsBtn")
@@ -85,10 +81,9 @@ func check_debug_replay_settings():
 	await click_host_control(reset)
 	var defaults = ConfigFile.new()
 	defaults.load("user://settings.cfg")
-	check(not welcome_toggle.button_pressed and not discovery_toggle.button_pressed
-		and not defaults.get_value("debug", "repeat_poker_welcome_on_startup", false)
-		and not defaults.get_value("debug", "repeat_poker_quick_bar_discovery_on_startup", false),
-		"Reset settings clears both persisted preferences and refreshes both switches")
+	check(not toggle.button_pressed
+		and not defaults.get_value("debug", "replay_first_use_guidance_on_startup", false),
+		"Reset settings clears unified preference and refreshes switch")
 	settings.call("CloseImmediate")
 	host.call("SwitchToBossKey")
 	await process_frame

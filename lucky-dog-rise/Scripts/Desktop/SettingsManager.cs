@@ -14,6 +14,7 @@ public static class SettingsManager
     // Use a new key because older builds consumed the one-shot value by writing
     // false. Debug now defaults to showing the launcher until explicitly disabled.
     private const string KeyShowDeveloperLauncherOnStartup = "show_developer_launcher_on_startup";
+    private const string KeyReplayFirstUseGuidanceOnStartup = "replay_first_use_guidance_on_startup";
     private const string KeyRepeatPokerWelcomeOnStartup = "repeat_poker_welcome_on_startup";
     private const string KeyRepeatPokerQuickBarDiscoveryOnStartup = "repeat_poker_quick_bar_discovery_on_startup";
 #endif
@@ -538,29 +539,28 @@ public static class SettingsManager
 
     // Read once during startup: changing these preferences must not reset the
     // current session or overwrite the account's real tutorial progress.
-    public static bool LoadRepeatPokerWelcomeOnStartup()
+    public static bool LoadReplayFirstUseGuidanceOnStartup()
     {
         var config = Load();
-        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, false);
+        if (config.HasSectionKey(SectionDebug, KeyReplayFirstUseGuidanceOnStartup))
+            return (bool)config.GetValue(SectionDebug, KeyReplayFirstUseGuidanceOnStartup, false);
+        // Preserve either old opt-in, but never infer it from the temporary scene default.
+        bool enabled = (bool)config.GetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, false)
+            || (bool)config.GetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, false);
+        if (config.HasSectionKey(SectionDebug, KeyRepeatPokerWelcomeOnStartup)
+            || config.HasSectionKey(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup))
+            SaveReplayFirstUseGuidanceOnStartup(enabled);
+        return enabled;
     }
 
-    public static void SaveRepeatPokerWelcomeOnStartup(bool enabled)
+    public static void SaveReplayFirstUseGuidanceOnStartup(bool enabled)
     {
         var config = Load();
-        config.SetValue(SectionDebug, KeyRepeatPokerWelcomeOnStartup, enabled);
-        config.Save(Path);
-    }
-
-    public static bool LoadRepeatPokerQuickBarDiscoveryOnStartup()
-    {
-        var config = Load();
-        return (bool)config.GetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, false);
-    }
-
-    public static void SaveRepeatPokerQuickBarDiscoveryOnStartup(bool enabled)
-    {
-        var config = Load();
-        config.SetValue(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup, enabled);
+        config.SetValue(SectionDebug, KeyReplayFirstUseGuidanceOnStartup, enabled);
+        if (config.HasSectionKey(SectionDebug, KeyRepeatPokerWelcomeOnStartup))
+            config.EraseSectionKey(SectionDebug, KeyRepeatPokerWelcomeOnStartup);
+        if (config.HasSectionKey(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup))
+            config.EraseSectionKey(SectionDebug, KeyRepeatPokerQuickBarDiscoveryOnStartup);
         config.Save(Path);
     }
 

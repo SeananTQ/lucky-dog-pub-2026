@@ -15,8 +15,6 @@ public partial class ModeManager : Control
     private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
 #if DEBUG
-    // Temporary acceptance switch. Disable after the sticky-note interaction is approved.
-    [Export] private bool _repeatPersistentTipsOnStartup = true;
     private const int DeveloperLauncherWindowWidth = 620;
     private const int DeveloperLauncherMinimumWindowHeight = 430;
     private const int DeveloperLauncherVerticalPadding = 50;
@@ -459,20 +457,15 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
-        bool sessionOnlyPersistentTips = startInSteamMock;
+        bool sessionOnlyGuidance = startInSteamMock;
 #if DEBUG
-        sessionOnlyPersistentTips |= _repeatPersistentTipsOnStartup;
+        // Capture once: toggling the Debug preference only affects the next launch.
+        sessionOnlyGuidance |= SettingsManager.LoadReplayFirstUseGuidanceOnStartup();
 #endif
-        _persistentTips = sessionOnlyPersistentTips ? new PersistentTipProgress()
+        _persistentTips = sessionOnlyGuidance ? new PersistentTipProgress()
             : new PersistentTipProgress(_accountStateManager.LoadPersistentTip, _accountStateManager.SavePersistentTip);
-        bool sessionOnlyPokerWelcome = startInSteamMock;
-        bool sessionOnlyPokerQuickBar = startInSteamMock;
-#if DEBUG
-        sessionOnlyPokerWelcome |= SettingsManager.LoadRepeatPokerWelcomeOnStartup();
-        sessionOnlyPokerQuickBar |= SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup();
-#endif
-        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
-        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyPokerQuickBar);
+        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyGuidance);
+        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyGuidance);
         var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
