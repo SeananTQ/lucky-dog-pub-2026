@@ -3855,18 +3855,20 @@ public partial class ModeManager : Control
 
     private void UpdateDesktopDogHeadClipping()
     {
-        if (CurrentMode != Mode.BossKey || _bossDogVisual == null)
-            return;
-
         var windowPosition = DisplayServer.WindowGetPosition();
-        var anchor = windowPosition + RoundToVector2I(_bossTaskBarAnchor.GlobalPosition);
-        _bossDogVisual.SetHeadClippingEnabled(IsDesktopDogAtTaskbar(anchor));
-#if !DEMO_BUILD && !RECORDING_BUILD
-        // Room layout bypasses single-dog work-area tracking. Each displayed dog
-        // still needs its own clipping decision after its placement is updated.
-        if (_roomWindowActive && _roomDesktop != null)
+        if (CurrentMode == Mode.BossKey && _bossDogVisual != null)
         {
-            foreach (var remote in _roomDesktop.RemoteDogs)
+            var anchor = windowPosition + RoundToVector2I(_bossTaskBarAnchor.GlobalPosition);
+            _bossDogVisual.SetHeadClippingEnabled(IsDesktopDogAtTaskbar(anchor));
+        }
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Desktop-style room dogs use the same taskbar geometry in both modes.
+        // The player's dog on the poker table retains its separate table clipping.
+        var preview = CurrentMode == Mode.BossKey && _roomWindowActive ? _roomDesktop
+            : CurrentMode == Mode.Play && _roomPokerWindowActive ? _roomPokerDogs : null;
+        if (preview?.Visible == true)
+        {
+            foreach (var remote in preview.RemoteDogs)
             {
                 var remoteAnchor = remote.GetGlobalTransformWithCanvas().Origin
                     + Vector2.Down * RoomTaskbarAnchorOffsetY;
