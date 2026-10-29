@@ -8,6 +8,8 @@ namespace LuckyDogRise;
 
 public partial class BlindBoxRevealOverlayController : CanvasLayer
 {
+    private const ulong RewardClickProtectionMsec = 1000;
+
     [Signal] public delegate void RewardClaimRequestedEventHandler();
     [Signal] public delegate void RevealStepChangedEventHandler(int step);
     [Signal] public delegate void RewardShownEventHandler();
@@ -62,6 +64,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
     private bool _rewardAutoClaimActive;
     private bool _rewardClaimRequested;
     private double _rewardAutoClaimRemaining;
+    private ulong _rewardClickAllowedAtMsec;
 
     public override void _Ready()
     {
@@ -74,7 +77,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _initialDebugLabelPosition = _debugLabel.Position;
         _revealBackground.GuiInput += OnRevealGuiInput;
         _rewardBackground.GuiInput += OnRewardGuiInput;
-        _rewardCell.Pressed += RequestRewardClaim;
+        _rewardCell.Pressed += RequestRewardClaimFromClick;
         ApplyHintTextFontSize();
         L10n.Changed += RefreshCurrentHintText;
     }
@@ -110,6 +113,8 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         _rewardRoot.Visible = true;
         SetRevealVisible(false);
         SetRewardVisible(true);
+        // Start at reward appearance, independently of the drop animation and auto-claim countdown.
+        _rewardClickAllowedAtMsec = Time.GetTicksMsec() + RewardClickProtectionMsec;
         ApplyRewardLayout();
         _rewardCell.Setup(item, isEquipped: false, count: 1, isNew: false);
         _debugLabel.Text = pending.DebugText;
@@ -237,7 +242,7 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
         if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
             return;
 
-        RequestRewardClaim();
+        RequestRewardClaimFromClick();
     }
 
     private void AdvanceReveal()
@@ -471,6 +476,15 @@ public partial class BlindBoxRevealOverlayController : CanvasLayer
 
         GD.PushWarning($"[BlindBox] Missing BlindBox config for auto-claim: {_pending.BlindBoxId}.");
         return 0f;
+    }
+
+    private void RequestRewardClaimFromClick()
+    {
+        // Discard upgrade spam instead of queuing a claim for when protection ends.
+        if (Time.GetTicksMsec() < _rewardClickAllowedAtMsec)
+            return;
+
+        RequestRewardClaim();
     }
 
     private void RequestRewardClaim()
