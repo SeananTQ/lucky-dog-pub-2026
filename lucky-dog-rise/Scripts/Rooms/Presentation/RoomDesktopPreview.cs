@@ -135,10 +135,10 @@ public partial class RoomDesktopPreview : Node2D
         return localPosition;
     }
 
-    // This renderer is a separate instance from the desktop one. Its placements
-    // can be freely changed without overwriting the player's desktop arrangement.
+    // B has a temporary row layout. C inherits free positions in screen coordinates;
+    // the owner transfers them back before revealing the desktop renderer.
     public void PresentPoker(RoomClient client, Rect2 usable, float scale, Rect2? row,
-        RoomDesktopPreview desktopSeed, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY)
+        RoomDesktopPreview desktopSeed, Vector2 desktopSeedOffset, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY)
     {
         var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
             ?? Array.Empty<RoomMember>();
@@ -150,8 +150,12 @@ public partial class RoomDesktopPreview : Node2D
                 if (member.Id == client.Id || !_placements.TryGetValue(member.Id, out var placement)) continue;
                 if (desktopSeed?.HasMember(client.LayoutSession, member.Id, member.Presence) == true)
                 {
-                    placement.Position = desktopSeed.GetPosition(member.Id);
+                    placement.Position = desktopSeed.GetPosition(member.Id) + desktopSeedOffset;
                     placement.TaskbarSnapped = snapEnabled && desktopSeed.IsTaskbarSnapped(member.Id);
+                    if (placement.TaskbarSnapped)
+                        placement.Position = new Vector2(placement.Position.X, usable.End.Y - taskbarAnchorOffsetY);
+                    // Do not move a saved dog just because the poker table overlaps it.
+                    continue;
                 }
                 // Seed dogs outside the table; subsequent free drags belong to the player.
                 if (new Rect2(placement.Position - new Vector2(100, 150) * scale,
@@ -203,6 +207,27 @@ public partial class RoomDesktopPreview : Node2D
         && _placements.TryGetValue(memberId, out var placement) && placement.Presence == presence;
     public bool IsTaskbarSnapped(int memberId) =>
         _placements.TryGetValue(memberId, out var placement) && placement.TaskbarSnapped;
+
+    internal readonly record struct RemotePlacement(int Id, long Presence, Vector2 ScreenPosition, bool TaskbarSnapped);
+    internal sealed record RemotePlacementSnapshot(long Session, RemotePlacement[] Members);
+
+    internal RemotePlacementSnapshot CaptureRemotePlacements(Vector2 windowPosition) => new(_session,
+        _placements.Where(pair => pair.Key != _client?.Id).Select(pair => new RemotePlacement(
+            pair.Key, pair.Value.Presence, pair.Value.Position + windowPosition, pair.Value.TaskbarSnapped)).ToArray());
+
+    internal void RestoreRemotePlacements(RemotePlacementSnapshot snapshot, Vector2 windowPosition,
+        bool snapEnabled, float snappedDogY)
+    {
+        foreach (var saved in snapshot.Members)
+        {
+            if (saved.Id == _client?.Id || !HasMember(snapshot.Session, saved.Id, saved.Presence)) continue;
+            var placement = _placements[saved.Id];
+            placement.Position = saved.ScreenPosition - windowPosition;
+            placement.TaskbarSnapped = snapEnabled && saved.TaskbarSnapped;
+            if (placement.TaskbarSnapped) placement.Position = new Vector2(placement.Position.X, snappedDogY);
+            if (_dogs.TryGetValue(saved.Id, out var dog)) dog.Position = placement.Position;
+        }
+    }
 
     public void MoveMember(int memberId, Vector2 position, float snappedDogY,
         bool snapEnabled, float snapThreshold, float breakawayThreshold)

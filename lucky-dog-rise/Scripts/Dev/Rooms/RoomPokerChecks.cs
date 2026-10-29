@@ -1,5 +1,6 @@
 #if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,6 +49,7 @@ internal static class RoomPokerChecks
         L10n.SetLocale("zh_CN", save: false);
         main.ApplyDesktopPetScaleStep(1);
         main.RoomSnapForSmoke(true);
+        await JoinWhilePlaying(main, page);
         client.Join(host.JoinedCode);
         await Step();
         foreach (int id in new[] { 4, 5, 6 }) page.AddMockClientForSmoke(id).Join(host.JoinedCode);
@@ -177,11 +179,57 @@ internal static class RoomPokerChecks
             .First(step => SettingsManager.GetOtherUiScaleFactor(step) == 1));
         await Wait();
         Check(!UiInteractionOccupancy.IsOccupied(main), "no stale overlay occupancy after layout changes");
+        // Even a deliberately overlapping position must not be automatically reseated on re-entry.
+        poker.MoveMember(dogView.MemberId, table.Position + new Vector2(240, 120), 0, false, 0, 0);
+        await Wait();
+        var sharedPositions = ScreenPositions(poker);
+        var sharedSnaps = poker.RemoteDogs.ToDictionary(d => d.MemberId, d => poker.IsTaskbarSnapped(d.MemberId));
+        var localPosition = desktop.GetPosition(client.Id);
+        await Capture("c-positions-before");
         main.RoomModeForSmoke(false);
         await Wait(.8);
-        Check(desktop.RemoteDogs.All(d => d.Position.IsEqualApprox(original[d.MemberId])), "C drags never overwrite desktop placements");
-        Check(HeadClipped(desktop.RemoteDogs.First(d => d.MemberId == host.Id).Dog) == hasBottomTaskbar,
-            "return to desktop restores the dog's taskbar clipping with its original position");
+        await Capture("c-positions-desktop");
+        Check(desktop.RemoteDogs.Count == sharedPositions.Count && desktop.RemoteDogs.All(d => d.IsVisibleInTree()),
+            "all C dogs remain visible after the desktop handoff");
+        using (var rendered = main.GetViewport().GetTexture().GetImage())
+        {
+            foreach (var dog in desktop.RemoteDogs)
+            {
+                var bar = dog.GetNode<PanelContainer>("NameBar");
+                var center = bar.GetGlobalTransformWithCanvas() * (bar.Size / 2);
+                Check(rendered.GetPixel(Mathf.RoundToInt(center.X), Mathf.RoundToInt(center.Y)).A > .5f,
+                    "desktop handoff actually draws member " + dog.MemberId + "'s name bar");
+            }
+        }
+        Check(ScreenPositions(desktop).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
+            "C to desktop preserves every remote dog's screen position");
+        Check(desktop.RemoteDogs.All(d => desktop.IsTaskbarSnapped(d.MemberId) == sharedSnaps[d.MemberId])
+            && !HeadClipped(desktop.RemoteDogs.First(d => d.MemberId == host.Id).Dog),
+            "C to desktop preserves each attachment and the free dog's full chin");
+        Check(desktop.GetPosition(client.Id).IsEqualApprox(localPosition), "remote placement handoff does not move the local desktop dog");
+        main.RoomRequestPokerForSmoke();
+        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
+            "desktop to C retains shared screen positions even where the table overlaps a dog");
+        main.RoomModeForSmoke(false); await Wait(.8);
+        main.RoomRequestPokerForSmoke();
+        Click(buttons.GetNode<Button>("Row")); await Wait(.5);
+        main.RoomModeForSmoke(false); await Wait(.8);
+        Check(ScreenPositions(desktop).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
+            "a B round-trip does not overwrite positions saved from C");
+        desktop.MoveMember(host.Id, desktop.GetPosition(host.Id) + new Vector2(-40, 40), 0, false, 0, 0);
+        await Wait();
+        sharedPositions = ScreenPositions(desktop);
+        main.RoomRequestPokerForSmoke();
+        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
+            "new desktop drags replace the earlier C position on the next entry");
+        guest.Leave(); await Step();
+        guest.Join(host.JoinedCode); await Step();
+        var replacementPosition = ScreenPositions(main.RoomPokerDogsForSmoke)[guest.Id];
+        main.RoomModeForSmoke(false); await Wait(.8);
+        Check(ScreenPositions(desktop)[guest.Id].IsEqualApprox(replacementPosition),
+            "a member who rejoins during C returns with its current presence placement");
         main.RoomRequestPokerForSmoke();
         client.Leave(); await Step();
         Click(buttons.GetNode<Button>("Desktop"));
@@ -199,6 +247,117 @@ internal static class RoomPokerChecks
         Check(main.CurrentMode == ModeManager.Mode.Play && !choice.Visible, "solo entry has no room choice");
         GD.Print("[RoomPokerChecks] ALL PASS main window, choices, layout, synchronization, membership, drag, click-through, restore and stale actions (Mock).");
     }
+
+    private static async Task JoinWhilePlaying(ModeManager main, InGameRoomPreview page)
+    {
+        var panel = main.SettingsPanelObj;
+        var client = page.PreviewClient;
+        var host = page.MockClientForSmoke(2);
+        async Task Wait(double seconds = .2) =>
+            await main.ToSignal(main.GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
+        async Task Step(double seconds = .5) { page.AdvancePreview(seconds); await Wait(); }
+        static void Click(Button button) => button.EmitSignal(BaseButton.SignalName.Pressed);
+        panel.CloseImmediate();
+        main.RoomRequestPokerForSmoke();
+        await Wait(.8);
+        var game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
+        var welcome = game.GetNode<PokerWelcomeDialogController>("PokerWelcomeDialog");
+        var confirmWelcome = welcome.GetNode<Button>("InputShield/Center/Panel/Margin/Content/Confirm");
+        if (welcome.Visible) Click(confirmWelcome);
+        Check(main.RoomDesktopForSmoke == null, "poker-first path has no desktop room renderer to seed from");
+        game.Call("OnBetRequested");
+        await Wait(1);
+        game.Call("OnCardClicked", 0);
+        await Wait();
+        var cards = game.GetNode<CardTableController>("CardArea");
+        string Hand() => string.Join(",", Enumerable.Range(0, 5).Select(i =>
+            $"{cards.GetCard(i).CardValue}:{cards.GetCard(i).IsHeld}"));
+        Check(game.State == GameState.Holding, "single-player hand is in progress before joining");
+        string hand = Hand();
+
+        client.Join("MISSING"); await Step();
+        Check(client.JoinedCode.Length == 0 && !panel.HasRoomModal, "failed join in poker does not ask for dog layout");
+        client.Join(host.JoinedCode); await Step();
+        var choice = panel.GetNode<RoomPokerDisplayChoice>("RoomPokerDisplayChoice");
+        var buttons = choice.GetNode<VBoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
+        Check(choice.Visible && panel.IsOpen && main.CurrentMode == ModeManager.Mode.Play,
+            "successful join while already playing opens the shared layout choice");
+        Click(buttons.GetNode<Button>("Cancel"));
+        host.SetReaction(1002); await Step();
+        Check(!choice.Visible && client.JoinedCode == host.JoinedCode
+            && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && Hand() == hand,
+            "cancel keeps the room and hand without reopening on member updates");
+
+        client.Leave(); await Step();
+        panel.CloseImmediate();
+        game.RequestPokerWelcome(true);
+        await Wait();
+        client.Join(host.JoinedCode); await Step();
+        Check(welcome.Visible && !choice.Visible && !panel.IsOpen, "join choice waits for an occupied welcome overlay");
+        Click(confirmWelcome); await Wait();
+        Check(choice.Visible, "closing welcome releases the pending join choice");
+        Click(buttons.GetNode<Button>("Row")); await Wait();
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 2
+            && game.State == GameState.Holding && Hand() == hand,
+            "poker-first B displays room dogs without restarting or changing the hand");
+
+        client.Leave(); await Step();
+        panel.CloseImmediate();
+        game.RequestPokerWelcome(true); await Wait();
+        client.Join(host.JoinedCode); await Step();
+        client.Leave(); await Step();
+        Click(confirmWelcome); await Wait();
+        Check(!choice.Visible && !panel.IsOpen, "leaving while choice is deferred clears the pending popup");
+        client.Join(host.JoinedCode); await Step();
+        Check(choice.Visible, "a new join can ask again after cancellation or departure");
+        client.Leave(); await Step();
+        Click(buttons.GetNode<Button>("Desktop"));
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && !choice.Visible,
+            "departed poker room ignores stale layout button signals");
+
+        client.Create("Poker-first room"); await Step();
+        Check(choice.Visible, "creating a room while playing also asks for layout");
+        Click(buttons.GetNode<Button>("Desktop")); await Wait();
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
+            && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 3
+            && DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2
+            && game.State == GameState.Holding && Hand() == hand,
+            "poker-first C displays companions and preserves the existing hand");
+        var firstPoker = main.RoomPokerDogsForSmoke;
+        var companion = firstPoker.RemoteDogs.First();
+        firstPoker.MoveMember(companion.MemberId, companion.Position + new Vector2(-25, -150), 0, false, 0, 0);
+        await Wait();
+        var firstPositions = ScreenPositions(firstPoker);
+        main.RoomModeForSmoke(false); await Wait(.8);
+        Check(ScreenPositions(main.RoomDesktopForSmoke).All(pair => pair.Value.IsEqualApprox(firstPositions[pair.Key]))
+            && !main.RoomDesktopForSmoke.IsTaskbarSnapped(companion.MemberId),
+            "first desktop reveal after joining in C preserves companion positions and detached state");
+        main.RoomRequestPokerForSmoke();
+        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(firstPositions[pair.Key])),
+            "poker-first companion positions survive another C entry");
+        client.Leave(); await Step();
+
+        var plan = RoomCompanionPlan.Create(new[] { client.SkinId }, new[] { 0 }, 0, seed: 73);
+        Check(client.BeginArrival("Poker arrival", plan, -2), "local companion room can begin during poker");
+        await Wait();
+        Check(choice.Visible, "local companion room uses the same poker-first choice");
+        Click(buttons.GetNode<Button>("Row")); await Wait();
+        Check(client.Arrival?.Presented == true, "selected poker dogs release the local arrival presentation gate");
+        long arrivalSession = client.LayoutSession;
+        for (int i = 0; i < 10 && client.IsLocalArrival; i++) await Step(1);
+        Check(!client.IsLocalArrival && client.View?.OwnerId == client.Id && client.LayoutSession == arrivalSession
+            && !choice.Visible && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
+            "companion host handoff does not ask for the same layout twice");
+        Check(game.State == GameState.Holding && Hand() == hand, "all join/create/handoff paths preserve held cards");
+        client.Leave(); await Step();
+        panel.CloseImmediate();
+        main.RoomModeForSmoke(false);
+        await Wait(.8);
+    }
+
+    private static Dictionary<int, Vector2> ScreenPositions(RoomDesktopPreview preview) => preview.RemoteDogs.ToDictionary(
+        dog => dog.MemberId, dog => (Vector2)DisplayServer.WindowGetPosition() + dog.GetGlobalTransformWithCanvas().Origin);
 
     private static void Check(bool ok, string message, bool quiet = false)
     {

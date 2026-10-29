@@ -73,6 +73,7 @@ public partial class ModeManager
     private RoomDesktopPreview _roomDesktop;
     private bool _roomWindowActive;
     private int _roomScreen;
+    private Vector2I _roomDesktopHostPosition;
     private Vector2I _beforeRoomDogScreenPosition;
     private bool _beforeRoomTaskbarSnapped;
     private RoomSnapshot _roomLastLayoutSnapshot;
@@ -136,7 +137,10 @@ public partial class ModeManager
         if (ReferenceEquals(_desktopRoomClient, client)) return;
         _settingsPanel.DismissRoomPokerChoice();
         _roomPokerChoiceSession = -1;
+        _roomPokerObservedSession = -1;
+        _roomPokerJoinChoicePending = false;
         StopRoomPokerPresentation(restoreWindow: CurrentMode == Mode.Play);
+        _roomPokerDesktopPositions = null;
         if (IsInstanceValid(_roomPokerDogs) && _roomPokerDogs.IsInsideTree()) _roomPokerDogs.Clear();
         else _roomPokerDogs = null;
         if (_desktopRoomClient != null)
@@ -164,8 +168,7 @@ public partial class ModeManager
     {
         if (_desktopRoomClient == null) return;
         bool joined = _desktopRoomClient.JoinedCode.Length > 0;
-        if (_roomPokerChoiceSession >= 0 && (!joined || _roomPokerChoiceSession != _desktopRoomClient.LayoutSession))
-        { _settingsPanel.DismissRoomPokerChoice(); _roomPokerChoiceSession = -1; }
+        UpdateRoomPokerChoice(joined);
         if (CurrentMode == Mode.Play)
         {
             RestoreRoomDesktopWindow();
@@ -176,7 +179,11 @@ public partial class ModeManager
         if (!joined || CurrentMode != Mode.BossKey)
         {
             RestoreRoomDesktopWindow();
-            if (!joined) _roomDesktop?.Clear();
+            if (!joined)
+            {
+                _roomDesktop?.Clear();
+                _roomPokerDesktopPositions = null;
+            }
             return;
         }
         // During the poker-to-desktop transparent handoff, wait until the desktop
@@ -330,6 +337,7 @@ public partial class ModeManager
         // monitor-sized rectangle, then ignores subsequent resize/move calls.
         // Leave a physical pixel on every edge to stay an ordinary layered window.
         var host = new Rect2I(screen.Position + Vector2I.One, screen.Size - Vector2I.One * 2);
+        _roomDesktopHostPosition = host.Position;
         var usable = DisplayServer.ScreenGetUsableRect(_roomScreen);
         bool changed = force || _roomLastLayoutSnapshot != _desktopRoomClient.View
             || _roomLastLayoutScale != _desktopPetScaleFactor || _roomLastWorkArea != usable;
@@ -347,6 +355,14 @@ public partial class ModeManager
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
             new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor, _panelSize.X,
             RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
+        if (_roomPokerDesktopPositions != null && _desktopRoomClient.View != null)
+        {
+            // Restore before the first revealed frame, including dogs that joined
+            // during poker and therefore have no previous desktop placement.
+            _roomDesktop.RestoreRemotePlacements(_roomPokerDesktopPositions, host.Position,
+                RoomSnapEnabled, usable.End.Y - host.Position.Y - RoomTaskbarAnchorOffsetY);
+            _roomPokerDesktopPositions = null;
+        }
         if (!_hiddenByFullscreenApp && IsRoomLocalDogHit(GetViewport().GetMousePosition()))
             _roomDesktop.LocalChat.Present(true, true,
                 _desktopRoomClient.Bubbles.TryGetValue(_desktopRoomClient.Id, out var ownBubble) ? ownBubble.Text : "");
