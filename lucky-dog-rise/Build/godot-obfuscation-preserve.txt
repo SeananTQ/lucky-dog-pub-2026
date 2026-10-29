@@ -69,3 +69,4 @@ LuckyDogRise.Tools.StoreDialogueStage
 LuckyDogRise.Tools.StoreDialogueDogView
 LuckyDogRise.StoreDialogueSmoke
 LuckyDogRise.Tools.StoreDialogueBatch
+PersistentTipController

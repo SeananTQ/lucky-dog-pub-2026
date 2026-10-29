@@ -10,6 +10,7 @@ namespace LuckyDogRise;
 public partial class ModeManager : Control
 {
     [Export] private ColorRect _playPanelDismissOverlay = null!;
+    private PersistentTipProgress _persistentTips = null!;
     private PokerWelcomeProgress _pokerWelcomeProgress = null!;
     private PokerQuickBarProgress _pokerQuickBarProgress = null!;
 
@@ -470,14 +471,15 @@ public partial class ModeManager : Control
         });
 
         _accountStateManager = new AccountStateManager(storageContext);
-        bool sessionOnlyPokerWelcome = startInSteamMock;
-        bool sessionOnlyPokerQuickBar = startInSteamMock;
+        bool sessionOnlyGuidance = startInSteamMock;
 #if DEBUG
-        sessionOnlyPokerWelcome |= SettingsManager.LoadRepeatPokerWelcomeOnStartup();
-        sessionOnlyPokerQuickBar |= SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup();
+        // Capture once: toggling the Debug preference only affects the next launch.
+        sessionOnlyGuidance |= SettingsManager.LoadReplayFirstUseGuidanceOnStartup();
 #endif
-        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyPokerWelcome);
-        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyPokerQuickBar);
+        _persistentTips = sessionOnlyGuidance ? new PersistentTipProgress()
+            : new PersistentTipProgress(_accountStateManager.LoadPersistentTip, _accountStateManager.SavePersistentTip);
+        _pokerWelcomeProgress = new PokerWelcomeProgress(_accountStateManager, sessionOnlyGuidance);
+        _pokerQuickBarProgress = new PokerQuickBarProgress(_accountStateManager, sessionOnlyGuidance);
         var initialMeetingState = _accountStateManager.LoadInitialMeetingStateForStartup();
 
         _gameData = new GameData();
@@ -1123,6 +1125,8 @@ public partial class ModeManager : Control
             // 连接 Main 中的 GameManager 信号
             _gameManager = _playRoot.GetNode<GameManager>("SubViewportContainer/SubViewport/Main");
             _gameManager.GameData = _gameData;
+            _gameManager.PersistentTips = _persistentTips;
+            _gameManager.PaytableTip = _infoPanel.PaytableTip;
             _gameManager.SettingsPanel = _settingsPanel;
             _infoPanel.PaytableRequested += OnPaytableRequested;
             _gameManager.BlindBoxRewardClaimRequested += OnBlindBoxRewardClaimRequested;
@@ -4229,7 +4233,8 @@ public partial class ModeManager : Control
                 }
                 if (_settingsPanel.ContainsPoint(localPos)) return;
                 if (CurrentMode != Mode.BossKey && _playViewport != null
-                    && _gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true)
+                    && (_gameManager?.IsPointOverPokerWelcomeConfirmButton(ToPokerViewportPosition(mouseScreenPosition)) == true
+                        || _gameManager?.IsPointOverPersistentTip(ToPokerViewportPosition(mouseScreenPosition)) == true))
                 {
                     // A gesture that starts on the action belongs to the button, even after moving outside.
                     CancelWindowDrag();

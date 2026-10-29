@@ -80,6 +80,41 @@ public partial class GameManager : Node2D
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     [Export] private PokerQuickBarController _quickBar = null!;
     [Export] private PokerWelcomeDialogController _pokerWelcome = null!;
+    [Export] private PersistentTipController _drawTip = null!;
+    [Export] private PersistentTipController _helpBarTip = null!;
+    private PersistentTipController _paytableTip;
+    // InfoPanel lives outside the poker SubViewport; only its context and progress belong here.
+    public PersistentTipController PaytableTip
+    {
+        get => _paytableTip;
+        set
+        {
+            if (_paytableTip == value) return;
+            if (GodotObject.IsInstanceValid(_paytableTip))
+                _paytableTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
+            _paytableTip = value;
+            if (_paytableTip != null)
+            {
+                _paytableTip.InterfaceActivity += OnQuickBarInterfaceActivity;
+                RefreshOverlayInteractionContexts();
+            }
+        }
+    }
+    public PersistentTipProgress PersistentTips { get; set; }
+    private readonly PersistentTipProgress _sandboxTips = new();
+    private PersistentTipProgress CurrentTips
+    {
+        get
+        {
+#if DEBUG
+            if (_gameData == null || !_gameData.IsUsingLocalSave || _gameData.IsBlindBoxLocalTestMode
+                || _gameData.IsSteamMockSimulationActive) return _sandboxTips;
+#endif
+            return PersistentTips;
+        }
+    }
+    public bool IsPointOverPersistentTip(Vector2 position) => _drawTip?.ContainsPoint(position) == true
+        || _helpBarTip?.ContainsPoint(position) == true;
     private PokerCollectionProgressDialogController _collectionProgressDialog = null!;
     private bool _isPokerModeActive;
     private SystemPanelController _settingsPanel;
@@ -131,6 +166,9 @@ public partial class GameManager : Node2D
         _quickBar.TutorialRequested += OnQuickBarTutorialRequested;
         _quickBar.DesktopRequested += OnQuickBarDesktopRequested;
         _quickBar.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _drawTip.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _helpBarTip.InterfaceActivity += OnQuickBarInterfaceActivity;
+        _quickBar.IdleReminderStarted += OnQuickBarIdleReminderStarted;
         _quickBar.FunctionActivated += OnQuickBarFunctionActivated;
         _pokerWelcome.OverlayVisibilityChanged += OnPokerWelcomeVisibilityChanged;
         _pokerWelcome.Confirmed += OnPokerWelcomeConfirmed;
@@ -156,6 +194,9 @@ public partial class GameManager : Node2D
     {
         if (_interactionHints != null)
             _interactionHints.EffectiveInteractionOccurred -= OnEffectivePokerInteraction;
+        _drawTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
+        _helpBarTip.InterfaceActivity -= OnQuickBarInterfaceActivity;
+        PaytableTip = null;
         SettingsPanel = null;
         SettingsManager.ProactiveInteractionHintsChanged -= _interactionHints.SetProactiveHintsEnabled;
         if (_tutorial != null)
@@ -168,6 +209,7 @@ public partial class GameManager : Node2D
             _quickBar.TutorialRequested -= OnQuickBarTutorialRequested;
             _quickBar.DesktopRequested -= OnQuickBarDesktopRequested;
             _quickBar.InterfaceActivity -= OnQuickBarInterfaceActivity;
+            _quickBar.IdleReminderStarted -= OnQuickBarIdleReminderStarted;
             _quickBar.FunctionActivated -= OnQuickBarFunctionActivated;
         }
         if (_pokerWelcome != null)
@@ -213,7 +255,14 @@ public partial class GameManager : Node2D
         if (_pokerHandShowcase.IsOverlayVisible)
             _pokerHandShowcase.HideOverlay();
         else
+        {
             _pokerHandShowcase.ShowRanks();
+            if (_pokerHandShowcase.IsOverlayVisible)
+            {
+                try { CurrentTips?.Complete(PersistentTipProgress.PokerPaytable); }
+                catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save paytable tip completion: {error.Message}"); }
+            }
+        }
         RefreshOverlayInteractionContexts();
     }
 
@@ -225,13 +274,26 @@ public partial class GameManager : Node2D
 
     public bool IsPointOverQuickBar(Vector2 viewportPosition) => _quickBar?.ContainsPoint(viewportPosition) == true;
 
-    public void SetPokerQuickBarUsed(bool used) => _quickBar.SetHasUsedFunction(used);
+    public void SetPokerQuickBarUsed(bool used)
+    {
+        _quickBar.SetHasUsedFunction(used);
+        // Reconcile older accounts too, including notes that were never shown or left active.
+        if (used) CompleteHelpBarTip();
+    }
 
     private void OnQuickBarFunctionActivated()
     {
         // Close and acknowledge before opening help/controls or leaving poker.
+        CompleteHelpBarTip();
         _pokerWelcome.ConfirmFromQuickBar();
         EmitSignal(SignalName.PokerQuickBarFunctionActivated);
+    }
+
+    private void CompleteHelpBarTip()
+    {
+        try { CurrentTips?.Complete(PersistentTipProgress.PokerHelpBar); }
+        catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save help bar tip completion: {error.Message}"); }
+        RefreshOverlayInteractionContexts();
     }
 
     public bool IsPointOverPokerWelcomeConfirmButton(Vector2 viewportPosition) =>
@@ -248,6 +310,13 @@ public partial class GameManager : Node2D
     }
 
     private void OnEffectivePokerInteraction() => _quickBar.NotifyEffectiveInteraction();
+
+    private void OnQuickBarIdleReminderStarted()
+    {
+        try { CurrentTips?.Activate(PersistentTipProgress.PokerHelpBar); }
+        catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save help bar tip activation: {error.Message}"); }
+        RefreshOverlayInteractionContexts();
+    }
 
     private void OnQuickBarHelpRequested() => _pokerHandShowcase.ShowBasics();
     private void OnQuickBarTutorialRequested() => _tutorial.ShowOnce();
@@ -386,6 +455,11 @@ public partial class GameManager : Node2D
 
         _held[index] = !_held[index];
         _cardTable.SetHeld(index, _held[index]);
+        if (!_held[index])
+        {
+            try { CurrentTips?.Activate(PersistentTipProgress.PokerDraw); }
+            catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save activation: {error.Message}"); }
+        }
         SetState(GameState.Holding);
         _hud.SetMessage(_held[index] ? $"Card {index + 1} HELD" : $"Card {index + 1} discarded");
 
@@ -513,6 +587,10 @@ public partial class GameManager : Node2D
         else
         {
             _hud.SetMessage("");
+            // A resolved hand with no reward, not a chip debit or an unaffordable bet.
+            try { CurrentTips?.Activate(PersistentTipProgress.PokerPaytable); }
+            catch (Exception error) { GD.PushWarning($"[PersistentTip] Could not save paytable tip activation: {error.Message}"); }
+            RefreshOverlayInteractionContexts();
             // 等最后一张补牌开始翻面后，再与奖励筹码共用同一时序显示下注筹码。
             // 在此之前保持 Drawing，避免下注筹码提前出现。
         }
@@ -628,6 +706,9 @@ public partial class GameManager : Node2D
             && !showcaseVisible
             && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
+        _drawTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
+        _helpBarTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
+        _paytableTip?.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
         _quickBar?.SetWelcomeContext(welcomeVisible, _pokerWelcome.Layer);
         _quickBar?.SetAvailable(pokerInputAvailable);
         // The system panel may stay open throughout play; it does not suspend idle discovery.

@@ -22,7 +22,8 @@ public partial class PokerQuickBarPreview : Control
 
     public override void _EnterTree()
     {
-        _automated = OS.GetCmdlineUserArgs().Contains("--poker-toolbar-validate");
+        _automated = OS.GetCmdlineUserArgs().Contains("--poker-toolbar-validate")
+            || OS.GetCmdlineUserArgs().Contains("--onboarding-replay-only");
         if (!_automated) return;
         const string sandbox = "LuckyDogRise/Tests/PokerQuickBar";
         ProjectSettings.SetSetting("application/config/use_custom_user_dir", true);
@@ -49,6 +50,21 @@ public partial class PokerQuickBarPreview : Control
         if (!_automated) return;
         try
         {
+            if (OS.GetCmdlineUserArgs().Contains("--onboarding-replay-only"))
+            {
+                CheckPersistence();
+                var panel = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn").Instantiate();
+                var content = panel.GetNode<Control>("Panel/RootVBox/Scroll/ContentVBox/DebugContent");
+                Require(content.HasNode("FirstUseGuidanceReplayRow/FirstUseGuidanceReplayToggle")
+                    && !content.HasNode("PokerWelcomeReplayRow") && !content.HasNode("PokerQuickBarReplayRow"),
+                    "Debug scene has one consolidated replay control");
+                Require(content.GetNode<Control>("FirstUseGuidanceReplayRow").TooltipText.Contains("盲盒进度"),
+                    "Replay tooltip explains preserved progress");
+                panel.Free();
+                GD.Print("[OnboardingReplay] ALL PASS");
+                GetTree().Quit();
+                return;
+            }
             await RunChecks();
             GD.Print("[PokerToolbar] Hover/delay/re-entry/drag blocking, first-use hot zone, account persistence, help/tutorial/desktop actions, settings preservation and 20 locales passed.");
             GetTree().Quit();
@@ -300,36 +316,65 @@ public partial class PokerQuickBarPreview : Control
         try
         {
             new ConfigFile().Save(settingsPath);
-            Require(!SettingsManager.LoadRepeatPokerWelcomeOnStartup() && !SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
-                "Both Debug replay preferences must default to off.");
+            Require(!SettingsManager.LoadReplayFirstUseGuidanceOnStartup(), "Unified replay defaults off");
+            foreach (bool welcome in new[] { false, true })
+            foreach (bool discovery in new[] { false, true })
+            {
+                var legacy = new ConfigFile();
+                legacy.SetValue("debug", "repeat_poker_welcome_on_startup", welcome);
+                legacy.SetValue("debug", "repeat_poker_quick_bar_discovery_on_startup", discovery);
+                legacy.Save(settingsPath);
+                Require(SettingsManager.LoadReplayFirstUseGuidanceOnStartup() == (welcome || discovery),
+                    "Either legacy opt-in migrates to unified replay");
+                var migrated = new ConfigFile();
+                migrated.Load(settingsPath);
+                Require(migrated.HasSectionKey("debug", "replay_first_use_guidance_on_startup")
+                    && !migrated.HasSectionKey("debug", "repeat_poker_welcome_on_startup")
+                    && !migrated.HasSectionKey("debug", "repeat_poker_quick_bar_discovery_on_startup"),
+                    "Migration persists and retires both legacy keys");
+            }
             account.SavePokerWelcomeAcknowledged();
             account.SavePokerQuickBarUsed();
+            string[] keys = { PersistentTipProgress.PokerDraw, PersistentTipProgress.PokerHelpBar, PersistentTipProgress.PokerPaytable };
+            foreach (string key in keys) account.SavePersistentTip(key, PersistentTipState.Dismissed);
             string savedProgress = Godot.FileAccess.GetFileAsString(storage.AccountStatePath);
-            var currentWelcome = new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup());
-            var currentDiscovery = new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
-            SettingsManager.SaveRepeatPokerWelcomeOnStartup(true);
-            Require(SettingsManager.LoadRepeatPokerWelcomeOnStartup() && !SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
-                "Welcome replay must persist independently of discovery replay.");
-            SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup(true);
-            Require(currentWelcome.IsAcknowledged && currentDiscovery.HasUsedFunction,
-                "Changing startup preferences must not reset the active session.");
-            var replayWelcome = new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup());
-            var replayDiscovery = new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup());
-            Require(!replayWelcome.IsAcknowledged && !replayDiscovery.HasUsedFunction,
-                "The next startup must use the persisted replay preferences.");
-            replayWelcome.Acknowledge();
-            replayDiscovery.RecordUse();
-            SettingsManager.SaveRepeatPokerWelcomeOnStartup(false);
-            Require(!SettingsManager.LoadRepeatPokerWelcomeOnStartup() && SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup(),
-                "Disabling welcome replay must leave discovery replay enabled.");
-            SettingsManager.SaveRepeatPokerQuickBarDiscoveryOnStartup(false);
-            Require(new PokerWelcomeProgress(account, SettingsManager.LoadRepeatPokerWelcomeOnStartup()).IsAcknowledged
-                && new PokerQuickBarProgress(account, SettingsManager.LoadRepeatPokerQuickBarDiscoveryOnStartup()).HasUsedFunction,
-                "Turning replay off must restore the saved formal progress on the next startup.");
-            replayDiscovery.Reset();
+            SettingsManager.SaveReplayFirstUseGuidanceOnStartup(false);
+            var currentWelcome = new PokerWelcomeProgress(account, sessionOnly: false);
+            var currentDiscovery = new PokerQuickBarProgress(account, sessionOnly: false);
+            var currentTips = new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip);
+            SettingsManager.SaveReplayFirstUseGuidanceOnStartup(true);
+            Require(SettingsManager.LoadReplayFirstUseGuidanceOnStartup(), "Opt-in is saved immediately");
+            Require(currentWelcome.IsAcknowledged && currentDiscovery.HasUsedFunction
+                && keys.All(key => currentTips.GetState(key) == PersistentTipState.Dismissed),
+                "Toggle leaves current session unchanged");
+            for (int launch = 0; launch < 2; launch++)
+            {
+                bool replay = SettingsManager.LoadReplayFirstUseGuidanceOnStartup();
+                var welcome = new PokerWelcomeProgress(account, replay);
+                var discovery = new PokerQuickBarProgress(account, replay);
+                var tips = replay ? new PersistentTipProgress() : currentTips;
+                Require(!welcome.IsAcknowledged && !discovery.HasUsedFunction
+                    && keys.All(key => tips.GetState(key) == PersistentTipState.Unseen),
+                    "Every replay launch starts all guidance fresh");
+                welcome.Acknowledge();
+                discovery.RecordUse();
+                foreach (string key in keys) { tips.Activate(key); tips.Dismiss(key); }
+                Require(welcome.IsAcknowledged && discovery.HasUsedFunction
+                    && keys.All(key => tips.GetState(key) == PersistentTipState.Dismissed),
+                    "Replay remembers completion within a session");
+            }
+            SettingsManager.SaveReplayFirstUseGuidanceOnStartup(false);
+            Require(!SettingsManager.LoadReplayFirstUseGuidanceOnStartup()
+                && new PokerWelcomeProgress(account, false).IsAcknowledged
+                && new PokerQuickBarProgress(account, false).HasUsedFunction
+                && keys.All(key => new PersistentTipProgress(account.LoadPersistentTip, account.SavePersistentTip)
+                    .GetState(key) == PersistentTipState.Dismissed), "Disabling replay restores formal progress");
             Require(Godot.FileAccess.GetFileAsString(storage.AccountStatePath) == savedProgress,
-                "Changing replay preferences must not change the running session's persistence policy or the real account file.");
-            GD.Print("[PokerToolbar] Persisted Debug replay preferences, next-startup application and formal progress preservation passed.");
+                "Replay and preference changes preserve the real account file byte for byte");
+            SettingsManager.SaveReplayFirstUseGuidanceOnStartup(true);
+            SettingsManager.ResetToDefaults();
+            Require(!SettingsManager.LoadReplayFirstUseGuidanceOnStartup(), "Reset settings disables unified replay");
+            GD.Print("[PokerToolbar] Unified replay migration, restart, completion and formal progress preservation passed.");
         }
         finally
         {

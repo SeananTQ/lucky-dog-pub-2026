@@ -31,6 +31,20 @@ public sealed class AccountStateManager
         Completed = 2,
     }
 
+    public PersistentTipState LoadPersistentTip(string key)
+    {
+        int value = (int)Load().GetValue("persistent_tips", key, 0);
+        return Enum.IsDefined(typeof(PersistentTipState), value)
+            ? (PersistentTipState)value : PersistentTipState.Unseen;
+    }
+
+    public void SavePersistentTip(string key, PersistentTipState state)
+    {
+        var config = Load();
+        config.SetValue("persistent_tips", key, (int)state);
+        Save(config);
+    }
+
     // Missing means unacknowledged for both new and existing accounts. Never infer from gameplay.
     public bool LoadPokerWelcomeAcknowledged() =>
         (bool)Load().GetValue(SectionTutorialProgress, PokerWelcomeAcknowledgedKey, false);

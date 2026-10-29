@@ -1,0 +1,6 @@
+interface:
+  display_name: "小狗来啦帽子生产"
+  short_description: "按项目三档、材质和佩戴角度生成帽子参考稿，保存提示词并逐图视觉验收"
+  default_prompt: "使用 $lucky-dog-hats 为《小狗来啦》制作一顶第二档牛仔帽设计参考，按临时生产 v0.1 选参考、生图、自检并保存提示词。"
+policy:
+  allow_implicit_invocation: true

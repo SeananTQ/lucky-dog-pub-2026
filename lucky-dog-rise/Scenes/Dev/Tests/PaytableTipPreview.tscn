@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scenes/Dev/Tests/PaytableTipPreview.cs" id="1_test"]
+[ext_resource type="PackedScene" path="res://Scenes/Poker/PlayContent.tscn" id="2_play"]
+[ext_resource type="PackedScene" path="res://Scenes/Poker/InfoPanel.tscn" id="3_info"]
+
+[node name="PaytableTipPreview" type="Node" node_paths=PackedStringArray("_game", "_info", "_play")]
+script = ExtResource("1_test")
+_game = NodePath("Play/SubViewportContainer/SubViewport/Main")
+_info = NodePath("InfoPanel")
+_play = NodePath("Play/SubViewportContainer")
+
+[node name="Play" parent="." instance=ExtResource("2_play")]
+
+[node name="InfoPanel" parent="." instance=ExtResource("3_info")]
