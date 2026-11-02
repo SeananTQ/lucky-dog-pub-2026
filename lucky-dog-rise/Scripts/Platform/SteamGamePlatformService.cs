@@ -60,14 +60,11 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
                     .Select(item => item.Id).ToHashSet();
                 var reactions = tables.TbDogReaction.DataList.Select(reaction => (int)reaction.DogReactionTrigger).ToHashSet();
                 if (skins.Count == 0) return null;
-                var companionSkins = tables.TbDogSkin.DataList
-                    .Where(skin => BuildInfo.IncludesCurrentChannel(skin.BuildChannelMask)).Select(skin => skin.Id).ToArray();
-                var companionHats = tables.TbItem.DataList.Where(item => item.ItemType == DataTables.EItemType.Headwear
-                    && BuildInfo.IncludesCurrentChannel(item.BuildChannelMask)).Select(item => item.Id).Prepend(0).ToArray();
+                // Ordinary creation is an owner-only room. Companion rooms
+                // supply their fixed cast through the explicit arrival request.
                 _roomService = new Rooms.SteamRoomService(new Rooms.SteamRoomTransport(_runtime),
                     tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains,
-                    invitations: _roomInvitations, companions: companionSkins.Length > 0
-                        ? now => Rooms.RoomCompanionPlan.Create(companionSkins, companionHats, now) : null,
+                    invitations: _roomInvitations,
                     reconnect: _roomReconnect, appId: AppId);
             }
             return _roomService.CheckAvailability() ? _roomService : null;

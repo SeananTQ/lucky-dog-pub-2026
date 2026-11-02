@@ -348,8 +348,9 @@ public static class RoomArrivalChecks
         Check(test.Client.Create("ordinary"), "ordinary create is accepted");
         test.Transport.SucceedMembership(Lobby);
         Check(!test.Client.IsLocalArrival && test.Transport.CreateCalls == 1 && test.Transport.PrivateCreateCalls == 0
-            && test.Client.View.Members.Length == 4 && test.Client.View.Access == RoomAccess.Public,
-            "ordinary explicit creation remains an immediate public room with its existing three companions");
+            && test.Client.View.Members.Length == 1 && !test.Client.View.Members[0].IsCompanion
+            && test.Client.View.Access == RoomAccess.Public && test.Transport.Rooms[Lobby].Companions.Length == 0,
+            "ordinary explicit creation is an immediate public owner-only room without companion metadata");
     }
 
     private static void CheckMockHandoff()
@@ -392,8 +393,7 @@ public static class RoomArrivalChecks
         {
             Plan = RoomCompanionPlan.Create([10, 20], [0, 30, 40], Transport.ServerTime, 219);
             Service = new SteamRoomService(Transport, 10, id => id is 10 or 20,
-                id => id is 0 or 30 or 40, _ => true, () => Transport.Now,
-                companions: time => RoomCompanionPlan.Create([10, 20], [0, 30, 40], time, 301));
+                id => id is 0 or 30 or 40, _ => true, () => Transport.Now);
             Client = new RoomClient(Service, 1, "local", 10);
         }
         public void Begin(int host)

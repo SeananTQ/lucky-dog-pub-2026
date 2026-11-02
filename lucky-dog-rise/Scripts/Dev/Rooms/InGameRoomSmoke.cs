@@ -506,8 +506,9 @@ public static class InGameRoomSmoke
             Click("Lobby/CreateRow/Action/Create");
             await Settle();
             Check(client.View?.Members.Count(member => !member.IsCompanion) == 1
-                && client.View.Members.Count(member => member.IsCompanion) == 3
-                && client.View.OwnerId == client.Id, "create own room with three companion dogs");
+                && client.View.Members.Length == 1 && !client.IsLocalArrival
+                && client.View.OwnerId == client.Id, "ordinary create has only its owner and no companion arrival");
+            await Capture(main, "in-game-ordinary-room-created");
             var ownCode = client.JoinedCode;
             Click("Room/Browse");
             await Settle();
@@ -667,17 +668,34 @@ public static class InGameRoomSmoke
             await Frame();
             Check(!client.IsLocalArrival && client.View.OwnerId == client.Id && client.View.Members.Length == 3,
                 "local room becomes a real three-character room after host departure");
-            // The rest of this broad smoke covers the existing explicit-create
-            // path, whose baseline remains one human plus three companions.
+            // Random joining an empty directory enters the same companion room,
+            // then waits for presentation before requesting a real room.
             client.Leave();
-            client.Create("Companion regression");
+            page.RefreshRooms();
+            await Settle();
+            page.GetNode<LineEdit>("Lobby/JoinRow/Code").Text = "";
+            Click("Lobby/JoinAction/Join");
+            await Settle();
+            Check(client.IsLocalArrival && client.View.Members.Length == 4 && client.View.OwnerId < 0,
+                "random join without real targets enters the same local companion room");
+            await Capture(main, "in-game-random-companion-arrival");
+            page.AdvancePreview(RoomRules.ArrivalObserveSeconds + 0.1);
+            await Settle();
+            page.AdvancePreview(RoomRules.ArrivalDepartureSeconds + 0.1);
+            await Frame();
+            Check(!client.IsLocalArrival && client.View.OwnerId == client.Id && client.View.Members.Length == 3,
+                "random companion room publishes after the same host handoff");
+            // Legacy three-companion rooms may still exist. Keep their broad
+            // interaction coverage with an explicit fixture, never Create UI.
+            client.Leave();
+            page.SeedLegacyCompanionRoomForSmoke("Legacy companion regression");
             await Settle();
             string companionRoom = client.JoinedCode;
             var companionMembers = client.View.Members.Where(member => member.IsCompanion).ToArray();
             Check(client.View.Members.Length == 4 && companionMembers.Length == 3
                 && client.View.OwnerId == client.Id
                 && companionMembers.Select(member => member.Id).Order().SequenceEqual(new[] { -3, -2, -1 }),
-                "new main-game room contains one real owner and three stable negative companion identities");
+                "legacy room retains one real owner and three stable negative companion identities");
             var companionDogs = companionMembers.Select(member => desktop.RemoteDogs.Single(dog => dog.MemberId == member.Id)).ToArray();
             var companionAppearances = companionMembers.ToDictionary(member => member.Id,
                 member => (member.Name, member.SkinId, member.HeadwearId, member.Presence));

@@ -119,14 +119,15 @@ public sealed class RoomSandbox : IRoomService
         .Where(r => !_rooms[r.Code].BannedClients.Contains(client.Id)).ToArray();
 
     // Synchronous helpers only seed tests. Product-facing UI uses RoomClient requests.
-    public string Create(RoomClient client, string name) => FailureText(CreateResult(client, name).Failure);
-    private RoomResult CreateResult(RoomClient client, string name)
+    public string Create(RoomClient client, string name, RoomCompanionPlan companions = null)
+        => FailureText(CreateResult(client, name, companions ?? CompanionFactory?.Invoke((long)Now)).Failure);
+    private RoomResult CreateResult(RoomClient client, string name, RoomCompanionPlan companions = null)
     {
         if (!RoomRules.TryNormalizeName(name, out name)) return new RoomResult(RoomFailure.InvalidName);
         Leave(client);
         var room = new Room { Code = $"MOCK{++_nextRoom:000}", Name = name,
             Owner = client.Id, CreatedAt = (long)Now };
-        room.Companions = CompanionFactory?.Invoke((long)Now);
+        room.Companions = companions;
         _rooms.Add(room.Code, room);
         return JoinResult(client, room.Code);
     }

@@ -49,6 +49,7 @@ public sealed class RoomClient : IDisposable
     private double _now;
     private double _deadline;
     private bool _joinAfterSearch;
+    private Func<bool> _enterCompanionRoom;
     private long _directoryCreateRequestId;
     private bool _disposed;
     private bool _committing;
@@ -69,7 +70,7 @@ public sealed class RoomClient : IDisposable
     public bool Join(string code) => BeginRequest(RoomOperation.Join, code);
     internal bool JoinForRecovery(string code, long generation) => BeginRequest(RoomOperation.Join, code, recoveryGeneration: generation);
     public bool Search() => BeginRequest(RoomOperation.Search, "");
-    public bool FindAndJoin()
+    public bool FindAndJoin(Func<bool> enterCompanionRoom = null)
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (IsLocalArrival) Cancel();
@@ -77,6 +78,7 @@ public sealed class RoomClient : IDisposable
         if (IsBusy || _disposed || _committing) return false;
         CancelReconnect();
         _joinAfterSearch = true;
+        _enterCompanionRoom = enterCompanionRoom;
         return BeginRequest(RoomOperation.Search, "");
     }
     public string SetGame(string gameId) => "Rooms_GameChangeRequired";
@@ -145,6 +147,7 @@ public sealed class RoomClient : IDisposable
         finally { _committing = false; }
         if (!IsRequestCurrent(id)) return false;
         var autoJoin = _joinAfterSearch && Operation == RoomOperation.Search;
+        var enterCompanionRoom = autoJoin ? _enterCompanionRoom : null;
         bool directoryJoin = _directoryCreateRequestId == id && Operation == RoomOperation.Create;
         bool recovering = _request.RecoveryGeneration != 0;
 #if !DEMO_BUILD && !RECORDING_BUILD
@@ -155,6 +158,7 @@ public sealed class RoomClient : IDisposable
 #endif
         _directoryCreateRequestId = 0;
         _joinAfterSearch = false;
+        _enterCompanionRoom = null;
         _request = null;
         Failure = result.Failure;
         RequestState = Failure == RoomFailure.None ? RoomRequestState.Succeeded : RoomRequestState.Failed;
@@ -169,6 +173,9 @@ public sealed class RoomClient : IDisposable
             {
                 var room = Listings.FirstOrDefault(r => !r.IsFull && r.Code != JoinedCode);
                 if (room != null) { Join(room.Code); return true; }
+                // Only a completed, successful search may enter the same local
+                // companion-room flow as a directory entry. Never on failure.
+                if (enterCompanionRoom?.Invoke() == true) return true;
                 Failure = RoomFailure.NoMatchingRoom;
                 RequestState = RoomRequestState.Failed;
             }
@@ -220,6 +227,7 @@ public sealed class RoomClient : IDisposable
         _directoryCreateRequestId = 0;
         _request = null; // Invalidate before invoking a possibly reentrant adapter.
         _joinAfterSearch = false;
+        _enterCompanionRoom = null;
         RequestState = state;
         Failure = RoomFailure.None;
         _service.Cancel(this, id);
@@ -265,6 +273,7 @@ public sealed class RoomClient : IDisposable
             var requestId = _request?.Id ?? 0;
             _request = null;
             _joinAfterSearch = false;
+            _enterCompanionRoom = null;
             _directoryCreateRequestId = 0;
             if (requestId != 0) _service.Cancel(this, requestId);
             var session = Session;

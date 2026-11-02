@@ -316,7 +316,11 @@ internal static class RoomPokerChecks
             "departed poker room ignores stale layout button signals");
 
         client.Create("Poker-first room"); await Step();
-        Check(choice.Visible, "creating a room while playing also asks for layout");
+        Check(choice.Visible && client.View.Members.Length == 1 && !client.IsLocalArrival,
+            "ordinary creation while playing asks for layout and starts with only the owner");
+        client.Leave(); await Step();
+        page.SeedLegacyCompanionRoomForSmoke("Poker-first legacy room"); await Step();
+        Check(choice.Visible, "entering a legacy companion room while playing also asks for layout");
         Click(buttons.GetNode<Button>("Desktop")); await Wait();
         Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
             && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 3

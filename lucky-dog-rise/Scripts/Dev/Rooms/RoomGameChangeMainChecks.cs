@@ -32,11 +32,11 @@ internal static class RoomGameChangeMainChecks
             Directory.CreateDirectory(folder);
             main.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(folder, name + ".png"));
         }
-        client.Create("玩法与房龄回归");
+        page.SeedLegacyCompanionRoomForSmoke("玩法与房龄回归");
         await Settle(0.5);
         panel.ShowRoomPage();
         await Frame();
-        Check(client.View.Members.Length == 4, "new host room has three companion voters");
+        Check(client.View.Members.Length == 4, "legacy room fixture has three companion voters");
         var chat = main.RoomDesktopForSmoke.LocalChat;
         chat.OpenChat();
         var input = chat.GetNode<LineEdit>("Composer/Content/Input");
@@ -97,7 +97,7 @@ internal static class RoomGameChangeMainChecks
         Check(page.Size.X <= panel.PanelSize.X + 1, "English mode controls remain within panel width");
         await Capture("room-game-age-en");
         client.Leave();
-        remote.Create("remote host proposal");
+        page.SeedLegacyCompanionRoomForSmoke("remote host proposal", remote);
         await Settle(0.5);
         client.Join(remote.JoinedCode);
         await Settle(0.5);

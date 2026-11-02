@@ -72,9 +72,9 @@ internal static class RoomEmptyDirectoryPageChecks
             Check(client.Create("Existing real room"), "ordinary room fixture can still create immediately");
             service.Complete(RoomFailure.None);
             await Frame();
-            Check(client.View.OwnerId == client.Id && client.View.Members.Length == 4
-                && client.View.Members.Count(member => member.IsCompanion) == 3 && service.JoinRequests == 0,
-                "ordinary explicit creation retains its existing three-companion behavior");
+            Check(client.View.OwnerId == client.Id && client.View.Members.Length == 1
+                && !client.View.Members[0].IsCompanion && service.JoinRequests == 0 && !client.IsLocalArrival,
+                "ordinary creation starts owner-only and does not enter companion arrival");
             string firstCode = client.JoinedCode;
 
             page.OnBrowse();
@@ -148,7 +148,95 @@ internal static class RoomEmptyDirectoryPageChecks
             page.Configure(provider, null);
             Click(staleEntry);
             Check(service.CreateRequests == creations, "service replacement invalidates its old entry immediately");
+            await CheckRandomCompanionRoom(parent);
             GD.Print("[RoomEmptyDirectoryPageChecks] PASS successful-empty-search gating, local 3/6 row, observation-gated creation, stale/hidden callbacks, stable row and retained failed local presentation (fake service).");
+        }
+        finally { page.Free(); }
+    }
+
+    private static async Task CheckRandomCompanionRoom(Node parent)
+    {
+        var service = new Service();
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
+        var provider = new Provider { RoomService = service };
+        page.Configure(provider, null);
+        parent.AddChild(page);
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        var join = page.GetNode<Button>("Lobby/JoinAction/Join");
+        void RandomJoin() => join.EmitSignal(BaseButton.SignalName.Pressed);
+        try
+        {
+            await Frame();
+            service.Complete(RoomFailure.None);
+            await Frame();
+            var client = page.CurrentClient;
+            int notices = 0;
+            client.JoinFailed += (_, _) => notices++;
+            RandomJoin();
+            RandomJoin();
+            service.Complete(RoomFailure.None);
+            await Frame();
+            Check(client.IsLocalArrival && client.View.Members.Length == 4 && client.View.OwnerId < 0
+                && service.CreateRequests == 0 && notices == 0,
+                "random successful empty search enters companion presentation once without errors or immediate creation");
+            client.MarkArrivalPresented();
+            service.Now += RoomRules.ArrivalObserveSeconds;
+            await Frame();
+            Check(service.Pending?.Arrival == client.Arrival && service.CreateRequests == 1,
+                "random fallback uses the same observed companion cast for delayed real creation");
+            client.Leave();
+            await Frame();
+
+            client.Create("Original room");
+            service.Complete(RoomFailure.None);
+            await Frame();
+            string original = client.JoinedCode;
+            page.OnBrowse(); service.Complete(RoomFailure.None); await Frame();
+            int creations = service.CreateRequests;
+            RandomJoin(); service.Complete(RoomFailure.Unavailable); await Frame();
+            Check(!client.IsLocalArrival && client.JoinedCode == original && service.CreateRequests == creations,
+                "failed random query retains current membership without companion fallback");
+            RandomJoin();
+            long timedOut = client.ActiveRequestId;
+            service.Now += RoomRules.RequestTimeout + 1;
+            await Frame();
+            Check(client.RequestState == RoomRequestState.TimedOut && !client.IsLocalArrival
+                && client.JoinedCode == original
+                && !client.TryComplete(timedOut, () => new RoomResult(RoomFailure.None, Array.Empty<RoomListing>())),
+                "timed-out search and its late empty response cannot enter a companion room");
+            RandomJoin();
+            long cancelled = client.ActiveRequestId;
+            client.Cancel();
+            Check(!client.TryComplete(cancelled, () => new RoomResult(RoomFailure.None, Array.Empty<RoomListing>()))
+                && !client.IsLocalArrival && client.JoinedCode == original,
+                "cancelled search discards its companion fallback");
+            await Frame();
+
+            service.Directory = [new RoomListing("REAL", "Real room", "social", 2, 6)];
+            RandomJoin(); service.Complete(RoomFailure.None);
+            Check(service.Pending?.Operation == RoomOperation.Join && service.JoinRequests == 1 && !client.IsLocalArrival,
+                "random join prioritizes an available real room");
+            service.Complete(RoomFailure.Full); await Frame();
+            Check(!client.IsLocalArrival && client.JoinedCode == original && service.CreateRequests == creations,
+                "a selected real room becoming full reports join failure rather than secretly creating another room");
+
+            service.Directory = [new RoomListing(original, "Current room", "social", 1, 6),
+                new RoomListing("FULL", "Full room", "social", 6, 6)];
+            RandomJoin(); service.Complete(RoomFailure.None); await Frame();
+            Check(client.IsLocalArrival && client.JoinedCode != original && service.CreateRequests == creations,
+                "only current/full rooms counts as no other target and begins the shared companion-room switch");
+            client.Leave(); await Frame();
+            RandomJoin();
+            long oldRequest = client.ActiveRequestId;
+            provider.RoomService = null; page.Configure(provider, null);
+            Check(!client.TryComplete(oldRequest, () => new RoomResult(RoomFailure.None, Array.Empty<RoomListing>()))
+                && service.CreateRequests == creations,
+                "replacing the page client invalidates late random fallback callbacks");
+            GD.Print("[RoomRandomCompanionChecks] PASS shared arrival, single-flight, ordinary creation, real-room priority, failed/timed-out/cancelled searches and stale client.");
         }
         finally { page.Free(); }
     }
@@ -203,7 +291,7 @@ internal static class RoomEmptyDirectoryPageChecks
                 if (failure != RoomFailure.None) return new RoomResult(failure);
                 if (request.Operation == RoomOperation.Search) return new RoomResult(RoomFailure.None, Directory);
                 _client.BeginSession("CREATED" + CreateRequests);
-                _companions = RoomCompanionPlan.Create(new[] { _client.SkinId }, new[] { 0 }, (long)Now, 91);
+                _companions = request.Arrival?.Plan.ForArrivalHandoff(request.Arrival.HostMemberId);
                 Publish(_client);
                 return RoomResult.Success;
             });
@@ -211,7 +299,7 @@ internal static class RoomEmptyDirectoryPageChecks
         public void Publish(RoomClient client)
         {
             var members = new[] { new RoomMember(client.Id, client.Name, client.SkinId,
-                client.HeadwearId, client.Reaction, 1) }.Concat(_companions.MembersAt((long)Now)).ToArray();
+                client.HeadwearId, client.Reaction, 1) }.Concat(_companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>()).ToArray();
             client.Receive(new RoomSnapshot(client.JoinedCode, "Created room", "social", client.Id, ++_revision, members));
         }
         public void Cancel(RoomClient client, long requestId)

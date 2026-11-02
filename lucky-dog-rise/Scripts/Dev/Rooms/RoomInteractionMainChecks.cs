@@ -35,7 +35,7 @@ internal static class RoomInteractionMainChecks
         panel.CloseImmediate();
         Check(!UiInteractionOccupancy.IsOccupied(main), "ordinary room page does not occupy interaction");
         CheckSourceLifetimes(main);
-        remote.Create("interaction coordination");
+        page.SeedLegacyCompanionRoomForSmoke("interaction coordination", remote);
         await Step(.5);
         Check(client.Join(remote.JoinedCode), "join request accepted");
         await Step(.5);

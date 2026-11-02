@@ -362,7 +362,13 @@ public partial class InGameRoomPreview : VBoxContainer
         // Enter and pointer activation share the same availability and routing.
         if (_client == null || _client.IsBusy || _join.Disabled) return;
         _noticeKey = "";
-        if (string.IsNullOrWhiteSpace(_codeInput.Text)) _client.FindAndJoin();
+        if (string.IsNullOrWhiteSpace(_codeInput.Text))
+        {
+            var client = _client;
+            long session = client.Session;
+            client.FindAndJoin(() => client.Session == session
+                && EnterCompanionRoom(client, L10n.Tr("Rooms_DefaultName")));
+        }
         else _client.Join(_codeInput.Text);
     }
     public void RefreshRooms()
@@ -739,16 +745,26 @@ public partial class InGameRoomPreview : VBoxContainer
             || !ReferenceEquals(client.Listings, listings) || !HasEmptySearchResult
             || !_lobby.IsVisibleInTree() || !GodotObject.IsInstanceValid(row)
             || row.GetParent() != _rooms) return;
+        EnterCompanionRoom(client, name);
+    }
+
+    // Both the local directory entry and successful random-search fallback
+    // use this arrival. Ordinary Create never enters this flow.
+    private bool EnterCompanionRoom(RoomClient client, string name)
+    {
+        if (_exitingTree || !GodotObject.IsInstanceValid(this) || !IsInsideTree()
+            || !ReferenceEquals(client, _client) || client.IsBusy || client.IsLocalArrival) return false;
         _noticeKey = "";
         var skins = LubanData.Tables.TbDogSkin.DataList
             .Where(s => BuildInfo.IncludesCurrentChannel(s.BuildChannelMask)).Select(s => s.Id).ToArray();
         var hats = LubanData.Tables.TbItem.DataList
             .Where(i => i.ItemType == EItemType.Headwear && BuildInfo.IncludesCurrentChannel(i.BuildChannelMask))
             .Select(i => i.Id).Prepend(0).ToArray();
-        if (skins.Length == 0) return;
+        if (skins.Length == 0) return false;
         var plan = RoomCompanionPlan.Create(skins, hats, client.CompanionTime);
-        client.BeginArrival(name, plan, -1 - Random.Shared.Next(RoomCompanionPlan.Count));
+        bool entered = client.BeginArrival(name, plan, -1 - Random.Shared.Next(RoomCompanionPlan.Count));
         _dirty = true;
+        return entered;
     }
 
     private void Render()
