@@ -13,6 +13,7 @@ public static class InGameRoomSmoke
 {
     public static bool DemoRequested => OS.GetCmdlineUserArgs().Contains("--rooms-page-demo-smoke");
     public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-entry-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
@@ -86,7 +87,7 @@ public static class InGameRoomSmoke
             Check(client.JoinedCode.Length == 0, "browsing does not join automatically");
             // Do this before any SetLocale call: switching language refreshes
             // Godot's text caches and would conceal a first-open regression.
-            var create = page.GetNode<Button>("Lobby/CreateRow/Create");
+            var create = page.GetNode<Button>("Lobby/CreateRow/Action/Create");
             var translatedCreate = L10n.Tr(create.Text);
             Check(translatedCreate != create.Text, "initial room translations registered");
             var expectedCreate = new Button
@@ -94,6 +95,7 @@ public static class InGameRoomSmoke
                 Text = translatedCreate,
                 ThemeTypeVariation = create.ThemeTypeVariation,
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                AutowrapMode = create.AutowrapMode,
                 Visible = false,
             };
             create.GetParent().AddChild(expectedCreate);
@@ -102,14 +104,51 @@ public static class InGameRoomSmoke
                 "first-open button shaped with translated text before changing language");
             expectedCreate.Free();
             await Capture(main, "in-game-lobby-first-open");
-            foreach (var locale in new[] { "zh_CN", "en" })
+            var entryCode = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
+            var entryJoin = page.GetNode<Button>("Lobby/JoinAction/Join");
+            foreach (var locale in RoomSettingsPageChecks.Locales)
             {
                 L10n.SetLocale(locale, save: false);
                 await Frame();
                 var close = title.GetNode<Button>("CloseBtn");
                 Check(close.GetGlobalRect().End.X <= panel.PanelRect.End.X + 1, "all tabs and Close fit");
                 Check(page.Size.X <= panel.PanelSize.X, "room content width fits");
+                Check(page.GetNode<LineEdit>("Lobby/CreateRow/Name").Text == L10n.Tr("Rooms_DefaultName"),
+                    locale + " fresh default room name follows language in the real panel");
+                foreach (string draft in new[] { "", "MOCK001" })
+                {
+                    entryCode.Text = draft;
+                    entryCode.EmitSignal(LineEdit.SignalName.TextChanged, draft);
+                    await Frame();
+                    Check(entryJoin.Text == L10n.Tr(draft.Length == 0 ? "Rooms_Random" : "Rooms_JoinByCode"),
+                        locale + " combined join action has the correct localized text");
+                    foreach (var button in new[] { create, entryJoin })
+                    {
+                        float width = button.GetThemeFont("font").GetStringSize(L10n.Tr(button.Text),
+                            fontSize: button.GetThemeFontSize("font_size")).X;
+                        Check(Mathf.Abs(button.Size.X - (page.Size.X - 16)) < 1
+                            && width <= button.Size.X - button.GetThemeStylebox("normal").GetMinimumSize().X + 1,
+                            locale + " entry button text fits a single line with symmetric side insets");
+                        var input = button == create
+                            ? page.GetNode<LineEdit>("Lobby/CreateRow/Name") : entryCode;
+                        Check(Mathf.Abs(input.Size.Y - button.Size.Y) < 1
+                            && Mathf.Abs(input.GetGlobalRect().GetCenter().X - button.GetGlobalRect().GetCenter().X) < 1,
+                            locale + $" entry input and action share height and center ({input.Size.Y}/{button.Size.Y})");
+                    }
+                }
+                entryCode.Text = "";
+                entryCode.EmitSignal(LineEdit.SignalName.TextChanged, "");
+                // Allow deferred font/theme and directory-row layout updates
+                // to settle before recording a rapidly switched locale.
+                await Wait(0.2);
                 await Capture(main, "in-game-lobby-" + locale);
+            }
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-entry-main-smoke"))
+            {
+                await SteamRoomPageChecks.Run(main);
+                GD.Print("[InGameRoomSmoke] ENTRY_PASS 20-locale inset actions, matched input heights, default names and production entry routing (Mock).");
+                tree.Quit();
+                return;
             }
             var row = page.GetNode<VBoxContainer>("Lobby/RoomList").GetChild(0);
             var unitScaleStep = Enumerable.Range(SettingsManager.DesktopPetScaleStepMin,
@@ -464,7 +503,7 @@ public static class InGameRoomSmoke
             Check(DisplayServer.WindowGetSize() == originalWindowSize,
                 "leave restores single-dog window size after poker repositioning");
             page.GetNode<LineEdit>("Lobby/CreateRow/Name").Text = "UI regression";
-            Click("Lobby/CreateRow/Create");
+            Click("Lobby/CreateRow/Action/Create");
             await Settle();
             Check(client.View?.Members.Count(member => !member.IsCompanion) == 1
                 && client.View.Members.Count(member => member.IsCompanion) == 3
@@ -473,25 +512,26 @@ public static class InGameRoomSmoke
             Click("Room/Browse");
             await Settle();
             page.GetNode<LineEdit>("Lobby/JoinRow/Code").Text = "NOTFOUND";
-            Click("Lobby/JoinRow/Join");
+            Click("Lobby/JoinAction/Join");
             await Settle();
             Check(client.Failure == RoomFailure.NotFound && client.JoinedCode == ownCode,
                 "failed join keeps original room");
             Click("Lobby/Header/Refresh");
             await Frame();
-            Check(page.GetNode<Button>("Lobby/CreateRow/Create").Disabled, "pending disables duplicates");
+            Check(page.GetNode<Button>("Lobby/CreateRow/Action/Create").Disabled, "pending disables duplicates");
             Click("Cancel");
             await Settle();
-            Check(!client.IsBusy && !page.GetNode<Button>("Lobby/CreateRow/Create").Disabled,
+            Check(!client.IsBusy && !page.GetNode<Button>("Lobby/CreateRow/Action/Create").Disabled,
                 "cancel restores controls");
-            Click("Lobby/Random");
+            page.GetNode<LineEdit>("Lobby/JoinRow/Code").Text = "";
+            Click("Lobby/JoinAction/Join");
             await Settle();
             await Settle();
             Check(client.JoinedCode == joinedCode && client.View?.Members.Length == 3, "random join");
             Click("Room/Leave");
             await Settle();
             page.GetNode<LineEdit>("Lobby/JoinRow/Code").Text = joinedCode;
-            Click("Lobby/JoinRow/Join");
+            Click("Lobby/JoinAction/Join");
             await Settle();
             Check(client.JoinedCode == joinedCode, "join by room code");
             main.RoomFullscreenHideForSmoke(true);

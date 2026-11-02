@@ -112,6 +112,7 @@ internal static class SteamRoomPageChecks
             Check(second.Bubbles.Count == 0, "reconnected hidden page expires chat with its new service clock");
             page.Free();
             Check(second.JoinedCode.Length == 0, "page disposal leaves its current service");
+            await CheckLobbyEntries(parent);
             await CheckKickInteraction(parent);
             await CheckInviteInteraction(parent);
             await CheckChatInteraction(parent);
@@ -123,6 +124,99 @@ internal static class SteamRoomPageChecks
         {
             if (GodotObject.IsInstanceValid(page)) page.Free();
         }
+    }
+
+    private static async Task CheckLobbyEntries(Node parent)
+    {
+        var service = new Service();
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn")
+            .Instantiate<InGameRoomPreview>();
+        page.Configure(new Provider { RoomService = service }, null);
+        parent.AddChild(page);
+        page.Hide();
+        string locale = L10n.CurrentLocale;
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        var name = page.GetNode<LineEdit>("Lobby/CreateRow/Name");
+        var code = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
+        var join = page.GetNode<Button>("Lobby/JoinAction/Join");
+        void Edit(LineEdit input, string text)
+        {
+            input.Text = text;
+            input.EmitSignal(LineEdit.SignalName.TextChanged, text);
+        }
+        void Submit() => code.EmitSignal(LineEdit.SignalName.TextSubmitted, code.Text);
+        try
+        {
+            await Frame();
+            foreach (var language in RoomSettingsPageChecks.Locales)
+            {
+                L10n.SetLocale(language, save: false);
+                Check(name.Text == L10n.Tr("Rooms_DefaultName"),
+                    language + " untouched creation name follows the UI locale");
+                Edit(code, " \t");
+                Check(join.Text == L10n.Tr("Rooms_Random"), language + " whitespace shows random join");
+                Edit(code, "PROVIDER1");
+                Check(join.Text == L10n.Tr("Rooms_JoinByCode"), language + " code shows explicit join");
+            }
+            Edit(name, "My room");
+            L10n.SetLocale("zh_CN", save: false);
+            Check(name.Text == "My room", "custom creation draft survives locale change while page is hidden");
+            Edit(name, "");
+            L10n.SetLocale("ja", save: false);
+            Check(name.Text == "", "cleared creation draft is not silently refilled");
+            string typedDefault = L10n.Tr("Rooms_DefaultName");
+            Edit(name, typedDefault);
+            L10n.SetLocale("en", save: false);
+            Check(name.Text == typedDefault, "explicitly typed default-looking name remains player content");
+
+            var client = page.CurrentClient;
+            Edit(code, "PROVIDER1");
+            Submit();
+            await Frame();
+            Check(client.JoinedCode == "PROVIDER1" && service.JoinRequests == 1,
+                "Enter with a code joins once through the same action as the button");
+            string publishedName = client.View.Name;
+            L10n.SetLocale("zh_TW", save: false);
+            await Frame();
+            Check(client.View.Name == publishedName, "language change does not rename a published room");
+            Edit(code, "MISSING");
+            int searches = service.SearchRequests;
+            join.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            Check(client.Failure == RoomFailure.NotFound && client.JoinedCode == "PROVIDER1"
+                && service.SearchRequests == searches, "invalid code neither random-joins nor leaves the current room");
+            client.Leave();
+            await Frame();
+            Edit(code, "  ");
+            Submit();
+            await Frame();
+            Check(client.JoinedCode == "PROVIDER1" && service.SearchRequests == searches + 1,
+                "Enter with whitespace searches and randomly joins");
+            client.Leave();
+            await Frame();
+            service.HoldSearch = true;
+            Edit(code, "");
+            join.EmitSignal(BaseButton.SignalName.Pressed);
+            await Frame();
+            searches = service.SearchRequests;
+            int joins = service.JoinRequests;
+            Check(join.Disabled && client.IsBusy, "pending random search disables the combined action");
+            Edit(code, "PROVIDER1");
+            Submit();
+            join.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(service.SearchRequests == searches && service.JoinRequests == joins,
+                "editing code or pressing Enter during a request cannot issue a duplicate join");
+            client.Cancel();
+            await Frame();
+            Check(!join.Disabled && join.Text == L10n.Tr("Rooms_JoinByCode"),
+                "cancel restores the action for the current input");
+            GD.Print("[RoomEntryChecks] PASS locale-aware default drafts, literal custom names, random/code routing, failed switch and busy input.");
+        }
+        finally { page.Free(); L10n.SetLocale(locale, save: false); }
     }
 
     private static async Task CheckLazyPanelInvitation(Node parent)

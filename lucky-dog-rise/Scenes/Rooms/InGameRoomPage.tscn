@@ -10,7 +10,7 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_random", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -31,9 +31,8 @@ _status = NodePath("Status")
 _empty = NodePath("Lobby/Empty")
 _connection = NodePath("Notice")
 _game = NodePath("Room/Game/Name")
-_create = NodePath("Lobby/CreateRow/Create")
-_join = NodePath("Lobby/JoinRow/Join")
-_random = NodePath("Lobby/Random")
+_create = NodePath("Lobby/CreateRow/Action/Create")
+_join = NodePath("Lobby/JoinAction/Join")
 _refresh = NodePath("Lobby/Header/Refresh")
 _return = NodePath("Lobby/Return")
 _cancel = NodePath("Cancel")
@@ -123,22 +122,29 @@ theme_type_variation = &"CapsuleButton"
 text = "Rooms_Refresh"
 
 
-[node name="CreateRow" type="HBoxContainer" parent="Lobby"]
+[node name="CreateRow" type="VBoxContainer" parent="Lobby"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="Name" type="LineEdit" parent="Lobby/CreateRow"]
 auto_translate_mode = 2
 layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
 size_flags_horizontal = 3
 max_length = 40
 placeholder_text = "Rooms_Name"
 
-[node name="Create" type="Button" parent="Lobby/CreateRow"]
+[node name="Action" type="MarginContainer" parent="Lobby/CreateRow"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+
+[node name="Create" type="Button" parent="Lobby/CreateRow/Action"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
 theme_type_variation = &"CapsuleButton"
 text = "Rooms_Create"
+autowrap_mode = 3
 
 
 [node name="JoinRow" type="HBoxContainer" parent="Lobby"]
@@ -147,22 +153,23 @@ theme_override_constants/separation = 6
 
 [node name="Code" type="LineEdit" parent="Lobby/JoinRow"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
 size_flags_horizontal = 3
 max_length = 32
 placeholder_text = "Rooms_Code"
 
-[node name="Join" type="Button" parent="Lobby/JoinRow"]
+[node name="JoinAction" type="MarginContainer" parent="Lobby"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+
+[node name="Join" type="Button" parent="Lobby/JoinAction"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
 theme_type_variation = &"CapsuleButton"
-text = "Rooms_Join"
-
-
-[node name="Random" type="Button" parent="Lobby"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
 text = "Rooms_Random"
+autowrap_mode = 3
 
 
 [node name="Divider" type="HSeparator" parent="Lobby"]

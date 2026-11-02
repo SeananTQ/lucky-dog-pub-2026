@@ -29,7 +29,6 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private Label _game = null!;
     [Export] private Button _create = null!;
     [Export] private Button _join = null!;
-    [Export] private Button _random = null!;
     [Export] private Button _refresh = null!;
     [Export] private Button _return = null!;
     [Export] private Button _cancel = null!;
@@ -56,6 +55,8 @@ public partial class InGameRoomPreview : VBoxContainer
     private long _membersSession;
     private bool _browsing = true;
     private bool _dirty;
+    private string _defaultNameDraft = "";
+    private bool _nameDraftEdited;
     private long _lastSession;
     private string _noticeKey = "";
     private bool _hideRoomCode;
@@ -171,11 +172,13 @@ public partial class InGameRoomPreview : VBoxContainer
         // Registering a resource alone does not refresh those caches; notify
         // only this preview, without changing the player's selected locale.
         PropagateNotification((int)NotificationTranslationChanged);
-        _nameInput.Text = L10n.Tr("Rooms_DefaultName");
+        _nameInput.Text = _defaultNameDraft = L10n.Tr("Rooms_DefaultName");
+        _nameInput.TextChanged += _ => _nameDraftEdited = true;
         _create.Pressed += () => { _noticeKey = ""; _client?.Create(_nameInput.Text); };
-        _join.Pressed += JoinCode;
-        _codeInput.TextSubmitted += _ => JoinCode();
-        _random.Pressed += () => { _noticeKey = ""; _client?.FindAndJoin(); };
+        _join.Pressed += JoinFromInput;
+        _codeInput.TextSubmitted += _ => JoinFromInput();
+        _codeInput.TextChanged += _ => RefreshJoinAction();
+        RefreshJoinAction();
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
         _reconnectPanel = GetNode<VBoxContainer>("Recovery");
@@ -340,11 +343,28 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void OnLanguageChanged()
     {
+        // Only the untouched creation suggestion follows the UI language.
+        // User drafts and names already published to a room remain literal.
+        string nextDefault = L10n.Tr("Rooms_DefaultName");
+        if (!_nameDraftEdited && _nameInput.Text == _defaultNameDraft)
+            _nameInput.Text = nextDefault;
+        _defaultNameDraft = nextDefault;
+        RefreshJoinAction();
         _lastListings = null;
         _dirty = true;
         if (_kickClient != null) ShowKickConfirmation();
     }
-    private void JoinCode() { _noticeKey = ""; _client?.Join(_codeInput.Text); }
+    private void RefreshJoinAction() => _join.Text = L10n.Tr(
+        string.IsNullOrWhiteSpace(_codeInput.Text) ? "Rooms_Random" : "Rooms_JoinByCode");
+
+    private void JoinFromInput()
+    {
+        // Enter and pointer activation share the same availability and routing.
+        if (_client == null || _client.IsBusy || _join.Disabled) return;
+        _noticeKey = "";
+        if (string.IsNullOrWhiteSpace(_codeInput.Text)) _client.FindAndJoin();
+        else _client.Join(_codeInput.Text);
+    }
     public void RefreshRooms()
     {
         _noticeKey = "";
@@ -747,7 +767,7 @@ public partial class InGameRoomPreview : VBoxContainer
             _room.Hide();
             _return.Hide();
             _cancel.Hide();
-            _create.Disabled = _join.Disabled = _random.Disabled = true;
+            _create.Disabled = _join.Disabled = true;
             _refresh.Disabled = false;
             _empty.Hide();
             _status.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired" : "Rooms_SteamUnavailable");
@@ -760,7 +780,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _lobby.Visible = _browsing || !joined;
         _room.Visible = !_lobby.Visible;
         _return.Visible = joined;
-        _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = _client.IsBusy;
+        _create.Disabled = _join.Disabled = _refresh.Disabled = _client.IsBusy;
         _cancel.Visible = _client.IsBusy && !_client.IsLocalArrival && Reconnect?.IsPending != true;
         _invite.Disabled = !joined || _client.IsLocalArrival || _client.IsBusy || _isMock || _service is not IRoomInviteService;
         _invite.TooltipText = _isMock || _service is not IRoomInviteService

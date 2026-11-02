@@ -61,7 +61,7 @@ public partial class InGameRoomPreview
         _status.Hide();
         _cancel.Hide();
         _reconnectPanel.Hide();
-        _create.Disabled = _join.Disabled = _random.Disabled = _refresh.Disabled = true;
+        _create.Disabled = _join.Disabled = _refresh.Disabled = true;
         _invite.Disabled = true;
         string message = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired" : "Rooms_ConnectingService");
         if (!_restartRequired && _connectionWaitElapsed >= ConnectionAdviceDelaySeconds)
