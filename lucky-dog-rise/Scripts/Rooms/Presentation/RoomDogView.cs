@@ -1,5 +1,6 @@
 #if !DEMO_BUILD && !RECORDING_BUILD
 using System;
+using System.Linq;
 using Godot;
 using DataTables;
 
@@ -18,6 +19,7 @@ public partial class RoomDogView : Node2D
     private RoomMember _member;
     private bool _isLocal;
     private Sprite2D _tongue;
+    private Sprite2D[] _footprintSprites;
     private string _measuredName;
     private Font _measuredNameFont;
     private float _measuredNameWidth = -1;
@@ -28,6 +30,7 @@ public partial class RoomDogView : Node2D
     public override void _Ready()
     {
         _tongue = Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
+        _footprintSprites = Dog.FindChildren("*", "Sprite2D", true, false).OfType<Sprite2D>().ToArray();
         Chat.SendRequested += text =>
         {
             if (_isLocal && _member?.IsCompanion == false) SendRequested?.Invoke(text);
@@ -155,6 +158,28 @@ public partial class RoomDogView : Node2D
     internal static bool ContainsWindowPoint(Control control, Vector2 windowPoint) => control.IsVisibleInTree()
         && new Rect2(Vector2.Zero, control.Size).HasPoint(
             control.GetGlobalTransformWithCanvas().AffineInverse() * windowPoint);
+
+    internal Rect2 Footprint => MeasureFootprint(_footprintSprites, _nameBar, Position);
+
+    // Cached sprite references, no texture readback, alpha scan or scene traversal
+    // while dragging. Includes headwear, paws and the actual counter/name bar.
+    internal static Rect2 MeasureFootprint(Sprite2D[] sprites, Control bar, Vector2 origin)
+    {
+        Rect2? result = null;
+        foreach (var sprite in sprites)
+        {
+            if (!sprite.IsVisibleInTree() || sprite.Texture == null) continue;
+            var rect = sprite.GetGlobalTransformWithCanvas() * sprite.GetRect();
+            result = result is { } bounds ? bounds.Merge(rect) : rect;
+        }
+        if (bar.IsVisibleInTree())
+        {
+            var rect = bar.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, bar.Size);
+            result = result is { } bounds ? bounds.Merge(rect) : rect;
+        }
+        var footprint = result ?? new Rect2(origin - Vector2.One, Vector2.One * 2);
+        return new Rect2(footprint.Position - origin, footprint.Size).Grow(4);
+    }
     public bool IsPointerOverContent() => Visible && (IsPointerOverDog()
         || Chat.ContainsPoint(GetGlobalMousePosition()));
 

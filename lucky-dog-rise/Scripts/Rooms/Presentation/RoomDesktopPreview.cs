@@ -14,6 +14,7 @@ public partial class RoomDesktopPreview : Node2D
     [Export] private CanvasLayer _remoteLayer = null!;
     [Export] private CanvasLayer _chatLayer = null!;
     [Export] public RoomChatView LocalChat { get; private set; } = null!;
+    [Export] public RoomBoundaryView Boundary { get; private set; } = null!;
     private RoomClient _client;
 
     public override void _Ready()
@@ -46,7 +47,7 @@ public partial class RoomDesktopPreview : Node2D
         if (what == NotificationVisibilityChanged && IsInstanceValid(_chatLayer))
         {
             _chatLayer.Visible = IsVisibleInTree();
-            if (!IsVisibleInTree() && LocalChat.IsNodeReady()) LocalChat.Reset();
+            if (!IsVisibleInTree() && LocalChat.IsNodeReady()) { LocalChat.Reset(); Boundary.Clear(); }
         }
     }
 
@@ -203,6 +204,27 @@ public partial class RoomDesktopPreview : Node2D
     }
 
     public Vector2 GetPosition(int memberId) => _placements[memberId].Position;
+    internal Rect2 GetFootprint(int memberId) => _dogs[memberId].Footprint;
+
+    internal Vector2 ConstrainMember(int memberId, Rect2 footprint, Rect2 bounds)
+    {
+        var placement = _placements[memberId];
+        var position = RoomDesktopGeometry.Clamp(placement.Position, footprint, bounds);
+        // Attachment owns vertical placement. Counter/tongue clearance can extend
+        // below the work area (especially at high pet scales); a window clamp must
+        // not silently undo the existing taskbar rule or its breakaway hysteresis.
+        if (placement.TaskbarSnapped) position.Y = placement.Position.Y;
+        placement.Position = position;
+        if (_dogs.TryGetValue(memberId, out var dog)) dog.Position = position;
+        if (memberId == _client.Id) LocalChat.Position = position + new Vector2(-49, -140) * LocalChat.Scale;
+        return position;
+    }
+
+    internal void ConstrainRemotes(Rect2 bounds)
+    {
+        foreach (var dog in _dogs.Values)
+            if (dog.Visible) ConstrainMember(dog.MemberId, dog.Footprint, bounds);
+    }
     public bool HasMember(long session, int memberId, long presence) => _session == session
         && _placements.TryGetValue(memberId, out var placement) && placement.Presence == presence;
     public bool IsTaskbarSnapped(int memberId) =>
@@ -249,6 +271,7 @@ public partial class RoomDesktopPreview : Node2D
 
     public void Clear()
     {
+        Boundary?.Clear();
         LocalChat?.Reset();
         _client = null;
         foreach (var dog in _dogs.Values) { dog.Hide(); dog.QueueFree(); }

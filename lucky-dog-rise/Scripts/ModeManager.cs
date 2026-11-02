@@ -2617,6 +2617,9 @@ public partial class ModeManager : Control
             return;
 
         _bossBlindBoxOverlay.Offset = _bossBlindBoxRevealAnchor.GlobalPosition;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (_roomWindowActive) ConstrainRoomRewardBubbles();
+#endif
     }
 
     private void OnBossBlindBoxRewardClaimRequested()
@@ -3608,11 +3611,13 @@ public partial class ModeManager : Control
             : aY + ah;
 
         var desktopGridOrigin = Vector2.Zero;
+        bool constrainPanelToHost = false;
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (CurrentMode == Mode.BossKey && _roomWindowActive)
         {
-            // In a room the host stays fixed and the dog moves inside it. Translate
-            // the ordinary nine-slot grid with the dog, including the existing top
+            constrainPanelToHost = true;
+            screen = screen.Intersection(new Rect2I(winPos, DisplayServer.WindowGetSize()));
+            // Translate the ordinary nine-slot grid with the dog, including the existing top
             // buffer used by the blind-box reveal at larger desktop-pet scales.
             desktopGridOrigin = new Vector2(aX - _panelSize.X, aY - CalculateBossTopBufferHeight());
         }
@@ -3633,7 +3638,8 @@ public partial class ModeManager : Control
                 Mathf.CeilToInt(_settingsPanel.TopActionAreaHeight),
                 PlayGameSettingsGap,
                 IsHighOtherUiScale(),
-                desktopGridOrigin));
+                desktopGridOrigin,
+                constrainPanelToHost));
         _settingsPanel.SetPanelPosition(placement.PanelPosition);
         UpdatePlayPanelDismissOverlay();
     }
@@ -4379,6 +4385,8 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomDragMember = 0;
         _roomPokerDragMember = 0;
+        _roomDesktop?.Boundary.Release();
+        _roomPokerDogs?.Boundary.Release();
 #endif
         _isDragging = false;
         _potentialDrag = false;

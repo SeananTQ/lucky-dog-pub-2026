@@ -68,6 +68,15 @@ public partial class ModeManager
     private bool _roomWindowActive;
     private int _roomScreen;
     private Vector2I _roomDesktopHostPosition;
+    private Rect2I _roomDesktopHost;
+    private int? _roomCompactHostX;
+    private long _roomCompactSession = -1;
+    private int _roomCompactScreen = -1;
+    private Sprite2D[] _roomLocalFootprintSprites;
+    private Vector2 _roomBlindBoxHintBasePosition;
+    private bool RoomCompactDesktop => _settingsPanel.RoomDisplayPreference == RoomDisplayMode.HalfScreenCompact;
+    private Rect2 RoomLocalFootprint => RoomDogView.MeasureFootprint(_roomLocalFootprintSprites,
+        _bossStatusPanel, _bossDogVisual.GlobalPosition);
     private Vector2I _beforeRoomDogScreenPosition;
     private bool _beforeRoomTaskbarSnapped;
     private RoomSnapshot _roomLastLayoutSnapshot;
@@ -152,6 +161,8 @@ public partial class ModeManager
         }
         _roomLocalDogHits = new[] { "HitButton", "ClawLeftHitButton", "ClawRightHitButton" }
             .Select(path => _bossDogVisual.GetNode<Button>(path)).ToArray();
+        _roomLocalFootprintSprites = _bossDogVisual.FindChildren("*", "Sprite2D", true, false).OfType<Sprite2D>().ToArray();
+        _roomBlindBoxHintBasePosition = _bossBlindBoxHint.Position;
     }
 
     private void UpdateRoomDesktopPreview()
@@ -321,15 +332,24 @@ public partial class ModeManager
 
     private void ApplyRoomDesktopLayout(bool force = false)
     {
-        if (_roomScreen >= DisplayServer.GetScreenCount()) _roomScreen = DisplayServer.GetPrimaryScreen();
+        if (_roomScreen < 0 || _roomScreen >= DisplayServer.GetScreenCount()) _roomScreen = DisplayServer.GetPrimaryScreen();
         var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomScreen), DisplayServer.ScreenGetSize(_roomScreen));
-        // Godot's Windows backend infers exclusive fullscreen from an exact
-        // monitor-sized rectangle, then ignores subsequent resize/move calls.
-        // Leave a physical pixel on every edge to stay an ordinary layered window.
-        var host = new Rect2I(screen.Position + Vector2I.One, screen.Size - Vector2I.One * 2);
+        if (_roomCompactSession != _desktopRoomClient.LayoutSession || _roomCompactScreen != _roomScreen)
+        {
+            _roomCompactHostX = null;
+            _roomCompactSession = _desktopRoomClient.LayoutSession;
+            _roomCompactScreen = _roomScreen;
+        }
+        var host = RoomDesktopGeometry.Host(screen, RoomCompactDesktop, _roomCompactHostX);
+        if (RoomCompactDesktop) _roomCompactHostX = host.Position.X;
+        bool resized = _roomDesktopHost != host;
+        _roomDesktopHost = host;
         _roomDesktopHostPosition = host.Position;
         var usable = DisplayServer.ScreenGetUsableRect(_roomScreen);
-        bool changed = force || _roomLastLayoutSnapshot != _desktopRoomClient.View
+        // In extreme UI scales a panel may be wider than half a monitor. Fit only
+        // this panel locally; never change saved UI scale or grow the host.
+        UpdateRoomPanelScale(RoomCompactDesktop ? host.Size.X - 10 : null);
+        bool changed = force || resized || _roomLastLayoutSnapshot != _desktopRoomClient.View
             || _roomLastLayoutScale != _desktopPetScaleFactor || _roomLastWorkArea != usable;
         // An ordinary transparent window, never the OS fullscreen mode.
         if (DisplayServer.WindowGetSize() != host.Size)
@@ -343,7 +363,7 @@ public partial class ModeManager
             changed = true;
         }
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
-            new Rect2(usable.Position - host.Position, usable.Size), _desktopPetScaleFactor, _panelSize.X,
+            new Rect2(usable.Intersection(host).Position - host.Position, usable.Intersection(host).Size), _desktopPetScaleFactor, _panelSize.X,
             RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
         if (_roomPokerDesktopPositions != null && _desktopRoomClient.View != null)
         {
@@ -362,6 +382,13 @@ public partial class ModeManager
             RoomSnapEnabled && SettingsManager.LoadCenterCounterOnTaskbar(),
             Mathf.Max(0, screen.End.Y - usable.End.Y) / _desktopPetScaleFactor,
             _bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y, BossCounterTongueClearance);
+        if (changed)
+        {
+            var movementBounds = new Rect2(Vector2.Zero, host.Size);
+            _roomDesktop.ConstrainRemotes(movementBounds);
+            if (_desktopRoomClient.View?.Members.Any(m => m.Id == _desktopRoomClient.Id) == true)
+                dogPosition = _roomDesktop.ConstrainMember(_desktopRoomClient.Id, RoomLocalFootprint, movementBounds);
+        }
         var offset = dogPosition - _bossDogVisual.Position * _desktopPetScaleFactor;
         bool localSnapped = _roomDesktop.IsTaskbarSnapped(_desktopRoomClient.Id);
         changed |= _bossContentOffset != offset || _taskbarSnapped != localSnapped;
@@ -382,12 +409,37 @@ public partial class ModeManager
         if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
     }
 
+    private void UpdateRoomPanelScale(float? availableWidth)
+    {
+        float designWidth = _settingsPanel.PanelSize.X / _settingsPanel.RenderScale;
+        float scale = availableWidth is { } width ? Mathf.Min(_otherUiScaleFactor, width / designWidth) : _otherUiScaleFactor;
+        if (Mathf.IsEqualApprox(_settingsPanel.RenderScale, scale)) return;
+        _settingsPanel.SetRenderScale(scale);
+        _panelSize = _settingsPanel.PanelSize;
+    }
+
+    private void ConstrainRoomRewardBubbles()
+    {
+        // Opening a bubble never shifts the room or its dogs. Chat already fits
+        // to the viewport; give the existing reward balloon/shell the same limit.
+        var bounds = new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()).Grow(-4);
+        _bossBlindBoxHint.Position = _roomBlindBoxHintBasePosition;
+        var hint = GetBossBlindBoxHintRect();
+        var hintOrigin = RoomDesktopGeometry.Clamp(hint.Position, new Rect2(Vector2.Zero, hint.Size), bounds);
+        _bossBlindBoxHint.Position += (hintOrigin - hint.Position) / _desktopPetScaleFactor;
+        var reveal = GetBossBlindBoxOverlayRect();
+        _bossBlindBoxOverlay.Offset += RoomDesktopGeometry.Clamp(reveal.Position,
+            new Rect2(Vector2.Zero, reveal.Size), bounds) - reveal.Position;
+    }
+
     private void RestoreRoomDesktopWindow()
     {
         if (!_roomWindowActive) return;
         CancelWindowDrag();
         _roomWindowActive = false;
         _roomDesktop.Hide();
+        _bossBlindBoxHint.Position = _roomBlindBoxHintBasePosition;
+        UpdateRoomPanelScale(null);
         if (DisplayServer.WindowGetMode() is DisplayServer.WindowMode.Fullscreen
             or DisplayServer.WindowMode.ExclusiveFullscreen or DisplayServer.WindowMode.Maximized)
             DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
@@ -447,8 +499,8 @@ public partial class ModeManager
             _roomDragMember = memberId;
             _roomDragSession = _desktopRoomClient.Session;
             _roomDragPresence = member.Presence;
-            _roomDragMouseStart = point;
-            _roomDragDogStart = _roomDesktop.GetPosition(memberId);
+            _roomDragMouseStart = point + DisplayServer.WindowGetPosition();
+            _roomDragDogStart = _roomDesktop.GetPosition(memberId) + DisplayServer.WindowGetPosition();
             _potentialDrag = true;
         }
         else if (@event is InputEventMouseMotion motion && _roomDragMember != 0)
@@ -458,16 +510,32 @@ public partial class ModeManager
                 CancelWindowDrag();
                 return;
             }
-            var delta = motion.Position - _roomDragMouseStart;
+            var delta = motion.Position + DisplayServer.WindowGetPosition() - _roomDragMouseStart;
             if (!_isDragging && delta.LengthSquared() < DefaultDragThreshold * DefaultDragThreshold) return;
             _isDragging = true;
             SetClickThrough(false);
+            var footprint = _roomDragMember == _desktopRoomClient.Id
+                ? RoomLocalFootprint : _roomDesktop.GetFootprint(_roomDragMember);
+            var desired = _roomDragDogStart + delta;
+            var host = _roomDesktopHost;
+            if (RoomCompactDesktop && _roomDragMember == _desktopRoomClient.Id)
+            {
+                var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomScreen), DisplayServer.ScreenGetSize(_roomScreen));
+                host = RoomDesktopGeometry.Push(host, screen, desired, footprint);
+                _roomCompactHostX = host.Position.X;
+            }
+            bool pushed = host.Position != _roomDesktopHost.Position;
+            if (pushed) DisplayServer.WindowSetPosition(host.Position);
             float snappedDogY = DisplayServer.ScreenGetUsableRect(_roomScreen).End.Y
-                - DisplayServer.WindowGetPosition().Y - RoomTaskbarAnchorOffsetY;
-            _roomDesktop.MoveMember(_roomDragMember, _roomDragDogStart + delta, snappedDogY,
+                - host.Position.Y - RoomTaskbarAnchorOffsetY;
+            var requested = desired - host.Position;
+            _roomDesktop.MoveMember(_roomDragMember, requested, snappedDogY,
                 RoomSnapEnabled, SnapThreshold, BreakawayThreshold);
-            // Reuse the local dog's counter, bubble and panel layout chain. The
-            // room host stays still; remote moves do not move the local panel.
+            var snapped = _roomDesktop.GetPosition(_roomDragMember);
+            var bounded = _roomDesktop.ConstrainMember(_roomDragMember, footprint, new Rect2(Vector2.Zero, host.Size));
+            var edges = RoomDesktopGeometry.Blocked(snapped, bounded);
+            if (pushed) edges |= RoomBoundaryEdges.Left | RoomBoundaryEdges.Right;
+            _roomDesktop.Boundary.Indicate(new Rect2(Vector2.Zero, host.Size), edges);
             ApplyRoomDesktopLayout();
             GetViewport().SetInputAsHandled();
         }

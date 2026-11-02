@@ -57,6 +57,7 @@ TestDogSkinParts
 LuckyDogRise.Rooms.InGameRoomDirectoryRow
 LuckyDogRise.Rooms.InGameRoomPreview
 LuckyDogRise.Rooms.RoomDesktopPreview
+LuckyDogRise.Rooms.RoomBoundaryView
 LuckyDogRise.Rooms.RoomDogView
 LuckyDogRise.Rooms.RoomChatView
 LuckyDogRise.Rooms.RoomGameProposalOverlay

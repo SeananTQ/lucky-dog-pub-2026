@@ -15,6 +15,7 @@ public static class InGameRoomSmoke
     public static bool Requested => DemoRequested || OS.GetCmdlineUserArgs().Contains("--rooms-page-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-entry-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
@@ -63,6 +64,13 @@ public static class InGameRoomSmoke
             }
             void Click(string path) => page.GetNode<Button>(path).EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke"))
+            {
+                await Wait(2);
+                await RoomDesktopBoundsChecks.Run(main, page);
+                tree.Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke"))
             {
                 await Wait(2);
@@ -594,7 +602,7 @@ public static class InGameRoomSmoke
             foreach (int id in client.View.Members.Select(member => member.Id))
             {
                 Check(desktop.IsTaskbarSnapped(id) && Mathf.IsEqualApprox(DogPosition(id).Y + taskbarOffset, TaskbarY()),
-                    "each dog initially attaches its own anchor to the taskbar");
+                    $"each dog initially attaches its own anchor to the taskbar: id={id}, snapped={desktop.IsTaskbarSnapped(id)}, y={DogPosition(id).Y}, offset={taskbarOffset}, taskbar={TaskbarY()}");
                 var others = client.View.Members.Where(m => m.Id != id).ToDictionary(m => m.Id, m => DogPosition(m.Id));
                 var position = DogPosition(id);
                 await Drag(position, new Vector2(20, -20));

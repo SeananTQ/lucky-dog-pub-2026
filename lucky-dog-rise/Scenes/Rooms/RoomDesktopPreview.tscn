@@ -4,13 +4,15 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomDogView.tscn" id="dog"]
 
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat"]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomBoundaryView.cs" id="boundary"]
 
-[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat")]
+[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat", "Boundary")]
 script = ExtResource("script")
 _dogScene = ExtResource("dog")
 _remoteLayer = NodePath("RemoteLayer")
 _chatLayer = NodePath("ChatLayer")
 LocalChat = NodePath("ChatLayer/Chat")
+Boundary = NodePath("ChatLayer/Boundary")
 
 [node name="RemoteLayer" type="CanvasLayer" parent="."]
 layer = -1
@@ -19,3 +21,8 @@ layer = -1
 layer = 3
 
 [node name="Chat" parent="ChatLayer" instance=ExtResource("chat")]
+
+[node name="Boundary" type="Control" parent="ChatLayer"]
+visible = false
+mouse_filter = 2
+script = ExtResource("boundary")

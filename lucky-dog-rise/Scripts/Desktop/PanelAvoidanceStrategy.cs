@@ -37,7 +37,8 @@ public readonly record struct PanelPlacementContext(
     int TopActionHeight,
     int PlaySettingsGap,
     bool PlayHighScale,
-    Vector2 DesktopGridOrigin = default);
+    Vector2 DesktopGridOrigin = default,
+    bool ConstrainToHost = false);
 
 public readonly record struct PanelPlacementResult(Vector2 PanelPosition);
 
@@ -106,13 +107,14 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
         int mainHeight = context.MainContentSize.Y;
         float sideY = context.SidePanelBottomY - panelHeight;
         float centerX = mainX + mainWidth / 2f - panelWidth / 2f;
+        int tolerance = context.ConstrainToHost ? 0 : LegacyScreenTolerance;
 
         bool Fits(int screenX, int screenY)
         {
-            if (screenX < context.UsableScreen.Position.X - LegacyScreenTolerance
-                || screenX + panelWidth > context.UsableScreen.End.X + LegacyScreenTolerance
-                || screenY < context.UsableScreen.Position.Y - LegacyScreenTolerance
-                || screenY + panelHeight > context.UsableScreen.End.Y + LegacyScreenTolerance)
+            if (screenX < context.UsableScreen.Position.X - tolerance
+                || screenX + panelWidth > context.UsableScreen.End.X + tolerance
+                || screenY < context.UsableScreen.Position.Y - tolerance
+                || screenY + panelHeight > context.UsableScreen.End.Y + tolerance)
             {
                 return false;
             }
@@ -181,11 +183,11 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
 
         bool TopActionsFit(int screenX, int screenY)
         {
-            return screenX >= context.UsableScreen.Position.X - LegacyScreenTolerance
-                && screenX + panelWidth <= context.UsableScreen.End.X + LegacyScreenTolerance
-                && screenY >= context.UsableScreen.Position.Y - LegacyScreenTolerance
+            return screenX >= context.UsableScreen.Position.X - tolerance
+                && screenX + panelWidth <= context.UsableScreen.End.X + tolerance
+                && screenY >= context.UsableScreen.Position.Y - tolerance
                 && screenY + context.TopActionHeight
-                    <= context.UsableScreen.End.Y + LegacyScreenTolerance;
+                    <= context.UsableScreen.End.Y + tolerance;
         }
 
         var centerFallback = GetPanelSlotPosition(

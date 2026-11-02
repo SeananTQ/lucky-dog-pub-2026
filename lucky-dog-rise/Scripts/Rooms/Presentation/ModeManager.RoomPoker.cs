@@ -168,6 +168,8 @@ public partial class ModeManager
             _roomPokerDisplay == RoomPokerDisplay.Desktop && RoomSnapEnabled && SettingsManager.LoadCenterCounterOnTaskbar(),
             Mathf.Max(0, screen.End.Y - usable.End.Y) / scale,
             _bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y, BossCounterTongueClearance);
+        if (_roomPokerDisplay == RoomPokerDisplay.Desktop)
+            _roomPokerDogs.ConstrainRemotes(new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()));
         if (_roomPokerDragMember != 0 && !RoomPokerDragIsCurrent()) CancelWindowDrag();
     }
 
@@ -224,7 +226,8 @@ public partial class ModeManager
         }
         if (input is InputEventMouseMotion motion && _roomPokerDragMember != 0)
         {
-            if (!RoomPokerDragIsCurrent()) { CancelWindowDrag(); return true; }
+            if ((motion.ButtonMask & MouseButtonMask.Left) == 0 || !RoomPokerDragIsCurrent())
+            { CancelWindowDrag(); return true; }
             var delta = motion.Position - _roomPokerMouseDragStart;
             if (delta.Length() < DefaultDragThreshold && !_isDragging) return true;
             _isDragging = true;
@@ -233,10 +236,13 @@ public partial class ModeManager
             var min = (Vector2)(usable.Position - DisplayServer.WindowGetPosition());
             var max = min + usable.Size;
             var p = _roomPokerDogDragStart + delta;
-            p.X = Mathf.Clamp(p.X, min.X + 50, max.X - 50);
-            p.Y = Mathf.Clamp(p.Y, min.Y + 80, max.Y - RoomTaskbarAnchorOffsetY);
             _roomPokerDogs.MoveMember(_roomPokerDragMember, p, max.Y - RoomTaskbarAnchorOffsetY,
                 RoomSnapEnabled, SnapThreshold, BreakawayThreshold);
+            var snapped = _roomPokerDogs.GetPosition(_roomPokerDragMember);
+            var bounds = new Rect2(Vector2.Zero, DisplayServer.WindowGetSize());
+            var accepted = _roomPokerDogs.ConstrainMember(_roomPokerDragMember,
+                _roomPokerDogs.GetFootprint(_roomPokerDragMember), bounds);
+            _roomPokerDogs.Boundary.Indicate(bounds, RoomDesktopGeometry.Blocked(snapped, accepted));
             GetViewport().SetInputAsHandled();
             return true;
         }

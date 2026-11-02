@@ -83,6 +83,7 @@ public partial class SystemPanelController : CanvasLayer
 
     private Vector2 PanelDesignSize => PanelSize / _renderScale;
     private float _renderScale = 1f;
+    public float RenderScale => _renderScale;
     private Font _popupSourceFont = null!;
     private readonly Dictionary<int, Font> _popupFontsByOversampling = new();
     private readonly Dictionary<ulong, Font> _buttonSourceFonts = new();

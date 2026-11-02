@@ -12,6 +12,7 @@ internal static class RoomPokerChecks
 {
     public static void Layout()
     {
+        RoomDesktopBoundsChecks.Geometry();
         foreach (var screen in new[] { new Vector2I(1280, 680), new Vector2I(1920, 1040), new Vector2I(3840, 2080) })
         foreach (float ui in new[] { .75f, 1f, 1.25f, 1.5f, 2f })
         foreach (float dog in new[] { .5f, 1f, 2f, 3f, 4f })
