@@ -45,6 +45,8 @@ public static class InGameRoomSmoke
                 return;
             }
             Check(tab is { Visible: true }, "room tab visible in the main game");
+            Check(tab.TooltipText == InGameRoomPreview.ChatText("Rooms_Online")
+                && tab.TooltipText != "Rooms_Online", "Online tab tooltip is translated before first opening the page");
             main.RoomSnapForSmoke(true);
             tab.EmitSignal(BaseButton.SignalName.Pressed);
             await Frame();
@@ -104,12 +106,31 @@ public static class InGameRoomSmoke
                 "first-open button shaped with translated text before changing language");
             expectedCreate.Free();
             await Capture(main, "in-game-lobby-first-open");
+            var displayMode = page.GetNode<OptionButton>("Lobby/Display/Mode");
+            Check(!displayMode.Disabled && displayMode.ItemCount == 2, "display choice is available before joining");
+            displayMode.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+            await Frame();
+            Check(page.SelectedDisplayMode == RoomDisplayMode.HalfScreenCompact
+                && SettingsManager.LoadRoomDisplayMode() == RoomDisplayMode.HalfScreenCompact,
+                "compact choice is persisted as a local preference");
+            displayMode.EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
+            await Frame();
+            Check(SettingsManager.LoadRoomDisplayMode() == RoomDisplayMode.FullScreenFree,
+                "free choice is persisted independently of room membership");
             var entryCode = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
             var entryJoin = page.GetNode<Button>("Lobby/JoinAction/Join");
             foreach (var locale in RoomSettingsPageChecks.Locales)
             {
                 L10n.SetLocale(locale, save: false);
                 await Frame();
+                string expectedMode = locale == "zh_CN" ? "全屏自由" : "Full-screen Free";
+                string expectedTab = locale == "zh_CN" ? "联机" : "Online";
+                Check(displayMode.Text == expectedMode && L10n.Tr(tab.TooltipText) == expectedTab,
+                    locale + " temporary display names and Online tip use Chinese or English fallback");
+                Check(displayMode.Size.Y <= 36 && displayMode.GetGlobalRect().End.X <= panel.PanelRect.End.X,
+                    "display selector keeps the standard dropdown height and fits the panel");
+                Check(page.GetNode<Control>("Lobby/Header").Position.Y > page.GetNode<Control>("Lobby/JoinAction").Position.Y,
+                    "refresh belongs to the directory header below join controls");
                 var close = title.GetNode<Button>("CloseBtn");
                 Check(close.GetGlobalRect().End.X <= panel.PanelRect.End.X + 1, "all tabs and Close fit");
                 Check(page.Size.X <= panel.PanelSize.X, "room content width fits");
@@ -142,6 +163,19 @@ public static class InGameRoomSmoke
                 // to settle before recording a rapidly switched locale.
                 await Wait(0.2);
                 await Capture(main, "in-game-lobby-" + locale);
+                if (locale is "zh_CN" or "en")
+                {
+                    displayMode.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+                    await Frame();
+                    Check(displayMode.Text == (locale == "zh_CN" ? "半屏紧凑" : "Half-screen Compact"),
+                        "compact option uses the provisional Chinese/English name");
+                    await Capture(main, "in-game-lobby-compact-" + locale);
+                    displayMode.ShowPopup();
+                    page.CloseRoomDropdowns();
+                    Check(!displayMode.GetPopup().Visible, "closing room dropdowns also closes the display selector");
+                    displayMode.EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
+                    await Frame();
+                }
             }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-entry-main-smoke"))
             {

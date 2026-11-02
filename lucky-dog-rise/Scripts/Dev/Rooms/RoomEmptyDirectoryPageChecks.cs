@@ -31,6 +31,11 @@ internal static class RoomEmptyDirectoryPageChecks
         {
             await Frame();
             var client = page.CurrentClient;
+            var display = page.GetNode<OptionButton>("Lobby/Display/Mode");
+            void SelectCompact() => display.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+            Check(display.Disabled, "pending search locks the display setting");
+            SelectCompact();
+            Check(page.SelectedDisplayMode == RoomDisplayMode.FullScreenFree, "queued selection during request is ignored");
             var failures = new List<(RoomFailure Reason, bool TimedOut)>();
             client.JoinFailed += (reason, timedOut) => failures.Add((reason, timedOut));
             Check(client.IsBusy && rows.GetChildCount() == 0 && service.CreateRequests == 0,
@@ -40,6 +45,9 @@ internal static class RoomEmptyDirectoryPageChecks
             Check(rows.GetChildCount() == 0 && !page.GetNode<Label>("Lobby/Empty").Visible,
                 "search error is not presented as an empty successful directory");
 
+            Check(!display.Disabled, "failed request outside a room unlocks display setting");
+            SelectCompact();
+            Check(page.SelectedDisplayMode == RoomDisplayMode.HalfScreenCompact, "unjoined player can select compact layout");
             page.RefreshRooms();
             service.Complete(RoomFailure.None);
             await Frame();
@@ -68,6 +76,7 @@ internal static class RoomEmptyDirectoryPageChecks
             await Frame();
             Check(page.GetNode<Control>("Room").Visible && !page.GetNode<Control>("Lobby").Visible,
                 "local arrival leaves the directory and displays its temporary room");
+            Check(display.Disabled, "local companion presentation locks the display setting");
             client.Leave();
             Check(client.Create("Existing real room"), "ordinary room fixture can still create immediately");
             service.Complete(RoomFailure.None);
@@ -82,6 +91,8 @@ internal static class RoomEmptyDirectoryPageChecks
             await Frame();
             Check(client.JoinedCode == firstCode && rows.GetChildCount() == 1,
                 "browsing an empty directory while already in a room also offers the entry");
+            Check(display.Disabled && page.GetNode<Label>("Lobby/Display/Locked").Visible,
+                "browsing other rooms while joined keeps mode locked with an explanation");
             var stableRow = rows.GetChild(0);
             service.Publish(client);
             await Frame();

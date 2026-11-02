@@ -514,6 +514,21 @@ public static class SettingsManager
         OtherUiScaleFactors[Mathf.Clamp(step, OtherUiScaleStepMin, OtherUiScaleStepMax)];
 
 #if !DEMO_BUILD && !RECORDING_BUILD
+    public static Rooms.RoomDisplayMode LoadRoomDisplayMode()
+    {
+        string value = (string)Load().GetValue(SectionDisplay, "room_display_mode", "full_screen_free");
+        return value == "half_screen_compact" ? Rooms.RoomDisplayMode.HalfScreenCompact
+            : Rooms.RoomDisplayMode.FullScreenFree;
+    }
+
+    public static void SaveRoomDisplayMode(Rooms.RoomDisplayMode mode)
+    {
+        var config = Load();
+        config.SetValue(SectionDisplay, "room_display_mode", mode == Rooms.RoomDisplayMode.HalfScreenCompact
+            ? "half_screen_compact" : "full_screen_free");
+        config.Save(Path);
+    }
+
     public static bool LoadRoomCodeHidden()
     {
         var config = Load();

@@ -50,6 +50,7 @@ internal static class RoomPokerChecks
         main.ApplyDesktopPetScaleStep(1);
         main.RoomSnapForSmoke(true);
         await JoinWhilePlaying(main, page);
+        SelectMode(page, RoomDisplayMode.HalfScreenCompact);
         client.Join(host.JoinedCode);
         await Step();
         foreach (int id in new[] { 4, 5, 6 }) page.AddMockClientForSmoke(id).Join(host.JoinedCode);
@@ -64,19 +65,9 @@ internal static class RoomPokerChecks
         long session = client.LayoutSession;
         main.RoomRequestPokerForSmoke();
         await Wait();
-        var choice = panel.GetNode<RoomPokerDisplayChoice>("RoomPokerDisplayChoice");
-        var buttons = choice.GetNode<VBoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
-        Check(main.CurrentMode == ModeManager.Mode.BossKey && choice.Visible && UiInteractionOccupancy.IsOccupied(main),
-            "entry is gated by the registered choice overlay");
-        Check(!buttons.GetChildren().OfType<Button>().Any(b => b.HasFocus()), "answers are not preselected");
-        await Capture("choice");
-        Click(buttons.GetNode<Button>("Cancel"));
-        Check(main.CurrentMode == ModeManager.Mode.BossKey && !choice.Visible, "cancel stays in desktop mode");
-        main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Row"));
         await Wait(.6);
-        Check(main.CurrentMode == ModeManager.Mode.Play && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
-            "B enters single-player poker");
+        Check(main.CurrentMode == ModeManager.Mode.Play && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row
+            && !panel.HasRoomModal, "saved compact preference enters poker without a layout dialog");
         var game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
         var welcome = game.GetNode<PokerWelcomeDialogController>("PokerWelcomeDialog");
         if (welcome.Visible) Click(welcome.GetNode<Button>("InputShield/Center/Panel/Margin/Content/Confirm"));
@@ -111,10 +102,11 @@ internal static class RoomPokerChecks
         Check(desktop.RemoteDogs.First(d => d.MemberId == host.Id).Position.IsEqualApprox(original[host.Id]),
             "B round-trip preserves the remaining desktop dog position");
         panel.CloseImmediate();
-        // Capture the current desktop positions; the rejoined member legitimately has a new presence.
-        original = desktop.RemoteDogs.ToDictionary(d => d.MemberId, d => d.Position);
+        client.Leave(); await Step();
+        SelectMode(page, RoomDisplayMode.FullScreenFree);
+        client.Join(host.JoinedCode); await Step();
+        panel.CloseImmediate();
         main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Desktop"));
         await Wait(.5);
         var cHost = DisplayServer.WindowGetPosition();
         Check(DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2,
@@ -208,20 +200,18 @@ internal static class RoomPokerChecks
             "C to desktop preserves each attachment and the free dog's full chin");
         Check(desktop.GetPosition(client.Id).IsEqualApprox(localPosition), "remote placement handoff does not move the local desktop dog");
         main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        await Wait(.5);
         Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
             "desktop to C retains shared screen positions even where the table overlaps a dog");
         main.RoomModeForSmoke(false); await Wait(.8);
-        main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Row")); await Wait(.5);
-        main.RoomModeForSmoke(false); await Wait(.8);
-        Check(ScreenPositions(desktop).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
-            "a B round-trip does not overwrite positions saved from C");
+        SelectMode(page, RoomDisplayMode.HalfScreenCompact);
+        Check(page.SelectedDisplayMode == RoomDisplayMode.FullScreenFree,
+            "queued selection while joined cannot change the display mode");
         desktop.MoveMember(host.Id, desktop.GetPosition(host.Id) + new Vector2(-40, 40), 0, false, 0, 0);
         await Wait();
         sharedPositions = ScreenPositions(desktop);
         main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        await Wait(.5);
         Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
             "new desktop drags replace the earlier C position on the next entry");
         guest.Leave(); await Step();
@@ -231,21 +221,14 @@ internal static class RoomPokerChecks
         Check(ScreenPositions(desktop)[guest.Id].IsEqualApprox(replacementPosition),
             "a member who rejoins during C returns with its current presence placement");
         main.RoomRequestPokerForSmoke();
-        client.Leave(); await Step();
-        Click(buttons.GetNode<Button>("Desktop"));
-        Check(!choice.Visible && main.CurrentMode == ModeManager.Mode.BossKey, "leave invalidates pending choice and stale clicks");
-        client.Join(host.JoinedCode); await Step();
-        panel.CloseImmediate();
-        main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Desktop"));
         await Wait(.5);
         client.Leave(); await Step();
         Check(main.CurrentMode == ModeManager.Mode.Play && !poker.Visible
             && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden, "leaving C restores ordinary poker without exiting the hand");
         main.RoomModeForSmoke(false); await Wait(.8);
         main.RoomRequestPokerForSmoke(); await Wait(.3);
-        Check(main.CurrentMode == ModeManager.Mode.Play && !choice.Visible, "solo entry has no room choice");
-        GD.Print("[RoomPokerChecks] ALL PASS main window, choices, layout, synchronization, membership, drag, click-through, restore and stale actions (Mock).");
+        Check(main.CurrentMode == ModeManager.Mode.Play && !panel.HasRoomModal, "solo entry has no room choice");
+        GD.Print("[RoomPokerChecks] ALL PASS main window, saved preference, layout, synchronization, membership, drag, click-through, restore and stale actions (Mock).");
     }
 
     private static async Task JoinWhilePlaying(ModeManager main, InGameRoomPreview page)
@@ -278,28 +261,20 @@ internal static class RoomPokerChecks
         client.Join("MISSING"); await Step();
         Check(client.JoinedCode.Length == 0 && !panel.HasRoomModal, "failed join in poker does not ask for dog layout");
         client.Join(host.JoinedCode); await Step();
-        var choice = panel.GetNode<RoomPokerDisplayChoice>("RoomPokerDisplayChoice");
-        var buttons = choice.GetNode<VBoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
-        Check(choice.Visible && panel.IsOpen && main.CurrentMode == ModeManager.Mode.Play,
-            "successful join while already playing opens the shared layout choice");
-        Click(buttons.GetNode<Button>("Cancel"));
-        host.SetReaction(1002); await Step();
-        Check(!choice.Visible && client.JoinedCode == host.JoinedCode
-            && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && Hand() == hand,
-            "cancel keeps the room and hand without reopening on member updates");
-
+        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
+            && main.CurrentMode == ModeManager.Mode.Play && Hand() == hand,
+            "poker-first join automatically uses the saved free layout and preserves the hand");
         client.Leave(); await Step();
+        SelectMode(page, RoomDisplayMode.HalfScreenCompact);
         panel.CloseImmediate();
-        game.RequestPokerWelcome(true);
-        await Wait();
+        game.RequestPokerWelcome(true); await Wait();
         client.Join(host.JoinedCode); await Step();
-        Check(welcome.Visible && !choice.Visible && !panel.IsOpen, "join choice waits for an occupied welcome overlay");
+        Check(welcome.Visible && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && !panel.IsOpen,
+            "automatic layout waits for an occupied welcome overlay");
         Click(confirmWelcome); await Wait();
-        Check(choice.Visible, "closing welcome releases the pending join choice");
-        Click(buttons.GetNode<Button>("Row")); await Wait();
         Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 2
-            && game.State == GameState.Holding && Hand() == hand,
-            "poker-first B displays room dogs without restarting or changing the hand");
+            && game.State == GameState.Holding && Hand() == hand && !panel.HasRoomModal,
+            "welcome completion applies compact layout without another dialog or restarting the hand");
 
         client.Leave(); await Step();
         panel.CloseImmediate();
@@ -307,26 +282,20 @@ internal static class RoomPokerChecks
         client.Join(host.JoinedCode); await Step();
         client.Leave(); await Step();
         Click(confirmWelcome); await Wait();
-        Check(!choice.Visible && !panel.IsOpen, "leaving while choice is deferred clears the pending popup");
-        client.Join(host.JoinedCode); await Step();
-        Check(choice.Visible, "a new join can ask again after cancellation or departure");
-        client.Leave(); await Step();
-        Click(buttons.GetNode<Button>("Desktop"));
-        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && !choice.Visible,
-            "departed poker room ignores stale layout button signals");
-
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && !panel.IsOpen,
+            "leaving while layout is deferred cancels pending presentation");
+        SelectMode(page, RoomDisplayMode.FullScreenFree);
         client.Create("Poker-first room"); await Step();
-        Check(choice.Visible && client.View.Members.Length == 1 && !client.IsLocalArrival,
-            "ordinary creation while playing asks for layout and starts with only the owner");
+        Check(!panel.HasRoomModal && client.View.Members.Length == 1 && !client.IsLocalArrival
+            && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop,
+            "ordinary creation while playing automatically uses the saved layout and starts owner-only");
         client.Leave(); await Step();
         page.SeedLegacyCompanionRoomForSmoke("Poker-first legacy room"); await Step();
-        Check(choice.Visible, "entering a legacy companion room while playing also asks for layout");
-        Click(buttons.GetNode<Button>("Desktop")); await Wait();
         Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
             && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 3
             && DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2
             && game.State == GameState.Holding && Hand() == hand,
-            "poker-first C displays companions and preserves the existing hand");
+            "poker-first free layout displays companions and preserves the existing hand");
         var firstPoker = main.RoomPokerDogsForSmoke;
         var companion = firstPoker.RemoteDogs.First();
         firstPoker.MoveMember(companion.MemberId, companion.Position + new Vector2(-25, -150), 0, false, 0, 0);
@@ -337,27 +306,34 @@ internal static class RoomPokerChecks
             && !main.RoomDesktopForSmoke.IsTaskbarSnapped(companion.MemberId),
             "first desktop reveal after joining in C preserves companion positions and detached state");
         main.RoomRequestPokerForSmoke();
-        Click(buttons.GetNode<Button>("Desktop")); await Wait(.5);
+        await Wait(.5);
         Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(firstPositions[pair.Key])),
             "poker-first companion positions survive another C entry");
         client.Leave(); await Step();
 
+        SelectMode(page, RoomDisplayMode.HalfScreenCompact);
         var plan = RoomCompanionPlan.Create(new[] { client.SkinId }, new[] { 0 }, 0, seed: 73);
         Check(client.BeginArrival("Poker arrival", plan, -2), "local companion room can begin during poker");
         await Wait();
-        Check(choice.Visible, "local companion room uses the same poker-first choice");
-        Click(buttons.GetNode<Button>("Row")); await Wait();
+        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
+            "local companion room automatically uses the saved compact layout");
         Check(client.Arrival?.Presented == true, "selected poker dogs release the local arrival presentation gate");
         long arrivalSession = client.LayoutSession;
         for (int i = 0; i < 10 && client.IsLocalArrival; i++) await Step(1);
         Check(!client.IsLocalArrival && client.View?.OwnerId == client.Id && client.LayoutSession == arrivalSession
-            && !choice.Visible && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
+            && !panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
             "companion host handoff does not ask for the same layout twice");
         Check(game.State == GameState.Holding && Hand() == hand, "all join/create/handoff paths preserve held cards");
         client.Leave(); await Step();
         panel.CloseImmediate();
         main.RoomModeForSmoke(false);
         await Wait(.8);
+    }
+
+    private static void SelectMode(InGameRoomPreview page, RoomDisplayMode mode)
+    {
+        var option = page.GetNode<OptionButton>("Lobby/Display/Mode");
+        option.EmitSignal(OptionButton.SignalName.ItemSelected, option.GetItemIndex((int)mode));
     }
 
     private static Dictionary<int, Vector2> ScreenPositions(RoomDesktopPreview preview) => preview.RemoteDogs.ToDictionary(

@@ -43,7 +43,13 @@ def validate_scene_tooltips(keys: set[str], room_keys: set[str]) -> None:
                    for root in DEBUG_TOOLTIP_ROOTS.get(relative, ())):
                 skipped_debug += 1
                 continue
-            if tooltip[1] not in scene_keys:
+            # This room-only tab lives in the shared panel, is removed from Demo,
+            # and resolves its tooltip from the room catalog before opening the page.
+            allowed_keys = scene_keys | room_keys if (
+                relative == "App/SystemPanel.tscn"
+                and node_path == "Panel/RootVBox/TitleRow/RoomTab"
+            ) else scene_keys
+            if tooltip[1] not in allowed_keys:
                 fail(f"{relative}:{line_no} ({node_path}) tooltip must use a localization key: {tooltip[1]}")
             checked += 1
     print(f"[localization] OK: {checked} player scene tooltips use valid keys; {skipped_debug} Debug tooltips excluded")

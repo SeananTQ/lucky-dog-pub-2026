@@ -1098,7 +1098,7 @@ public partial class ModeManager : Control
     private void SwitchToPlay()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
-        if (ChooseRoomPokerDisplay()) return;
+        if (!TryPrepareRoomPokerEntry()) return;
 #endif
         EnterPlay();
     }

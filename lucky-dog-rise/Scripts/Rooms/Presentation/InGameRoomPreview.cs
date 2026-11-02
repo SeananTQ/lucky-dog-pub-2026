@@ -23,6 +23,9 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private Button _codeVisibility = null!;
     [Export] private Button _invite = null!;
     [Export] private OptionButton _access = null!;
+    [Export] private OptionButton _displayMode = null!;
+    [Export] private Label _displayDescription = null!;
+    [Export] private Label _displayLocked = null!;
     [Export] private Label _status = null!;
     [Export] private Label _empty = null!;
     [Export] private Label _connection = null!;
@@ -60,7 +63,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private long _lastSession;
     private string _noticeKey = "";
     private bool _hideRoomCode;
-    private bool _privacyLoaded;
+    private bool _localPreferencesLoaded;
     private RoomClient _kickClient;
     private long _kickSession;
     private int _kickMemberId;
@@ -86,6 +89,10 @@ public partial class InGameRoomPreview : VBoxContainer
     public event Action PageChanged;
     public RoomClient CurrentClient => _client;
     public PopupMenu AccessPopup => _access?.GetPopup();
+    public PopupMenu DisplayModePopup => _displayMode?.GetPopup();
+    public RoomDisplayMode SelectedDisplayMode { get; private set; } = RoomDisplayMode.FullScreenFree;
+    private bool DisplayModeLocked => _client?.IsBusy == true || _client?.JoinedCode.Length > 0
+        || _client?.IsLocalArrival == true || Reconnect?.IsPending == true;
 
     // The panel owns this sibling overlay so scrolling cannot move or clip it.
     public void BindKickConfirmation(ConfirmOverlayController confirmation)
@@ -126,7 +133,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     public void CancelKickConfirmation() => CancelKick();
 
-    // The standalone lab also uses these strings, without creating the room page.
+    // The standalone lab and unopened Online tab use these strings without creating the room page.
     public static string ChatText(string key)
     {
         var locale = TranslationServer.GetLocale();
@@ -141,12 +148,13 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         _gameData = gameData;
         if (_gameData != null) _gameData.EquipmentChanged += SyncLocalAppearance;
-        // UI privacy is a local preference, independent of the Steam account.
+        // Code privacy and display mode are local preferences, independent of the Steam account.
         // Standalone fake-provider checks have no GameData and never write it.
-        if (!_privacyLoaded && _gameData != null)
+        if (!_localPreferencesLoaded && _gameData != null)
         {
             _hideRoomCode = SettingsManager.LoadRoomCodeHidden();
-            _privacyLoaded = true;
+            SelectedDisplayMode = SettingsManager.LoadRoomDisplayMode();
+            _localPreferencesLoaded = true;
         }
         if (IsNodeReady()) RefreshService();
         _dirty = true;
@@ -179,6 +187,10 @@ public partial class InGameRoomPreview : VBoxContainer
         _codeInput.TextSubmitted += _ => JoinFromInput();
         _codeInput.TextChanged += _ => RefreshJoinAction();
         RefreshJoinAction();
+        _displayMode.AddItem("", (int)RoomDisplayMode.FullScreenFree);
+        _displayMode.AddItem("", (int)RoomDisplayMode.HalfScreenCompact);
+        _displayMode.ItemSelected += SelectDisplayMode;
+        RenderDisplayMode();
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
         _reconnectPanel = GetNode<VBoxContainer>("Recovery");
@@ -325,6 +337,8 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void OnClientChanged()
     {
+        // Lock synchronously: a dropdown signal may already be queued when a join starts.
+        RenderDisplayMode();
         if (_nameEditClient != null && NameEditError(_nameEditClient, _nameEditSession).Length > 0)
             CancelNameEdit();
         if (_accessClient != null && AccessError(_accessClient, _accessSession).Length > 0)
@@ -356,6 +370,31 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void RefreshJoinAction() => _join.Text = L10n.Tr(
         string.IsNullOrWhiteSpace(_codeInput.Text) ? "Rooms_Random" : "Rooms_JoinByCode");
+
+    private void SelectDisplayMode(long index)
+    {
+        if (!_exitingTree && !DisplayModeLocked && index >= 0 && index < _displayMode.ItemCount)
+        {
+            SelectedDisplayMode = (RoomDisplayMode)_displayMode.GetItemId((int)index);
+            if (_gameData != null) SettingsManager.SaveRoomDisplayMode(SelectedDisplayMode);
+        }
+        RenderDisplayMode();
+    }
+
+    private void RenderDisplayMode()
+    {
+        if (_displayMode == null || _displayMode.ItemCount == 0) return;
+        _displayMode.SetItemText(0, L10n.Tr("Rooms_DisplayFullScreen"));
+        _displayMode.SetItemText(1, L10n.Tr("Rooms_DisplayHalfScreen"));
+        _displayMode.Select(_displayMode.GetItemIndex((int)SelectedDisplayMode));
+        _displayMode.Disabled = DisplayModeLocked;
+        _displayLocked.Visible = DisplayModeLocked;
+        _displayLocked.Text = L10n.Tr(_client?.JoinedCode.Length > 0 || _client?.IsLocalArrival == true
+            || Reconnect?.IsPending == true ? "Rooms_DisplayLocked" : "Rooms_DisplayBusy");
+        _displayDescription.Text = L10n.Tr(SelectedDisplayMode == RoomDisplayMode.FullScreenFree
+            ? "Rooms_DisplayFullScreenHint" : "Rooms_DisplayHalfScreenHint");
+        if (DisplayModeLocked) DisplayModePopup.Hide();
+    }
 
     private void JoinFromInput()
     {
@@ -769,6 +808,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
+        RenderDisplayMode();
         if (RenderConnectionWait()) return;
         RenderRoomReconnect();
         RenderArrival();

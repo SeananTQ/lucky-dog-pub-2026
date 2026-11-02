@@ -6,6 +6,10 @@ namespace LuckyDogRise.Rooms;
 
 public enum RoomPokerDisplay { Hidden, Row, Desktop }
 
+// Local pre-join preference. Separate from the actual poker renderer layout:
+// HalfScreenCompact currently maps to Row; desktop half-screen movement is a later phase.
+public enum RoomDisplayMode { FullScreenFree, HalfScreenCompact }
+
 // Local presentation only. No room mode, seat, membership or GPU auto-detection.
 public readonly record struct RoomPokerLayout(Vector2I Size, Vector2 Origin, Rect2 Row, float DogScale)
 {

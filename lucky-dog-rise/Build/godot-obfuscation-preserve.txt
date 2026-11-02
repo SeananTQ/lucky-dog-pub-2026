@@ -60,7 +60,6 @@ LuckyDogRise.Rooms.RoomDesktopPreview
 LuckyDogRise.Rooms.RoomDogView
 LuckyDogRise.Rooms.RoomChatView
 LuckyDogRise.Rooms.RoomGameProposalOverlay
-LuckyDogRise.Rooms.RoomPokerDisplayChoice
 LuckyDogRise.Rooms.RoomLab
 LuckyDogRise.Rooms.RoomNameBarLocalizationLab
 LuckyDogRise.Rooms.RoomListRow

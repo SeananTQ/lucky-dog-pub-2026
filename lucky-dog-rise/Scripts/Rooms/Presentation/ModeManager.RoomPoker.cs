@@ -20,10 +20,6 @@ public partial class ModeManager
     private long _roomPokerDragSession;
     private Vector2 _roomPokerDogDragStart;
     private Vector2 _roomPokerMouseDragStart;
-    private long _roomPokerChoiceSession = -1;
-    private Mode _roomPokerChoiceMode;
-    private long _roomPokerObservedSession = -1;
-    private bool _roomPokerJoinChoicePending;
     private RoomDesktopPreview.RemotePlacementSnapshot _roomPokerDesktopPositions;
     private Rect2I _roomPokerLastUsable;
     private Vector2I _roomPokerLastScreenSize;
@@ -37,76 +33,34 @@ public partial class ModeManager
 #endif
     }
 
-    private bool ChooseRoomPokerDisplay()
+    private bool TryPrepareRoomPokerEntry()
     {
-        if (CurrentMode != Mode.BossKey || _desktopRoomClient?.JoinedCode.Length is not > 0) return false;
-        if (UiInteractionOccupancy.IsOccupied(this)) return true;
-        ShowRoomPokerDisplayChoice();
+        if (CurrentMode != Mode.BossKey || _desktopRoomClient?.JoinedCode.Length is not > 0) return true;
+        if (UiInteractionOccupancy.IsOccupied(this)) return false;
+        ApplyRoomPokerDisplayPreference();
         return true;
     }
 
-    private void ShowRoomPokerDisplayChoice()
+    private void ApplyRoomPokerDisplayPreference()
     {
-        CancelWindowDrag();
-        _roomDesktop?.LocalChat.Reset();
-        PositionPanelInBestSlot();
-        var client = _desktopRoomClient;
-        long session = client.LayoutSession;
-        var sourceMode = CurrentMode;
-        int modeRevision = _modeSwitchRevision;
-        _roomPokerObservedSession = session;
-        _roomPokerJoinChoicePending = false;
-        _roomPokerChoiceSession = session;
-        _roomPokerChoiceMode = sourceMode;
-        _settingsPanel.ShowRoomPokerChoice(display =>
-        {
-            _roomPokerChoiceSession = -1;
-            if (!ReferenceEquals(client, _desktopRoomClient) || client.LayoutSession != session
-                || client.JoinedCode.Length == 0 || CurrentMode != sourceMode
-                || _modeSwitchRevision != modeRevision) return;
-            _roomPokerDisplay = display;
-            _roomPokerScreen = sourceMode == Mode.BossKey ? _roomScreen : DisplayServer.WindowGetCurrentScreen();
-            _roomPokerDogs?.Clear();
-            if (sourceMode == Mode.BossKey) EnterPlay();
-            else
-            {
-                // Joining a room must not re-enter poker or restart the current hand.
-                SetupRoomPokerWindow();
-                UpdatePlayLayout();
-                if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
-            }
-        });
+        _roomPokerDisplay = _settingsPanel.RoomDisplayPreference == RoomDisplayMode.HalfScreenCompact
+            ? RoomPokerDisplay.Row : RoomPokerDisplay.Desktop;
+        _roomPokerScreen = CurrentMode == Mode.BossKey ? _roomScreen : DisplayServer.WindowGetCurrentScreen();
+        _roomPokerDogs?.Clear();
     }
 
-    private void UpdateRoomPokerChoice(bool joined)
+    private void UpdateRoomPokerDisplayPreference(bool joined)
     {
-        long session = _desktopRoomClient.LayoutSession;
-        if (_roomPokerChoiceSession >= 0 && (!joined || _roomPokerChoiceSession != session
-                || CurrentMode != _roomPokerChoiceMode))
-        {
-            _settingsPanel.DismissRoomPokerChoice();
-            _roomPokerChoiceSession = -1;
-        }
-        if (!joined)
-        {
-            _roomPokerObservedSession = -1;
-            _roomPokerJoinChoicePending = false;
-            return;
-        }
-        if (_roomPokerObservedSession != session)
-        {
-            _roomPokerObservedSession = session;
-            // Observe joins in both modes, so an existing desktop room is not
-            // mistaken for a new join on the following mode-switch frame.
-            _roomPokerJoinChoicePending = CurrentMode == Mode.Play
-                && _roomPokerDisplay == RoomPokerDisplay.Hidden;
-        }
-        if (CurrentMode != Mode.Play) _roomPokerJoinChoicePending = false;
-        if (!_roomPokerJoinChoicePending || _desktopRoomClient.View == null
-            || _startupState != StartupState.Interactive || _hiddenByFullscreenApp
-            || UiInteractionOccupancy.IsOccupied(this)) return;
-        // Mark offered before opening: cancel/closing the panel must not reopen it every frame.
-        ShowRoomPokerDisplayChoice();
+        // Joining while a hand is in progress only updates the presentation. Wait
+        // for overlays to finish; never re-enter poker or reset cards to apply it.
+        if (!joined || CurrentMode != Mode.Play || _roomPokerDisplay != RoomPokerDisplay.Hidden
+            || _desktopRoomClient.View == null || _startupState != StartupState.Interactive
+            || _hiddenByFullscreenApp || UiInteractionOccupancy.IsOccupied(this)) return;
+        CancelWindowDrag();
+        ApplyRoomPokerDisplayPreference();
+        SetupRoomPokerWindow();
+        UpdatePlayLayout();
+        if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
     }
 
     // Called in the ordinary poker setup path, including UI-scale changes.

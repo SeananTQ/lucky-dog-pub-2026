@@ -49,6 +49,11 @@ internal static class RoomReconnectPageChecks
 
         test.Disconnect();
         await test.Frame();
+        var display = test.Page.GetNode<OptionButton>("Lobby/Display/Mode");
+        var displayBefore = test.Page.SelectedDisplayMode;
+        display.EmitSignal(OptionButton.SignalName.ItemSelected, displayBefore == RoomDisplayMode.FullScreenFree ? 1L : 0L);
+        Check(display.Disabled && test.Page.SelectedDisplayMode == displayBefore,
+            "lost client during reconnect cannot unlock or change the display preference");
         Check(test.Page.CurrentClient == null && original.View == null && test.Context.IsPending,
             "detaching an offline service clears old membership without cancelling recovery intent");
         foreach (string language in new[] { "zh_CN", "en" })

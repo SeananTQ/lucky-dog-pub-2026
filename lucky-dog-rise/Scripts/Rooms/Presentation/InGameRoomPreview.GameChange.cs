@@ -95,7 +95,7 @@ public partial class InGameRoomPreview
     }
 
     public void CloseRoomDropdowns()
-    { CloseAccessChoices(); CloseGameChoices(); }
+    { CloseAccessChoices(); CloseGameChoices(); DisplayModePopup?.Hide(); }
 
     private void RenderGameControls()
     {

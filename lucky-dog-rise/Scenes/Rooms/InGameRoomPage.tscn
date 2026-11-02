@@ -10,7 +10,7 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -27,6 +27,9 @@ _code = NodePath("Room/CodeRow/Code")
 _codeVisibility = NodePath("Room/CodeRow/Visibility")
 _invite = NodePath("Room/Invite")
 _access = NodePath("Room/Access/Current")
+_displayMode = NodePath("Lobby/Display/Mode")
+_displayDescription = NodePath("Lobby/Display/Description")
+_displayLocked = NodePath("Lobby/Display/Locked")
 _status = NodePath("Status")
 _empty = NodePath("Lobby/Empty")
 _connection = NodePath("Notice")
@@ -104,23 +107,34 @@ text = "Rooms_Leave"
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="HBoxContainer" parent="Lobby"]
+[node name="Display" type="VBoxContainer" parent="Lobby"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-
-[node name="Title" type="Label" parent="Lobby/Header"]
+[node name="Title" type="Label" parent="Lobby/Display"]
 layout_mode = 2
-text = "Rooms_Title"
+text = "Rooms_DisplayTitle"
 autowrap_mode = 3
-size_flags_horizontal = 3
 label_settings = ExtResource("group_title")
 
-[node name="Refresh" type="Button" parent="Lobby/Header"]
+[node name="Mode" type="OptionButton" parent="Lobby/Display"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_type_variation = &"CapsuleButton"
-text = "Rooms_Refresh"
+size_flags_horizontal = 3
+fit_to_longest_item = false
+auto_translate_mode = 2
 
+[node name="Description" type="Label" parent="Lobby/Display"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+label_settings = ExtResource("helper_label")
+
+[node name="Locked" type="Label" parent="Lobby/Display"]
+visible = false
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+label_settings = ExtResource("helper_label")
 
 [node name="CreateRow" type="VBoxContainer" parent="Lobby"]
 layout_mode = 2
@@ -174,6 +188,24 @@ autowrap_mode = 3
 
 [node name="Divider" type="HSeparator" parent="Lobby"]
 layout_mode = 2
+
+
+[node name="Header" type="HBoxContainer" parent="Lobby"]
+layout_mode = 2
+
+
+[node name="Title" type="Label" parent="Lobby/Header"]
+layout_mode = 2
+text = "Rooms_DirectoryTitle"
+autowrap_mode = 3
+size_flags_horizontal = 3
+label_settings = ExtResource("group_title")
+
+[node name="Refresh" type="Button" parent="Lobby/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_type_variation = &"CapsuleButton"
+text = "Rooms_Refresh"
 
 
 [node name="Empty" type="Label" parent="Lobby"]

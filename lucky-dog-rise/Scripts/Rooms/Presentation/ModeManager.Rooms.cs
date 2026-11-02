@@ -28,13 +28,10 @@ public partial class ModeManager
         var notice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn").Instantiate<CanvasLayer>();
         var proposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
             .Instantiate<RoomGameProposalOverlay>();
-        var pokerChoice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomPokerDisplayChoice.tscn")
-            .Instantiate<RoomPokerDisplayChoice>();
         AddChild(row);
         AddChild(desktop);
         AddChild(notice);
         AddChild(proposal);
-        AddChild(pokerChoice);
         try
         {
             row.Hide();
@@ -55,8 +52,6 @@ public partial class ModeManager
                 new[] { new RoomGameVote(1, 1, RoomGameVoteState.Accepted), new RoomGameVote(2, 2, RoomGameVoteState.Pending) }) },
                 client.Id, 60, false, false, "");
             proposal.Hide();
-            pokerChoice.Present(_ => { });
-            pokerChoice.Dismiss();
             GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice, game proposal and remote dog bindings passed.");
         }
         finally
@@ -65,7 +60,6 @@ public partial class ModeManager
             row.Free();
             notice.Free();
             proposal.Free();
-            pokerChoice.Free();
         }
     }
 
@@ -135,10 +129,6 @@ public partial class ModeManager
     private void AttachRoomDesktopPreview(RoomClient client)
     {
         if (ReferenceEquals(_desktopRoomClient, client)) return;
-        _settingsPanel.DismissRoomPokerChoice();
-        _roomPokerChoiceSession = -1;
-        _roomPokerObservedSession = -1;
-        _roomPokerJoinChoicePending = false;
         StopRoomPokerPresentation(restoreWindow: CurrentMode == Mode.Play);
         _roomPokerDesktopPositions = null;
         if (IsInstanceValid(_roomPokerDogs) && _roomPokerDogs.IsInsideTree()) _roomPokerDogs.Clear();
@@ -168,7 +158,7 @@ public partial class ModeManager
     {
         if (_desktopRoomClient == null) return;
         bool joined = _desktopRoomClient.JoinedCode.Length > 0;
-        UpdateRoomPokerChoice(joined);
+        UpdateRoomPokerDisplayPreference(joined);
         if (CurrentMode == Mode.Play)
         {
             RestoreRoomDesktopWindow();
