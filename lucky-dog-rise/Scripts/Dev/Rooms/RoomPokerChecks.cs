@@ -74,7 +74,7 @@ internal static class RoomPokerChecks
         if (welcome.Visible) Click(welcome.GetNode<Button>("InputShield/Center/Panel/Margin/Content/Confirm"));
         await Wait();
         var compact = main.RoomPokerDogsForSmoke;
-        Check(compact.RemoteDogs.Count == 5 && compact.Visible && !compact.LocalChat.Visible, "compact host shows all five remote dogs");
+        Check(compact.RemoteDogs.Count == 5 && compact.Visible && !compact.LocalChat.HasBubble, "compact host shows all five remote dogs without an empty chat bubble");
         Check(!HeadClipped(compact.RemoteDogs.First(d => d.MemberId == guest.Id).Dog), "compact poker preserves detached dog chin");
         Check(HeadClipped(game.GetNode<DogVisual>("DogArea")), "player's poker dog retains table clipping");
         var table = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
@@ -84,6 +84,7 @@ internal static class RoomPokerChecks
             "compact poker retains the desktop half-screen host and room session");
         await CheckAvatarCanvasIsolation(main, page, compact, Wait, Capture, "compact");
         await CheckPokerForeground(main, compact, game, Wait, Capture, "compact");
+        await CheckPokerChat(main, page, compact, game, Wait, Capture, "compact");
         await CheckCompactMovement(main, compact, client, panel, Wait);
         await Capture("compact-free");
         var watched = compact.RemoteDogs.First(d => d.MemberId == host.Id);
@@ -121,6 +122,7 @@ internal static class RoomPokerChecks
         var poker = main.RoomPokerDogsForSmoke;
         await CheckAvatarCanvasIsolation(main, page, poker, Wait, Capture, "full");
         await CheckPokerForeground(main, poker, game, Wait, Capture, "full");
+        await CheckPokerChat(main, page, poker, game, Wait, Capture, "full");
         var dogView = poker.RemoteDogs.First(d => d.MemberId == host.Id);
         var oldDog = dogView.Position;
         int screenIndex = DisplayServer.WindowGetCurrentScreen();
@@ -337,6 +339,106 @@ internal static class RoomPokerChecks
         panel.CloseImmediate();
         main.RoomModeForSmoke(false);
         await Wait(.8);
+    }
+
+    private static async Task CheckPokerChat(ModeManager main, InGameRoomPreview page, RoomDesktopPreview preview,
+        GameManager game, Func<double, Task> wait, Func<string, Task> capture, string mode)
+    {
+        var client = page.PreviewClient;
+        var peer = page.MockClientForSmoke(2);
+        var chat = preview.LocalChat;
+        var input = chat.GetNode<LineEdit>("Composer/Content/Input");
+        var send = chat.GetNode<Button>("Composer/Content/Actions/Send");
+        var bar = game.GetNode<PokerQuickBarController>("PokerQuickBar");
+        var entry = bar.GetNode<Button>("Clip/Bar/Buttons/Chat");
+        var table = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
+        Check(entry.Visible && !entry.Disabled && entry.Icon != null && !chat.HoverEntryEnabled,
+            mode + " joined social room exposes only the toolbar chat entry");
+        foreach (string locale in new[] { "en", "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT",
+            "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk" })
+        {
+            L10n.SetLocale(locale, save: false); await wait(.05);
+            Check(bar.GetNode<Control>("Clip/Bar").Size.X <= 1200
+                && entry.Size.Y >= 48 && entry.GetGlobalRect().End.X <= 1200
+                && entry.TooltipText == InGameRoomPreview.ChatText("Rooms_ChatOpen"),
+                mode + " chat entry fits and localizes: " + locale, quiet: true);
+        }
+        L10n.SetLocale("zh_CN", save: false); await wait(.1);
+        bar.RevealAfterWelcome(); await wait(.25); await capture(mode + "-chat-toolbar");
+        game.RequestPokerWelcome(true); await wait(.1);
+        bar.RevealAfterWelcome(); await wait(.2);
+        var entryPoint = table.GetGlobalTransformWithCanvas() * entry.GetGlobalRect().GetCenter();
+        main.GetViewport().WarpMouse(entryPoint);
+        main.GetViewport().PushInput(new InputEventMouseMotion { Position = entryPoint, GlobalPosition = entryPoint }, true);
+        await wait(.1);
+        main.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Left, Pressed = true, Position = entryPoint, GlobalPosition = entryPoint }, true);
+        await wait(.1);
+        main.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Left, Pressed = false, Position = entryPoint, GlobalPosition = entryPoint }, true);
+        await wait(.1);
+        Check(!game.IsPokerWelcomeVisible && chat.Editing && input.HasFocus() && !bar.IsExpanded,
+            mode + $" toolbar chat acknowledges welcome, collapses and focuses the composer (welcome={game.IsPokerWelcomeVisible}, editing={chat.Editing}, focus={input.HasFocus()}, bar={bar.IsExpanded}, disabled={entry.Disabled})");
+        Check(main.RoomHitTestForSmoke(DisplayServer.WindowGetPosition() + (Vector2I)chat.ComposerRectForSmoke.GetCenter())
+            && new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()).Encloses(chat.ComposerRectForSmoke),
+            mode + " composer fits the host and participates in transparent hit testing");
+        input.Text = "扑克里打个招呼";
+        await capture(mode + "-chat-composer");
+        var oldOrigin = table.Position;
+        var point = chat.ComposerRectForSmoke.Position + new Vector2(18, 18);
+        main.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Left, Pressed = true, Position = point, GlobalPosition = point }, true);
+        main.GetViewport().PushInput(new InputEventMouseMotion
+            { ButtonMask = MouseButtonMask.Left, Position = point + new Vector2(30, 0), GlobalPosition = point + new Vector2(30, 0) }, true);
+        main.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Left, Pressed = false, Position = point + new Vector2(30, 0), GlobalPosition = point + new Vector2(30, 0) }, true);
+        await wait(.1);
+        Check(table.Position.IsEqualApprox(oldOrigin) && chat.Editing, mode + " text selection never drags the poker table");
+        input.Text = "扑克里打个招呼"; send.EmitSignal(BaseButton.SignalName.Pressed);
+        page.AdvancePreview(.1); await wait(.1);
+        Check(!chat.Editing && client.Bubbles[client.Id].Text == "扑克里打个招呼"
+            && peer.Bubbles[client.Id].Text == "扑克里打个招呼" && chat.HasBubble,
+            mode + " poker sends through the shared room channel and displays its own bubble");
+        entry.EmitSignal(BaseButton.SignalName.Pressed); input.Text = "too fast";
+        send.EmitSignal(BaseButton.SignalName.Pressed); await wait(.05);
+        Check(chat.Editing && chat.ErrorForSmoke.Length > 0 && input.Text == "too fast",
+            mode + " rate limiting retains the draft and reports a bubble error");
+        input.Text = "pause this draft";
+        using (UiInteractionOccupancy.Track(main, () => true))
+        {
+            await wait(.1);
+            send.EmitSignal(BaseButton.SignalName.Pressed);
+            input.EmitSignal(LineEdit.SignalName.TextSubmitted, input.Text);
+            entry.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(!chat.Editing && !chat.HasBubble && entry.Disabled && input.Text == "pause this draft",
+                mode + " modal occupancy suspends chat and rejects stale button and Enter events");
+            page.AdvancePreview(RoomRules.ChatLifetime + .2); await wait(.1);
+        }
+        await wait(.1);
+        Check(!chat.Editing && !chat.HasBubble && !entry.Disabled, mode + " expired chat does not replay after an overlay");
+        async Task ChangeGame(string id)
+        {
+            Check(peer.ProposeGameChange(id) == "ok", "chat test proposal");
+            page.AdvancePreview(.1);
+            var proposal = peer.View.GameChange.Id;
+            client.RespondGameChange(proposal, true);
+            foreach (int member in new[] { 3, 4, 5, 6 }) page.MockClientForSmoke(member).RespondGameChange(proposal, true);
+            page.AdvancePreview(.1);
+            Check(peer.ConfirmGameChange(proposal) == "ok", "chat test confirmation");
+            page.AdvancePreview(.1); await wait(.15);
+            main.SettingsPanelObj.CloseImmediate();
+        }
+        entry.EmitSignal(BaseButton.SignalName.Pressed); await wait(.1);
+        await ChangeGame("work");
+        send.EmitSignal(BaseButton.SignalName.Pressed); entry.EmitSignal(BaseButton.SignalName.Pressed);
+        Check(entry.Visible && entry.Disabled && !chat.Editing && input.Text == "pause this draft" && client.Bubbles.Count == 0,
+            mode + " work mode blocks toolbar and stale sends while preserving the draft");
+        await ChangeGame("social");
+        entry.EmitSignal(BaseButton.SignalName.Pressed); await wait(.1);
+        Check(chat.Editing && input.Text == "pause this draft", mode + " social mode restores manual entry without auto-send");
+        main.GetViewport().PushInput(new InputEventKey { Keycode = Key.Escape, Pressed = true }, true);
+        await wait(.1);
+        Check(!chat.Editing && input.Text == "pause this draft", mode + " Escape closes the composer and retains the draft");
     }
 
     private static async Task CheckAvatarCanvasIsolation(ModeManager main, InGameRoomPreview page, RoomDesktopPreview preview,

@@ -1151,6 +1151,9 @@ public partial class ModeManager : Control
             _gameManager.PokerWelcomeConfirmed += OnPokerWelcomeConfirmed;
             _gameManager.PokerWelcomeVisibilityChanged += OnPokerHandShowcaseVisibilityChanged;
             _gameManager.PokerQuickBarFunctionActivated += OnPokerQuickBarFunctionActivated;
+#if !DEMO_BUILD && !RECORDING_BUILD
+            _gameManager.RoomChatRequested += OpenRoomPokerChat;
+#endif
             _gameManager.SetPokerQuickBarUsed(_pokerQuickBarProgress.HasUsedFunction);
             _infoPanel.SetOddsTableGuideVisible(_gameManager.IsTutorialOverlayVisible);
 
@@ -1283,6 +1286,9 @@ public partial class ModeManager : Control
             _gameManager.PokerWelcomeConfirmed -= OnPokerWelcomeConfirmed;
             _gameManager.PokerWelcomeVisibilityChanged -= OnPokerHandShowcaseVisibilityChanged;
             _gameManager.PokerQuickBarFunctionActivated -= OnPokerQuickBarFunctionActivated;
+#if !DEMO_BUILD && !RECORDING_BUILD
+            _gameManager.RoomChatRequested -= OpenRoomPokerChat;
+#endif
         }
         SettingsManager.PokerFrameRateChanged -= OnPokerFrameRateChanged;
         SettingsManager.AutoHideCounterChanged -= OnAutoHideCounterChanged;
@@ -3113,6 +3119,7 @@ public partial class ModeManager : Control
         {
 #if !DEMO_BUILD && !RECORDING_BUILD
             over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.HitTest(localPos) != 0;
+            over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.LocalChat.ContainsPoint(localPos);
 #endif
             if (_playViewport != null)
             {
@@ -4197,6 +4204,17 @@ public partial class ModeManager : Control
     {
         if (!_startupInitialized || _startupState < StartupState.IntroPlaying)
             return;
+
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (CurrentMode == Mode.Play && @event is InputEventMouse mouse
+            && _roomPokerDogs?.LocalChat.ContainsPoint(mouse.Position) == true)
+        {
+            // Leave text selection, buttons and right clicks to the composer,
+            // even when it overlaps the table or another dog. Do not arm dragging.
+            CancelWindowDrag();
+            return;
+        }
+#endif
 
         if (BuildInfo.IsRecording && @event is InputEventKey
             { Pressed: true, Echo: false, Keycode: Key.F4 })

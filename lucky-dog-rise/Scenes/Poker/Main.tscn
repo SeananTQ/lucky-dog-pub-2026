@@ -42,10 +42,11 @@ corner_radius_top_right = 20
 corner_radius_bottom_right = 20
 corner_radius_bottom_left = 20
 
-[node name="Main" type="Node2D" unique_id=317845186 node_paths=PackedStringArray("_pokerHandShowcase", "_quickBar", "_pokerWelcome", "_drawTip", "_helpBarTip")]
+[node name="Main" type="Node2D" unique_id=317845186 node_paths=PackedStringArray("_pokerHandShowcase", "_quickBar", "_roomChatAnchor", "_pokerWelcome", "_drawTip", "_helpBarTip")]
 script = ExtResource("3_gm")
 _pokerHandShowcase = NodePath("PokerHandShowcase")
 _quickBar = NodePath("PokerQuickBar")
+_roomChatAnchor = NodePath("DogArea/ChatAnchor")
 _pokerWelcome = NodePath("PokerWelcomeDialog")
 _drawTip = NodePath("PersistentTips/DrawTip")
 _helpBarTip = NodePath("PersistentTips/HelpBarTip")
@@ -72,6 +73,9 @@ script = ExtResource("12_cardtable")
 
 [node name="DogArea" parent="." unique_id=23233845 instance=ExtResource("4_dog_scene")]
 position = Vector2(600, 677)
+
+[node name="ChatAnchor" type="Marker2D" parent="DogArea"]
+position = Vector2(-196, -440)
 
 [node name="HandArea" parent="." unique_id=1291786097 instance=ExtResource("8_hand_scene")]
 z_index = 5

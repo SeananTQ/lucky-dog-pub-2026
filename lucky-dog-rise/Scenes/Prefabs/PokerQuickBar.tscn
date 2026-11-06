@@ -6,7 +6,7 @@
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/ToolbarIcon_Tutorial.svg" id="4_tutorial"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/ToolbarIcon_DesktopPet.svg" id="5_desktop"]
 
-[node name="PokerQuickBar" type="CanvasLayer" unique_id=1611484449 node_paths=PackedStringArray("_hotZone", "_clip", "_bar", "_helpButton", "_tutorialButton", "_desktopButton")]
+[node name="PokerQuickBar" type="CanvasLayer" unique_id=1611484449 node_paths=PackedStringArray("_hotZone", "_clip", "_bar", "_helpButton", "_tutorialButton", "_desktopButton", "_chatButton")]
 layer = 17
 script = ExtResource("1_script")
 _hotZone = NodePath("HotZone")
@@ -15,6 +15,7 @@ _bar = NodePath("Clip/Bar")
 _helpButton = NodePath("Clip/Bar/Buttons/Help")
 _tutorialButton = NodePath("Clip/Bar/Buttons/Tutorial")
 _desktopButton = NodePath("Clip/Bar/Buttons/DesktopPet")
+_chatButton = NodePath("Clip/Bar/Buttons/Chat")
 
 [node name="HotZone" type="Control" parent="."]
 offset_right = 1200.0
@@ -52,6 +53,15 @@ size_flags_vertical = 4
 theme_type_variation = &"PokerToolbarButton"
 text = "Controls"
 icon = ExtResource("4_tutorial")
+
+[node name="Chat" type="Button" parent="Clip/Bar/Buttons"]
+visible = false
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"PokerToolbarButton"
+focus_mode = 0
+theme_override_constants/icon_max_width = 40
 
 [node name="Spacer" type="Control" parent="Clip/Bar/Buttons"]
 layout_mode = 2

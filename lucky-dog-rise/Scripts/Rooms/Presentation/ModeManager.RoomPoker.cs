@@ -25,6 +25,34 @@ public partial class ModeManager
     private bool _roomResumeDesktop;
     private Rect2I _roomPokerLastUsable;
     private Vector2I _roomPokerLastScreenSize;
+    private Texture2D _roomPokerChatIcon;
+
+    private bool RoomPokerChatBaseAllowed => CurrentMode == Mode.Play && _roomPokerWindowActive
+        && !_hiddenByFullscreenApp && _desktopRoomClient?.JoinedCode.Length is > 0
+        && !_blindBoxOpeningUiActive && _gameData?.PendingBlindBoxReward == null;
+    private bool RoomPokerChatInteractionAllowed => RoomPokerChatBaseAllowed
+        && _desktopRoomClient?.ChatAllowed == true && !UiInteractionOccupancy.IsOccupied(this)
+        && !_potentialDrag && !_isDragging;
+
+    private void RefreshRoomPokerChatEntry()
+    {
+        if (_gameManager == null) return;
+        bool visible = CurrentMode == Mode.Play && _desktopRoomClient?.JoinedCode.Length is > 0;
+        if (visible) _roomPokerChatIcon ??= GD.Load<Texture2D>("res://Assets/UI/Icon/Icon_RoomChat.svg");
+        _gameManager.SetRoomChatEntry(visible, RoomPokerChatBaseAllowed
+            && _desktopRoomClient?.ChatAllowed == true && _gameManager.CanUseRoomChatShortcut,
+            _roomPokerChatIcon, InGameRoomPreview.ChatText(_desktopRoomClient?.ChatAllowed == true
+                ? "Rooms_ChatOpen" : "Rooms_ChatDisabled"));
+    }
+
+    private void OpenRoomPokerChat()
+    {
+        if (!RoomPokerChatInteractionAllowed || _roomPokerDogs == null) return;
+        // Refresh the anchor and local/client context before a click queued on
+        // the same frame as entry or welcome dismissal opens the composer.
+        UpdateRoomPokerPreview(joined: true);
+        _roomPokerDogs.LocalChat.OpenChat();
+    }
 
     private int GetRoomPokerAccessoryHeight()
     {
@@ -158,7 +186,11 @@ public partial class ModeManager
                 .Instantiate<RoomDesktopPreview>();
             _roomPokerDogs.Name = "RoomPokerDogs";
             AddChild(_roomPokerDogs);
+            _roomPokerDogs.LocalChat.HoverEntryEnabled = false;
+            _roomPokerDogs.LocalChat.InteractionAllowed = () => RoomPokerChatInteractionAllowed;
+            _roomPokerDogs.LocalChat.Opened += () => { CancelWindowDrag(); _settingsPanel.CloseImmediate(); };
         }
+        RefreshRoomPokerChatEntry();
         float scale = _desktopPetScaleFactor;
         _roomPokerDogs.Visible = !_hiddenByFullscreenApp && scale > 0;
         if (!_roomPokerDogs.Visible) return;
@@ -170,6 +202,10 @@ public partial class ModeManager
             _roomDesktopHostPosition - DisplayServer.WindowGetPosition(),
             new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())),
             RoomSnapEnabled, RoomTaskbarAnchorOffsetY, foreground: !UiInteractionOccupancy.IsOccupied(this, _settingsPanel));
+        var chat = _roomPokerDogs.LocalChat;
+        chat.Position = _playViewport.GetGlobalTransformWithCanvas() * _gameManager.RoomChatAnchorPosition;
+        chat.Scale = Vector2.One * _roomPokerRenderScale;
+        chat.SetDisplaySuppressed(!RoomPokerChatBaseAllowed || UiInteractionOccupancy.IsOccupied(this));
         if (_roomPokerEntryPositions != null && _desktopRoomClient.View != null)
         {
             _roomPokerDogs.RestoreRemotePlacements(_roomPokerEntryPositions, RoomPokerHost.Position,
@@ -199,6 +235,7 @@ public partial class ModeManager
         _roomPokerDisplay = RoomPokerDisplay.Hidden;
         _roomPokerEntryPositions = null;
         _roomPokerDragMember = 0;
+        RefreshRoomPokerChatEntry();
         if (!wasActive || !restoreWindow || !rendererAlive) return;
         var anchor = DisplayServer.WindowGetPosition() + RoundToVector2I(_playViewport.Position);
         CancelWindowDrag();

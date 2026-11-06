@@ -158,7 +158,7 @@ public partial class RoomDesktopPreview : Node2D
         if (_remoteLayer.Layer != layer) _remoteLayer.Layer = layer;
         var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
             ?? Array.Empty<RoomMember>();
-        Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled, showLocalChat: false);
+        Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled);
         foreach (var member in fresh)
         {
             if (member.Id == client.Id || !_placements.TryGetValue(member.Id, out var placement)) continue;

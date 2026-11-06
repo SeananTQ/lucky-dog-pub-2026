@@ -123,6 +123,7 @@ public partial class ModeManager
         if (!_settingsPanel.TryShowPendingRoomGameProposal()) return;
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
         _roomDesktop?.LocalChat.RefreshInteractionAvailability();
+        _roomPokerDogs?.LocalChat.RefreshInteractionAvailability();
     }
 #if DEBUG
     private bool? _roomSnapEnabledForSmoke;

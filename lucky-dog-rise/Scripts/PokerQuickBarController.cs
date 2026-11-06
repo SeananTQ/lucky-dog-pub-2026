@@ -8,6 +8,7 @@ public partial class PokerQuickBarController : CanvasLayer
     [Signal] public delegate void HelpRequestedEventHandler();
     [Signal] public delegate void TutorialRequestedEventHandler();
     [Signal] public delegate void DesktopRequestedEventHandler();
+    [Signal] public delegate void ChatRequestedEventHandler();
     [Signal] public delegate void InterfaceActivityEventHandler();
     [Signal] public delegate void FunctionActivatedEventHandler();
     [Signal] public delegate void IdleReminderStartedEventHandler();
@@ -18,6 +19,7 @@ public partial class PokerQuickBarController : CanvasLayer
     [Export] private Button _helpButton = null!;
     [Export] private Button _tutorialButton = null!;
     [Export] private Button _desktopButton = null!;
+    [Export] private Button _chatButton = null!;
 
     private const double HideDelaySeconds = 0.5;
     private const double WelcomeRevealSeconds = 5.0;
@@ -47,7 +49,12 @@ public partial class PokerQuickBarController : CanvasLayer
         _helpButton.Pressed += () => Activate(SignalName.HelpRequested);
         _tutorialButton.Pressed += () => Activate(SignalName.TutorialRequested);
         _desktopButton.Pressed += () => Activate(SignalName.DesktopRequested);
-        foreach (var control in new Control[] { _hotZone, _bar, _helpButton, _tutorialButton, _desktopButton })
+        _chatButton.Pressed += () =>
+        {
+            if (_available && _chatButton.Visible && !_chatButton.Disabled)
+                Activate(SignalName.ChatRequested);
+        };
+        foreach (var control in new Control[] { _hotZone, _bar, _helpButton, _tutorialButton, _desktopButton, _chatButton })
             control.GuiInput += OnGuiInput;
         L10n.Changed += RefreshText;
         RefreshText();
@@ -67,6 +74,16 @@ public partial class PokerQuickBarController : CanvasLayer
         _hasUsedFunction = used;
         ClearIdleReminder();
         RefreshHotZoneHeight();
+    }
+
+    // The room presenter supplies the localized tooltip and icon. Solo/Demo
+    // scenes retain no dependency on room resources and keep this slot hidden.
+    public void SetChatEntry(bool visible, bool enabled, Texture2D icon, string tooltip)
+    {
+        _chatButton.Visible = visible;
+        _chatButton.Disabled = !enabled;
+        _chatButton.Icon = icon;
+        _chatButton.TooltipText = tooltip;
     }
 
     public void SetReminderContext(bool active)

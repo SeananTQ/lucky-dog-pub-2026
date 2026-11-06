@@ -26,6 +26,7 @@ public partial class GameManager : Node2D
     [Signal] public delegate void DesktopModeRequestedEventHandler();
     [Signal] public delegate void PokerWelcomeConfirmedEventHandler();
     [Signal] public delegate void PokerQuickBarFunctionActivatedEventHandler();
+    [Signal] public delegate void RoomChatRequestedEventHandler();
 
     public bool IsPokerWelcomeVisible => _pokerWelcome?.IsOverlayVisible == true;
     public event Action<bool> PokerWelcomeVisibilityChanged;
@@ -79,6 +80,7 @@ public partial class GameManager : Node2D
     private BlindBoxRevealOverlayController _blindBoxOverlay = null!;
     [Export] private PokerHandShowcaseController _pokerHandShowcase = null!;
     [Export] private PokerQuickBarController _quickBar = null!;
+    [Export] private Marker2D _roomChatAnchor = null!;
     [Export] private PokerWelcomeDialogController _pokerWelcome = null!;
     [Export] private PersistentTipController _drawTip = null!;
     [Export] private PersistentTipController _helpBarTip = null!;
@@ -165,6 +167,7 @@ public partial class GameManager : Node2D
         _quickBar.HelpRequested += OnQuickBarHelpRequested;
         _quickBar.TutorialRequested += OnQuickBarTutorialRequested;
         _quickBar.DesktopRequested += OnQuickBarDesktopRequested;
+        _quickBar.ChatRequested += OnQuickBarChatRequested;
         _quickBar.InterfaceActivity += OnQuickBarInterfaceActivity;
         _drawTip.InterfaceActivity += OnQuickBarInterfaceActivity;
         _helpBarTip.InterfaceActivity += OnQuickBarInterfaceActivity;
@@ -208,6 +211,7 @@ public partial class GameManager : Node2D
             _quickBar.HelpRequested -= OnQuickBarHelpRequested;
             _quickBar.TutorialRequested -= OnQuickBarTutorialRequested;
             _quickBar.DesktopRequested -= OnQuickBarDesktopRequested;
+            _quickBar.ChatRequested -= OnQuickBarChatRequested;
             _quickBar.InterfaceActivity -= OnQuickBarInterfaceActivity;
             _quickBar.IdleReminderStarted -= OnQuickBarIdleReminderStarted;
             _quickBar.FunctionActivated -= OnQuickBarFunctionActivated;
@@ -274,6 +278,12 @@ public partial class GameManager : Node2D
 
     public bool IsPointOverQuickBar(Vector2 viewportPosition) => _quickBar?.ContainsPoint(viewportPosition) == true;
 
+    public Vector2 RoomChatAnchorPosition => _roomChatAnchor.GlobalPosition;
+    // Welcome is acknowledged by FunctionActivated before the requested action.
+    public bool CanUseRoomChatShortcut => !UiInteractionOccupancy.IsOccupied(this, _pokerWelcome);
+    public void SetRoomChatEntry(bool visible, bool enabled, Texture2D icon, string tooltip) =>
+        _quickBar.SetChatEntry(visible, enabled, icon, tooltip);
+
     public void SetPokerQuickBarUsed(bool used)
     {
         _quickBar.SetHasUsedFunction(used);
@@ -321,6 +331,7 @@ public partial class GameManager : Node2D
     private void OnQuickBarHelpRequested() => _pokerHandShowcase.ShowBasics();
     private void OnQuickBarTutorialRequested() => _tutorial.ShowOnce();
     private void OnQuickBarDesktopRequested() => EmitSignal(SignalName.DesktopModeRequested);
+    private void OnQuickBarChatRequested() => EmitSignal(SignalName.RoomChatRequested);
 
     public void RequestPokerWelcome(bool required)
     {

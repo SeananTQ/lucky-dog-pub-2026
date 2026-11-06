@@ -4,7 +4,7 @@ using Godot;
 
 namespace LuckyDogRise.Rooms;
 
-// Shared by the isolated lab and the real desktop. No player state or transport ownership.
+// Shared by the lab, desktop and poker. No player state or transport ownership.
 public partial class RoomChatView : Node2D
 {
     [Export] private PanelContainer _message = null!;
@@ -22,6 +22,7 @@ public partial class RoomChatView : Node2D
     // Evaluated at the input boundary as well as each frame: an overlay can start
     // after hover/rendering but before a queued click or Enter signal arrives.
     public Func<bool> InteractionAllowed { get; set; }
+    public bool HoverEntryEnabled { get; set; } = true;
     private bool CanInteract => !_displaySuppressed && _local && IsVisibleInTree() && (InteractionAllowed?.Invoke() ?? true);
     public bool Editing => _composer.Visible;
     public bool HasBubble => !_displaySuppressed && IsVisibleInTree() && (Editing || _messageText.Length > 0);
@@ -91,9 +92,9 @@ public partial class RoomChatView : Node2D
         if (_displaySuppressed) return;
         bool interactive = RefreshInteractionAvailability();
         _errorShakeRemaining = HasBubble ? Math.Max(0, _errorShakeRemaining - delta) : 0;
-        if (interactive && RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
+        if (HoverEntryEnabled && interactive && RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
         else _hoverGrace -= delta;
-        _open.Visible = interactive && !Editing && _hoverGrace > 0;
+        _open.Visible = HoverEntryEnabled && interactive && !Editing && _hoverGrace > 0;
         if (_open.Visible)
         {
             var inverse = GetGlobalTransformWithCanvas().AffineInverse();
