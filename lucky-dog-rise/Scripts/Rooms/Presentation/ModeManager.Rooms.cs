@@ -74,7 +74,7 @@ public partial class ModeManager
     private int _roomCompactScreen = -1;
     private Sprite2D[] _roomLocalFootprintSprites;
     private Vector2 _roomBlindBoxHintBasePosition;
-    private bool RoomCompactDesktop => _settingsPanel.RoomDisplayPreference == RoomDisplayMode.HalfScreenCompact;
+    private bool RoomUsesCompactHost => _settingsPanel.RoomDisplayPreference == RoomDisplayMode.HalfScreenCompact;
     private Rect2 RoomLocalFootprint => RoomDogView.MeasureFootprint(_roomLocalFootprintSprites,
         _bossStatusPanel, _bossDogVisual.GlobalPosition);
     private Vector2I _beforeRoomDogScreenPosition;
@@ -192,11 +192,15 @@ public partial class ModeManager
         if (!_roomWindowActive && !_bossKeyContent.Visible) return;
         if (!_roomWindowActive)
         {
-            _beforeRoomDogScreenPosition = DisplayServer.WindowGetPosition()
-                + RoundToVector2I(_bossDogVisual.GlobalPosition);
-            _beforeRoomTaskbarSnapped = _taskbarSnapped;
-            _roomScreen = FindScreenIndexAtPoint(_beforeRoomDogScreenPosition);
+            if (!_roomResumeDesktop || _roomDesktop == null)
+            {
+                _beforeRoomDogScreenPosition = DisplayServer.WindowGetPosition()
+                    + RoundToVector2I(_bossDogVisual.GlobalPosition);
+                _beforeRoomTaskbarSnapped = _taskbarSnapped;
+            }
+            _roomScreen = _roomResumeDesktop ? _roomPokerScreen : FindScreenIndexAtPoint(_beforeRoomDogScreenPosition);
             if (_roomScreen < 0) _roomScreen = DisplayServer.WindowGetCurrentScreen();
+            _roomResumeDesktop = false;
             CancelWindowDrag();
             _roomWindowActive = true;
             if (_roomDesktop == null)
@@ -340,15 +344,15 @@ public partial class ModeManager
             _roomCompactSession = _desktopRoomClient.LayoutSession;
             _roomCompactScreen = _roomScreen;
         }
-        var host = RoomDesktopGeometry.Host(screen, RoomCompactDesktop, _roomCompactHostX);
-        if (RoomCompactDesktop) _roomCompactHostX = host.Position.X;
+        var host = RoomDesktopGeometry.Host(screen, RoomUsesCompactHost, _roomCompactHostX);
+        if (RoomUsesCompactHost) _roomCompactHostX = host.Position.X;
         bool resized = _roomDesktopHost != host;
         _roomDesktopHost = host;
         _roomDesktopHostPosition = host.Position;
         var usable = DisplayServer.ScreenGetUsableRect(_roomScreen);
         // In extreme UI scales a panel may be wider than half a monitor. Fit only
         // this panel locally; never change saved UI scale or grow the host.
-        UpdateRoomPanelScale(RoomCompactDesktop ? host.Size.X - 10 : null);
+        UpdateRoomPanelScale(RoomUsesCompactHost ? host.Size.X - 10 : null);
         bool changed = force || resized || _roomLastLayoutSnapshot != _desktopRoomClient.View
             || _roomLastLayoutScale != _desktopPetScaleFactor || _roomLastWorkArea != usable;
         // An ordinary transparent window, never the OS fullscreen mode.
@@ -409,10 +413,12 @@ public partial class ModeManager
         if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
     }
 
-    private void UpdateRoomPanelScale(float? availableWidth)
+    private void UpdateRoomPanelScale(float? availableWidth, float? availableHeight = null)
     {
         float designWidth = _settingsPanel.PanelSize.X / _settingsPanel.RenderScale;
         float scale = availableWidth is { } width ? Mathf.Min(_otherUiScaleFactor, width / designWidth) : _otherUiScaleFactor;
+        if (availableHeight is { } height)
+            scale = Mathf.Min(scale, height / (_settingsPanel.PanelSize.Y / _settingsPanel.RenderScale));
         if (Mathf.IsEqualApprox(_settingsPanel.RenderScale, scale)) return;
         _settingsPanel.SetRenderScale(scale);
         _panelSize = _settingsPanel.PanelSize;
@@ -519,7 +525,7 @@ public partial class ModeManager
             var desired = _roomDragDogStart + delta;
             var host = _roomDesktopHost;
             bool pushingContact = false;
-            if (RoomCompactDesktop && _roomDragMember == _desktopRoomClient.Id)
+            if (RoomUsesCompactHost && _roomDragMember == _desktopRoomClient.Id)
             {
                 var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomScreen), DisplayServer.ScreenGetSize(_roomScreen));
                 host = RoomDesktopGeometry.Push(host, screen, desired, footprint);
@@ -527,10 +533,7 @@ public partial class ModeManager
                 // Window movement can produce another motion at the same screen
                 // position. Also keep feedback when sliding vertically along the
                 // pushing edge; only returning inside should start its fade.
-                pushingContact = (desired.X + footprint.Position.X <= host.Position.X + .5f
-                        && host.Position.X > screen.Position.X + 1)
-                    || (desired.X + footprint.End.X >= host.End.X - .5f
-                        && host.End.X < screen.End.X - 1);
+                pushingContact = RoomDesktopGeometry.PushingContact(host, screen, desired, footprint);
             }
             bool pushed = host.Position != _roomDesktopHost.Position;
             if (pushed) DisplayServer.WindowSetPosition(host.Position);

@@ -13,18 +13,17 @@ internal static class RoomPokerChecks
     public static void Layout()
     {
         RoomDesktopBoundsChecks.Geometry();
-        foreach (var screen in new[] { new Vector2I(1280, 680), new Vector2I(1920, 1040), new Vector2I(3840, 2080) })
+        foreach (var screen in new[] { new Vector2I(1280, 680), new Vector2I(1920, 1040), new Vector2I(3840, 2080), new Vector2I(1080, 1880) })
         foreach (float ui in new[] { .75f, 1f, 1.25f, 1.5f, 2f })
-        foreach (float dog in new[] { .5f, 1f, 2f, 3f, 4f })
+        foreach (bool compact in new[] { false, true })
         {
-            var spec = RoomPokerLayout.Calculate(screen, (int)(240 * ui), (int)(600 * ui), (int)(420 * ui), 80, dog);
-            if (spec.DogScale == 0) continue;
-            Check(spec.Row.End.Y <= spec.Origin.Y && spec.Size.Y <= screen.Y,
-                "row and poker fit vertically " + screen + "/" + ui + "/" + dog, quiet: true);
-            Check(spec.DogScale <= dog && spec.DogScale <= 1 && spec.Row.Size.X / 5 >= 200 * spec.DogScale,
-                "five dogs fit without raising desktop scale", quiet: true);
+            var available = new Vector2I(compact ? screen.X / 2 : screen.X, screen.Y);
+            float scale = RoomPokerLayout.FitScale(available, ui, 246, 600, 80);
+            Check(scale <= ui && scale > 0 && Mathf.CeilToInt(246 * scale) + Mathf.CeilToInt(600 * scale) + 10 <= available.X
+                && Mathf.CeilToInt(600 * scale) + 90 <= available.Y,
+                "entire poker content fits " + screen + "/" + ui + "/" + compact, quiet: true);
         }
-        GD.Print("[RoomPokerChecks] PASS layout matrix: 3 resolutions x 5 UI sizes x 5 pet sizes.");
+        GD.Print("[RoomPokerChecks] PASS poker fit matrix: 4 resolutions x 5 UI scales x 2 host sizes.");
     }
 
     public static async Task Run(ModeManager main, InGameRoomPreview page)
@@ -62,53 +61,57 @@ internal static class RoomPokerChecks
         desktop.MoveMember(guest.Id, remote.Position + new Vector2(-40, -100), 0, false, 0, 0);
         await Wait();
         Check(!HeadClipped(remote.Dog), "desktop dog away from taskbar shows its full chin");
-        var original = desktop.RemoteDogs.ToDictionary(d => d.MemberId, d => d.Position);
+        var original = ScreenPositions(desktop);
+        var compactHost = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
         long session = client.LayoutSession;
         main.RoomRequestPokerForSmoke();
-        await Wait();
-        await Wait(.6);
-        Check(main.CurrentMode == ModeManager.Mode.Play && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row
+        await CheckHandoff(main, original, compactHost, poker: true);
+        Check(main.CurrentMode == ModeManager.Mode.Play && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free
             && !panel.HasRoomModal, "saved compact preference enters poker without a layout dialog");
         var game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
         var welcome = game.GetNode<PokerWelcomeDialogController>("PokerWelcomeDialog");
         if (welcome.Visible) Click(welcome.GetNode<Button>("InputShield/Center/Panel/Margin/Content/Confirm"));
         await Wait();
-        var row = main.RoomPokerDogsForSmoke;
-        Check(row.RemoteDogs.Count == 5 && row.Visible && !row.LocalChat.Visible, "B fits five remote dogs in a full six-player room");
-        Check(row.RemoteDogs.All(d => !HeadClipped(d.Dog)), "B floating row dogs show full chins");
+        var compact = main.RoomPokerDogsForSmoke;
+        Check(compact.RemoteDogs.Count == 5 && compact.Visible && !compact.LocalChat.Visible, "compact host shows all five remote dogs");
+        Check(!HeadClipped(compact.RemoteDogs.First(d => d.MemberId == guest.Id).Dog), "compact poker preserves detached dog chin");
         Check(HeadClipped(game.GetNode<DogVisual>("DogArea")), "player's poker dog retains table clipping");
         var table = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
-        Check(row.RemoteDogs.All(d => d.Position.Y + 60 * d.Scale.Y < table.Position.Y), "B dogs stay above poker");
         var bSize = DisplayServer.WindowGetSize();
-        Check(bSize.Y < DisplayServer.ScreenGetSize().Y && client.LayoutSession == session && client.View.GameId == "social",
-            "B uses a compact host and leaves room gameplay/session unchanged");
-        await Capture("row");
-        var watched = row.RemoteDogs.First(d => d.MemberId == host.Id);
+        Check(bSize.X == (DisplayServer.ScreenGetSize().X - 2) / 2 && bSize.Y == DisplayServer.ScreenGetSize().Y - 2
+            && client.LayoutSession == session && client.View.GameId == "social",
+            "compact poker retains the desktop half-screen host and room session");
+        await CheckCompactMovement(main, compact, client, panel, Wait);
+        await Capture("compact-free");
+        var watched = compact.RemoteDogs.First(d => d.MemberId == host.Id);
         host.SetReaction(1002);
         await Step();
         Check((int)watched.Dog.CurrentReaction == 1002, "remote reactions keep synchronizing in poker");
-        Check(!HeadClipped(watched.Dog), "reaction changes preserve the full chin in B");
         guest.Leave(); await Step();
-        Check(row.RemoteDogs.Count == 4 && DisplayServer.WindowGetSize() == bSize, "departure removes dog without resizing host");
+        Check(compact.RemoteDogs.Count == 4 && DisplayServer.WindowGetSize() == bSize, "departure removes dog without resizing host");
         guest.Join(host.JoinedCode); await Step();
-        Check(row.RemoteDogs.Count == 5 && DisplayServer.WindowGetSize() == bSize, "new member returns without resizing host");
-        Check(row.RemoteDogs.All(d => !HeadClipped(d.Dog)), "new arrivals in B also show full chins");
+        Check(compact.RemoteDogs.Count == 5 && DisplayServer.WindowGetSize() == bSize, "new member returns without resizing host");
         main.GetNode<SteamMockPanelController>("SteamMockPanel").EmitSignal(SteamMockPanelController.SignalName.CloseRequested);
         await Wait();
-        Check(DisplayServer.WindowGetSize().Y < bSize.Y && row.RemoteDogs.All(d => d.IsVisibleInTree()),
-            "hiding the Debug toolbar frees space without hiding the companion row");
-        await Capture("row-without-toolbar");
+        Check(DisplayServer.WindowGetSize() == bSize && compact.RemoteDogs.All(d => d.IsVisibleInTree()),
+            "hiding Debug toolbar keeps the host and free companions");
+        var compactPositions = ScreenPositions(compact);
+        compactHost = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
         main.RoomModeForSmoke(false);
-        await Wait(.8);
-        Check(desktop.RemoteDogs.First(d => d.MemberId == host.Id).Position.IsEqualApprox(original[host.Id]),
-            "B round-trip preserves the remaining desktop dog position");
+        await CheckHandoff(main, compactPositions, compactHost, poker: false);
+        main.RoomRequestPokerForSmoke();
+        await CheckHandoff(main, compactPositions, compactHost, poker: true);
+        main.RoomModeForSmoke(false);
+        await CheckHandoff(main, compactPositions, compactHost, poker: false);
         panel.CloseImmediate();
         client.Leave(); await Step();
         SelectMode(page, RoomDisplayMode.FullScreenFree);
         client.Join(host.JoinedCode); await Step();
         panel.CloseImmediate();
+        var fullHost = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+        var fullPositions = ScreenPositions(desktop);
         main.RoomRequestPokerForSmoke();
-        await Wait(.5);
+        await CheckHandoff(main, fullPositions, fullHost, poker: true);
         var cHost = DisplayServer.WindowGetPosition();
         Check(DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2,
             "C is monitor-sized with the ordinary-window margin");
@@ -180,7 +183,7 @@ internal static class RoomPokerChecks
         var localPosition = desktop.GetPosition(client.Id);
         await Capture("c-positions-before");
         main.RoomModeForSmoke(false);
-        await Wait(.8);
+        await CheckHandoff(main, sharedPositions, fullHost, poker: false);
         await Capture("c-positions-desktop");
         Check(desktop.RemoteDogs.Count == sharedPositions.Count && desktop.RemoteDogs.All(d => d.IsVisibleInTree()),
             "all C dogs remain visible after the desktop handoff");
@@ -201,7 +204,7 @@ internal static class RoomPokerChecks
             "C to desktop preserves each attachment and the free dog's full chin");
         Check(desktop.GetPosition(client.Id).IsEqualApprox(localPosition), "remote placement handoff does not move the local desktop dog");
         main.RoomRequestPokerForSmoke();
-        await Wait(.5);
+        await CheckHandoff(main, sharedPositions, fullHost, poker: true);
         Check(ScreenPositions(main.RoomPokerDogsForSmoke).All(pair => pair.Value.IsEqualApprox(sharedPositions[pair.Key])),
             "desktop to C retains shared screen positions even where the table overlaps a dog");
         main.RoomModeForSmoke(false); await Wait(.8);
@@ -262,7 +265,7 @@ internal static class RoomPokerChecks
         client.Join("MISSING"); await Step();
         Check(client.JoinedCode.Length == 0 && !panel.HasRoomModal, "failed join in poker does not ask for dog layout");
         client.Join(host.JoinedCode); await Step();
-        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
+        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free
             && main.CurrentMode == ModeManager.Mode.Play && Hand() == hand,
             "poker-first join automatically uses the saved free layout and preserves the hand");
         client.Leave(); await Step();
@@ -273,7 +276,7 @@ internal static class RoomPokerChecks
         Check(welcome.Visible && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Hidden && !panel.IsOpen,
             "automatic layout waits for an occupied welcome overlay");
         Click(confirmWelcome); await Wait();
-        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 2
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 2
             && game.State == GameState.Holding && Hand() == hand && !panel.HasRoomModal,
             "welcome completion applies compact layout without another dialog or restarting the hand");
 
@@ -288,11 +291,11 @@ internal static class RoomPokerChecks
         SelectMode(page, RoomDisplayMode.FullScreenFree);
         client.Create("Poker-first room"); await Step();
         Check(!panel.HasRoomModal && client.View.Members.Length == 1 && !client.IsLocalArrival
-            && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop,
+            && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free,
             "ordinary creation while playing automatically uses the saved layout and starts owner-only");
         client.Leave(); await Step();
         page.SeedLegacyCompanionRoomForSmoke("Poker-first legacy room"); await Step();
-        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Desktop
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free
             && main.RoomPokerDogsForSmoke.RemoteDogs.Count == 3
             && DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2
             && game.State == GameState.Holding && Hand() == hand,
@@ -316,19 +319,104 @@ internal static class RoomPokerChecks
         var plan = RoomCompanionPlan.Create(new[] { client.SkinId }, new[] { 0 }, 0, seed: 73);
         Check(client.BeginArrival("Poker arrival", plan, -2), "local companion room can begin during poker");
         await Wait();
-        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
+        Check(!panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free,
             "local companion room automatically uses the saved compact layout");
         Check(client.Arrival?.Presented == true, "selected poker dogs release the local arrival presentation gate");
         long arrivalSession = client.LayoutSession;
         for (int i = 0; i < 10 && client.IsLocalArrival; i++) await Step(1);
         Check(!client.IsLocalArrival && client.View?.OwnerId == client.Id && client.LayoutSession == arrivalSession
-            && !panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row,
+            && !panel.HasRoomModal && main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free,
             "companion host handoff does not ask for the same layout twice");
         Check(game.State == GameState.Holding && Hand() == hand, "all join/create/handoff paths preserve held cards");
         client.Leave(); await Step();
         panel.CloseImmediate();
         main.RoomModeForSmoke(false);
         await Wait(.8);
+    }
+
+    private static async Task CheckHandoff(ModeManager main, Dictionary<int, Vector2> expected, Rect2I host, bool poker)
+    {
+        // Inspect the first rendered frames, not only the settled result after a
+        // timer. A temporary solo host/hidden renderer must fail this regression.
+        for (int frame = 0; frame < 5; frame++)
+        {
+            await main.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            var renderer = poker ? main.RoomPokerDogsForSmoke : main.RoomDesktopForSmoke;
+            var positions = ScreenPositions(renderer);
+            Check(renderer.IsVisibleInTree() && renderer.RemoteDogs.All(d => d.IsVisibleInTree())
+                && positions.Count == expected.Count && expected.All(p => positions[p.Key].IsEqualApprox(p.Value))
+                && new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize()) == host,
+                $"frame {frame}: {(poker ? "poker" : "desktop")} host and all remote positions survive handoff", quiet: true);
+        }
+        GD.Print("[RoomPokerChecks] PASS first five rendered frames preserve room host and remote positions: " + (poker ? "poker" : "desktop"));
+    }
+
+    private static async Task CheckCompactMovement(ModeManager main, RoomDesktopPreview dogs, RoomClient client,
+        SystemPanelController panel, Func<double, Task> wait)
+    {
+        var host = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+        var screen = new Rect2I(DisplayServer.ScreenGetPosition(), DisplayServer.ScreenGetSize());
+        var dog = dogs.RemoteDogs.First();
+        // Put a dog below the table so pointer input is unambiguously on the dog.
+        dogs.MoveMember(dog.MemberId, new Vector2(host.Size.X / 2f, host.Size.Y - 110), 0, false, 0, 0);
+        await wait(.15);
+        var others = dogs.RemoteDogs.Where(d => d != dog).ToDictionary(d => d.MemberId, d => d.Position);
+        var point = dog.Position + new Vector2(0, -40);
+        main.GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true,
+            Position = point, GlobalPosition = point }, true);
+        main.GetViewport().PushInput(new InputEventMouseMotion { ButtonMask = MouseButtonMask.Left,
+            Position = point + new Vector2(-5000, 0), GlobalPosition = point + new Vector2(-5000, 0) }, true);
+        await wait(.2);
+        Check(DisplayServer.WindowGetPosition() == host.Position && dogs.Boundary.Visible
+            && new Rect2(Vector2.Zero, host.Size).Grow(.1f).Encloses(new Rect2(dog.Position + dog.Footprint.Position, dog.Footprint.Size))
+            && others.All(p => dogs.GetPosition(p.Key).IsEqualApprox(p.Value)), "compact remote pointer drag clamps independently and shows boundary");
+        main.GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false,
+            Position = point, GlobalPosition = point }, true);
+        var positions = dogs.RemoteDogs.ToDictionary(d => d.MemberId, d => d.Position);
+        int pushDelta = -Mathf.CeilToInt(main.RoomPokerTableRectForSmoke.Position.X + 100);
+        main.RoomMovePokerTableForSmoke(new Vector2I(pushDelta, 0));
+        await wait(.2);
+        var pushed = DisplayServer.WindowGetPosition();
+        Check(pushed.X < host.Position.X && dogs.RemoteDogs.All(d => d.Position.IsEqualApprox(positions[d.MemberId])),
+            "table pushes half host while other dogs keep their host-relative positions");
+        main.RoomMovePokerTableForSmoke(new Vector2I(pushDelta, 0), begin: false);
+        main.RoomMovePokerTableForSmoke(new Vector2I(pushDelta, 12), begin: false);
+        await wait(.8);
+        Check(DisplayServer.WindowGetPosition() == pushed && dogs.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .99f
+            && dogs.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right) > .99f, "table contact does not drift or start fading on stationary/vertical motion");
+        main.RoomMovePokerTableForSmoke(new Vector2I(8, 0));
+        await wait(.2);
+        Check(DisplayServer.WindowGetPosition() == pushed, "reversing table inside the area does not pull half host");
+        main.RoomMovePokerTableForSmoke(new Vector2I(-100000, -100000));
+        await wait(.15);
+        Check(DisplayServer.WindowGetPosition().X == screen.Position.X + 1, "table cannot push half host into another monitor");
+        main.RoomMovePokerTableForSmoke(new Vector2I(100000, 100000));
+        await wait(.2);
+        Check(DisplayServer.WindowGetPosition() + host.Size == screen.End - Vector2I.One,
+            "table push stops at right/bottom monitor limits");
+        main.GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false,
+            Position = new Vector2(10, 10), GlobalPosition = new Vector2(10, 10) }, true);
+        await wait(1.3);
+        Check(dogs.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right) is > 0 and < .99f,
+            "releasing table starts the shared two-second edge fade");
+        var screenPositions = ScreenPositions(dogs);
+        main.Call("ToggleSettingsPanel"); panel.ShowRoomPage();
+        int savedStep = SettingsManager.LoadOtherUiScaleStep();
+        foreach (int step in Enumerable.Range(SettingsManager.OtherUiScaleStepMin,
+            SettingsManager.OtherUiScaleStepMax - SettingsManager.OtherUiScaleStepMin + 1))
+        {
+            main.RoomOtherScaleForSmoke(step); await wait(.08);
+            var available = DisplayServer.ScreenGetUsableRect().Intersection(new Rect2I(DisplayServer.WindowGetPosition(), host.Size));
+            var bounds = new Rect2(available.Position - DisplayServer.WindowGetPosition(), available.Size);
+            Check(bounds.Encloses(main.RoomPokerTableRectForSmoke) && bounds.Encloses(panel.PanelRect)
+                && DisplayServer.WindowGetSize() == host.Size && SettingsManager.LoadOtherUiScaleStep() == savedStep
+                && screenPositions.All(p => ScreenPositions(dogs)[p.Key].IsEqualApprox(p.Value)),
+                $"compact scale {step}: bounds={bounds}, table={main.RoomPokerTableRectForSmoke}, panel={panel.PanelRect}, "
+                    + $"host={DisplayServer.WindowGetSize()}/{host.Size}, saved={SettingsManager.LoadOtherUiScaleStep()}/{savedStep}, "
+                    + "dogs=" + string.Join(";", screenPositions.Select(p => $"{p.Key}:{p.Value}->{ScreenPositions(dogs)[p.Key]}")), quiet: true);
+        }
+        main.RoomOtherScaleForSmoke(savedStep); panel.CloseImmediate(); await wait(.15);
+        Check(client.JoinedCode.Length > 0, "compact layout changes never leave or recreate the room");
     }
 
     private static void SelectMode(InGameRoomPreview page, RoomDisplayMode mode)

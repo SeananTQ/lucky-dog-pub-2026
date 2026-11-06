@@ -8,7 +8,7 @@ namespace LuckyDogRise.Rooms;
 internal enum RoomBoundaryEdges { None = 0, Left = 1, Right = 2, Top = 4, Bottom = 8 }
 
 // Screen-space geometry only. No monitor selection or native window mutation:
-// a room stays on its selected monitor until the poker window is moved elsewhere.
+// a room stays on its selected monitor in both desktop and poker modes.
 internal static class RoomDesktopGeometry
 {
     public static Rect2I Host(Rect2I screen, bool compact, int? previousX = null)
@@ -44,5 +44,9 @@ internal static class RoomDesktopGeometry
         if (requested.Y > accepted.Y + .5f) edges |= RoomBoundaryEdges.Bottom;
         return edges;
     }
+
+    public static bool PushingContact(Rect2I host, Rect2I screen, Vector2 desired, Rect2 footprint) =>
+        (desired.X + footprint.Position.X <= host.Position.X + .5f && host.Position.X > screen.Position.X + 1)
+        || (desired.X + footprint.End.X >= host.End.X - .5f && host.End.X < screen.End.X - 1);
 }
 #endif

@@ -1113,7 +1113,7 @@ public partial class ModeManager : Control
         if (_settingsPanel.IsOpen) _settingsPanel.CloseImmediate();
 
 #if !DEMO_BUILD && !RECORDING_BUILD
-        RestoreRoomDesktopWindow();
+        SuspendRoomDesktopForPoker();
 #endif
         HideBossKeyContent();
 
@@ -1172,6 +1172,10 @@ public partial class ModeManager : Control
         _playRoot.Visible = true;
         _infoPanel.Visible = true;
         CurrentMode = Mode.Play;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Exchange both renderers before this frame is drawn.
+        UpdateRoomPokerPreview(_desktopRoomClient?.JoinedCode.Length is > 0);
+#endif
         _enteredPokerThisSession = true;
         _gameData.MarkPokerModeEntered();
         _pokerEntryHintStyle.BgColor = _pokerEntryNormalColor;
@@ -1216,7 +1220,11 @@ public partial class ModeManager : Control
         int switchRevision = ++_modeSwitchRevision;
         var playScreen = GetBestScreenUsableRect(GetPlayGameScreenRect());
 #if !DEMO_BUILD && !RECORDING_BUILD
+        bool retainRoomHost = _roomPokerWindowActive && _desktopRoomClient?.JoinedCode.Length is > 0;
         StopRoomPokerPresentation();
+        _roomResumeDesktop = retainRoomHost;
+#else
+        bool retainRoomHost = false;
 #endif
         CancelWindowDrag();
         _settingsPanel.CancelPendingDesktopPetScaleChange();
@@ -1225,7 +1233,7 @@ public partial class ModeManager : Control
 
         // DWM Cloak 会让窗口对玩家不可见，但仍允许 Godot 在后台继续 resize、移动和绘制。
         // 因此窗口移动时不会再携带合成器中残留的扑克画面。
-        bool windowCloaked = SetNativeWindowCloaked(true);
+        bool windowCloaked = !retainRoomHost && SetNativeWindowCloaked(true);
 
         if (_playRoot != null)
             _playRoot.Visible = false;
@@ -1236,7 +1244,7 @@ public partial class ModeManager : Control
 
         // 先把扑克和桌宠都隐藏，进入透明交接；移动过程不会带着扑克矩形。
         HideBossKeyContent();
-        SetupFatWindow();
+        if (!retainRoomHost) SetupFatWindow();
         SetClickThrough(true);
         CurrentMode = Mode.BossKey;
 #if DEBUG
@@ -1245,7 +1253,14 @@ public partial class ModeManager : Control
         ResetPokerViewportRendering();
         RefreshSettingsPanelModeActions();
 
-        RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
+        if (retainRoomHost)
+        {
+            // The joined room keeps its transparent host. No native resize,
+            // DWM cloak, or empty render frames are needed to change contents.
+            ShowBossKeyContent();
+            ReopenSettingsAfterDesktopScaleSwitch();
+        }
+        else RevealBossKeyAfterTransparentHandoff(playScreen, switchRevision, windowCloaked);
     }
 
     private void OnDesktopPetScaleModeSwitchRequested()
@@ -1770,14 +1785,7 @@ public partial class ModeManager : Control
         PositionBossKeyForRightPlayPanel(screen);
         ShowBossKeyContent();
 
-        if (_openSettingsAfterDesktopPetScaleModeSwitch)
-        {
-            _openSettingsAfterDesktopPetScaleModeSwitch = false;
-            RefreshSettingsPanelModeActions();
-            PositionPanelInBestSlot();
-            _settingsPanel.Open();
-            _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
-        }
+        ReopenSettingsAfterDesktopScaleSwitch();
 
         // 让桌宠画面在 Cloak 状态下真正进入交换链，再交还给 DWM 显示。
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
@@ -1785,6 +1793,16 @@ public partial class ModeManager : Control
 
         if (windowCloaked)
             SetNativeWindowCloaked(false);
+    }
+
+    private void ReopenSettingsAfterDesktopScaleSwitch()
+    {
+        if (!_openSettingsAfterDesktopPetScaleModeSwitch) return;
+        _openSettingsAfterDesktopPetScaleModeSwitch = false;
+        RefreshSettingsPanelModeActions();
+        PositionPanelInBestSlot();
+        _settingsPanel.Open();
+        _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
     }
 
     private void UpdateStartup(double delta)
@@ -2058,8 +2076,15 @@ public partial class ModeManager : Control
             PositionPanelInBestSlot();
     }
 
-    private int GetPlayInfoPanelWidth() => Mathf.CeilToInt(PlayInfoPanelBaseWidth * _otherUiScaleFactor);
-    private int GetPlayGameSize() => Mathf.CeilToInt(PlayGameBaseSize * _otherUiScaleFactor);
+    private float GetPlayRenderScale()
+    {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (_roomPokerDisplay != Rooms.RoomPokerDisplay.Hidden) return _roomPokerRenderScale;
+#endif
+        return _otherUiScaleFactor;
+    }
+    private int GetPlayInfoPanelWidth() => Mathf.CeilToInt(PlayInfoPanelBaseWidth * GetPlayRenderScale());
+    private int GetPlayGameSize() => Mathf.CeilToInt(PlayGameBaseSize * GetPlayRenderScale());
     private bool IsHighOtherUiScale() => _otherUiScaleFactor >= 1.5f;
 
     private int GetPlayTopAccessoryHeight()
@@ -3598,7 +3623,7 @@ public partial class ModeManager : Control
                 accessorySize.X,
                 accessorySize.Y);
 #if !DEMO_BUILD && !RECORDING_BUILD
-            if (_roomPokerWindowActive && _roomPokerDisplay == Rooms.RoomPokerDisplay.Row)
+            if (_roomPokerWindowActive)
                 topAccessoryRect = new Rect2(Vector2.Zero, accessorySize);
 #endif
         }
@@ -3620,6 +3645,11 @@ public partial class ModeManager : Control
             // Translate the ordinary nine-slot grid with the dog, including the existing top
             // buffer used by the blind-box reveal at larger desktop-pet scales.
             desktopGridOrigin = new Vector2(aX - _panelSize.X, aY - CalculateBossTopBufferHeight());
+        }
+        else if (CurrentMode == Mode.Play && _roomPokerWindowActive)
+        {
+            constrainPanelToHost = true;
+            screen = screen.Intersection(new Rect2I(winPos, DisplayServer.WindowGetSize()));
         }
 #endif
 
@@ -3966,8 +3996,8 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (_roomPokerWindowActive)
         {
-            if (_roomPokerDisplay == Rooms.RoomPokerDisplay.Row) KeepRoomPokerRowWithinScreen();
-            else { ClampRoomPokerOrigin(); _contentOffset = _roomPokerOrigin; }
+            ClampRoomPokerOrigin();
+            _contentOffset = _roomPokerOrigin;
             return;
         }
 #endif
@@ -4323,7 +4353,7 @@ public partial class ModeManager : Control
                 _mouseScreenStart = DisplayServer.MouseGetPosition();
                 _windowPosStart = DisplayServer.WindowGetPosition();
 #if !DEMO_BUILD && !RECORDING_BUILD
-                _roomPokerTableDragStart = _roomPokerOrigin;
+                _roomPokerTableDragStart = _roomPokerOrigin + DisplayServer.WindowGetPosition();
                 if (_roomPokerWindowActive && !_playViewport.GetGlobalRect().HasPoint(localPos)) return;
 #endif
                 _dragPressStartedAtMsec = Time.GetTicksMsec();
@@ -4332,6 +4362,9 @@ public partial class ModeManager : Control
             else
             {
                 if (_isDragging) GetViewport().SetInputAsHandled();
+#if !DEMO_BUILD && !RECORDING_BUILD
+                _roomPokerDogs?.Boundary.Release();
+#endif
                 _isDragging = false; _potentialDrag = false;
                 if (CurrentMode != Mode.BossKey || !SettingsManager.LoadSnapToWindowsTaskbar())
                     _taskbarSnapped = false;
@@ -4356,7 +4389,7 @@ public partial class ModeManager : Control
                 _mouseScreenStart = mouseScreenPosition;
                 _windowPosStart = DisplayServer.WindowGetPosition();
 #if !DEMO_BUILD && !RECORDING_BUILD
-                _roomPokerTableDragStart = _roomPokerOrigin;
+                _roomPokerTableDragStart = _roomPokerOrigin + DisplayServer.WindowGetPosition();
 #endif
                 d = Vector2I.Zero;
                 SetClickThrough(false);

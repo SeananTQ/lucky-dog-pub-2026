@@ -12,7 +12,7 @@ public partial class ModeManager
     private RoomDesktopPreview _roomPokerDogs;
     private bool _roomPokerWindowActive;
     private int _roomPokerScreen;
-    private RoomPokerLayout _roomPokerLayout;
+    private float _roomPokerRenderScale = 1;
     private Vector2 _roomPokerOrigin;
     private Vector2 _roomPokerTableDragStart;
     private int _roomPokerDragMember;
@@ -21,6 +21,8 @@ public partial class ModeManager
     private Vector2 _roomPokerDogDragStart;
     private Vector2 _roomPokerMouseDragStart;
     private RoomDesktopPreview.RemotePlacementSnapshot _roomPokerDesktopPositions;
+    private RoomDesktopPreview.RemotePlacementSnapshot _roomPokerEntryPositions;
+    private bool _roomResumeDesktop;
     private Rect2I _roomPokerLastUsable;
     private Vector2I _roomPokerLastScreenSize;
 
@@ -43,10 +45,34 @@ public partial class ModeManager
 
     private void ApplyRoomPokerDisplayPreference()
     {
-        _roomPokerDisplay = _settingsPanel.RoomDisplayPreference == RoomDisplayMode.HalfScreenCompact
-            ? RoomPokerDisplay.Row : RoomPokerDisplay.Desktop;
+        _roomPokerDisplay = RoomPokerDisplay.Free;
         _roomPokerScreen = CurrentMode == Mode.BossKey ? _roomScreen : DisplayServer.WindowGetCurrentScreen();
-        _roomPokerDogs?.Clear();
+    }
+
+    // Joined mode changes keep the native host. Reusing renderers also avoids
+    // recreating all remote avatars each time the player opens the poker table.
+    private void SuspendRoomDesktopForPoker()
+    {
+        if (!_roomWindowActive || _roomPokerDisplay == RoomPokerDisplay.Hidden)
+        { RestoreRoomDesktopWindow(); return; }
+        CancelWindowDrag();
+        _roomPokerEntryPositions = _roomDesktop.CaptureRemotePlacements(DisplayServer.WindowGetPosition());
+        _roomWindowActive = false;
+        _roomDesktop.Hide();
+        _bossBlindBoxHint.Position = _roomBlindBoxHintBasePosition;
+    }
+
+    private Rect2I RoomPokerHost => new(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+    private Rect2I RoomPokerScreenRect => new(DisplayServer.ScreenGetPosition(_roomPokerScreen),
+        DisplayServer.ScreenGetSize(_roomPokerScreen));
+    private Rect2 RoomPokerTableFootprint => new(0, -GetRoomPokerAccessoryHeight(),
+        GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize() + GetRoomPokerAccessoryHeight());
+
+    private void ApplyPokerRenderScale(float scale)
+    {
+        _roomPokerRenderScale = scale;
+        if (_playViewport != null) _playViewport.Scale = Vector2.One * (.5f * scale);
+        _infoPanel?.SetRenderScale(scale);
     }
 
     private void UpdateRoomPokerDisplayPreference(bool joined)
@@ -73,57 +99,39 @@ public partial class ModeManager
         var usable = DisplayServer.ScreenGetUsableRect(_roomPokerScreen);
         _roomPokerLastUsable = usable;
         _roomPokerLastScreenSize = DisplayServer.ScreenGetSize(_roomPokerScreen);
-        if (_roomPokerDisplay == RoomPokerDisplay.Desktop)
+        if (_roomCompactSession != _desktopRoomClient.LayoutSession || _roomCompactScreen != _roomPokerScreen)
         {
-            var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomPokerScreen), DisplayServer.ScreenGetSize(_roomPokerScreen));
-            var host = new Rect2I(screen.Position + Vector2I.One, screen.Size - Vector2I.One * 2);
-            if (!_roomPokerWindowActive)
-                _roomPokerOrigin = (Vector2)(usable.Position - host.Position)
-                    + new Vector2((usable.Size.X - GetPlayInfoPanelWidth() - GetPlayGameSize()) / 2f,
-                        (usable.Size.Y - GetPlayGameSize()) / 2f);
-            DisplayServer.WindowSetSize(host.Size);
-            DisplayServer.WindowSetPosition(host.Position);
-            ClampRoomPokerOrigin();
-            _contentOffset = _roomPokerOrigin;
+            _roomCompactHostX = null;
+            _roomCompactSession = _desktopRoomClient.LayoutSession;
+            _roomCompactScreen = _roomPokerScreen;
         }
-        else
-        {
-            _roomPokerLayout = RoomPokerLayout.Calculate(usable.Size - Vector2I.One * 2,
-                GetPlayInfoPanelWidth(), GetPlayGameSize(), (int)_panelSize.X,
-                GetRoomPokerAccessoryHeight(), _desktopPetScaleFactor);
-            _contentOffset = _roomPokerLayout.Origin;
-            DisplayServer.WindowSetSize(_roomPokerLayout.Size);
-            if (!_roomPokerWindowActive)
-                DisplayServer.WindowSetPosition(usable.Position + (usable.Size - _roomPokerLayout.Size) / 2);
-            KeepRoomPokerRowWithinScreen();
-        }
+        var host = RoomDesktopGeometry.Host(RoomPokerScreenRect, RoomUsesCompactHost, _roomCompactHostX);
+        if (RoomUsesCompactHost) _roomCompactHostX = host.Position.X;
+        var available = usable.Intersection(host);
+        ApplyPokerRenderScale(RoomPokerLayout.FitScale(available.Size, _otherUiScaleFactor,
+            PlayInfoPanelBaseWidth, PlayGameBaseSize, GetRoomPokerAccessoryHeight()));
+        UpdateRoomPanelScale(available.Size.X - 10, available.Size.Y - GetRoomPokerAccessoryHeight() - 10);
+        if (!_roomPokerWindowActive)
+            _roomPokerOrigin = (Vector2)(available.Position - host.Position)
+                + new Vector2((available.Size.X - GetPlayInfoPanelWidth() - GetPlayGameSize()) / 2f,
+                    (available.Size.Y - GetPlayGameSize() + GetRoomPokerAccessoryHeight()) / 2f);
+        if (DisplayServer.WindowGetSize() != host.Size) DisplayServer.WindowSetSize(host.Size);
+        if (DisplayServer.WindowGetPosition() != host.Position) DisplayServer.WindowSetPosition(host.Position);
+        ClampRoomPokerOrigin();
+        _contentOffset = _roomPokerOrigin;
         _roomPokerWindowActive = true;
 #if DEBUG
-        _steamMockPanel?.SetPanelBottom(_roomPokerDisplay == RoomPokerDisplay.Row
-            ? GetRoomPokerAccessoryHeight() : _contentOffset.Y);
+        // Debug controls belong to the host, not the draggable poker table.
+        _steamMockPanel?.SetPanelBottom(GetRoomPokerAccessoryHeight());
 #endif
         return true;
     }
 
     private void ClampRoomPokerOrigin()
     {
-        var usable = DisplayServer.ScreenGetUsableRect(_roomPokerScreen);
-        var min = (Vector2)(usable.Position - DisplayServer.WindowGetPosition()) + new Vector2(5, 5);
-        _roomPokerOrigin.X = Mathf.Clamp(_roomPokerOrigin.X, min.X,
-            Math.Max(min.X, min.X + usable.Size.X - GetPlayInfoPanelWidth() - GetPlayGameSize() - 10));
-        _roomPokerOrigin.Y = Mathf.Clamp(_roomPokerOrigin.Y, min.Y + GetRoomPokerAccessoryHeight(),
-            Math.Max(min.Y + GetRoomPokerAccessoryHeight(), min.Y + usable.Size.Y - GetPlayGameSize() - 10));
-    }
-
-    private void KeepRoomPokerRowWithinScreen()
-    {
-        var usable = GetBestScreenUsableRect(new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize()));
-        var pos = DisplayServer.WindowGetPosition();
-        var size = DisplayServer.WindowGetSize();
-        // A large poker UI can itself exceed the screen: keep its top/left controls accessible.
-        pos.X = Math.Clamp(pos.X, usable.Position.X, Math.Max(usable.Position.X, usable.End.X - size.X));
-        pos.Y = Math.Clamp(pos.Y, usable.Position.Y, Math.Max(usable.Position.Y, usable.End.Y - size.Y));
-        DisplayServer.WindowSetPosition(pos);
+        var usable = DisplayServer.ScreenGetUsableRect(_roomPokerScreen).Intersection(RoomPokerHost);
+        var bounds = new Rect2(usable.Position - RoomPokerHost.Position, usable.Size).Grow(-5);
+        _roomPokerOrigin = RoomDesktopGeometry.Clamp(_roomPokerOrigin, RoomPokerTableFootprint, bounds);
     }
 
     private void UpdateRoomPokerPreview(bool joined)
@@ -151,25 +159,31 @@ public partial class ModeManager
             _roomPokerDogs.Name = "RoomPokerDogs";
             AddChild(_roomPokerDogs);
         }
-        float scale = _roomPokerDisplay == RoomPokerDisplay.Row ? _roomPokerLayout.DogScale : _desktopPetScaleFactor;
+        float scale = _desktopPetScaleFactor;
         _roomPokerDogs.Visible = !_hiddenByFullscreenApp && scale > 0;
         if (!_roomPokerDogs.Visible) return;
         var usable = DisplayServer.ScreenGetUsableRect(_roomPokerScreen);
-        var bounds = new Rect2(usable.Position - DisplayServer.WindowGetPosition(), usable.Size);
+        var available = usable.Intersection(RoomPokerHost);
+        var bounds = new Rect2(available.Position - RoomPokerHost.Position, available.Size);
         _roomPokerDogs.PresentPoker(_desktopRoomClient, bounds, scale,
-            _roomPokerDisplay == RoomPokerDisplay.Row ? _roomPokerLayout.Row : null, _roomDesktop,
+            _roomDesktop,
             _roomDesktopHostPosition - DisplayServer.WindowGetPosition(),
             new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())),
             RoomSnapEnabled, RoomTaskbarAnchorOffsetY);
+        if (_roomPokerEntryPositions != null && _desktopRoomClient.View != null)
+        {
+            _roomPokerDogs.RestoreRemotePlacements(_roomPokerEntryPositions, RoomPokerHost.Position,
+                RoomSnapEnabled, usable.End.Y - RoomPokerHost.Position.Y - RoomTaskbarAnchorOffsetY);
+            _roomPokerEntryPositions = null;
+        }
         var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomPokerScreen), DisplayServer.ScreenGetSize(_roomPokerScreen));
         _roomPokerDogs.UpdateNameBars(
             new Rect2(_bossStatusPanelBasePosition - _bossDogVisual.Position, _bossStatusPanelBaseSize),
             _mainText.GetThemeFont("font"), _bossStatusPanel.GetThemeStylebox("panel"),
-            _roomPokerDisplay == RoomPokerDisplay.Desktop && RoomSnapEnabled && SettingsManager.LoadCenterCounterOnTaskbar(),
+            RoomSnapEnabled && SettingsManager.LoadCenterCounterOnTaskbar(),
             Mathf.Max(0, screen.End.Y - usable.End.Y) / scale,
             _bossTaskBarAnchor.Position.Y - _bossDogVisual.Position.Y, BossCounterTongueClearance);
-        if (_roomPokerDisplay == RoomPokerDisplay.Desktop)
-            _roomPokerDogs.ConstrainRemotes(new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()));
+        _roomPokerDogs.ConstrainRemotes(new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()));
         if (_roomPokerDragMember != 0 && !RoomPokerDragIsCurrent()) CancelWindowDrag();
     }
 
@@ -177,16 +191,19 @@ public partial class ModeManager
     {
         bool rendererAlive = IsInstanceValid(_roomPokerDogs) && _roomPokerDogs.IsInsideTree();
         if (_desktopRoomClient?.JoinedCode.Length is not > 0) _roomPokerDesktopPositions = null;
-        else if (rendererAlive && _roomPokerWindowActive && _roomPokerDisplay == RoomPokerDisplay.Desktop)
+        else if (rendererAlive && _roomPokerWindowActive)
             _roomPokerDesktopPositions = _roomPokerDogs.CaptureRemotePlacements(DisplayServer.WindowGetPosition());
         if (rendererAlive) _roomPokerDogs.Hide();
         bool wasActive = _roomPokerWindowActive;
         _roomPokerWindowActive = false;
         _roomPokerDisplay = RoomPokerDisplay.Hidden;
+        _roomPokerEntryPositions = null;
         _roomPokerDragMember = 0;
         if (!wasActive || !restoreWindow || !rendererAlive) return;
         var anchor = DisplayServer.WindowGetPosition() + RoundToVector2I(_playViewport.Position);
         CancelWindowDrag();
+        ApplyPokerRenderScale(_otherUiScaleFactor);
+        UpdateRoomPanelScale(null);
         SetupPlayFatWindow();
         UpdatePlayLayout();
         DisplayServer.WindowSetPosition(anchor - RoundToVector2I(_playViewport.Position));
@@ -211,7 +228,7 @@ public partial class ModeManager
                 || new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())).HasPoint(button.Position)) return false;
             int id = _roomPokerDogs.HitTest(button.Position);
             if (id == 0) return false;
-            if (_roomPokerDisplay == RoomPokerDisplay.Desktop && !UiInteractionOccupancy.IsOccupied(this))
+            if (!UiInteractionOccupancy.IsOccupied(this))
             {
                 var member = _desktopRoomClient.View?.Members.FirstOrDefault(m => m.Id == id);
                 if (member == null) return true;
@@ -251,9 +268,27 @@ public partial class ModeManager
 
     private bool MoveRoomPokerTable(Vector2I delta)
     {
-        if (!_roomPokerWindowActive || _roomPokerDisplay != RoomPokerDisplay.Desktop) return false;
-        _roomPokerOrigin = _roomPokerTableDragStart + delta;
+        if (!_roomPokerWindowActive) return false;
+        // The drag anchor is in screen coordinates; moving the host must not
+        // accumulate its translation into the next mouse event's delta.
+        var desired = _roomPokerTableDragStart + delta;
+        var host = RoomPokerHost;
+        var footprint = RoomPokerTableFootprint;
+        bool contact = false;
+        if (RoomUsesCompactHost)
+        {
+            // Five-pixel inset is also used by ClampRoomPokerOrigin.
+            host = RoomDesktopGeometry.Push(host, RoomPokerScreenRect, desired, footprint.Grow(5));
+            contact = RoomDesktopGeometry.PushingContact(host, RoomPokerScreenRect, desired, footprint.Grow(5));
+            _roomCompactHostX = host.Position.X;
+        }
+        bool pushed = host.Position != RoomPokerHost.Position;
+        if (pushed) DisplayServer.WindowSetPosition(host.Position);
+        _roomPokerOrigin = desired - host.Position;
         ClampRoomPokerOrigin();
+        var edges = RoomDesktopGeometry.Blocked(desired, _roomPokerOrigin + host.Position);
+        if (pushed || contact) edges |= RoomBoundaryEdges.Left | RoomBoundaryEdges.Right;
+        _roomPokerDogs?.Boundary.Indicate(new Rect2(Vector2.Zero, host.Size), edges);
         _contentOffset = _roomPokerOrigin;
         UpdatePlayLayout();
         if (_settingsPanel.IsOpen) PositionPanelInBestSlot();
@@ -265,8 +300,13 @@ public partial class ModeManager
     public RoomPokerDisplay RoomPokerDisplayForSmoke => _roomPokerDisplay;
     public void RoomRequestPokerForSmoke() => SwitchToPlay();
     public void RoomOtherScaleForSmoke(int step) => ApplyOtherUiScaleStep(step, preserveContentAnchor: true);
-    public void RoomMovePokerTableForSmoke(Vector2I delta)
-    { _roomPokerTableDragStart = _roomPokerOrigin; MoveRoomPokerTable(delta); }
+    public void RoomMovePokerTableForSmoke(Vector2I delta, bool begin = true)
+    {
+        if (begin) _roomPokerTableDragStart = _roomPokerOrigin + DisplayServer.WindowGetPosition();
+        MoveRoomPokerTable(delta);
+    }
+    public Rect2 RoomPokerTableRectForSmoke => new(_roomPokerOrigin, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize()));
+    public float RoomPokerRenderScaleForSmoke => _roomPokerRenderScale;
 #endif
 }
 #endif

@@ -311,6 +311,16 @@ public sealed class LegacyRealtimeGridStrategy : IPanelAvoidanceStrategy
 
         // High scales have no vertical reserve. Low scales also use this fallback when
         // the upper row is outside the usable screen.
+        if (context.ConstrainToHost)
+        {
+            var min = context.UsableScreen.Position - context.WindowPosition;
+            var max = context.UsableScreen.End - context.WindowPosition - context.PanelSize;
+            if (context.TopAccessoryRect is { } accessory)
+                min.Y = Math.Max(min.Y, Mathf.CeilToInt(accessory.End.Y));
+            return new PanelPlacementResult(new Vector2(
+                Math.Clamp(rightAlignedX, min.X, Math.Max(min.X, max.X)),
+                Math.Clamp(mainRowY, min.Y, Math.Max(min.Y, max.Y))));
+        }
         return new PanelPlacementResult(new Vector2(rightAlignedX, mainRowY));
     }
 

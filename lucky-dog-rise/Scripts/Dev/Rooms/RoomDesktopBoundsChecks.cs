@@ -148,7 +148,7 @@ internal static class RoomDesktopBoundsChecks
         desktop.Boundary.Indicate(new Rect2(Vector2.Zero, initialHost.Size), RoomBoundaryEdges.Right);
         await Wait();
         main.RoomRequestPokerForSmoke(); await Wait(.7);
-        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row, "compact poker retains temporary row");
+        Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Free, "compact poker uses freely draggable companions");
         Check(!desktop.Boundary.Visible && !desktop.Boundary.IsProcessing(), "mode switch clears lingering boundary immediately");
         main.RoomModeForSmoke(false); await Wait(.9);
         Check(!desktop.Boundary.Visible, "returning to desktop never revives old boundary feedback");
