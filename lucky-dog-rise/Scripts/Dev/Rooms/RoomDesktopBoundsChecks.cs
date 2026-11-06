@@ -91,6 +91,21 @@ internal static class RoomDesktopBoundsChecks
         Check(remotes.All(d => d.Position.IsEqualApprox(beforeRemotes[d.MemberId])), "remote local positions stay fixed while host moves");
         Motion(leftPoint + new Vector2(100, 0)); await Wait();
         Check(DisplayServer.WindowGetPosition() == pushedHost, "reversing inside area does not pull host");
+        Check(desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .9f
+            && desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right) > .9f,
+            "both edges linger when dragging back inside without releasing");
+        for (int i = 0; i < 3; i++)
+        {
+            Motion(leftPoint + new Vector2(110 + i * 10, 0));
+            await Wait(.4);
+        }
+        float faded = desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right);
+        Check(faded > 0 && faded < .9f, "continued interior movement does not restart the fade delay");
+        Motion(leftPoint + new Vector2(-20, 0));
+        Check(Mathf.IsEqualApprox(faded, desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right)),
+            "touching the edge during fade preserves opacity without flashing");
+        await Wait(.2);
+        Check(desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right) > .99f, "retouched edge smoothly regains brightness");
         Motion(new Vector2(screen.Position.X - 1000, leftPoint.Y)); await Wait();
         Check(DisplayServer.WindowGetPosition().X == screen.Position.X + 1, "local drag stops at selected monitor boundary");
         Check(desktop.Boundary.Visible && !main.RoomHitTestForSmoke(DisplayServer.WindowGetPosition() + new Vector2I(3, screen.Size.Y / 2)), "red edge feedback leaves blank pixels click-through");
@@ -100,8 +115,18 @@ internal static class RoomDesktopBoundsChecks
             $"id={d.MemberId} pos={d.Position} global={d.GetGlobalTransformWithCanvas().Origin} visible={d.IsVisibleInTree()} scale={d.Scale}")));
         await main.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         main.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(folder, "compact-boundary.png"));
-        Button(leftPoint, false); await Wait(.5);
-        Check(!desktop.Boundary.Visible, "boundary fades after release");
+        Button(leftPoint, false); await Wait(.4);
+        Check(desktop.Boundary.Visible && desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .99f,
+            "boundary remains bright briefly after release");
+        await Wait(.9);
+        float releasedOpacity = desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left);
+        Check(releasedOpacity > 0 && releasedOpacity < .9f && !main.RoomHitTestForSmoke(
+            DisplayServer.WindowGetPosition() + new Vector2I(12, screen.Size.Y / 2)),
+            "lingering glow fades without intercepting desktop clicks");
+        await main.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        main.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(folder, "compact-boundary-fading.png"));
+        await Wait(1.5);
+        Check(!desktop.Boundary.Visible && !desktop.Boundary.IsProcessing(), "boundary disappears and stops processing after fade");
         var hostBeforePanel = DisplayServer.WindowGetPosition();
         main.Call("ToggleSettingsPanel"); panel.ShowRoomPage(); await Wait();
         Check(DisplayServer.WindowGetPosition() == hostBeforePanel, "opening panel never pushes host");
@@ -111,9 +136,13 @@ internal static class RoomDesktopBoundsChecks
         main.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(folder, "compact-panel.png"));
         panel.CloseImmediate();
         var positions = desktop.RemoteDogs.ToDictionary(d => d.MemberId, d => d.Position);
+        desktop.Boundary.Indicate(new Rect2(Vector2.Zero, initialHost.Size), RoomBoundaryEdges.Right);
+        await Wait();
         main.RoomRequestPokerForSmoke(); await Wait(.7);
         Check(main.RoomPokerDisplayForSmoke == RoomPokerDisplay.Row, "compact poker retains temporary row");
+        Check(!desktop.Boundary.Visible && !desktop.Boundary.IsProcessing(), "mode switch clears lingering boundary immediately");
         main.RoomModeForSmoke(false); await Wait(.9);
+        Check(!desktop.Boundary.Visible, "returning to desktop never revives old boundary feedback");
         Check(DisplayServer.WindowGetPosition() == hostBeforePanel && desktop.RemoteDogs.All(d => d.Position.IsEqualApprox(positions[d.MemberId])), "compact poker roundtrip restores region and remote placements");
         var attachedIds = remotes.Where(d => desktop.IsTaskbarSnapped(d.MemberId)).Select(d => d.MemberId).ToArray();
         Check(attachedIds.Length > 0, "taskbar attachment remains after room and poker transitions");
@@ -136,8 +165,11 @@ internal static class RoomDesktopBoundsChecks
         main.RoomOtherScaleForSmoke(SettingsManager.LoadOtherUiScaleStep());
         panel.CloseImmediate();
         GD.Print("[RoomDesktopBounds] PASS pet and UI scale matrices, attachment and panel safety.");
+        desktop.Boundary.Indicate(new Rect2(Vector2.Zero, initialHost.Size), RoomBoundaryEdges.Left);
+        await Wait();
         client.Leave(); await Step();
         Check(!main.RoomDesktopWindowActive && Mathf.IsEqualApprox(panel.RenderScale, SettingsManager.GetOtherUiScaleFactor(SettingsManager.LoadOtherUiScaleStep())), "leaving restores ordinary host and panel scale");
+        Check(!desktop.Boundary.Visible && !desktop.Boundary.IsProcessing(), "leaving clears all boundary animation");
         GD.Print("[RoomDesktopBounds] PASS main scene compact drag, panel and mode roundtrip.");
     }
 

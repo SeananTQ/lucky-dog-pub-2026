@@ -6,38 +6,134 @@ namespace LuckyDogRise.Rooms;
 // Only draws feedback; it never participates in mouse hit testing.
 public partial class RoomBoundaryView : Control
 {
-    private RoomBoundaryEdges _edges;
+    [Export] public StyleBoxFlat EdgeStyle { get; private set; } = null!;
+
+    private const double LingerSeconds = .6;
+    private const double FadeSeconds = 2;
+    private const float RiseSeconds = .15f;
+    private const float LineWidth = 6;
+    private const float EdgeInset = 2;
+    private const float EndInset = 16;
+    private const float GlowOffset = 6;
+    private static readonly RoomBoundaryEdges[] Edges =
+        { RoomBoundaryEdges.Left, RoomBoundaryEdges.Right, RoomBoundaryEdges.Top, RoomBoundaryEdges.Bottom };
+
+    private struct EdgeFeedback
+    {
+        public float Opacity;
+        public float FadeFrom;
+        public double IdleSeconds;
+    }
+
+    private readonly EdgeFeedback[] _feedback = new EdgeFeedback[4];
+    private RoomBoundaryEdges _activeEdges;
     private Rect2 _bounds;
-    private bool _held;
-    private double _remaining;
-    public override void _Ready() { MouseFilter = MouseFilterEnum.Ignore; SetProcess(false); }
+    private StyleBoxFlat _style = null!;
+    private Color _lineColor;
+    private Color _glowColor;
+
+    public override void _Ready()
+    {
+        // The two room renderers share the scene resource, but animate independently.
+        _style = (StyleBoxFlat)EdgeStyle.Duplicate();
+        _lineColor = _style.BgColor;
+        _glowColor = _style.ShadowColor;
+        MouseFilter = MouseFilterEnum.Ignore;
+        Clear();
+    }
+
     internal void Indicate(Rect2 bounds, RoomBoundaryEdges edges)
     {
+        bool moved = _bounds != bounds;
         _bounds = bounds;
-        _edges = edges;
-        _held = true;
-        _remaining = .4;
+        SetActiveEdges(edges);
+        if (edges == RoomBoundaryEdges.None)
+        {
+            if (moved && Visible) QueueRedraw();
+            return;
+        }
         Show();
         SetProcess(true);
-        QueueRedraw();
+        if (moved) QueueRedraw();
     }
-    internal void Release() => _held = false;
-    internal void Clear() { _edges = RoomBoundaryEdges.None; _held = false; Hide(); SetProcess(false); }
+
+    internal void Release() => SetActiveEdges(RoomBoundaryEdges.None);
+
+    private void SetActiveEdges(RoomBoundaryEdges edges)
+    {
+        for (int i = 0; i < Edges.Length; i++)
+        {
+            if ((_activeEdges & Edges[i]) == 0 || (edges & Edges[i]) != 0) continue;
+            // Repeated interior motion or mouse release must not restart the linger timer.
+            _feedback[i].IdleSeconds = 0;
+            _feedback[i].FadeFrom = _feedback[i].Opacity;
+        }
+        _activeEdges = edges;
+    }
+
+    internal void Clear()
+    {
+        _activeEdges = RoomBoundaryEdges.None;
+        System.Array.Clear(_feedback);
+        Hide();
+        SetProcess(false);
+    }
+
     public override void _Process(double delta)
     {
-        if (_held) return;
-        _remaining -= delta;
-        if (_remaining <= 0) Clear();
-        else QueueRedraw();
+        bool changed = false, visible = false;
+        for (int i = 0; i < Edges.Length; i++)
+        {
+            ref var feedback = ref _feedback[i];
+            float before = feedback.Opacity;
+            if ((_activeEdges & Edges[i]) != 0)
+                feedback.Opacity = Mathf.MoveToward(before, 1, (float)delta / RiseSeconds);
+            else if (before > 0)
+            {
+                feedback.IdleSeconds += delta;
+                float progress = (float)((feedback.IdleSeconds - LingerSeconds) / FadeSeconds);
+                feedback.Opacity = feedback.FadeFrom * (1 - Mathf.SmoothStep(0, 1, progress));
+            }
+            changed |= before != feedback.Opacity;
+            visible |= feedback.Opacity > 0;
+        }
+        if (!visible && _activeEdges == RoomBoundaryEdges.None) Clear();
+        else if (changed) QueueRedraw();
     }
+
     public override void _Draw()
     {
-        var color = new Color(1f, .28f, .28f, .5f * (float)(_remaining / .4));
-        var r = _bounds.Grow(-2);
-        if ((_edges & RoomBoundaryEdges.Left) != 0) DrawLine(r.Position, new(r.Position.X, r.End.Y), color, 3);
-        if ((_edges & RoomBoundaryEdges.Right) != 0) DrawLine(new(r.End.X, r.Position.Y), r.End, color, 3);
-        if ((_edges & RoomBoundaryEdges.Top) != 0) DrawLine(r.Position, new(r.End.X, r.Position.Y), color, 3);
-        if ((_edges & RoomBoundaryEdges.Bottom) != 0) DrawLine(new(r.Position.X, r.End.Y), r.End, color, 3);
+        if (_style == null) return;
+        var r = _bounds.Grow(-EdgeInset);
+        if (r.Size.X < LineWidth || r.Size.Y < LineWidth) return;
+        float insetX = Mathf.Min(EndInset, (r.Size.X - LineWidth) / 2);
+        float insetY = Mathf.Min(EndInset, (r.Size.Y - LineWidth) / 2);
+        for (int i = 0; i < Edges.Length; i++)
+        {
+            float opacity = _feedback[i].Opacity;
+            if (opacity <= 0) continue;
+            _style.BgColor = new Color(_lineColor, _lineColor.A * opacity);
+            _style.ShadowColor = new Color(_glowColor, _glowColor.A * opacity);
+            _style.ShadowOffset = i switch
+            {
+                0 => new Vector2(GlowOffset, 0), 1 => new Vector2(-GlowOffset, 0),
+                2 => new Vector2(0, GlowOffset), _ => new Vector2(0, -GlowOffset)
+            };
+            var stripe = i switch
+            {
+                0 => new Rect2(r.Position.X, r.Position.Y + insetY, LineWidth, r.Size.Y - 2 * insetY),
+                1 => new Rect2(r.End.X - LineWidth, r.Position.Y + insetY, LineWidth, r.Size.Y - 2 * insetY),
+                2 => new Rect2(r.Position.X + insetX, r.Position.Y, r.Size.X - 2 * insetX, LineWidth),
+                _ => new Rect2(r.Position.X + insetX, r.End.Y - LineWidth, r.Size.X - 2 * insetX, LineWidth)
+            };
+            // StyleBox shadow is narrow canvas geometry, not a blurred fullscreen texture.
+            DrawStyleBox(_style, stripe);
+        }
     }
+
+#if DEBUG
+    internal float OpacityForSmoke(RoomBoundaryEdges edge)
+        => _feedback[System.Array.IndexOf(Edges, edge)].Opacity;
+#endif
 }
 #endif

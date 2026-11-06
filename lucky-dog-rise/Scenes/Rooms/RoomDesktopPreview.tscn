@@ -6,6 +6,17 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat"]
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomBoundaryView.cs" id="boundary"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_boundary"]
+bg_color = Color(1, 0.48, 0.44, 0.55)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+corner_detail = 4
+shadow_color = Color(1, 0.4, 0.36, 0.16)
+shadow_size = 14
+anti_aliasing_size = 1.0
+
 [node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat", "Boundary")]
 script = ExtResource("script")
 _dogScene = ExtResource("dog")
@@ -26,3 +37,4 @@ layer = 3
 visible = false
 mouse_filter = 2
 script = ExtResource("boundary")
+EdgeStyle = SubResource("StyleBox_boundary")
