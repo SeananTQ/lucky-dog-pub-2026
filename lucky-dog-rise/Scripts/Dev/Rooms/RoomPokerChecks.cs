@@ -57,6 +57,7 @@ internal static class RoomPokerChecks
         await Step();
         panel.CloseImmediate();
         var desktop = main.RoomDesktopForSmoke;
+        await CheckAvatarCanvasIsolation(main, page, desktop, Wait, Capture, "desktop");
         var remote = desktop.RemoteDogs.First(d => d.MemberId == guest.Id);
         desktop.MoveMember(guest.Id, remote.Position + new Vector2(-40, -100), 0, false, 0, 0);
         await Wait();
@@ -81,6 +82,8 @@ internal static class RoomPokerChecks
         Check(bSize.X == (DisplayServer.ScreenGetSize().X - 2) / 2 && bSize.Y == DisplayServer.ScreenGetSize().Y - 2
             && client.LayoutSession == session && client.View.GameId == "social",
             "compact poker retains the desktop half-screen host and room session");
+        await CheckAvatarCanvasIsolation(main, page, compact, Wait, Capture, "compact");
+        await CheckPokerForeground(main, compact, game, Wait, Capture, "compact");
         await CheckCompactMovement(main, compact, client, panel, Wait);
         await Capture("compact-free");
         var watched = compact.RemoteDogs.First(d => d.MemberId == host.Id);
@@ -116,6 +119,8 @@ internal static class RoomPokerChecks
         Check(DisplayServer.WindowGetSize() == DisplayServer.ScreenGetSize() - Vector2I.One * 2,
             "C is monitor-sized with the ordinary-window margin");
         var poker = main.RoomPokerDogsForSmoke;
+        await CheckAvatarCanvasIsolation(main, page, poker, Wait, Capture, "full");
+        await CheckPokerForeground(main, poker, game, Wait, Capture, "full");
         var dogView = poker.RemoteDogs.First(d => d.MemberId == host.Id);
         var oldDog = dogView.Position;
         int screenIndex = DisplayServer.WindowGetCurrentScreen();
@@ -332,6 +337,90 @@ internal static class RoomPokerChecks
         panel.CloseImmediate();
         main.RoomModeForSmoke(false);
         await Wait(.8);
+    }
+
+    private static async Task CheckAvatarCanvasIsolation(ModeManager main, InGameRoomPreview page, RoomDesktopPreview preview,
+        Func<double, Task> wait, Func<string, Task> capture, string mode)
+    {
+        var rearClient = page.MockClientForSmoke(2);
+        var frontClient = page.MockClientForSmoke(3);
+        var rearAppearance = (rearClient.SkinId, rearClient.HeadwearId, rearClient.Reaction);
+        var frontAppearance = (frontClient.SkinId, frontClient.HeadwearId, frontClient.Reaction);
+        var positions = preview.CaptureRemotePlacements(DisplayServer.WindowGetPosition());
+        rearClient.SetAppearance(1008, 2013, 1002); // Cream / pixel glasses / police cap.
+        frontClient.SetAppearance(1013, 2030, 1002); // Red / nerd glasses / Viking helmet.
+        page.AdvancePreview(.5); await wait(.15);
+        var rear = preview.RemoteDogs.First(d => d.MemberId == rearClient.Id);
+        var front = preview.RemoteDogs.First(d => d.MemberId == frontClient.Id);
+        var origin = (Vector2)DisplayServer.WindowGetSize() * new Vector2(.5f, .56f);
+        preview.MoveMember(rear.MemberId, origin, 0, false, 0, 0);
+        preview.MoveMember(front.MemberId, origin + new Vector2(45, 12), 0, false, 0, 0);
+        await wait(.15);
+        var rearLayer = rear.GetParent<CanvasLayer>();
+        var frontLayer = front.GetParent<CanvasLayer>();
+        Check(rear.GetCanvas() != front.GetCanvas() && rearLayer.Layer < frontLayer.Layer
+            && front.FindChildren("*", "CanvasItem", true, false).Cast<CanvasItem>().All(p => p.GetCanvas() == front.GetCanvas()),
+            mode + " whole avatars use distinct ordered canvases; absolute accessory Z stays inside its own dog");
+        Check(preview.HitTest(front.Position + new Vector2(0, -40)) == front.MemberId,
+            mode + " overlapping remote hit test matches canvas order");
+        await capture(mode + "-remote-overlap");
+        frontClient.SetReaction(1001); page.AdvancePreview(.5); await wait(.15);
+        Check(front.Dog.GetNode<Node2D>("ClawLeft").GetCanvas() == front.GetCanvas()
+            && frontLayer.Layer > rearLayer.Layer, mode + " reaction and absolute claw changes keep avatar isolation");
+        main.RoomFullscreenHideForSmoke(true); await wait(.1);
+        Check(preview.RemoteDogs.All(d => !d.GetParent<CanvasLayer>().Visible), mode + " hiding host hides every avatar canvas");
+        main.RoomFullscreenHideForSmoke(false); await wait(.15);
+        Check(preview.RemoteDogs.All(d => d.GetParent<CanvasLayer>().Visible), mode + " showing host restores avatar canvases");
+        rearClient.SetAppearance(rearAppearance.SkinId, rearAppearance.HeadwearId, rearAppearance.Reaction);
+        frontClient.SetAppearance(frontAppearance.SkinId, frontAppearance.HeadwearId, frontAppearance.Reaction);
+        page.AdvancePreview(.5); await wait(.15);
+        preview.RestoreRemotePlacements(positions, DisplayServer.WindowGetPosition(), true,
+            positions.Members.Where(m => m.TaskbarSnapped).Select(m => m.ScreenPosition.Y - DisplayServer.WindowGetPosition().Y).FirstOrDefault());
+        await wait(.15);
+    }
+
+    private static async Task CheckPokerForeground(ModeManager main, RoomDesktopPreview poker, GameManager game,
+        Func<double, Task> wait, Func<string, Task> capture, string mode)
+    {
+        var table = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
+        var card = game.GetNode<CardTableController>("CardArea").GetCard(0);
+        var cardButton = card.GetNode<Button>("CardBody/ClickButton");
+        var point = table.GetGlobalTransformWithCanvas()
+            * (cardButton.GetGlobalTransformWithCanvas() * (cardButton.Size / 2));
+        var positions = poker.CaptureRemotePlacements(DisplayServer.WindowGetPosition());
+        var dog = poker.RemoteDogs.First();
+        poker.MoveMember(dog.MemberId, point + new Vector2(0, 40), 0, false, 0, 0);
+        await wait(.15);
+        var layer = poker.GetNode<CanvasLayer>("RemoteLayer");
+        Check(layer.Layer > main.GetNode<CanvasLayer>("InfoPanel").Layer
+            && layer.Layer < main.SettingsPanelObj.Layer && poker.HitTest(point) == dog.MemberId,
+            mode + " dog covers table/info but stays below the system panel");
+        bool held = card.IsHeld;
+        void Button(Vector2 p, bool pressed) => main.GetViewport().PushInput(new InputEventMouseButton
+        { ButtonIndex = MouseButton.Left, Pressed = pressed, Position = p, GlobalPosition = p }, true);
+        Button(point, true); Button(point, false);
+        await wait(.15);
+        Check(card.IsHeld == held, mode + " clicking foreground dog does not flip the covered card");
+        var before = dog.Position;
+        var tableBefore = table.Position;
+        Button(point, true);
+        main.GetViewport().PushInput(new InputEventMouseMotion { ButtonMask = MouseButtonMask.Left,
+            Position = point + new Vector2(40, -20), GlobalPosition = point + new Vector2(40, -20) }, true);
+        Button(point + new Vector2(40, -20), false);
+        await wait(.15);
+        Check(dog.Position.IsEqualApprox(before + new Vector2(40, -20)) && table.Position.IsEqualApprox(tableBefore)
+            && card.IsHeld == held, mode + " overlap drag moves only the dog, not the table or cards");
+        await capture(mode + "-dog-over-table");
+        game.RequestPokerWelcome(true);
+        await wait(.15);
+        Check(layer.Layer < 0, mode + " poker overlay stays above overlapping dogs");
+        var welcome = game.GetNode<PokerWelcomeDialogController>("PokerWelcomeDialog");
+        welcome.GetNode<Button>("InputShield/Center/Panel/Margin/Content/Confirm").EmitSignal(BaseButton.SignalName.Pressed);
+        await wait(.15);
+        Check(layer.Layer > 1, mode + " foreground layer returns after closing overlay");
+        poker.RestoreRemotePlacements(positions, DisplayServer.WindowGetPosition(), true,
+            positions.Members.Where(m => m.TaskbarSnapped).Select(m => m.ScreenPosition.Y - DisplayServer.WindowGetPosition().Y).FirstOrDefault());
+        await wait(.15);
     }
 
     private static async Task CheckHandoff(ModeManager main, Dictionary<int, Vector2> expected, Rect2I host, bool poker)

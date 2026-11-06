@@ -169,7 +169,7 @@ public partial class ModeManager
             _roomDesktop,
             _roomDesktopHostPosition - DisplayServer.WindowGetPosition(),
             new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())),
-            RoomSnapEnabled, RoomTaskbarAnchorOffsetY);
+            RoomSnapEnabled, RoomTaskbarAnchorOffsetY, foreground: !UiInteractionOccupancy.IsOccupied(this, _settingsPanel));
         if (_roomPokerEntryPositions != null && _desktopRoomClient.View != null)
         {
             _roomPokerDogs.RestoreRemotePlacements(_roomPokerEntryPositions, RoomPokerHost.Position,
@@ -225,7 +225,11 @@ public partial class ModeManager
             if (!button.Pressed && _roomPokerDragMember != 0)
             { CancelWindowDrag(); GetViewport().SetInputAsHandled(); return true; }
             if (!button.Pressed || _settingsPanel.ContainsPoint(button.Position)
-                || new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())).HasPoint(button.Position)) return false;
+                || UiInteractionOccupancy.IsOccupied(this)) return false;
+#if DEBUG
+            if (_steamMockPanel?.ContainsPoint(button.Position) == true) return false;
+#endif
+            // The foreground dog owns overlap clicks before the underlying table.
             int id = _roomPokerDogs.HitTest(button.Position);
             if (id == 0) return false;
             if (!UiInteractionOccupancy.IsOccupied(this))
@@ -243,7 +247,8 @@ public partial class ModeManager
         }
         if (input is InputEventMouseMotion motion && _roomPokerDragMember != 0)
         {
-            if ((motion.ButtonMask & MouseButtonMask.Left) == 0 || !RoomPokerDragIsCurrent())
+            if ((motion.ButtonMask & MouseButtonMask.Left) == 0 || !RoomPokerDragIsCurrent()
+                || UiInteractionOccupancy.IsOccupied(this))
             { CancelWindowDrag(); return true; }
             var delta = motion.Position - _roomPokerMouseDragStart;
             if (delta.Length() < DefaultDragThreshold && !_isDragging) return true;

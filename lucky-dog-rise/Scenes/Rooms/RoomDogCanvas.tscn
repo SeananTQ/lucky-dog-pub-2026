@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomDogView.tscn" id="dog"]
+
+[node name="RoomDogCanvas" type="CanvasLayer"]
+visible = false
+
+[node name="Dog" parent="." instance=ExtResource("dog")]

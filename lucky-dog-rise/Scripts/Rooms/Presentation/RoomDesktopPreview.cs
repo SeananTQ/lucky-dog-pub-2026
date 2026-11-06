@@ -27,6 +27,7 @@ public partial class RoomDesktopPreview : Node2D
         };
     }
     private readonly Dictionary<int, RoomDogView> _dogs = new();
+    private readonly List<RoomDogView> _drawOrder = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)
     {
         public long Presence = presence;
@@ -43,7 +44,10 @@ public partial class RoomDesktopPreview : Node2D
     {
         // CanvasLayer does not inherit a Node2D ancestor's visibility.
         if (what == NotificationVisibilityChanged && IsInstanceValid(_remoteLayer))
+        {
             _remoteLayer.Visible = IsVisibleInTree();
+            UpdateRemoteCanvases();
+        }
         if (what == NotificationVisibilityChanged && IsInstanceValid(_chatLayer))
         {
             _chatLayer.Visible = IsVisibleInTree();
@@ -66,7 +70,10 @@ public partial class RoomDesktopPreview : Node2D
         // arrives (notably under simulated receive latency). This is still the
         // same visible room; keep all seats until the new membership is known.
         if (client.View == null && _placements.TryGetValue(client.Id, out var previousSelf))
+        {
+            UpdateRemoteCanvases();
             return previousSelf.Position;
+        }
         var members = client.View?.Members ?? Array.Empty<RoomMember>();
         var self = members.FirstOrDefault(member => member.Id == client.Id);
         if (self != null && _placements.TryGetValue(client.Id, out var selfPlacement))
@@ -76,7 +83,7 @@ public partial class RoomDesktopPreview : Node2D
             _placements.Remove(id);
         foreach (var id in _dogs.Keys.Where(id => !members.Any(member => member.Id == id)).ToArray())
         {
-            _dogs[id].QueueFree();
+            RemoveRemoteCanvas(_dogs[id]);
             _dogs.Remove(id);
         }
         float snappedDogY = usable.End.Y - taskbarAnchorOffsetY;
@@ -105,11 +112,13 @@ public partial class RoomDesktopPreview : Node2D
             if (member.Id == client.Id) { localPosition = placement.Position; continue; }
             if (!_dogs.TryGetValue(member.Id, out var dog))
             {
-                dog = _dogScene.Instantiate<RoomDogView>();
-                dog.Name = $"RemoteDog{member.Id}";
-                _remoteLayer.AddChild(dog);
+                var canvas = _dogScene.Instantiate<CanvasLayer>();
+                canvas.Name = $"RemoteDog{member.Id}";
+                _remoteLayer.AddChild(canvas);
+                dog = canvas.GetNode<RoomDogView>("Dog");
                 dog.MakePassivePreview();
                 _dogs.Add(member.Id, dog);
+                _drawOrder.Add(dog);
             }
             dog.Scale = Vector2.One * scale;
             dog.Position = placement.Position;
@@ -120,6 +129,7 @@ public partial class RoomDesktopPreview : Node2D
             dog.SetDepartureProgress(client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival
                 && member.Id == arrival.HostMemberId ? (float)arrival.DepartureProgress : null);
         }
+        UpdateRemoteCanvases();
         // Same anchor as RoomDogView, aligned to the original countdown balloon.
         // ModeManager temporarily retracts that balloon while local chat is active.
         LocalChat.Position = localPosition + new Vector2(-49, -140) * scale;
@@ -138,8 +148,14 @@ public partial class RoomDesktopPreview : Node2D
 
     // Both host sizes share free screen-space positions with the desktop renderer.
     public void PresentPoker(RoomClient client, Rect2 usable, float scale,
-        RoomDesktopPreview desktopSeed, Vector2 desktopSeedOffset, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY)
+        RoomDesktopPreview desktopSeed, Vector2 desktopSeedOffset, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY,
+        bool foreground)
     {
+        // Poker content is on canvas 0, InfoPanel on 1, and the system panel on
+        // 100. Poker's modal overlays live inside its SubViewport, so yield to
+        // them while occupied without changing the desktop instance's layer.
+        int layer = foreground ? 2 : -1;
+        if (_remoteLayer.Layer != layer) _remoteLayer.Layer = layer;
         var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
             ?? Array.Empty<RoomMember>();
         Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled, showLocalChat: false);
@@ -179,9 +195,36 @@ public partial class RoomDesktopPreview : Node2D
 
     public int HitTest(Vector2 windowPoint)
     {
-        foreach (var dog in _dogs.Values.Reverse())
-            if (dog.ContainsDogPoint(windowPoint)) return dog.MemberId;
+        // Match the canvas order; dictionary slots can be reused after departures.
+        for (int i = _drawOrder.Count - 1; i >= 0; i--)
+            if (_drawOrder[i].ContainsDogPoint(windowPoint)) return _drawOrder[i].MemberId;
         return 0;
+    }
+
+    private void UpdateRemoteCanvases()
+    {
+        // ZIndex (including absolute claw/hat offsets) is scoped to a canvas.
+        // Give each avatar its own canvas, without render textures or a CanvasGroup
+        // back-buffer. All desktop canvases stay below the local dog (canvas 0);
+        // poker canvases start above InfoPanel (1) and remain below system UI.
+        int layer = _remoteLayer.Layer < 0 ? _remoteLayer.Layer - _dogs.Count + 1 : _remoteLayer.Layer;
+        foreach (var dog in _drawOrder)
+        {
+            var canvas = dog.GetParent<CanvasLayer>();
+            if (canvas.Layer != layer) canvas.Layer = layer;
+            bool visible = IsVisibleInTree();
+            if (canvas.Visible != visible) canvas.Visible = visible;
+            layer++;
+        }
+        if (IsInstanceValid(_chatLayer)) _chatLayer.Layer = Math.Max(3, layer);
+    }
+
+    private void RemoveRemoteCanvas(RoomDogView dog)
+    {
+        _drawOrder.Remove(dog);
+        var canvas = dog.GetParent<CanvasLayer>();
+        canvas.Hide();
+        canvas.QueueFree();
     }
 
     public void UpdateNameBars(Rect2 idleRect, Font font, StyleBox style, bool centerOnTaskbar,
@@ -263,7 +306,7 @@ public partial class RoomDesktopPreview : Node2D
         Boundary?.Clear();
         LocalChat?.Reset();
         _client = null;
-        foreach (var dog in _dogs.Values) { dog.Hide(); dog.QueueFree(); }
+        foreach (var dog in _dogs.Values) RemoveRemoteCanvas(dog);
         _dogs.Clear();
         _placements.Clear();
         _awaitingArrivalFrame = null;
