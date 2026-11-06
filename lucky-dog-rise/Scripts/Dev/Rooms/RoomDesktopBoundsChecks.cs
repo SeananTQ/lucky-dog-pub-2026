@@ -79,6 +79,9 @@ internal static class RoomDesktopBoundsChecks
         var point = remote.Position + DisplayServer.WindowGetPosition() + new Vector2(0, -40);
         Button(point, true); Motion(point + new Vector2(-screen.Size.X * 2, -60)); await Wait();
         Check(main.RoomDraggingForSmoke && DisplayServer.WindowGetPosition() == initialHost.Position, "remote drag clamps without pushing host");
+        Motion(point + new Vector2(-screen.Size.X * 2, -48)); await Wait(1.2);
+        Check(desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .99f,
+            "remote feedback stays bright while held against its limit");
         Button(point, false); await Wait();
         var beforeRemotes = remotes.ToDictionary(d => d.MemberId, d => d.Position);
         var self = desktop.GetPosition(client.Id);
@@ -89,6 +92,12 @@ internal static class RoomDesktopBoundsChecks
         var pushedHost = DisplayServer.WindowGetPosition();
         Check(pushedHost.X < initialHost.Position.X, "local dog pushes compact host left");
         Check(remotes.All(d => d.Position.IsEqualApprox(beforeRemotes[d.MemberId])), "remote local positions stay fixed while host moves");
+        Motion(leftPoint); await Wait(.2);
+        Motion(leftPoint + new Vector2(0, 12)); await Wait(1.2);
+        Check(DisplayServer.WindowGetPosition() == pushedHost && main.RoomDraggingForSmoke
+            && desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .99f
+            && desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Right) > .99f,
+            "local feedback stays bright through stationary and vertical motion at the pushing edge");
         Motion(leftPoint + new Vector2(100, 0)); await Wait();
         Check(DisplayServer.WindowGetPosition() == pushedHost, "reversing inside area does not pull host");
         Check(desktop.Boundary.OpacityForSmoke(RoomBoundaryEdges.Left) > .9f

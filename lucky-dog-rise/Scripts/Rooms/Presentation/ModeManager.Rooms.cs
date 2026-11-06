@@ -518,11 +518,19 @@ public partial class ModeManager
                 ? RoomLocalFootprint : _roomDesktop.GetFootprint(_roomDragMember);
             var desired = _roomDragDogStart + delta;
             var host = _roomDesktopHost;
+            bool pushingContact = false;
             if (RoomCompactDesktop && _roomDragMember == _desktopRoomClient.Id)
             {
                 var screen = new Rect2I(DisplayServer.ScreenGetPosition(_roomScreen), DisplayServer.ScreenGetSize(_roomScreen));
                 host = RoomDesktopGeometry.Push(host, screen, desired, footprint);
                 _roomCompactHostX = host.Position.X;
+                // Window movement can produce another motion at the same screen
+                // position. Also keep feedback when sliding vertically along the
+                // pushing edge; only returning inside should start its fade.
+                pushingContact = (desired.X + footprint.Position.X <= host.Position.X + .5f
+                        && host.Position.X > screen.Position.X + 1)
+                    || (desired.X + footprint.End.X >= host.End.X - .5f
+                        && host.End.X < screen.End.X - 1);
             }
             bool pushed = host.Position != _roomDesktopHost.Position;
             if (pushed) DisplayServer.WindowSetPosition(host.Position);
@@ -534,7 +542,7 @@ public partial class ModeManager
             var snapped = _roomDesktop.GetPosition(_roomDragMember);
             var bounded = _roomDesktop.ConstrainMember(_roomDragMember, footprint, new Rect2(Vector2.Zero, host.Size));
             var edges = RoomDesktopGeometry.Blocked(snapped, bounded);
-            if (pushed) edges |= RoomBoundaryEdges.Left | RoomBoundaryEdges.Right;
+            if (pushed || pushingContact) edges |= RoomBoundaryEdges.Left | RoomBoundaryEdges.Right;
             _roomDesktop.Boundary.Indicate(new Rect2(Vector2.Zero, host.Size), edges);
             ApplyRoomDesktopLayout();
             GetViewport().SetInputAsHandled();
