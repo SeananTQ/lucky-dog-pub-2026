@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../lucky-dog-rise/Scripts/Rooms/Poker/*.cs" Link="Core/%(Filename)%(Extension)" />
+    <Compile Include="../../lucky-dog-rise/Scripts/DataTables/EHandRank.cs" Link="EHandRank.cs" />
+  </ItemGroup>
+</Project>
