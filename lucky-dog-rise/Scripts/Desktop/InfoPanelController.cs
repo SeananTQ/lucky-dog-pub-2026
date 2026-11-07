@@ -25,6 +25,26 @@ public partial class InfoPanelController : CanvasLayer
     [Export] private TextureRect _oddsTableGuideHint = null!;
     [Export] private PersistentTipController _paytableTip = null!;
     public PersistentTipController PaytableTip => _paytableTip;
+    [Export] public VBoxContainer SessionContent { get; private set; }
+    private long? _sessionChips;
+    private string _sessionChipsTitle = "";
+
+    public void SetSessionChips(long? chips, string title = "")
+    {
+        if (_sessionChips == chips && _sessionChipsTitle == title) return;
+        _sessionChips = chips;
+        _sessionChipsTitle = title;
+        _chipsTween?.Kill();
+        SessionContent.Visible = chips != null;
+        _payoutPanel.Visible = chips == null;
+        _winResultLabel.Visible = chips == null;
+        _chipsKeyLabel.Text = chips != null ? title : L10n.Tr(L10nKey.InfoPanel_Chips);
+        SetChipsText(_gameData?.Chips ?? 0);
+        RefreshBlindBoxButton();
+        // Container children may briefly expand the old panel while their text
+        // and visibility settle. Restore its design size after that layout pass.
+        Callable.From(() => { if (IsInsideTree()) LockPanelSize(); }).CallDeferred();
+    }
 
     // ===== 动画参数 =====
     public static readonly Vector2 BasePanelSize = new(246, 600);
@@ -157,6 +177,7 @@ public partial class InfoPanelController : CanvasLayer
 
     private void OnChipsChanged(int newChips)
     {
+        if (_sessionChips != null) { _displayedChips = newChips; return; }
         int delta = newChips - _displayedChips;
         if (Mathf.Abs(delta) <= 1)
         {
@@ -243,6 +264,7 @@ public partial class InfoPanelController : CanvasLayer
     /// </summary>
     private void SetChipsText(int chips)
     {
+        if (_sessionChips is long sessionChips) { _chipsLabel.Text = sessionChips.ToString("N0"); return; }
         if (_gameData != null && chips < _gameData.BetAmount)
         {
             _chipsLabel.Text = $"{chips:N0}/{_gameData.BetAmount:N0}";
@@ -383,6 +405,8 @@ public partial class InfoPanelController : CanvasLayer
 
     public void RefreshBlindBoxButton()
     {
+        _blindBoxBtn.Visible = _sessionChips == null && BuildCapabilities.BlindBoxes;
+        if (_sessionChips != null) { SetBlindBoxHintDisplayVisible(false); return; }
         if (!BuildCapabilities.BlindBoxes)
         {
             _blindBoxBtn.Visible = false;
@@ -477,7 +501,7 @@ public partial class InfoPanelController : CanvasLayer
 
     private void RefreshLocalizedText()
     {
-        _chipsKeyLabel.Text = L10n.Tr(L10nKey.InfoPanel_Chips);
+        _chipsKeyLabel.Text = _sessionChips != null ? _sessionChipsTitle : L10n.Tr(L10nKey.InfoPanel_Chips);
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         RefreshActionButtonText(_settingsBtn, L10nKey.InfoPanel_Menu);
 

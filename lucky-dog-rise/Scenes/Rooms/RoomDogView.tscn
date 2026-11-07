@@ -7,8 +7,11 @@
 [ext_resource type="PackedScene" path="res://Scenes/Desktop/DesktopRiseIntro.tscn" id="departure"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomNameBar.tscn" id="name_bar"]
 
-[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("Dog", "_nameBar", "_name", "Chat", "_dogHits")]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="poker_hand"]
+
+[node name="RoomDogView" type="Node2D" node_paths=PackedStringArray("PokerHand", "Dog", "_nameBar", "_name", "Chat", "_dogHits")]
 script = ExtResource("script")
+PokerHand = NodePath("PokerHand")
 Dog = NodePath("Dog")
 _nameBar = NodePath("NameBar")
 _name = NodePath("NameBar/Name")
@@ -27,3 +30,10 @@ offset_bottom = 49.0
 
 [node name="Chat" parent="." instance=ExtResource("chat_scene")]
 position = Vector2(-49, -140)
+
+[node name="PokerHand" parent="." instance=ExtResource("poker_hand")]
+visible = false
+offset_left = 100.0
+offset_top = -86.0
+offset_right = 232.0
+offset_bottom = 36.0

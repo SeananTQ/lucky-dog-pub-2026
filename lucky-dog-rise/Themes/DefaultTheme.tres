@@ -1161,3 +1161,19 @@ PersistentTipButton/styles/normal = SubResource("StyleBoxEmpty_sticky_button")
 PersistentTipButton/styles/hover = SubResource("StyleBoxEmpty_sticky_button")
 PersistentTipButton/styles/pressed = SubResource("StyleBoxEmpty_sticky_button")
 PersistentTipButton/styles/focus = SubResource("StyleBoxEmpty_sticky_button")
+
+RoomPokerPanelLabel/base_type = &"Label"
+RoomPokerPanelLabel/font_sizes/font_size = 16
+RoomPokerSmallLabel/base_type = &"Label"
+RoomPokerSmallLabel/font_sizes/font_size = 14
+RoomPokerSmallLabel/colors/font_shadow_color = Color(0.08, 0.10, 0.10, 1)
+RoomPokerSmallLabel/constants/shadow_offset_x = 1
+RoomPokerSmallLabel/constants/shadow_offset_y = 1
+RoomPokerTableLabel/base_type = &"Label"
+RoomPokerTableLabel/font_sizes/font_size = 28
+RoomPokerTableLabel/colors/font_shadow_color = Color(0.08, 0.10, 0.10, 1)
+RoomPokerTableLabel/constants/shadow_offset_x = 1
+RoomPokerTableLabel/constants/shadow_offset_y = 2
+
+RoomPokerToolButton/base_type = &"CapsuleButton"
+RoomPokerToolButton/font_sizes/font_size = 14

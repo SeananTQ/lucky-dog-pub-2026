@@ -5,9 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../lucky-dog-rise/Scripts/Rooms/Poker/*.cs" Link="Core/%(Filename)%(Extension)" />
     <Compile Include="../../lucky-dog-rise/Scripts/DataTables/EHandRank.cs" Link="EHandRank.cs" />
+    <Compile Include="../../lucky-dog-rise/Scripts/Dev/Rooms/MischiefPokerPreviewSession.cs" Link="PreviewSession.cs" />
   </ItemGroup>
 </Project>

@@ -10,11 +10,12 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_pokerPreviewButton", "_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 script = ExtResource("script")
+_pokerPreviewButton = NodePath("Room/PokerPreview")
 _lobby = NodePath("Lobby")
 _room = NodePath("Room")
 _rooms = NodePath("Lobby/RoomList")
@@ -343,6 +344,12 @@ label_settings = ExtResource("group_title")
 [node name="Members" type="VBoxContainer" parent="Room"]
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="PokerPreview" type="Button" parent="Room"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+auto_translate_mode = 2
 
 [node name="Invite" type="Button" parent="Room"]
 layout_mode = 2

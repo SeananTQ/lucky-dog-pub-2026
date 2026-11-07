@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerHandView.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerCard.tscn" id="card"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="PokerHand" type="Control" node_paths=PackedStringArray("_first", "_second", "_status")]
+offset_right = 132.0
+offset_bottom = 122.0
+mouse_filter = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_first = NodePath("First")
+_second = NodePath("Second")
+_status = NodePath("Status")
+
+[node name="First" parent="." instance=ExtResource("card")]
+offset_left = 2.0
+offset_top = 3.0
+offset_right = 60.0
+offset_bottom = 84.0
+mouse_filter = 2
+disabled = true
+
+[node name="Second" parent="." instance=ExtResource("card")]
+offset_left = 67.0
+offset_top = 3.0
+offset_right = 125.0
+offset_bottom = 84.0
+mouse_filter = 2
+disabled = true
+
+[node name="Status" type="Label" parent="."]
+offset_top = 88.0
+offset_right = 132.0
+offset_bottom = 122.0
+mouse_filter = 2
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerSmallLabel"
+horizontal_alignment = 1
+autowrap_mode = 3

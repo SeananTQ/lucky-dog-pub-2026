@@ -38,6 +38,9 @@ public partial class GameManager : Node2D
     public event Action<bool> TutorialOverlayVisibilityChanged;
     public event Action<bool> PokerHandShowcaseVisibilityChanged;
 
+    public bool IsSessionPokerActive { get; private set; }
+    public event Action SessionPokerTurnEnd;
+
     public GameState State { get; private set; } = GameState.WaitingForBet;
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
@@ -328,8 +331,8 @@ public partial class GameManager : Node2D
         RefreshOverlayInteractionContexts();
     }
 
-    private void OnQuickBarHelpRequested() => _pokerHandShowcase.ShowBasics();
-    private void OnQuickBarTutorialRequested() => _tutorial.ShowOnce();
+    private void OnQuickBarHelpRequested() { if (IsSessionPokerActive) _pokerHandShowcase.ShowRanks(); else _pokerHandShowcase.ShowBasics(); }
+    private void OnQuickBarTutorialRequested() { if (!IsSessionPokerActive) _tutorial.ShowOnce(); }
     private void OnQuickBarDesktopRequested() => EmitSignal(SignalName.DesktopModeRequested);
     private void OnQuickBarChatRequested() => EmitSignal(SignalName.RoomChatRequested);
 
@@ -385,6 +388,7 @@ public partial class GameManager : Node2D
 
     private void OnBetRequested()
     {
+        if (IsSessionPokerActive) return;
         if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.WaitingForBet) return;
         if (!CanStartNewHand())
@@ -404,7 +408,7 @@ public partial class GameManager : Node2D
     /// </summary>
     private bool CanStartNewHand()
     {
-        if (State != GameState.WaitingForBet)
+        if (IsSessionPokerActive || State != GameState.WaitingForBet)
             return false;
 
         if (_gameData.CanAffordBet)
@@ -442,6 +446,7 @@ public partial class GameManager : Node2D
 
     private void OnDrawPressed()
     {
+        if (IsSessionPokerActive) { SessionPokerTurnEnd?.Invoke(); return; }
         if (IsRefreshmentBalloonPointerCaptured()) return;
         // HandAreaController 会在第一下落地时通知，补牌不在点击瞬间启动。
         if (State == GameState.Dealt || State == GameState.Holding)
@@ -450,6 +455,7 @@ public partial class GameManager : Node2D
 
     private void OnFirstKnockLanded()
     {
+        if (IsSessionPokerActive) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
         GetTree().CreateTimer(_drawStartDelayAfterFirstKnock).Timeout += () =>
         {
@@ -460,6 +466,7 @@ public partial class GameManager : Node2D
 
     private void OnCardClicked(int index)
     {
+        if (IsSessionPokerActive) return;
         if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
         _interactionHints.NotifyInteractionHandled();
@@ -488,6 +495,7 @@ public partial class GameManager : Node2D
 
     private void OnDogClicked()
     {
+        if (IsSessionPokerActive) return;
         if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
 
@@ -706,25 +714,25 @@ public partial class GameManager : Node2D
         var blindBoxVisible = _blindBoxOverlay.Visible;
         var showcaseVisible = _pokerHandShowcase.IsOverlayVisible;
         var collectionProgressVisible = _collectionProgressDialog.IsOverlayVisible;
-        _pokerWelcome.SetContext(_isPokerModeActive,
+        _pokerWelcome.SetContext(_isPokerModeActive && !IsSessionPokerActive,
             blindBoxVisible || showcaseVisible || collectionProgressVisible);
         bool welcomeVisible = _pokerWelcome.IsOverlayVisible;
         _tutorial.SetPokerContext(
-            _isPokerModeActive,
+            _isPokerModeActive && !IsSessionPokerActive,
             blindBoxVisible || showcaseVisible || collectionProgressVisible || welcomeVisible);
         var pokerInputAvailable = _isPokerModeActive
             && !blindBoxVisible
             && !showcaseVisible
             && !collectionProgressVisible
             && !_tutorial.IsOverlayVisible;
-        _drawTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
-        _helpBarTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
-        _paytableTip?.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible);
+        _drawTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible && !IsSessionPokerActive);
+        _helpBarTip.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible && !IsSessionPokerActive);
+        _paytableTip?.SetContext(CurrentTips, pokerInputAvailable && !welcomeVisible && !IsSessionPokerActive);
         _quickBar?.SetWelcomeContext(welcomeVisible, _pokerWelcome.Layer);
         _quickBar?.SetAvailable(pokerInputAvailable);
         // The system panel may stay open throughout play; it does not suspend idle discovery.
-        _quickBar?.SetReminderContext(pokerInputAvailable && !welcomeVisible);
-        var pokerHintsAvailable = pokerInputAvailable && !welcomeVisible && _quickBar?.IsPointerInside != true;
+        _quickBar?.SetReminderContext(pokerInputAvailable && !welcomeVisible && !IsSessionPokerActive);
+        var pokerHintsAvailable = pokerInputAvailable && !welcomeVisible && !IsSessionPokerActive && _quickBar?.IsPointerInside != true;
         _interactionHints.SetInputContextActive(pokerHintsAvailable);
         _interactionHints.SetProactiveHintContextActive(pokerHintsAvailable);
     }
@@ -733,6 +741,8 @@ public partial class GameManager : Node2D
     {
         if (_interactionHints == null)
             return;
+
+        if (IsSessionPokerActive) { _interactionHints.SetAvailableKeys(); return; }
 
         if (_itemArea != null && _itemArea.IsUseBalloonOpen)
         {

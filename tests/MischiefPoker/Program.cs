@@ -1,13 +1,23 @@
 using System.Diagnostics;
 using LuckyDogRise.Rooms.Poker;
 
-var watch = Stopwatch.StartNew();
-HandChecks.Run();
-Console.WriteLine($"PASS hand examples, kickers, best five and permutations ({Check.Count} checks)");
-MatchChecks.Run();
-Console.WriteLine($"PASS game flow, deadlines, privacy, dealer changes and chip accounting ({Check.Count} checks)");
-HandChecks.ExhaustiveFiveCardCategories();
-Console.WriteLine($"MISCHIEF_POKER_PASS: {Check.Count} checks, all 2,598,960 five-card hands, {watch.Elapsed.TotalSeconds:F2}s");
+try
+{
+    var watch = Stopwatch.StartNew();
+    HandChecks.Run();
+    Console.WriteLine($"PASS hand examples, kickers, best five and permutations ({Check.Count} checks)");
+    MatchChecks.Run();
+    PreviewChecks.Run();
+    Console.WriteLine($"PASS game flow, deadlines, privacy, dealer changes and chip accounting ({Check.Count} checks)");
+    HandChecks.ExhaustiveFiveCardCategories();
+    Console.WriteLine($"MISCHIEF_POKER_PASS: {Check.Count} checks, all 2,598,960 five-card hands, {watch.Elapsed.TotalSeconds:F2}s");
+}
+catch (Exception error)
+{
+    // A failed assertion is a normal test failure, not an unhandled CLR crash/Windows error dialog.
+    Console.Error.WriteLine("MISCHIEF_POKER_FAIL: " + error);
+    Environment.ExitCode = 1;
+}
 
 internal static class Check
 {

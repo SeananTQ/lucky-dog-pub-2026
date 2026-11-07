@@ -113,6 +113,8 @@ public partial class SystemPanelController : CanvasLayer
     private ConfirmOverlayController _roomKickConfirm;
     private Rooms.RoomGameProposalOverlay _roomGameProposal;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
+    public event Action<Rooms.RoomClient> RoomPokerPreviewRequested;
+    public void ShowPokerPreviewNotice(string text) => _roomPreview?.ShowPokerPreviewNotice(text);
     private int _roomTabIndex = -1;
     public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
@@ -1113,6 +1115,7 @@ public partial class SystemPanelController : CanvasLayer
         _roomPreview.BindGameProposal(_roomGameProposal);
         _roomPreview.Configure(_platformService, _gameData);
         _roomPreview.ClientChanged += client => RoomPreviewCreated?.Invoke(client);
+        _roomPreview.PokerPreviewRequested += client => RoomPokerPreviewRequested?.Invoke(client);
         _roomPreview.PageChanged += () =>
         {
             // Background invitation handling must not scroll the active settings page.

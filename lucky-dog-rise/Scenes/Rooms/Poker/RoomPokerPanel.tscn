@@ -1,0 +1,105 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPanelView.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="PokerSession" type="VBoxContainer" node_paths=PackedStringArray("_title", "_summary", "_order", "_result", "_error", "_next", "_pause", "_step", "_timeout", "_exit", "_preset")]
+theme = ExtResource("theme")
+theme_override_constants/separation = 4
+script = ExtResource("script")
+_title = NodePath("Title")
+_summary = NodePath("Summary")
+_order = NodePath("Order")
+_result = NodePath("Results/Content/Result")
+_error = NodePath("Results/Content/Error")
+_next = NodePath("Next")
+_pause = NodePath("Tools/Pause")
+_step = NodePath("Tools/Step")
+_timeout = NodePath("Actions/Timeout")
+_exit = NodePath("Actions/Exit")
+_preset = NodePath("Preset")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerPanelLabel"
+
+[node name="Summary" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerPanelLabel"
+
+[node name="Order" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerSmallLabel"
+
+[node name="Results" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Results"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Result" type="Label" parent="Results/Content"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerPanelLabel"
+
+[node name="Next" type="Button" parent="."]
+layout_mode = 2
+theme_type_variation = &"RoomPokerToolButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Preset" type="OptionButton" parent="."]
+layout_mode = 2
+fit_to_longest_item = false
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Tools" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Pause" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"RoomPokerToolButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Step" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"RoomPokerToolButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Actions" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Timeout" type="Button" parent="Actions"]
+size_flags_horizontal = 3
+layout_mode = 2
+theme_type_variation = &"RoomPokerToolButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Error" type="Label" parent="Results/Content"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerSmallLabel"
+
+[node name="Exit" type="Button" parent="Actions"]
+size_flags_horizontal = 3
+layout_mode = 2
+theme_type_variation = &"RoomPokerToolButton"
+auto_translate_mode = 2
+focus_mode = 0

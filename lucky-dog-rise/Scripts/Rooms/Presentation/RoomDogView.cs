@@ -8,6 +8,7 @@ namespace LuckyDogRise.Rooms;
 
 public partial class RoomDogView : Node2D
 {
+    [Export] public RoomPokerHandView PokerHand { get; private set; }
     [Export] public DogVisual Dog { get; private set; } = null!;
     [Export] private PanelContainer _nameBar = null!;
     [Export] private Label _name = null!;
@@ -152,6 +153,7 @@ public partial class RoomDogView : Node2D
     }
     public bool ContainsDogPoint(Vector2 windowPoint)
     {
+        if (ContainsWindowPoint(PokerHand, windowPoint)) return true;
         foreach (var hit in _dogHits) if (ContainsWindowPoint(hit, windowPoint)) return true;
         return false;
     }
@@ -159,7 +161,16 @@ public partial class RoomDogView : Node2D
         && new Rect2(Vector2.Zero, control.Size).HasPoint(
             control.GetGlobalTransformWithCanvas().AffineInverse() * windowPoint);
 
-    internal Rect2 Footprint => MeasureFootprint(_footprintSprites, _nameBar, Position);
+    internal Rect2 Footprint
+    {
+        get
+        {
+            var footprint = MeasureFootprint(_footprintSprites, _nameBar, Position);
+            if (!PokerHand.IsVisibleInTree()) return footprint;
+            var hand = PokerHand.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, PokerHand.Size);
+            return footprint.Merge(new Rect2(hand.Position - Position, hand.Size).Grow(4));
+        }
+    }
 
     // Cached sprite references, no texture readback, alpha scan or scene traversal
     // while dragging. Includes headwear, paws and the actual counter/name bar.
@@ -180,7 +191,7 @@ public partial class RoomDogView : Node2D
         var footprint = result ?? new Rect2(origin - Vector2.One, Vector2.One * 2);
         return new Rect2(footprint.Position - origin, footprint.Size).Grow(4);
     }
-    public bool IsPointerOverContent() => Visible && (IsPointerOverDog()
+    public bool IsPointerOverContent() => Visible && (Contains(PokerHand) || IsPointerOverDog()
         || Chat.ContainsPoint(GetGlobalMousePosition()));
 
     public void MakePassivePreview()

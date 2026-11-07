@@ -1,0 +1,57 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerTableView.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerCard.tscn" id="card"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="hand"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn")]
+z_index = 6
+script = ExtResource("script")
+_board = [NodePath("Board/Card1"), NodePath("Board/Card2"), NodePath("Board/Card3"), NodePath("Board/Card4"), NodePath("Board/Card5")]
+_hand = NodePath("Hand")
+_turn = NodePath("Turn")
+
+[node name="Board" type="Control" parent="."]
+offset_left = 276.0
+offset_top = 764.0
+offset_right = 924.0
+offset_bottom = 932.0
+mouse_filter = 2
+
+[node name="Card1" parent="Board" instance=ExtResource("card")]
+
+[node name="Card2" parent="Board" instance=ExtResource("card")]
+offset_left = 132.0
+offset_right = 252.0
+
+[node name="Card3" parent="Board" instance=ExtResource("card")]
+offset_left = 264.0
+offset_right = 384.0
+
+[node name="Card4" parent="Board" instance=ExtResource("card")]
+offset_left = 396.0
+offset_right = 516.0
+
+[node name="Card5" parent="Board" instance=ExtResource("card")]
+offset_left = 528.0
+offset_right = 648.0
+
+[node name="Hand" parent="." instance=ExtResource("hand")]
+offset_left = 410.0
+offset_top = 954.0
+offset_right = 542.0
+offset_bottom = 1076.0
+scale = Vector2(1.8, 1.8)
+
+[node name="Turn" type="Label" parent="."]
+offset_left = 240.0
+offset_top = 720.0
+offset_right = 960.0
+offset_bottom = 758.0
+mouse_filter = 2
+auto_translate_mode = 2
+theme = ExtResource("theme")
+theme_type_variation = &"RoomPokerTableLabel"
+horizontal_alignment = 1
+vertical_alignment = 1

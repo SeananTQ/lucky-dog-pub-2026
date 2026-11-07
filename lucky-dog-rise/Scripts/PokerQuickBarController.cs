@@ -76,6 +76,8 @@ public partial class PokerQuickBarController : CanvasLayer
         RefreshHotZoneHeight();
     }
 
+    public void SetSoloGuideVisible(bool visible) => _tutorialButton.Visible = visible;
+
     // The room presenter supplies the localized tooltip and icon. Solo/Demo
     // scenes retain no dependency on room resources and keep this slot hidden.
     public void SetChatEntry(bool visible, bool enabled, Texture2D icon, string tooltip)

@@ -11,6 +11,10 @@ namespace LuckyDogRise.Rooms;
 // owns a Steam runtime or pumps platform callbacks independently.
 public partial class InGameRoomPreview : VBoxContainer
 {
+    [Export] private Button _pokerPreviewButton = null!;
+    public event Action<RoomClient> PokerPreviewRequested;
+    public void ShowPokerPreviewNotice(string text) { _noticeKey = text; _dirty = true; }
+
     [Export] private VBoxContainer _lobby = null!;
     [Export] private VBoxContainer _room = null!;
     [Export] private VBoxContainer _rooms = null!;
@@ -190,6 +194,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _displayMode.AddItem("", (int)RoomDisplayMode.FullScreenFree);
         _displayMode.AddItem("", (int)RoomDisplayMode.HalfScreenCompact);
         _displayMode.ItemSelected += SelectDisplayMode;
+        _pokerPreviewButton.Pressed += () => { if (_isMock) PokerPreviewRequested?.Invoke(_client); };
         RenderDisplayMode();
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
@@ -808,6 +813,9 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
+        _pokerPreviewButton.Visible = _isMock;
+        _pokerPreviewButton.Text = RoomPokerText.T("捣乱德州 · 本机试玩", "Poker · Local preview");
+        _pokerPreviewButton.Disabled = _client?.View == null || _client.IsBusy || _client.IsLocalArrival || _client.View.Members.Length < 2;
         RenderDisplayMode();
         if (RenderConnectionWait()) return;
         RenderRoomReconnect();

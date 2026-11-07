@@ -71,3 +71,8 @@ LuckyDogRise.Tools.StoreDialogueDogView
 LuckyDogRise.StoreDialogueSmoke
 LuckyDogRise.Tools.StoreDialogueBatch
 PersistentTipController
+
+LuckyDogRise.Rooms.RoomPokerCardView
+LuckyDogRise.Rooms.RoomPokerHandView
+LuckyDogRise.Rooms.RoomPokerTableView
+LuckyDogRise.Rooms.RoomPokerPanelView

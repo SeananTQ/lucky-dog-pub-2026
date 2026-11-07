@@ -574,6 +574,9 @@ public partial class ModeManager : Control
         _settingsPanel.PlatformService = _platformService;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _settingsPanel.RoomPreviewCreated += AttachRoomDesktopPreview;
+#if DEBUG
+        _settingsPanel.RoomPokerPreviewRequested += StartPokerPreview;
+#endif
 #endif
         _settingsPanel.SwitchToPlayRequested += SwitchToPlay;
         _settingsPanel.CollectionVictoryCelebrated += OnCollectionVictoryCelebrated;
@@ -941,6 +944,7 @@ public partial class ModeManager : Control
         UpdateFullscreenVisibility(_);
 #if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
+        TickPokerPreview(_);
         UpdateRoomGameProposalPresentation();
         UpdateRoomJoinNotice(_);
         UpdateRoomChatBlindBoxDelay(_);
@@ -1094,6 +1098,8 @@ public partial class ModeManager : Control
         return normalized * normalized * normalized
             * (normalized * (normalized * 6.0 - 15.0) + 10.0);
     }
+
+    partial void TickPokerPreview(double delta);
 
     private void SwitchToPlay()
     {

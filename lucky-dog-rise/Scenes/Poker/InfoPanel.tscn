@@ -60,8 +60,9 @@ shadow_size = 0
 shadow_color = Color(0.105882354, 0.14901961, 0.16078432, 1)
 shadow_offset = Vector2(1, 2)
 
-[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_paytableBtn", "_blindBoxHint", "_payoutPanel", "_oddsTableGuideHint", "_paytableTip")]
+[node name="InfoPanel" type="CanvasLayer" unique_id=824773129 node_paths=PackedStringArray("SessionContent", "_panel", "_chipsKeyLabel", "_chipsLabel", "_rankNameLabel", "_winResultLabel", "_payoutGrid", "_settingsBtn", "_blindBoxBtn", "_paytableBtn", "_blindBoxHint", "_payoutPanel", "_oddsTableGuideHint", "_paytableTip")]
 script = ExtResource("1_ctrl")
+SessionContent = NodePath("Panel/RootVBox/SessionContent")
 _panel = NodePath("Panel")
 _chipsKeyLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsKey")
 _chipsLabel = NodePath("Panel/RootVBox/ChipsPanel/ChipsVBox/ChipsValuePanel/ChipsValue")
@@ -112,6 +113,10 @@ layout_mode = 2
 text = "88,888"
 label_settings = SubResource("LabelSettings_fok14")
 horizontal_alignment = 1
+
+[node name="SessionContent" type="VBoxContainer" parent="Panel/RootVBox"]
+visible = false
+layout_mode = 2
 
 [node name="Spacer" type="Control" parent="Panel/RootVBox" unique_id=603582863]
 layout_mode = 2
