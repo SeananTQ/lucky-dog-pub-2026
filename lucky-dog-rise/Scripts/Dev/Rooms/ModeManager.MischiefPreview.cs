@@ -12,6 +12,7 @@ public partial class ModeManager
     private MischiefPokerPreviewSession _pokerPreview;
     private RoomPokerTableView _pokerPreviewTable;
     private RoomPokerPanelView _pokerPreviewPanel;
+    private RoomPokerDebugPanelView _pokerPreviewDebug;
     private RoomClient _pokerPreviewClient;
     private long _pokerPreviewSession;
     private (int Id, long Presence)[] _pokerPreviewRoster;
@@ -27,7 +28,7 @@ public partial class ModeManager
             if (CurrentMode == Mode.Play) _settingsPanel.CloseImmediate();
             return;
         }
-        if (client != _desktopRoomClient || client.View == null || client.IsBusy || client.IsLocalArrival
+        if (_steamMockPanel == null || client != _desktopRoomClient || client.View == null || client.IsBusy || client.IsLocalArrival
             || client.View.Members.Length < 2 || UiInteractionOccupancy.IsOccupied(this)) return;
         if (_gameManager != null && !_gameManager.CanBeginRoomPoker)
         {
@@ -47,14 +48,17 @@ public partial class ModeManager
         _pokerPreview.NextHand();
         _pokerPreviewPanel = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPanel.tscn").Instantiate<RoomPokerPanelView>();
         _infoPanel.SessionContent.AddChild(_pokerPreviewPanel);
+        _pokerPreviewDebug = GD.Load<PackedScene>("res://Scenes/Dev/Debug/RoomPokerDebugPanel.tscn").Instantiate<RoomPokerDebugPanelView>();
+        _steamMockPanel.PokerContent.AddChild(_pokerPreviewDebug);
+        _steamMockPanel.SetPokerPageAvailable(true, RoomPokerText.T("扑克", "Poker"));
         _pokerPreviewTable.FlipRequested += PokerPreviewFlip;
         _gameManager.SessionPokerTurnEnd += PokerPreviewEndTurn;
         _pokerPreviewPanel.NextRequested += () => { if (PokerPreviewInputAllowed) _pokerPreview?.NextHand(); };
-        _pokerPreviewPanel.PauseRequested += () => { if (_pokerPreview != null) _pokerPreview.Paused = !_pokerPreview.Paused; };
-        _pokerPreviewPanel.StepRequested += () => _pokerPreview?.Step();
-        _pokerPreviewPanel.TimeoutRequested += () => _pokerPreview?.ExpireTurn();
-        _pokerPreviewPanel.PresetSelected += preset => { if (_pokerPreview != null) _pokerPreview.NextDealPreset = preset; };
-        _pokerPreviewPanel.ExitRequested += StopPokerPreview;
+        _pokerPreviewDebug.PauseRequested += () => { if (_pokerPreview != null) _pokerPreview.Paused = !_pokerPreview.Paused; };
+        _pokerPreviewDebug.StepRequested += () => _pokerPreview?.Step();
+        _pokerPreviewDebug.TimeoutRequested += () => _pokerPreview?.ExpireTurn();
+        _pokerPreviewDebug.PresetSelected += preset => { if (_pokerPreview != null) _pokerPreview.NextDealPreset = preset; };
+        _pokerPreviewDebug.ExitRequested += StopPokerPreview;
         _settingsPanel.CloseImmediate();
         TickPokerPreview(0);
     }
@@ -82,9 +86,11 @@ public partial class ModeManager
         bool canAct = PokerPreviewInputAllowed && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
         _gameManager.SetRoomPokerInput(canAct);
         _pokerPreviewTable.Present(view, canAct);
-        _pokerPreviewPanel.Present(view, _pokerPreview.Paused, _pokerPreview.LastError);
+        _pokerPreviewPanel.Present(view, _pokerPreview.LastError);
+        _pokerPreviewDebug.Present(view, _pokerPreview.Paused, _pokerPreview.NextDealPreset);
+        _steamMockPanel.SetPokerPageAvailable(true, RoomPokerText.T("扑克", "Poker"));
         _infoPanel.SetSessionChips(view.Public.Seats.Single(s => s.PlayerId == view.PlayerId).Chips,
-            RoomPokerText.T("试玩筹码", "Preview chips"));
+            RoomPokerText.T("牌局筹码", "Table chips"));
         PresentPreviewHands(_roomPokerDogs, view.Public);
         PresentPreviewHands(_roomDesktop, view.Public);
     }
@@ -114,8 +120,12 @@ public partial class ModeManager
         _pokerPreviewTable.QueueFree();
         _pokerPreviewPanel.Hide();
         _pokerPreviewPanel.QueueFree();
+        _pokerPreviewDebug.Hide();
+        _pokerPreviewDebug.QueueFree();
+        _steamMockPanel.SetPokerPageAvailable(false);
         _pokerPreviewTable = null;
         _pokerPreviewPanel = null;
+        _pokerPreviewDebug = null;
         _pokerPreviewClient = null;
         PresentPreviewHands(_roomPokerDogs, null);
         PresentPreviewHands(_roomDesktop, null);

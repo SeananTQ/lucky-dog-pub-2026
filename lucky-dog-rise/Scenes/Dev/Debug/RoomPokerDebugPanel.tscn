@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomPokerDebugPanelView.cs" id="script"]
+
+[node name="PokerControls" type="VBoxContainer" node_paths=PackedStringArray("_title", "_status", "_presetLabel", "_preset", "_pause", "_step", "_timeout", "_exit", "_hint")]
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+script = ExtResource("script")
+_title = NodePath("Title")
+_status = NodePath("Status")
+_presetLabel = NodePath("PresetRow/Label")
+_preset = NodePath("PresetRow/Preset")
+_pause = NodePath("Actions/Pause")
+_step = NodePath("Actions/Step")
+_timeout = NodePath("Actions/Timeout")
+_exit = NodePath("Actions/Exit")
+_hint = NodePath("Hint")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerPanelTitle"
+
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerPanelLabel"
+
+[node name="PresetRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PresetRow"]
+custom_minimum_size = Vector2(145, 0)
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerPanelLabel"
+
+[node name="Preset" type="OptionButton" parent="PresetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Actions" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Pause" type="Button" parent="Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Step" type="Button" parent="Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Timeout" type="Button" parent="Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Exit" type="Button" parent="Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Separator" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerPanelLabel"

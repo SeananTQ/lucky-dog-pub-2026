@@ -76,3 +76,4 @@ LuckyDogRise.Rooms.RoomPokerCardView
 LuckyDogRise.Rooms.RoomPokerHandView
 LuckyDogRise.Rooms.RoomPokerTableView
 LuckyDogRise.Rooms.RoomPokerPanelView
+LuckyDogRise.Rooms.RoomPokerDebugPanelView

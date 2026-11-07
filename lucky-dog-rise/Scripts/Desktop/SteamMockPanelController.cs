@@ -12,6 +12,10 @@ public partial class SteamMockPanelController : CanvasLayer
     [Signal] public delegate void RecoveredItemsPreviewRequestedEventHandler(int itemCount);
 
     [Export] private PanelContainer _panel = null!;
+    [Export] private Button _steamTab = null!;
+    [Export] private Button _pokerTab = null!;
+    [Export] private Control _steamPage = null!;
+    [Export] public ScrollContainer PokerContent { get; private set; } = null!;
     [Export] private OptionButton _scenarioOption = null!;
     [Export] private OptionButton _progressOption = null!;
     [Export] private OptionButton _recoveredItemsPreviewOption = null!;
@@ -43,6 +47,8 @@ public partial class SteamMockPanelController : CanvasLayer
 
     public override void _Ready()
     {
+        _steamTab.Pressed += () => SelectPokerPage(false);
+        _pokerTab.Pressed += () => SelectPokerPage(true);
         _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
         _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
@@ -119,6 +125,32 @@ public partial class SteamMockPanelController : CanvasLayer
     }
 
     public bool ContainsPoint(Vector2 windowLocalPoint) => Visible && PanelRect.HasPoint(windowLocalPoint);
+
+    public void SetPokerPageAvailable(bool available, string title = "")
+    {
+        if (title.Length > 0) _pokerTab.Text = title;
+        if (_pokerTab.Visible == available) return;
+        _pokerTab.Visible = available;
+        SelectPokerPage(available);
+    }
+
+    private void SelectPokerPage(bool poker)
+    {
+        poker &= _pokerTab.Visible;
+        _steamPage.Visible = !poker;
+        PokerContent.Visible = poker;
+        _steamTab.ThemeTypeVariation = poker ? "PanelTopTab" : "MockPanelTabSelected";
+        _pokerTab.ThemeTypeVariation = poker ? "MockPanelTabSelected" : "PanelTopTab";
+        CallDeferred(MethodName.FitPanelHeight);
+    }
+
+    private void FitPanelHeight()
+    {
+        // Recover the current page's normal height without changing the tab width.
+        var minimum = _panel.GetCombinedMinimumSize();
+        _panel.Size = new Vector2(Mathf.Max(_panel.Size.X, minimum.X), minimum.Y);
+        AlignPanelAboveContent();
+    }
 
     public void ResetScenario()
     {

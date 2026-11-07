@@ -48,9 +48,21 @@ internal static class MischiefPokerMainChecks
             var game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
             var session = main.PokerPreviewForSmoke;
             Check(session != null && game.IsSessionPokerActive, "preview starts inside real poker main scene");
-            session.Paused = true;
             long soloChips = game.GameData.Chips;
             var ui = main.GetNode<RoomPokerPanelView>("InfoPanel/Panel/RootVBox/SessionContent/PokerSession");
+            var mock = main.GetNode<SteamMockPanelController>("SteamMockPanel");
+            var controls = mock.GetNode<RoomPokerDebugPanelView>("Panel/Root/PokerPage/PokerControls");
+            Click(controls.GetNode<Button>("Actions/Pause"));
+            Check(session.Paused && mock.PokerContent.Visible, "Mock poker page controls the existing match clock");
+            Click(mock.GetNode<Button>("Panel/Root/TabRow/SteamTab"));
+            await Wait();
+            Check(!mock.PokerContent.Visible && mock.GetNode<Control>("Panel/Root/SteamPage").Visible
+                && main.PokerPreviewForSmoke == session && session.Paused, "switching to Steam preserves match and pause state");
+            Click(mock.GetNode<Button>("Panel/Root/TabRow/PokerTab"));
+            await Wait();
+            Check(mock.PokerContent.Visible && mock.PanelSize.Y <= 420.1f,
+                $"poker debug controls fit existing Mock panel ({mock.PanelSize})");
+            Check(!ui.GetNode<Button>("Next").Visible, "next hand stays hidden while a hand is in progress");
             var table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
             var state = session.View.Public;
             Check(state.Pot == state.Seats.Count * 100 && state.Seats.All(s => s.Chips == 900) && session.View.HoleCards.Count == 2,
@@ -63,7 +75,7 @@ internal static class MischiefPokerMainChecks
             await Wait(0.3);
             Check(session.View.Public.SecondsRemaining == remaining, "debug pause freezes authority clock");
             for (int step = 0; session.View.Public.ActivePlayerId != client.Id && step < 12; step++)
-                Click(ui.GetNode<Button>("Tools/Step"));
+                Click(controls.GetNode<Button>("Actions/Step"));
             await Wait();
             long beforeOverlay = session.View.Public.Revision;
             game.EmitSignal(GameManager.SignalName.RoomChatRequested);
@@ -103,8 +115,8 @@ internal static class MischiefPokerMainChecks
             var infoRect = main.GetNode<PanelContainer>("InfoPanel/Panel");
             Check(infoRect.Size.Y <= 600.1f, $"preview controls fit original panel height ({infoRect.Size.Y}, minimum {infoRect.GetCombinedMinimumSize().Y})");
 
-            ui.GetNode<OptionButton>("Preset").Select(1);
-            ui.GetNode<OptionButton>("Preset").EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+            controls.GetNode<OptionButton>("PresetRow/Preset").Select(1);
+            controls.GetNode<OptionButton>("PresetRow/Preset").EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
             Click(ui.GetNode<Button>("Next"));
             await Wait();
             for (int step = 0; session.View.Public.ActivePlayerId != client.Id && step < 12; step++) session.Step();
@@ -120,10 +132,29 @@ internal static class MischiefPokerMainChecks
             Click(ui.GetNode<Button>("Next"));
             await Wait();
             int timedOut = session.View.Public.ActivePlayerId.Value;
-            Click(ui.GetNode<Button>("Actions/Timeout"));
+            Click(controls.GetNode<Button>("Actions/Timeout"));
             Check(session.View.Public.CompletedTurns.Any(t => t.PlayerId == timedOut && t.Reason == PokerTurnEnd.TimedOut),
                 "timeout finishes current turn through the real authority");
             Check(game.GameData.Chips == soloChips && game.State == GameState.WaitingForBet, "preview does not alter solo chips or state");
+
+            main.Call("OnSteamMockPanelVisibilityChanged", true);
+            await Wait();
+            await Capture(mode == 0 ? "mock-poker-zh" : "mock-poker-en");
+            Click(controls.GetNode<Button>("Actions/Pause"));
+            Check(!session.Paused, "Mock resume restores the running clock");
+            double beforeClose = session.View.Public.SecondsRemaining;
+            int? actorBeforeClose = session.View.Public.ActivePlayerId;
+            Click(mock.GetNode<Button>("Panel/Root/TabRow/CloseButton"));
+            await Wait(0.3);
+            Check(!mock.Visible && !session.Paused && main.PokerPreviewForSmoke == session
+                && (session.View.Public.ActivePlayerId != actorBeforeClose || session.View.Public.SecondsRemaining < beforeClose),
+                "closing Mock keeps the same match running");
+            main.Call("OnSteamMockPanelVisibilityChanged", true);
+            await Wait();
+            Click(controls.GetNode<Button>("Actions/Pause"));
+            Check(session.Paused && controls.GetNode<OptionButton>("PresetRow/Preset").Selected == 1,
+                "reopening Mock retains preset and controls the same match");
+            main.Call("OnSteamMockPanelVisibilityChanged", false);
 
             game.EmitSignal(GameManager.SignalName.DesktopModeRequested);
             await Wait();
@@ -132,11 +163,14 @@ internal static class MischiefPokerMainChecks
             await Wait();
             Check(main.PokerPreviewForSmoke == session && game.IsSessionPokerActive, "poker return resumes same match without a second ante");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.Footprint.HasArea()), "remote footprint includes card panel");
-            Click(ui.GetNode<Button>("Actions/Exit"));
+            Click(controls.GetNode<Button>("Actions/Exit"));
             await Wait();
             Check(main.PokerPreviewForSmoke == null && !game.IsSessionPokerActive
                 && !main.GetNode<InfoPanelController>("InfoPanel").SessionContent.Visible
                 && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => !d.PokerHand.Visible), "exit restores solo UI and removes card adornments");
+            Check(!mock.PokerContent.Visible && !mock.GetNode<Button>("Panel/Root/TabRow/PokerTab").Visible
+                && mock.GetNode<Control>("Panel/Root/SteamPage").Visible && mock.PokerContent.GetChildCount() == 0,
+                "ending preview removes debug controls and returns Mock to Steam");
             DismissWelcome(game);
             panel.ShowRoomPage();
             Click(start);

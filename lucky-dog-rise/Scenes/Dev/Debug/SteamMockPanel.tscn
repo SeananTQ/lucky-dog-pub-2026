@@ -20,10 +20,14 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
+_steamTab = NodePath("Panel/Root/TabRow/SteamTab")
+_pokerTab = NodePath("Panel/Root/TabRow/PokerTab")
+_steamPage = NodePath("Panel/Root/SteamPage")
+PokerContent = NodePath("Panel/Root/PokerPage")
 _scenarioOption = NodePath("Panel/Root/SteamPage/ScenarioRow/ScenarioOption")
 _progressOption = NodePath("Panel/Root/SteamPage/ProgressRow/ProgressOption")
 _recoveredItemsPreviewOption = NodePath("Panel/Root/SteamPage/RecoveredItemsPreviewRow/PreviewOption")
@@ -59,10 +63,17 @@ theme_override_constants/separation = 4
 custom_minimum_size = Vector2(110, 44)
 layout_mode = 2
 text = "Steam"
-theme_type_variation = &"PanelTopTabSelected"
-theme_override_colors/font_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-theme_override_colors/font_hover_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-theme_override_colors/font_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
+theme_type_variation = &"MockPanelTabSelected"
+focus_mode = 0
+
+[node name="PokerTab" type="Button" parent="Panel/Root/TabRow"]
+visible = false
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "扑克"
+auto_translate_mode = 2
+theme_type_variation = &"PanelTopTab"
+focus_mode = 0
 
 [node name="TabSpacer" type="Control" parent="Panel/Root/TabRow"]
 layout_mode = 2
@@ -226,3 +237,9 @@ scroll_following = true
 selection_enabled = true
 theme_override_colors/selection_color = Color(0.258824, 0.376471, 0.447059, 0.86)
 text = "事件记录"
+
+[node name="PokerPage" type="ScrollContainer" parent="Panel/Root"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0

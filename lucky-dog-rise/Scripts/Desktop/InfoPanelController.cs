@@ -100,6 +100,7 @@ public partial class InfoPanelController : CanvasLayer
     public override void _Ready()
     {
         LockPanelSize();
+        SessionContent.MinimumSizeChanged += OnSessionContentMinimumSizeChanged;
         _payoutPanel.ItemRectChanged += SyncPaytableTipRect;
         CallDeferred(nameof(SyncPaytableTipRect));
         SetProcess(false); // 教学提示不可见时不需要每帧贴合
@@ -395,6 +396,13 @@ public partial class InfoPanelController : CanvasLayer
 
         _oddsTableGuideHint.GlobalPosition = rect.Position;
         _oddsTableGuideHint.Size = rect.Size;
+    }
+
+    private void OnSessionContentMinimumSizeChanged()
+    {
+        // Translated text and settlement controls can require multiple container layout passes.
+        // Reapply the design size after each content-size change, not only after chips change.
+        if (IsInsideTree() && SessionContent.Visible) CallDeferred(MethodName.LockPanelSize);
     }
 
     private void LockPanelSize()
