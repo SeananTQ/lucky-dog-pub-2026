@@ -1,5 +1,6 @@
 #if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +12,31 @@ namespace LuckyDogRise.Rooms;
 internal static class MischiefPokerMainChecks
 {
     public static async Task Run(ModeManager main, InGameRoomPreview page)
+    {
+        var audio = AudioManager.Instance;
+        var sounds = new List<(ulong Frame, string Cue)>();
+        void RecordSound(string cue) => sounds.Add((Engine.GetProcessFrames(), cue));
+        int sfxBus = AudioServer.GetBusIndex("SFX");
+        bool wasMuted = AudioServer.IsBusMute(sfxBus);
+        float volume = audio.SfxVolume;
+        bool skipDeal = RoomPokerTableView.SkipDealAnimationForTests;
+        RoomPokerTableView.SkipDealAnimationForTests = true;
+        audio.SfxStartedForSmoke += RecordSound;
+        // Exercise real players without repeatedly making the developer hear synthetic showdowns.
+        AudioServer.SetBusMute(sfxBus, true);
+        audio.SetSfxVolume(0.5f);
+        try { await RunChecks(main, page, sounds); }
+        finally
+        {
+            audio.SfxStartedForSmoke -= RecordSound;
+            RoomPokerTableView.SkipDealAnimationForTests = skipDeal;
+            audio.SetSfxVolume(volume);
+            AudioServer.SetBusMute(sfxBus, wasMuted);
+        }
+    }
+
+    private static async Task RunChecks(ModeManager main, InGameRoomPreview page,
+        List<(ulong Frame, string Cue)> sounds)
     {
         var tree = main.GetTree();
         var panel = main.SettingsPanelObj;
@@ -43,17 +69,60 @@ internal static class MischiefPokerMainChecks
             panel.ShowRoomPage();
             var start = page.GetNode<Button>("Room/PokerPreview");
             Check(start.Visible && !start.Disabled, "Mock entry enabled for joined room");
+            RoomPokerTableView.SkipDealAnimationForTests = false;
+            sounds.Clear();
             Click(start);
             await Wait();
             var game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
             var session = main.PokerPreviewForSmoke;
             Check(session != null && game.IsSessionPokerActive, "preview starts inside real poker main scene");
+            var table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
+            var localHand = table.LocalPanel;
+            Vector2 CardCenter(RoomPokerCardView card) => card.GetTransform() * (card.Size / 2);
+            Check(table.IsDealing && localHand.IsDealing
+                && CardCenter(localHand.FirstCard).DistanceTo(CardCenter(localHand.SecondCard)) < 0.1f
+                && localHand.FirstCard.ZIndex > localHand.SecondCard.ZIndex,
+                "opening hand starts as a stacked pair with the first card covering the second");
+            Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => !d.PokerHand.CardsRevealed),
+                "remote dealing uses card backs only");
+            double dealClock = session.View.Public.SecondsRemaining;
+            long dealRevision = session.View.Public.Revision;
+            Click(table.GetNode<TextureButton>("Board/Card1"));
+            game.GetNode<HandAreaController>("HandArea").EmitSignal(HandAreaController.SignalName.HandKnocked);
+            Check(session.View.Public.Revision == dealRevision, "opening animation blocks board and arm commands");
+            await Capture($"deal-stacked-{(mode == 0 ? "zh" : "en")}");
+            await Wait(0.32);
+            Check(localHand.IsDealing && CardCenter(localHand.FirstCard).DistanceTo(CardCenter(localHand.SecondCard)) > 1,
+                "stacked hand fans out after landing");
+            await Capture($"deal-fan-{(mode == 0 ? "zh" : "en")}");
+            await Wait(0.9);
+            Check(table.IsDealing && table.GetNode<RoomPokerCardView>("Board/Card1").VisibleCard >= 0
+                && table.GetNode<RoomPokerCardView>("Board/Card5").VisibleCard < 0,
+                "public cards land and turn face-up in left-to-right sequence after hands");
+            Check(table.GetNode<RoomPokerCardView>("Board/Card3").GetNode<TextureRect>("DealShadow").Visible,
+                "public card drop includes the solo-style landing shadow");
+            Check(session.View.Public.SecondsRemaining == dealClock, "local preview does not spend action time on the opening animation");
+            await Capture($"deal-board-{(mode == 0 ? "zh" : "en")}");
+            await Wait(0.9);
+            Check(!table.IsDealing && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => !d.PokerHand.IsDealing),
+                "opening finishes for both local and remote hands");
+            Check(Enumerable.Range(1, 5).All(i => !table.GetNode<RoomPokerCardView>($"Board/Card{i}").GetNode<TextureRect>("DealShadow").Visible),
+                "landing shadows are removed after the public cards turn face-up");
+            var openingSounds = sounds.Where(s => s.Cue == "Card_PokerHandDeal").ToArray();
+            Check(openingSounds.Length == 5 && openingSounds.Select(s => s.Frame).Distinct().Count() == 5,
+                "opening board keeps five staggered deal cues without a sound per remote hand");
+            var statusBar = table.GetNode<Label>("Turn");
+            Check(statusBar.Position.X == 0 && statusBar.GetRect().End.IsEqualApprox(new Vector2(1200, 1200))
+                && statusBar.ZIndex > localHand.ZIndex && statusBar.MouseFilter == Control.MouseFilterEnum.Ignore,
+                $"status hint spans the bottom of the table above the arm without intercepting input ({statusBar.GetRect()})");
+            RoomPokerTableView.SkipDealAnimationForTests = true;
             long soloChips = game.GameData.Chips;
             var ui = main.GetNode<RoomPokerPanelView>("InfoPanel/Panel/RootVBox/SessionContent/PokerSession");
             var mock = main.GetNode<SteamMockPanelController>("SteamMockPanel");
             var controls = mock.GetNode<RoomPokerDebugPanelView>("Panel/Root/PokerPage/PokerControls");
             Click(controls.GetNode<Button>("Actions/Pause"));
             Check(session.Paused && mock.PokerContent.Visible, "Mock poker page controls the existing match clock");
+            if (mode == 0) await CheckRelativeHandDeals(main, session.View);
             Click(mock.GetNode<Button>("Panel/Root/TabRow/SteamTab"));
             await Wait();
             Check(!mock.PokerContent.Visible && mock.GetNode<Control>("Panel/Root/SteamPage").Visible
@@ -63,7 +132,6 @@ internal static class MischiefPokerMainChecks
             Check(mock.PokerContent.Visible && mock.PanelSize.Y <= 420.1f,
                 $"poker debug controls fit existing Mock panel ({mock.PanelSize})");
             Check(!ui.GetNode<Button>("Next").Visible, "next hand stays hidden while a hand is in progress");
-            var table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
             var state = session.View.Public;
             Check(state.Pot == state.Seats.Count * 100 && state.Seats.All(s => s.Chips == 900) && session.View.HoleCards.Count == 2,
                 "separate 1000 balance, 100 ante and two private cards");
@@ -110,12 +178,18 @@ internal static class MischiefPokerMainChecks
             state = session.View.Public;
             int original = state.Board[0].Card;
             bool pendingBefore = state.Board[0].PendingReplacement;
+            sounds.Clear();
             Click(table.GetNode<TextureButton>("Board/Card1"));
             await Wait(0.2);
+            Check(sounds.Count(s => s.Cue.StartsWith("Card_PokerHandFlip")) == 1,
+                "one board flip starts exactly one sound");
             Check(session.View.Public.Board[0].PendingReplacement != pendingBefore && session.View.Public.FlipsRemaining == 1,
                 "real board click flips once");
+            sounds.Clear();
             Click(table.GetNode<TextureButton>("Board/Card1"));
             await Wait(0.2);
+            Check(sounds.Count(s => s.Cue.StartsWith("Card_PokerHandFlip")) == 1,
+                "separate reverse flip still has its own sound");
             Check(session.View.Public.Board[0].PendingReplacement == pendingBefore && session.View.Public.Board[0].Card == original
                 && session.View.Public.ActivePlayerId != client.Id, "second click restores same card and ends turn");
             long revision = session.View.Public.Revision;
@@ -123,8 +197,11 @@ internal static class MischiefPokerMainChecks
             await Wait();
             Check(session.View.Public.Revision == revision, "wrong-turn UI commands rejected");
             await Capture(mode == 0 ? "free-acting-zh" : "compact-acting-en");
+            sounds.Clear();
             Complete(session, client.Id);
             await Wait();
+            Check(sounds.Count(s => s.Cue.StartsWith("Card_PokerHandFlip")) == 1,
+                $"{state.Seats.Count}-player reveal and public replacements start one shared flip sound");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.PokerHand.CardsRevealed), "showdown reveals opponent hands");
             Check(!ui.GetNode<Button>("Next").Disabled, "next hand available only after settlement");
             await Capture(mode == 0 ? "free-showdown-zh" : "compact-showdown-en");
@@ -153,16 +230,20 @@ internal static class MischiefPokerMainChecks
                 controls.GetNode<OptionButton>("PresetRow/Preset").EmitSignal(OptionButton.SignalName.ItemSelected, (long)preset);
                 Click(ui.GetNode<Button>("Next"));
                 await Wait();
+                Check(!table.IsDealing, "internal test switch skips the opening without affecting the hand state");
                 Check(!table.LocalPanel.IsWinner && !table.LocalPanel.FirstCard.Dimmed && !table.LocalPanel.FirstCard.Outlined
                     && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => !d.PokerHand.IsWinner && !d.PokerHand.CardsRevealed),
                     "next hand clears crowns, outlines, dimming and opponent faces");
                 var acting = session.View.Public.ActivePlayerId;
                 Check((acting == client.Id ? table.LocalPanel : main.RoomPokerDogsForSmoke.RemoteDogs.Single(d => d.MemberId == acting).PokerHand).IsActing,
                     "actual actor has a countdown strip");
+                sounds.Clear();
                 Complete(session, client.Id);
                 session.Paused = false;
                 await Wait(1.1);
                 session.Paused = true;
+                Check(sounds.Count(s => s.Cue.StartsWith("Card_PokerHandFlip")) == 1,
+                    "simultaneous opponent hands share one flip sound and stable snapshots do not replay it");
                 var emphasis = table.Emphasis;
                 Check(emphasis != null, "showdown reveal precedes emphasis");
                 foreach (var dog in main.RoomPokerDogsForSmoke.RemoteDogs)
@@ -313,8 +394,12 @@ internal static class MischiefPokerMainChecks
         await Wait();
         var solo = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
         DismissWelcome(solo);
+        sounds.Clear();
         solo.Call("OnBetRequested");
         await Wait(1.2);
+        var deals = sounds.Where(s => s.Cue == "Card_PokerHandDeal").ToArray();
+        Check(deals.Length == 5 && deals.Select(s => s.Frame).Distinct().Count() == 5,
+            "ordinary solo deal retains five separately timed card sounds");
         var soloCards = solo.GetNode<CardTableController>("CardArea");
         var heldHand = Enumerable.Range(0, 5).Select(i => soloCards.GetCard(i).CardValue).ToArray();
         Check(solo.State == GameState.Dealt, "solo hand still starts after leaving preview");
@@ -332,6 +417,67 @@ internal static class MischiefPokerMainChecks
         for (int step = 0; session.View.Public.Phase != PokerPhase.Settled && step < 20; step++)
             if (session.View.Public.ActivePlayerId == localId) session.EndTurn(); else session.Step();
         Check(session.View.Public.Phase == PokerPhase.Settled, "hand reaches settlement");
+    }
+
+    private static async Task CheckRelativeHandDeals(ModeManager main, PokerPlayerView view)
+    {
+        bool skip = RoomPokerTableView.SkipDealAnimationForTests;
+        RoomPokerTableView.SkipDealAnimationForTests = false;
+        async Task Wait(double seconds) => await main.ToSignal(main.GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
+        try
+        {
+            foreach (bool heldPose in new[] { true, false })
+            {
+                var hand = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerHand.tscn").Instantiate<RoomPokerHandView>();
+                var first = hand.GetNode<RoomPokerCardView>("First");
+                var second = hand.GetNode<RoomPokerCardView>("Second");
+                first.Position = new Vector2(15, 24); second.Position = new Vector2(76, 34);
+                first.Rotation = heldPose ? -0.55f : 0; second.Rotation = heldPose ? 0 : 0.3f;
+                first.Scale = Vector2.One * 1.1f; second.Scale = Vector2.One * 0.9f;
+                first.PivotOffset = new Vector2(14, 64); second.PivotOffset = new Vector2(42, 73);
+                var firstPose = first.GetTransform(); var secondPose = second.GetTransform();
+                main.AddChild(hand);
+                try
+                {
+                    hand.Present(view.Public, view.PlayerId, view.HoleCards, null, 0, true);
+                    Check((first.GetTransform() * (first.Size / 2)).DistanceTo(second.GetTransform() * (second.Size / 2)) < 0.1f,
+                        "tilted cards with different authored scales and pivots still stack by their centers");
+                    await Wait(0.75);
+                    Check(!hand.IsDealing && first.GetTransform().IsEqualApprox(firstPose) && second.GetTransform().IsEqualApprox(secondPose),
+                        heldPose ? "held /_ pose restored exactly after dealing" : "remote |/ pose restored exactly after dealing");
+                    hand.Present(view.Public, view.PlayerId, view.HoleCards, null, 0, true);
+                    Check(!hand.IsDealing, "repeated snapshot does not replay the hand opening");
+                    var next = view.Public with { HandNumber = view.Public.HandNumber + 1 };
+                    hand.Present(next, view.PlayerId, view.HoleCards, null, 0, true, dealDelay: 0.2);
+                    hand.Hide();
+                    await Wait(0.9);
+                    Check(!hand.IsDealing && first.GetTransform().IsEqualApprox(firstPose) && second.GetTransform().IsEqualApprox(secondPose)
+                        && first.Modulate.A == 1 && second.Modulate.A == 1, "hiding during a delayed deal cancels it and restores the authored poses");
+                    hand.Show();
+                    hand.Present(next, view.PlayerId, view.HoleCards, null, 0, true);
+                    Check(!hand.IsDealing, "returning to the same hand does not restart its cancelled opening");
+                    hand.Present(next with { HandNumber = next.HandNumber + 1 }, view.PlayerId, view.HoleCards, null, 0, true);
+                }
+                finally { hand.QueueFree(); }
+                await Wait(0.8); // A queued old tween must not touch the freed cards.
+            }
+
+            var card = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerCard.tscn").Instantiate<RoomPokerCardView>();
+            card.Position = new Vector2(40, 80); card.Scale = Vector2.One * 0.85f;
+            main.AddChild(card);
+            try
+            {
+                card.Present(0, true, false);
+                var pose = card.GetTransform();
+                card.AnimateDeal(0.2, 1);
+                card.Present(1, true, false);
+                await Wait(0.9);
+                Check(!card.IsDealing && card.VisibleCard == 1 && card.GetTransform().IsEqualApprox(pose)
+                    && card.Modulate.A == 1, "new board snapshot cancels old delayed dealing without restoring an obsolete face");
+            }
+            finally { card.QueueFree(); }
+        }
+        finally { RoomPokerTableView.SkipDealAnimationForTests = skip; }
     }
     private static void Check(bool condition, string message)
     {

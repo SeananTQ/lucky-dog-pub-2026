@@ -9,6 +9,8 @@ namespace LuckyDogRise.Rooms;
 // Hole cards plus independent dealer, action, winner and presence states.
 public partial class RoomPokerHandView : Control
 {
+    public const double DealDuration = 0.65;
+    public const double RemoteDealDelay = 0.16;
     private static readonly double TurnSeconds = new MischiefPokerRules().TurnSeconds;
     [Export] private RoomPokerCardView _first, _second;
     [Export] private Panel _plate;
@@ -23,16 +25,28 @@ public partial class RoomPokerHandView : Control
     public RoomPokerCardView FirstCard => _first;
     public RoomPokerCardView SecondCard => _second;
     public Vector2 AwardAnchor => _plate.GetGlobalRect().GetCenter();
+    public bool IsDealing => _deal?.IsRunning() == true;
     private System.Guid _session;
     private long _hand = -1;
+    private Tween _deal;
+    private (Vector2 Position, float Rotation, int Z, Color Tint) _firstPose, _secondPose;
+
+    public override void _Ready()
+    {
+        _firstPose = (_first.Position, _first.Rotation, _first.ZIndex, _first.Modulate);
+        _secondPose = (_second.Position, _second.Rotation, _second.ZIndex, _second.Modulate);
+        VisibilityChanged += () => { if (!IsVisibleInTree()) StopDeal(); };
+    }
 
     public void Present(PokerPublicView state, int playerId, IReadOnlyList<int> cards,
-        PokerShowdownEmphasis emphasis, long cue, bool animate, bool waiting = false, bool autoplay = false)
+        PokerShowdownEmphasis emphasis, long cue, bool animate, bool waiting = false, bool autoplay = false,
+        double dealDelay = 0)
     {
         Show();
         var seat = state.Seats.FirstOrDefault(s => s.PlayerId == playerId);
         waiting |= seat == null;
         bool sameHand = _session == state.SessionId && _hand == state.HandNumber;
+        if (!sameHand || waiting || !animate || state.Phase != PokerPhase.Acting) StopDeal();
         _session = state.SessionId; _hand = state.HandNumber;
         bool won = !waiting && state.Settlement?.Winners.Contains(playerId) == true;
         bool active = !waiting && state.Phase == PokerPhase.Acting && state.ActivePlayerId == playerId;
@@ -58,6 +72,9 @@ public partial class RoomPokerHandView : Control
         if (waiting) cards = null;
         PresentCard(_first, cards?.Count == 2 ? cards[0] : -1);
         PresentCard(_second, cards?.Count == 2 ? cards[1] : -1);
+        if (!sameHand && !waiting && state.Phase == PokerPhase.Acting && animate
+            && IsVisibleInTree() && RoomPokerTableView.DealAnimationsEnabled)
+            BeginDeal(dealDelay);
         Modulate = Colors.White;
 
         void PresentCard(RoomPokerCardView card, int value)
@@ -68,5 +85,54 @@ public partial class RoomPokerHandView : Control
                 !waiting && emphasis?.DecisiveCard == value, cue, animate);
         }
     }
+
+    private void BeginDeal(double delay)
+    {
+        // The scene owns the final poses. Only temporary offsets are animated, so tilted/fanned
+        // cards and the future in-hand pose do not need a different animation implementation.
+        Vector2 center = ((_first.GetTransform() * (_first.Size / 2))
+            + (_second.GetTransform() * (_second.Size / 2))) / 2;
+        float angle = _firstPose.Rotation;
+        Vector2 StackPosition(RoomPokerCardView card) => center - card.PivotOffset
+            - ((card.Size / 2 - card.PivotOffset) * card.Scale).Rotated(angle);
+        Vector2 firstStack = StackPosition(_first), secondStack = StackPosition(_second);
+        Vector2 lift = Vector2.Up * Mathf.Min(_first.Size.Y, _second.Size.Y) * 0.24f;
+        _first.Position = firstStack + lift;
+        _second.Position = secondStack + lift;
+        _first.Rotation = _second.Rotation = angle;
+        _first.ZIndex = System.Math.Max(_firstPose.Z, _secondPose.Z) + 1;
+        _first.Modulate = new Color(_firstPose.Tint, 0);
+        _second.Modulate = new Color(_secondPose.Tint, 0);
+        _deal = CreateTween();
+        if (delay > 0) _deal.TweenInterval(delay);
+        _deal.TweenProperty(_first, "position", firstStack, 0.28).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.Parallel().TweenProperty(_second, "position", secondStack, 0.28).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.Parallel().TweenProperty(_first, "modulate", _firstPose.Tint, 0.12);
+        _deal.Parallel().TweenProperty(_second, "modulate", _secondPose.Tint, 0.12);
+        _deal.TweenInterval(0.05);
+        _deal.TweenProperty(_first, "position", _firstPose.Position, 0.32).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.Parallel().TweenProperty(_second, "position", _secondPose.Position, 0.32).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.Parallel().TweenProperty(_first, "rotation", _firstPose.Rotation, 0.32).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.Parallel().TweenProperty(_second, "rotation", _secondPose.Rotation, 0.32).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.TweenCallback(Callable.From(RestoreDealPose));
+    }
+
+    private void StopDeal()
+    {
+        if (_deal == null) return;
+        _deal.Kill();
+        RestoreDealPose();
+    }
+
+    private void RestoreDealPose()
+    {
+        _deal = null;
+        _first.Position = _firstPose.Position; _first.Rotation = _firstPose.Rotation;
+        _first.ZIndex = _firstPose.Z; _first.Modulate = _firstPose.Tint;
+        _second.Position = _secondPose.Position; _second.Rotation = _secondPose.Rotation;
+        _second.ZIndex = _secondPose.Z; _second.Modulate = _secondPose.Tint;
+    }
+
+    public override void _ExitTree() { _deal?.Kill(); _deal = null; }
 }
 #endif

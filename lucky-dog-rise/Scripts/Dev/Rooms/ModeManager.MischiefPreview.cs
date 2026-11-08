@@ -56,7 +56,12 @@ public partial class ModeManager
         _steamMockPanel.SetPokerPageAvailable(true, RoomPokerText.T("扑克", "Poker"));
         _pokerPreviewTable.FlipRequested += PokerPreviewFlip;
         _gameManager.SessionPokerTurnEnd += PokerPreviewEndTurn;
-        _pokerPreviewPanel.NextRequested += () => { if (PokerPreviewInputAllowed) _pokerPreview?.NextHand(); };
+        _pokerPreviewPanel.NextRequested += () =>
+        {
+            if (!PokerPreviewInputAllowed) return;
+            _pokerPreview?.NextHand();
+            TickPokerPreview(0);
+        };
         _pokerPreviewDebug.PauseRequested += () => { if (_pokerPreview != null) _pokerPreview.Paused = !_pokerPreview.Paused; };
         _pokerPreviewDebug.StepRequested += () => _pokerPreview?.Step();
         _pokerPreviewDebug.TimeoutRequested += () => _pokerPreview?.ExpireTurn();
@@ -69,6 +74,7 @@ public partial class ModeManager
 
     private bool PokerPreviewInputAllowed => CurrentMode == Mode.Play && !_hiddenByFullscreenApp
         && !_settingsPanel.IsOpen && !UiInteractionOccupancy.IsOccupied(this)
+        && _pokerPreviewTable?.IsDealing != true
         && _roomPokerDogs?.LocalChat.Editing != true;
     private void PokerPreviewFlip(int slot) { if (PokerPreviewInputAllowed) _pokerPreview?.Flip(slot); }
     private void PokerPreviewEndTurn() { if (PokerPreviewInputAllowed) _pokerPreview?.EndTurn(); }
@@ -85,13 +91,16 @@ public partial class ModeManager
             _settingsPanel.ShowPokerPreviewNotice(RoomPokerText.T("房间成员或玩法已变化，本机试玩已结束。", "The room changed. The local preview has ended."));
             return;
         }
-        _pokerPreview.Tick(delta);
+        // This local test driver starts the action clock after the opening presentation.
+        // A future network authority must own its own dealing phase; clients cannot pause it.
+        if (!_pokerPreviewTable.IsDealing) _pokerPreview.Tick(delta);
         var view = _pokerPreview.View;
         bool canAct = PokerPreviewInputAllowed && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
-        _gameManager.SetRoomPokerInput(canAct);
         bool presentationVisible = CurrentMode == Mode.Play && !_hiddenByFullscreenApp
             && !UiInteractionOccupancy.IsOccupied(this);
-        _pokerPreviewTable.Present(view, canAct, presentationVisible && !_pokerPreview.Paused ? delta : 0);
+        _pokerPreviewTable.Present(view, canAct, presentationVisible && !_pokerPreview.Paused ? delta : 0,
+            animate: presentationVisible);
+        _gameManager.SetRoomPokerInput(canAct && !_pokerPreviewTable.IsDealing);
         _pokerPreviewPanel.Present(view, _pokerPreview.LastError);
         _pokerPreviewDebug.Present(view, _pokerPreview.Paused, _pokerPreview.NextDealPreset, _pokerPreview.PanelStatePreview);
         _steamMockPanel.SetPokerPageAvailable(true, RoomPokerText.T("扑克", "Poker"));
@@ -114,7 +123,8 @@ public partial class ModeManager
             dog.PokerHand.Present(state, dog.MemberId, result?.HoleCards, _pokerPreviewTable.Emphasis,
                 _pokerPreviewTable.Showdown.Cue, dogs.IsVisibleInTree(),
                 waiting: seat == null || sample && _pokerPreview.PanelStatePreview == 1,
-                autoplay: sample && _pokerPreview.PanelStatePreview == 2);
+                autoplay: sample && _pokerPreview.PanelStatePreview == 2,
+                dealDelay: RoomPokerHandView.RemoteDealDelay);
         }
     }
 

@@ -8,18 +8,31 @@ public partial class RoomPokerCardView : TextureButton
 {
     [Export] private Texture2D _back;
     [Export] private Panel _outline;
-    private Tween _flip, _bounce;
+    [Export] private TextureRect _dealShadow;
+    private Tween _flip, _bounce, _deal;
+    private Vector2 _baseScale = Vector2.One, _dealPosition;
+    private Color _dealTint;
+    private bool _dealFaceHidden;
     private int _card = -2;
     private bool _faceUp;
     private long _cue = long.MinValue;
-    public int VisibleCard => _faceUp ? _card : -1;
+    public int VisibleCard => _faceUp && !_dealFaceHidden ? _card : -1;
+    public bool IsDealing => _deal?.IsRunning() == true;
     public bool Dimmed { get; private set; }
     public bool Outlined => _outline.Visible;
     public bool Decisive { get; private set; }
 
+    public override void _Ready()
+    {
+        _baseScale = Scale;
+        if (PivotOffset == Vector2.Zero) PivotOffset = Size / 2;
+        VisibilityChanged += () => { if (!IsVisibleInTree()) StopDealAnimation(); };
+    }
+
     public void Present(int card, bool faceUp, bool animate)
     {
         if (_card == card && _faceUp == faceUp) return;
+        StopDealAnimation();
         bool hadCard = _card != -2;
         _card = card;
         _faceUp = faceUp && card >= 0;
@@ -27,17 +40,79 @@ public partial class RoomPokerCardView : TextureButton
         _flip?.Kill();
         _bounce?.Kill();
         _cue = long.MinValue;
-        Scale = Vector2.One;
-        PivotOffset = Size / 2;
+        Scale = _baseScale;
         if (animate && hadCard && IsVisibleInTree())
         {
-            AudioManager.Instance?.PlaySfx(_faceUp ? "Card_PokerHandFlipToFront" : "Card_PokerHandFlipToBack");
+            // Public replacements and all revealed hands share one sound for this visual batch.
+            AudioManager.Instance?.PlaySfxOncePerFrame(
+                _faceUp ? "Card_PokerHandFlipToFront" : "Card_PokerHandFlipToBack", "RoomPokerFlip");
             _flip = CreateTween();
             _flip.TweenProperty(this, "scale:x", 0f, 0.08);
             _flip.TweenCallback(Callable.From(() => TextureNormal = texture));
-            _flip.TweenProperty(this, "scale:x", 1f, 0.08);
+            _flip.TweenProperty(this, "scale:x", _baseScale.X, 0.08);
         }
         else TextureNormal = texture;
+    }
+
+    public void AnimateDeal(double delay, float pitch)
+    {
+        StopDealAnimation();
+        _flip?.Kill(); _bounce?.Kill();
+        _dealPosition = Position;
+        _dealTint = Modulate;
+        Vector2 shadowCenter = GetTransform() * (Size / 2);
+        _dealFaceHidden = true;
+        TextureNormal = _back;
+        Modulate = new Color(_dealTint, 0);
+        // Match the solo card's 80px drop, 1.3x size, 0.25s landing and 0.08s flip halves.
+        void Drop(float progress)
+        {
+            float bodyScale = Mathf.Lerp(1.3f, 1f, progress);
+            Position = _dealPosition + Vector2.Up * 80 * (1 - progress);
+            Scale = _baseScale * bodyScale;
+            // Keep the shadow on the table while its parent card drops, then flip both together.
+            Vector2 center = GetTransform().AffineInverse() * (shadowCenter + Vector2.Down * 30 * (1 - progress));
+            _dealShadow.Position = center - _dealShadow.Size / 2;
+            _dealShadow.Scale = Vector2.One * Mathf.Lerp(0.8f, 1f, progress) / bodyScale;
+            _dealShadow.Modulate = new Color(0, 0, 0, Mathf.Lerp(0.7f, 1f, progress));
+        }
+        _dealShadow.PivotOffset = _dealShadow.Size / 2;
+        Drop(0);
+        _deal = CreateTween();
+        if (delay > 0) _deal.TweenInterval(delay);
+        _deal.TweenCallback(Callable.From(() =>
+        {
+            Modulate = _dealTint;
+            _dealShadow.Show();
+            AudioManager.Instance?.PlaySfxOncePerFrame("Card_PokerHandDeal", "RoomPokerDeal", pitch);
+        }));
+        _deal.TweenMethod(Callable.From<float>(Drop), 0f, 1f, 0.25).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        _deal.TweenProperty(this, "scale:x", 0f, 0.08).SetEase(Tween.EaseType.In);
+        _deal.TweenCallback(Callable.From(() =>
+        {
+            TextureNormal = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(_card)) : _back;
+            _dealFaceHidden = false;
+        }));
+        _deal.TweenProperty(this, "scale:x", _baseScale.X, 0.08).SetEase(Tween.EaseType.Out);
+        _deal.TweenCallback(Callable.From(RestoreDealPose));
+    }
+
+    public void StopDealAnimation()
+    {
+        if (_deal == null) return;
+        _deal.Kill();
+        RestoreDealPose();
+    }
+
+    private void RestoreDealPose()
+    {
+        _deal = null;
+        _dealFaceHidden = false;
+        _dealShadow.Hide();
+        Position = _dealPosition;
+        Scale = _baseScale;
+        Modulate = _dealTint;
+        TextureNormal = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(_card)) : _back;
     }
 
     public void SetEmphasis(bool dim, bool outlined, bool decisive, long cue, bool animate)
@@ -55,17 +130,16 @@ public partial class RoomPokerCardView : TextureButton
         ZIndex = decisive ? 1 : 0;
         if (!decisive)
         {
-            if (wasDecisive && !(_flip?.IsRunning() ?? false)) Scale = Vector2.One;
+            if (wasDecisive && !(_flip?.IsRunning() ?? false)) Scale = _baseScale;
             return;
         }
-        PivotOffset = Size / 2;
-        if (!animate || !IsVisibleInTree()) { Scale = Vector2.One * 1.2f; return; }
+        if (!animate || !IsVisibleInTree()) { Scale = _baseScale * 1.2f; return; }
         _bounce = CreateTween();
         _bounce.TweenInterval(0.2);
-        _bounce.TweenProperty(this, "scale", Vector2.One * 1.2f, 0.4)
+        _bounce.TweenProperty(this, "scale", _baseScale * 1.2f, 0.4)
             .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
     }
 
-    public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); }
+    public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); _deal?.Kill(); }
 }
 #endif

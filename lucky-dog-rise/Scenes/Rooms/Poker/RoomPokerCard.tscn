@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="back"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 
-[node name="Card" type="TextureButton" node_paths=PackedStringArray("_outline")]
+[node name="Card" type="TextureButton" node_paths=PackedStringArray("_outline", "_dealShadow")]
 offset_right = 120.0
 offset_bottom = 168.0
 focus_mode = 0
@@ -14,6 +14,20 @@ stretch_mode = 5
 script = ExtResource("script")
 _back = ExtResource("back")
 _outline = NodePath("Outline")
+_dealShadow = NodePath("DealShadow")
+
+[node name="DealShadow" type="TextureRect" parent="."]
+visible = false
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("back")
+expand_mode = 1
 
 [node name="Outline" type="Panel" parent="."]
 visible = false

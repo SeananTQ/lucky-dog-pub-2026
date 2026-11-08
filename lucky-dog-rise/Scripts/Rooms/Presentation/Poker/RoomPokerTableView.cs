@@ -14,6 +14,15 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Label _turn;
     public event Action<int> FlipRequested;
     private long _handNumber = -1;
+    private Guid _session;
+#if DEBUG
+    // Code-only opt-out for state/logic smoke tests; ordinary Mock play still animates.
+    internal static bool SkipDealAnimationForTests { get; set; }
+    internal static bool DealAnimationsEnabled => !SkipDealAnimationForTests;
+#else
+    internal static bool DealAnimationsEnabled => true;
+#endif
+    public bool IsDealing => _hand.IsDealing || _board.Any(card => card.IsDealing);
     public PokerShowdownSequence Showdown { get; } = new();
     public RoomPokerHandView LocalPanel => _hand;
     public PokerShowdownEmphasis Emphasis => Showdown.Revealed ? Showdown.Current : null;
@@ -25,23 +34,30 @@ public partial class RoomPokerTableView : Node2D
             _board[i].Pressed += () => FlipRequested?.Invoke(slot);
         }
     }
-    public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0)
+    public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true)
     {
         Showdown.Update(view, presentationDelta);
         var state = view.Public;
-        bool sameHand = _handNumber == state.HandNumber;
+        bool sameHand = _session == state.SessionId && _handNumber == state.HandNumber;
+        animate &= IsVisibleInTree();
+        _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, animate);
+        bool deal = !sameHand && state.Phase == PokerPhase.Acting && animate && DealAnimationsEnabled;
+        float pitchStart = deal ? Mathf.Lerp(0.98f, 1f, GD.Randf()) : 1f;
         for (int i = 0; i < _board.Count; i++)
         {
-            _board[i].Disabled = !canAct;
-            _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, sameHand);
+            if (!sameHand || !animate || state.Phase != PokerPhase.Acting) _board[i].StopDealAnimation();
+            _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, animate && sameHand);
             int card = state.Board[i].Card;
             _board[i].SetEmphasis(Emphasis != null && !Emphasis.WinnerCards.Contains(card),
                 Emphasis?.LocalCards.Contains(card) == true, Emphasis?.DecisiveCard == card,
-                Showdown.Cue, IsVisibleInTree());
+                Showdown.Cue, animate);
+            if (deal) _board[i].AnimateDeal(RoomPokerHandView.DealDuration + RoomPokerHandView.RemoteDealDelay + i * 0.2,
+                pitchStart + i * 0.015f);
         }
+        _session = state.SessionId;
         _handNumber = state.HandNumber;
-        _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, IsVisibleInTree());
-        _turn.Text = state.Phase == PokerPhase.Acting
+        foreach (var card in _board) card.Disabled = !canAct || IsDealing;
+        _turn.Text = IsDealing ? RoomPokerText.T("发牌中…", "Dealing…") : state.Phase == PokerPhase.Acting
             ? state.ActivePlayerId == view.PlayerId
                 ? RoomPokerText.T($"轮到你 · 还可翻 {state.FlipsRemaining} 次 · {Math.Ceiling(state.SecondsRemaining):0} 秒", $"Your turn · {state.FlipsRemaining} flips · {Math.Ceiling(state.SecondsRemaining):0}s")
                 : RoomPokerText.T($"等待 {state.Seats.Single(s => s.PlayerId == state.ActivePlayerId).SeatNumber} 号操作", $"Waiting for seat {state.Seats.Single(s => s.PlayerId == state.ActivePlayerId).SeatNumber}")

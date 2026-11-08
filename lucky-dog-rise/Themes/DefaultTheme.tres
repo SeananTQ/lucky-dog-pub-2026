@@ -808,6 +808,15 @@ expand_margin_top = 3.0
 expand_margin_right = 4.0
 expand_margin_bottom = 3.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_room_poker_status_bar"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.11, 0.14, 0.16, 0.96)
+border_width_top = 1
+border_color = Color(0.5, 0.58, 0.6, 0.65)
+
 [sub_resource type="StyleBoxFlat" id="StyleBox_poker_plate"]
 bg_color = Color(0.11, 0.14, 0.16, 0.98)
 border_width_left = 1
@@ -1304,7 +1313,7 @@ RoomPokerTableLabel/font_sizes/font_size = 28
 RoomPokerTableLabel/colors/font_shadow_color = Color(0.08, 0.10, 0.10, 1)
 RoomPokerTableLabel/constants/shadow_offset_x = 1
 RoomPokerTableLabel/constants/shadow_offset_y = 2
-RoomPokerTableLabel/styles/normal = SubResource("StyleBoxFlat_room_poker_status")
+RoomPokerTableLabel/styles/normal = SubResource("StyleBox_room_poker_status_bar")
 
 MockPanelTabSelected/base_type = &"PanelTopTabSelected"
 MockPanelTabSelected/colors/font_color = Color(0.08235294, 0.19607843, 0.30588236, 1)

@@ -27,6 +27,8 @@ public partial class AudioManager : Node
     private static readonly string[] SupportedExtensions = [".ogg", ".wav", ".mp3"];
     private readonly Dictionary<string, AudioStream> _streamCache = new(StringComparer.Ordinal);
     private readonly List<AudioStreamPlayer> _sfxPlayers = new();
+    private readonly HashSet<string> _frameSfxGroups = new(StringComparer.Ordinal);
+    private ulong _sfxGroupFrame = ulong.MaxValue;
     private AudioStreamPlayer _bgmPlayer = null!;
     private AudioStreamPlayer _pitchShiftSfxPlayer = null!;
     private AudioStreamPlayer _loopSfxPlayer = null!;
@@ -41,6 +43,11 @@ public partial class AudioManager : Node
     public float BgmVolume { get; private set; } = 0.5f;
 
     public static AudioManager Instance { get; private set; } = null!;
+
+#if DEBUG
+    // Observe actual playback starts, including when the output bus is muted for a smoke test.
+    internal event Action<string> SfxStartedForSmoke;
+#endif
 
     public override void _Ready()
     {
@@ -83,6 +90,22 @@ public partial class AudioManager : Node
     public void PlaySfx(string cue, string state = null, float pitchVariation = 0f)
     {
         PlaySfxInternal(cue, state, 1f, pitchVariation);
+    }
+
+    /// <summary>
+    /// 同一渲染帧内，同组表现只播放第一份音效，例如多名玩家一起亮牌。
+    /// 仅显式调用此入口时合并；普通 PlaySfx 和后续帧的独立操作不受影响。
+    /// </summary>
+    public void PlaySfxOncePerFrame(string cue, string group, float pitchCenter = 1f)
+    {
+        if (SfxVolume <= 0f) return;
+        ulong frame = Engine.GetProcessFrames();
+        if (_sfxGroupFrame != frame)
+        {
+            _sfxGroupFrame = frame;
+            _frameSfxGroups.Clear();
+        }
+        if (_frameSfxGroups.Add(group)) PlaySfxInternal(cue, null, pitchCenter, 0f);
     }
 
     /// <summary>播放带随机变调的短音效，例如 PlaySfx("Card_PokerHandDeal", 0.06f)。</summary>
@@ -203,6 +226,9 @@ public partial class AudioManager : Node
         player.Stream = stream;
         player.PitchScale = GetRandomPitchScale(pitchCenter, pitchVariation);
         player.Play();
+#if DEBUG
+        SfxStartedForSmoke?.Invoke(cue);
+#endif
     }
 
     /// <summary>兼容旧调用；可传 Knock.wav，也可直接传 Knock。</summary>
