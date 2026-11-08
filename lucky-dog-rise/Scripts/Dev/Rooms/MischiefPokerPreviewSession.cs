@@ -15,6 +15,8 @@ public sealed class MischiefPokerPreviewSession
     private double _now, _nextAction;
     public bool Paused { get; set; }
     public int NextDealPreset { get; set; }
+    // Visual fixture only. Does not simulate admission, connection failure or auto-play authority.
+    public int PanelStatePreview { get; set; }
     private int _activePreset;
     public PokerError LastError { get; private set; }
     public PokerPlayerView View => _match.GetPlayerView(_localId);
@@ -30,7 +32,9 @@ public sealed class MischiefPokerPreviewSession
         var state = _match.GetPublicView();
         int dealer = state.Settlement?.NextDealer.PlayerId ?? state.Dealer.PlayerId;
         int[]? deck = null;
-        if (NextDealPreset != 0)
+        if (NextDealPreset >= 4 && NextDealPreset <= 8)
+            deck = ExplanationDeck(state.Seats.Select(s => s.PlayerId).ToArray(), NextDealPreset);
+        else if (NextDealPreset != 0)
         {
             var seats = state.Seats.Select(s => s.PlayerId).ToArray();
             int target = NextDealPreset == 3 ? seats.First(id => id != dealer) : dealer;
@@ -47,6 +51,39 @@ public sealed class MischiefPokerPreviewSession
         LastError = _match.StartHand(_now, deck);
         if (LastError == PokerError.None) _activePreset = NextDealPreset;
         _nextAction = _now + 1.2;
+    }
+
+    private int[] ExplanationDeck(int[] seats, int preset)
+    {
+        // Deliberately readable fixtures for the agreed UI examples. Never used outside Mock.
+        string board;
+        string[] hands;
+        switch (preset)
+        {
+            case 5:
+                board = "Ah As 9d 7s 3c";
+                hands = new[] { "Qd 8c", "Kc Jh", "Kd Tc", "2h 4d", "5c 6h", "2c 4h" };
+                break;
+            case 6:
+                board = "Ah As Kc 9d 3s";
+                hands = new[] { "Qc Qd", "Kd Jh", "Kh Tc", "2c 4h", "5c 6d", "7h 8s" };
+                break;
+            case 7:
+                board = "Ah As Jc 9h 3d";
+                hands = new[] { "Qh 8d", "Kc 2c", "Kd 4d", "5s 6s", "7h 8s", "2d 4h" };
+                break;
+            default:
+                board = "Ts 5s 9d 9s 5c";
+                hands = preset == 8
+                    ? new[] { "Th Kc", "Td 2h", "7h 8d", "3c 4d", "6h 7s", "8c 2d" }
+                    : new[] { "Th 2h", "Td Kc", "7h 8d", "3c 4d", "6h 7s", "8c 2d" };
+                break;
+        }
+        int[] Cards(string text) => text.Split(' ').Select(t => "cdhs".IndexOf(t[1]) * 13 + "A23456789TJQK".IndexOf(t[0])).ToArray();
+        int nextOther = 1;
+        var holes = seats.Select(id => Cards(hands[id == _localId ? 0 : nextOther++])).ToArray();
+        var prefix = Enumerable.Range(0, 2).SelectMany(pass => holes.Select(h => h[pass])).Concat(Cards(board)).ToArray();
+        return prefix.Concat(Enumerable.Range(0, 52).Except(prefix)).ToArray();
     }
 
     public void Tick(double delta)

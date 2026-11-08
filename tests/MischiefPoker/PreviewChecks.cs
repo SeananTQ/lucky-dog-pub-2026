@@ -6,7 +6,7 @@ internal static class PreviewChecks
     public static void Run()
     {
         for (int count = 2; count <= 6; count++)
-        for (int preset = 0; preset <= 3; preset++)
+        for (int preset = 0; preset <= 8; preset++)
         {
             var players = Enumerable.Range(1, count).ToArray();
             var session = new MischiefPokerPreviewSession(players, 2, 1) { NextDealPreset = preset };
@@ -24,6 +24,9 @@ internal static class PreviewChecks
             if (preset == 1) Check.Equal(result.Winners.Count, count, "royal-flush board preset ties all players");
             if (preset == 2) Check.Sequence(result.Winners, new[] { 2 }, "dealer preset wins without changing board");
             if (preset == 3) Check.Sequence(result.Winners, new[] { 1 }, "other-winner preset transfers dealer");
+            if (preset is 4 or 5 or 6) Check.Sequence(result.Winners, new[] { 2 }, "explanation fixture has the expected remote winner");
+            if (preset == 7) Check.Sequence(result.Winners.Order(), players.Skip(1).Take(2), "other winners tie while the local player loses");
+            if (preset == 8) Check.Sequence(result.Winners, new[] { 1 }, "local sole winner fixture");
             Check.Equal(session.View.Public.Seats.Sum(s => s.Chips) + session.View.Public.TotalSystemTips, count * 1000L,
                 "preview conserved balance including system tips");
             session.NextHand();

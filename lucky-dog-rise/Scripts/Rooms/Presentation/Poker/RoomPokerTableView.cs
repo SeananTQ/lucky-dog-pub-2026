@@ -14,6 +14,9 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Label _turn;
     public event Action<int> FlipRequested;
     private long _handNumber = -1;
+    public PokerShowdownSequence Showdown { get; } = new();
+    public RoomPokerHandView LocalPanel => _hand;
+    public PokerShowdownEmphasis Emphasis => Showdown.Revealed ? Showdown.Current : null;
     public override void _Ready()
     {
         for (int i = 0; i < _board.Count; i++)
@@ -22,19 +25,22 @@ public partial class RoomPokerTableView : Node2D
             _board[i].Pressed += () => FlipRequested?.Invoke(slot);
         }
     }
-    public void Present(PokerPlayerView view, bool canAct)
+    public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0)
     {
+        Showdown.Update(view, presentationDelta);
         var state = view.Public;
         bool sameHand = _handNumber == state.HandNumber;
         for (int i = 0; i < _board.Count; i++)
         {
             _board[i].Disabled = !canAct;
             _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, sameHand);
+            int card = state.Board[i].Card;
+            _board[i].SetEmphasis(Emphasis != null && !Emphasis.WinnerCards.Contains(card),
+                Emphasis?.LocalCards.Contains(card) == true, Emphasis?.DecisiveCard == card,
+                Showdown.Cue, IsVisibleInTree());
         }
         _handNumber = state.HandNumber;
-        var self = state.Seats.Single(s => s.PlayerId == view.PlayerId);
-        _hand.Present(view.HoleCards, RoomPokerText.T($"你的手牌 · {self.SeatNumber} 号", $"Your cards · Seat {self.SeatNumber}")
-            + (canAct ? RoomPokerText.T("\n点手臂结束回合", "\nTap arm to end turn") : ""), canAct);
+        _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, IsVisibleInTree());
         _turn.Text = state.Phase == PokerPhase.Acting
             ? state.ActivePlayerId == view.PlayerId
                 ? RoomPokerText.T($"轮到你 · 还可翻 {state.FlipsRemaining} 次 · {Math.Ceiling(state.SecondsRemaining):0} 秒", $"Your turn · {state.FlipsRemaining} flips · {Math.Ceiling(state.SecondsRemaining):0}s")

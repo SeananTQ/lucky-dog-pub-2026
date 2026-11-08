@@ -26,10 +26,12 @@ public partial class InGameRoomPreview
         }
         _isMock = true;
         _sandbox = new RoomSandbox();
-        var skin = LubanData.Tables.TbDogSkin.DataList[0].Id;
+        var skins = LubanData.Tables.TbDogSkin;
+        var skin = skins.DataList[0].Id;
         var client = _sandbox.AddClient(1, L10n.Tr("Rooms_You"), skin);
-        var host = _sandbox.AddClient(2, L10n.Tr("Rooms_MockPlayer2"), skin);
-        var guest = _sandbox.AddClient(3, L10n.Tr("Rooms_MockPlayer3"), skin);
+        // Distinct table-defined coats make the two test companions easier to follow.
+        var host = _sandbox.AddClient(2, L10n.Tr("Rooms_MockPlayer2"), skins.GetOrDefault(1002)?.Id ?? skin); // 黑柴
+        var guest = _sandbox.AddClient(3, L10n.Tr("Rooms_MockPlayer3"), skins.GetOrDefault(1003)?.Id ?? skin); // 白柴
         _mockClients.AddRange(new[] { client, host, guest });
         _sandbox.Create(host, L10n.Tr("Rooms_MockRoom"));
         _sandbox.Join(guest, host.JoinedCode);

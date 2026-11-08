@@ -808,7 +808,108 @@ expand_margin_top = 3.0
 expand_margin_right = 4.0
 expand_margin_bottom = 3.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_plate"]
+bg_color = Color(0.11, 0.14, 0.16, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.58, 0.6, 0.8)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_left = 7
+corner_radius_bottom_right = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_active"]
+bg_color = Color(0.13, 0.24, 0.29, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.58, 0.82, 0.91, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_left = 7
+corner_radius_bottom_right = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner"]
+bg_color = Color(0.31, 0.24, 0.12, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.66, 0.3, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_left = 7
+corner_radius_bottom_right = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner_focus"]
+bg_color = Color(0.39, 0.29, 0.12, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.85, 0.45, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_left = 7
+corner_radius_bottom_right = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_own_card"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.53, 1, 0.36, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_bg"]
+bg_color = Color(0.06, 0.09, 0.1, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_fill"]
+bg_color = Color(0.58, 0.82, 0.91, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_dealer"]
+bg_color = Color(0.77, 0.82, 0.83, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_left = 9
+corner_radius_bottom_right = 9
+
 [resource]
+RoomPokerPlate/base_type = &"Panel"
+RoomPokerPlate/styles/panel = SubResource("StyleBox_poker_plate")
+RoomPokerActive/base_type = &"Panel"
+RoomPokerActive/styles/panel = SubResource("StyleBox_poker_active")
+RoomPokerWinner/base_type = &"Panel"
+RoomPokerWinner/styles/panel = SubResource("StyleBox_poker_winner")
+RoomPokerWinnerFocus/base_type = &"Panel"
+RoomPokerWinnerFocus/styles/panel = SubResource("StyleBox_poker_winner_focus")
+RoomPokerOwnCard/base_type = &"Panel"
+RoomPokerOwnCard/styles/panel = SubResource("StyleBox_poker_own_card")
+RoomPokerClock/base_type = &"ProgressBar"
+RoomPokerClock/styles/background = SubResource("StyleBox_poker_clock_bg")
+RoomPokerClock/styles/fill = SubResource("StyleBox_poker_clock_fill")
+RoomPokerDealer/base_type = &"Label"
+RoomPokerDealer/styles/normal = SubResource("StyleBox_poker_dealer")
+RoomPokerDealer/font_sizes/font_size = 13
+RoomPokerDealer/colors/font_color = Color(0.11, 0.14, 0.16, 1)
+RoomPokerRank/base_type = &"Label"
+RoomPokerRank/font_sizes/font_size = 12
+RoomPokerRank/colors/font_color = Color(0.91, 0.87, 0.76, 1)
 default_font = ExtResource("4_inter_bold")
 ActionButton/base_type = &"Button"
 ActionButton/styles/disabled = ExtResource("1_5li03")

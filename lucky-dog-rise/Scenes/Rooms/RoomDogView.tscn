@@ -34,6 +34,6 @@ position = Vector2(-49, -140)
 [node name="PokerHand" parent="." instance=ExtResource("poker_hand")]
 visible = false
 offset_left = 100.0
-offset_top = -86.0
-offset_right = 232.0
-offset_bottom = 36.0
+offset_top = -110.0
+offset_right = 252.0
+offset_bottom = 50.0

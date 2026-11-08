@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerCardView.cs" id="script"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="back"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 
-[node name="Card" type="TextureButton"]
+[node name="Card" type="TextureButton" node_paths=PackedStringArray("_outline")]
 offset_right = 120.0
 offset_bottom = 168.0
 focus_mode = 0
@@ -12,3 +13,16 @@ ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("script")
 _back = ExtResource("back")
+_outline = NodePath("Outline")
+
+[node name="Outline" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("theme")
+theme_type_variation = &"RoomPokerOwnCard"

@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPayoutView.cs" id="script"]
+[ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="chip"]
+
+[node name="RoomPokerPayout" type="Node2D" unique_id=732844015]
+visible = false
+z_index = 100
+script = ExtResource("script")
+_chip = ExtResource("chip")

@@ -71,6 +71,22 @@ internal static class MischiefPokerMainChecks
                 "solo onboarding/cards suspended without acknowledging the welcome");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.PokerHand.Visible && !d.PokerHand.CardsRevealed),
                 "remote cards hidden before showdown");
+            var renderDogs = main.RoomPokerDogsForSmoke;
+            if (mode == 1)
+            {
+                int slot = 0;
+                // Keep all six panels visible for screenshots, without changing production placement rules.
+                foreach (var dog in renderDogs.RemoteDogs.OrderBy(d => d.MemberId))
+                {
+                    renderDogs.MoveMember(dog.MemberId, new Vector2(130 + slot % 3 * 400,
+                        DisplayServer.WindowGetSize().Y - 270 + slot / 3 * 200), 0, false, 0, 0);
+                    slot++;
+                }
+                await Wait();
+            }
+            Check(table.LocalPanel.GetNode<TextureRect>("Plate/Winner").Texture != null
+                && table.LocalPanel.GetNode<TextureRect>("Waiting").Texture != null
+                && table.LocalPanel.GetNode<TextureRect>("Plate/Autoplay").Texture != null, "all placeholder icons are imported and bound");
             double remaining = session.View.Public.SecondsRemaining;
             await Wait(0.3);
             Check(session.View.Public.SecondsRemaining == remaining, "debug pause freezes authority clock");
@@ -114,6 +130,93 @@ internal static class MischiefPokerMainChecks
             await Capture(mode == 0 ? "free-showdown-zh" : "compact-showdown-en");
             var infoRect = main.GetNode<PanelContainer>("InfoPanel/Panel");
             Check(infoRect.Size.Y <= 600.1f, $"preview controls fit original panel height ({infoRect.Size.Y}, minimum {infoRect.GetCombinedMinimumSize().Y})");
+
+            // Visual-only panel states never change the match or mislabel normal bots as disconnected.
+            var sampleDog = main.RoomPokerDogsForSmoke.RemoteDogs.First(d => d.MemberId == session.View.Public.Seats.First(s => s.PlayerId != client.Id).PlayerId);
+            Check(!sampleDog.PokerHand.IsAutoplay && !sampleDog.PokerHand.IsWaiting, "normal bot is neither disconnected nor waiting to join");
+            long panelRevision = session.View.Public.Revision;
+            controls.GetNode<OptionButton>("PanelState").EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+            await Wait();
+            Check(sampleDog.PokerHand.IsWaiting && !sampleDog.PokerHand.FirstCard.Visible && !sampleDog.PokerHand.SecondCard.Visible
+                && !sampleDog.PokerHand.IsWinner && !sampleDog.PokerHand.IsActing, "waiting fixture has no fake card backs or winner/action state");
+            await Capture(mode == 0 ? "panel-waiting-zh" : "panel-waiting-en");
+            controls.GetNode<OptionButton>("PanelState").EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
+            await Wait();
+            Check(sampleDog.PokerHand.IsAutoplay && sampleDog.PokerHand.CardsRevealed
+                && session.View.Public.Revision == panelRevision, "autoplay fixture changes presentation only and retains cards");
+            await Capture(mode == 0 ? "panel-autoplay-zh" : "panel-autoplay-en");
+            controls.GetNode<OptionButton>("PanelState").EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
+            await Wait();
+
+            foreach (int preset in new[] { 4, 5, 6, 7, 8 })
+            {
+                controls.GetNode<OptionButton>("PresetRow/Preset").EmitSignal(OptionButton.SignalName.ItemSelected, (long)preset);
+                Click(ui.GetNode<Button>("Next"));
+                await Wait();
+                Check(!table.LocalPanel.IsWinner && !table.LocalPanel.FirstCard.Dimmed && !table.LocalPanel.FirstCard.Outlined
+                    && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => !d.PokerHand.IsWinner && !d.PokerHand.CardsRevealed),
+                    "next hand clears crowns, outlines, dimming and opponent faces");
+                var acting = session.View.Public.ActivePlayerId;
+                Check((acting == client.Id ? table.LocalPanel : main.RoomPokerDogsForSmoke.RemoteDogs.Single(d => d.MemberId == acting).PokerHand).IsActing,
+                    "actual actor has a countdown strip");
+                Complete(session, client.Id);
+                session.Paused = false;
+                await Wait(1.1);
+                session.Paused = true;
+                var emphasis = table.Emphasis;
+                Check(emphasis != null, "showdown reveal precedes emphasis");
+                foreach (var dog in main.RoomPokerDogsForSmoke.RemoteDogs)
+                    Check(dog.PokerHand.IsWinner == session.View.Public.Settlement.Winners.Contains(dog.MemberId), "winner crown is independent of current sequence focus");
+                var first = table.LocalPanel.FirstCard;
+                var second = table.LocalPanel.SecondCard;
+                Check(first.Outlined == emphasis.LocalCards.Contains(first.VisibleCard) && second.Outlined == emphasis.LocalCards.Contains(second.VisibleCard),
+                    "local outline follows local combination, including dimmed local cards");
+                if (preset == 4)
+                {
+                    var winnerDog = main.RoomPokerDogsForSmoke.RemoteDogs.Single(d => d.MemberId == emphasis.WinnerId);
+                    Check(first.Dimmed && first.Outlined && second.Dimmed && !second.Outlined, "bear example: local 10 is dim-green, local 2 dim without outline");
+                    var kicker = winnerDog.PokerHand.SecondCard;
+                    Check(kicker.Decisive && !kicker.Dimmed && kicker.Scale.IsEqualApprox(Vector2.One * 1.2f), "winner K finishes at 120 percent");
+                    var boardFive = table.GetNode<RoomPokerCardView>("Board/Card2");
+                    Check(boardFive.Outlined && boardFive.Dimmed && !table.GetNode<RoomPokerCardView>("Board/Card5").Outlined,
+                        "left public 5 has the local outline without loser shrinking");
+                    var hostPosition = DisplayServer.WindowGetPosition();
+                    var originalPosition = winnerDog.Position;
+                    var pointer = winnerDog.PokerHand.GetGlobalRect().GetCenter();
+                    main.GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true,
+                        Position = pointer, GlobalPosition = pointer }, true);
+                    var far = pointer + new Vector2(5000, -200);
+                    main.GetViewport().PushInput(new InputEventMouseMotion { ButtonMask = MouseButtonMask.Left,
+                        Position = far, GlobalPosition = far }, true);
+                    await Wait();
+                    main.GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false,
+                        Position = far, GlobalPosition = far }, true);
+                    await Wait();
+                    Check(DisplayServer.WindowGetPosition() == hostPosition
+                        && !winnerDog.Position.IsEqualApprox(originalPosition)
+                        && new Rect2(Vector2.Zero, DisplayServer.WindowGetSize()).Grow(1).Encloses(winnerDog.PokerHand.GetGlobalRect()),
+                        "dragging by the player panel includes its full bounds without moving the host");
+                    renderDogs.MoveMember(winnerDog.MemberId, originalPosition, 0, false, 0, 0);
+                    await Wait();
+                }
+                if (preset == 6) Check(emphasis.DecisiveCard == null, "different two-pair core has no kicker animation");
+                if (preset == 8) Check(table.LocalPanel.IsWinner && emphasis.DecisiveCard == null && emphasis.LocalCards.SetEquals(emphasis.WinnerCards),
+                    "local winner sees matching core masks without loser analysis");
+                await Capture($"showdown-{preset}-{(mode == 0 ? "zh" : "en")}");
+                if (preset == 7)
+                {
+                    int initial = emphasis.WinnerId;
+                    long[] balances = session.View.Public.Seats.Select(s => s.Chips).ToArray();
+                    session.Paused = false;
+                    await Wait(2.5);
+                    session.Paused = true;
+                    Check(table.Emphasis.WinnerId != initial && table.Emphasis.DecisiveCard != null,
+                        "other tied winners take turns explaining loss to the local viewer");
+                    Check(main.RoomPokerDogsForSmoke.RemoteDogs.Count(d => d.PokerHand.IsWinner) == 2
+                        && balances.SequenceEqual(session.View.Public.Seats.Select(s => s.Chips)), "both tied crowns persist and payout animation never awards twice");
+                    await Capture($"tie-second-{(mode == 0 ? "zh" : "en")}");
+                }
+            }
 
             controls.GetNode<OptionButton>("PresetRow/Preset").Select(1);
             controls.GetNode<OptionButton>("PresetRow/Preset").EmitSignal(OptionButton.SignalName.ItemSelected, 1L);

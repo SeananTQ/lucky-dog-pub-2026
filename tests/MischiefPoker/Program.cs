@@ -8,6 +8,7 @@ try
     Console.WriteLine($"PASS hand examples, kickers, best five and permutations ({Check.Count} checks)");
     MatchChecks.Run();
     PreviewChecks.Run();
+    ShowdownChecks.Run();
     Console.WriteLine($"PASS game flow, deadlines, privacy, dealer changes and chip accounting ({Check.Count} checks)");
     HandChecks.ExhaustiveFiveCardCategories();
     Console.WriteLine($"MISCHIEF_POKER_PASS: {Check.Count} checks, all 2,598,960 five-card hands, {watch.Elapsed.TotalSeconds:F2}s");

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomPokerDebugPanelView.cs" id="script"]
 
-[node name="PokerControls" type="VBoxContainer" node_paths=PackedStringArray("_title", "_status", "_presetLabel", "_preset", "_pause", "_step", "_timeout", "_exit", "_hint")]
+[node name="PokerControls" type="VBoxContainer" node_paths=PackedStringArray("_title", "_status", "_presetLabel", "_preset", "_panelState", "_pause", "_step", "_timeout", "_exit", "_hint")]
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 script = ExtResource("script")
@@ -10,6 +10,7 @@ _title = NodePath("Title")
 _status = NodePath("Status")
 _presetLabel = NodePath("PresetRow/Label")
 _preset = NodePath("PresetRow/Preset")
+_panelState = NodePath("PanelState")
 _pause = NodePath("Actions/Pause")
 _step = NodePath("Actions/Step")
 _timeout = NodePath("Actions/Timeout")
@@ -37,6 +38,13 @@ auto_translate_mode = 2
 theme_type_variation = &"RoomPokerPanelLabel"
 
 [node name="Preset" type="OptionButton" parent="PresetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="PanelState" type="OptionButton" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
 fit_to_longest_item = false

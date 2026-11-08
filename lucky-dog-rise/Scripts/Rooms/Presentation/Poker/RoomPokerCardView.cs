@@ -7,10 +7,15 @@ namespace LuckyDogRise.Rooms;
 public partial class RoomPokerCardView : TextureButton
 {
     [Export] private Texture2D _back;
-    private Tween _flip;
+    [Export] private Panel _outline;
+    private Tween _flip, _bounce;
     private int _card = -2;
     private bool _faceUp;
+    private long _cue = long.MinValue;
     public int VisibleCard => _faceUp ? _card : -1;
+    public bool Dimmed { get; private set; }
+    public bool Outlined => _outline.Visible;
+    public bool Decisive { get; private set; }
 
     public void Present(int card, bool faceUp, bool animate)
     {
@@ -20,6 +25,8 @@ public partial class RoomPokerCardView : TextureButton
         _faceUp = faceUp && card >= 0;
         var texture = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(card)) : _back;
         _flip?.Kill();
+        _bounce?.Kill();
+        _cue = long.MinValue;
         Scale = Vector2.One;
         PivotOffset = Size / 2;
         if (animate && hadCard && IsVisibleInTree())
@@ -33,6 +40,32 @@ public partial class RoomPokerCardView : TextureButton
         else TextureNormal = texture;
     }
 
-    public override void _ExitTree() => _flip?.Kill();
+    public void SetEmphasis(bool dim, bool outlined, bool decisive, long cue, bool animate)
+    {
+        Dimmed = dim && _faceUp;
+        // SelfModulate leaves the child's green outline legible on a dimmed card.
+        SelfModulate = Dimmed ? new Color(0.43f, 0.43f, 0.43f) : Colors.White;
+        _outline.Visible = outlined && _faceUp;
+        decisive &= _faceUp;
+        if (Decisive == decisive && _cue == cue) return;
+        bool wasDecisive = Decisive;
+        Decisive = decisive;
+        _cue = cue;
+        _bounce?.Kill();
+        ZIndex = decisive ? 1 : 0;
+        if (!decisive)
+        {
+            if (wasDecisive && !(_flip?.IsRunning() ?? false)) Scale = Vector2.One;
+            return;
+        }
+        PivotOffset = Size / 2;
+        if (!animate || !IsVisibleInTree()) { Scale = Vector2.One * 1.2f; return; }
+        _bounce = CreateTween();
+        _bounce.TweenInterval(0.2);
+        _bounce.TweenProperty(this, "scale", Vector2.One * 1.2f, 0.4)
+            .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+    }
+
+    public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); }
 }
 #endif

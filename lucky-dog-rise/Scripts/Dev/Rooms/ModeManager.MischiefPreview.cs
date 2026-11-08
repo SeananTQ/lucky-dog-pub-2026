@@ -13,6 +13,7 @@ public partial class ModeManager
     private RoomPokerTableView _pokerPreviewTable;
     private RoomPokerPanelView _pokerPreviewPanel;
     private RoomPokerDebugPanelView _pokerPreviewDebug;
+    private RoomPokerPayoutView _pokerPreviewPayout;
     private RoomClient _pokerPreviewClient;
     private long _pokerPreviewSession;
     private (int Id, long Presence)[] _pokerPreviewRoster;
@@ -39,6 +40,8 @@ public partial class ModeManager
         if (CurrentMode != Mode.Play) return;
         _pokerPreviewTable = _gameManager.BeginRoomPoker();
         if (_pokerPreviewTable == null) return;
+        _pokerPreviewPayout = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPayout.tscn").Instantiate<RoomPokerPayoutView>();
+        AddChild(_pokerPreviewPayout);
         _pokerPreviewClient = client;
         _pokerPreviewSession = client.LayoutSession;
         _pokerPreviewRoster = client.View.Members.Select(m => (m.Id, m.Presence)).OrderBy(m => m.Id).ToArray();
@@ -58,6 +61,7 @@ public partial class ModeManager
         _pokerPreviewDebug.StepRequested += () => _pokerPreview?.Step();
         _pokerPreviewDebug.TimeoutRequested += () => _pokerPreview?.ExpireTurn();
         _pokerPreviewDebug.PresetSelected += preset => { if (_pokerPreview != null) _pokerPreview.NextDealPreset = preset; };
+        _pokerPreviewDebug.PanelStateSelected += state => { if (_pokerPreview != null) _pokerPreview.PanelStatePreview = state; };
         _pokerPreviewDebug.ExitRequested += StopPokerPreview;
         _settingsPanel.CloseImmediate();
         TickPokerPreview(0);
@@ -85,28 +89,52 @@ public partial class ModeManager
         var view = _pokerPreview.View;
         bool canAct = PokerPreviewInputAllowed && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
         _gameManager.SetRoomPokerInput(canAct);
-        _pokerPreviewTable.Present(view, canAct);
+        bool presentationVisible = CurrentMode == Mode.Play && !_hiddenByFullscreenApp
+            && !UiInteractionOccupancy.IsOccupied(this);
+        _pokerPreviewTable.Present(view, canAct, presentationVisible && !_pokerPreview.Paused ? delta : 0);
         _pokerPreviewPanel.Present(view, _pokerPreview.LastError);
-        _pokerPreviewDebug.Present(view, _pokerPreview.Paused, _pokerPreview.NextDealPreset);
+        _pokerPreviewDebug.Present(view, _pokerPreview.Paused, _pokerPreview.NextDealPreset, _pokerPreview.PanelStatePreview);
         _steamMockPanel.SetPokerPageAvailable(true, RoomPokerText.T("扑克", "Poker"));
         _infoPanel.SetSessionChips(view.Public.Seats.Single(s => s.PlayerId == view.PlayerId).Chips,
             RoomPokerText.T("牌局筹码", "Table chips"));
         PresentPreviewHands(_roomPokerDogs, view.Public);
         PresentPreviewHands(_roomDesktop, view.Public);
+        UpdatePokerPreviewPayout(view, presentationVisible);
     }
 
-    private static void PresentPreviewHands(RoomDesktopPreview dogs, PokerPublicView state)
+    private void PresentPreviewHands(RoomDesktopPreview dogs, PokerPublicView state)
     {
         if (dogs == null) return;
         foreach (var dog in dogs.RemoteDogs)
         {
             var seat = state?.Seats.FirstOrDefault(s => s.PlayerId == dog.MemberId);
-            if (seat == null) { dog.PokerHand.Hide(); continue; }
+            if (state == null) { dog.PokerHand.Hide(); continue; }
             var result = state.Settlement?.Players.FirstOrDefault(p => p.PlayerId == dog.MemberId);
-            string marker = dog.MemberId == state.Dealer.PlayerId ? RoomPokerText.T(" · 庄", " · D") : "";
-            if (dog.MemberId == state.ActivePlayerId) marker += " ◀";
-            dog.PokerHand.Present(result?.HoleCards, $"#{seat.SeatNumber}{marker}\n{seat.Chips:N0}", dog.MemberId == state.ActivePlayerId);
+            bool sample = dog.MemberId == state.Seats.First(s => s.PlayerId != _pokerPreview.View.PlayerId).PlayerId;
+            dog.PokerHand.Present(state, dog.MemberId, result?.HoleCards, _pokerPreviewTable.Emphasis,
+                _pokerPreviewTable.Showdown.Cue, dogs.IsVisibleInTree(),
+                waiting: seat == null || sample && _pokerPreview.PanelStatePreview == 1,
+                autoplay: sample && _pokerPreview.PanelStatePreview == 2);
         }
+    }
+
+    private void UpdatePokerPreviewPayout(PokerPlayerView view, bool visible)
+    {
+        var sequence = _pokerPreviewTable.Showdown;
+        if (!visible || !sequence.Revealed || sequence.Current is not { } current)
+        { _pokerPreviewPayout.Hide(); return; }
+        Vector2 FromTable(Vector2 point) => _playViewport.GetGlobalTransformWithCanvas()
+            * (point * (_playViewport.Size / _playSubViewport.Size));
+        Vector2 target;
+        if (current.WinnerId == view.PlayerId) target = FromTable(_pokerPreviewTable.LocalPanel.AwardAnchor);
+        else
+        {
+            var dog = _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == current.WinnerId);
+            if (dog == null || dog.PokerHand.IsWaiting) { _pokerPreviewPayout.Hide(); return; }
+            target = dog.PokerHand.AwardAnchor;
+        }
+        _pokerPreviewPayout.Present(FromTable(new Vector2(600, 940)), target,
+            sequence.StepSeconds, 24 * _playViewport.GetGlobalTransformWithCanvas().Scale.X, true);
     }
 
     private void StopPokerPreview()
@@ -122,10 +150,13 @@ public partial class ModeManager
         _pokerPreviewPanel.QueueFree();
         _pokerPreviewDebug.Hide();
         _pokerPreviewDebug.QueueFree();
+        _pokerPreviewPayout.Hide();
+        _pokerPreviewPayout.QueueFree();
         _steamMockPanel.SetPokerPageAvailable(false);
         _pokerPreviewTable = null;
         _pokerPreviewPanel = null;
         _pokerPreviewDebug = null;
+        _pokerPreviewPayout = null;
         _pokerPreviewClient = null;
         PresentPreviewHands(_roomPokerDogs, null);
         PresentPreviewHands(_roomDesktop, null);

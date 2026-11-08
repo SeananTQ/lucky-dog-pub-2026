@@ -3,40 +3,138 @@
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerHandView.cs" id="script"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerCard.tscn" id="card"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_PokerWinner.svg" id="winner"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_PokerWaiting.svg" id="waiting"]
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_PokerAutoplay.svg" id="autoplay"]
 
-[node name="PokerHand" type="Control" node_paths=PackedStringArray("_first", "_second", "_status")]
-offset_right = 132.0
-offset_bottom = 122.0
+[node name="PokerHand" type="Control" node_paths=PackedStringArray("_first", "_second", "_plate", "_seat", "_chips", "_dealer", "_rank", "_winner", "_waiting", "_autoplay", "_clock")]
+offset_right = 152.0
+offset_bottom = 160.0
 mouse_filter = 2
 theme = ExtResource("theme")
 script = ExtResource("script")
 _first = NodePath("First")
 _second = NodePath("Second")
-_status = NodePath("Status")
+_plate = NodePath("Plate")
+_seat = NodePath("Plate/Seat")
+_chips = NodePath("Plate/Chips")
+_dealer = NodePath("Plate/Dealer")
+_rank = NodePath("Plate/Rank")
+_winner = NodePath("Plate/Winner")
+_waiting = NodePath("Waiting")
+_autoplay = NodePath("Plate/Autoplay")
+_clock = NodePath("Plate/Clock")
 
 [node name="First" parent="." instance=ExtResource("card")]
-offset_left = 2.0
-offset_top = 3.0
-offset_right = 60.0
-offset_bottom = 84.0
+offset_left = 10.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 93.0
 mouse_filter = 2
 disabled = true
 
 [node name="Second" parent="." instance=ExtResource("card")]
-offset_left = 67.0
-offset_top = 3.0
-offset_right = 125.0
-offset_bottom = 84.0
+offset_left = 84.0
+offset_top = 12.0
+offset_right = 142.0
+offset_bottom = 93.0
 mouse_filter = 2
 disabled = true
 
-[node name="Status" type="Label" parent="."]
-offset_top = 88.0
-offset_right = 132.0
-offset_bottom = 122.0
+[node name="Waiting" type="TextureRect" parent="."]
+visible = false
+offset_left = 54.0
+offset_top = 30.0
+offset_right = 98.0
+offset_bottom = 74.0
+mouse_filter = 1
+texture = ExtResource("waiting")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Plate" type="Panel" parent="."]
+offset_top = 102.0
+offset_right = 152.0
+offset_bottom = 160.0
+mouse_filter = 2
+theme_type_variation = &"RoomPokerPlate"
+
+[node name="Seat" type="Label" parent="Plate"]
+offset_left = 8.0
+offset_top = 3.0
+offset_right = 44.0
+offset_bottom = 22.0
 mouse_filter = 2
 auto_translate_mode = 2
-theme_type_variation = &"RoomPokerStatusLabel"
+theme_type_variation = &"RoomPokerSmallLabel"
+text = "#1"
+
+[node name="Dealer" type="Label" parent="Plate"]
+visible = false
+offset_left = 50.0
+offset_top = 4.0
+offset_right = 69.0
+offset_bottom = 23.0
+mouse_filter = 1
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerDealer"
+text = "D"
 horizontal_alignment = 1
 vertical_alignment = 1
-autowrap_mode = 3
+
+[node name="Autoplay" type="TextureRect" parent="Plate"]
+visible = false
+modulate = Color(0.6, 0.8, 1, 1)
+offset_left = 96.0
+offset_top = 3.0
+offset_right = 116.0
+offset_bottom = 23.0
+mouse_filter = 1
+texture = ExtResource("autoplay")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Winner" type="TextureRect" parent="Plate"]
+visible = false
+modulate = Color(1, 0.86, 0.48, 1)
+offset_left = 122.0
+offset_top = 1.0
+offset_right = 148.0
+offset_bottom = 27.0
+mouse_filter = 1
+texture = ExtResource("winner")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Chips" type="Label" parent="Plate"]
+offset_left = 6.0
+offset_top = 22.0
+offset_right = 146.0
+offset_bottom = 40.0
+mouse_filter = 2
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerSmallLabel"
+text = "1,000"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Rank" type="Label" parent="Plate"]
+offset_left = 4.0
+offset_top = 40.0
+offset_right = 148.0
+offset_bottom = 57.0
+mouse_filter = 2
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerRank"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Clock" type="ProgressBar" parent="Plate"]
+visible = false
+offset_left = 8.0
+offset_top = 45.0
+offset_right = 144.0
+offset_bottom = 51.0
+mouse_filter = 1
+theme_type_variation = &"RoomPokerClock"
+show_percentage = false
