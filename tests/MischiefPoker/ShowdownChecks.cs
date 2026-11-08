@@ -10,26 +10,38 @@ internal static class ShowdownChecks
         Check.Sequence(losing.WinnerCards.Order(), Check.Cards("Td Ts 9d 9s Kc").Order(), "bear's full two pair plus decisive K");
         Check.Equal(losing.DecisiveCard, (int?)Check.Cards("Kc")[0], "winner's K animates");
         var own = Explain(bear, 2);
-        Check.Equal(own.DecisiveCard, null, "winning client does not compare losers");
-        Check.Equal(own.WinnerCards.Count, 4, "sole winning client sees only the two-pair core");
+        Check.Equal(own.DecisiveCard, null, "winning client has no comparison animation");
+        Check.Sequence(own.WinnerCards.Order(), Check.Cards("Td Ts 9d 9s Kc").Order(), "sole winner includes the necessary K with the two-pair core");
         Check.That(own.WinnerCards.SetEquals(own.LocalCards), "own bright and green agree");
         var spectator = Explain(bear, 100);
         Check.Equal(spectator.LocalCards.Count, 0, "spectator has no green mask");
         Check.Equal(spectator.DecisiveCard, null, "spectator does not compare kickers");
 
+        var aceWin = Settle("Kh 8s Kd Jd 7d", "As Ts", "4s 2h", "2c Qc");
+        var aceOwn = Explain(aceWin, 1);
+        Check.Sequence(aceOwn.WinnerCards.Order(), Check.Cards("Kh Kd As").Order(), "local pair of kings win highlights A, not the unused T or remaining board");
+        Check.That(aceOwn.LocalCards.SetEquals(aceOwn.WinnerCards) && aceOwn.DecisiveCard == null,
+            "local winning A has brightness and green without bounce");
+
         var pair = Settle("Ah As 9d 7s 3c", "Kc Jh", "Kd Tc", "Qd 8c");
         Check.Equal(Explain(pair, 2).DecisiveCard, (int?)Check.Cards("Jh")[0], "second-place viewer compares J vs T");
         Check.Equal(Explain(pair, 3).DecisiveCard, (int?)Check.Cards("Kc")[0], "third-place viewer compares K vs Q");
         Check.Equal(Explain(pair, 3).WinnerCards.Count, 3, "pair core plus one necessary kicker");
+        Check.Sequence(Explain(pair, 1).WinnerCards.Order(), Check.Cards("Ah As Jh").Order(),
+            "local win explains the first differing kicker against the strongest opponent, not a weaker one");
         var twoPair = Settle("Ah As Kc 9d 3s", "Kd Jh", "Kh Tc", "Qc Qd");
         Check.Equal(Explain(twoPair, 2).DecisiveCard, (int?)Check.Cards("Jh")[0], "same two pairs compare kicker");
         Check.Equal(Explain(twoPair, 3).DecisiveCard, null, "different lower pair suppresses misleading smaller kicker");
         Check.Equal(Explain(twoPair, 3).LocalCards.Count, 4, "different two pair outlines core only");
+        var higherCore = Settle("Ah As Kc 9d 3s", "Kd Jh", "Qc Qd");
+        Check.Equal(Explain(higherCore, 1).WinnerCards.Count, 4, "local stronger pair core needs no extra kicker");
 
         var trips = Settle("Ah As Ad 9c 3s", "Kc Jh", "Kh Tc");
         Check.Equal(Explain(trips, 2).DecisiveCard, (int?)Check.Cards("Jh")[0], "triples compare second kicker when first ties");
+        Check.Sequence(Explain(trips, 1).WinnerCards.Order(), Check.Cards("Ah As Ad Jh").Order(), "local triple winner also explains a second kicker statically");
         var quads = Settle("Ah As Ad Ac 3s", "Kc Jh", "Qh Tc");
         Check.Equal(Explain(quads, 2).DecisiveCard, (int?)Check.Cards("Kc")[0], "quads compare their kicker");
+        Check.Equal(Explain(quads, 1).WinnerCards.Count, 5, "local quad winner highlights the necessary fifth card");
         var straight = Settle("5h 6s 7d 9c Ks", "8c 2d", "3h 4s");
         Check.Equal(Explain(straight, 2).DecisiveCard, null, "different straights have no bounce or shrink");
         Check.Equal(Explain(straight, 2).WinnerCards.Count, 5, "whole straight shown");

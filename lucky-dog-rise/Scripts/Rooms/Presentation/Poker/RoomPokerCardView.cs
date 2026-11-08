@@ -11,6 +11,7 @@ public partial class RoomPokerCardView : TextureButton
     [Export] private TextureRect _dealShadow;
     private Tween _flip, _bounce, _deal;
     private Vector2 _baseScale = Vector2.One, _dealPosition;
+    private Vector2? _emphasisPosition;
     private Color _dealTint;
     private bool _dealFaceHidden;
     private int _card = -2;
@@ -33,12 +34,12 @@ public partial class RoomPokerCardView : TextureButton
     {
         if (_card == card && _faceUp == faceUp) return;
         StopDealAnimation();
+        _flip?.Kill();
+        StopEmphasisAnimation();
         bool hadCard = _card != -2;
         _card = card;
         _faceUp = faceUp && card >= 0;
         var texture = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(card)) : _back;
-        _flip?.Kill();
-        _bounce?.Kill();
         _cue = long.MinValue;
         Scale = _baseScale;
         if (animate && hadCard && IsVisibleInTree())
@@ -57,7 +58,8 @@ public partial class RoomPokerCardView : TextureButton
     public void AnimateDeal(double delay, float pitch)
     {
         StopDealAnimation();
-        _flip?.Kill(); _bounce?.Kill();
+        _flip?.Kill();
+        StopEmphasisAnimation();
         _dealPosition = Position;
         _dealTint = Modulate;
         Vector2 shadowCenter = GetTransform() * (Size / 2);
@@ -123,21 +125,37 @@ public partial class RoomPokerCardView : TextureButton
         _outline.Visible = outlined && _faceUp;
         decisive &= _faceUp;
         if (Decisive == decisive && _cue == cue) return;
-        bool wasDecisive = Decisive;
+        StopEmphasisAnimation();
         Decisive = decisive;
         _cue = cue;
-        _bounce?.Kill();
         ZIndex = decisive ? 1 : 0;
-        if (!decisive)
-        {
-            if (wasDecisive && !(_flip?.IsRunning() ?? false)) Scale = _baseScale;
-            return;
-        }
-        if (!animate || !IsVisibleInTree()) { Scale = _baseScale * 1.2f; return; }
+        if (!decisive) return;
+        _emphasisPosition = Position;
+        if (!animate || !IsVisibleInTree()) { ApplyEmphasisScale(1.2f); return; }
         _bounce = CreateTween();
         _bounce.TweenInterval(0.2);
-        _bounce.TweenProperty(this, "scale", _baseScale * 1.2f, 0.4)
+        _bounce.TweenMethod(Callable.From<float>(ApplyEmphasisScale), 1f, 1.2f, 0.4)
             .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+    }
+
+    private void ApplyEmphasisScale(float amount)
+    {
+        if (_emphasisPosition is not Vector2 position) return;
+        Scale = _baseScale * amount;
+        // Keep the authored bottom-center fixed, including during overshoot. Compensating
+        // position instead of changing PivotOffset preserves rotated/fanned card poses.
+        Vector2 anchor = new(Size.X / 2, Size.Y);
+        Position = position + ((anchor - PivotOffset) * (_baseScale - Scale)).Rotated(Rotation);
+    }
+
+    private void StopEmphasisAnimation()
+    {
+        _bounce?.Kill();
+        _bounce = null;
+        if (_emphasisPosition is not Vector2 position) return;
+        Position = position;
+        Scale = _baseScale;
+        _emphasisPosition = null;
     }
 
     public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); _deal?.Kill(); }

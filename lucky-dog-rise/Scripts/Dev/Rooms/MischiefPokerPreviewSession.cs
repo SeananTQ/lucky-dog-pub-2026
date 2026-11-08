@@ -72,11 +72,13 @@ public sealed class MischiefPokerPreviewSession
                 board = "Ah As Jc 9h 3d";
                 hands = new[] { "Qh 8d", "Kc 2c", "Kd 4d", "5s 6s", "7h 8s", "2d 4h" };
                 break;
+            case 8:
+                board = "Kh 8s Kd Jd 7d";
+                hands = new[] { "As Ts", "4s 2h", "2c Qc", "3c 6h", "5s 4h", "6c 9h" };
+                break;
             default:
                 board = "Ts 5s 9d 9s 5c";
-                hands = preset == 8
-                    ? new[] { "Th Kc", "Td 2h", "7h 8d", "3c 4d", "6h 7s", "8c 2d" }
-                    : new[] { "Th 2h", "Td Kc", "7h 8d", "3c 4d", "6h 7s", "8c 2d" };
+                hands = new[] { "Th 2h", "Td Kc", "7h 8d", "3c 4d", "6h 7s", "8c 2d" };
                 break;
         }
         int[] Cards(string text) => text.Split(' ').Select(t => "cdhs".IndexOf(t[1]) * 13 + "A23456789TJQK".IndexOf(t[0])).ToArray();

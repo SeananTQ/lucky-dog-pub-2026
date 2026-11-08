@@ -43,7 +43,7 @@ public partial class RoomPokerDebugPanelView : VBoxContainer
             RoomPokerText.T("相同对子 · 因观察者而异", "Same pair · Viewer-specific kicker"),
             RoomPokerText.T("不同两对 · 不放大副牌", "Different two pair · No kicker bounce"),
             RoomPokerText.T("他人平局 · 本机落败", "Other players tie · Local player loses"),
-            RoomPokerText.T("本机独赢 · 不比较副牌", "Local winner · No kicker comparison") };
+            RoomPokerText.T("本机独赢 · A 副牌不放大", "Local winner · Ace kicker, no bounce") };
         for (int i = 0; i < presets.Length; i++) _preset.SetItemText(i, presets[i]);
         _preset.Select(nextDealPreset);
         _panelState.SetItemText(0, RoomPokerText.T("牌手面板：正常", "Player panels: Normal"));

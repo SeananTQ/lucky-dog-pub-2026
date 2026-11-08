@@ -122,7 +122,11 @@ internal static class MischiefPokerMainChecks
             var controls = mock.GetNode<RoomPokerDebugPanelView>("Panel/Root/PokerPage/PokerControls");
             Click(controls.GetNode<Button>("Actions/Pause"));
             Check(session.Paused && mock.PokerContent.Visible, "Mock poker page controls the existing match clock");
-            if (mode == 0) await CheckRelativeHandDeals(main, session.View);
+            if (mode == 0)
+            {
+                await CheckRelativeHandDeals(main, session.View);
+                await CheckBottomAnchoredEmphasis(main);
+            }
             Click(mock.GetNode<Button>("Panel/Root/TabRow/SteamTab"));
             await Wait();
             Check(!mock.PokerContent.Visible && mock.GetNode<Control>("Panel/Root/SteamPage").Visible
@@ -258,6 +262,11 @@ internal static class MischiefPokerMainChecks
                     Check(first.Dimmed && first.Outlined && second.Dimmed && !second.Outlined, "bear example: local 10 is dim-green, local 2 dim without outline");
                     var kicker = winnerDog.PokerHand.SecondCard;
                     Check(kicker.Decisive && !kicker.Dimmed && kicker.Scale.IsEqualApprox(Vector2.One * 1.2f), "winner K finishes at 120 percent");
+                    var otherCard = winnerDog.PokerHand.FirstCard;
+                    Check(Mathf.IsEqualApprox((kicker.GetTransform() * new Vector2(kicker.Size.X / 2, kicker.Size.Y)).Y,
+                            (otherCard.GetTransform() * new Vector2(otherCard.Size.X / 2, otherCard.Size.Y)).Y)
+                        && (kicker.GetTransform() * Vector2.Zero).Y < (otherCard.GetTransform() * Vector2.Zero).Y,
+                        "winner K grows upward while its bottom remains aligned with the other hole card");
                     var boardFive = table.GetNode<RoomPokerCardView>("Board/Card2");
                     Check(boardFive.Outlined && boardFive.Dimmed && !table.GetNode<RoomPokerCardView>("Board/Card5").Outlined,
                         "left public 5 has the local outline without loser shrinking");
@@ -281,8 +290,15 @@ internal static class MischiefPokerMainChecks
                     await Wait();
                 }
                 if (preset == 6) Check(emphasis.DecisiveCard == null, "different two-pair core has no kicker animation");
-                if (preset == 8) Check(table.LocalPanel.IsWinner && emphasis.DecisiveCard == null && emphasis.LocalCards.SetEquals(emphasis.WinnerCards),
-                    "local winner sees matching core masks without loser analysis");
+                if (preset == 8)
+                {
+                    Check(table.LocalPanel.IsWinner && emphasis.DecisiveCard == null && emphasis.LocalCards.SetEquals(emphasis.WinnerCards),
+                        "local winner sees matching masks with no comparison animation");
+                    Check(first.VisibleCard == 39 && first.Outlined && !first.Dimmed && !first.Decisive
+                        && first.Scale.IsEqualApprox(Vector2.One) && second.Dimmed && !second.Outlined
+                        && emphasis.WinnerCards.Count == 3,
+                        "local pair of kings win lights and outlines A without enlarging it, leaving T dim");
+                }
                 await Capture($"showdown-{preset}-{(mode == 0 ? "zh" : "en")}");
                 if (preset == 7)
                 {
@@ -479,6 +495,57 @@ internal static class MischiefPokerMainChecks
         }
         finally { RoomPokerTableView.SkipDealAnimationForTests = skip; }
     }
+    private static async Task CheckBottomAnchoredEmphasis(ModeManager main)
+    {
+        async Task Wait(double seconds) => await main.ToSignal(main.GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
+        foreach (float angle in new[] { 0f, -0.55f, 0.3f })
+        {
+            var card = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerCard.tscn").Instantiate<RoomPokerCardView>();
+            card.Position = new Vector2(60, 160);
+            card.Rotation = angle;
+            card.Scale = new Vector2(0.85f, 1.1f);
+            card.PivotOffset = new Vector2(15, 60);
+            main.AddChild(card);
+            try
+            {
+                card.Present(0, true, false);
+                var pose = card.GetTransform();
+                var scale = card.Scale;
+                Vector2 Bottom() => card.GetTransform() * new Vector2(card.Size.X / 2, card.Size.Y);
+                var bottom = Bottom();
+                card.SetEmphasis(false, false, true, 1, false);
+                var enlarged = card.GetTransform();
+                Check(Bottom().DistanceTo(bottom) < 0.01f && card.Scale.IsEqualApprox(scale * 1.2f),
+                    "instant emphasis preserves the authored bottom anchor with rotation, scale and custom pivot");
+                card.SetEmphasis(false, false, true, 1, true);
+                Check(card.GetTransform().IsEqualApprox(enlarged), "stable emphasis does not accumulate upward offsets");
+                card.SetEmphasis(false, false, false, 2, false);
+                Check(card.GetTransform().IsEqualApprox(pose), "removing emphasis restores the full authored transform");
+                card.SetEmphasis(false, false, true, 3, true);
+                bool anchored = true;
+                for (int frame = 0; frame < 14; frame++)
+                {
+                    await Wait(0.04);
+                    anchored &= Bottom().DistanceTo(bottom) < 0.01f;
+                }
+                await Wait(0.2);
+                Check(anchored && Bottom().DistanceTo(bottom) < 0.01f && card.Scale.IsEqualApprox(scale * 1.2f),
+                    "bounce overshoot and settling both keep the bottom fixed");
+                card.SetEmphasis(false, false, true, 4, true);
+                card.Present(1, true, false);
+                card.SetEmphasis(false, false, false, 5, false);
+                await Wait(0.7);
+                Check(card.VisibleCard == 1 && card.GetTransform().IsEqualApprox(pose),
+                    "new snapshot cancels delayed emphasis and restores position as well as scale");
+                card.SetEmphasis(false, false, true, 6, false);
+                card.AnimateDeal(0, 1);
+                await Wait(0.5);
+                Check(card.GetTransform().IsEqualApprox(pose), "new deal cannot inherit the old upward emphasis offset");
+            }
+            finally { card.QueueFree(); }
+        }
+    }
+
     private static void Check(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);

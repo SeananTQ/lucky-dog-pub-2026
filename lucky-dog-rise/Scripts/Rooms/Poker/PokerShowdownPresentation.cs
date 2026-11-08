@@ -27,23 +27,30 @@ public static class PokerShowdownPresentation
         var bright = Core(winnerBest, winner.BestHand.Value.Rank, fullTie);
         var outlined = local == null ? new HashSet<int>() : Core(localBest, local.BestHand.Value.Rank, fullTie);
         int? decisive = null;
-        if (local != null && !localWinner && local.BestHand.Value.Rank == winner.BestHand.Value.Rank
-            && winner.BestHand.Value.CompareTo(local.BestHand.Value) > 0
+        // A sole local winner still needs to see why this hand won. The strongest opponent
+        // selects the necessary kicker, but receives no extra UI or comparison animation.
+        var opponent = localWinner
+            ? fullTie ? null : settlement.Players.Where(p => p.PlayerId != winnerId)
+                .OrderByDescending(p => p.BestHand.Value).FirstOrDefault()
+            : local;
+        if (opponent != null && opponent.BestHand.Value.Rank == winner.BestHand.Value.Rank
+            && winner.BestHand.Value.CompareTo(opponent.BestHand.Value) > 0
             && HasKickers(winner.BestHand.Value.Rank))
         {
+            var opponentBest = localWinner ? SelectBest(state.Board, opponent.HoleCards) : localBest;
+            var opponentCore = Core(opponentBest, opponent.BestHand.Value.Rank, false);
             // Compare core ranks, not physical card IDs or just the category name.
             var winnerCore = bright.Select(Rank).OrderByDescending(r => r);
-            var localCore = outlined.Select(Rank).OrderByDescending(r => r);
-            if (winnerCore.SequenceEqual(localCore))
+            if (winnerCore.SequenceEqual(opponentCore.Select(Rank).OrderByDescending(r => r)))
             {
                 var winnerKickers = winnerBest.Except(bright).OrderByDescending(Rank).ToArray();
-                var localKickers = localBest.Except(outlined).OrderByDescending(Rank).ToArray();
+                var opponentKickers = opponentBest.Except(opponentCore).OrderByDescending(Rank).ToArray();
                 for (int i = 0; i < winnerKickers.Length; i++)
                 {
-                    if (Rank(winnerKickers[i]) == Rank(localKickers[i])) continue;
-                    decisive = winnerKickers[i];
+                    if (Rank(winnerKickers[i]) == Rank(opponentKickers[i])) continue;
                     bright.Add(winnerKickers[i]);
-                    outlined.Add(localKickers[i]);
+                    outlined.Add(localWinner ? winnerKickers[i] : opponentKickers[i]);
+                    if (!localWinner) decisive = winnerKickers[i];
                     break;
                 }
             }
