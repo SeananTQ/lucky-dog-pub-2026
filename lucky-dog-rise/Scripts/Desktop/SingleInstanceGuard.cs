@@ -63,7 +63,9 @@ public partial class SingleInstanceGuard : Node
         if (OS.GetCmdlineArgs().Any(argument => argument.Replace('\\', '/').EndsWith(
                 "/Scenes/Dev/Rooms/RoomLab.tscn", StringComparison.OrdinalIgnoreCase)
                 || argument.Replace('\\', '/').EndsWith(
-                    "/Scenes/Dev/Rooms/RoomNameBarLocalizationLab.tscn", StringComparison.OrdinalIgnoreCase)))
+                    "/Scenes/Dev/Rooms/RoomNameBarLocalizationLab.tscn", StringComparison.OrdinalIgnoreCase)
+                || argument.Replace('\\', '/').EndsWith(
+                    "/Scenes/Dev/Labs/PokerCardAnimationLab.tscn", StringComparison.OrdinalIgnoreCase)))
             return;
 #endif
 #if DEBUG

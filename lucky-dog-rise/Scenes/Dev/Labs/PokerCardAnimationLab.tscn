@@ -1,0 +1,533 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/PokerCardAnimationLab.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="back"]
+
+[node name="PokerCardAnimationLab" type="Control" node_paths=PackedStringArray("_cards", "_slots", "_presets", "_stageArea", "_board", "_axis", "_speed", "_tilt", "_offset", "_flipSeconds", "_straightenTilt", "_stagger", "_sound", "_loop", "_finish", "_straighten", "_replay", "_reset", "_defaults", "_copy", "_capture", "_fit", "_minimize", "_close", "_title", "_phaseLabel", "_detail", "_history")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+auto_translate_mode = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_back = ExtResource("back")
+_stageArea = NodePath("Margin/Content/Body/Stage")
+_board = NodePath("Margin/Content/Body/Stage/Board")
+_axis = NodePath("Margin/Content/Body/Options/Settings/Motion/Axis")
+_speed = NodePath("Margin/Content/Body/Options/Settings/Motion/Speed")
+_tilt = NodePath("Margin/Content/Body/Options/Settings/Motion/Tilt")
+_offset = NodePath("Margin/Content/Body/Options/Settings/Motion/Offset")
+_flipSeconds = NodePath("Margin/Content/Body/Options/Settings/Motion/FlipTime")
+_straightenTilt = NodePath("Margin/Content/Body/Options/Settings/Sweep/Tilt")
+_stagger = NodePath("Margin/Content/Body/Options/Settings/Sweep/Stagger")
+_sound = NodePath("Margin/Content/Body/Options/Settings/Sound")
+_loop = NodePath("Margin/Content/Body/Options/Settings/Loop")
+_finish = NodePath("Margin/Content/Body/Options/Settings/Finish")
+_straighten = NodePath("Margin/Content/Body/Options/Settings/Straighten")
+_replay = NodePath("Margin/Content/Body/Options/Settings/Replay")
+_reset = NodePath("Margin/Content/Presets/Reset")
+_defaults = NodePath("Margin/Content/Body/Options/Settings/Tools/Defaults")
+_copy = NodePath("Margin/Content/Body/Options/Settings/Tools/Copy")
+_capture = NodePath("Margin/Content/TitleBar/Capture")
+_fit = NodePath("Margin/Content/TitleBar/Fit")
+_minimize = NodePath("Margin/Content/TitleBar/Minimize")
+_close = NodePath("Margin/Content/TitleBar/Close")
+_title = NodePath("Margin/Content/TitleBar/Title")
+_phaseLabel = NodePath("Margin/Content/Status/Phase")
+_detail = NodePath("Margin/Content/Status/Detail")
+_history = NodePath("Margin/Content/Status/History")
+_cards = [NodePath("Margin/Content/Body/Stage/Board/Card1"), NodePath("Margin/Content/Body/Stage/Board/Card2"), NodePath("Margin/Content/Body/Stage/Board/Card3"), NodePath("Margin/Content/Body/Stage/Board/Card4"), NodePath("Margin/Content/Body/Stage/Board/Card5")]
+_slots = [NodePath("Margin/Content/Body/Stage/Board/Slot1"), NodePath("Margin/Content/Body/Stage/Board/Slot2"), NodePath("Margin/Content/Body/Stage/Board/Slot3"), NodePath("Margin/Content/Body/Stage/Board/Slot4"), NodePath("Margin/Content/Body/Stage/Board/Slot5")]
+_presets = [NodePath("Margin/Content/Presets/AllFront"), NodePath("Margin/Content/Presets/TwoBack"), NodePath("Margin/Content/Presets/AllBack")]
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.10, 0.14, 0.15, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleBar" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+text = "捣乱翻牌 · 补牌收尾动画"
+size_flags_horizontal = 3
+theme_type_variation = &"RoomPokerPanelTitle"
+mouse_filter = 0
+tooltip_text = "拖动标题移动窗口；双击适应屏幕，底部保留反馈空间"
+
+[node name="Capture" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "截图"
+
+
+[node name="Fit" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "适应屏幕"
+
+
+[node name="Minimize" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "最小化"
+
+
+[node name="Close" type="Button" parent="Margin/Content/TitleBar"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "关闭"
+
+
+[node name="HeaderLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+
+[node name="Presets" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="Margin/Content/Presets"]
+layout_mode = 2
+text = "场景预设"
+theme_type_variation = &"RoomPokerSectionHeading"
+
+[node name="AllFront" type="Button" parent="Margin/Content/Presets"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "全正面"
+
+
+[node name="TwoBack" type="Button" parent="Margin/Content/Presets"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "两张背面"
+
+
+[node name="AllBack" type="Button" parent="Margin/Content/Presets"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "全部背面"
+
+
+[node name="Spacer" type="Control" parent="Margin/Content/Presets"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Reset" type="Button" parent="Margin/Content/Presets"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "重置 / 新牌桌"
+tooltip_text = "任何阶段均可取消动画并重新开始；Esc 同样重置"
+
+[node name="Body" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="Stage" type="Control" parent="Margin/Content/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(580, 360)
+mouse_filter = 2
+
+[node name="Board" type="Control" parent="Margin/Content/Body/Stage"]
+layout_mode = 0
+offset_right = 1000.0
+offset_bottom = 500.0
+mouse_filter = 2
+
+[node name="Felt" type="ColorRect" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_right = 1000.0
+offset_bottom = 500.0
+color = Color(0.055, 0.30, 0.23, 1)
+mouse_filter = 2
+
+[node name="Instructions" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "点击卡牌反复翻动，或按数字 1–5"
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 976.0
+offset_bottom = 66.0
+horizontal_alignment = 1
+
+[node name="Frame" type="Panel" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 76.0
+offset_top = 126.0
+offset_right = 924.0
+offset_bottom = 368.0
+theme_type_variation = &"RoomPokerOwnCard"
+mouse_filter = 2
+
+[node name="Card1" type="TextureButton" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 86.0
+offset_top = 138.0
+offset_right = 242.0
+offset_bottom = 356.0
+focus_mode = 0
+texture_normal = ExtResource("back")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot1" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "1 · 正面"
+layout_mode = 0
+offset_left = 86.0
+offset_top = 394.0
+offset_right = 242.0
+offset_bottom = 424.0
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Card2" type="TextureButton" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 254.0
+offset_top = 138.0
+offset_right = 410.0
+offset_bottom = 356.0
+focus_mode = 0
+texture_normal = ExtResource("back")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot2" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "2 · 正面"
+layout_mode = 0
+offset_left = 254.0
+offset_top = 394.0
+offset_right = 410.0
+offset_bottom = 424.0
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Card3" type="TextureButton" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 422.0
+offset_top = 138.0
+offset_right = 578.0
+offset_bottom = 356.0
+focus_mode = 0
+texture_normal = ExtResource("back")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot3" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "3 · 正面"
+layout_mode = 0
+offset_left = 422.0
+offset_top = 394.0
+offset_right = 578.0
+offset_bottom = 424.0
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Card4" type="TextureButton" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 138.0
+offset_right = 746.0
+offset_bottom = 356.0
+focus_mode = 0
+texture_normal = ExtResource("back")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot4" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "4 · 正面"
+layout_mode = 0
+offset_left = 590.0
+offset_top = 394.0
+offset_right = 746.0
+offset_bottom = 424.0
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Card5" type="TextureButton" parent="Margin/Content/Body/Stage/Board"]
+layout_mode = 0
+offset_left = 758.0
+offset_top = 138.0
+offset_right = 914.0
+offset_bottom = 356.0
+focus_mode = 0
+texture_normal = ExtResource("back")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot5" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "5 · 正面"
+layout_mode = 0
+offset_left = 758.0
+offset_top = 394.0
+offset_right = 914.0
+offset_bottom = 424.0
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="BoardNote" type="Label" parent="Margin/Content/Body/Stage/Board"]
+text = "绿色边线仅供观察出框；最后操作的牌处于其他公共牌顶层。"
+layout_mode = 0
+offset_left = 24.0
+offset_top = 448.0
+offset_right = 976.0
+offset_bottom = 480.0
+horizontal_alignment = 1
+
+[node name="Options" type="ScrollContainer" parent="Margin/Content/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(350, 0)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Settings" type="VBoxContainer" parent="Margin/Content/Body/Options"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 9
+
+[node name="MotionHeading" type="Label" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+text = "玩家捣乱"
+theme_type_variation = &"RoomPokerSectionHeading"
+
+[node name="Motion" type="GridContainer" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+
+[node name="AxisLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+text = "翻牌方向"
+
+
+[node name="Axis" type="OptionButton" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+selected = 0
+item_count = 2
+popup/item_0/text = "水平翻牌"
+popup/item_0/id = 0
+popup/item_1/text = "垂直翻牌"
+popup/item_1/id = 1
+
+[node name="TiltLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+text = "随机倾角 ±"
+
+
+[node name="Tilt" type="SpinBox" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 30
+step = 1
+value = 14
+suffix = "°"
+
+[node name="OffsetLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+text = "随机位移 ±"
+
+
+[node name="Offset" type="SpinBox" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 30
+step = 1
+value = 10
+suffix = "px"
+
+[node name="FlipTimeLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+text = "翻牌总时长"
+
+
+[node name="FlipTime" type="SpinBox" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.08
+max_value = 0.8
+step = 0.02
+value = 0.16
+suffix = "s"
+
+[node name="SpeedLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+text = "播放速度"
+
+
+[node name="Speed" type="OptionButton" parent="Margin/Content/Body/Options/Settings/Motion"]
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+selected = 0
+item_count = 3
+popup/item_0/text = "正常 · 1×"
+popup/item_0/id = 0
+popup/item_1/text = "慢放 · 0.5×"
+popup/item_1/id = 1
+popup/item_2/text = "慢放 · 0.25×"
+popup/item_2/id = 2
+
+[node name="Line" type="HSeparator" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+
+
+[node name="SweepHeading" type="Label" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+text = "系统整理 · 单机提醒节奏"
+theme_type_variation = &"RoomPokerSectionHeading"
+
+[node name="Sweep" type="GridContainer" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+
+[node name="TiltLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Sweep"]
+layout_mode = 2
+text = "整理最大倾角"
+
+
+[node name="Tilt" type="SpinBox" parent="Margin/Content/Body/Options/Settings/Sweep"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 20
+step = 0.2
+value = 2.4
+suffix = "°"
+
+[node name="StaggerLabel" type="Label" parent="Margin/Content/Body/Options/Settings/Sweep"]
+layout_mode = 2
+text = "相邻牌错拍"
+
+
+[node name="Stagger" type="SpinBox" parent="Margin/Content/Body/Options/Settings/Sweep"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 0.2
+step = 0.01
+value = 0.05
+suffix = "s"
+
+[node name="Sound" type="CheckButton" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+focus_mode = 0
+button_pressed = true
+text = "播放音效"
+
+[node name="Loop" type="CheckButton" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+focus_mode = 0
+text = "循环重播同一次收尾"
+
+[node name="Finish" type="Button" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "完整收尾　Space"
+custom_minimum_size = Vector2(0, 36)
+
+[node name="Replay" type="Button" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "重播上次收尾　R"
+custom_minimum_size = Vector2(0, 36)
+
+[node name="Straighten" type="Button" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "只播整理（不补牌）"
+custom_minimum_size = Vector2(0, 36)
+
+[node name="Tools" type="HBoxContainer" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Defaults" type="Button" parent="Margin/Content/Body/Options/Settings/Tools"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "恢复参数"
+size_flags_horizontal = 3
+
+[node name="Copy" type="Button" parent="Margin/Content/Body/Options/Settings/Tools"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CapsuleButton"
+text = "复制参数"
+size_flags_horizontal = 3
+
+[node name="Note" type="Label" parent="Margin/Content/Body/Options/Settings"]
+layout_mode = 2
+text = "重播保留原来的牌面、歪斜和补牌结果，方便比较参数。慢放时音效也降速。\n这里只调动画，不运行牌局或连接 Steam。"
+autowrap_mode = 3
+theme_type_variation = &"RoomPokerSmallLabel"
+
+[node name="FooterLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+
+[node name="Status" type="VBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Phase" type="Label" parent="Margin/Content/Status"]
+layout_mode = 2
+text = "准备牌桌…"
+theme_type_variation = &"RoomPokerPanelTitle"
+
+[node name="Detail" type="Label" parent="Margin/Content/Status"]
+layout_mode = 2
+text = ""
+theme_type_variation = &"RoomPokerSmallLabel"
+
+[node name="History" type="Label" parent="Margin/Content/Status"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+custom_minimum_size = Vector2(0, 42)
+theme_type_variation = &"RoomPokerSmallLabel"
