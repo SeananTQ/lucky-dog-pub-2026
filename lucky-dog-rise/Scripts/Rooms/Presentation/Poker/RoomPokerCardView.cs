@@ -9,15 +9,19 @@ public partial class RoomPokerCardView : TextureButton
     [Export] private Texture2D _back;
     [Export] private Panel _outline;
     [Export] private TextureRect _dealShadow;
-    private Tween _flip, _bounce, _deal;
-    private Vector2 _baseScale = Vector2.One, _dealPosition;
+    private Tween _flip, _bounce, _deal, _motion;
+    private Vector2 _baseScale = Vector2.One, _dealPosition, _home;
+    private float _homeRotation;
+    private int _homeZ, _shownCard = -1;
     private Vector2? _emphasisPosition;
     private Color _dealTint;
     private bool _dealFaceHidden;
     private int _card = -2;
     private bool _faceUp;
     private long _cue = long.MinValue;
-    public int VisibleCard => _faceUp && !_dealFaceHidden ? _card : -1;
+    public int VisibleCard => !_dealFaceHidden ? _shownCard : -1;
+    public bool IsFlipping => _flip?.IsRunning() == true;
+    public bool IsMoving => IsFlipping || IsDealing || _motion?.IsRunning() == true;
     public bool IsDealing => _deal?.IsRunning() == true;
     public bool Dimmed { get; private set; }
     public bool Outlined => _outline.Visible;
@@ -26,6 +30,7 @@ public partial class RoomPokerCardView : TextureButton
     public override void _Ready()
     {
         _baseScale = Scale;
+        _home = Position; _homeRotation = Rotation; _homeZ = ZIndex;
         if (PivotOffset == Vector2.Zero) PivotOffset = Size / 2;
         VisibilityChanged += () => { if (!IsVisibleInTree()) StopDealAnimation(); };
     }
@@ -48,11 +53,59 @@ public partial class RoomPokerCardView : TextureButton
             AudioManager.Instance?.PlaySfxOncePerFrame(
                 _faceUp ? "Card_PokerHandFlipToFront" : "Card_PokerHandFlipToBack", "RoomPokerFlip");
             _flip = CreateTween();
-            _flip.TweenProperty(this, "scale:x", 0f, 0.08);
-            _flip.TweenCallback(Callable.From(() => TextureNormal = texture));
-            _flip.TweenProperty(this, "scale:x", _baseScale.X, 0.08);
+            _flip.TweenProperty(this, "scale:x", 0f, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            _flip.TweenCallback(Callable.From(() => { TextureNormal = texture; _shownCard = _faceUp ? card : -1; }));
+            _flip.TweenProperty(this, "scale:x", _baseScale.X, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         }
-        else TextureNormal = texture;
+        else { TextureNormal = texture; _shownCard = _faceUp ? card : -1; }
+    }
+
+    public void AnimateMischief(int order)
+    {
+        _motion?.Kill();
+        ZIndex = order;
+        // Control picking follows sibling order, not Z. Keep drawing and picking consistent.
+        GetParent().MoveChild(this, -1);
+        _motion = CreateTween().SetParallel(true);
+        _motion.TweenProperty(this, "position", _home + new Vector2((float)GD.RandRange(-10, 10), (float)GD.RandRange(-10, 10)), 0.16)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _motion.TweenProperty(this, "rotation", _homeRotation + Mathf.DegToRad((float)GD.RandRange(-14, 14)), 0.16)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+    }
+
+    public void AnimateStraighten(int slot)
+    {
+        _motion?.Kill();
+        _motion = CreateTween();
+        if (slot > 0) _motion.TweenInterval(slot * 0.05);
+        _motion.TweenProperty(this, "rotation", _homeRotation + Mathf.DegToRad(2.4f * (0.62f + slot * 0.095f)), 0.14)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _motion.Parallel().TweenProperty(this, "position", _home + Vector2.Up * (8 + slot), 0.14)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _motion.TweenProperty(this, "rotation", _homeRotation, 0.19)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _motion.Parallel().TweenProperty(this, "position", _home, 0.19)
+            .SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+        _motion.TweenCallback(Callable.From(() => ZIndex = _homeZ));
+    }
+
+    public void AnimateCollect(int slot)
+    {
+        _motion?.Kill();
+        StopEmphasisAnimation();
+        _motion = CreateTween().SetParallel(true);
+        _motion.TweenProperty(this, "position", _home + Vector2.Left * Size.X * 0.5f, 0.32)
+            .SetDelay(slot * 0.04).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _motion.TweenProperty(this, "modulate:a", 0f, 0.32 * 0.8).SetDelay(slot * 0.04 + 0.32 * 0.2);
+    }
+
+    public void ResetPose()
+    {
+        StopDealAnimation();
+        _flip?.Kill(); _motion?.Kill(); StopEmphasisAnimation();
+        Position = _home; Rotation = _homeRotation; Scale = _baseScale; ZIndex = _homeZ;
+        Modulate = Colors.White;
+        SelfModulate = Colors.White; _outline.Hide(); Dimmed = Decisive = false; _cue = long.MinValue;
     }
 
     public void AnimateDeal(double delay, float pitch)
@@ -94,6 +147,7 @@ public partial class RoomPokerCardView : TextureButton
         {
             TextureNormal = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(_card)) : _back;
             _dealFaceHidden = false;
+            _shownCard = _faceUp ? _card : -1;
         }));
         _deal.TweenProperty(this, "scale:x", _baseScale.X, 0.08).SetEase(Tween.EaseType.Out);
         _deal.TweenCallback(Callable.From(RestoreDealPose));
@@ -115,6 +169,7 @@ public partial class RoomPokerCardView : TextureButton
         Scale = _baseScale;
         Modulate = _dealTint;
         TextureNormal = _faceUp ? GD.Load<Texture2D>(DeckManager.CardToAssetPath(_card)) : _back;
+        _shownCard = _faceUp ? _card : -1;
     }
 
     public void SetEmphasis(bool dim, bool outlined, bool decisive, long cue, bool animate)
@@ -126,9 +181,10 @@ public partial class RoomPokerCardView : TextureButton
         decisive &= _faceUp;
         if (Decisive == decisive && _cue == cue) return;
         StopEmphasisAnimation();
+        bool wasDecisive = Decisive;
         Decisive = decisive;
         _cue = cue;
-        ZIndex = decisive ? 1 : 0;
+        if (decisive || wasDecisive) ZIndex = decisive ? _homeZ + 1 : _homeZ;
         if (!decisive) return;
         _emphasisPosition = Position;
         if (!animate || !IsVisibleInTree()) { ApplyEmphasisScale(1.2f); return; }
@@ -158,6 +214,6 @@ public partial class RoomPokerCardView : TextureButton
         _emphasisPosition = null;
     }
 
-    public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); _deal?.Kill(); }
+    public override void _ExitTree() { _flip?.Kill(); _bounce?.Kill(); _deal?.Kill(); _motion?.Kill(); }
 }
 #endif

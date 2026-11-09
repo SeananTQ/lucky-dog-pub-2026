@@ -2,9 +2,23 @@
 
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPayoutView.cs" id="script"]
 [ext_resource type="Texture2D" path="res://Assets/v1/ChipStack/Chip_Green_A.png" id="chip"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 
-[node name="RoomPokerPayout" type="Node2D" unique_id=732844015]
+[node name="RoomPokerPayout" type="Node2D" unique_id=732844015 node_paths=PackedStringArray("_dealer")]
 visible = false
 z_index = 100
 script = ExtResource("script")
 _chip = ExtResource("chip")
+_dealer = NodePath("Dealer")
+
+[node name="Dealer" type="Label" parent="."]
+visible = false
+offset_right = 22.0
+offset_bottom = 22.0
+mouse_filter = 2
+auto_translate_mode = 2
+theme = ExtResource("theme")
+theme_type_variation = &"RoomPokerDealer"
+text = "D"
+horizontal_alignment = 1
+vertical_alignment = 1
