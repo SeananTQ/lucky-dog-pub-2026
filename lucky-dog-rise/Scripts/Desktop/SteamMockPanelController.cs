@@ -13,7 +13,8 @@ public partial class SteamMockPanelController : CanvasLayer
     [Signal] public delegate void NetworkPokerMockRequestedEventHandler(bool localHost);
 
     [Export] private PanelContainer _panel = null!;
-    [Export] private Control _networkPokerRow = null!;
+    [Export] private Button _networkPokerTab = null!;
+    [Export] private Control _networkPokerPage = null!;
     [Export] private Button _networkPokerHost = null!, _networkPokerGuest = null!;
     [Export] private Button _steamTab = null!;
     [Export] private Button _pokerTab = null!;
@@ -40,6 +41,8 @@ public partial class SteamMockPanelController : CanvasLayer
     private bool _updatingSelection;
     private string _renderedEventLog = string.Empty;
     private float _panelBottomY;
+    private enum MockPage { Steam, NetworkPoker, PokerPreview }
+    private MockPage _selectedPage;
 
     public Rect2 PanelRect => _panel == null ? default : new Rect2(_panel.Position, _panel.Size);
     public Vector2 PanelSize => _panel == null
@@ -50,11 +53,12 @@ public partial class SteamMockPanelController : CanvasLayer
 
     public override void _Ready()
     {
-        _networkPokerRow.Visible = BuildCapabilities.SteamRooms;
+        _networkPokerTab.Visible = BuildCapabilities.SteamRooms;
         _networkPokerHost.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, true);
         _networkPokerGuest.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, false);
-        _steamTab.Pressed += () => SelectPokerPage(false);
-        _pokerTab.Pressed += () => SelectPokerPage(true);
+        _steamTab.Pressed += () => SelectPage(MockPage.Steam);
+        _networkPokerTab.Pressed += () => SelectPage(MockPage.NetworkPoker);
+        _pokerTab.Pressed += () => SelectPage(MockPage.PokerPreview);
         _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);
         _scenarioOption.AddItem("强制快速成功：每次请求都生成奖励", (int)DebugSteamScenario.ForcedSuccess);
         _scenarioOption.AddItem("请求前不可用：盲盒使用 Fallback，LinkTree 保持 Loading", (int)DebugSteamScenario.UnavailableBeforeOpen);
@@ -82,7 +86,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         Visible = false;
         SetProcess(false);
-        CallDeferred(MethodName.AlignPanelAboveContent);
+        SelectPage(MockPage.Steam);
     }
 
     public override void _Process(double delta)
@@ -137,16 +141,22 @@ public partial class SteamMockPanelController : CanvasLayer
         if (title.Length > 0) _pokerTab.Text = title;
         if (_pokerTab.Visible == available) return;
         _pokerTab.Visible = available;
-        SelectPokerPage(available);
+        if (available) SelectPage(MockPage.PokerPreview);
+        else if (_selectedPage == MockPage.PokerPreview) SelectPage(MockPage.Steam);
     }
 
-    private void SelectPokerPage(bool poker)
+    private void SelectPage(MockPage page)
     {
-        poker &= _pokerTab.Visible;
-        _steamPage.Visible = !poker;
-        PokerContent.Visible = poker;
-        _steamTab.ThemeTypeVariation = poker ? "PanelTopTab" : "MockPanelTabSelected";
-        _pokerTab.ThemeTypeVariation = poker ? "MockPanelTabSelected" : "PanelTopTab";
+        if (page == MockPage.NetworkPoker && !_networkPokerTab.Visible
+            || page == MockPage.PokerPreview && !_pokerTab.Visible)
+            page = MockPage.Steam;
+        _selectedPage = page;
+        _steamPage.Visible = page == MockPage.Steam;
+        _networkPokerPage.Visible = page == MockPage.NetworkPoker;
+        PokerContent.Visible = page == MockPage.PokerPreview;
+        _steamTab.ThemeTypeVariation = page == MockPage.Steam ? "MockPanelTabSelected" : "PanelTopTab";
+        _networkPokerTab.ThemeTypeVariation = page == MockPage.NetworkPoker ? "MockPanelTabSelected" : "PanelTopTab";
+        _pokerTab.ThemeTypeVariation = page == MockPage.PokerPreview ? "MockPanelTabSelected" : "PanelTopTab";
         CallDeferred(MethodName.FitPanelHeight);
     }
 

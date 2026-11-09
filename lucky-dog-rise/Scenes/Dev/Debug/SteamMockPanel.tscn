@@ -20,13 +20,14 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_networkPokerRow", "_networkPokerHost", "_networkPokerGuest", "_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_networkPokerTab", "_networkPokerPage", "_networkPokerHost", "_networkPokerGuest", "_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
-_networkPokerRow = NodePath("Panel/Root/SteamPage/NetworkPokerRow")
-_networkPokerHost = NodePath("Panel/Root/SteamPage/NetworkPokerRow/Host")
-_networkPokerGuest = NodePath("Panel/Root/SteamPage/NetworkPokerRow/Guest")
+_networkPokerTab = NodePath("Panel/Root/TabRow/NetworkPokerTab")
+_networkPokerPage = NodePath("Panel/Root/NetworkPokerPage")
+_networkPokerHost = NodePath("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host")
+_networkPokerGuest = NodePath("Panel/Root/NetworkPokerPage/NetworkPokerRow/Guest")
 _steamTab = NodePath("Panel/Root/TabRow/SteamTab")
 _pokerTab = NodePath("Panel/Root/TabRow/PokerTab")
 _steamPage = NodePath("Panel/Root/SteamPage")
@@ -67,6 +68,14 @@ custom_minimum_size = Vector2(110, 44)
 layout_mode = 2
 text = "Steam"
 theme_type_variation = &"MockPanelTabSelected"
+focus_mode = 0
+
+[node name="NetworkPokerTab" type="Button" parent="Panel/Root/TabRow"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "联机扑克"
+auto_translate_mode = 2
+theme_type_variation = &"PanelTopTab"
 focus_mode = 0
 
 [node name="PokerTab" type="Button" parent="Panel/Root/TabRow"]
@@ -168,26 +177,6 @@ layout_mode = 2
 theme_type_variation = &"CapsuleButton"
 text = "启用 Mock"
 
-[node name="NetworkPokerRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Panel/Root/SteamPage/NetworkPokerRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
-text = "联机牌局测试"
-
-[node name="Host" type="Button" parent="Panel/Root/SteamPage/NetworkPokerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"CapsuleButton"
-text = "重置为本机房主"
-
-[node name="Guest" type="Button" parent="Panel/Root/SteamPage/NetworkPokerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"CapsuleButton"
-text = "重置为房间成员"
-
 [node name="StateGrid" type="GridContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2
 columns = 6
@@ -260,6 +249,38 @@ scroll_following = true
 selection_enabled = true
 theme_override_colors/selection_color = Color(0.258824, 0.376471, 0.447059, 0.86)
 text = "事件记录"
+
+[node name="NetworkPokerPage" type="VBoxContainer" parent="Panel/Root"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="NetworkPokerRow" type="HBoxContainer" parent="Panel/Root/NetworkPokerPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/Root/NetworkPokerPage/NetworkPokerRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+text = "联机牌局测试"
+
+[node name="Host" type="Button" parent="Panel/Root/NetworkPokerPage/NetworkPokerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "重置为本机房主"
+
+[node name="Guest" type="Button" parent="Panel/Root/NetworkPokerPage/NetworkPokerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "重置为房间成员"
+
+[node name="Hint" type="Label" parent="Panel/Root/NetworkPokerPage"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+text = "选择测试视角后，在系统面板的「联机」页准备或开始牌局。\n重置会替换当前模拟房间并结束当前模拟牌局；切换页签不会重置。"
 
 [node name="PokerPage" type="ScrollContainer" parent="Panel/Root"]
 visible = false

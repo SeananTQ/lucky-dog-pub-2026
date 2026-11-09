@@ -86,7 +86,8 @@ internal static class NetworkPokerMainChecks
             client.Leave(); await Wait(0.5);
             Check(lobby.Session == null && !game.IsSessionPokerReserved, "leaving room disposes the channel and ready reservation");
             var mock = main.GetNode<SteamMockPanelController>("SteamMockPanel");
-            Click(mock.GetNode<Button>("Panel/Root/SteamPage/NetworkPokerRow/Guest"));
+            Click(mock.GetNode<Button>("Panel/Root/TabRow/NetworkPokerTab"));
+            Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Guest"));
             await Until(() => lobby.Session?.State?.Status == PokerTableStatus.Preparing, "Mock controls create a separate remote authority");
             Check(!lobby.Session.IsOwner && !lobby.Session.IsReady, "guest view waits for explicit local consent");
             Click(lobby.GetNode<Button>("Ready"));
@@ -100,7 +101,7 @@ internal static class NetworkPokerMainChecks
             Click(table.GetNode<TextureButton>("Board/Card2"));
             await Until(() => session.DisplayView.Public.Revision > revision && !session.ActionPending, "guest command is acknowledged by remote authority");
             Check(session.DisplayView.Public.Board[1].PendingReplacement, "guest flip preserves real local dog identity");
-            Click(mock.GetNode<Button>("Panel/Root/SteamPage/NetworkPokerRow/Host"));
+            Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host"));
             await Until(() => lobby.Session?.IsOwner == true && lobby.Session.State?.Status == PokerTableStatus.Preparing,
                 "Mock role reset during play reaches a fresh host preparation");
             client.Leave(); await Until(() => !game.IsSessionPokerActive && lobby.Session == null, "guest leave also cleans up its presentation");
