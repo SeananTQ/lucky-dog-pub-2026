@@ -1,5 +1,6 @@
 [gd_scene format=3]
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/InGameRoomPreview.cs" id="script"]
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerLobbyView.cs" id="poker_lobby"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomDirectoryRow.tscn" id="row"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/InGameRoomMemberRow.tscn" id="member"]
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomGame.svg" id="icon"]
@@ -10,11 +11,12 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("_pokerPreviewButton", "_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("PokerLobby", "_pokerPreviewButton", "_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 script = ExtResource("script")
+PokerLobby = NodePath("Room/PokerLobby")
 _pokerPreviewButton = NodePath("Room/PokerPreview")
 _lobby = NodePath("Lobby")
 _room = NodePath("Room")
@@ -344,6 +346,58 @@ label_settings = ExtResource("group_title")
 [node name="Members" type="VBoxContainer" parent="Room"]
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="PokerLobby" type="VBoxContainer" parent="Room" node_paths=PackedStringArray("_heading", "_status", "_roster", "_propose", "_ready", "_start", "_cancel")]
+layout_mode = 2
+theme_override_constants/separation = 6
+script = ExtResource("poker_lobby")
+_heading = NodePath("Heading")
+_status = NodePath("Status")
+_roster = NodePath("Roster")
+_propose = NodePath("Propose")
+_ready = NodePath("Ready")
+_start = NodePath("Start")
+_cancel = NodePath("Cancel")
+
+[node name="Divider" type="HSeparator" parent="Room/PokerLobby"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+label_settings = ExtResource("group_title")
+
+[node name="Status" type="Label" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+label_settings = ExtResource("helper_label")
+
+[node name="Roster" type="Label" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+label_settings = ExtResource("option_label")
+
+[node name="Propose" type="Button" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"SecondaryButton"
+
+[node name="Ready" type="Button" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"SecondaryButton"
+
+[node name="Start" type="Button" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"SecondaryButton"
+
+[node name="Cancel" type="Button" parent="Room/PokerLobby"]
+layout_mode = 2
+auto_translate_mode = 2
+theme_type_variation = &"CapsuleButton"
 
 [node name="PokerPreview" type="Button" parent="Room"]
 visible = false

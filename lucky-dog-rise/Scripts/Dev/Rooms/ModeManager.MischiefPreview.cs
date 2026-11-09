@@ -31,6 +31,7 @@ public partial class ModeManager
         }
         if (_steamMockPanel == null || client != _desktopRoomClient || client.View == null || client.IsBusy || client.IsLocalArrival
             || client.View.Members.Length < 2 || UiInteractionOccupancy.IsOccupied(this)) return;
+        if (_settingsPanel.RoomPokerLobby?.Session?.State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing) return;
         if (_gameManager != null && !_gameManager.CanBeginRoomPoker)
         {
             _settingsPanel.ShowPokerPreviewNotice(RoomPokerText.T("请先完成当前单人牌局并领取奖励，再开始本机试玩。", "Finish your solo hand and collect its reward before starting the preview."));
@@ -150,35 +151,7 @@ public partial class ModeManager
     }
 
     private void UpdatePokerPreviewPayout(PokerPlayerView view, bool visible)
-    {
-        var sequence = _pokerPreviewTable.Showdown;
-        Vector2 FromTable(Vector2 point) => _playViewport.GetGlobalTransformWithCanvas()
-            * (point * (_playViewport.Size / _playSubViewport.Size));
-        if (visible && _pokerPreviewTable.Round.DealerInFlight && view.Public.Settlement is { } result)
-        {
-            Vector2? Anchor(int id) => id == view.PlayerId ? FromTable(_pokerPreviewTable.LocalPanel.DealerAnchor)
-                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.PokerHand.DealerAnchor;
-            var start = Anchor(view.Public.Dealer.PlayerId);
-            var end = Anchor(result.NextDealer.PlayerId);
-            if (start.HasValue && end.HasValue)
-                _pokerPreviewPayout.PresentDealer(start.Value, end.Value, _pokerPreviewTable.Round.StageSeconds,
-                    22 * _playViewport.GetGlobalTransformWithCanvas().Scale.X, true);
-            else _pokerPreviewPayout.Hide();
-            return;
-        }
-        if (!visible || !_pokerPreviewTable.Round.WinnersVisible || sequence.Current is not { } current)
-        { _pokerPreviewPayout.Hide(); return; }
-        Vector2 target;
-        if (current.WinnerId == view.PlayerId) target = FromTable(_pokerPreviewTable.LocalPanel.AwardAnchor);
-        else
-        {
-            var dog = _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == current.WinnerId);
-            if (dog == null || dog.PokerHand.IsWaiting) { _pokerPreviewPayout.Hide(); return; }
-            target = dog.PokerHand.AwardAnchor;
-        }
-        _pokerPreviewPayout.Present(FromTable(new Vector2(600, 940)), target,
-            sequence.StepSeconds, 24 * _playViewport.GetGlobalTransformWithCanvas().Scale.X, true);
-    }
+        => PresentRoomPokerPayout(_pokerPreviewTable, _pokerPreviewPayout, view, visible);
 
     private void StopPokerPreview()
     {

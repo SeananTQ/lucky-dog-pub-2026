@@ -57,6 +57,7 @@ public interface ISteamRoomTransport : IDisposable
     // SendChat must still receive the original text for other viewers to filter themselves.
     string FilterChatForDisplay(ulong senderSteamId, string text);
     bool SendChat(ulong lobbyId, byte[] message);
+    Poker.IPokerLink OpenPokerLink(Func<Poker.PokerRoomContext> context) => null;
     void Leave(ulong lobbyId);
 }
 #endif

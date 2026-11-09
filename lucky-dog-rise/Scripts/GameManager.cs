@@ -39,6 +39,7 @@ public partial class GameManager : Node2D
     public event Action<bool> PokerHandShowcaseVisibilityChanged;
 
     public bool IsSessionPokerActive { get; private set; }
+    public bool IsSessionPokerReserved { get; set; }
     public event Action SessionPokerTurnEnd;
 
     public GameState State { get; private set; } = GameState.WaitingForBet;
@@ -388,7 +389,7 @@ public partial class GameManager : Node2D
 
     private void OnBetRequested()
     {
-        if (IsSessionPokerActive) return;
+        if (IsSessionPokerActive || IsSessionPokerReserved) return;
         if (IsRefreshmentBalloonPointerCaptured()) return;
         if (State != GameState.WaitingForBet) return;
         if (!CanStartNewHand())
@@ -408,7 +409,7 @@ public partial class GameManager : Node2D
     /// </summary>
     private bool CanStartNewHand()
     {
-        if (IsSessionPokerActive || State != GameState.WaitingForBet)
+        if (IsSessionPokerActive || IsSessionPokerReserved || State != GameState.WaitingForBet)
             return false;
 
         if (_gameData.CanAffordBet)

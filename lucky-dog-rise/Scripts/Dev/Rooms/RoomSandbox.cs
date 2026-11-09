@@ -21,8 +21,9 @@ public sealed class MockRoomSettings
 
 // Stage A only: no Steam, GameData or persistence. The same client contract can
 // later be supplied by a Steam adapter without exposing these simulator controls.
-public sealed class RoomSandbox : IRoomService
+public sealed partial class RoomSandbox : IRoomService
 {
+    partial void TickPokerSimulation(double delta);
     private sealed class Room
     {
         public string Code = "";
@@ -520,6 +521,7 @@ public sealed class RoomSandbox : IRoomService
             if (delivery.Snapshot != null) client.Receive(delivery.Snapshot);
             else if (delivery.Chat != null) client.Receive(delivery.Chat, Now);
         }
+        TickPokerSimulation(delta);
     }
 
     private void Broadcast(Room room)

@@ -20,10 +20,13 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_networkPokerRow", "_networkPokerHost", "_networkPokerGuest", "_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
+_networkPokerRow = NodePath("Panel/Root/SteamPage/NetworkPokerRow")
+_networkPokerHost = NodePath("Panel/Root/SteamPage/NetworkPokerRow/Host")
+_networkPokerGuest = NodePath("Panel/Root/SteamPage/NetworkPokerRow/Guest")
 _steamTab = NodePath("Panel/Root/TabRow/SteamTab")
 _pokerTab = NodePath("Panel/Root/TabRow/PokerTab")
 _steamPage = NodePath("Panel/Root/SteamPage")
@@ -164,6 +167,26 @@ custom_minimum_size = Vector2(112, 28)
 layout_mode = 2
 theme_type_variation = &"CapsuleButton"
 text = "启用 Mock"
+
+[node name="NetworkPokerRow" type="HBoxContainer" parent="Panel/Root/SteamPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/Root/SteamPage/NetworkPokerRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+text = "联机牌局测试"
+
+[node name="Host" type="Button" parent="Panel/Root/SteamPage/NetworkPokerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "重置为本机房主"
+
+[node name="Guest" type="Button" parent="Panel/Root/SteamPage/NetworkPokerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "重置为房间成员"
 
 [node name="StateGrid" type="GridContainer" parent="Panel/Root/SteamPage"]
 layout_mode = 2

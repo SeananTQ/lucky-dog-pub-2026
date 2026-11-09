@@ -16,6 +16,7 @@ public static class InGameRoomSmoke
         || OS.GetCmdlineUserArgs().Contains("--rooms-entry-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-poker-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-mischief-main-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-poker-network-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
@@ -76,6 +77,13 @@ public static class InGameRoomSmoke
             {
                 await Wait(2);
                 await MischiefPokerMainChecks.Run(main, page);
+                tree.Quit();
+                return;
+            }
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-poker-network-main-smoke"))
+            {
+                await Wait(2);
+                await NetworkPokerMainChecks.Run(main, page);
                 tree.Quit();
                 return;
             }

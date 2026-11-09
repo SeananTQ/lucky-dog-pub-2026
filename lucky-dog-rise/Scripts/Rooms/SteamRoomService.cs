@@ -10,8 +10,25 @@ namespace LuckyDogRise.Rooms;
 /// Steam owns lobby membership. This adapter owns one local client and maps Steam identities
 /// to display identities without reading/writing inventory, statistics or local saves.
 /// </summary>
-public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomReconnectService, IDisposable
+public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomReconnectService, IRoomPokerLinkProvider, IDisposable
 {
+    public Poker.IPokerLink OpenPokerLink(RoomClient client) => _transport.OpenPokerLink(() =>
+    {
+        if (_disposed || !IsAvailable || _client != client || _lobby == 0 || client.View == null || client.IsLocalArrival) return null;
+        var peers = new List<Poker.PokerPeer>();
+        foreach (var member in client.View.Members)
+        {
+            if (member.IsCompanion)
+            { peers.Add(new("bot:" + member.Id, member.Presence.ToString(), member.Id, member.Name, true)); continue; }
+            var steam = _identities.FirstOrDefault(p => p.Value.Id == member.Id).Key;
+            var ticket = steam == _transport.LocalSteamId ? _chatSession : _chatSessions.GetValueOrDefault(steam);
+            if (steam != 0 && ticket != Guid.Empty)
+                peers.Add(new(steam.ToString(), ticket.ToString("N"), member.Id, member.Name, false));
+        }
+        var owner = peers.FirstOrDefault(p => p.LocalId == client.View.OwnerId);
+        return owner == null ? null : new Poker.PokerRoomContext(client.View.Code + ":" + client.View.GameId,
+            _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray());
+    });
     private enum DisconnectKind { NetworkLost, Terminal, SessionDisposed }
     private sealed class Pending(RoomClient client, RoomRequest request)
     {

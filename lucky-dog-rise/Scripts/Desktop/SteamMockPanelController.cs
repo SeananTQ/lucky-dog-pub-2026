@@ -10,8 +10,11 @@ public partial class SteamMockPanelController : CanvasLayer
     [Signal] public delegate void CloseRequestedEventHandler();
     [Signal] public delegate void SimulationResetEventHandler();
     [Signal] public delegate void RecoveredItemsPreviewRequestedEventHandler(int itemCount);
+    [Signal] public delegate void NetworkPokerMockRequestedEventHandler(bool localHost);
 
     [Export] private PanelContainer _panel = null!;
+    [Export] private Control _networkPokerRow = null!;
+    [Export] private Button _networkPokerHost = null!, _networkPokerGuest = null!;
     [Export] private Button _steamTab = null!;
     [Export] private Button _pokerTab = null!;
     [Export] private Control _steamPage = null!;
@@ -47,6 +50,9 @@ public partial class SteamMockPanelController : CanvasLayer
 
     public override void _Ready()
     {
+        _networkPokerRow.Visible = BuildCapabilities.SteamRooms;
+        _networkPokerHost.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, true);
+        _networkPokerGuest.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, false);
         _steamTab.Pressed += () => SelectPokerPage(false);
         _pokerTab.Pressed += () => SelectPokerPage(true);
         _scenarioOption.AddItem("正常掉落规则：按游玩资格与窗口返回奖励或空结果", (int)DebugSteamScenario.NormalSuccess);

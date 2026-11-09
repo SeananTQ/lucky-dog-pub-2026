@@ -6,7 +6,7 @@ namespace LuckyDogRise;
 
 public partial class GameManager
 {
-    public bool CanBeginRoomPoker => State == GameState.WaitingForBet && _pendingReward == null
+    public bool CanBeginRoomPoker => !IsSessionPokerActive && State == GameState.WaitingForBet && _pendingReward == null
         && !_blindBoxOverlay.Visible && !_itemArea.IsUseBalloonOpen;
 
     public RoomPokerTableView BeginRoomPoker()

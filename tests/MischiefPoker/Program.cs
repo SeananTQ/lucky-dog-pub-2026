@@ -10,6 +10,7 @@ try
     PreviewChecks.Run();
     ShowdownChecks.Run();
     RoundPresentationChecks.Run();
+    NetworkChecks.Run();
     Console.WriteLine($"PASS game flow, deadlines, privacy, dealer changes and chip accounting ({Check.Count} checks)");
     HandChecks.ExhaustiveFiveCardCategories();
     Console.WriteLine($"MISCHIEF_POKER_PASS: {Check.Count} checks, all 2,598,960 five-card hands, {watch.Elapsed.TotalSeconds:F2}s");

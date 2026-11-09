@@ -634,6 +634,14 @@ public partial class ModeManager : Control
             _steamMockPanel.CloseRequested += OnSteamMockPanelCloseRequested;
             _steamMockPanel.SimulationReset += OnSteamMockSimulationReset;
             _steamMockPanel.RecoveredItemsPreviewRequested += OnRecoveredItemsPreviewRequested;
+#if !DEMO_BUILD && !RECORDING_BUILD
+            _steamMockPanel.NetworkPokerMockRequested += localHost =>
+            {
+                StopPokerPreview();
+                StopNetworkPoker();
+                _settingsPanel.PrepareNetworkPokerMock(localHost);
+            };
+#endif
         }
 #endif
 
@@ -945,6 +953,7 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
         UpdateRoomDesktopPreview();
         TickPokerPreview(_);
+        TickNetworkPoker(_);
         UpdateRoomGameProposalPresentation();
         UpdateRoomJoinNotice(_);
         UpdateRoomChatBlindBoxDelay(_);
@@ -1283,6 +1292,9 @@ public partial class ModeManager : Control
 
     public override void _ExitTree()
     {
+#if !DEMO_BUILD && !RECORDING_BUILD
+        StopNetworkPoker();
+#endif
         if (_singleInstanceGuard != null)
             _singleInstanceGuard.ActivationRequested -= OnExternalActivationRequested;
         if (_gameManager != null)

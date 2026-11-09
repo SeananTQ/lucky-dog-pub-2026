@@ -11,6 +11,7 @@ namespace LuckyDogRise.Rooms;
 // owns a Steam runtime or pumps platform callbacks independently.
 public partial class InGameRoomPreview : VBoxContainer
 {
+    [Export] public RoomPokerLobbyView PokerLobby { get; private set; }
     [Export] private Button _pokerPreviewButton = null!;
     public event Action<RoomClient> PokerPreviewRequested;
     public void ShowPokerPreviewNotice(string text) { _noticeKey = text; _dirty = true; }
@@ -318,6 +319,7 @@ public partial class InGameRoomPreview : VBoxContainer
             _client.Dispose();
         }
         _client = client;
+        PokerLobby?.Bind(client);
         _lastSession = 0;
         _lastListings = null;
         _browsing = true;

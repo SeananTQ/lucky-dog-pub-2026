@@ -8,6 +8,8 @@ namespace LuckyDogRise.Rooms;
 /// <summary>Thin Steamworks.NET binding; it never initializes Steam or runs a callback pump.</summary>
 public sealed class SteamRoomTransport : ISteamRoomTransport
 {
+    public Poker.IPokerLink OpenPokerLink(Func<Poker.PokerRoomContext> context)
+        => CanUseApi ? new SteamPokerLink(context, () => CanUseApi) : null;
     private readonly SteamworksRuntime _runtime;
     private readonly SteamChatTextFilter _chatTextFilter = new();
     private readonly Callback<LobbyDataUpdate_t> _dataChanged;

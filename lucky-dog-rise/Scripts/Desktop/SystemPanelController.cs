@@ -115,6 +115,13 @@ public partial class SystemPanelController : CanvasLayer
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
     public event Action<Rooms.RoomClient> RoomPokerPreviewRequested;
     public void ShowPokerPreviewNotice(string text) => _roomPreview?.ShowPokerPreviewNotice(text);
+    public Rooms.RoomPokerLobbyView RoomPokerLobby => _roomPreview?.PokerLobby;
+#if DEBUG
+    public void PrepareNetworkPokerMock(bool localHost)
+    {
+        if (ShowRoomPage()) _roomPreview?.PrepareNetworkPokerMock(localHost);
+    }
+#endif
     private int _roomTabIndex = -1;
     public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;

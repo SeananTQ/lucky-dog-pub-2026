@@ -35,7 +35,7 @@ public enum PokerError
 {
     None, InvalidTime, HandInProgress, InsufficientChips, InvalidDeck,
     WrongSession, StaleHand, StaleRevision, NotActing, NotYourTurn, InvalidAction, InvalidSlot,
-    NoPendingDraw
+    NoPendingDraw, InvalidRoster
 }
 
 // The authoritative adapter must supply the authenticated member ID and its monotonic clock.

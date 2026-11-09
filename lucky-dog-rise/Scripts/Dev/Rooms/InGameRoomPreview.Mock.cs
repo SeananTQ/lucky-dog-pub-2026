@@ -13,6 +13,7 @@ public partial class InGameRoomPreview
     private RoomSandbox _sandbox;
     private readonly List<RoomClient> _mockClients = new();
     private readonly List<Translation> _mockTranslations = new();
+    private int _pendingPokerMockHost;
 
     partial void InitializeMock()
     {
@@ -25,7 +26,7 @@ public partial class InGameRoomPreview
             _mockTranslations.Add(translation);
         }
         _isMock = true;
-        _sandbox = new RoomSandbox();
+        _sandbox = new RoomSandbox { PokerSimulationLocalId = 1 };
         var skins = LubanData.Tables.TbDogSkin;
         var skin = skins.DataList[0].Id;
         var client = _sandbox.AddClient(1, L10n.Tr("Rooms_You"), skin);
@@ -42,13 +43,31 @@ public partial class InGameRoomPreview
         client.Search();
     }
 
-    partial void TickMock(double delta) => _sandbox?.Tick(delta);
+    partial void TickMock(double delta)
+    {
+        _sandbox?.Tick(delta);
+        if (_pendingPokerMockHost == 0) return;
+        bool sent = _pendingPokerMockHost == _client.Id
+            ? PokerLobby?.Session?.Context?.Room == _client.View?.Code + ":" + _client.View?.GameId && PokerLobby.Session.Propose()
+            : _sandbox.ProposeSimulatedPoker(_pendingPokerMockHost);
+        if (sent) _pendingPokerMockHost = 0;
+    }
+    public void PrepareNetworkPokerMock(bool localHost)
+    {
+        if (_sandbox == null) return;
+        foreach (var client in _mockClients) client.Leave();
+        var owner = localHost ? _client : MockClientForSmoke(2);
+        _sandbox.Create(owner, "捣乱德州 · 联机模拟");
+        foreach (var client in _mockClients.Where(c => c != owner)) _sandbox.Join(client, owner.JoinedCode);
+        _pendingPokerMockHost = owner.Id;
+    }
     partial void RenderMockNotice()
     {
         if (_isMock) _connection.Text = L10n.Tr("Rooms_MockNotice");
     }
     partial void DisposeMock()
     {
+        _sandbox?.DisposePokerSimulation();
         foreach (var client in _mockClients) client.Dispose();
         foreach (var translation in _mockTranslations) TranslationServer.RemoveTranslation(translation);
     }

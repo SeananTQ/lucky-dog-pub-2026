@@ -27,6 +27,7 @@ public sealed class RoomClient : IDisposable
     public long Session { get; private set; }
     public long LayoutSession { get; private set; }
 #if !DEMO_BUILD && !RECORDING_BUILD
+    public Poker.IPokerLink OpenPokerLink() => (_service as IRoomPokerLinkProvider)?.OpenPokerLink(this);
     public RoomArrivalState Arrival { get; private set; }
     public bool IsLocalArrival => Arrival != null;
     private long _arrivalRevision;

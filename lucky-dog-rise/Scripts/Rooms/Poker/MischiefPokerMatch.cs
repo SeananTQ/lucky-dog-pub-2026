@@ -8,13 +8,13 @@ using System.Security.Cryptography;
 namespace LuckyDogRise.Rooms.Poker;
 
 /// <summary>
-/// Single-threaded authority for a fixed roster. Independent of Godot, Steam, saves and single-player chips.
+/// Single-threaded authority; seats are fixed during a hand. Independent of Godot, Steam and saves.
 /// UI and transports consume projections; only the authority owns this object and the undealt deck.
 /// </summary>
 public sealed class MischiefPokerMatch
 {
-    private readonly int[] _players;
-    private readonly long[] _chips;
+    private int[] _players;
+    private long[] _chips;
     private readonly MischiefPokerRules _rules;
     private readonly List<PokerCompletedTurn> _completedTurns = new();
     private int[] _deck = Array.Empty<int>();
@@ -53,12 +53,19 @@ public sealed class MischiefPokerMatch
     /// Start only on an authority request, never automatically after settlement. A supplied full deck is
     /// a trusted deterministic-test seam, not a client command. Dealing uses two passes in fixed seat order.
     /// </summary>
-    public PokerError StartHand(double nowSeconds, IReadOnlyList<int>? orderedDeck = null)
+    public PokerError StartHand(double nowSeconds, IReadOnlyList<int>? orderedDeck = null,
+        IReadOnlyList<int>? newPlayers = null)
     {
         if (!IsValidTime(nowSeconds)) return PokerError.InvalidTime;
         if (_phase is PokerPhase.Acting or PokerPhase.AwaitingDraw) return PokerError.HandInProgress;
         // No negative balances, automatic refill, partial ante or unapproved elimination rule.
         if (_chips.Any(chips => chips < _rules.Ante)) return PokerError.InsufficientChips;
+        // Admission and dealing commit together: a rejected start preserves the previous settlement.
+        var entrants = newPlayers?.ToArray() ?? Array.Empty<int>();
+        if (entrants.Length > 0 && (_phase != PokerPhase.Settled
+            || entrants.Length + _players.Length > MischiefPokerRules.MaxPlayers
+            || entrants.Distinct().Count() != entrants.Length || entrants.Any(_players.Contains)))
+            return PokerError.InvalidRoster;
         int[] deck;
         if (orderedDeck != null)
         {
@@ -78,6 +85,8 @@ public sealed class MischiefPokerMatch
         }
 
         // Validate everything before collecting any ante or replacing the previous result.
+        _players = _players.Concat(entrants).ToArray();
+        _chips = _chips.Concat(Enumerable.Repeat(_rules.InitialChips, entrants.Length)).ToArray();
         _now = nowSeconds;
         if (_settlement != null) _dealer = _settlement.NextDealer;
         _settlement = null;
