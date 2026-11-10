@@ -13,93 +13,106 @@ public partial class ModeManager
     private RoomPokerPanelView _networkPokerPanel;
     private RoomPokerPayoutView _networkPokerPayout;
     private PokerNetworkSession _networkPokerSession;
-    private Guid _networkPokerTableId, _networkPokerPrompt;
-    private long _networkPokerFinished;
-    private double _networkPokerFinishRetry;
-    private bool _networkPokerInterruptedNotice;
+    private Guid _networkPokerTableId;
+    private bool _networkPokerAttached;
 
     private void TickNetworkPoker(double delta)
     {
         var lobby = _settingsPanel?.RoomPokerLobby;
         var session = lobby?.Session;
-        if (_gameManager != null) _gameManager.IsSessionPokerReserved = session?.IsReady == true
-            && session.State.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
-        if (lobby != null) lobby.CanPrepare = (_gameManager == null || _networkPokerTable != null || _gameManager.CanBeginRoomPoker)
-            && !UiInteractionOccupancy.IsOccupied(this) && !_hiddenByFullscreenApp;
-        if (lobby?.CanPrepare == false && session?.IsReady == true && !session.IsParticipant)
-            session.SetReady(false);
-        if (session?.State is { Status: PokerTableStatus.Preparing } prep && !session.IsOwner
-            && prep.Table != _networkPokerPrompt && !UiInteractionOccupancy.IsOccupied(this)
-            && !_hiddenByFullscreenApp && CurrentMode != Mode.Immersive)
+        bool poker = _desktopRoomClient?.View?.GameId == RoomRules.MischiefPoker;
+        bool reserved = poker && session?.IsReady == true
+            && session.State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
+        if (lobby != null) lobby.CanPrepare = true;
+#if DEBUG
+        if (_pokerPreview != null)
         {
-            CancelWindowDrag(); RefreshSettingsPanelModeActions(); PositionPanelInBestSlot();
-            if (_settingsPanel.ShowRoomPage())
-            { _networkPokerPrompt = prep.Table; _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0; }
+            if (reserved) StopPokerPreview(); else return;
         }
-        bool playing = session?.State?.Status == PokerTableStatus.Playing && session.IsParticipant;
+#endif
+        if (_gameManager != null)
+        {
+            if (reserved && !_gameManager.IsSessionPokerReserved) _gameManager.DiscardSoloHandForRoomPoker();
+            _gameManager.IsSessionPokerReserved = reserved;
+        }
+        bool playing = poker && session?.State?.Status == PokerTableStatus.Playing;
         if (_networkPokerTable != null && (!playing || _networkPokerSession != session || _networkPokerTableId != session.State.Table))
-        {
-            _networkPokerInterruptedNotice = session?.State?.Status == PokerTableStatus.Interrupted;
             StopNetworkPoker();
-        }
-        if (_networkPokerInterruptedNotice && !UiInteractionOccupancy.IsOccupied(this)
-            && !_hiddenByFullscreenApp && CurrentMode != Mode.Immersive)
+        if (playing && _networkPokerTable == null)
         {
-            if (session?.State?.Status == PokerTableStatus.Interrupted)
-            {
-                CancelWindowDrag(); RefreshSettingsPanelModeActions(); PositionPanelInBestSlot();
-                _settingsPanel.ShowRoomPage();
-                _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
-            }
-            _networkPokerInterruptedNotice = false;
+            // Run the same presentation clock even when the player has never opened the poker view.
+            // It remains hidden until an explicit mode change; network state never switches windows.
+            _networkPokerTable = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerTable.tscn").Instantiate<RoomPokerTableView>();
+            AddChild(_networkPokerTable); _networkPokerTable.Hide();
+            _networkPokerSession = session; _networkPokerTableId = session.State.Table;
+            _networkPokerTable.FlipRequested += slot => { if (NetworkPokerInputAllowed) session.Act(PokerAction.Flip, slot); };
         }
-        if (!playing) return;
-        if (_networkPokerTable == null)
+        if (!playing)
         {
-            if (_gameManager != null && !_gameManager.CanBeginRoomPoker || UiInteractionOccupancy.IsOccupied(this)) return;
-            SwitchToPlay();
-            if (CurrentMode != Mode.Play) return;
-            _networkPokerTable = _gameManager.BeginRoomPoker();
-            if (_networkPokerTable == null) return;
-            _networkPokerTable.Round.PauseAfterPayout = false;
-            _networkPokerSession = session; _networkPokerTableId = session.State.Table; _networkPokerFinished = 0;
+            PresentNetworkHands(null, poker);
+            return;
+        }
+        if (!_networkPokerAttached && session.IsParticipant && _gameManager != null && CurrentMode == Mode.Play)
+        {
+            _gameManager.BeginRoomPoker(_networkPokerTable);
+            _networkPokerAttached = true;
             _networkPokerPanel = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPanel.tscn").Instantiate<RoomPokerPanelView>();
             _infoPanel.SessionContent.AddChild(_networkPokerPanel);
+            _networkPokerPanel.PauseRequested += () =>
+            {
+                if (session.State?.Continuation == PokerContinuation.Paused) session.Resume();
+                else session.SetPauseRequested(session.State?.Continuation != PokerContinuation.PauseRequested);
+            };
             _networkPokerPayout = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPayout.tscn").Instantiate<RoomPokerPayoutView>();
             AddChild(_networkPokerPayout);
-            _networkPokerTable.FlipRequested += slot => { if (NetworkPokerInputAllowed) _networkPokerSession.Act(PokerAction.Flip, slot); };
             _gameManager.SessionPokerTurnEnd += NetworkPokerEndTurn;
-            _settingsPanel.CloseImmediate();
         }
         var view = session.DisplayView;
         if (view == null) return;
-        bool visible = CurrentMode == Mode.Play && !_hiddenByFullscreenApp && !UiInteractionOccupancy.IsOccupied(this);
+        bool visible = _networkPokerAttached && CurrentMode == Mode.Play && !_hiddenByFullscreenApp && !UiInteractionOccupancy.IsOccupied(this);
         bool act = NetworkPokerInputAllowed && session.Connected && !session.ActionPending && session.State.DealRemaining == 0
             && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
+        _networkPokerTable.Round.PauseAfterPayout = session.State.Continuation != PokerContinuation.Collecting;
         _networkPokerTable.Present(view, act, delta, animate: visible,
-            otherCardsMoving: _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true);
-        if (_networkPokerTable.Round.TakeNextHandRequest()) _networkPokerFinished = view.Public.HandNumber;
-        _networkPokerFinishRetry -= delta;
-        if (_networkPokerFinished == view.Public.HandNumber && _networkPokerFinishRetry <= 0)
-        { session.FinishPresentation(); _networkPokerFinishRetry = 2; }
-        _gameManager.SetRoomPokerInput(act && !_networkPokerTable.IsDealing);
-        var display = _networkPokerTable.Round.DisplayView;
-        _networkPokerPanel.Present(display, session.LastError, _networkPokerTable.Round);
-        _infoPanel.SetSessionChips(display.Public.Seats.Single(s => s.PlayerId == display.PlayerId).Chips,
-            RoomPokerText.T("牌局筹码", "Table chips"));
+            otherCardsMoving: visible && _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true);
+        // A late snapshot or background stall must not replay an obsolete settlement before collecting.
+        if (view.Public.Phase == PokerPhase.Settled && session.State.SettlementElapsed >= PokerNetworkSession.PayoutDuration(view.Public))
+            _networkPokerTable.Round.CompletePayout(view);
+        if (_networkPokerAttached)
+        {
+            _gameManager.SetRoomPokerInput(act && !_networkPokerTable.IsDealing);
+            var display = _networkPokerTable.Round.DisplayView;
+            _networkPokerPanel.Present(display, session.LastError, _networkPokerTable.Round);
+            _networkPokerPanel.PresentNetwork(session);
+            _infoPanel.SetSessionChips(display.Public.Seats.Single(s => s.PlayerId == display.PlayerId).Chips,
+                RoomPokerText.T("牌局筹码", "Table chips"));
+            PresentRoomPokerPayout(_networkPokerTable, _networkPokerPayout, view, visible);
+        }
+        PresentNetworkHands(_networkPokerTable.Round.DisplayView, true);
+    }
+
+    private void PresentNetworkHands(PokerPlayerView view, bool show)
+    {
         foreach (var dogs in new[] { _roomPokerDogs, _roomDesktop })
         {
-            if (dogs == null) continue;
+            if (!GodotObject.IsInstanceValid(dogs)) continue;
             foreach (var dog in dogs.RemoteDogs)
             {
-                var result = display.Public.Settlement?.Players.FirstOrDefault(p => p.PlayerId == dog.MemberId);
-                dog.PokerHand.Present(display.Public, dog.MemberId, result?.HoleCards, _networkPokerTable.Emphasis,
+                if (!show) { dog.PokerHand.Hide(); continue; }
+                if (view == null) { dog.PokerHand.PresentWaiting(); continue; }
+                var result = view.Public.Settlement?.Players.FirstOrDefault(p => p.PlayerId == dog.MemberId);
+                dog.PokerHand.Present(view.Public, dog.MemberId, result?.HoleCards, _networkPokerTable.Emphasis,
                     _networkPokerTable.Showdown.Cue, dogs.IsVisibleInTree(),
-                    waiting: !display.Public.Seats.Any(s => s.PlayerId == dog.MemberId),
+                    waiting: !view.Public.Seats.Any(s => s.PlayerId == dog.MemberId),
                     dealDelay: RoomPokerHandView.RemoteDealDelay, round: _networkPokerTable.Round);
             }
+            bool local = show && (dogs == _roomDesktop || !_networkPokerAttached);
+            if (!local) { dogs.LocalPokerHand.Hide(); continue; }
+            if (view == null) dogs.LocalPokerHand.PresentWaiting();
+            else dogs.LocalPokerHand.Present(view.Public, _desktopRoomClient.Id, view.HoleCards,
+                _networkPokerTable.Emphasis, _networkPokerTable.Showdown.Cue, dogs.IsVisibleInTree(),
+                round: _networkPokerTable.Round);
         }
-        PresentRoomPokerPayout(_networkPokerTable, _networkPokerPayout, view, visible);
     }
     private bool NetworkPokerInputAllowed => _networkPokerTable != null && CurrentMode == Mode.Play
         && !_hiddenByFullscreenApp && !_settingsPanel.IsOpen && !UiInteractionOccupancy.IsOccupied(this)
@@ -136,13 +149,15 @@ public partial class ModeManager
     private void StopNetworkPoker()
     {
         if (_networkPokerTable == null) return;
-        if (GodotObject.IsInstanceValid(_gameManager))
+        if (_networkPokerAttached && GodotObject.IsInstanceValid(_gameManager))
         { _gameManager.SessionPokerTurnEnd -= NetworkPokerEndTurn; _gameManager.EndRoomPoker(); }
-        if (GodotObject.IsInstanceValid(_infoPanel)) _infoPanel.SetSessionChips(null);
+        if (_networkPokerAttached && GodotObject.IsInstanceValid(_infoPanel)) _infoPanel.SetSessionChips(null);
         foreach (var node in new CanvasItem[] { _networkPokerTable, _networkPokerPanel, _networkPokerPayout })
             if (GodotObject.IsInstanceValid(node)) { node.Hide(); node.QueueFree(); }
         foreach (var dogs in new[] { _roomPokerDogs, _roomDesktop })
-            if (GodotObject.IsInstanceValid(dogs)) foreach (var dog in dogs.RemoteDogs) dog.PokerHand.Hide();
+            if (GodotObject.IsInstanceValid(dogs))
+            { dogs.LocalPokerHand.Hide(); foreach (var dog in dogs.RemoteDogs) dog.PokerHand.Hide(); }
+        _networkPokerAttached = false;
         _networkPokerTable = null; _networkPokerPanel = null; _networkPokerPayout = null; _networkPokerSession = null;
     }
 }

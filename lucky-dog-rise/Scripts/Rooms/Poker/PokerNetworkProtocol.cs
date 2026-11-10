@@ -8,8 +8,8 @@ namespace LuckyDogRise.Rooms.Poker;
 
 // Keys identify a platform member; tickets identify this particular room membership.
 // LocalId is presentation-only and is deliberately never used to authenticate a sender.
-public sealed record PokerPeer(string Key, string Ticket, int LocalId, string Name, bool Companion);
-public sealed record PokerRoomContext(string Room, string LocalKey, string OwnerKey, PokerPeer[] Members);
+public sealed record PokerPeer(string Key, string Ticket, int LocalId, string Name, bool Companion, bool ReadyOnEntry = false);
+public sealed record PokerRoomContext(string Room, string LocalKey, string OwnerKey, PokerPeer[] Members, string Game = "mischief");
 public interface IPokerLink : IDisposable
 {
     PokerRoomContext? Context { get; }
@@ -18,16 +18,18 @@ public interface IPokerLink : IDisposable
     void Poll();
 }
 public enum PokerTableStatus { Idle, Preparing, Playing, Interrupted }
+public enum PokerContinuation { Automatic, PauseRequested, Paused, Collecting }
 public sealed record PokerParticipant(string Key, string Ticket, int Id, bool Ready, bool Playing, bool Companion);
 public sealed record PokerNetworkState(Guid Table, long Version, PokerTableStatus Status,
-    PokerParticipant[] Players, PokerPlayerView? Hand, double DealRemaining, string Notice, long AckSequence = 0);
+    PokerParticipant[] Players, PokerPlayerView? Hand, double DealRemaining, string Notice, long AckSequence = 0,
+    PokerContinuation Continuation = PokerContinuation.Automatic, double SettlementElapsed = 0);
 public sealed record PokerPacket(int Protocol, string Room, string SenderTicket, string RecipientTicket,
     string Kind, long Sequence, Guid Table, bool Ready = false, PokerCommand? Command = null,
     long FinishedHand = 0, PokerNetworkState? State = null);
 
 public static class PokerNetworkProtocol
 {
-    public const int Version = 1;
+    public const int Version = 2;
     public const int MaxBytes = 32768;
     private static readonly JsonSerializerOptions Options = new() { MaxDepth = 24 };
     public static byte[] Encode(PokerPacket packet) => JsonSerializer.SerializeToUtf8Bytes(packet, Options);
@@ -39,7 +41,7 @@ public static class PokerNetworkProtocol
             var p = JsonSerializer.Deserialize<PokerPacket>(bytes, Options);
             return p is { Protocol: Version, Sequence: > 0 } && p.Room is { Length: > 0 and <= 80 }
                 && p.SenderTicket is { Length: > 0 and <= 80 } && p.RecipientTicket is { Length: > 0 and <= 80 }
-                && p.Kind is "state" or "hello" or "prepare" or "ready" or "start" or "action" or "finished" or "stop" ? p : null;
+                && p.Kind is "state" or "hello" or "prepare" or "ready" or "start" or "action" or "finished" or "stop" or "pause" or "resume" ? p : null;
         }
         catch (JsonException) { return null; }
         catch (NotSupportedException) { return null; }
@@ -55,7 +57,9 @@ public static class PokerNetworkProtocol
                 || s.Players.Select(p => p.Id).Distinct().Count() != s.Players.Length
                 || s.Players.Select(p => p.Key).Distinct().Count() != s.Players.Length
                 || !double.IsFinite(s.DealRemaining) || s.DealRemaining is < 0 or > 10
-                || s.Notice == null || s.Notice.Length > 100 || s.AckSequence < 0) return false;
+                || s.Notice == null || s.Notice.Length > 100 || s.AckSequence < 0
+                || !Enum.IsDefined(s.Continuation) || !double.IsFinite(s.SettlementElapsed)
+                || s.SettlementElapsed < 0 || s.SettlementElapsed > 86400) return false;
             if (s.Status is PokerTableStatus.Playing or PokerTableStatus.Preparing && s.Table == Guid.Empty) return false;
             if (s.Status != PokerTableStatus.Interrupted && s.Players.Any(p => !room.Members.Any(m =>
                 m.Key == p.Key && m.Ticket == p.Ticket && m.Companion == p.Companion))) return false;

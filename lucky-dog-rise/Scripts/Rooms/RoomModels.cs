@@ -37,7 +37,8 @@ public static class RoomRules
     public const double ArrivalDepartureSeconds = 1.44; // Reverse the desktop rise at its normal speed.
     public const double GameChangeLifetime = 60;
     public const double CompanionVoteDelay = 1;
-    public static bool IsRoomMode(string mode) => mode is "social" or "work";
+    public const string MischiefPoker = "mischief";
+    public static bool IsRoomMode(string mode) => mode is "social" or "work" or MischiefPoker;
     public const int MaxNameCharacters = 40;
     public static bool TryNormalizeName(string value, out string name)
     {

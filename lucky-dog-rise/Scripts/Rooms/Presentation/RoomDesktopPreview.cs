@@ -15,6 +15,7 @@ public partial class RoomDesktopPreview : Node2D
     [Export] private CanvasLayer _chatLayer = null!;
     [Export] public RoomChatView LocalChat { get; private set; } = null!;
     [Export] public RoomBoundaryView Boundary { get; private set; } = null!;
+    [Export] public RoomPokerHandView LocalPokerHand { get; private set; } = null!;
     private RoomClient _client;
 
     public override void _Ready()
@@ -134,6 +135,7 @@ public partial class RoomDesktopPreview : Node2D
         // ModeManager temporarily retracts that balloon while local chat is active.
         LocalChat.Position = localPosition + new Vector2(-49, -140) * scale;
         LocalChat.Scale = Vector2.One * scale;
+        PositionLocalPokerHand(localPosition + new Vector2(100, -150) * scale, scale, usable);
         LocalChat.Visible = showLocalChat;
         if (showLocalChat)
             LocalChat.Present(true, false, client.Bubbles.TryGetValue(client.Id, out var localBubble) ? localBubble.Text : "");
@@ -159,6 +161,7 @@ public partial class RoomDesktopPreview : Node2D
         var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
             ?? Array.Empty<RoomMember>();
         Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled);
+        PositionLocalPokerHand(table.Position + table.Size * new Vector2(.72f, .48f), scale, usable);
         foreach (var member in fresh)
         {
             if (member.Id == client.Id || !_placements.TryGetValue(member.Id, out var placement)) continue;
@@ -303,6 +306,7 @@ public partial class RoomDesktopPreview : Node2D
 
     public void Clear()
     {
+        LocalPokerHand?.Hide();
         Boundary?.Clear();
         LocalChat?.Reset();
         _client = null;
@@ -312,5 +316,14 @@ public partial class RoomDesktopPreview : Node2D
         _awaitingArrivalFrame = null;
         _session = -1;
     }
+
+    private void PositionLocalPokerHand(Vector2 position, float scale, Rect2 bounds)
+    {
+        LocalPokerHand.Scale = Vector2.One * scale;
+        LocalPokerHand.Position = RoomDesktopGeometry.Clamp(position,
+            new Rect2(Vector2.Zero, LocalPokerHand.Size * scale), bounds);
+    }
+    public bool IsLocalPokerHandHit(Vector2 point) => IsVisibleInTree() && LocalPokerHand.IsVisibleInTree()
+        && LocalPokerHand.GetGlobalRect().HasPoint(point);
 }
 #endif

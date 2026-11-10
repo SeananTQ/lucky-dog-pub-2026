@@ -413,8 +413,7 @@ public partial class InfoPanelController : CanvasLayer
 
     public void RefreshBlindBoxButton()
     {
-        _blindBoxBtn.Visible = _sessionChips == null && BuildCapabilities.BlindBoxes;
-        if (_sessionChips != null) { SetBlindBoxHintDisplayVisible(false); return; }
+        _blindBoxBtn.Visible = BuildCapabilities.BlindBoxes;
         if (!BuildCapabilities.BlindBoxes)
         {
             _blindBoxBtn.Visible = false;

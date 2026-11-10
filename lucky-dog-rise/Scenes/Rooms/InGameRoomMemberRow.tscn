@@ -13,6 +13,20 @@ autowrap_mode = 3
 auto_translate_mode = 2
 label_settings = ExtResource("option_label")
 
+[node name="PokerStatus" type="Label" parent="."]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+auto_translate_mode = 2
+theme_type_variation = &"RoomPokerSmallLabel"
+
+[node name="Ready" type="Button" parent="."]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+auto_translate_mode = 2
+theme_type_variation = &"CapsuleButton"
+
 [node name="Kick" type="Button" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 32)

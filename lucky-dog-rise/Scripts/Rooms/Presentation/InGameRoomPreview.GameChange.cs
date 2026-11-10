@@ -7,7 +7,7 @@ namespace LuckyDogRise.Rooms;
 
 public partial class InGameRoomPreview
 {
-    private static readonly string[] SelectableGames = ["social", "work"];
+    private static readonly string[] SelectableGames = ["social", "work", RoomRules.MischiefPoker];
     private OptionButton _gameChoice;
     private TextureRect _gameIcon;
     private Button _gameApply;
@@ -76,6 +76,8 @@ public partial class InGameRoomPreview
         if (_client?.View == null || _client.JoinedCode.Length == 0 || _client.IsBusy)
             return "Rooms_GameChangeUnavailable";
         if (_client.View.OwnerId != _client.Id) return "Rooms_GameChangeNotOwner";
+        if (PokerLobby?.Session?.State?.Status == Poker.PokerTableStatus.Playing)
+            return RoomPokerText.T("牌局进行中，暂不支持切换玩法。", "Finish this table before changing games.");
         return _client.View.GameChange != null ? "Rooms_GameChangeAlreadyPending" : "";
     }
 

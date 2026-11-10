@@ -15,6 +15,8 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private Button _pokerPreviewButton = null!;
     public event Action<RoomClient> PokerPreviewRequested;
     public void ShowPokerPreviewNotice(string text) { _noticeKey = text; _dirty = true; }
+    private Poker.PokerNetworkState _renderedPokerState;
+    private bool _renderedPokerReady;
 
     [Export] private VBoxContainer _lobby = null!;
     [Export] private VBoxContainer _room = null!;
@@ -253,6 +255,14 @@ public partial class InGameRoomPreview : VBoxContainer
         UpdateArrivalPresentation();
         RefreshRoomAge();
         ProcessGameProposal();
+        var poker = PokerLobby?.Session;
+        if (_client?.View != null && (poker?.State != _renderedPokerState || (poker?.IsReady == true) != _renderedPokerReady))
+        {
+            _renderedPokerState = poker?.State;
+            _renderedPokerReady = poker?.IsReady == true;
+            RenderMembers();
+            RenderGameControls();
+        }
     }
     public override void _ExitTree()
     {
@@ -917,6 +927,12 @@ public partial class InGameRoomPreview : VBoxContainer
                 _memberRows.Add(identity, row);
                 var client = _client;
                 row.GetNode<Button>("Kick").Pressed += () => RequestKick(client, session, identity.Id, identity.Presence);
+                row.GetNode<Button>("Ready").Pressed += () =>
+                {
+                    if (client == _client && session == client.Session && identity.Id == client.Id
+                        && client.View?.Members.Any(m => m.Id == identity.Id && m.Presence == identity.Presence) == true)
+                        PokerLobby?.ToggleReady();
+                };
             }
             // Activity snapshots replace the model array frequently. Preserve
             // each live member's button across mouse-down/up and scroll gestures.
@@ -930,6 +946,7 @@ public partial class InGameRoomPreview : VBoxContainer
             var kick = row.GetNode<Button>("Kick");
             kick.Visible = view.OwnerId == _client.Id && member.Id != _client.Id;
             kick.Disabled = _client.IsBusy || !kick.Visible;
+            PokerLobby?.PresentMember(row, member);
         }
     }
     partial void RenderMockNotice();
@@ -949,6 +966,7 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         null or "" or "social" => L10n.Tr("Rooms_Social"),
         "work" => L10n.Tr("Rooms_Work"),
+        RoomRules.MischiefPoker => RoomPokerText.T("捣乱德州", "Mischief Holdem"),
         _ => gameId
     };
     private string StatusKey() => _client.RequestState switch

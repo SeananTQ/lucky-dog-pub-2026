@@ -121,6 +121,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (ShowRoomPage()) _roomPreview?.PrepareNetworkPokerMock(localHost);
     }
+    public void SetNetworkPokerMockChat(bool enabled) => _roomPreview?.SetNetworkPokerMockChat(enabled);
 #endif
     private int _roomTabIndex = -1;
     public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;

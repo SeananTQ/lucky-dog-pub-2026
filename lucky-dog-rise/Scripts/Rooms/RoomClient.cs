@@ -28,6 +28,13 @@ public sealed class RoomClient : IDisposable
     public long LayoutSession { get; private set; }
 #if !DEMO_BUILD && !RECORDING_BUILD
     public Poker.IPokerLink OpenPokerLink() => (_service as IRoomPokerLinkProvider)?.OpenPokerLink(this);
+    private RoomGameChange _pokerEntryConsent;
+    private long _pokerEntrySession = -1;
+    private int _pokerEntryOwner;
+    public bool ReadyOnPokerEntry(RoomMember member) => Session == _pokerEntrySession
+        && View?.GameId == RoomRules.MischiefPoker && View.OwnerId == _pokerEntryOwner
+        && _pokerEntryConsent?.Votes.Any(v => v.MemberId == member.Id && v.Presence == member.Presence
+            && v.State == RoomGameVoteState.Accepted) == true;
     public RoomArrivalState Arrival { get; private set; }
     public bool IsLocalArrival => Arrival != null;
     private long _arrivalRevision;
@@ -60,7 +67,7 @@ public sealed class RoomClient : IDisposable
     public RoomFailure Failure { get; private set; }
     public RoomListing[] Listings { get; private set; } = Array.Empty<RoomListing>();
     public long ActiveRequestId => _request?.Id ?? 0;
-    public bool ChatAllowed => View != null && View.GameId == "social";
+    public bool ChatAllowed => View != null && View.GameId != "work";
     public double RoomAgeSeconds => View?.CreatedAt == null ? 0 : Math.Max(0, _roomAgeAtReceipt + _now - _roomClockReceipt);
     public double GameChangeSecondsRemaining => View?.GameChange is { } change ? Math.Max(0, change.ExpiresAt - _now) : 0;
     public bool CanConfirmGameChange => !IsBusy && View?.OwnerId == Id
@@ -85,7 +92,22 @@ public sealed class RoomClient : IDisposable
     public string SetGame(string gameId) => "Rooms_GameChangeRequired";
     public string ProposeGameChange(string gameId) => CanChangeGame() ? _service.ProposeGameChange(this, gameId) : "Rooms_GameChangeUnavailable";
     public string RespondGameChange(string proposalId, bool accept) => CanChangeGame() ? _service.RespondGameChange(this, proposalId, accept) : "Rooms_GameChangeUnavailable";
-    public string ConfirmGameChange(string proposalId) => CanChangeGame() ? _service.ConfirmGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
+    public string ConfirmGameChange(string proposalId)
+    {
+        if (!CanChangeGame()) return "Rooms_GameChangeUnavailable";
+        var proposal = View.GameChange;
+        var result = _service.ConfirmGameChange(this, proposalId);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        // Only the authority seeds readiness, from this exact successful vote and membership.
+        if (result == "ok" && proposal?.Id == proposalId)
+        {
+            _pokerEntryConsent = proposal.TargetGameId == RoomRules.MischiefPoker ? proposal : null;
+            _pokerEntrySession = Session;
+            _pokerEntryOwner = Id;
+        }
+#endif
+        return result;
+    }
     public string CancelGameChange(string proposalId) => CanChangeGame() ? _service.CancelGameChange(this, proposalId) : "Rooms_GameChangeUnavailable";
     private bool CanChangeGame() => !_disposed && !_committing && !IsBusy && !IsLocalArrival && View != null;
     public string SetAccess(RoomAccess access) => _disposed || _committing || IsBusy || IsLocalArrival

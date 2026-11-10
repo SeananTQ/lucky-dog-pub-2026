@@ -98,6 +98,16 @@ public sealed class PokerRoundPresentation
         return true;
     }
 
+    public void CompletePayout(PokerPlayerView view)
+    {
+        if (view.Public.Settlement == null || Stage >= PokerRoundStage.AwaitingNext) return;
+        // Bounded catch-up for a late client; no accounting or network actions occur here.
+        Showdown.Update(view, 0);
+        for (int i = 0; i < 160 && !Showdown.Finished; i++) Showdown.Update(view, 0.1);
+        Enter(PokerRoundStage.AwaitingNext);
+        DisplayView = Mask(view);
+    }
+
     // The caller starts exactly one authoritative hand, only after old cards/badge have finished.
     public bool TakeNextHandRequest()
     {

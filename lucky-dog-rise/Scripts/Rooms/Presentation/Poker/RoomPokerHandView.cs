@@ -47,6 +47,21 @@ public partial class RoomPokerHandView : Control
         VisibilityChanged += () => { if (!IsVisibleInTree()) StopDeal(); };
     }
 
+    public void PresentWaiting()
+    {
+        StopDeal(); _collect?.Kill(); _collect = null;
+        _session = System.Guid.Empty; _hand = -1;
+        _stage = PokerRoundStage.Acting;
+        _first.ResetPose(); _second.ResetPose();
+        _first.Hide(); _second.Hide(); _dealer.Hide(); _winner.Hide(); _clock.Hide(); _autoplay.Hide();
+        _waiting.Show();
+        _waiting.TooltipText = RoomPokerText.T("等待入局", "Waiting to join a hand");
+        _seat.Text = _chips.Text = "—";
+        _plate.ThemeTypeVariation = "RoomPokerPlate";
+        SetDrawer("", false);
+        Show();
+    }
+
     public void Present(PokerPublicView state, int playerId, IReadOnlyList<int> cards,
         PokerShowdownEmphasis emphasis, long cue, bool animate, bool waiting = false, bool autoplay = false,
         double dealDelay = 0, PokerRoundPresentation round = null)

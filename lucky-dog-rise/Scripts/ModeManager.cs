@@ -640,7 +640,9 @@ public partial class ModeManager : Control
                 StopPokerPreview();
                 StopNetworkPoker();
                 _settingsPanel.PrepareNetworkPokerMock(localHost);
+                _settingsPanel.SetNetworkPokerMockChat(_steamMockPanel.NetworkPokerChatEnabled);
             };
+            _steamMockPanel.NetworkPokerChatChanged += enabled => _settingsPanel.SetNetworkPokerMockChat(enabled);
 #endif
         }
 #endif
@@ -3123,6 +3125,7 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
             over |= _roomWindowActive ? HitRoomDog(localPos) != 0 : _dogHitRect.HasPoint(localPos);
             over |= _roomWindowActive && !_hiddenByFullscreenApp && _roomDesktop.LocalChat.ContainsPoint(localPos);
+            over |= _roomWindowActive && !_hiddenByFullscreenApp && _roomDesktop.IsLocalPokerHandHit(localPos);
 #else
             over |= _dogHitRect.HasPoint(localPos);
 #endif
@@ -3138,6 +3141,7 @@ public partial class ModeManager : Control
 #if !DEMO_BUILD && !RECORDING_BUILD
             over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.HitTest(localPos) != 0;
             over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.LocalChat.ContainsPoint(localPos);
+            over |= _roomPokerDogs?.IsVisibleInTree() == true && _roomPokerDogs.IsLocalPokerHandHit(localPos);
 #endif
             if (_playViewport != null)
             {

@@ -11,6 +11,8 @@ public partial class SteamMockPanelController : CanvasLayer
     [Signal] public delegate void SimulationResetEventHandler();
     [Signal] public delegate void RecoveredItemsPreviewRequestedEventHandler(int itemCount);
     [Signal] public delegate void NetworkPokerMockRequestedEventHandler(bool localHost);
+    [Signal] public delegate void NetworkPokerChatChangedEventHandler(bool enabled);
+    [Export] private CheckButton _networkPokerChat = null!;
 
     [Export] private PanelContainer _panel = null!;
     [Export] private Button _networkPokerTab = null!;
@@ -45,6 +47,7 @@ public partial class SteamMockPanelController : CanvasLayer
     private MockPage _selectedPage;
 
     public Rect2 PanelRect => _panel == null ? default : new Rect2(_panel.Position, _panel.Size);
+    public bool NetworkPokerChatEnabled => _networkPokerChat.ButtonPressed;
     public Vector2 PanelSize => _panel == null
         ? Vector2.Zero
         : new Vector2(
@@ -56,6 +59,7 @@ public partial class SteamMockPanelController : CanvasLayer
         _networkPokerTab.Visible = BuildCapabilities.SteamRooms;
         _networkPokerHost.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, true);
         _networkPokerGuest.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, false);
+        _networkPokerChat.Toggled += enabled => EmitSignal(SignalName.NetworkPokerChatChanged, enabled);
         _steamTab.Pressed += () => SelectPage(MockPage.Steam);
         _networkPokerTab.Pressed += () => SelectPage(MockPage.NetworkPoker);
         _pokerTab.Pressed += () => SelectPage(MockPage.PokerPreview);

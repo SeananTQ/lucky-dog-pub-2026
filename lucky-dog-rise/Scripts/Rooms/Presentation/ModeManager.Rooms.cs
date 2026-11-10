@@ -489,7 +489,7 @@ public partial class ModeManager
             }
             CancelWindowDrag();
             var point = button.Position;
-            if (_roomDesktop.LocalChat.ContainsPoint(point) || _settingsPanel.ContainsPoint(point)
+            if (_roomDesktop.LocalChat.ContainsPoint(point) || _roomDesktop.IsLocalPokerHandHit(point) || _settingsPanel.ContainsPoint(point)
 #if DEBUG
                 || (_steamMockPanel != null && _steamMockPanel.ContainsPoint(point))
 #endif

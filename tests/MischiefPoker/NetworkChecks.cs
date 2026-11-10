@@ -7,7 +7,9 @@ internal static class NetworkChecks
     {
         ReadinessAndPrivacy();
         AuthenticationAndOrdering();
-        AdmissionAndPresentationBarrier();
+        AdmissionAndTimedContinuation();
+        GameEntryConsent();
+        PauseAndResume();
         MembershipAndRecovery();
         MalformedMessages();
         AtomicCoreAdmission();
@@ -18,9 +20,8 @@ internal static class NetworkChecks
     {
         using var h = new Hub("a", "b");
         var a = h.Sessions["a"]; var b = h.Sessions["b"];
-        b.Propose(); h.Step();
-        Check.Equal(a.State!.Status, PokerTableStatus.Idle, "guest cannot propose on the host's behalf");
-        a.Propose(); h.Step();
+        Check.Equal(a.State!.Status, PokerTableStatus.Preparing, "poker room automatically enters preparation");
+        Check.That(!b.Propose() && !a.SetReady(false), "guest cannot create a table; host has no ready toggle");
         Check.That(a.IsReady && !b.IsReady && !a.CanStart, "host auto-ready; humans explicitly consent");
         a.Start(); h.Step();
         Check.Equal(a.State!.Status, PokerTableStatus.Preparing, "one ready player cannot start");
@@ -59,8 +60,62 @@ internal static class NetworkChecks
         h.Step(7);
         Check.That(a.State!.Hand!.Public.ActivePlayerId == a.State.Hand.PlayerId
             && a.State.Hand.Public.CompletedTurns.Count == 1, "authority finishes a companion's legal turn automatically");
-        a.Act(PokerAction.EndTurn); h.Step(); a.FinishPresentation(); h.Step();
-        Check.Equal(a.State!.Hand!.Public.HandNumber, 2L, "companions and spectators do not block the human's presentation barrier");
+        a.Act(PokerAction.EndTurn); h.Step();
+        h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + PokerNetworkSession.CollectionDuration + .2);
+        Check.Equal(a.State!.Hand!.Public.HandNumber, 2L, "authority advances without any presentation acknowledgement");
+    }
+
+    private static void GameEntryConsent()
+    {
+        using var h = new Hub("a", "b", "c");
+        h.Game = "social"; h.Step();
+        Check.Equal(h.Sessions["a"].State!.Status, PokerTableStatus.Idle, "chat rooms have no poker preparation");
+        Check.That(!h.Sessions["a"].Propose(), "poker cannot be started outside its room game");
+        h.Accepted.Add("b"); h.Bot("dog"); h.Game = "mischief"; h.Step(.2);
+        var a = h.Sessions["a"]; var b = h.Sessions["b"]; var c = h.Sessions["c"];
+        Check.That(a.IsReady && b.IsReady && !c.IsReady, "only accepted humans receive initial readiness");
+        Check.That(!a.State!.Players.Single(p => p.Companion).Ready, "companion waits before visibly readying");
+        b.SetReady(false); h.Step(1.1);
+        Check.That(!b.IsReady && a.State!.Players.Single(p => p.Companion).Ready, "cancelled consent is not reapplied each tick");
+        a.Start(); h.Step(3.5);
+        Check.That(!b.IsParticipant && !c.IsParticipant && c.State!.Hand!.HoleCards.Count == 0, "declined and cancelled players wait without being charged");
+    }
+
+    private static void PauseAndResume()
+    {
+        using var h = Started();
+        var a = h.Sessions["a"]; var b = h.Sessions["b"];
+        Check.That(!b.SetPauseRequested(true), "guest has no pause command");
+        Check.That(a.SetPauseRequested(true), "host can request pause while acting");
+        Check.Equal(a.State!.Continuation, PokerContinuation.PauseRequested, "pause is pending, not an immediate stop");
+        Check.That(a.SetPauseRequested(false), "host may undo pause before collection");
+        Check.Equal(a.State!.Continuation, PokerContinuation.Automatic, "undo restores automatic continuation");
+        a.SetPauseRequested(true); PassHand(h);
+        var settled = a.State!.Hand!.Public;
+        var table = a.State.Table;
+        h.Step(1);
+        Check.Equal(a.State!.Continuation, PokerContinuation.PauseRequested, "settlement remains visible while payout finishes");
+        h.Step(PokerNetworkSession.PayoutDuration(settled));
+        Check.Equal(a.State!.Continuation, PokerContinuation.Paused, "pause waits until all winner payouts complete");
+        h.Step(25);
+        Check.Equal(a.State!.Hand!.Public.HandNumber, settled.HandNumber, "paused table charges no further ante");
+        Check.That(a.State.Hand.Public.Seats.SequenceEqual(settled.Seats) && a.CanResume, "paused balances and result remain intact");
+        Check.That(!b.Resume(), "guest cannot resume");
+        Check.That(a.Resume(), "host resumes the same table");
+        Check.That(!a.Resume(), "duplicate resume cannot charge a second ante");
+        Check.Equal(a.State!.Continuation, PokerContinuation.Collecting, "resume starts card collection first");
+        h.Step(PokerNetworkSession.CollectionDuration + .2);
+        var next = a.State!.Hand!.Public;
+        Check.That(a.State.Table == table && next.SessionId == settled.SessionId && next.HandNumber == settled.HandNumber + 1,
+            "resume preserves table and match identity");
+        Check.Equal(next.Dealer, settled.Settlement!.NextDealer, "resume uses the previously computed next dealer");
+        foreach (var seat in settled.Seats)
+            Check.Equal(next.Seats.Single(s => s.PlayerId == seat.PlayerId).Chips, seat.Chips - 100, "resume keeps balance and deducts exactly one ante");
+        var stale = h.Packet("a", "pause", hand: settled.HandNumber) with { Ready = true };
+        h.Links["a"].Enqueue("a", PokerNetworkProtocol.Encode(stale)); h.Step();
+        Check.Equal(a.State!.Continuation, PokerContinuation.Automatic, "previous hand pause cannot affect the new hand");
+        h.Inject("b", "pause", hand: next.HandNumber); h.Step();
+        Check.Equal(a.State!.Continuation, PokerContinuation.Automatic, "forged guest pause is ignored");
     }
 
     private static void AuthenticationAndOrdering()
@@ -101,7 +156,7 @@ internal static class NetworkChecks
         Check.Equal(a.State!.Hand!.Public.Revision, revision, "wrong room, ticket and table are ignored");
     }
 
-    private static void AdmissionAndPresentationBarrier()
+    private static void AdmissionAndTimedContinuation()
     {
         using var h = Started();
         var a = h.Sessions["a"]; var b = h.Sessions["b"];
@@ -114,19 +169,22 @@ internal static class NetworkChecks
         Check.That(settled.Settlement != null && b.State!.Hand!.Public.Settlement?.Players.Count == 2, "showdown reveals only settled participants");
         Check.That(PokerNetworkProtocol.ValidState(b.State!, h.Links["b"].Context!), "settled snapshot is valid");
         a.FinishPresentation(); h.Step(0.6);
-        Check.Equal(a.State!.Hand!.Public.HandNumber, settled.HandNumber, "next hand waits for every participating human");
+        Check.Equal(a.State!.Hand!.Public.HandNumber, settled.HandNumber, "payout interval does not end early on an acknowledgement");
         c.FinishPresentation(); h.Step();
         Check.Equal(a.State!.Hand!.Public.HandNumber, settled.HandNumber, "spectator acknowledgement cannot replace a participant");
-        b.FinishPresentation(); h.Step();
+        // Neither an obscured host view nor an absent guest acknowledgement blocks the authority.
+        h.Step(PokerNetworkSession.PayoutDuration(settled));
+        Check.Equal(a.State!.Continuation, PokerContinuation.Collecting, "collection follows timed payout");
+        h.Step(PokerNetworkSession.CollectionDuration);
         var next = a.State!.Hand!.Public;
-        Check.Equal(next.HandNumber, settled.HandNumber + 1, "all presentations finish before a new hand");
+        Check.Equal(next.HandNumber, settled.HandNumber + 1, "authority starts a new hand after timed payout and collection");
         Check.That(c.IsParticipant && c.State!.Hand!.HoleCards.Count == 2, "ready newcomer is admitted at next deal");
         Check.Equal(next.Seats.Count, 3, "next hand adds one stable seat");
         foreach (var seat in settled.Seats)
             Check.Equal(next.Seats.Single(s => s.PlayerId == seat.PlayerId).Chips, seat.Chips - 100, "old balance preserved with one new ante");
         Check.Equal(next.Seats.Single(s => s.SeatNumber == 3).Chips, 900L, "new participant starts at 1000 minus ante");
         h.Inject("b", "finished", hand: settled.HandNumber); h.Step();
-        Check.Equal(a.State!.Hand!.Public.HandNumber, next.HandNumber, "late acknowledgement cannot start another hand");
+        Check.Equal(a.State!.Hand!.Public.HandNumber, next.HandNumber, "obsolete acknowledgement cannot start another hand");
     }
 
     private static void MembershipAndRecovery()
@@ -156,8 +214,9 @@ internal static class NetworkChecks
             Check.That(!h.Sessions["b"].IsReady, "new membership does not inherit consent");
             h.Sessions["b"].SetReady(true); h.Step();
             Check.That(a.CanStart, "new membership has an independent command sequence");
-            a.Start(); h.Step(3.6); PassHand(h); h.Step(46);
-            Check.Equal(a.State!.Status, PokerTableStatus.Interrupted, "unresponsive presentation cannot block a table forever");
+            a.Start(); h.Step(3.6); PassHand(h);
+            h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + PokerNetworkSession.CollectionDuration + .2);
+            Check.Equal(a.State!.Hand!.Public.HandNumber, 2L, "missing presentation acknowledgements do not interrupt a healthy room");
         }
     }
 
@@ -168,6 +227,7 @@ internal static class NetworkChecks
         foreach (var bytes in new[] { Array.Empty<byte>(), new byte[PokerNetworkProtocol.MaxBytes + 1], "{}"u8.ToArray(), "{bad}"u8.ToArray() })
             Check.That(PokerNetworkProtocol.Decode(bytes) == null, "malformed or oversized message is rejected");
         foreach (var state in new[] { valid with { Players = null! }, valid with { DealRemaining = double.NaN },
+                     valid with { SettlementElapsed = double.NaN }, valid with { Continuation = (PokerContinuation)99 },
                      valid with { Players = [valid.Players[0], valid.Players[0]] },
                      valid with { Hand = valid.Hand! with { HoleCards = [0, 0] } },
                      valid with { Hand = valid.Hand! with { Public = null! } },
@@ -212,6 +272,8 @@ internal static class NetworkChecks
     private sealed class Hub : IDisposable
     {
         public string Owner = "a";
+        public string Game = "mischief";
+        public readonly HashSet<string> Accepted = new();
         public readonly Dictionary<string, (string Ticket, bool Bot)> Members = new();
         public readonly Dictionary<string, Link> Links = new();
         public readonly Dictionary<string, PokerNetworkSession> Sessions = new();
@@ -228,7 +290,7 @@ internal static class NetworkChecks
         public void Step(double seconds = 0.15)
         { for (double t = 0; t < seconds; t += 0.02) foreach (var s in Sessions.Values.ToArray()) s.Tick(0.02); }
         public PokerPacket Packet(string sender, string kind, PokerCommand? command = null, long hand = 0)
-            => new(PokerNetworkProtocol.Version, "room:social", Members[sender].Ticket, Members[Owner].Ticket,
+            => new(PokerNetworkProtocol.Version, "room:" + Game, Members[sender].Ticket, Members[Owner].Ticket,
                 kind, ++_injected, Sessions[Owner].State!.Table, Command: command, FinishedHand: hand);
         public void Inject(string sender, string kind, PokerCommand? command = null, long hand = 0)
             => Links[Owner].Enqueue(sender, PokerNetworkProtocol.Encode(Packet(sender, kind, command, hand)));
@@ -239,8 +301,8 @@ internal static class NetworkChecks
         private readonly Queue<(string Sender, byte[] Bytes)> _queue = new();
         public bool Hold;
         public event Action<string, byte[]> Received = delegate { };
-        public PokerRoomContext? Context => hub.Members.ContainsKey(key) ? new("room:social", key, hub.Owner,
-            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot)).ToArray()) : null;
+        public PokerRoomContext? Context => hub.Members.ContainsKey(key) ? new("room:" + hub.Game, key, hub.Owner,
+            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game) : null;
         public bool Send(string recipient, byte[] bytes)
         {
             hub.Sent.Add((key, recipient, (byte[])bytes.Clone()));

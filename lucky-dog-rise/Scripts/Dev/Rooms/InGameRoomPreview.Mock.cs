@@ -47,10 +47,14 @@ public partial class InGameRoomPreview
     {
         _sandbox?.Tick(delta);
         if (_pendingPokerMockHost == 0) return;
-        bool sent = _pendingPokerMockHost == _client.Id
-            ? PokerLobby?.Session?.Context?.Room == _client.View?.Code + ":" + _client.View?.GameId && PokerLobby.Session.Propose()
-            : _sandbox.ProposeSimulatedPoker(_pendingPokerMockHost);
-        if (sent) _pendingPokerMockHost = 0;
+        var owner = MockClientForSmoke(_pendingPokerMockHost);
+        if (owner.View?.GameId == RoomRules.MischiefPoker) { _pendingPokerMockHost = 0; return; }
+        if (owner.View?.Members.Length != 3) return;
+        if (owner.View.GameChange == null) owner.ProposeGameChange(RoomRules.MischiefPoker);
+        if (owner.View.GameChange is not { } proposal) return;
+        foreach (var simulated in _mockClients.Where(c => c.Id != _client.Id && c.Id != owner.Id))
+            if (simulated.View?.GameChange?.Id == proposal.Id) simulated.RespondGameChange(proposal.Id, true);
+        if (owner.CanConfirmGameChange) owner.ConfirmGameChange(proposal.Id);
     }
     public void PrepareNetworkPokerMock(bool localHost)
     {
@@ -58,9 +62,12 @@ public partial class InGameRoomPreview
         foreach (var client in _mockClients) client.Leave();
         var owner = localHost ? _client : MockClientForSmoke(2);
         _sandbox.Create(owner, "捣乱德州 · 联机模拟");
-        foreach (var client in _mockClients.Where(c => c != owner)) _sandbox.Join(client, owner.JoinedCode);
+        foreach (var client in new[] { _client, MockClientForSmoke(2), MockClientForSmoke(3) }.Where(c => c != owner))
+            _sandbox.Join(client, owner.JoinedCode);
         _pendingPokerMockHost = owner.Id;
     }
+    public void SetNetworkPokerMockChat(bool enabled)
+    { if (_sandbox != null) _sandbox.PokerSettlementChatEnabled = enabled; }
     partial void RenderMockNotice()
     {
         if (_isMock) _connection.Text = L10n.Tr("Rooms_MockNotice");

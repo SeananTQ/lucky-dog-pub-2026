@@ -23,11 +23,11 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             var steam = _identities.FirstOrDefault(p => p.Value.Id == member.Id).Key;
             var ticket = steam == _transport.LocalSteamId ? _chatSession : _chatSessions.GetValueOrDefault(steam);
             if (steam != 0 && ticket != Guid.Empty)
-                peers.Add(new(steam.ToString(), ticket.ToString("N"), member.Id, member.Name, false));
+                peers.Add(new(steam.ToString(), ticket.ToString("N"), member.Id, member.Name, false, client.ReadyOnPokerEntry(member)));
         }
         var owner = peers.FirstOrDefault(p => p.LocalId == client.View.OwnerId);
         return owner == null ? null : new Poker.PokerRoomContext(client.View.Code + ":" + client.View.GameId,
-            _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray());
+            _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray(), client.View.GameId);
     });
     private enum DisconnectKind { NetworkLost, Terminal, SessionDisposed }
     private sealed class Pending(RoomClient client, RoomRequest request)
@@ -890,7 +890,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         try
         {
             if (ReadGame(client, false, out var room, allowBusy: true).Length > 0) return "Rooms_ChatUnavailable";
-            if (room.Game != "social") return "Rooms_ChatDisabled";
+            if (room.Game == "work") return "Rooms_ChatDisabled";
         }
         catch { return "Rooms_ChatUnavailable"; }
         var error = RoomRules.ValidateChat(text);
@@ -941,7 +941,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             || !SteamRoomProtocol.TryDecodeChat(bytes, out var session, out var sequence, out var sentAt, out var text, out var modeRevision)) return;
         try
         {
-            if (ReadGame(_client, false, out var room, allowBusy: true).Length > 0 || room.Game != "social"
+            if (ReadGame(_client, false, out var room, allowBusy: true).Length > 0 || room.Game == "work"
                 || modeRevision != _gameState.Revision) return;
         }
         catch { return; }

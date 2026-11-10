@@ -14,7 +14,8 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         public event Action<string, byte[]> Received = delegate { };
         public PokerRoomContext Context => client.View is { } room && !client.IsLocalArrival
             ? new(room.Code + ":" + room.GameId, client.Id.ToString(), room.OwnerId.ToString(), room.Members.Select(m =>
-                new PokerPeer(m.Id.ToString(), m.Presence.ToString(), m.Id, m.Name, m.IsCompanion)).ToArray()) : null;
+                new PokerPeer(m.Id.ToString(), m.Presence.ToString(), m.Id, m.Name, m.IsCompanion,
+                    client.ReadyOnPokerEntry(m))).ToArray(), room.GameId) : null;
         public bool Send(string recipient, byte[] payload)
         {
             if (!int.TryParse(recipient, out var id) || !hub._pokerLinks.TryGetValue(id, out var link)
@@ -33,6 +34,8 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
     private readonly Dictionary<int, PokerLink> _pokerLinks = new();
     private readonly Dictionary<int, PokerNetworkSession> _pokerSimulated = new();
     private readonly Dictionary<int, double> _pokerActionAt = new();
+    private readonly Dictionary<int, (string Room, Guid Table, long Hand, double At)> _pokerChat = new();
+    public bool PokerSettlementChatEnabled { get; set; } = true;
     public int PokerSimulationLocalId { get; set; }
     public bool ProposeSimulatedPoker(int ownerId) => _pokerSimulated.TryGetValue(ownerId, out var session)
         && session.IsOwner && session.State?.Status is PokerTableStatus.Idle or PokerTableStatus.Interrupted && session.Propose();
@@ -43,7 +46,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
     public void DisposePokerSimulation()
     {
         foreach (var session in _pokerSimulated.Values) session.Dispose();
-        _pokerSimulated.Clear(); _pokerActionAt.Clear();
+        _pokerSimulated.Clear(); _pokerActionAt.Clear(); _pokerChat.Clear();
         foreach (var link in _pokerLinks.Values.ToArray()) link.Dispose();
     }
     partial void TickPokerSimulation(double delta)
@@ -54,6 +57,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
             if (!_pokerSimulated.TryGetValue(client.Id, out var session))
                 _pokerSimulated[client.Id] = session = new(OpenPokerLink(client));
             session.Tick(delta);
+            TickPokerChat(client, session);
             if (Now < _pokerActionAt.GetValueOrDefault(client.Id)) continue;
             _pokerActionAt[client.Id] = Now + 1.2;
             if (session.State?.Status == PokerTableStatus.Preparing)
@@ -64,10 +68,38 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
             }
             if (session.State?.Status == PokerTableStatus.Playing && session.State.Hand is { } v)
             {
-                if (v.Public.Phase == PokerPhase.Settled) session.FinishPresentation();
-                else if (v.Public.ActivePlayerId == v.PlayerId) session.Act(PokerAction.EndTurn);
+                if (v.Public.Phase == PokerPhase.Acting && v.Public.ActivePlayerId == v.PlayerId)
+                    session.Act(PokerAction.EndTurn);
             }
         }
+    }
+
+    private void TickPokerChat(RoomClient client, PokerNetworkSession session)
+    {
+        if (session.State?.Status != PokerTableStatus.Playing || session.Context == null)
+        { _pokerChat.Remove(client.Id); return; }
+        // Keep the sent marker when toggled off and on during the same settlement.
+        if (!PokerSettlementChatEnabled) return;
+        if (session.State.Hand?.Public is not { Phase: PokerPhase.Settled, Settlement: not null } hand) return;
+        var key = (session.Context.Room, session.State.Table, hand.HandNumber);
+        if (!_pokerChat.TryGetValue(client.Id, out var pending)
+            || (pending.Room, pending.Table, pending.Hand) != key)
+        {
+            // Send once only after the shared reveal, with both bubbles overlapping in time.
+            _pokerChat[client.Id] = (key.Room, key.Table, key.HandNumber, Now + Math.Max(0, 2.5 - session.State.SettlementElapsed) + client.Id % 3 * .35);
+            return;
+        }
+        if (Now < pending.At) return;
+        _pokerChat[client.Id] = pending with { At = double.PositiveInfinity };
+        var me = session.State.Players.FirstOrDefault(p => p.Key == session.Context.LocalKey);
+        var result = hand.Settlement.Players.FirstOrDefault(p => p.PlayerId == me?.Id);
+        if (result == null) return;
+        bool won = hand.Settlement.Winners.Contains(result.PlayerId);
+        string text = won ? hand.Settlement.Winners.Count > 1
+            ? RoomPokerText.T("哈哈，一起赢！", "Ha! We tied!")
+            : RoomPokerText.T($"哈哈，我是{RoomPokerText.Rank(result.BestHand.Value.Rank)}！", $"Ha! {RoomPokerText.Rank(result.BestHand.Value.Rank)}!")
+            : RoomPokerText.T("哎呀，就差一点！", "Oh, so close!");
+        client.SendChat(text);
     }
 }
 #endif

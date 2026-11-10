@@ -26,6 +26,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     private CardController[] _cards = new CardController[5];
     private readonly Vector2[] _cardRestPositions = new Vector2[CardCount];
     private Tween _clearTween;
+    private long _animationGeneration;
 
     public bool CanPlayInteractionHint => _cards.All(card => card != null && card.Visible);
     public bool IsInteractionHintPlaying => _cards.Any(card => card != null && card.IsInteractionHintPlaying);
@@ -52,6 +53,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
     /// <summary>收奖后从左到右错拍向左滑动半张牌的距离并淡出。</summary>
     public void ClearCards()
     {
+        ++_animationGeneration;
         _clearTween?.Kill();
         _clearTween = CreateTween().SetParallel(true);
         for (int i = 0; i < CardCount; i++)
@@ -83,6 +85,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
     public void DealCards(int[] hand)
     {
+        ++_animationGeneration;
         // 快速开始下一局时取消旧清桌回调，避免新牌被隐藏或继承淡出状态。
         _clearTween?.Kill();
         for (int i = 0; i < CardCount; i++)
@@ -105,6 +108,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
 
     public void ReplaceCards(int[] finalHand, bool[] held)
     {
+        long generation = ++_animationGeneration;
         float perCardDelay = 0.2f;
         int replacementCount = 0;
         for (int i = 0; i < CardCount; i++)
@@ -121,6 +125,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
                 float delay = scheduledIndex * perCardDelay;
                 GetTree().CreateTimer(delay).Timeout += () =>
                 {
+                    if (generation != _animationGeneration || IsQueuedForDeletion()) return;
                     if (scheduledIndex == replacementCount - 1)
                         EmitSignal(SignalName.LastReplacementStarted, true);
                     _cards[idx].AnimateReplace(GetSequentialPitch(handPitchStart, scheduledIndex), 0f);
@@ -130,7 +135,7 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
         }
 
         if (replacementCount == 0)
-            CallDeferred(nameof(EmitLastReplacementStarted));
+            Callable.From(() => { if (generation == _animationGeneration) EmitLastReplacementStarted(); }).CallDeferred();
     }
 
     private void EmitLastReplacementStarted()

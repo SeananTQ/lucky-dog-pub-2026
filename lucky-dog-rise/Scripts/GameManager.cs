@@ -46,6 +46,7 @@ public partial class GameManager : Node2D
     public bool HasDogGivenHint => _dogHint.HasGivenHint;
     public Node2D PendingReward => _pendingReward;
     private int _pendingPayout;
+    private long _soloHandGeneration;
     private EHandRank _pendingRewardRank;
     private Node2D _pendingReward;
     private PlayerProgressSource _currentHandProgressSource = PlayerProgressSource.Gameplay;
@@ -458,8 +459,10 @@ public partial class GameManager : Node2D
     {
         if (IsSessionPokerActive) return;
         if (State != GameState.Dealt && State != GameState.Holding) return;
+        long generation = _soloHandGeneration;
         GetTree().CreateTimer(_drawStartDelayAfterFirstKnock).Timeout += () =>
         {
+            if (generation != _soloHandGeneration || IsSessionPokerActive || IsSessionPokerReserved) return;
             if (State == GameState.Dealt || State == GameState.Holding)
                 DoDraw();
         };
@@ -527,6 +530,7 @@ public partial class GameManager : Node2D
 
     private void OnChipCollected()
     {
+        if (IsSessionPokerActive || IsSessionPokerReserved || _pendingPayout <= 0) return;
         _pendingReward = null;
         _gameData.ModifyChips(_pendingPayout, _currentHandProgressSource);
         _gameData.RecordPokerPayoutCollected(_pendingPayout, _currentHandProgressSource);
@@ -557,6 +561,7 @@ public partial class GameManager : Node2D
 
     private void DealNewHand()
     {
+        long generation = ++_soloHandGeneration;
         if (!_gameData.CanAffordBet)
         {
             HandleInsufficientChips();
@@ -579,7 +584,11 @@ public partial class GameManager : Node2D
         SetState(GameState.Dealt);
         _dogVisual.ApplyReaction(EDogReactionTrigger.Dealt);
         _handArea.Enabled = false;  // 发牌动画期间禁止敲桌
-        GetTree().CreateTimer(1.1f).Timeout += () => _handArea.Enabled = true;
+        GetTree().CreateTimer(1.1f).Timeout += () =>
+        {
+            if (generation == _soloHandGeneration && !IsSessionPokerActive && !IsSessionPokerReserved)
+                _handArea.Enabled = true;
+        };
         _hud.SetMessage("");
         RefreshUI();
     }
@@ -643,9 +652,10 @@ public partial class GameManager : Node2D
 
     private void OnLastReplacementStarted(bool hasReplacement)
     {
+        long generation = _soloHandGeneration;
         void ShowNextChipState()
         {
-            if (IsQueuedForDeletion()) return;
+            if (IsQueuedForDeletion() || generation != _soloHandGeneration || IsSessionPokerActive || IsSessionPokerReserved) return;
 
             if (_pendingPayout > 0)
             {

@@ -5,6 +5,7 @@
 
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomChatView.tscn" id="chat"]
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/RoomBoundaryView.cs" id="boundary"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="poker_hand"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_boundary"]
 bg_color = Color(1, 0.48, 0.44, 0.55)
@@ -17,13 +18,14 @@ shadow_color = Color(1, 0.4, 0.36, 0.16)
 shadow_size = 14
 anti_aliasing_size = 1.0
 
-[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat", "Boundary")]
+[node name="RoomDesktopPreview" type="Node2D" node_paths=PackedStringArray("_remoteLayer", "_chatLayer", "LocalChat", "Boundary", "LocalPokerHand")]
 script = ExtResource("script")
 _dogScene = ExtResource("dog")
 _remoteLayer = NodePath("RemoteLayer")
 _chatLayer = NodePath("ChatLayer")
 LocalChat = NodePath("ChatLayer/Chat")
 Boundary = NodePath("ChatLayer/Boundary")
+LocalPokerHand = NodePath("ChatLayer/LocalPokerHand")
 
 [node name="RemoteLayer" type="CanvasLayer" parent="."]
 layer = -1
@@ -32,6 +34,9 @@ layer = -1
 layer = 3
 
 [node name="Chat" parent="ChatLayer" instance=ExtResource("chat")]
+
+[node name="LocalPokerHand" parent="ChatLayer" instance=ExtResource("poker_hand")]
+visible = false
 
 [node name="Boundary" type="Control" parent="ChatLayer"]
 visible = false

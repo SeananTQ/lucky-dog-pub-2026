@@ -347,25 +347,12 @@ label_settings = ExtResource("group_title")
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="PokerLobby" type="VBoxContainer" parent="Room" node_paths=PackedStringArray("_heading", "_status", "_roster", "_propose", "_ready", "_start", "_cancel")]
+[node name="PokerLobby" type="VBoxContainer" parent="Room" node_paths=PackedStringArray("_status", "_start")]
 layout_mode = 2
 theme_override_constants/separation = 6
 script = ExtResource("poker_lobby")
-_heading = NodePath("Heading")
 _status = NodePath("Status")
-_roster = NodePath("Roster")
-_propose = NodePath("Propose")
-_ready = NodePath("Ready")
 _start = NodePath("Start")
-_cancel = NodePath("Cancel")
-
-[node name="Divider" type="HSeparator" parent="Room/PokerLobby"]
-layout_mode = 2
-
-[node name="Heading" type="Label" parent="Room/PokerLobby"]
-layout_mode = 2
-auto_translate_mode = 2
-label_settings = ExtResource("group_title")
 
 [node name="Status" type="Label" parent="Room/PokerLobby"]
 layout_mode = 2
@@ -373,31 +360,10 @@ auto_translate_mode = 2
 autowrap_mode = 3
 label_settings = ExtResource("helper_label")
 
-[node name="Roster" type="Label" parent="Room/PokerLobby"]
-layout_mode = 2
-auto_translate_mode = 2
-autowrap_mode = 3
-label_settings = ExtResource("option_label")
-
-[node name="Propose" type="Button" parent="Room/PokerLobby"]
-layout_mode = 2
-auto_translate_mode = 2
-theme_type_variation = &"SecondaryButton"
-
-[node name="Ready" type="Button" parent="Room/PokerLobby"]
-layout_mode = 2
-auto_translate_mode = 2
-theme_type_variation = &"SecondaryButton"
-
 [node name="Start" type="Button" parent="Room/PokerLobby"]
 layout_mode = 2
 auto_translate_mode = 2
 theme_type_variation = &"SecondaryButton"
-
-[node name="Cancel" type="Button" parent="Room/PokerLobby"]
-layout_mode = 2
-auto_translate_mode = 2
-theme_type_variation = &"CapsuleButton"
 
 [node name="PokerPreview" type="Button" parent="Room"]
 visible = false
