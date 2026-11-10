@@ -9,32 +9,34 @@ namespace LuckyDogRise.Rooms;
 public partial class RoomPokerPanelView : VBoxContainer
 {
     [Export] private Label _title, _summary, _orderHeading, _order, _resultHeading, _result, _error;
-    [Export] private Button _next, _pause;
-    [Export] private Label _pauseStatus;
+    [Export] private Button _next, _action, _restart;
     public event Action NextRequested;
-    public event Action PauseRequested;
+    public event Action ActionRequested;
+    public event Action RestartRequested;
     public override void _Ready()
     {
         _next.Pressed += () => NextRequested?.Invoke();
-        _pause.Pressed += () => PauseRequested?.Invoke();
+        _action.Pressed += () => ActionRequested?.Invoke();
+        _restart.Pressed += () => RestartRequested?.Invoke();
     }
-    public void PresentNetwork(PokerNetworkSession session)
+    public void PresentNetwork(PokerNetworkSession session, bool available = true)
     {
         _next.Hide();
-        var state = session.State;
-        _pause.Visible = session.IsOwner;
-        _pause.Disabled = !session.Connected || state.Continuation == PokerContinuation.Collecting
-            || state.Continuation == PokerContinuation.Paused && !session.CanResume;
-        _pause.Text = state.Continuation == PokerContinuation.Paused ? RoomPokerText.T("继续", "Resume")
-            : state.Continuation == PokerContinuation.PauseRequested ? RoomPokerText.T("撤销", "Undo") : RoomPokerText.T("暂停", "Pause");
-        _pause.TooltipText = RoomPokerText.T("本局结束并派彩后暂停，不影响当前回合。", "Pause after this hand's payouts. Current turns continue.");
-        _pauseStatus.Text = state.Continuation == PokerContinuation.Paused ? RoomPokerText.T("已暂停续局", "Next hand paused")
-            : state.Continuation == PokerContinuation.PauseRequested ? RoomPokerText.T("本局结束后暂停", "Pausing after this hand") : "";
-        _pauseStatus.Visible = _pauseStatus.Text.Length > 0;
+        _error.Hide();
+        RoomPokerLobbyView.PresentActions(session, _action, _restart, available);
+    }
+    public void PresentWaiting()
+    {
+        _title.Text = RoomPokerText.T("捣乱德州", "Poker");
+        _summary.Hide(); _order.GetParent<Control>().Hide();
+        _resultHeading.Hide(); _result.GetParent().GetParent<Control>().Hide();
+        _next.Hide();
     }
     public void Present(PokerPlayerView view, PokerError error, PokerRoundPresentation round)
     {
         var state = view.Public;
+        _summary.Show(); _order.GetParent<Control>().Show();
+        _resultHeading.Show(); _result.GetParent().GetParent<Control>().Show();
         string Seat(int id) => state.Seats.Single(s => s.PlayerId == id).SeatNumber.ToString();
         _title.Text = RoomPokerText.T("捣乱德州", "Poker");
         _summary.Text = RoomPokerText.T($"第 {state.HandNumber} 局 · 奖池 {state.Settlement?.Pot ?? state.Pot}\n庄家 {Seat(state.Dealer.PlayerId)} 号 · 连坐 {state.Dealer.ConsecutiveHands}/4", $"Hand {state.HandNumber} · Pot {state.Settlement?.Pot ?? state.Pot}\nDealer #{Seat(state.Dealer.PlayerId)} · Streak {state.Dealer.ConsecutiveHands}/4");

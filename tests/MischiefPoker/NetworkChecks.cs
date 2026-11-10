@@ -10,6 +10,8 @@ internal static class NetworkChecks
         AdmissionAndTimedContinuation();
         GameEntryConsent();
         PauseAndResume();
+        SitOutAndReturn();
+        RestartDepletedTable();
         MembershipAndRecovery();
         MalformedMessages();
         AtomicCoreAdmission();
@@ -178,13 +180,75 @@ internal static class NetworkChecks
         h.Step(PokerNetworkSession.CollectionDuration);
         var next = a.State!.Hand!.Public;
         Check.Equal(next.HandNumber, settled.HandNumber + 1, "authority starts a new hand after timed payout and collection");
-        Check.That(c.IsParticipant && c.State!.Hand!.HoleCards.Count == 2, "ready newcomer is admitted at next deal");
-        Check.Equal(next.Seats.Count, 3, "next hand adds one stable seat");
+        Check.That(!c.IsParticipant && c.State!.Hand!.HoleCards.Count == 0, "ready newcomer waits through automatic continuation");
+        Check.Equal(next.Seats.Count, 2, "continuation never admits a new seat");
         foreach (var seat in settled.Seats)
             Check.Equal(next.Seats.Single(s => s.PlayerId == seat.PlayerId).Chips, seat.Chips - 100, "old balance preserved with one new ante");
-        Check.Equal(next.Seats.Single(s => s.SeatNumber == 3).Chips, 900L, "new participant starts at 1000 minus ante");
         h.Inject("b", "finished", hand: settled.HandNumber); h.Step();
         Check.Equal(a.State!.Hand!.Public.HandNumber, next.HandNumber, "obsolete acknowledgement cannot start another hand");
+        // Do not use b's real command sequence after the forged high-sequence packet.
+        a.SetPauseRequested(true); h.Step(35);
+        h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public));
+        Check.That(a.CanResume && a.CanRestart, "paused table offers both continuation and restart");
+        Guid oldTable = a.State.Table;
+        var oldRestart = h.Packet("a", "restart", hand: a.State.Hand!.Public.HandNumber);
+        Check.That(!b.Restart() && a.Restart() && !a.Restart(), "only host restarts once");
+        h.Step();
+        Check.That(!c.SetReady(false), "admission choice is frozen during restart collection");
+        h.Step(PokerNetworkSession.CollectionDuration + .2);
+        Check.That(c.IsParticipant && c.State!.Hand!.HoleCards.Count == 2, "restart admits ready newcomers");
+        Check.That(a.State!.Table != oldTable && a.State.Hand!.Public.HandNumber == 1, "restart invalidates the previous table identity");
+        Check.That(a.State.Hand.Public.Seats.All(s => s.Chips == 900) && a.State.Hand.Public.Pot == 300,
+            "all restarted participants get exactly 1000 and pay one ante");
+        Check.Equal(a.State.Hand.Public.Dealer, new PokerDealer(a.State.Hand.PlayerId, 1, PokerDirection.Forward), "restart privileges the host as first dealer");
+        h.Links["a"].Enqueue("a", PokerNetworkProtocol.Encode(oldRestart)); h.Step();
+        Check.Equal(a.State.Hand.Public.HandNumber, 1L, "stale restart cannot reset the new hand");
+    }
+
+    private static void SitOutAndReturn()
+    {
+        using var h = new Hub("a", "b", "c");
+        var a = h.Sessions["a"]; var b = h.Sessions["b"]; var c = h.Sessions["c"];
+        b.SetReady(true); c.SetReady(true); h.Step(); a.Start(); h.Step(3.6);
+        b.SetReady(false); h.Step();
+        Check.That(b.IsInHand && !b.IsReady && b.State!.Hand!.HoleCards.Count == 2, "sit-out request keeps the current hand and private cards");
+        b.SetReady(true); h.Step(); Check.That(b.IsReady, "pending sit-out can be cancelled");
+        b.SetReady(false); h.Step(); PassHand(h);
+        int id = b.State!.Hand!.PlayerId;
+        var settled = b.State.Hand.Public;
+        var seat = settled.Seats.Single(s => s.PlayerId == id);
+        h.Step(PokerNetworkSession.PayoutDuration(settled) + PokerNetworkSession.CollectionDuration + 3.6);
+        Check.That(b.IsParticipant && !b.IsInHand && b.State!.Hand!.HoleCards.Count == 0, "sitting out reserves the seat without receiving private cards");
+        Check.Equal(b.State.Hand.Public.Seats.Single(s => s.PlayerId == id), seat, "sitting out preserves both balance and seat number");
+        Check.That(PokerNetworkProtocol.ValidState(b.State, h.Links["b"].Context!), "sitting-out projection validates");
+        Check.That(!b.Act(PokerAction.EndTurn) && !b.Act(PokerAction.Flip, 0), "sitting-out player cannot act");
+        b.SetReady(true); h.Step(); Check.That(!b.IsInHand, "return does not retroactively join an already dealt hand");
+        PassHand(h); h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + PokerNetworkSession.CollectionDuration + .2);
+        Check.That(b.IsInHand && b.State!.Hand!.HoleCards.Count == 2, "return admits the original seat at the next deal");
+        Check.Equal(b.State.Hand.Public.Seats.Single(s => s.PlayerId == id).Chips, seat.Chips - 100, "return deducts one ante without refilling");
+        Check.Equal(b.State.Hand.Public.Seats.Single(s => s.PlayerId == id).SeatNumber, seat.SeatNumber, "return never renumbers seats");
+        h.Step(3.6); b.SetReady(false); c.SetReady(false); h.Step(); PassHand(h);
+        h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + 1);
+        Check.That(a.State!.Continuation == PokerContinuation.Paused && !a.CanResume && !a.CanRestart,
+            "fewer than two willing players pauses without charging another ante");
+        b.SetReady(true); h.Step(); Check.That(a.CanResume, "returning original player re-enables resume");
+    }
+
+    private static void RestartDepletedTable()
+    {
+        using var h = Started(); var a = h.Sessions["a"];
+        // Trusted authority fixture: one final affordable hand, not a public client command.
+        var match = new MischiefPokerMatch([1, 2], 1, new() { InitialChips = 100 });
+        match.StartHand(0, Check.Deck([Check.Cards("As Ah"), Check.Cards("2c 3d")], "Kc Jd 8h 6s 4c"));
+        Check.PassAll(match, 0);
+        typeof(PokerNetworkSession).GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .Single(f => f.FieldType == typeof(MischiefPokerMatch)).SetValue(a, match);
+        h.Step(12);
+        Check.That(!a.CanResume && a.CanRestart && a.State!.Continuation == PokerContinuation.Paused,
+            "depleted table disables resume but allows restart");
+        a.Restart(); h.Step(PokerNetworkSession.CollectionDuration + .2);
+        Check.That(a.State!.Hand!.Public.Seats.All(s => s.Chips == 900) && a.State.Hand.Public.Dealer.PlayerId == a.State.Hand.PlayerId,
+            "depleted table restarts with fresh test balances and the host dealer");
     }
 
     private static void MembershipAndRecovery()

@@ -32,14 +32,24 @@ public sealed class PokerNetworkSession : IDisposable
     public bool IsOwner => _room != null && _room.OwnerKey == _room.LocalKey;
     public bool Connected => _room != null && (IsOwner || State != null && _now - _receivedAt <= 10);
     public bool IsParticipant => State?.Players.Any(p => p.Key == _room?.LocalKey && p.Playing) == true;
+    public bool IsInHand => State?.Hand is { } hand && hand.Public.ActionOrder.Contains(hand.PlayerId);
     public bool IsReady => _requestedReady ?? State?.Players.Any(p => p.Key == _room?.LocalKey && p.Ready) == true;
+    public bool IsCollecting => State?.Continuation is PokerContinuation.Collecting or PokerContinuation.Restarting;
+    public bool CanSetReady => Connected && !IsOwner && !IsCollecting
+        && State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
     public bool ActionPending => _pendingAction != 0;
     public bool CanStart => Connected && IsOwner && State?.Status == PokerTableStatus.Preparing
         && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
     public bool CanResume => Connected && IsOwner && State is { Status: PokerTableStatus.Playing,
         Continuation: PokerContinuation.Paused, Hand.Public.Settlement: not null }
-        && State.Players.Count(p => p.Playing) >= 2 && State.Players.Where(p => p.Playing).All(p => p.Ready)
-        && State.Hand.Public.Seats.All(s => s.Chips >= 100);
+        && CanContinue(State.Hand.Public, State.Players);
+    public bool CanRestart => Connected && IsOwner && State is { Status: PokerTableStatus.Playing,
+        Continuation: PokerContinuation.Paused } && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
+    private static bool CanContinue(PokerPublicView hand, PokerParticipant[] players)
+    {
+        var next = players.Where(p => p.Playing && p.Ready).Select(p => p.Id).ToArray();
+        return next.Length >= 2 && hand.Seats.Where(s => next.Contains(s.PlayerId)).All(s => s.Chips >= 100);
+    }
     // A bounded authority clock, independent of render speed, windows and acknowledgement messages.
     public static double PayoutDuration(PokerPublicView hand) => 2.5 + PokerShowdownSequence.RevealSeconds
         + (hand.Settlement?.Winners.Count ?? 1) * PokerShowdownSequence.WinnerSeconds;
@@ -65,14 +75,15 @@ public sealed class PokerNetworkSession : IDisposable
         _link.Received += Receive;
     }
     public bool Propose() => IsOwner && _room?.Game == "mischief" && State?.Status is PokerTableStatus.Idle or PokerTableStatus.Interrupted && Request("prepare");
-    public bool SetReady(bool ready) => Connected && !IsOwner && !IsParticipant
-        && State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing && (IsReady == ready || Request("ready", ready));
+    public bool SetReady(bool ready) => CanSetReady
+        && (IsReady == ready || Request("ready", ready, hand: State?.Hand?.Public.HandNumber ?? 0));
     public bool Start() => CanStart && Request("start");
     public bool Stop() => IsOwner && Request("stop");
     public bool SetPauseRequested(bool requested) => Connected && IsOwner && State?.Status == PokerTableStatus.Playing
         && State.Continuation is PokerContinuation.Automatic or PokerContinuation.PauseRequested
         && Request("pause", requested, hand: State.Hand!.Public.HandNumber);
     public bool Resume() => CanResume && Request("resume", hand: State!.Hand!.Public.HandNumber);
+    public bool Restart() => CanRestart && Request("restart", hand: State!.Hand!.Public.HandNumber);
     public bool FinishPresentation()
         => State?.Hand is { } h && Request("finished", hand: h.Public.HandNumber);
     public bool Act(PokerAction action, int slot = -1)
@@ -141,11 +152,15 @@ public sealed class PokerNetworkSession : IDisposable
             _dirty |= current.Revision != before.Revision;
             if (current.Phase == PokerPhase.Settled)
             {
-                if (_continuation == PokerContinuation.Collecting && _now >= _collectUntil) BeginHand(admitWaiting: true);
+                if (_continuation is PokerContinuation.Collecting or PokerContinuation.Restarting && _now >= _collectUntil)
+                {
+                    if (_continuation == PokerContinuation.Restarting) StartFreshMatch();
+                    else BeginHand();
+                }
                 else if (_continuation is PokerContinuation.Automatic or PokerContinuation.PauseRequested
                     && _now - _settledAt >= PayoutDuration(current))
                 {
-                    if (_continuation == PokerContinuation.PauseRequested || current.Seats.Any(s => s.Chips < _match.Rules.Ante))
+                    if (_continuation == PokerContinuation.PauseRequested || !CanContinue(current, _players))
                     { _continuation = PokerContinuation.Paused; _dirty = true; }
                     else BeginCollection();
                 }
@@ -198,9 +213,10 @@ public sealed class PokerNetworkSession : IDisposable
         {
             if (IsOwner || sender != _room.OwnerKey || packet.State is not { } s
                 || s.Version <= (State?.Version ?? 0) || !PokerNetworkProtocol.ValidState(s, _room)) return;
+            bool newTable = s.Table != State?.Table;
             State = s; _receivedAt = _now;
-            if (s.AckSequence >= _pendingAction || s.Status != PokerTableStatus.Playing) _pendingAction = 0;
-            if (s.AckSequence >= _pendingReadySequence || s.Status is PokerTableStatus.Idle or PokerTableStatus.Interrupted || IsParticipant)
+            if (newTable || s.AckSequence >= _pendingAction || s.Status != PokerTableStatus.Playing) _pendingAction = 0;
+            if (newTable || s.AckSequence >= _pendingReadySequence || s.Status is PokerTableStatus.Idle or PokerTableStatus.Interrupted)
                 _requestedReady = null;
             return;
         }
@@ -226,16 +242,13 @@ public sealed class PokerNetworkSession : IDisposable
         if (packet.Table != _table || _table == Guid.Empty) return;
         switch (packet.Kind)
         {
-            case "ready" when _status is PokerTableStatus.Preparing or PokerTableStatus.Playing && !p.Playing && sender != _room.OwnerKey:
+            case "ready" when _status is PokerTableStatus.Preparing or PokerTableStatus.Playing && sender != _room.OwnerKey
+                && _continuation is not (PokerContinuation.Collecting or PokerContinuation.Restarting)
+                && packet.FinishedHand == (_match?.GetPublicView().HandNumber ?? 0):
                 _players = _players.Select(x => x.Key == sender ? x with { Ready = packet.Ready } : x).ToArray();
                 _dirty = true; break;
             case "start" when sender == _room.OwnerKey && _status == PokerTableStatus.Preparing:
-                _players = _players.Select(x => x.Key == sender ? x with { Ready = true } : x).ToArray();
-                var ready = _players.Where(x => x.Ready).ToArray();
-                if (ready.Length < 2 || !ready.Any(x => x.Key == sender)) return;
-                _players = _players.Select(x => x with { Playing = x.Ready }).ToArray();
-                _match = new(ready.Select(x => x.Id).ToArray(), p.Id);
-                _status = PokerTableStatus.Playing; BeginHand(false); break;
+                StartFreshMatch(); break;
             case "action" when p.Playing && _match != null && _status == PokerTableStatus.Playing && _now >= _dealUntil:
                 if (packet.Command is not { } c) return;
                 // The authenticated transport identity overrides the caller-supplied PlayerId.
@@ -250,6 +263,9 @@ public sealed class PokerNetworkSession : IDisposable
             case "resume" when sender == _room.OwnerKey && CanResume
                 && packet.FinishedHand == _match?.GetPublicView().HandNumber:
                 BeginCollection(); break;
+            case "restart" when sender == _room.OwnerKey && CanRestart
+                && packet.FinishedHand == _match?.GetPublicView().HandNumber:
+                BeginCollection(restart: true); break;
             case "stop" when sender == _room.OwnerKey:
                 Interrupt("host_ended"); break;
         }
@@ -264,18 +280,30 @@ public sealed class PokerNetworkSession : IDisposable
             || useEntryConsent && !x.Companion && _room.Members.Any(m => m.Key == x.Key && m.Ticket == x.Ticket && m.ReadyOnEntry) }).ToArray();
         _companionReadyAt = _now + 1; _dirty = true;
     }
-    private void BeginCollection()
+    private void BeginCollection(bool restart = false)
     {
-        _continuation = PokerContinuation.Collecting;
+        _continuation = restart ? PokerContinuation.Restarting : PokerContinuation.Collecting;
         _collectUntil = _now + CollectionDuration; _dirty = true;
     }
-    private void BeginHand(bool admitWaiting)
+    private void StartFreshMatch()
+    {
+        if (_room == null) return;
+        var ready = _players.Where(p => p.Ready || p.Key == _room.OwnerKey)
+            .OrderBy(p => p.Key == _room.OwnerKey ? 0 : 1).ThenBy(p => p.Id).ToArray();
+        if (ready.Length < 2) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
+        // A restart is the only admission/refill boundary. New table identity rejects old commands.
+        _table = Guid.NewGuid();
+        _players = _players.Select(p => p with { Playing = ready.Any(r => r.Id == p.Id), Ready = p.Ready || p.Key == _room.OwnerKey }).ToArray();
+        _match = new(ready.Select(p => p.Id).ToArray(), ready[0].Id);
+        _matchClock = 0; _notice = ""; _status = PokerTableStatus.Playing;
+        BeginHand();
+    }
+    private void BeginHand()
     {
         if (_match == null) return;
-        var entrants = admitWaiting ? _players.Where(p => p.Ready && !p.Playing).Select(p => p.Id).ToArray() : Array.Empty<int>();
-        LastError = _match.StartHand(_matchClock, newPlayers: entrants);
-        if (LastError != PokerError.None) { Interrupt("cannot_start"); return; }
-        _players = _players.Select(p => entrants.Contains(p.Id) ? p with { Playing = true } : p).ToArray();
+        var active = _players.Where(p => p.Playing && p.Ready).Select(p => p.Id).ToArray();
+        LastError = _match.StartHand(_matchClock, activePlayers: active);
+        if (LastError != PokerError.None) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
         _continuation = PokerContinuation.Automatic;
         _dealUntil = _now + 3; _botAt = _dealUntil + 1.2; _dirty = true;
     }

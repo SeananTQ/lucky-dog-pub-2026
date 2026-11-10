@@ -21,8 +21,7 @@ public partial class ModeManager
         var lobby = _settingsPanel?.RoomPokerLobby;
         var session = lobby?.Session;
         bool poker = _desktopRoomClient?.View?.GameId == RoomRules.MischiefPoker;
-        bool reserved = poker && session?.IsReady == true
-            && session.State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
+        bool reserved = poker;
         if (lobby != null) lobby.CanPrepare = true;
 #if DEBUG
         if (_pokerPreview != null)
@@ -35,10 +34,10 @@ public partial class ModeManager
             if (reserved && !_gameManager.IsSessionPokerReserved) _gameManager.DiscardSoloHandForRoomPoker();
             _gameManager.IsSessionPokerReserved = reserved;
         }
-        bool playing = poker && session?.State?.Status == PokerTableStatus.Playing;
-        if (_networkPokerTable != null && (!playing || _networkPokerSession != session || _networkPokerTableId != session.State.Table))
+        bool available = poker && session?.State != null;
+        if (_networkPokerTable != null && (!available || _networkPokerSession != session || _networkPokerTableId != session.State.Table))
             StopNetworkPoker();
-        if (playing && _networkPokerTable == null)
+        if (available && _networkPokerTable == null)
         {
             // Run the same presentation clock even when the player has never opened the poker view.
             // It remains hidden until an explicit mode change; network state never switches windows.
@@ -47,32 +46,45 @@ public partial class ModeManager
             _networkPokerSession = session; _networkPokerTableId = session.State.Table;
             _networkPokerTable.FlipRequested += slot => { if (NetworkPokerInputAllowed) session.Act(PokerAction.Flip, slot); };
         }
-        if (!playing)
+        if (!available)
         {
             PresentNetworkHands(null, poker);
             return;
         }
-        if (!_networkPokerAttached && session.IsParticipant && _gameManager != null && CurrentMode == Mode.Play)
+        if (!_networkPokerAttached && _gameManager != null && CurrentMode == Mode.Play)
         {
             _gameManager.BeginRoomPoker(_networkPokerTable);
             _networkPokerAttached = true;
             _networkPokerPanel = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPanel.tscn").Instantiate<RoomPokerPanelView>();
             _infoPanel.SessionContent.AddChild(_networkPokerPanel);
-            _networkPokerPanel.PauseRequested += () =>
-            {
-                if (session.State?.Continuation == PokerContinuation.Paused) session.Resume();
-                else session.SetPauseRequested(session.State?.Continuation != PokerContinuation.PauseRequested);
-            };
+            _networkPokerPanel.ActionRequested += lobby.ActivateLocal;
+            _networkPokerPanel.RestartRequested += lobby.RestartLocal;
             _networkPokerPayout = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPayout.tscn").Instantiate<RoomPokerPayoutView>();
             AddChild(_networkPokerPayout);
             _gameManager.SessionPokerTurnEnd += NetworkPokerEndTurn;
         }
         var view = session.DisplayView;
-        if (view == null) return;
+        if (view == null)
+        {
+            _networkPokerTable.PresentWaiting();
+            if (_networkPokerAttached)
+            {
+                _gameManager.SetRoomPokerInput(false);
+                _networkPokerPanel.PresentWaiting();
+                _networkPokerPanel.PresentNetwork(session, lobby.ActionsAvailable);
+                _infoPanel.SetSessionChips(null, RoomPokerText.T("牌局筹码", "Table chips"), sessionActive: true);
+                _networkPokerPayout.Hide();
+            }
+            PresentNetworkHands(null, true);
+            return;
+        }
         bool visible = _networkPokerAttached && CurrentMode == Mode.Play && !_hiddenByFullscreenApp && !UiInteractionOccupancy.IsOccupied(this);
         bool act = NetworkPokerInputAllowed && session.Connected && !session.ActionPending && session.State.DealRemaining == 0
             && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
-        _networkPokerTable.Round.PauseAfterPayout = session.State.Continuation != PokerContinuation.Collecting;
+        _networkPokerTable.Round.PauseAfterPayout = !session.IsCollecting;
+        _networkPokerTable.Round.CollectionDealerId = session.State.Continuation == PokerContinuation.Restarting
+            ? session.Context.Members.First(m => m.Key == session.Context.OwnerKey).LocalId : null;
+        if (session.IsCollecting) _networkPokerTable.Round.CollectAuthoritative(view);
         _networkPokerTable.Present(view, act, delta, animate: visible,
             otherCardsMoving: visible && _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true);
         // A late snapshot or background stall must not replay an obsolete settlement before collecting.
@@ -83,9 +95,9 @@ public partial class ModeManager
             _gameManager.SetRoomPokerInput(act && !_networkPokerTable.IsDealing);
             var display = _networkPokerTable.Round.DisplayView;
             _networkPokerPanel.Present(display, session.LastError, _networkPokerTable.Round);
-            _networkPokerPanel.PresentNetwork(session);
-            _infoPanel.SetSessionChips(display.Public.Seats.Single(s => s.PlayerId == display.PlayerId).Chips,
-                RoomPokerText.T("牌局筹码", "Table chips"));
+            _networkPokerPanel.PresentNetwork(session, lobby.ActionsAvailable);
+            _infoPanel.SetSessionChips(display.Public.Seats.FirstOrDefault(s => s.PlayerId == display.PlayerId)?.Chips,
+                RoomPokerText.T("牌局筹码", "Table chips"), sessionActive: true);
             PresentRoomPokerPayout(_networkPokerTable, _networkPokerPayout, view, visible);
         }
         PresentNetworkHands(_networkPokerTable.Round.DisplayView, true);
@@ -115,7 +127,7 @@ public partial class ModeManager
         }
     }
     private bool NetworkPokerInputAllowed => _networkPokerTable != null && CurrentMode == Mode.Play
-        && !_hiddenByFullscreenApp && !_settingsPanel.IsOpen && !UiInteractionOccupancy.IsOccupied(this)
+        && !_hiddenByFullscreenApp && !IsSettingsPanelOverlappingPoker() && !UiInteractionOccupancy.IsOccupied(this)
         && !_networkPokerTable.IsDealing && _roomPokerDogs?.LocalChat.Editing != true;
     private void NetworkPokerEndTurn() { if (NetworkPokerInputAllowed) _networkPokerSession?.Act(PokerAction.EndTurn); }
 
@@ -128,7 +140,8 @@ public partial class ModeManager
         {
             Vector2? Anchor(int id) => id == view.PlayerId ? FromTable(table.LocalPanel.DealerAnchor)
                 : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.PokerHand.DealerAnchor;
-            var start = Anchor(view.Public.Dealer.PlayerId); var end = Anchor(result.NextDealer.PlayerId);
+            var start = Anchor(view.Public.Dealer.PlayerId);
+            var end = Anchor(table.Round.CollectionDealerId ?? result.NextDealer.PlayerId);
             if (start.HasValue && end.HasValue)
                 payout.PresentDealer(start.Value, end.Value, table.Round.StageSeconds, 22 * _playViewport.GetGlobalTransformWithCanvas().Scale.X, true);
             else payout.Hide();
@@ -153,7 +166,7 @@ public partial class ModeManager
         { _gameManager.SessionPokerTurnEnd -= NetworkPokerEndTurn; _gameManager.EndRoomPoker(); }
         if (_networkPokerAttached && GodotObject.IsInstanceValid(_infoPanel)) _infoPanel.SetSessionChips(null);
         foreach (var node in new CanvasItem[] { _networkPokerTable, _networkPokerPanel, _networkPokerPayout })
-            if (GodotObject.IsInstanceValid(node)) { node.Hide(); node.QueueFree(); }
+            if (GodotObject.IsInstanceValid(node)) { node.Hide(); node.GetParent()?.RemoveChild(node); node.QueueFree(); }
         foreach (var dogs in new[] { _roomPokerDogs, _roomDesktop })
             if (GodotObject.IsInstanceValid(dogs))
             { dogs.LocalPokerHand.Hide(); foreach (var dog in dogs.RemoteDogs) dog.PokerHand.Hide(); }

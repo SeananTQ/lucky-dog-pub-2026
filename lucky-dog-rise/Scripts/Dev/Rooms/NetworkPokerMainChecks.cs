@@ -25,6 +25,18 @@ internal static class NetworkPokerMainChecks
             Check(condition(), reason);
         }
         void Click(BaseButton button) { Check(!button.Disabled, $"{button.Name} enabled"); button.EmitSignal(BaseButton.SignalName.Pressed); }
+        async Task PointerClick(Control card)
+        {
+            var container = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
+            var viewport = container.GetNode<SubViewport>("SubViewport");
+            var point = container.GetGlobalTransformWithCanvas()
+                * ((card.GetGlobalTransformWithCanvas() * (card.Size / 2)) * (container.Size / viewport.Size));
+            main.GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point }, true);
+            await Wait(.02);
+            foreach (bool pressed in new[] { true, false })
+                main.GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point,
+                    ButtonIndex = MouseButton.Left, Pressed = pressed }, true);
+        }
         void HideTest()
         {
             if (!OperatingSystem.IsWindows() || DisplayServer.GetName() == "headless") return;
@@ -62,23 +74,29 @@ internal static class NetworkPokerMainChecks
             var session = lobby.Session;
             await Wait(1.2);
             Check(game.State == GameState.WaitingForBet && data.Chips == soloChips, "unfinished solo hand discarded without refund or late reward");
+            var info = main.GetNode<InfoPanelController>("InfoPanel");
+            var waitingPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
+            Check(game.IsSessionPokerActive && info.SessionContent.Visible
+                && waitingPanel.GetNode<Button>("Actions/Primary").Text == lobby.GetNode<Button>("Actions/Primary").Text,
+                "poker information panel replaces solo UI before start and mirrors host action");
+            game.Call("OnBetRequested");
+            Check(data.Chips == soloChips, "poker room blocks solo bets even before starting");
             Check(!lobby.HasNode("Roster") && !lobby.HasNode("Ready") && !lobby.HasNode("Stop"), "single member roster replaces duplicate poker controls");
             game.EmitSignal(GameManager.SignalName.DesktopModeRequested); await Wait(.2);
             await Until(() => main.RoomDesktopForSmoke.LocalPokerHand.IsWaiting, "own desktop dog shows an empty waiting panel before starting");
             Check(main.RoomDesktopForSmoke.RemoteDogs.All(d => d.PokerHand.Visible && d.PokerHand.IsWaiting), "all remote dogs show waiting panels in the poker room");
             var desktopMode = main.CurrentMode;
-            Click(lobby.GetNode<Button>("Start"));
+            Click(lobby.GetNode<Button>("Actions/Primary"));
             await Until(() => session.IsParticipant && main.RoomDesktopForSmoke.LocalPokerHand.FirstCard.Visible, "host joins by starting; desktop panel receives its hand");
-            Check(main.CurrentMode == desktopMode && !game.IsSessionPokerActive, "network start never forces desktop into poker");
+            Check(main.CurrentMode == desktopMode, "network start never forces desktop into poker");
             main.RoomRequestPokerForSmoke(); panel.CloseImmediate();
             await Until(() => game.IsSessionPokerActive, "explicit mode switch attaches the existing network table");
             await Wait();
             var gameChoice = page.GetNode<OptionButton>("Room/Game/Choices/Current");
             Check(gameChoice.Selected == 2 && gameChoice.Disabled, "current gameplay shows poker and running table locks game switching");
             var table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
-            var info = main.GetNode<InfoPanelController>("InfoPanel");
             var pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
-            var pause = pokerPanel.GetNode<Button>("Pause");
+            var pause = pokerPanel.GetNode<Button>("Actions/Primary");
             Check(main.PokerPreviewForSmoke == null, "formal game is independent of the manual local preview");
             Check(session.State.Hand.Public.Pot == 300 && session.State.Hand.HoleCards.Count == 2, "initial ante and own two private cards");
             await Until(() => main.RoomPokerDogsForSmoke?.RemoteDogs.Count() == 2, "remote dogs have table presentations");
@@ -91,12 +109,22 @@ internal static class NetworkPokerMainChecks
             Check(session.State.Continuation == PokerContinuation.Automatic, "same button can undo a pending pause");
             Click(pause); await Wait();
             long revision = session.DisplayView.Public.Revision;
-            Click(table.GetNode<TextureButton>("Board/Card1"));
-            await Until(() => session.DisplayView.Public.Revision > revision, "board click reaches authority");
+            panel.ShowRoomPage(); await Wait(.2);
+            var container = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
+            panel.SetPanelPosition(container.Position + new Vector2(container.Size.X * container.Scale.X + 8, 0));
+            await Wait(.1);
+            Check(panel.IsOpen && !panel.PanelRect.Intersects(new Rect2(container.Position, container.Size * container.Scale)),
+                "settings panel is open beside the poker table");
+            await PointerClick(table.GetNode<TextureButton>("Board/Card1"));
+            await Until(() => session.DisplayView.Public.Revision > revision, "real viewport click reaches authority with side panel open", 2);
             Check(session.DisplayView.Public.Board[0].PendingReplacement, "accepted flip is reflected in table state");
+            panel.SetPanelPosition(container.Position); await Wait(.1);
+            Check(table.GetNode<TextureButton>("Board/Card2").Disabled, "overlapping settings panel still blocks cards");
+            panel.CloseImmediate(); await Wait(.1);
+            Check(!table.GetNode<TextureButton>("Board/Card2").Disabled, "closing the overlay restores input without switching modes");
             game.GetNode<HandAreaController>("HandArea").EmitSignal(HandAreaController.SignalName.HandKnocked);
             await Until(() => session.DisplayView.Public.Phase == PokerPhase.Settled, "arm finishes turn and all clients receive settlement");
-            await Until(() => client.Bubbles.ContainsKey(2) && client.Bubbles.ContainsKey(3), "Mock humans send overlapping settlement bubbles through normal chat");
+            await Until(() => client.Bubbles.ContainsKey(2) || client.Bubbles.ContainsKey(3), "Mock settlement chat uses normal bubbles; a loser may stay silent");
             Check(client.ChatAllowed, "poker rooms permit chat");
             await Until(() => session.State.Continuation == PokerContinuation.Paused && table.Round.Stage == PokerRoundStage.AwaitingNext,
                 "pause retains all cards after winner payout", 25);
@@ -104,6 +132,9 @@ internal static class NetworkPokerMainChecks
             Guid tableId = session.State.Table;
             await Wait(1.0);
             Check(session.DisplayView.Public.HandNumber == 1 && data.Chips == soloChips, "pause adds no ante and payouts do not touch personal chips");
+            Check(pause.Text == RoomPokerText.T("继续", "Resume")
+                && pokerPanel.GetNode<Button>("Actions/Restart").Visible
+                && !pokerPanel.GetNode<Button>("Actions/Restart").Disabled, "paused host sees both resume and restart");
             Click(pause);
             await Until(() => session.DisplayView.Public.HandNumber == 2, "resume collects cards and begins next hand in the same session", 8);
             Check(session.State.Table == tableId && session.DisplayView.Public.Dealer == result.Settlement.NextDealer, "resume keeps original session and planned dealer");
@@ -129,28 +160,32 @@ internal static class NetworkPokerMainChecks
 
             var late = page.AddMockClientForSmoke(4); late.Join(client.JoinedCode);
             await Until(() => session.State.Players.Length == 4, "late room join is tracked separately from current hand");
-            Check(session.State.Hand.Public.Seats.Count == 3, "late member waits for next hand");
+            Check(session.State.Hand.Public.Seats.Count == 3, "late member waits for host restart");
             await Until(() => main.RoomPokerDogsForSmoke.RemoteDogs.Any(d => d.MemberId == 4 && d.PokerHand.IsWaiting), "late dog displays waiting instead of private cards");
             game.EmitSignal(GameManager.SignalName.DesktopModeRequested); await Wait();
             Check(main.RoomDesktopForSmoke.LocalPokerHand.IsVisibleInTree(), "own panel remains visible on return to desktop");
             main.RoomRequestPokerForSmoke(); await Wait();
             Check(lobby.Session == session && session.State.Table == tableId, "desktop/poker round trip preserves the network session");
+            Click(pause);
+            await Until(() => session.State.Continuation == PokerContinuation.Paused, "second pause completes without blocking timeout", 40);
+            await Until(() => pokerPanel.GetNode<Button>("Actions/Restart").Visible
+                && !pokerPanel.GetNode<Button>("Actions/Restart").Disabled, "restart UI catches up with authority pause");
+            Click(pokerPanel.GetNode<Button>("Actions/Restart"));
+            await Until(() => session.State.Table != tableId && session.State.Hand?.Public.HandNumber == 1, "restart resets the match after card collection", 8);
+            Check(session.State.Hand.Public.Dealer.PlayerId == session.State.Hand.PlayerId
+                && session.State.Hand.Public.Seats.All(s => s.Chips == 900)
+                && session.State.Hand.Public.Pot == 300, "restart resets 1000 each, takes one ante and gives host first dealership");
+            Check(game.GetChildren().OfType<RoomPokerTableView>().Count() == 1, "restart replaces the old table without duplicate views");
             page.MockClientForSmoke(2).Leave();
-            await Until(() => session.State.Status == PokerTableStatus.Interrupted && !game.IsSessionPokerActive, "participant departure tears down views safely");
-            Check(!game.HasNode("RoomPokerTable") && data.Chips == soloChips, "table cleanup leaves personal assets intact");
+            await Until(() => session.State.Status == PokerTableStatus.Interrupted && session.State.Hand == null, "participant departure interrupts the match safely");
+            Check(game.IsSessionPokerReserved && game.IsSessionPokerActive && data.Chips == soloChips, "interruption stays in poker room UI without enabling solo play");
             panel.ShowRoomPage(); await Wait();
-            Click(lobby.GetNode<Button>("Start")); await Wait(.2);
+            Click(lobby.GetNode<Button>("Actions/Primary")); await Wait(.2);
             Check(game.IsSessionPokerReserved, "fresh preparation reserves the solo table");
             game.Call("OnBetRequested");
             Check(game.State == GameState.WaitingForBet && data.Chips == soloChips, "ready state cannot debit a solo hand");
             client.Leave(); await Wait(.5);
             Check(lobby.Session == null && !game.IsSessionPokerReserved, "leaving room disposes the channel and ready reservation");
-            var mock = main.GetNode<SteamMockPanelController>("SteamMockPanel");
-            Click(mock.GetNode<Button>("Panel/Root/TabRow/NetworkPokerTab"));
-            Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Guest"));
-            await Until(() => lobby.Session?.State?.Status == PokerTableStatus.Preparing, "Mock controls create a separate remote authority");
-            Check(!lobby.Session.IsOwner && !lobby.Session.IsReady, "unanswered vote leaves local guest waiting");
-            Check(page.PokerLobby.Session.Context.Game == RoomRules.MischiefPoker, "Mock setup uses the real room game");
             panel.CloseImmediate();
             var deck = (DeckManager)typeof(GameManager).GetField("_deck", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(game);
             int winningSeed = Enumerable.Range(1, 1000).First(seed =>
@@ -160,15 +195,28 @@ internal static class NetworkPokerMainChecks
             });
             deck.SetFixedSeed(winningSeed);
             game.Call("OnBetRequested"); await Wait(1.2);
-            Check(game.State == GameState.Dealt && !game.IsSessionPokerReserved, "unready room member can still play solo");
+            Check(game.State == GameState.Dealt, "solo hand available outside the poker room");
             game.GetNode<HandAreaController>("HandArea").EmitSignal(HandAreaController.SignalName.FirstKnockLanded);
-            await Until(() => game.PendingReward != null, "solo winner has a real unclaimed reward before readiness");
+            await Until(() => game.PendingReward != null, "unclaimed solo reward exists before joining poker room");
             int beforeReadyChips = data.Chips;
+            var mock = main.GetNode<SteamMockPanelController>("SteamMockPanel");
+            Click(mock.GetNode<Button>("Panel/Root/TabRow/NetworkPokerTab"));
+            Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Guest"));
+            await Until(() => lobby.Session?.State?.Status == PokerTableStatus.Preparing, "Mock controls create a separate remote authority");
+            Check(!lobby.Session.IsOwner && !lobby.Session.IsReady, "unanswered vote leaves local guest waiting");
+            Check(page.PokerLobby.Session.Context.Game == RoomRules.MischiefPoker, "Mock setup uses the real room game");
+            panel.CloseImmediate();
+            await Until(() => game.IsSessionPokerReserved && game.PendingReward == null, "entering poker room discards solo reward before guest readiness");
+            game.Call("OnBetRequested"); game.Call("OnChipCollected");
+            Check(game.State == GameState.WaitingForBet && data.Chips == beforeReadyChips, "unready observer cannot bet solo or collect a stale reward");
             panel.ShowRoomPage(); await Wait();
             var readyButton = page.GetNode<VBoxContainer>("Room/Members").GetChildren().OfType<HBoxContainer>()
                 .Select(row => row.GetNode<Button>("Ready")).Single(button => button.Visible);
-            Click(readyButton);
-            await Until(() => game.IsSessionPokerActive, "simulated host starts after local readiness");
+            pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
+            var guestAction = pokerPanel.GetNode<Button>("Actions/Primary");
+            Check(guestAction.Text == readyButton.Text && guestAction.Disabled == readyButton.Disabled, "guest preparation controls match in both panels");
+            Click(guestAction);
+            await Until(() => lobby.Session.IsParticipant, "information-panel ready reaches simulated authority");
             game.Call("OnChipCollected");
             Check(game.PendingReward == null && data.Chips == beforeReadyChips, "ready discards unclaimed solo reward; stale collection cannot credit it");
             panel.CloseImmediate();
@@ -185,6 +233,25 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.DisplayView.Public.HandNumber == 2, "guest box overlay also permits authoritative timeout and next hand", 40);
             Check(UiInteractionOccupancy.IsOccupied(main) && session.IsReady, "guest box remains open without revoking readiness");
             game.HidePendingBlindBoxReward(); rewardProperty.SetValue(data, null);
+            await Wait(.2);
+            pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
+            guestAction = pokerPanel.GetNode<Button>("Actions/Primary");
+            Click(guestAction); await Wait(.2);
+            Check(!session.IsReady && guestAction.Text == RoomPokerText.T("取消离座", "Cancel"), "guest queues sit-out with visible cancellation");
+            Click(guestAction); await Wait(.2);
+            Check(session.IsReady, "guest can cancel sit-out before the hand ends");
+            Click(guestAction);
+            await Until(() => session.DisplayView.Public.HandNumber == 3 && !session.IsInHand, "sit-out begins at next hand", 40);
+            await Wait(.2);
+            Check(table.LocalPanel.IsWaiting && session.DisplayView.HoleCards.Count == 0
+                && guestAction.Text == RoomPokerText.T("入座", "Sit in"), "sitting-out guest has no cards and sees sit-in action");
+            var oldSeat = session.DisplayView.Public.Seats.Single(s => s.PlayerId == session.DisplayView.PlayerId);
+            Click(guestAction); await Wait(.2);
+            Check(session.IsReady && !session.IsInHand && guestAction.Text == RoomPokerText.T("取消准备", "Cancel"), "reentry waits for next hand and is cancellable");
+            await Until(() => session.DisplayView.Public.HandNumber == 4 && session.IsInHand, "returning guest rejoins the existing seat", 30);
+            var restored = session.DisplayView.Public.Seats.Single(s => s.PlayerId == session.DisplayView.PlayerId);
+            Check(restored.SeatNumber == oldSeat.SeatNumber && restored.Chips == oldSeat.Chips - 100
+                && session.DisplayView.HoleCards.Count == 2, "reentry preserves seat and balance with exactly one ante");
             Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host"));
             await Until(() => lobby.Session?.IsOwner == true && lobby.Session.State?.Status == PokerTableStatus.Preparing,
                 "Mock role reset during play reaches a fresh host preparation");
@@ -194,7 +261,7 @@ internal static class NetworkPokerMainChecks
                 Click(game.GetNode<Button>("PokerWelcomeDialog/InputShield/Center/Panel/Margin/Content/Confirm"));
             game.Call("OnBetRequested"); await Wait(1.2);
             Check(game.State == GameState.Dealt, "single-player poker remains available after leaving");
-            GD.Print("[NetworkPokerMainChecks] PASS room-game consent, solo discard, desktop panels, privacy, pause/undo/resume, box-independent continuation, Mock chat, waiting member, guest authority and solo restoration.");
+            GD.Print("[NetworkPokerMainChecks] PASS real card input with side panel, shared preparation controls, observer solo lock, pause/resume/restart, sit-out/return, box-independent continuation, private hands, Mock chat and solo restoration.");
         }
         finally
         {

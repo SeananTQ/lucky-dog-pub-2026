@@ -18,7 +18,7 @@ public interface IPokerLink : IDisposable
     void Poll();
 }
 public enum PokerTableStatus { Idle, Preparing, Playing, Interrupted }
-public enum PokerContinuation { Automatic, PauseRequested, Paused, Collecting }
+public enum PokerContinuation { Automatic, PauseRequested, Paused, Collecting, Restarting }
 public sealed record PokerParticipant(string Key, string Ticket, int Id, bool Ready, bool Playing, bool Companion);
 public sealed record PokerNetworkState(Guid Table, long Version, PokerTableStatus Status,
     PokerParticipant[] Players, PokerPlayerView? Hand, double DealRemaining, string Notice, long AckSequence = 0,
@@ -29,7 +29,7 @@ public sealed record PokerPacket(int Protocol, string Room, string SenderTicket,
 
 public static class PokerNetworkProtocol
 {
-    public const int Version = 2;
+    public const int Version = 3;
     public const int MaxBytes = 32768;
     private static readonly JsonSerializerOptions Options = new() { MaxDepth = 24 };
     public static byte[] Encode(PokerPacket packet) => JsonSerializer.SerializeToUtf8Bytes(packet, Options);
@@ -41,7 +41,7 @@ public static class PokerNetworkProtocol
             var p = JsonSerializer.Deserialize<PokerPacket>(bytes, Options);
             return p is { Protocol: Version, Sequence: > 0 } && p.Room is { Length: > 0 and <= 80 }
                 && p.SenderTicket is { Length: > 0 and <= 80 } && p.RecipientTicket is { Length: > 0 and <= 80 }
-                && p.Kind is "state" or "hello" or "prepare" or "ready" or "start" or "action" or "finished" or "stop" or "pause" or "resume" ? p : null;
+                && p.Kind is "state" or "hello" or "prepare" or "ready" or "start" or "action" or "finished" or "stop" or "pause" or "resume" or "restart" ? p : null;
         }
         catch (JsonException) { return null; }
         catch (NotSupportedException) { return null; }
@@ -76,37 +76,40 @@ public static class PokerNetworkProtocol
                 || h.Seats.Any(p => !ids.Contains(p.PlayerId) || p.Chips < 0 || p.Chips > 6000 || p.SeatNumber is < 1 or > 6)
                 || h.Board.Count != 5 || h.Board.Any(c => c.Card is < 0 or >= 52)
                 || h.Board.Select(c => c.Card).Distinct().Count() != 5
-                || h.ActionOrder.Count != ids.Length || h.ActionOrder.Distinct().Count() != ids.Length
+                || h.ActionOrder.Count < 2 || h.ActionOrder.Count > ids.Length || h.ActionOrder.Distinct().Count() != h.ActionOrder.Count
                 || h.ActionOrder.Any(id => !ids.Contains(id)) || !ValidDealer(h.Dealer, ids)
-                || h.CompletedTurns.Count > ids.Length || h.CompletedTurns.Select(t => t.PlayerId).Distinct().Count() != h.CompletedTurns.Count
-                || h.CompletedTurns.Any(t => !ids.Contains(t.PlayerId) || t.FlipsUsed is < 0 or > 2 || !Enum.IsDefined(t.Reason))
+                || !h.ActionOrder.Contains(h.Dealer.PlayerId)
+                || h.CompletedTurns.Count > h.ActionOrder.Count || h.CompletedTurns.Select(t => t.PlayerId).Distinct().Count() != h.CompletedTurns.Count
+                || h.CompletedTurns.Any(t => !h.ActionOrder.Contains(t.PlayerId) || t.FlipsUsed is < 0 or > 2 || !Enum.IsDefined(t.Reason))
                 || !double.IsFinite(h.SecondsRemaining) || h.SecondsRemaining is < 0 or > 15
                 || h.TurnDeadline.HasValue && !double.IsFinite(h.TurnDeadline.Value)
                 || h.Pot is < 0 or > 600 || h.TotalSystemTips is < 0 or > 6000
-                || h.Phase == PokerPhase.Acting && (!h.ActivePlayerId.HasValue || !ids.Contains(h.ActivePlayerId.Value))
+                || h.Phase == PokerPhase.Acting && (!h.ActivePlayerId.HasValue || !h.ActionOrder.Contains(h.ActivePlayerId.Value))
                 || h.FlipsRemaining is < 0 or > 2) return false;
             if (self?.Playing == true)
             {
-                if (v.PlayerId != self.Id || v.HoleCards.Count != 2 || v.HoleCards.Any(c => c is < 0 or >= 52)
-                    || v.HoleCards.Concat(h.Board.Select(b => b.Card)).Distinct().Count() != 7) return false;
+                int count = h.ActionOrder.Contains(self.Id) ? 2 : 0;
+                if (v.PlayerId != self.Id || v.HoleCards.Count != count || v.HoleCards.Any(c => c is < 0 or >= 52)
+                    || v.HoleCards.Concat(h.Board.Select(b => b.Card)).Distinct().Count() != 5 + count) return false;
             }
             else if (v.PlayerId != 0 || v.HoleCards.Count != 0) return false;
             if (h.Phase != PokerPhase.Settled) return h.Settlement == null;
             var r = h.Settlement;
-            return r != null && r.Players.Count == ids.Length && r.Winners.Count is >= 1 and <= 6
-                && r.Players.Select(p => p.PlayerId).Distinct().Count() == ids.Length
-                && r.Winners.Distinct().Count() == r.Winners.Count && r.Winners.All(ids.Contains)
-                && ValidDealer(r.NextDealer, ids) && Enum.IsDefined(r.DealerChange)
-                && r.Pot == ids.Length * 100 && r.SystemTip >= 0 && r.SystemTip < r.Winners.Count
+            var activeIds = h.ActionOrder.ToArray();
+            return r != null && r.Players.Count == activeIds.Length && r.Winners.Count is >= 1 and <= 6
+                && r.Players.Select(p => p.PlayerId).Distinct().Count() == activeIds.Length
+                && r.Winners.Distinct().Count() == r.Winners.Count && r.Winners.All(activeIds.Contains)
+                && ValidDealer(r.NextDealer, activeIds) && Enum.IsDefined(r.DealerChange)
+                && r.Pot == activeIds.Length * 100 && r.SystemTip >= 0 && r.SystemTip < r.Winners.Count
                 && r.Players.Sum(p => p.Award) + r.SystemTip == r.Pot
-                && r.Players.All(p => ids.Contains(p.PlayerId) && p.HoleCards.Count == 2
+                && r.Players.All(p => activeIds.Contains(p.PlayerId) && p.HoleCards.Count == 2
                     && p.HoleCards.All(c => c is >= 0 and < 52) && p.BestHand.Cards.Count == 5
                     && p.BestHand.Cards.Distinct().Count() == 5
                     && p.BestHand.Cards.All(c => p.HoleCards.Contains(c) || h.Board.Any(b => b.Card == c))
                     && Enum.IsDefined(p.BestHand.Value.Rank) && p.BestHand.Value.TieBreak >= 0
                     && p.Award == (r.Winners.Contains(p.PlayerId) ? r.Pot / r.Winners.Count : 0))
-                && r.Players.SelectMany(p => p.HoleCards).Concat(h.Board.Select(b => b.Card)).Distinct().Count() == ids.Length * 2 + 5
-                && (self?.Playing != true || r.Players.Single(p => p.PlayerId == self.Id).HoleCards.SequenceEqual(v.HoleCards))
+                && r.Players.SelectMany(p => p.HoleCards).Concat(h.Board.Select(b => b.Card)).Distinct().Count() == activeIds.Length * 2 + 5
+                && (self == null || !activeIds.Contains(self.Id) || r.Players.Single(p => p.PlayerId == self.Id).HoleCards.SequenceEqual(v.HoleCards))
                 && r.Replacements.Count <= 5 && r.Replacements.Select(p => p.Slot).Distinct().Count() == r.Replacements.Count
                 && r.Replacements.All(p => p.Slot is >= 0 and < 5 && p.OldCard is >= 0 and < 52
                     && p.NewCard == h.Board[p.Slot].Card);

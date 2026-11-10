@@ -5,29 +5,97 @@ using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
 
-// One roster in the room page. The endpoint also runs while the page is hidden.
+// Both the information panel and the member list use these same actions and authority state.
 public partial class RoomPokerLobbyView : VBoxContainer
 {
-    [Export] private Label _status;
-    [Export] private Button _start;
+    [Export] private Button _start, _restart;
     private RoomClient _client;
     public PokerNetworkSession Session { get; private set; }
     public bool CanPrepare { get; set; } = true;
+    public bool ActionsAvailable => CanPrepare && _client?.IsBusy == false;
     public void Bind(RoomClient client)
     {
         if (_client == client) return;
         Session?.Dispose(); Session = null; _client = client;
     }
-    public override void _Ready() => _start.Pressed += () =>
+    public override void _Ready()
     {
-        if (!CanPrepare || _client?.IsBusy != false || Session == null) return;
-        if (Session.State?.Status == PokerTableStatus.Interrupted) Session.Propose();
-        else Session.Start();
-    };
+        _start.Pressed += ActivateLocal;
+        _restart.Pressed += RestartLocal;
+    }
+    public void ActivateLocal() { if (ActionsAvailable) Activate(Session); }
+    public void RestartLocal() { if (ActionsAvailable) Session?.Restart(); }
     public void ToggleReady()
     {
-        if (CanPrepare && _client?.IsBusy == false && Session?.IsOwner == false)
-            Session.SetReady(!Session.IsReady);
+        if (CanPrepare && _client?.IsBusy == false && Session?.IsOwner == false) Activate(Session);
+    }
+    public static void Activate(PokerNetworkSession session)
+    {
+        if (session?.Connected != true) return;
+        if (!session.IsOwner) { session.SetReady(!session.IsReady); return; }
+        if (session.State?.Status == PokerTableStatus.Interrupted) session.Propose();
+        else if (session.State?.Status == PokerTableStatus.Preparing) session.Start();
+        else if (session.State?.Continuation == PokerContinuation.Paused) session.Resume();
+        else session.SetPauseRequested(session.State?.Continuation != PokerContinuation.PauseRequested);
+    }
+    public static void PresentActions(PokerNetworkSession session, Button primary, Button restart = null, bool available = true)
+    {
+        primary.Visible = true;
+        primary.Disabled = !available || session?.Connected != true;
+        primary.ThemeTypeVariation = "CapsuleButton";
+        primary.ToggleMode = false;
+        if (restart != null)
+        {
+            restart.Visible = session?.IsOwner == true && session.State is { Status: PokerTableStatus.Playing, Continuation: PokerContinuation.Paused };
+            restart.Disabled = !available || session?.CanRestart != true;
+            restart.Text = RoomPokerText.T("重开", "Restart");
+            restart.TooltipText = RoomPokerText.T("重新分配座位和 1000 筹码，由房主坐庄；加入已准备的等待成员。", "Reset seats and chips to 1000, deal with the host as dealer, and admit ready waiting members.");
+        }
+        if (session == null) { primary.Text = RoomPokerText.T("准备", "Ready"); return; }
+        var state = session.State;
+        if (session.IsOwner)
+        {
+            if (state?.Status != PokerTableStatus.Playing)
+            {
+                primary.Text = RoomPokerText.T("开始牌局", "Start");
+                primary.Disabled |= state?.Status != PokerTableStatus.Interrupted && !session.CanStart;
+                primary.TooltipText = RoomPokerText.T("至少两名玩家准备后开始；房主默认参局。", "Start with at least two ready players. The host takes part automatically.");
+            }
+            else if (state.Continuation == PokerContinuation.Paused)
+            {
+                primary.Text = RoomPokerText.T("继续", "Resume"); primary.Disabled |= !session.CanResume;
+                primary.TooltipText = RoomPokerText.T("保留筹码、座位与庄家进度继续，不加入新成员；至少两人入座且各有 100 筹码。", "Resume existing seats, balances and dealer progress. No newcomers; at least two seated players with 100 chips each.");
+            }
+            else
+            {
+                bool pending = state.Continuation == PokerContinuation.PauseRequested;
+                primary.Text = pending ? RoomPokerText.T("取消暂停", "Cancel") : RoomPokerText.T("打完暂停", "Pause");
+                primary.Disabled |= session.IsCollecting;
+                primary.ThemeTypeVariation = pending ? "ActionButton" : "CapsuleButton";
+                primary.TooltipText = RoomPokerText.T("本局派彩后暂停；再次点击可取消。", "Pause after this hand's payouts. Click again to cancel.");
+            }
+        }
+        else
+        {
+            primary.Disabled |= !session.CanSetReady;
+            bool finished = state?.Hand?.Public.Phase == PokerPhase.Settled
+                && state.Continuation is PokerContinuation.Paused or PokerContinuation.Collecting or PokerContinuation.Restarting;
+            if (session.IsInHand && (!finished || session.IsReady))
+            {
+                primary.Text = session.IsReady ? RoomPokerText.T("打完离座", "Sit out") : RoomPokerText.T("取消离座", "Cancel");
+                primary.ThemeTypeVariation = session.IsReady ? "CapsuleButton" : "ActionButton";
+                primary.TooltipText = RoomPokerText.T("完成本局后离座，不再扣底注；保留筹码与座位。", "Sit out after this hand. Keep your seat and chips without paying further antes.");
+            }
+            else
+            {
+                bool returning = session.IsParticipant;
+                primary.Text = session.IsReady ? RoomPokerText.T("取消准备", "Cancel")
+                    : returning ? RoomPokerText.T("入座", "Sit in") : RoomPokerText.T("准备", "Ready");
+                primary.ThemeTypeVariation = session.IsReady ? "ActionButton" : "CapsuleButton";
+                primary.TooltipText = returning ? RoomPokerText.T("从下一局回到原座位并保留筹码；收牌期间暂不可更改。", "Return to your existing seat next hand, keeping your chips. Locked during collection.")
+                    : RoomPokerText.T("准备后等待房主开始或重开；不会中途加入当前牌桌。", "Ready for the host to start or restart. You will not join the existing table mid-game.");
+            }
+        }
     }
     public void PresentMember(HBoxContainer row, RoomMember member)
     {
@@ -37,13 +105,16 @@ public partial class RoomPokerLobbyView : VBoxContainer
         var peer = Session?.Context?.Members.FirstOrDefault(m => m.LocalId == member.Id);
         var p = Session?.State?.Players.FirstOrDefault(p => p.Key == peer?.Key && p.Ticket == peer.Ticket);
         bool owner = member.Id == _client?.View?.OwnerId;
-        ready.Visible = poker && member.Id == _client.Id && !owner && p?.Playing != true
-            && Session?.State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
-        ready.Text = Session?.IsReady == true ? RoomPokerText.T("取消准备", "Not ready") : RoomPokerText.T("准备", "Ready");
-        ready.Disabled = Session?.Connected != true || !CanPrepare || _client?.IsBusy == true;
+        if (poker && member.Id == _client.Id && !owner)
+            PresentActions(Session, ready, available: CanPrepare && !_client.IsBusy);
+        else ready.Hide();
         status.Visible = poker && !ready.Visible;
-        status.Text = p?.Playing == true ? RoomPokerText.T("参局", "Playing") : owner
-            ? RoomPokerText.T("房主", "Host") : p?.Ready == true ? RoomPokerText.T("已准备", "Ready") : RoomPokerText.T("等待", "Waiting");
+        bool inHand = p != null && Session?.State?.Hand?.Public.ActionOrder.Contains(p.Id) == true;
+        status.Text = p?.Playing == true
+            ? !p.Ready ? inHand && Session.State.Continuation is PokerContinuation.Automatic or PokerContinuation.PauseRequested
+                ? RoomPokerText.T("待离座", "Sitting out next") : RoomPokerText.T("离座", "Sitting out")
+                : inHand ? RoomPokerText.T("参局", "Playing") : RoomPokerText.T("已准备", "Ready")
+            : owner ? RoomPokerText.T("房主", "Host") : p?.Ready == true ? RoomPokerText.T("已准备", "Ready") : RoomPokerText.T("等待", "Waiting");
     }
     public override void _Process(double delta)
     {
@@ -53,23 +124,8 @@ public partial class RoomPokerLobbyView : VBoxContainer
         Session?.Tick(delta);
         Visible = Session != null && _client.View.GameId == RoomRules.MischiefPoker;
         if (!Visible) return;
-        bool preparing = Session.State?.Status == PokerTableStatus.Preparing;
-        bool interrupted = Session.State?.Status == PokerTableStatus.Interrupted;
-        _start.Visible = Session.IsOwner && (preparing || interrupted);
-        _start.Text = interrupted ? RoomPokerText.T("重新准备", "Set up again") : RoomPokerText.T("开始牌局", "Start game");
-        _start.Disabled = !CanPrepare || _client.IsBusy || !Session.Connected || preparing && !Session.CanStart;
-        _status.Text = Session.Notice switch
-        {
-            "connecting" => RoomPokerText.T("正在连接牌桌…", "Connecting to the table…"),
-            "member_left" or "membership_changed" => RoomPokerText.T("参局成员或房主已变化，牌局已中止。", "A participant or host changed. The game has stopped."),
-            "host_ended" => RoomPokerText.T("房主已结束牌桌。", "The host closed the table."),
-            "cannot_start" => RoomPokerText.T("暂时无法继续牌局。", "The game cannot continue."),
-            _ => preparing ? RoomPokerText.T("房主开始时确认参局，至少两位。未准备的玩家暂不参局。", "The host joins when starting. At least two players required; others may wait.")
-                : Session.State?.Continuation == PokerContinuation.Paused ? RoomPokerText.T("已暂停续局", "Next hand paused")
-                : Session.State?.Continuation == PokerContinuation.PauseRequested ? RoomPokerText.T("本局结束后暂停", "Pausing after this hand")
-                : Session.IsParticipant ? RoomPokerText.T("牌局进行中", "Game in progress")
-                : RoomPokerText.T("准备后从下一局加入。", "Ready up to join the next hand.")
-        };
+        PresentActions(Session, _start, _restart, CanPrepare && !_client.IsBusy);
+        _start.Visible = Session.IsOwner;
     }
     public override void _ExitTree() { Session?.Dispose(); Session = null; }
 }

@@ -54,18 +54,25 @@ public sealed class MischiefPokerMatch
     /// a trusted deterministic-test seam, not a client command. Dealing uses two passes in fixed seat order.
     /// </summary>
     public PokerError StartHand(double nowSeconds, IReadOnlyList<int>? orderedDeck = null,
-        IReadOnlyList<int>? newPlayers = null)
+        IReadOnlyList<int>? newPlayers = null, IReadOnlyList<int>? activePlayers = null)
     {
         if (!IsValidTime(nowSeconds)) return PokerError.InvalidTime;
         if (_phase is PokerPhase.Acting or PokerPhase.AwaitingDraw) return PokerError.HandInProgress;
         // No negative balances, automatic refill, partial ante or unapproved elimination rule.
-        if (_chips.Any(chips => chips < _rules.Ante)) return PokerError.InsufficientChips;
         // Admission and dealing commit together: a rejected start preserves the previous settlement.
         var entrants = newPlayers?.ToArray() ?? Array.Empty<int>();
         if (entrants.Length > 0 && (_phase != PokerPhase.Settled
             || entrants.Length + _players.Length > MischiefPokerRules.MaxPlayers
             || entrants.Distinct().Count() != entrants.Length || entrants.Any(_players.Contains)))
             return PokerError.InvalidRoster;
+        var roster = _players.Concat(entrants).ToArray();
+        var balances = _chips.Concat(Enumerable.Repeat(_rules.InitialChips, entrants.Length)).ToArray();
+        var active = activePlayers?.ToArray() ?? roster;
+        if (active.Length is < 2 or > MischiefPokerRules.MaxPlayers
+            || active.Distinct().Count() != active.Length || active.Any(id => !roster.Contains(id)))
+            return PokerError.InvalidRoster;
+        if (roster.Where((id, seat) => active.Contains(id) && balances[seat] < _rules.Ante).Any())
+            return PokerError.InsufficientChips;
         int[] deck;
         if (orderedDeck != null)
         {
@@ -85,25 +92,32 @@ public sealed class MischiefPokerMatch
         }
 
         // Validate everything before collecting any ante or replacing the previous result.
-        _players = _players.Concat(entrants).ToArray();
-        _chips = _chips.Concat(Enumerable.Repeat(_rules.InitialChips, entrants.Length)).ToArray();
+        _players = roster;
+        _chips = balances;
         _now = nowSeconds;
         if (_settlement != null) _dealer = _settlement.NextDealer;
+        if (!active.Contains(_dealer.PlayerId))
+        {
+            int oldSeat = Array.IndexOf(_players, _dealer.PlayerId);
+            int successor = Enumerable.Range(1, _players.Length)
+                .Select(step => Wrap(oldSeat + step * (int)_dealer.Direction)).First(seat => active.Contains(_players[seat]));
+            _dealer = new(_players[successor], 1, _dealer.Direction);
+        }
         _settlement = null;
         _deck = deck;
         _deckIndex = 0;
-        _holes = _players.Select(_ => new int[2]).ToArray();
+        _holes = _players.Select(id => active.Contains(id) ? new int[2] : Array.Empty<int>()).ToArray();
         _board = new int[5];
         Array.Clear(_pending);
-        _pot = _rules.Ante * _players.Length;
-        for (int i = 0; i < _players.Length; i++) _chips[i] -= _rules.Ante;
+        _pot = _rules.Ante * active.Length;
+        for (int i = 0; i < _players.Length; i++) if (active.Contains(_players[i])) _chips[i] -= _rules.Ante;
         for (int card = 0; card < 2; card++)
-        for (int seat = 0; seat < _players.Length; seat++) _holes[seat][card] = Draw();
+        for (int seat = 0; seat < _players.Length; seat++) if (active.Contains(_players[seat])) _holes[seat][card] = Draw();
         for (int slot = 0; slot < 5; slot++) _board[slot] = Draw();
 
         int dealerSeat = Array.IndexOf(_players, _dealer.PlayerId);
         _order = Enumerable.Range(1, _players.Length)
-            .Select(step => Wrap(dealerSeat + step * (int)_dealer.Direction)).ToArray();
+            .Select(step => Wrap(dealerSeat + step * (int)_dealer.Direction)).Where(seat => active.Contains(_players[seat])).ToArray();
         _turnIndex = 0;
         _flipsUsed = 0;
         _completedTurns.Clear();
@@ -177,25 +191,26 @@ public sealed class MischiefPokerMatch
         var hands = new PokerBestHand[_players.Length];
         Span<int> seven = stackalloc int[7];
         _board.CopyTo(seven);
-        for (int i = 0; i < _players.Length; i++)
+        foreach (int i in _order)
         {
             seven[5] = _holes[i][0];
             seven[6] = _holes[i][1];
             hands[i] = PokerHandEvaluator.EvaluateSeven(seven);
         }
-        var best = hands[0].Value;
-        foreach (var hand in hands)
+        var best = hands[_order[0]].Value;
+        foreach (var hand in _order.Select(i => hands[i]))
             if (hand.Value.CompareTo(best) > 0) best = hand.Value;
         // Seat order here is only for stable presentation; suits/seat/dealer never break a tie.
-        var winnerSeats = Enumerable.Range(0, _players.Length).Where(i => hands[i].Value == best).ToArray();
+        var activeSeats = _order.OrderBy(i => i).ToArray();
+        var winnerSeats = activeSeats.Where(i => hands[i].Value == best).ToArray();
         long award = _pot / winnerSeats.Length;
         long systemTip = _pot % winnerSeats.Length;
-        var results = new PokerShowdown[_players.Length];
-        for (int i = 0; i < _players.Length; i++)
+        var results = new List<PokerShowdown>();
+        foreach (int i in activeSeats)
         {
             long playerAward = hands[i].Value == best ? award : 0;
             _chips[i] += playerAward;
-            results[i] = new PokerShowdown(_players[i], Copy(_holes[i]), hands[i], playerAward);
+            results.Add(new PokerShowdown(_players[i], Copy(_holes[i]), hands[i], playerAward));
         }
         var (nextDealer, reason) = NextDealer(winnerSeats);
         _settlement = new PokerSettlement(_pot, systemTip, Copy(winnerSeats.Select(i => _players[i])),
@@ -238,7 +253,8 @@ public sealed class MischiefPokerMatch
         if (tie || limit)
         {
             // Pass along the OLD direction first, then reverse: the old dealer is next hand's first actor.
-            int successor = Wrap(oldSeat + (int)_dealer.Direction);
+            int successor = Enumerable.Range(1, _players.Length)
+                .Select(step => Wrap(oldSeat + step * (int)_dealer.Direction)).First(_order.Contains);
             return (new PokerDealer(_players[successor], 1, (PokerDirection)(-(int)_dealer.Direction)),
                 tie ? PokerDealerChange.Tie : PokerDealerChange.StreakLimit);
         }
@@ -252,7 +268,7 @@ public sealed class MischiefPokerMatch
         _completedTurns.Add(new PokerCompletedTurn(_players[_order[_turnIndex]], _flipsUsed, reason));
         _turnIndex++;
         _flipsUsed = 0;
-        if (_turnIndex == _players.Length) _phase = PokerPhase.AwaitingDraw;
+        if (_turnIndex == _order.Length) _phase = PokerPhase.AwaitingDraw;
         else _deadline = endedAt + _rules.TurnSeconds;
     }
 

@@ -28,17 +28,20 @@ public partial class InfoPanelController : CanvasLayer
     [Export] public VBoxContainer SessionContent { get; private set; }
     private long? _sessionChips;
     private string _sessionChipsTitle = "";
+    private bool _sessionDisplay;
 
-    public void SetSessionChips(long? chips, string title = "")
+    public void SetSessionChips(long? chips, string title = "", bool sessionActive = false)
     {
-        if (_sessionChips == chips && _sessionChipsTitle == title) return;
+        bool display = sessionActive || chips != null;
+        if (_sessionChips == chips && _sessionChipsTitle == title && _sessionDisplay == display) return;
         _sessionChips = chips;
         _sessionChipsTitle = title;
+        _sessionDisplay = display;
         _chipsTween?.Kill();
-        SessionContent.Visible = chips != null;
-        _payoutPanel.Visible = chips == null;
-        _winResultLabel.Visible = chips == null;
-        _chipsKeyLabel.Text = chips != null ? title : L10n.Tr(L10nKey.InfoPanel_Chips);
+        SessionContent.Visible = display;
+        _payoutPanel.Visible = !display;
+        _winResultLabel.Visible = !display;
+        _chipsKeyLabel.Text = display ? title : L10n.Tr(L10nKey.InfoPanel_Chips);
         SetChipsText(_gameData?.Chips ?? 0);
         RefreshBlindBoxButton();
         // Container children may briefly expand the old panel while their text
@@ -178,7 +181,7 @@ public partial class InfoPanelController : CanvasLayer
 
     private void OnChipsChanged(int newChips)
     {
-        if (_sessionChips != null) { _displayedChips = newChips; return; }
+        if (_sessionDisplay) { _displayedChips = newChips; return; }
         int delta = newChips - _displayedChips;
         if (Mathf.Abs(delta) <= 1)
         {
@@ -265,7 +268,7 @@ public partial class InfoPanelController : CanvasLayer
     /// </summary>
     private void SetChipsText(int chips)
     {
-        if (_sessionChips is long sessionChips) { _chipsLabel.Text = sessionChips.ToString("N0"); return; }
+        if (_sessionDisplay) { _chipsLabel.Text = _sessionChips?.ToString("N0") ?? "—"; return; }
         if (_gameData != null && chips < _gameData.BetAmount)
         {
             _chipsLabel.Text = $"{chips:N0}/{_gameData.BetAmount:N0}";
@@ -508,7 +511,7 @@ public partial class InfoPanelController : CanvasLayer
 
     private void RefreshLocalizedText()
     {
-        _chipsKeyLabel.Text = _sessionChips != null ? _sessionChipsTitle : L10n.Tr(L10nKey.InfoPanel_Chips);
+        _chipsKeyLabel.Text = _sessionDisplay ? _sessionChipsTitle : L10n.Tr(L10nKey.InfoPanel_Chips);
         RefreshActionButtonText(_blindBoxBtn, L10nKey.InfoPanel_Open);
         RefreshActionButtonText(_settingsBtn, L10nKey.InfoPanel_Menu);
 

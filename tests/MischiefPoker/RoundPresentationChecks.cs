@@ -86,6 +86,11 @@ internal static class RoundPresentationChecks
         for (int i = 0; i < 30; i++) auto.Update(low, 0.1);
         Check.That(!auto.CanAffordNext && !auto.RequestNext() && auto.Stage == PokerRoundStage.AwaitingNext,
             "1-99 chips stop both automatic and manual continuation without top-up");
+        var restart = new PokerRoundPresentation { CollectionDealerId = 1 };
+        restart.Update(low, 0); restart.CollectAuthoritative(low);
+        Check.Equal(restart.Stage, PokerRoundStage.Collecting, "authority-approved restart collects even depleted old balances");
+        Advance(restart, low, PokerRoundStage.AwaitingNewHand);
+        Check.Equal(restart.DealerId, 1, "restart badge returns to host rather than the previous tied next dealer");
         auto.Update(tie, 0);
         Check.Equal(auto.Stage, PokerRoundStage.AwaitingNext, "hidden or zero-time presentation does not start automatic collection");
         auto.Update(tie, 0.1);
@@ -95,6 +100,15 @@ internal static class RoundPresentationChecks
         Check.Equal(auto.StageSeconds, frozen, "invalid elapsed time cannot skip transitions");
         auto.Update(tie with { Public = tie.Public with { SessionId = Guid.NewGuid() } }, 0);
         Check.Equal(auto.Stage, PokerRoundStage.FinalAction, "another session cannot inherit old collection or dealer flight");
+        tieMatch.StartHand(1, activePlayers: new[] { 2, 3 });
+        Check.PassAll(tieMatch, 1);
+        var sittingOut = tieMatch.GetPlayerView(1);
+        var observer = new PokerRoundPresentation();
+        observer.Update(sittingOut, 0);
+        Advance(observer, sittingOut, PokerRoundStage.AwaitingNext);
+        Check.That(observer.DisplayView!.HoleCards.Count == 0
+            && observer.DisplayView.Public.Seats.Single(s => s.PlayerId == 1).Chips == sittingOut.Public.Seats.Single(s => s.PlayerId == 1).Chips,
+            "sitting-out result renders without awarding or debiting its retained seat");
         Console.WriteLine("PASS staged round disclosure, feedback hold, tie payouts, collection, dealer transfer and continuation guards");
     }
 

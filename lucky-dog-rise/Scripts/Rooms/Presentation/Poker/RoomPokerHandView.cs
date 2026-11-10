@@ -68,7 +68,7 @@ public partial class RoomPokerHandView : Control
     {
         Show();
         var seat = state.Seats.FirstOrDefault(s => s.PlayerId == playerId);
-        waiting |= seat == null;
+        waiting |= seat == null || !state.ActionOrder.Contains(playerId);
         bool sameHand = _session == state.SessionId && _hand == state.HandNumber;
         if (!sameHand || waiting || !animate || state.Phase != PokerPhase.Acting) StopDeal();
         if (!sameHand)
@@ -87,8 +87,8 @@ public partial class RoomPokerHandView : Control
         _dealer.Visible = !waiting && (round == null ? state.Dealer.PlayerId : round.DealerId) == playerId;
         _clock.Visible = active;
         _clock.Value = active ? 100 * state.SecondsRemaining / TurnSeconds : 0;
-        _seat.Text = waiting ? "—" : $"#{seat.SeatNumber}";
-        _chips.Text = waiting ? "—" : seat.Chips.ToString("N0");
+        _seat.Text = seat == null ? "—" : $"#{seat.SeatNumber}";
+        _chips.Text = seat == null ? "—" : seat.Chips.ToString("N0");
         _dealer.TooltipText = RoomPokerText.T("本局庄家", "Dealer");
         _winner.TooltipText = RoomPokerText.T("本局胜者", "Hand winner");
         _waiting.TooltipText = RoomPokerText.T("等待入局", "Waiting to join a hand");

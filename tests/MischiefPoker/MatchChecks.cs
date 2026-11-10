@@ -13,6 +13,7 @@ internal static class MatchChecks
         DeadlinesAndBadCommands();
         DealerTransitions();
         ChipsAndSystemTips();
+        SittingOutKeepsLedger();
         RandomizedSessions();
     }
 
@@ -285,6 +286,29 @@ internal static class MatchChecks
         Check.Equal(depleted.StartHand(0, WinningDeck(2)), PokerError.InsufficientChips, "insufficient ante blocks whole next hand");
         Check.Equal(JsonSerializer.Serialize(depleted.GetPublicView()), before, "no partial charges, refill, elimination or new hand");
         Check.That(depleted.GetPublicView().Seats.All(seat => seat.Chips >= 0), "balances never go negative");
+    }
+
+    private static void SittingOutKeepsLedger()
+    {
+        var game = Make(3);
+        game.StartHand(0, WinningDeck(3, 1)); Check.PassAll(game, 0);
+        var settled = game.GetPublicView();
+        Check.Equal(settled.Settlement!.NextDealer.PlayerId, Ids[1], "fixture winner would become dealer");
+        string previous = JsonSerializer.Serialize(settled);
+        Check.Equal(game.StartHand(1, activePlayers: [Ids[0]]), PokerError.InvalidRoster, "one active seat is rejected");
+        Check.Equal(JsonSerializer.Serialize(game.GetPublicView()), previous, "rejected roster preserves the settlement");
+        Check.Equal(game.StartHand(1, activePlayers: [Ids[0], Ids[2]]), PokerError.None, "sitting out can skip the planned dealer");
+        var hand = game.GetPublicView();
+        Check.Equal(hand.Dealer.PlayerId, Ids[2], "unavailable dealer passes to next active seat in the same direction");
+        Check.Equal(hand.Dealer.ConsecutiveHands, 1, "replacement dealer starts its own streak");
+        Check.Equal(hand.Seats[1], settled.Seats[1], "inactive seat balance and number are unchanged");
+        Check.That(hand.ActionOrder.SequenceEqual(new[] { Ids[0], Ids[2] }) && hand.Pot == 200, "only active seats take turns and contribute ante");
+        Check.Equal(game.GetPlayerView(Ids[1]).HoleCards.Count, 0, "inactive seat has no dealt cards");
+        Check.PassAll(game, 1);
+        var result = game.GetPublicView().Settlement!;
+        Check.That(result.Players.Count == 2 && !result.Winners.Contains(Ids[1]), "inactive seat cannot win a pot");
+        Check.Equal(game.StartHand(2, activePlayers: Ids.Take(3).ToArray()), PokerError.None, "original seat can return");
+        Check.Equal(game.GetPublicView().Seats[1].Chips, settled.Seats[1].Chips - 100, "return retains balance and pays exactly one new ante");
     }
 
     private static void RandomizedSessions()

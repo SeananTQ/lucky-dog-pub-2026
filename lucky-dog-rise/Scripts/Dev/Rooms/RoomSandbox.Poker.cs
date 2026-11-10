@@ -95,10 +95,15 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         var result = hand.Settlement.Players.FirstOrDefault(p => p.PlayerId == me?.Id);
         if (result == null) return;
         bool won = hand.Settlement.Winners.Contains(result.PlayerId);
+        // Stable variation makes layout testing repeatable: losses alternate between two
+        // short lines and silence. A muted hand stays consumed when the switch is toggled.
+        int lossLine = (int)((hand.HandNumber + client.Id) % 3);
+        if (!won && lossLine == 0) return;
         string text = won ? hand.Settlement.Winners.Count > 1
             ? RoomPokerText.T("哈哈，一起赢！", "Ha! We tied!")
             : RoomPokerText.T($"哈哈，我是{RoomPokerText.Rank(result.BestHand.Value.Rank)}！", $"Ha! {RoomPokerText.Rank(result.BestHand.Value.Rank)}!")
-            : RoomPokerText.T("哎呀，就差一点！", "Oh, so close!");
+            : lossLine == 1 ? RoomPokerText.T("哎呀，就差一点！", "Oh, so close!")
+            : RoomPokerText.T("下把再来！", "Next hand is mine!");
         client.SendChat(text);
     }
 }

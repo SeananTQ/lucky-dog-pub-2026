@@ -38,6 +38,12 @@ public partial class RoomPokerTableView : Node2D
             _board[i].Pressed += () => FlipRequested?.Invoke(slot);
         }
     }
+    public void PresentWaiting()
+    {
+        foreach (var card in _board) { card.Disabled = true; card.Hide(); }
+        _hand.PresentWaiting();
+        _turn.Text = "";
+    }
     public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true,
         bool otherCardsMoving = false)
     {
@@ -55,6 +61,7 @@ public partial class RoomPokerTableView : Node2D
         bool restore = Round.Stage == PokerRoundStage.AwaitingNext && _stage >= PokerRoundStage.Collecting;
         for (int i = 0; i < _board.Count; i++)
         {
+            _board[i].Show();
             if (!sameHand || restore)
             {
                 _board[i].ResetPose();

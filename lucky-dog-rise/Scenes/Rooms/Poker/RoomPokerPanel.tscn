@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPanelView.cs" id="script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 
-[node name="PokerSession" type="VBoxContainer" node_paths=PackedStringArray("_title", "_summary", "_orderHeading", "_order", "_resultHeading", "_result", "_error", "_next", "_pause", "_pauseStatus")]
+[node name="PokerSession" type="VBoxContainer" node_paths=PackedStringArray("_title", "_summary", "_orderHeading", "_order", "_resultHeading", "_result", "_error", "_next", "_action", "_restart")]
 theme = ExtResource("theme")
 theme_override_constants/separation = 4
 script = ExtResource("script")
@@ -15,8 +15,8 @@ _resultHeading = NodePath("ResultHeading")
 _result = NodePath("Results/Content/Result")
 _error = NodePath("Results/Content/Error")
 _next = NodePath("Next")
-_pause = NodePath("Pause")
-_pauseStatus = NodePath("PauseStatus")
+_action = NodePath("Actions/Primary")
+_restart = NodePath("Actions/Restart")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -81,16 +81,22 @@ auto_translate_mode = 2
 autowrap_mode = 3
 theme_type_variation = &"RoomPokerSmallLabel"
 
-[node name="PauseStatus" type="Label" parent="."]
-visible = false
+[node name="Actions" type="HBoxContainer" parent="."]
 layout_mode = 2
-auto_translate_mode = 2
-autowrap_mode = 3
-theme_type_variation = &"RoomPokerSmallLabel"
+theme_override_constants/separation = 6
 
-[node name="Pause" type="Button" parent="."]
+[node name="Primary" type="Button" parent="Actions"]
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"CapsuleButton"
+auto_translate_mode = 2
+focus_mode = 0
+
+[node name="Restart" type="Button" parent="Actions"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SecondaryButton"
 auto_translate_mode = 2
 focus_mode = 0

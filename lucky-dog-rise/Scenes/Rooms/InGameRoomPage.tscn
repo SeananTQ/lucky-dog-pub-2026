@@ -347,23 +347,31 @@ label_settings = ExtResource("group_title")
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="PokerLobby" type="VBoxContainer" parent="Room" node_paths=PackedStringArray("_status", "_start")]
+[node name="PokerLobby" type="VBoxContainer" parent="Room" node_paths=PackedStringArray("_start", "_restart")]
 layout_mode = 2
 theme_override_constants/separation = 6
 script = ExtResource("poker_lobby")
-_status = NodePath("Status")
-_start = NodePath("Start")
+_start = NodePath("Actions/Primary")
+_restart = NodePath("Actions/Restart")
 
-[node name="Status" type="Label" parent="Room/PokerLobby"]
+[node name="Actions" type="HBoxContainer" parent="Room/PokerLobby"]
 layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Primary" type="Button" parent="Room/PokerLobby/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
 auto_translate_mode = 2
-autowrap_mode = 3
-label_settings = ExtResource("helper_label")
+theme_type_variation = &"CapsuleButton"
+focus_mode = 0
 
-[node name="Start" type="Button" parent="Room/PokerLobby"]
+[node name="Restart" type="Button" parent="Room/PokerLobby/Actions"]
+visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 auto_translate_mode = 2
 theme_type_variation = &"SecondaryButton"
+focus_mode = 0
 
 [node name="PokerPreview" type="Button" parent="Room"]
 visible = false

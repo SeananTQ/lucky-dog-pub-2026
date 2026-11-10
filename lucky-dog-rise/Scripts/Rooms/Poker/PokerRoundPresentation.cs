@@ -41,8 +41,10 @@ public sealed class PokerRoundPresentation
     public bool CanAffordNext => _source?.Public.Seats.All(s => s.Chips >= Ante) == true;
     public bool CanRequestNext => Stage == PokerRoundStage.AwaitingNext && CanAffordNext;
     public bool DealerInFlight => Stage == PokerRoundStage.MovingDealer;
+    // A restart returns the badge to the host rather than the previous hand's winner.
+    public int? CollectionDealerId { get; set; }
     public int? DealerId => DealerInFlight ? null : Stage == PokerRoundStage.AwaitingNewHand
-        ? _source?.Public.Settlement?.NextDealer.PlayerId : _source?.Public.Dealer.PlayerId;
+        ? CollectionDealerId ?? _source?.Public.Settlement?.NextDealer.PlayerId : _source?.Public.Dealer.PlayerId;
 
     public void Update(PokerPlayerView view, double delta, bool cardsMoving = false)
     {
@@ -81,7 +83,7 @@ public sealed class PokerRoundPresentation
                 case PokerRoundStage.AwaitingNext when !PauseAfterPayout && CanAffordNext:
                     Enter(PokerRoundStage.Collecting); break;
                 case PokerRoundStage.Collecting when _elapsed >= CollectSeconds && !cardsMoving:
-                    Enter(view.Public.Dealer.PlayerId == view.Public.Settlement?.NextDealer.PlayerId
+                    Enter(view.Public.Dealer.PlayerId == (CollectionDealerId ?? view.Public.Settlement?.NextDealer.PlayerId)
                         ? PokerRoundStage.AwaitingNewHand : PokerRoundStage.MovingDealer);
                     break;
                 case PokerRoundStage.MovingDealer when _elapsed >= DealerFlightSeconds:
@@ -105,6 +107,15 @@ public sealed class PokerRoundPresentation
         Showdown.Update(view, 0);
         for (int i = 0; i < 160 && !Showdown.Finished; i++) Showdown.Update(view, 0.1);
         Enter(PokerRoundStage.AwaitingNext);
+        DisplayView = Mask(view);
+    }
+
+    public void CollectAuthoritative(PokerPlayerView view)
+    {
+        // The authority has already validated resume/restart. A depleted old balance must not
+        // prevent visual collection on a restart, and a slow client must catch up without a vote.
+        CompletePayout(view);
+        if (Stage == PokerRoundStage.AwaitingNext) Enter(PokerRoundStage.Collecting);
         DisplayView = Mask(view);
     }
 
@@ -141,7 +152,7 @@ public sealed class PokerRoundPresentation
         }
         var seats = state.Seats.Select(seat => seat with
         {
-            Chips = seat.Chips - (Paid(seat.PlayerId) ? 0 : result.Players.First(p => p.PlayerId == seat.PlayerId).Award)
+            Chips = seat.Chips - (Paid(seat.PlayerId) ? 0 : result.Players.FirstOrDefault(p => p.PlayerId == seat.PlayerId)?.Award ?? 0)
         }).ToArray();
         return view with { Public = state with
         {
