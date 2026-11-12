@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using Godot;
+using DataTables;
 using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
@@ -33,6 +34,18 @@ public partial class RoomPokerTableView : Node2D
     public PokerShowdownSequence Showdown => Round.Showdown;
     public RoomPokerHandView LocalPanel => _hand;
     public PokerShowdownEmphasis Emphasis => Round.WinnersVisible ? Showdown.Current : null;
+
+    internal EDogReactionTrigger? DogReactionFor(int playerId)
+    {
+        var state = Round.DisplayView?.Public;
+        // Waiting/sitting-out members keep their own desktop activity, not a losing pose.
+        if (state == null || !state.ActionOrder.Contains(playerId)) return null;
+        if (!Round.WinnersVisible || state.Settlement is not { } result) return EDogReactionTrigger.Default;
+        if (!result.Winners.Contains(playerId)) return EDogReactionTrigger.Bored;
+        var hand = result.Players.FirstOrDefault(p => p.PlayerId == playerId);
+        return result.Winners.Count == 1 && hand?.BestHand.Value.Rank >= EHandRank.FullHouse
+            ? EDogReactionTrigger.Starstruck : EDogReactionTrigger.Excited;
+    }
     public override void _Ready()
     {
         for (int i = 0; i < _board.Count; i++)

@@ -54,6 +54,7 @@ public partial class ModeManager
         if (!available)
         {
             PresentNetworkHands(null, poker);
+            PresentRoomPokerReactions(null);
             return;
         }
         if (!_networkPokerAttached && _gameManager != null && CurrentMode == Mode.Play)
@@ -82,6 +83,7 @@ public partial class ModeManager
                 _networkPokerPayout.Hide();
             }
             PresentNetworkHands(null, true);
+            PresentRoomPokerReactions(null);
             return;
         }
         bool visible = _networkPokerAttached && CurrentMode == Mode.Play && !_hiddenByFullscreenApp && !UiInteractionOccupancy.IsOccupied(this);
@@ -108,6 +110,21 @@ public partial class ModeManager
             PresentRoomPokerPayout(_networkPokerTable, _networkPokerPayout, view, visible);
         }
         PresentNetworkHands(_networkPokerTable.Round.DisplayView, true);
+        PresentRoomPokerReactions(_networkPokerTable);
+    }
+
+    private void PresentRoomPokerReactions(RoomPokerTableView table)
+    {
+        void Apply(DogVisual dog, int id)
+        {
+            if (GodotObject.IsInstanceValid(dog)) dog.SetRoomPokerReaction(table?.DogReactionFor(id));
+        }
+        int localId = table?.Round.DisplayView?.PlayerId ?? 0;
+        Apply(_bossDogVisual, localId);
+        Apply(_gameManager?.RoomPokerDog, localId);
+        foreach (var dogs in new[] { _roomPokerDogs, _roomDesktop })
+            if (GodotObject.IsInstanceValid(dogs))
+                foreach (var dog in dogs.RemoteDogs) Apply(dog.Dog, dog.MemberId);
     }
 
     private void PresentNetworkHands(PokerPlayerView view, bool show)
@@ -185,6 +202,7 @@ public partial class ModeManager
     private void StopNetworkPoker()
     {
         if (_networkPokerTable == null) return;
+        PresentRoomPokerReactions(null);
         if (_networkPokerAttached && GodotObject.IsInstanceValid(_gameManager))
         { _gameManager.SessionPokerTurnEnd -= NetworkPokerEndTurn; _gameManager.EndRoomPoker(); }
         if (_networkPokerAttached && GodotObject.IsInstanceValid(_infoPanel)) _infoPanel.SetSessionChips(null);

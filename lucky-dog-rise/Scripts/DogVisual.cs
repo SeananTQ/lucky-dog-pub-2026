@@ -43,7 +43,17 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 #if !DEMO_BUILD && !RECORDING_BUILD
     private bool _roomTongueDriven;
     private bool _roomTongueActive;
-    public bool RoomTongueActive => _roomTongueDriven && _roomTongueActive && _reactionShowsTongue;
+    internal EDogReactionTrigger? RoomPokerReaction { get; private set; }
+    public bool RoomTongueActive => !RoomPokerReaction.HasValue && _roomTongueDriven && _roomTongueActive && _reactionShowsTongue;
+
+    // A presentation override, not the member's published desktop activity. Keep the
+    // latest underlying reaction so leaving the table restores current normal behavior.
+    internal void SetRoomPokerReaction(EDogReactionTrigger? reaction)
+    {
+        if (RoomPokerReaction == reaction) return;
+        RoomPokerReaction = reaction;
+        if (IsNodeReady()) ReapplyCurrentReaction();
+    }
 #endif
     private Tween _tongueTween = null!;
     private Tween _pawTween = null!;
@@ -131,6 +141,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         if (_tongue == null) return;
 
 #if !DEMO_BUILD && !RECORDING_BUILD
+        if (RoomPokerReaction.HasValue) return;
         if (_roomTongueDriven)
         {
             if (!RoomTongueActive) return;
@@ -323,6 +334,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     public void PlayDesktopTongueTap(int inputCount = 1)
     {
         if (!IsNodeReady() || _tongue == null || !_reactionShowsTongue) return;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (RoomPokerReaction.HasValue) return;
+#endif
 
         if (_desktopTongueTimer <= 0f && _desktopTongueActiveTimer <= 0f)
             _desktopTongueBasePosition = _tongue.Position;
@@ -394,6 +408,9 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             _temporaryReactionActive = false;
 
         _currentReaction = trigger;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        if (RoomPokerReaction.HasValue) return;
+#endif
         ReapplyCurrentReaction();
     }
 
@@ -762,7 +779,11 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
 
     private void ReapplyCurrentReaction()
     {
-        ApplyReactionVisual(ResolveReaction(_currentReaction));
+        var trigger = _currentReaction;
+#if !DEMO_BUILD && !RECORDING_BUILD
+        trigger = RoomPokerReaction ?? trigger;
+#endif
+        ApplyReactionVisual(ResolveReaction(trigger));
     }
 
     private DogReactionVisual ResolveReaction(EDogReactionTrigger trigger)

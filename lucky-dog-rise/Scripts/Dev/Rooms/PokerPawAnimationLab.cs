@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
+using DataTables;
 using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
@@ -146,42 +147,107 @@ public partial class PokerPawAnimationLab : Control
                 "each card owns its directional flip parameters");
 
             // Contract checks use actual mirrored paw sprites and rotated/scaled table space.
-            // Move each paw to either side of the card: hand ordinal must not pick direction.
+            // Check both local original size and remote card-relative size. Above/below
+            // approaches stay shallow, including cards at either extreme of random tilt.
             Reset(false);
-            Vector2 dogPosition = _dogs[1].Position;
-            foreach (Vector2 from in new[] { Vector2.Left, Vector2.Right, Vector2.Up, Vector2.Down, new Vector2(1, 1).Normalized() })
-                for (int number = 1; number <= 2; number++)
-                {
-                    paws.Cancel(); card.ResetPose(); card.Present(4, true, false);
-                    var root = _dogs[1].PokerPaw(number == 2);
-                    var original = root.GetChildren().OfType<Sprite2D>().First(s => s.Visible);
-                    var cardPose = card.GetParent<CanvasItem>().GetGlobalTransformWithCanvas() * card.PawPose(0);
-                    _dogs[1].Position += cardPose.Origin + from * 350 - original.GlobalPosition;
-                    Vector2 expected = -from;
-                    paws.Play(new PokerFlip(1, 2, number, 0, false), card, false, 0,
-                        direction => card.Present(4, false, true, direction));
-                    var flying = paws.GetNode<Sprite2D>("Overlay/Paw1");
-                    Vector2 toes = flying.Transform.Y.Normalized() * (flying.FlipV ? -1 : 1);
-                    Check(toes.Dot(expected) > 0.999f && (flying.Position - cardPose.Origin).Dot(from) > 0,
-                        $"paw {number} approaches from {from} with toes toward the card");
-                    paws._Process(RoomPokerPawEffects.ApproachSeconds + .01);
-                    Vector2 projected = (cardPose.X * card.FlipDirection.X + cardPose.Y * card.FlipDirection.Y).Normalized();
-                    Check(projected.Dot(expected) > 0.999f && card.IsFlipping,
-                        $"paw {number} and card share direction from {from}");
-                    paws._Process(RoomPokerPawEffects.PushSeconds + RoomPokerPawEffects.ReturnTurnSeconds);
-                    Check(flying.Visible && flying.Position.DistanceTo(original.GlobalPosition) > 10
-                        && flying.Transform.Y.Normalized().Dot(original.GlobalTransform.Y.Normalized()) > 0.999f
-                        && Mathf.Sign(flying.Transform.Determinant()) == Mathf.Sign(original.GlobalTransform.Determinant()),
-                        $"paw {number} faces home early while still returning from {from}");
-                    paws._Process(RoomPokerPawEffects.ReturnSeconds);
-                    Check(paws.ActiveCount == 0 && root.Modulate.A == 1
-                        && paws.LastReturnPosition.DistanceTo(original.GlobalPosition) < 0.1f,
-                        $"paw {number} finishes at its original pose from {from}");
-                }
-            _dogs[1].Position = dogPosition;
+            foreach (bool local in new[] { true, false })
+            {
+                int playerId = local ? 1 : 2;
+                var dog = _dogs[playerId - 1];
+                Vector2 dogPosition = dog.Position;
+                foreach (Vector2 from in new[] { Vector2.Left, Vector2.Right, Vector2.Up, Vector2.Down, new Vector2(1, 1).Normalized() })
+                    for (int number = 1; number <= 2; number++)
+                    {
+                        paws.Cancel(); card.ResetPose(); card.Present(4, true, false);
+                        float angle = Mathf.DegToRad(number == 1 ? -14 : 14);
+                        card.Rotation = angle;
+                        var root = dog.PokerPaw(number == 2);
+                        var original = root.GetChildren().OfType<Sprite2D>().First(s => s.Visible);
+                        var cardPose = card.GetParent<CanvasItem>().GetGlobalTransformWithCanvas() * card.PawPose(angle);
+                        dog.Position += cardPose.Origin + from * 350 - original.GlobalPosition;
+                        paws.Play(new PokerFlip(1, playerId, number, 0, false), card, local, angle,
+                            direction => card.Present(4, false, true, direction));
+                        var flying = paws.GetNode<Sprite2D>("Overlay/Paw1");
+                        Vector2 toes = flying.Transform.Y.Normalized() * (flying.FlipV ? -1 : 1);
+                        Check(toes.Dot(-from) > 0 && (flying.Position - cardPose.Origin).Dot(from) > 0
+                            && Mathf.Abs(toes.Y) <= Mathf.Sin(Mathf.DegToRad(RoomPokerPawEffects.MaxPushAngleDegrees)) + .001f,
+                            $"player {playerId} paw {number} uses a shallow push from {from}");
+                        var home = original.GetGlobalTransformWithCanvas();
+                        bool OriginalSize() => Mathf.Abs(flying.Transform.X.Length() - home.X.Length()) < .001f
+                            && Mathf.Abs(flying.Transform.Y.Length() - home.Y.Length()) < .001f;
+                        Check(local ? OriginalSize() : Mathf.Abs(flying.Transform.X.Length() * flying.Texture.GetWidth()
+                            - cardPose.X.Length() * card.Size.X * .64f) < .01f,
+                            $"player {playerId} paw {number} uses the correct local/remote size");
+                        paws._Process((local ? 0 : RoomPokerPawEffects.ApproachSeconds) + .01);
+                        Vector2 projected = (cardPose.X * card.FlipDirection.X + cardPose.Y * card.FlipDirection.Y).Normalized();
+                        Check(projected.Dot(toes) > .999f && card.IsFlipping,
+                            $"player {playerId} paw {number} and card share direction from {from}");
+                        paws._Process(RoomPokerPawEffects.PushSeconds + RoomPokerPawEffects.ReturnTurnSeconds);
+                        Check(flying.Visible && flying.Position.DistanceTo(original.GlobalPosition) > 10
+                            && flying.Transform.Y.Normalized().Dot(home.Y.Normalized()) > .999f
+                            && Mathf.Sign(flying.Transform.Determinant()) == Mathf.Sign(home.Determinant())
+                            && (!local || OriginalSize()),
+                            $"player {playerId} paw {number} turns home early and keeps its return size from {from}");
+                        paws._Process(RoomPokerPawEffects.ReturnSeconds);
+                        Check(paws.ActiveCount == 0 && root.Modulate.A == 1
+                            && paws.LastReturnPosition.DistanceTo(original.GlobalPosition) < .1f,
+                            $"player {playerId} paw {number} finishes at its original pose from {from}");
+                    }
+                dog.Position = dogPosition;
+            }
             card.ResetPose();
             Check(card.FlipProgress == 0 && card.FlipDirection == Vector2.Zero,
                 "cancelling a directional flip restores its undeformed face");
+
+            // The same presentation owns reactions: a received result must remain hidden
+            // until showdown, and sitting-out/late players must not be treated as losers.
+            foreach (var sample in new[] {
+                (Prefix: "As 4s 2c Ts 2h Qc Kh 8s Kd Jd 7d", Reaction: EDogReactionTrigger.Excited, Tie: false),
+                (Prefix: "Ah Kd Jc As Qh Tc Ac Ad 7h 9s 2d", Reaction: EDogReactionTrigger.Starstruck, Tie: false),
+                (Prefix: "2d 3h 4s 5d 6h 7s Tc Jc Qc Kc Ac", Reaction: EDogReactionTrigger.Excited, Tie: true) })
+            {
+                int[] prefix = sample.Prefix.Split(' ').Select(t => "cdhs".IndexOf(t[1]) * 13 + "A23456789TJQK".IndexOf(t[0])).ToArray();
+                var match = new MischiefPokerMatch(new[] { 1, 2, 3 }, 1);
+                Check(match.StartHand(0, prefix.Concat(Enumerable.Range(0, 52).Except(prefix)).ToArray()) == PokerError.None,
+                    "reaction fixture uses a valid complete deck");
+                _table.Present(match.GetPlayerView(1), false, animate: false);
+                for (int i = 0; i < 3; i++)
+                {
+                    var state = match.GetPublicView();
+                    match.Act(new(state.SessionId, state.HandNumber, state.Revision, state.ActivePlayerId.Value, PokerAction.EndTurn), 0);
+                }
+                match.ResolveHand();
+                var view = match.GetPlayerView(1);
+                _table.Present(view, false, animate: false);
+                Check(Enumerable.Range(1, 3).All(id => _table.DogReactionFor(id) == EDogReactionTrigger.Default),
+                    "received settlement does not reveal outcome through dog expressions early");
+                _table.Round.CompletePayout(view);
+                Check(_table.DogReactionFor(1) == sample.Reaction
+                    && _table.DogReactionFor(2) == (sample.Tie ? EDogReactionTrigger.Excited : EDogReactionTrigger.Bored)
+                    && _table.DogReactionFor(3) == (sample.Tie ? EDogReactionTrigger.Excited : EDogReactionTrigger.Bored),
+                    $"showdown gives {sample.Reaction} to winner and handles tie={sample.Tie}");
+                Check(_table.DogReactionFor(4) == null, "late observer does not inherit an outcome");
+                match.StartHand(0, activePlayers: new[] { 1, 2 });
+                _table.Present(match.GetPlayerView(1), false, animate: false);
+                Check(_table.DogReactionFor(1) == EDogReactionTrigger.Default && _table.DogReactionFor(3) == null,
+                    "new hand clears celebration and releases sitting-out player's expression");
+            }
+            var reactionDog = _dogs[0];
+            var eyes = reactionDog.GetNode<Sprite2D>("HeadRoot/Eyes");
+            reactionDog.ApplyReaction(EDogReactionTrigger.Bored);
+            var boredEyes = eyes.Texture;
+            reactionDog.ApplyReaction(EDogReactionTrigger.Starstruck);
+            var winningEyes = eyes.Texture;
+            reactionDog.ApplyReaction(EDogReactionTrigger.Default);
+            reactionDog.SetRoomPokerReaction(EDogReactionTrigger.Starstruck);
+            reactionDog.ApplyReaction(EDogReactionTrigger.Bored);
+            Check(eyes.Texture == winningEyes && eyes.Texture != boredEyes && reactionDog.CurrentReaction == EDogReactionTrigger.Bored,
+                "poker reaction is visible without overwriting/publishing underlying activity");
+            reactionDog.SetRoomTongueActivity(true);
+            Check(!reactionDog.RoomTongueActive, "typing tongue activity cannot override an active table pose");
+            reactionDog.SetRoomPokerReaction(null);
+            Check(eyes.Texture == boredEyes && reactionDog.RoomTongueActive,
+                "leaving poker restores latest underlying expression and tongue activity");
             GD.Print($"POKER_PAW_LAB_PASS: {checks}"); GetTree().Quit();
         }
         catch (Exception error) { GD.PushError("POKER_PAW_LAB_FAIL: " + error); GetTree().Quit(1); }

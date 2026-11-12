@@ -132,6 +132,7 @@ public partial class ModeManager
         PresentPreviewHands(_roomPokerDogs, display.Public);
         PresentPreviewHands(_roomDesktop, display.Public);
         UpdatePokerPreviewPayout(view, presentationVisible);
+        PresentRoomPokerReactions(_pokerPreviewTable);
     }
 
     private void PresentPreviewHands(RoomDesktopPreview dogs, PokerPublicView state)
@@ -157,6 +158,7 @@ public partial class ModeManager
     private void StopPokerPreview()
     {
         if (_pokerPreview == null) return;
+        PresentRoomPokerReactions(null);
         _pokerPreview = null;
         _gameManager.SessionPokerTurnEnd -= PokerPreviewEndTurn;
         _gameManager.EndRoomPoker();

@@ -15,6 +15,7 @@ public partial class RoomPokerPawEffects : Node2D
     [Export] private Godot.Collections.Array<Sprite2D> _sprites = new();
     public const double ApproachSeconds = 0.10, PushSeconds = 0.16, ReturnSeconds = 0.38;
     public const double ReturnTurnSeconds = 0.10;
+    public const float MaxPushAngleDegrees = 35;
     private Func<int, bool, Node2D> _source;
     private Func<CanvasItem, Transform2D> _toWindow;
     private readonly List<Flight> _flights = new();
@@ -26,7 +27,7 @@ public partial class RoomPokerPawEffects : Node2D
         public RoomPokerCardView Card;
         public Action<Vector2> Contact;
         public double Age, Delay;
-        public bool Contacted, Returning;
+        public bool Local, Contacted, Returning;
         public Transform2D Start;
         public float Angle;
         public Vector2 Direction;
@@ -75,10 +76,17 @@ public partial class RoomPokerPawEffects : Node2D
         // Which paw moves and which way it pushes are independent. Each client lays out its
         // dogs differently, so derive the approach from this paw's actual screen position.
         var cardPose = _toWindow(card.GetParent<CanvasItem>()) * card.PawPose(angle);
-        Vector2 direction = -(cardPose.AffineInverse() * _toWindow(source).Origin);
-        direction = direction.LengthSquared() > 0.001f ? direction.Normalized() : Vector2.Down;
+        Vector2 screenPush = cardPose.Origin - _toWindow(source).Origin;
+        // Prefer a shallow left/right push even when the dog sits above/below the card.
+        // Clamp in screen space so the card's random tilt cannot turn it vertical again.
+        float side = Mathf.Abs(screenPush.X) > 0.01f ? Mathf.Sign(screenPush.X) : (right ? -1 : 1);
+        float horizontal = Mathf.Max(Mathf.Abs(screenPush.X),
+            Mathf.Abs(screenPush.Y) / Mathf.Tan(Mathf.DegToRad(MaxPushAngleDegrees)));
+        screenPush.X = side * Mathf.Max(horizontal, 0.001f);
+        var inverse = cardPose.AffineInverse();
+        Vector2 direction = (inverse.X * screenPush.X + inverse.Y * screenPush.Y).Normalized();
         var flight = new Flight { Copy = sprite, Source = source, Root = root, Card = card,
-            Contact = contact, Delay = delay, Angle = angle, Direction = direction };
+            Local = local, Contact = contact, Delay = delay, Angle = angle, Direction = direction };
         _flights.Add(flight);
         sprite.Show();
         if (local) Touch(flight);
@@ -114,9 +122,10 @@ public partial class RoomPokerPawEffects : Node2D
         var card = _toWindow(f.Card.GetParent<CanvasItem>()) * f.Card.PawPose(f.Angle);
         Vector2 axis = (card.X * f.Direction.X + card.Y * f.Direction.Y).Normalized();
         float width = card.X.Length() * f.Card.Size.X;
-        float pawWidth = width * 0.64f;
         var home = _toWindow(f.Source);
-        float scale = pawWidth / (f.Copy.Texture.GetWidth() * home.X.Length());
+        float sourceWidth = f.Copy.Texture.GetWidth() * home.X.Length();
+        float pawWidth = f.Local ? sourceWidth : width * 0.64f;
+        float scale = f.Local ? 1 : pawWidth / sourceWidth;
         // Toes point along the sprite's local +Y, also for the mirrored right paw. Rotate
         // its existing basis instead of reconstructing a negative scale as a half turn.
         Vector2 forward = home.Y * (f.Copy.FlipV ? -1 : 1);

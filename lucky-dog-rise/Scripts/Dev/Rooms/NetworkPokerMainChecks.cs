@@ -101,6 +101,9 @@ internal static class NetworkPokerMainChecks
             Check(session.State.Hand.Public.Pot == 300 && session.State.Hand.HoleCards.Count == 2, "initial ante and own two private cards");
             await Until(() => main.RoomPokerDogsForSmoke?.RemoteDogs.Count() == 2, "remote dogs have table presentations");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.PokerHand.Visible && !d.PokerHand.CardsRevealed), "opponents show backs during play");
+            Check(game.RoomPokerDog.RoomPokerReaction == DataTables.EDogReactionTrigger.Default
+                && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.Dog.RoomPokerReaction == DataTables.EDogReactionTrigger.Default),
+                "active hand uses neutral expressions for local and remote dogs");
             await Until(() => session.DisplayView.Public.ActivePlayerId == client.Id && session.State.DealRemaining == 0 && !table.IsDealing,
                 "simulated clients pass to the local owner");
             Click(pause); await Wait();
@@ -144,6 +147,16 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.State.Continuation == PokerContinuation.Paused && table.Round.Stage == PokerRoundStage.AwaitingNext,
                 "pause retains all cards after winner payout", 25);
             var result = session.DisplayView.Public;
+            Check(game.RoomPokerDog.RoomPokerReaction == table.DogReactionFor(client.Id)
+                && main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.Dog.RoomPokerReaction == table.DogReactionFor(d.MemberId)),
+                "formal showdown presents each dog's own result reaction");
+            game.EmitSignal(GameManager.SignalName.DesktopModeRequested); await Wait(.2);
+            var desktopDog = main.GetNode<DogVisual>("BossKeyContent/ContentA/DogArea");
+            Check(desktopDog.RoomPokerReaction == table.DogReactionFor(client.Id)
+                && main.RoomDesktopForSmoke.RemoteDogs.All(d => d.Dog.RoomPokerReaction == table.DogReactionFor(d.MemberId))
+                && client.Reaction == (int)desktopDog.CurrentReaction,
+                "desktop round trip retains result poses without echoing them as member activity");
+            main.RoomRequestPokerForSmoke(); await Wait(.2);
             Guid tableId = session.State.Table;
             await Wait(1.0);
             Check(session.DisplayView.Public.HandNumber == 1 && data.Chips == soloChips, "pause adds no ante and payouts do not touch personal chips");
@@ -153,6 +166,9 @@ internal static class NetworkPokerMainChecks
             Click(pause);
             await Until(() => session.DisplayView.Public.HandNumber == 2, "resume collects cards and begins next hand in the same session", 8);
             Check(session.State.Table == tableId && session.DisplayView.Public.Dealer == result.Settlement.NextDealer, "resume keeps original session and planned dealer");
+            await Wait();
+            Check(game.RoomPokerDog.RoomPokerReaction == DataTables.EDogReactionTrigger.Default,
+                "automatic next-hand presentation clears previous win/loss reaction");
             Check(session.DisplayView.Public.Seats.Sum(s => s.Chips) + session.DisplayView.Public.Pot
                 + session.DisplayView.Public.TotalSystemTips == 3000, "one ante and one payout per hand");
 
@@ -177,6 +193,8 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.State.Players.Length == 4, "late room join is tracked separately from current hand");
             Check(session.State.Hand.Public.Seats.Count == 3, "late member waits for host restart");
             await Until(() => main.RoomPokerDogsForSmoke.RemoteDogs.Any(d => d.MemberId == 4 && d.PokerHand.IsWaiting), "late dog displays waiting instead of private cards");
+            Check(main.RoomPokerDogsForSmoke.RemoteDogs.Single(d => d.MemberId == 4).Dog.RoomPokerReaction == null,
+                "late waiting dog keeps its normal activity expression");
             game.EmitSignal(GameManager.SignalName.DesktopModeRequested); await Wait();
             Check(main.RoomDesktopForSmoke.LocalPokerHand.IsVisibleInTree(), "own panel remains visible on return to desktop");
             main.RoomRequestPokerForSmoke(); await Wait();
@@ -201,6 +219,8 @@ internal static class NetworkPokerMainChecks
             Check(game.State == GameState.WaitingForBet && data.Chips == soloChips, "ready state cannot debit a solo hand");
             client.Leave(); await Wait(.5);
             Check(lobby.Session == null && !game.IsSessionPokerReserved, "leaving room disposes the channel and ready reservation");
+            Check(game.RoomPokerDog.RoomPokerReaction == null && desktopDog.RoomPokerReaction == null,
+                "leaving room removes both local dog presentation overrides");
             panel.CloseImmediate();
             var deck = (DeckManager)typeof(GameManager).GetField("_deck", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(game);
             int winningSeed = Enumerable.Range(1, 1000).First(seed =>
