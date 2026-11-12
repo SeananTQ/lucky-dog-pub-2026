@@ -25,6 +25,10 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private bool _introShowsTongue = true;
     private Node2D _clawLeft = null!;
     private Node2D _clawRight = null!;
+#if !DEMO_BUILD && !RECORDING_BUILD
+    // Presentation borrows a temporary copy and only suppresses the original's alpha.
+    internal Node2D PokerPaw(bool right) => right ? _clawRight : _clawLeft;
+#endif
     private Sprite2D _eyewear = null!;
     private Sprite2D _headwear = null!;
     private Button _hitButton = null!;

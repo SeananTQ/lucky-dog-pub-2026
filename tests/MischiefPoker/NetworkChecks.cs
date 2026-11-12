@@ -15,6 +15,7 @@ internal static class NetworkChecks
         MembershipAndRecovery();
         MalformedMessages();
         AtomicCoreAdmission();
+        FlipHistory();
         Console.WriteLine("PASS serialized multiplayer readiness, private hands, permissions, retries, admission and interruption");
     }
 
@@ -65,6 +66,37 @@ internal static class NetworkChecks
         a.Act(PokerAction.EndTurn); h.Step();
         h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + PokerNetworkSession.CollectionDuration + .2);
         Check.Equal(a.State!.Hand!.Public.HandNumber, 2L, "authority advances without any presentation acknowledgement");
+    }
+
+    private static void FlipHistory()
+    {
+        using var h = new Hub("a", "b");
+        var a = h.Sessions["a"]; var b = h.Sessions["b"];
+        b.SetReady(true); h.Step(); a.Start(); h.Step(4.1);
+        Check.That(b.Act(PokerAction.Flip, 0), "first remote flip accepted"); h.Step();
+        Check.That(b.Act(PokerAction.Flip, 0), "second remote flip accepted"); h.Step();
+        var hand = a.State!.Hand!.Public;
+        Check.That(hand.Flips.Count == 2 && !hand.Board[0].PendingReplacement, "both actions survive identical final board state");
+        Check.Sequence(hand.Flips.Select(f => f.Number), new[] { 1, 2 }, "left then right are per-turn action numbers");
+        Check.Sequence(hand.Flips.Select(f => f.FaceUp), new[] { false, true }, "flip history preserves face changes");
+        Check.That(a.DisplayView!.Public.Flips.All(f => f.PlayerId == a.Context!.Members.Single(m => m.Key == "b").LocalId)
+            && b.DisplayView!.Public.Flips.All(f => f.PlayerId == 1), "each viewer rebinds acting dog identity");
+        var state = a.State;
+        var room = a.Context!;
+        bool Valid(params PokerFlip[] flips) => PokerNetworkProtocol.ValidState(state with
+        { Hand = state.Hand! with { Public = hand with { Flips = flips } } }, room);
+        Check.That(Valid(hand.Flips.ToArray()), "complete public history survives serialized snapshot");
+        Check.That(!Valid(hand.Flips[0], hand.Flips[0]), "duplicate action revision rejected");
+        Check.That(!Valid(hand.Flips[0] with { PlayerId = 6 }, hand.Flips[1]), "unknown actor rejected");
+        Check.That(!Valid(hand.Flips[0] with { Slot = 5 }, hand.Flips[1]), "out-of-range card rejected");
+        Check.That(!Valid(hand.Flips[0] with { Number = 2 }, hand.Flips[1]), "missing first action rejected");
+        Check.That(!Valid(hand.Flips[0], hand.Flips[1] with { FaceUp = false }), "non-toggle history rejected");
+        Check.That(!Valid(hand.Flips[0]), "incomplete history rejected against completed turn");
+        var saved = hand.Flips.ToArray();
+        a.Act(PokerAction.EndTurn); h.Step();
+        Check.Sequence(a.State!.Hand!.Public.Flips, saved, "system replacement/settlement adds no paw action");
+        h.Step(PokerNetworkSession.PayoutDuration(a.State.Hand.Public) + 5);
+        Check.That(a.State.Hand!.Public.HandNumber == 2 && a.State.Hand.Public.Flips.Count == 0, "new hand clears bounded flip history");
     }
 
     private static void GameEntryConsent()

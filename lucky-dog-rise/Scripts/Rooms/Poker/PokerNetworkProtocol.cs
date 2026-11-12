@@ -1,6 +1,7 @@
 #if !DEMO_BUILD && !RECORDING_BUILD
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
@@ -29,7 +30,7 @@ public sealed record PokerPacket(int Protocol, string Room, string SenderTicket,
 
 public static class PokerNetworkProtocol
 {
-    public const int Version = 3;
+    public const int Version = 4;
     public const int MaxBytes = 32768;
     private static readonly JsonSerializerOptions Options = new() { MaxDepth = 24 };
     public static byte[] Encode(PokerPacket packet) => JsonSerializer.SerializeToUtf8Bytes(packet, Options);
@@ -85,7 +86,7 @@ public static class PokerNetworkProtocol
                 || h.TurnDeadline.HasValue && !double.IsFinite(h.TurnDeadline.Value)
                 || h.Pot is < 0 or > 600 || h.TotalSystemTips is < 0 or > 6000
                 || h.Phase == PokerPhase.Acting && (!h.ActivePlayerId.HasValue || !h.ActionOrder.Contains(h.ActivePlayerId.Value))
-                || h.FlipsRemaining is < 0 or > 2) return false;
+                || h.FlipsRemaining is < 0 or > 2 || !ValidFlips(h)) return false;
             if (self?.Playing == true)
             {
                 int count = h.ActionOrder.Contains(self.Id) ? 2 : 0;
@@ -119,6 +120,35 @@ public static class PokerNetworkProtocol
     private static bool ValidDealer(PokerDealer d, int[] ids) => d != null && ids.Contains(d.PlayerId)
         && d.ConsecutiveHands is >= 1 and <= 4 && Enum.IsDefined(d.Direction);
 
+    private static bool ValidFlips(PokerPublicView h)
+    {
+        if (h.Flips == null || h.Flips.Count > h.ActionOrder.Count * 2) return false;
+        long revision = 0;
+        int previousSeat = -1;
+        var counts = new System.Collections.Generic.Dictionary<int, int>();
+        var faces = Enumerable.Repeat(true, 5).ToArray();
+        foreach (var flip in h.Flips)
+        {
+            if (flip == null || flip.Slot is < 0 or >= 5 || flip.Revision <= revision || flip.Revision > h.Revision) return false;
+            int seat = Array.IndexOf(h.ActionOrder.ToArray(), flip.PlayerId);
+            counts.TryGetValue(flip.PlayerId, out int count);
+            if (seat < previousSeat || seat < 0 || flip.Number != count + 1 || flip.Number > 2
+                || flip.FaceUp == faces[flip.Slot]) return false;
+            counts[flip.PlayerId] = flip.Number;
+            faces[flip.Slot] = flip.FaceUp;
+            revision = flip.Revision; previousSeat = seat;
+        }
+        if (h.CompletedTurns.Any(t => t.FlipsUsed != counts.GetValueOrDefault(t.PlayerId))) return false;
+        if (h.ActivePlayerId is int active && counts.GetValueOrDefault(active) != 2 - h.FlipsRemaining) return false;
+        for (int slot = 0; slot < 5; slot++)
+        {
+            bool pending = h.Phase == PokerPhase.Settled
+                ? h.Settlement?.Replacements.Any(r => r.Slot == slot) == true : h.Board[slot].PendingReplacement;
+            if (pending == faces[slot]) return false;
+        }
+        return true;
+    }
+
     // Rebind canonical seat IDs to the viewer's existing dog IDs, without changing seat numbers.
     public static PokerPlayerView? ForDisplay(PokerNetworkState? state, PokerRoomContext? room)
     {
@@ -141,6 +171,7 @@ public static class PokerNetworkProtocol
             Seats = h.Seats.Select(p => p with { PlayerId = Id(p.PlayerId) }).ToArray(),
             Dealer = Dealer(h.Dealer), ActionOrder = h.ActionOrder.Select(Id).ToArray(),
             ActivePlayerId = h.ActivePlayerId is int id ? Id(id) : null,
+            Flips = h.Flips.Select(f => f with { PlayerId = Id(f.PlayerId) }).ToArray(),
             CompletedTurns = h.CompletedTurns.Select(t => t with { PlayerId = Id(t.PlayerId) }).ToArray(), Settlement = r
         } };
     }

@@ -3,8 +3,14 @@
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerCardView.cs" id="script"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="back"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="Shader" path="res://Scenes/Rooms/Poker/RoomPokerFlip.gdshader" id="flip"]
+
+[sub_resource type="ShaderMaterial" id="DirectionalFlip"]
+resource_local_to_scene = true
+shader = ExtResource("flip")
 
 [node name="Card" type="TextureButton" node_paths=PackedStringArray("_outline", "_dealShadow")]
+material = SubResource("DirectionalFlip")
 offset_right = 120.0
 offset_bottom = 168.0
 focus_mode = 0

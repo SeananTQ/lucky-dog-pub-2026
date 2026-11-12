@@ -4,13 +4,17 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerCard.tscn" id="card"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="hand"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerPaws.tscn" id="paws"]
 
-[node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn")]
+[node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn", "Paws")]
 z_index = 6
 script = ExtResource("script")
 _board = [NodePath("Board/Card1"), NodePath("Board/Card2"), NodePath("Board/Card3"), NodePath("Board/Card4"), NodePath("Board/Card5")]
 _hand = NodePath("Hand")
 _turn = NodePath("Turn")
+Paws = NodePath("Paws")
+
+[node name="Paws" parent="." instance=ExtResource("paws")]
 
 [node name="Board" type="Control" parent="."]
 offset_left = 276.0

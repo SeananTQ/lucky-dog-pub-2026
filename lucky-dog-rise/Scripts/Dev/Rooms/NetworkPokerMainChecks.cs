@@ -112,13 +112,28 @@ internal static class NetworkPokerMainChecks
             panel.ShowRoomPage(); await Wait(.2);
             var container = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
             panel.SetPanelPosition(container.Position + new Vector2(container.Size.X * container.Scale.X + 8, 0));
+            // Production placement updates the dismiss shield after moving the panel.
+            // This manually arranged fixture must do the same, even if it opened over poker.
+            main.Call("UpdatePlayPanelDismissOverlay");
             await Wait(.1);
             Check(panel.IsOpen && !panel.PanelRect.Intersects(new Rect2(container.Position, container.Size * container.Scale)),
                 "settings panel is open beside the poker table");
             await PointerClick(table.GetNode<TextureButton>("Board/Card1"));
             await Until(() => session.DisplayView.Public.Revision > revision, "real viewport click reaches authority with side panel open", 2);
             Check(session.DisplayView.Public.Board[0].PendingReplacement, "accepted flip is reflected in table state");
-            panel.SetPanelPosition(container.Position); await Wait(.1);
+            Check(table.Paws.ActiveCount == 1 && game.RoomPokerDog.PokerPaw(false).Modulate.A == 0
+                && game.RoomPokerDog.PokerPaw(true).Modulate.A == 1,
+                "network local flip hides only the first paw and plays once");
+            var pawLayer = table.Paws.GetNode<CanvasLayer>("Overlay");
+            var flyingPaw = pawLayer.GetChildren().OfType<Sprite2D>().Single(s => s.Visible);
+            var boardCenter = container.GetGlobalTransformWithCanvas()
+                * ((table.GetNode<Control>("Board").GetGlobalTransformWithCanvas() * new Vector2(60, 84))
+                    * (container.Size / container.GetNode<SubViewport>("SubViewport").Size));
+            Check(pawLayer.CustomViewport == main.GetViewport() && flyingPaw.Position.DistanceTo(boardCenter) < 90,
+                "paw crosses the poker SubViewport into the correct window-space card position");
+            panel.SetPanelPosition(container.Position);
+            main.Call("UpdatePlayPanelDismissOverlay");
+            await Wait(.1);
             Check(table.GetNode<TextureButton>("Board/Card2").Disabled, "overlapping settings panel still blocks cards");
             panel.CloseImmediate(); await Wait(.1);
             Check(!table.GetNode<TextureButton>("Board/Card2").Disabled, "closing the overlay restores input without switching modes");

@@ -12,10 +12,13 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Godot.Collections.Array<RoomPokerCardView> _board = new();
     [Export] private RoomPokerHandView _hand;
     [Export] private Label _turn;
+    [Export] public RoomPokerPawEffects Paws { get; private set; }
     public event Action<int> FlipRequested;
     private long _handNumber = -1;
     private Guid _session;
-    private PokerBoardCard[] _lastBoard = Array.Empty<PokerBoardCard>();
+    private long _lastFlip;
+    private bool _wasAnimated;
+    private PokerFlip _predicted;
     private PokerRoundStage _stage;
     private int _topCard;
 #if DEBUG
@@ -40,18 +43,41 @@ public partial class RoomPokerTableView : Node2D
     }
     public void PresentWaiting()
     {
+        Paws.Cancel(); _wasAnimated = false; _predicted = null;
         foreach (var card in _board) { card.Disabled = true; card.Hide(); }
         _hand.PresentWaiting();
         _turn.Text = "";
     }
     public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true,
-        bool otherCardsMoving = false)
+        bool otherCardsMoving = false, bool actionPending = false)
     {
-        Round.Update(view, presentationDelta, otherCardsMoving || _hand.IsMoving || _board.Any(card => card.IsMoving));
+        Round.Update(view, presentationDelta, Paws.IsTouching || otherCardsMoving || _hand.IsMoving || _board.Any(card => card.IsMoving));
         view = Round.DisplayView;
         var state = view.Public;
         bool sameHand = _session == state.SessionId && _handNumber == state.HandNumber;
         animate &= IsVisibleInTree();
+        if (!sameHand || !animate) Paws.Cancel();
+        var prediction = _predicted;
+        bool confirmed = prediction != null && state.Flips.Contains(prediction);
+        if (prediction != null && (!sameHand || !animate || confirmed || !actionPending))
+        {
+            _predicted = null;
+            if (!confirmed)
+            {
+                // A rejected/stale command only rolls back the local cosmetic prediction.
+                Paws.Cancel();
+                _board[prediction.Slot].ResetPose();
+                _board[prediction.Slot].Present(state.Board[prediction.Slot].Card,
+                    !state.Board[prediction.Slot].PendingReplacement, false);
+            }
+        }
+        if (sameHand && animate && _wasAnimated && Round.ActionResultsVisible)
+            foreach (var flip in state.Flips.Where(f => f.Revision > _lastFlip))
+            {
+                if (flip != prediction) PlayFlip(flip, view);
+            }
+        _lastFlip = state.Flips.LastOrDefault()?.Revision ?? 0;
+        _wasAnimated = animate;
         _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, animate, round: Round);
         bool deal = !sameHand && state.Phase == PokerPhase.Acting && animate && DealAnimationsEnabled;
         if (!sameHand) _topCard = 0;
@@ -68,10 +94,8 @@ public partial class RoomPokerTableView : Node2D
                 _board[i].GetParent().MoveChild(_board[i], -1);
             }
             if (!sameHand || !animate || state.Phase != PokerPhase.Acting) _board[i].StopDealAnimation();
-            _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, animate && sameHand);
-            if (sameHand && animate && Round.ActionResultsVisible && _lastBoard.Length == _board.Count
-                && _lastBoard[i].PendingReplacement != state.Board[i].PendingReplacement)
-                _board[i].AnimateMischief(++_topCard);
+            if (_predicted?.Slot != i && !Paws.HasPendingFlip(_board[i]))
+                _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, animate && sameHand);
             int card = state.Board[i].Card;
             _board[i].SetEmphasis(Emphasis != null && !Emphasis.WinnerCards.Contains(card),
                 Emphasis?.LocalCards.Contains(card) == true, Emphasis?.DecisiveCard == card,
@@ -84,7 +108,6 @@ public partial class RoomPokerTableView : Node2D
         if (straighten && animate) AudioManager.Instance?.PlaySfxOncePerFrame("Card_PokerBoardStraighten", "RoomPokerStraighten");
         _session = state.SessionId;
         _handNumber = state.HandNumber;
-        _lastBoard = state.Board.ToArray();
         _stage = Round.Stage;
         foreach (var card in _board) card.Disabled = !canAct || IsDealing || Round.Stage != PokerRoundStage.Acting;
         _turn.Text = IsDealing ? RoomPokerText.T("发牌中…", "Dealing…") : state.Phase == PokerPhase.Acting
@@ -100,6 +123,30 @@ public partial class RoomPokerTableView : Node2D
                 PokerRoundStage.MovingDealer or PokerRoundStage.AwaitingNewHand => RoomPokerText.T("交接庄家…", "Passing the dealer button…"),
                 _ => RoomPokerText.T("本局结束 · 可查看各自手牌", "Showdown · All hands revealed")
             };
+    }
+
+    // Start only after the transport accepts a local request. The authority still decides
+    // legality; an ACK suppresses replay, while rejection restores the authoritative board.
+    public void PredictLocalFlip(int slot)
+    {
+        var view = Round.DisplayView;
+        if (_predicted != null || view == null || slot is < 0 or >= 5 || !IsVisibleInTree()
+            || Round.Stage != PokerRoundStage.Acting || view.Public.ActivePlayerId != view.PlayerId) return;
+        _predicted = new(view.Public.Revision + 1, view.PlayerId,
+            3 - view.Public.FlipsRemaining, slot, view.Public.Board[slot].PendingReplacement);
+        PlayFlip(_predicted, view);
+    }
+
+    private void PlayFlip(PokerFlip flip, PokerPlayerView view)
+    {
+        var node = _board[flip.Slot];
+        int value = view.Public.Board[flip.Slot].Card, order = ++_topCard;
+        float angle = node.ChooseMischiefAngle();
+        Paws.Play(flip, node, flip.PlayerId == view.PlayerId, angle, direction =>
+        {
+            node.Present(value, flip.FaceUp, true, direction);
+            node.AnimateMischief(order, angle);
+        });
     }
 }
 

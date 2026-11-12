@@ -41,6 +41,7 @@ public partial class ModeManager
         if (CurrentMode != Mode.Play) return;
         _pokerPreviewTable = _gameManager.BeginRoomPoker();
         if (_pokerPreviewTable == null) return;
+        BindRoomPokerPaws(_pokerPreviewTable);
         _pokerPreviewPayout = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPayout.tscn").Instantiate<RoomPokerPayoutView>();
         AddChild(_pokerPreviewPayout);
         _pokerPreviewClient = client;

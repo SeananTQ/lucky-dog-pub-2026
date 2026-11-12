@@ -44,7 +44,12 @@ public partial class ModeManager
             _networkPokerTable = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerTable.tscn").Instantiate<RoomPokerTableView>();
             AddChild(_networkPokerTable); _networkPokerTable.Hide();
             _networkPokerSession = session; _networkPokerTableId = session.State.Table;
-            _networkPokerTable.FlipRequested += slot => { if (NetworkPokerInputAllowed) session.Act(PokerAction.Flip, slot); };
+            _networkPokerTable.FlipRequested += slot =>
+            {
+                if (!NetworkPokerInputAllowed || !session.Act(PokerAction.Flip, slot)) return;
+                _networkPokerTable.PredictLocalFlip(slot);
+                TickNetworkPoker(0);
+            };
         }
         if (!available)
         {
@@ -54,6 +59,7 @@ public partial class ModeManager
         if (!_networkPokerAttached && _gameManager != null && CurrentMode == Mode.Play)
         {
             _gameManager.BeginRoomPoker(_networkPokerTable);
+            BindRoomPokerPaws(_networkPokerTable);
             _networkPokerAttached = true;
             _networkPokerPanel = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPanel.tscn").Instantiate<RoomPokerPanelView>();
             _infoPanel.SessionContent.AddChild(_networkPokerPanel);
@@ -86,7 +92,8 @@ public partial class ModeManager
             ? session.Context.Members.First(m => m.Key == session.Context.OwnerKey).LocalId : null;
         if (session.IsCollecting) _networkPokerTable.Round.CollectAuthoritative(view);
         _networkPokerTable.Present(view, act, delta, animate: visible,
-            otherCardsMoving: visible && _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true);
+            otherCardsMoving: visible && _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true,
+            actionPending: session.ActionPending && session.Connected);
         // A late snapshot or background stall must not replay an obsolete settlement before collecting.
         if (view.Public.Phase == PokerPhase.Settled && session.State.SettlementElapsed >= PokerNetworkSession.PayoutDuration(view.Public))
             _networkPokerTable.Round.CompletePayout(view);
@@ -130,6 +137,22 @@ public partial class ModeManager
         && !_hiddenByFullscreenApp && !IsSettingsPanelOverlappingPoker() && !UiInteractionOccupancy.IsOccupied(this)
         && !_networkPokerTable.IsDealing && _roomPokerDogs?.LocalChat.Editing != true;
     private void NetworkPokerEndTurn() { if (NetworkPokerInputAllowed) _networkPokerSession?.Act(PokerAction.EndTurn); }
+
+    private void BindRoomPokerPaws(RoomPokerTableView table)
+    {
+        table.Paws.Bind(GetViewport(), (id, right) =>
+        {
+            var dog = id == table.Round.DisplayView?.PlayerId ? _gameManager?.RoomPokerDog
+                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.Dog;
+            return GodotObject.IsInstanceValid(dog) ? dog.PokerPaw(right) : null;
+        }, node =>
+        {
+            var transform = node.GetGlobalTransformWithCanvas();
+            if (node.GetViewport() != _playSubViewport) return transform;
+            return _playViewport.GetGlobalTransformWithCanvas()
+                * new Transform2D(0, _playViewport.Size / _playSubViewport.Size, 0, Vector2.Zero) * transform;
+        });
+    }
 
     private void PresentRoomPokerPayout(RoomPokerTableView table, RoomPokerPayoutView payout, PokerPlayerView view, bool visible)
     {

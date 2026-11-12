@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPawEffects.cs" id="script"]
+
+[node name="RoomPokerPaws" type="Node2D" node_paths=PackedStringArray("_layer", "_sprites")]
+script = ExtResource("script")
+_layer = NodePath("Overlay")
+_sprites = [NodePath("Overlay/Paw1"), NodePath("Overlay/Paw2"), NodePath("Overlay/Paw3"), NodePath("Overlay/Paw4"), NodePath("Overlay/Paw5"), NodePath("Overlay/Paw6"), NodePath("Overlay/Paw7"), NodePath("Overlay/Paw8"), NodePath("Overlay/Paw9"), NodePath("Overlay/Paw10"), NodePath("Overlay/Paw11"), NodePath("Overlay/Paw12")]
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+layer = 80
+
+[node name="Paw1" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw2" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw3" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw4" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw5" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw6" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw7" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw8" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw9" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw10" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw11" type="Sprite2D" parent="Overlay"]
+visible = false
+
+[node name="Paw12" type="Sprite2D" parent="Overlay"]
+visible = false

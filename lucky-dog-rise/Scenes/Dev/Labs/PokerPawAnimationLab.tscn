@@ -1,0 +1,95 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/PokerPawAnimationLab.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerTable.tscn" id="table"]
+[ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="PokerPawAnimationLab" type="Control" node_paths=PackedStringArray("_table", "_dogs", "_local", "_remote", "_double", "_pass", "_reset", "_close", "_status")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_table = NodePath("Table")
+_dogs = [NodePath("Dog1"), NodePath("Dog2"), NodePath("Dog3")]
+_local = NodePath("Tools/Local")
+_remote = NodePath("Tools/Remote")
+_double = NodePath("Tools/Double")
+_pass = NodePath("Tools/Pass")
+_reset = NodePath("Tools/Reset")
+_close = NodePath("Tools/Close")
+_status = NodePath("Status")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.14, 0.18, 0.20, 1)
+
+[node name="Tools" type="HBoxContainer" parent="."]
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 1260.0
+offset_bottom = 56.0
+theme_override_constants/separation = 12
+
+[node name="Local" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "本机回合"
+
+[node name="Remote" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "远端回合"
+
+[node name="Double" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "同牌连续两翻"
+
+[node name="Pass" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "结束当前回合"
+
+[node name="Reset" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "重置"
+
+[node name="Close" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "退出"
+
+[node name="Status" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 64.0
+offset_right = 1260.0
+offset_bottom = 120.0
+mouse_filter = 2
+
+[node name="Dog1" parent="." instance=ExtResource("dog")]
+position = Vector2(710, 400)
+scale = Vector2(0.4, 0.4)
+
+[node name="Dog2" parent="." instance=ExtResource("dog")]
+position = Vector2(160, 500)
+scale = Vector2(0.24, 0.24)
+
+[node name="Dog3" parent="." instance=ExtResource("dog")]
+position = Vector2(1100, 650)
+scale = Vector2(0.24, 0.24)
+
+[node name="Table" parent="." instance=ExtResource("table")]
+position = Vector2(230, -200)
+scale = Vector2(0.8, 0.8)

@@ -17,6 +17,7 @@ public sealed class MischiefPokerMatch
     private long[] _chips;
     private readonly MischiefPokerRules _rules;
     private readonly List<PokerCompletedTurn> _completedTurns = new();
+    private readonly List<PokerFlip> _flips = new();
     private int[] _deck = Array.Empty<int>();
     private int[][] _holes = Array.Empty<int[]>();
     private int[] _board = Array.Empty<int>();
@@ -121,6 +122,7 @@ public sealed class MischiefPokerMatch
         _turnIndex = 0;
         _flipsUsed = 0;
         _completedTurns.Clear();
+        _flips.Clear();
         _deadline = _now + _rules.TurnSeconds;
         _phase = PokerPhase.Acting;
         _handNumber++;
@@ -159,6 +161,7 @@ public sealed class MischiefPokerMatch
                 if ((uint)command.Slot >= 5) return PokerError.InvalidSlot;
                 _pending[command.Slot] = !_pending[command.Slot];
                 _flipsUsed++;
+                _flips.Add(new(_revision + 1, command.PlayerId, _flipsUsed, command.Slot, !_pending[command.Slot]));
                 if (_flipsUsed == MischiefPokerRules.FlipsPerTurn) FinishTurn(_now, PokerTurnEnd.TwoFlipsUsed);
                 break;
             case PokerAction.EndTurn:
@@ -232,7 +235,7 @@ public sealed class MischiefPokerMatch
             acting ? _players[_order[_turnIndex]] : null,
             acting ? MischiefPokerRules.FlipsPerTurn - _flipsUsed : 0,
             acting ? _deadline : null, acting ? Math.Max(0, _deadline - _now) : 0,
-            Copy(_completedTurns), _pot, _systemTips, _settlement);
+            Copy(_completedTurns), _pot, _systemTips, _settlement) { Flips = Copy(_flips) };
     }
 
     /// <summary>Authority-side projection only. A transport must authenticate the recipient before calling.</summary>

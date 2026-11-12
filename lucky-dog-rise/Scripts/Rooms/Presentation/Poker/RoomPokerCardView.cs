@@ -10,6 +10,7 @@ public partial class RoomPokerCardView : TextureButton
     [Export] private Panel _outline;
     [Export] private TextureRect _dealShadow;
     private Tween _flip, _bounce, _deal, _motion;
+    private ShaderMaterial _flipMaterial;
     private Vector2 _baseScale = Vector2.One, _dealPosition, _home;
     private float _homeRotation;
     private int _homeZ, _shownCard = -1;
@@ -26,20 +27,23 @@ public partial class RoomPokerCardView : TextureButton
     public bool Dimmed { get; private set; }
     public bool Outlined => _outline.Visible;
     public bool Decisive { get; private set; }
+    internal Vector2 FlipDirection { get; private set; }
+    internal float FlipProgress { get; private set; }
 
     public override void _Ready()
     {
         _baseScale = Scale;
         _home = Position; _homeRotation = Rotation; _homeZ = ZIndex;
+        _flipMaterial = Material as ShaderMaterial;
         if (PivotOffset == Vector2.Zero) PivotOffset = Size / 2;
         VisibilityChanged += () => { if (!IsVisibleInTree()) StopDealAnimation(); };
     }
 
-    public void Present(int card, bool faceUp, bool animate)
+    public void Present(int card, bool faceUp, bool animate, Vector2 pushDirection = default)
     {
         if (_card == card && _faceUp == faceUp) return;
         StopDealAnimation();
-        _flip?.Kill();
+        StopFlipAnimation();
         StopEmphasisAnimation();
         bool hadCard = _card != -2;
         _card = card;
@@ -53,14 +57,47 @@ public partial class RoomPokerCardView : TextureButton
             AudioManager.Instance?.PlaySfxOncePerFrame(
                 _faceUp ? "Card_PokerHandFlipToFront" : "Card_PokerHandFlipToBack", "RoomPokerFlip");
             _flip = CreateTween();
-            _flip.TweenProperty(this, "scale:x", 0f, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            bool directional = _flipMaterial != null && pushDirection.LengthSquared() > 0.001f;
+            if (directional)
+            {
+                FlipDirection = pushDirection.Normalized();
+                _flipMaterial.SetShaderParameter("card_size", Size);
+                _flipMaterial.SetShaderParameter("flip_direction", FlipDirection);
+                _flip.TweenMethod(Callable.From<float>(SetFlipProgress), 0f, 0.5f, 0.08)
+                    .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+            }
+            else
+                _flip.TweenProperty(this, "scale:x", 0f, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
             _flip.TweenCallback(Callable.From(() => { TextureNormal = texture; _shownCard = _faceUp ? card : -1; }));
-            _flip.TweenProperty(this, "scale:x", _baseScale.X, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            if (directional)
+            {
+                _flip.TweenMethod(Callable.From<float>(SetFlipProgress), 0.5f, 1f, 0.08)
+                    .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+                _flip.TweenCallback(Callable.From(() => SetFlipProgress(0)));
+            }
+            else
+                _flip.TweenProperty(this, "scale:x", _baseScale.X, 0.08).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
         }
         else { TextureNormal = texture; _shownCard = _faceUp ? card : -1; }
     }
 
-    public void AnimateMischief(int order)
+    private void SetFlipProgress(float progress)
+    {
+        FlipProgress = progress;
+        _flipMaterial?.SetShaderParameter("flip_progress", progress);
+    }
+
+    private void StopFlipAnimation()
+    {
+        _flip?.Kill(); _flip = null;
+        FlipDirection = Vector2.Zero;
+        SetFlipProgress(0);
+    }
+
+    internal float ChooseMischiefAngle() => _homeRotation + Mathf.DegToRad((float)GD.RandRange(-14, 14));
+    internal Transform2D PawPose(float angle) => new(angle, _baseScale, 0, Position + PivotOffset);
+
+    public void AnimateMischief(int order, float? angle = null)
     {
         _motion?.Kill();
         ZIndex = order;
@@ -69,7 +106,7 @@ public partial class RoomPokerCardView : TextureButton
         _motion = CreateTween().SetParallel(true);
         _motion.TweenProperty(this, "position", _home + new Vector2((float)GD.RandRange(-10, 10), (float)GD.RandRange(-10, 10)), 0.16)
             .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
-        _motion.TweenProperty(this, "rotation", _homeRotation + Mathf.DegToRad((float)GD.RandRange(-14, 14)), 0.16)
+        _motion.TweenProperty(this, "rotation", angle ?? ChooseMischiefAngle(), 0.16)
             .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
     }
 
@@ -102,7 +139,7 @@ public partial class RoomPokerCardView : TextureButton
     public void ResetPose()
     {
         StopDealAnimation();
-        _flip?.Kill(); _motion?.Kill(); StopEmphasisAnimation();
+        StopFlipAnimation(); _motion?.Kill(); StopEmphasisAnimation();
         Position = _home; Rotation = _homeRotation; Scale = _baseScale; ZIndex = _homeZ;
         Modulate = Colors.White;
         SelfModulate = Colors.White; _outline.Hide(); Dimmed = Decisive = false; _cue = long.MinValue;
@@ -111,7 +148,7 @@ public partial class RoomPokerCardView : TextureButton
     public void AnimateDeal(double delay, float pitch)
     {
         StopDealAnimation();
-        _flip?.Kill();
+        StopFlipAnimation();
         StopEmphasisAnimation();
         _dealPosition = Position;
         _dealTint = Modulate;

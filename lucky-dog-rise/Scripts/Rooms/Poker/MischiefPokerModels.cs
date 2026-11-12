@@ -46,6 +46,8 @@ public sealed record PokerDealer(int PlayerId, int ConsecutiveHands, PokerDirect
 public sealed record PokerSeat(int PlayerId, int SeatNumber, long Chips);
 // A face-down community card remains publicly known: it was already visible and has not been replaced.
 public sealed record PokerBoardCard(int Card, bool PendingReplacement);
+// Bounded public action history (at most two flips per seat). No private or future cards.
+public sealed record PokerFlip(long Revision, int PlayerId, int Number, int Slot, bool FaceUp);
 public sealed record PokerCompletedTurn(int PlayerId, int FlipsUsed, PokerTurnEnd Reason);
 public sealed record PokerReplacement(int Slot, int OldCard, int NewCard);
 public sealed record PokerShowdown(int PlayerId, IReadOnlyList<int> HoleCards, PokerBestHand BestHand, long Award);
@@ -58,6 +60,9 @@ public sealed record PokerPublicView(Guid SessionId, long HandNumber, long Revis
     IReadOnlyList<PokerSeat> Seats, PokerDealer Dealer, IReadOnlyList<int> ActionOrder,
     IReadOnlyList<PokerBoardCard> Board, int? ActivePlayerId, int FlipsRemaining,
     double? TurnDeadline, double SecondsRemaining, IReadOnlyList<PokerCompletedTurn> CompletedTurns,
-    long Pot, long TotalSystemTips, PokerSettlement? Settlement);
+    long Pot, long TotalSystemTips, PokerSettlement? Settlement)
+{
+    public IReadOnlyList<PokerFlip> Flips { get; init; } = Array.Empty<PokerFlip>();
+}
 public sealed record PokerPlayerView(PokerPublicView Public, int PlayerId, IReadOnlyList<int> HoleCards);
 #endif
