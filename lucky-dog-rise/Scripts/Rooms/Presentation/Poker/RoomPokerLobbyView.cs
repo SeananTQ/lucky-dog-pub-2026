@@ -5,7 +5,7 @@ using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
 
-// Both the information panel and the member list use these same actions and authority state.
+// Both panels share commands and authority state; only the poker information panel shows in-hand controls.
 public partial class RoomPokerLobbyView : VBoxContainer
 {
     [Export] private Button _start, _restart;
@@ -38,7 +38,8 @@ public partial class RoomPokerLobbyView : VBoxContainer
         else if (session.State?.Continuation == PokerContinuation.Paused) session.Resume();
         else session.SetPauseRequested(session.State?.Continuation != PokerContinuation.PauseRequested);
     }
-    public static void PresentActions(PokerNetworkSession session, Button primary, Button restart = null, bool available = true)
+    public static void PresentActions(PokerNetworkSession session, Button primary, Button restart = null, bool available = true,
+        bool includeInHandActions = true)
     {
         primary.Visible = true;
         primary.Disabled = !available || session?.Connected != true;
@@ -68,6 +69,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
             }
             else
             {
+                primary.Visible = includeInHandActions;
                 bool pending = state.Continuation == PokerContinuation.PauseRequested;
                 primary.Text = pending ? RoomPokerText.T("取消暂停", "Cancel") : RoomPokerText.T("打完暂停", "Pause");
                 primary.Disabled |= session.IsCollecting;
@@ -82,6 +84,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
                 && state.Continuation is PokerContinuation.Paused or PokerContinuation.Collecting or PokerContinuation.Restarting;
             if (session.IsInHand && (!finished || session.IsReady))
             {
+                primary.Visible = includeInHandActions;
                 primary.Text = session.IsReady ? RoomPokerText.T("打完离座", "Sit out") : RoomPokerText.T("取消离座", "Cancel");
                 primary.ThemeTypeVariation = session.IsReady ? "CapsuleButton" : "CapsuleActionButton";
                 primary.TooltipText = RoomPokerText.T("完成本局后离座，不再扣底注；保留筹码与座位。", "Sit out after this hand. Keep your seat and chips without paying further antes.");
@@ -106,7 +109,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
         var p = Session?.State?.Players.FirstOrDefault(p => p.Key == peer?.Key && p.Ticket == peer.Ticket);
         bool owner = member.Id == _client?.View?.OwnerId;
         if (poker && member.Id == _client.Id && !owner)
-            PresentActions(Session, ready, available: CanPrepare && !_client.IsBusy);
+            PresentActions(Session, ready, available: CanPrepare && !_client.IsBusy, includeInHandActions: false);
         else ready.Hide();
         status.Visible = poker && !ready.Visible;
         bool inHand = p != null && Session?.State?.Hand?.Public.ActionOrder.Contains(p.Id) == true;
@@ -122,10 +125,10 @@ public partial class RoomPokerLobbyView : VBoxContainer
         { Session?.Dispose(); Session = null; Hide(); return; }
         if (Session == null && _client.OpenPokerLink() is { } link) Session = new(link);
         Session?.Tick(delta);
-        Visible = Session != null && _client.View.GameId == RoomRules.MischiefPoker;
-        if (!Visible) return;
-        PresentActions(Session, _start, _restart, CanPrepare && !_client.IsBusy);
-        _start.Visible = Session.IsOwner;
+        if (Session == null || _client.View.GameId != RoomRules.MischiefPoker) { Hide(); return; }
+        PresentActions(Session, _start, _restart, CanPrepare && !_client.IsBusy, includeInHandActions: false);
+        _start.Visible &= Session.IsOwner;
+        Visible = _start.Visible || _restart.Visible;
     }
     public override void _ExitTree() { Session?.Dispose(); Session = null; }
 }
