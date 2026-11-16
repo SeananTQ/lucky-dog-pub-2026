@@ -83,7 +83,8 @@ const BUILD_CHANNEL_MASKS = Object.freeze({
     playtest: 2,
     demo: 4,
     release: 8,
-    all: 2 | 4 | 8,
+    playtestRecording: 16,
+    all: 2 | 4 | 8 | 16,
 });
 
 const ITEM_TYPE_NAMES = Object.freeze({
@@ -683,6 +684,8 @@ function validateLinkTree(records, itemDefs, itemRecords) {
     const claimedByBundle = new Map();
     const itemsById = new Map(itemRecords.map(record => [record.Id, record]));
     let checkedReferenceCount = 0;
+    // Recording builds have no LinkTree capability, unlike local Demo rewards.
+    const allowedChannels = BUILD_CHANNEL_MASKS.all & ~BUILD_CHANNEL_MASKS.playtestRecording;
 
     for (const record of records) {
         const key = typeof record.Key === "string" && record.Key.trim()
@@ -695,7 +698,7 @@ function validateLinkTree(records, itemDefs, itemRecords) {
 
         if (!Number.isInteger(buildChannelMask)
             || buildChannelMask < 0
-            || (buildChannelMask & ~BUILD_CHANNEL_MASKS.all) !== 0) {
+            || (buildChannelMask & ~allowedChannels) !== 0) {
             errors.push(`${key}：BuildChannelMask 必须只包含 Playtest、Demo、Release。`);
             continue;
         }
@@ -1031,20 +1034,30 @@ function buildAutoGeneratorBundle(box, itemRecords, rarityRateRecords, itemWeigh
 
 function validateBlindBoxChannels(boxes, schedules) {
     const errors = [];
-    const allowed = BUILD_CHANNEL_MASKS.playtest | BUILD_CHANNEL_MASKS.demo | BUILD_CHANNEL_MASKS.release;
+    const allowed = BUILD_CHANNEL_MASKS.all;
     const valid = mask => Number.isInteger(mask) && mask >= 0 && mask <= allowed && (mask & ~allowed) === 0;
     const boxesById = new Map(boxes.map(box => [box.Id, box]));
     for (const box of boxes) {
         if (!valid(box.BuildChannelMask))
-            errors.push(`BlindBox ${box.Id}：BuildChannelMask 必须只包含 Playtest、Demo、Release。`);
+            errors.push(`BlindBox ${box.Id}：BuildChannelMask 必须只包含 Playtest、Demo、Release、PlaytestRecording。`);
         else if (box.IsEnabled === true && box.BuildChannelMask === 0)
             errors.push(`BlindBox ${box.Id}：启用的盲盒必须至少配置一个 BuildChannelMask。`);
+        else if (box.IsEnabled === true
+            && (box.BuildChannelMask & BUILD_CHANNEL_MASKS.playtestRecording) !== 0
+            && box.IsPlatformInventoryRequired !== false)
+            errors.push(`BlindBox ${box.Id}：录屏盲盒必须配置 IsPlatformInventoryRequired=false。`);
     }
     for (const schedule of schedules.filter(row => row.IsEnabled === true)) {
         const mask = schedule.BuildChannelMask;
         if (!valid(mask) || mask === 0) {
             errors.push(`BlindBoxSchedule ${schedule.Id}：启用的投放必须配置有效的 BuildChannelMask。`);
             continue;
+        }
+        if ((mask & BUILD_CHANNEL_MASKS.playtestRecording) !== 0) {
+            for (const field of ["SteamPlaytimeGeneratorItemDefId", "SteamCompletionReceiptItemDefId"]) {
+                if ((schedule[field] ?? 0) !== 0)
+                    errors.push(`BlindBoxSchedule ${schedule.Id}：录屏投放的 ${field} 必须为 0。`);
+            }
         }
         for (const [field, label] of [["BlindBoxId", "奖励盲盒"], ["FallbackBlindBoxId", "Fallback 盲盒"]]) {
             if (field === "FallbackBlindBoxId" && !schedule[field]) continue;

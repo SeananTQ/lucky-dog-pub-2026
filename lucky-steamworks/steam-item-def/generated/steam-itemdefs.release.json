@@ -830,6 +830,18 @@
       "tags": "rarity:legendary"
     },
     {
+      "itemdefid": 102034,
+      "type": "item",
+      "name": "Autumn 2026 Graduation Cap",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "auto_stack": false,
+      "hidden": false,
+      "tags": "rarity:special_1"
+    },
+    {
       "itemdefid": 104001,
       "type": "item",
       "name": "Type 1",
@@ -1528,7 +1540,7 @@
     {
       "itemdefid": 109004,
       "type": "item",
-      "name": "Chardonnay",
+      "name": "Champagne",
       "granted_manually": false,
       "tradable": false,
       "marketable": false,

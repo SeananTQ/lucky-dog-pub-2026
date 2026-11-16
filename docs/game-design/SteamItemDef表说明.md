@@ -1,10 +1,12 @@
 ---
 last_editor: Codex
-last_edit: 2026-09-01
+last_edit: 2026-11-16
 status: draft
 ---
 
 # SteamItemDef 表说明
+
+主人日常操作以 [Steam ItemDef 转换器与上传流程](../../lucky-steamworks/steam-item-def/README.md)为入口；本文保留字段和业务规则说明。ItemDef ID 分段的唯一权威来源是 [SteamItemDefIdRange 导出数据](../../lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json)。
 
 本文记录已经导出到项目目录的直接奖励 ItemDef 数据和转换器规则。常规标准券、新手券和盲盒招待券已退出客户端运行时；旧定义因 Steam ItemDef 不可复用而继续保留，旧 PlaytimeGenerator 通过 `use_drop_limit=true`、`drop_limit=0` 停止发放。新版 schema 已上传到 Playtest AppID，直接奖励客户端、进度回执、Mock 回归和开发者帐号真实 Steam 核心回归已经完成。目标行为以 [盲盒系统设计](盲盒系统设计.md) 为准。
 
@@ -143,7 +145,7 @@ Steam 后台的英文说明。内部回执可使用简短技术说明。
 
 是否参与 Steam ItemDef 配置导出。已发布且不再使用的定义不应复用 ID；需要停止发放时应关闭促销资格或停用对应业务入口。
 
-对于已经上传到 Steamworks 的定义，`IsEnabled=FALSE` 不应使转换器将该行从完整 Steam schema 中省略，否则仍持有该库存实例的玩家可能无法取得定义信息。该字段仅用于阻止从未发布的草稿参与首次发布；已发布定义需要停止使用时，应保留定义并关闭对应的业务入口或促销资格。
+当前转换器不输出 `IsEnabled=FALSE` 的行；省略一行不等于向 Steam 提交删除，也不能用来撤销已经产生的库存实例。已经发布的定义必须保留原表行和 ID 台账，不得复用 ID。需要退役的 PlaytimeGenerator 应先保持启用，以 `SteamUseDropLimit=TRUE`、`SteamDropLimit=0` 上传停发配置；确认 Steam 已收到后，后续才可关闭本地导出。其它定义停用时应同步检查其业务入口、促销资格和现有库存的定义需求。
 
 `SteamUseDropLimit`
 
@@ -209,7 +211,7 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 2. `Generator`
    - 填随机权重，例如 `100101x80;100102x20`。
    - Steam 发放生成器时按权重产生结果；生成器本身不会保留在玩家库存中。
-   - 填 `@AUTO` 时，转换器会根据引用它的 `BlindBox`、`BlindBoxRarityRate` 和 `Item` 权重列生成完整奖池。
+   - 填 `@AUTO` 时，转换器会根据引用它的 `BlindBox`、`BlindBoxRarityRate`、`BlindBoxItemWeight` 和 `Item` 生成完整奖池。
 
 3. `PlaytimeGenerator`
    - 当前项目用于直接准备盲盒装扮，必须以数量 1 引用一个 Generator 奖励池，例如 `301001x1`。
@@ -225,12 +227,12 @@ Steam 的 `promo` 属性原文。支持复杂规则，因此使用字符串而�
 物品最终概率 = 该品质概率 * 物品在该品质内的权重 / 该品质候选物品总权重
 ```
 
-品质概率来自 `BlindBoxRarityRate`。品质内候选物品及权重列由盲盒类型决定，例如标准盲盒读取 `Item.StandardBoxWeight`，新手盲盒读取 `Item.NewbieBoxWeight`。转换器会把最终概率缩放为总量 `1000000` 的整数权重，并在生成前检查以下问题：
+品质概率来自 `BlindBoxRarityRate`。品质内候选物品及权重来自对应盲盒启用的 `BlindBoxItemWeight` 行；品质和获取类型仍读取 `Item`，不再读取旧的 `Item.StandardBoxWeight`、`Item.NewbieBoxWeight` 等权重列。转换器会把最终概率缩放为总量 `1000000` 的整数权重，并在生成前检查以下问题：
 
 1. 启用品质缺少正概率。
 2. 正概率品质没有可用候选物品。
 3. 候选物品没有填写 `SteamItemDefId`。
-4. 多个盲盒错误地共用同一个 `@AUTO` Generator。
+4. 多个盲盒共用同一个 `@AUTO` Generator，但生成结果不同；生成结果完全一致时允许复用。
 
 因此，Steam 不需要先随机品质再随机物品。品质仍是本地策划结构，转换器负责把它无损展平为 Steam Generator 可以读取的单层奖池。
 
@@ -378,7 +380,7 @@ Steam 客户端能够枚举普通物品、Bundle 和 Generator；PlaytimeGenerat
 
 Luban 导出和 Steamworks 发布是两步独立流程。前者只生成项目可读取的数据与代码，后者才会改变 Steam 服务器的 ItemDef 配置。
 
-1. 主人在 Excel 的 `Item`、`SteamItemDef`、`BlindBox`、`BlindBoxSchedule`、`BlindBoxRarityRate`、`GameDevelopConfig` 和 `LinkTree` Sheet 维护业务数据。
+1. 主人在 Excel 的 `Item`、`SteamItemDef`、`SteamItemDefIdRange`、`BlindBox`、`BlindBoxSchedule`、`BlindBoxRarityRate`、`BlindBoxItemWeight`、`GameDevelopConfig` 和 `LinkTree` Sheet 维护业务数据。
 2. Luban 导出本地数据和 C# 类型。
 3. 转换脚本合并各张表的导出数据，生成 LinkTree 领取 Bundle 校验、自动奖池和直接奖励游玩投放参数，校验引用后输出 Steam schema JSON。
 4. 主人在 Steamworks 后台分别为 Playtest AppID `4972240` 和正式 AppID `2583700` 上传并发布 ItemDef。
@@ -388,7 +390,9 @@ Playtest 与正式版是独立 AppID。两边可以使用相同的 ItemDef ID，
 
 ## 当前范围与后续工作
 
-当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、新手进度回执安全性与唯一映射校验、`@AUTO` Generator 奖池、Item 品质标签、直接奖励 PlaytimeGenerator 映射、ID 分段校验、资格时间与掉落窗口派生，以及旧 PlaytimeGenerator 的显式停发。Playtest 与 Release 会生成结构相同、AppID 不同的完整 schema。
+当前转换器已支持：LinkTree 永久回执与领取 Bundle 的一一对应和精确配方校验、新手进度回执安全性与唯一映射校验、`@AUTO` Generator 奖池、Item 品质标签、直接奖励 PlaytimeGenerator 映射、ID 分段校验、资格时间与掉落窗口派生，以及旧 PlaytimeGenerator 的显式停发。Playtest schema 保留启用的测试段与正式段；Release schema 剔除 Playtest 专用段，并校验剩余引用，不能将两份文件视为仅 AppID 不同。
+
+转换器接受录屏渠道 `PlaytestRecording=16` 的本地盲盒和调度，但要求盲盒不依赖平台库存，Schedule 的 Steam Generator 和完成回执 ID 均为 `0`。Demo 与录屏不单独生成 Steam schema；录屏渠道也不启用 LinkTree。
 
 LinkTree `RewardType=BlindBox` 尚未迁移到直接奖励架构；转换器会拒绝启用该类型，避免重新引入券或第二套 Exchange 开奖流程。后续若启用活动盲盒，应单独定义其服务器所有权、待揭晓实例归因和玩家可见展示点。
 

@@ -117,7 +117,7 @@ function blindBox(overrides = {}) {
 
 test("validates BlindBox channel masks including local Demo and fallback references", () => {
     const build = (boxes, schedules = []) => buildArtifacts([], [], [], boxes, schedules);
-    for (const mask of [undefined, -1, 1, 16, 0]) {
+    for (const mask of [undefined, -1, 1, 32, 2 ** 32, 0]) {
         assert.ok(build([blindBox({ BuildChannelMask: mask })]).errors
             .some(error => error.includes("BuildChannelMask")));
     }
@@ -131,6 +131,46 @@ test("validates BlindBox channel masks including local Demo and fallback referen
         .some(error => error.includes("BuildChannelMask")));
     assert.ok(build([blindBox(), fallbackBlindBox({ BuildChannelMask: 2 })], [schedule()]).errors
         .some(error => error.includes("Fallback 盲盒") && error.includes("未覆盖投放渠道")));
+});
+
+test("local recording blind boxes leave Playtest and Release schemas unchanged", () => {
+    const baseline = buildArtifacts([], [], [gameItem()], [], [], [], [], idRanges());
+    assert.deepEqual(baseline.errors, []);
+    for (const mask of [16, 4 | 16]) {
+        const result = buildArtifacts([], [], [gameItem()],
+            [blindBox({ BuildChannelMask: mask, IsPlatformInventoryRequired: false })],
+            [schedule({ BuildChannelMask: mask, SteamPlaytimeGeneratorItemDefId: 0, FallbackBlindBoxId: 0 })],
+            [], [], idRanges());
+        assert.deepEqual(result.errors, []);
+        assert.deepEqual(result.blindBoxReferences, []);
+        assert.deepEqual(result.playtimeReferences, []);
+        assert.deepEqual(result.completionReceiptReferences, []);
+        for (const channel of ["playtest", "release"]) {
+            const artifact = buildChannelArtifact(result, channel);
+            assert.deepEqual(artifact.errors, []);
+            assert.deepEqual(artifact.items, buildChannelArtifact(baseline, channel).items);
+        }
+    }
+});
+
+test("recording rejects platform inventory and Steam grants even with mixed channels", () => {
+    for (const mask of [16, 2 | 16]) {
+        const box = blindBox({ BuildChannelMask: mask, IsPlatformInventoryRequired: false });
+        const localSchedule = schedule({ BuildChannelMask: mask, SteamPlaytimeGeneratorItemDefId: 0, FallbackBlindBoxId: 0 });
+        assert.ok(buildArtifacts([], [], [], [{ ...box, IsPlatformInventoryRequired: true }], [localSchedule]).errors
+            .some(error => error.includes("录屏盲盒") && error.includes("IsPlatformInventoryRequired")));
+        for (const field of ["SteamPlaytimeGeneratorItemDefId", "SteamCompletionReceiptItemDefId"]) {
+            assert.ok(buildArtifacts([], [], [], [box], [{ ...localSchedule, [field]: 404001 }]).errors
+                .some(error => error.includes("录屏投放") && error.includes(field)));
+        }
+    }
+});
+
+test("recording does not enable LinkTree claims", () => {
+    for (const mask of [16, 2 | 16]) {
+        const result = buildArtifacts([receipt(), claimBundle()], [linkTree({ BuildChannelMask: mask })], [gameItem()]);
+        assert.ok(result.errors.some(error => error.includes("BuildChannelMask")));
+    }
 });
 
 function fallbackBlindBox(overrides = {}) {

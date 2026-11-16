@@ -1,6 +1,60 @@
-# Steam ItemDef 转换器
+# Steam ItemDef 转换器与上传流程
 
 `build-steam-item-defs.js` 合并 Luban 生成的 Steam 平台规则、实际物品、盲盒概率和投放计划，转换为 Steam Inventory schema，并校验 LinkTree 回执、盲盒奖励池与直接奖励 PlaytimeGenerator 投放关系。
+
+本文件是主人日常维护 Steam 物品定义的操作入口。下面的 SOP 按当前转换器按钮及 2026-11-16 的 Steam 后台界面整理；后文保留转换命令和详细校验规则。
+
+## 日常操作流程（SOP）
+
+1. **更新配表并导出 Luban。** 实际物品维护在 `Item` 表；回执、Bundle、Generator 等平台规则维护在 `SteamItemDef` 及相关业务表。导出到 `lucky-dog-rise/Data/Json/` 后再运行转换器。分配 ID 以 [SteamItemDefIdRange 导出数据](../../lucky-dog-rise/Data/Json/tbsteamitemdefidrange.json)为准。
+
+2. **先在转换器里本地预览。** 双击本目录的 [Start-SteamItemDefTool.cmd](Start-SteamItemDefTool.cmd)，在网页选择 `playtest` 或 `release`，核对显示的 AppID，然后点击“重新读取”。在“定义预览”逐条查看本次新增、修改的物品及右侧 JSON；确认“校验结果”为 **0 个错误**，并查看“上传对照”的预计修改条数。警告需逐条确认原因；有错误时先处理，不能上传目录中残留的旧 JSON。
+
+3. **生成上传文件。** 点击“生成文件”，再点击“打开输出目录”。网页会同时生成两个渠道的文件；切换预览标签不代表只生成该渠道。输出目录为：
+
+   ```text
+   G:\Workspace\godot-project\lucky-dog-pub-2026\lucky-steamworks\steam-item-def\generated
+   ```
+
+   - Playtest：AppID **4972240**，选择 `steam-itemdefs.playtest.json`。
+   - Release：AppID **2583700**，选择 `steam-itemdefs.release.json`。
+
+   `validation-report.json` 是校验报告；`history/` 是历史快照；`uploaded/` 是本地记录的上传基线。日常上传选择当前目录下的对应渠道 JSON。右侧“复制 JSON”只复制单条定义，不代替整份上传文件。
+
+   ![转换器生成的文件与输出目录](docs/images/generated-files.png)
+
+4. **进入对应应用的 Steam 后台。** 在 Steamworks 中先确认应用和 AppID，再通过顶部菜单 **“社区 → 库存服务”** 进入页面，向下找到“物品定义”。
+
+   ![Steam 后台的社区与库存服务入口](docs/images/steam-inventory-menu.png)
+
+5. **上传 JSON 并核对结果。** 在“物品定义”下点击 **“选择文件”**，选取上一步对应渠道的文件，再点击 **“上传”**。以 Steam 返回的处理结果为准，核对是否成功及改动条数；如页面另有待发布设置提示，再按提示完成发布。
+
+   ![Steam 物品定义的选择文件与上传按钮](docs/images/steam-inventory-upload.png)
+
+6. **回转换器记录本次上传。** 保持刚上传的生成文件不变，切回同一渠道，点击 **“确认当前文件已上传”**。这个按钮只记录本地上传基线，不会再向 Steam 上传。只完成 Playtest 上传时，只确认 Playtest；后续“上传对照”据此计算新差异，不能将其当作自动读取后台的结果。
+
+7. **启动游戏验证。** 运行对应 AppID 的客户端，确认不再提示“Steam 后台缺少 ItemDef”，库存同步完成，平台进入 `Ready`、库存信任进入 `Trusted`。若本次修改了奖励或投放规则，还需实际领取并核对 Steam 库存及游戏背包；成功回调本身不等于奖励已入账。
+
+## 容易混淆的操作
+
+- 配表和 Luban 导出、转换器生成、Steam 后台上传是三个独立步骤。本地预览正常不代表后台已有定义。
+- ItemDef 上传与 SteamPipe 游戏程序上传分别进行；本流程不设置游戏 Build Live，也不调整 Playtest 的 Playable 或公开报名状态。游戏资源或本地表有变化时，客户端包的更新仍按打包流程另行处理。
+- Playtest 与 Release 是两个独立 AppID，需要分别选择对应文件上传。生成了 Release 文件不表示已发布到正式游戏。
+- `Demo` 使用本地奖励；`PlaytestRecording`（渠道位 `16`）的盲盒也仅在本地运行。录屏盲盒必须为 `IsPlatformInventoryRequired=false`，录屏 Schedule 的 Steam Generator 与完成回执 ID 必须为 `0`；不单独生成 Demo 或录屏的 Steam schema。
+- 工具代码更新后，若网页仍报旧错误，先点击“关闭工具”，再双击启动器重新打开；仅刷新网页可能仍连接着旧服务进程。
+
+## 常见问题
+
+- **“Steam 后台缺少 ItemDef：某 ID”**：先确认该 ID 已出现在本地对应渠道的 JSON，再核对上传的 AppID、文件和 Steam 处理结果；定义刷新后重启游戏验证。
+- **`k_EResultFail` / `No Connection`**：前者是通用失败提示，需结合 Steam 客户端日志定位。若日志出现 `Session Replaced`，先重新登录桌面 Steam；同一账号通过 SteamCMD 上传程序时可能替换桌面登录会话。缺定义与连接失败应分别排查。
+
+## 详细规则与相关文档
+
+- [SteamItemDef 表说明](../../docs/game-design/SteamItemDef表说明.md)：Item 与平台定义的关系、回执、Bundle、Generator、PlaytimeGenerator。
+- [盲盒系统设计](../../docs/game-design/盲盒系统设计.md)：投放、Fallback、待揭晓奖励及客户端领取行为。
+- [Playtest 游戏程序上传指南](../../docs/guide/steam-playtest-upload-for-owner.md)：SteamPipe 打包、上传和分支操作。
+- [LinkTree 在线活动发布工作流](../../docs/guide/LinkTree在线活动发布工作流.md)：远程活动的目标设计稿，含尚未实现的功能；不作为当前普通物品的上传步骤。
+- [Steam Inventory 官方说明](https://partner.steamgames.com/doc/features/inventory)：库存服务配置与接口概览。
 
 ## 图形界面
 
@@ -21,7 +75,7 @@ Start-SteamItemDefTool.cmd
 
 页面每 30 秒向本地服务发送一次心跳。关闭所有工具页面后，服务会在连续空闲 10 分钟后自动退出；也可以点击右上角“关闭工具”立即退出。10 分钟内重新双击启动器会复用现有服务。
 
-网页不接受任意文件路径；服务只读取项目内固定的八份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
+网页不接受任意文件路径；服务只读取项目内固定的九份 Luban JSON，并只写入本目录的 `generated`。生成和打开目录等操作要求工具页面发送专用请求头，普通外部网页无法直接调用写操作。
 
 ## 运行
 
