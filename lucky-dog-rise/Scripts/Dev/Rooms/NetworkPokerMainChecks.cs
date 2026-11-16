@@ -18,6 +18,18 @@ internal static class NetworkPokerMainChecks
         var client = page.PreviewClient;
         var panel = main.SettingsPanelObj;
         var lobby = page.PokerLobby;
+        bool previousAutoChat = SettingsManager.LoadAutoChat();
+        string previousLocale = TranslationServer.GetLocale();
+        int manualMessages = 0, localMessages = 0;
+        long lastLocalMessage = 0;
+        void OnManualMessage() => manualMessages++;
+        void OnRoomChanged()
+        {
+            if (client.Bubbles.TryGetValue(client.Id, out var bubble) && bubble.Id != lastLocalMessage)
+            { lastLocalMessage = bubble.Id; localMessages++; }
+        }
+        client.ManualChatSent += OnManualMessage;
+        client.Changed += OnRoomChanged;
         async Task Wait(double seconds = 0.1) => await main.ToSignal(tree.CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
         async Task Until(Func<bool> condition, string reason, double limit = 20)
         {
@@ -47,6 +59,18 @@ internal static class NetworkPokerMainChecks
         AudioManager.Instance.SetSfxVolume(0); AudioManager.Instance.StopBgm();
         try
         {
+            var autoChatRow = panel.GetNode<HBoxContainer>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow");
+            var autoChatToggle = autoChatRow.GetNode<CheckButton>("Toggle");
+            Check(autoChatToggle.ButtonPressed && previousAutoChat, "fresh profile defaults auto chat on");
+            autoChatToggle.ButtonPressed = false;
+            Check(!SettingsManager.LoadAutoChat(), "auto chat switch persists off");
+            autoChatToggle.ButtonPressed = true;
+            Check(SettingsManager.LoadAutoChat(), "auto chat switch persists on");
+            L10n.SetLocale("en", save: false);
+            Check(autoChatRow.GetNode<Label>("Label").Text == "Dog auto chat", "English auto chat setting is localized");
+            L10n.SetLocale("zh_CN", save: false);
+            Check(autoChatRow.GetNode<Label>("Label").Text == "小狗自动闲聊", "Chinese auto chat setting is localized");
+            L10n.SetLocale(previousLocale, save: false);
             main.RoomRequestPokerForSmoke();
             await Until(() => main.HasNode("PlayRoot/SubViewportContainer/SubViewport/Main"), "solo view initialized");
             game = main.GetNode<GameManager>("PlayRoot/SubViewportContainer/SubViewport/Main");
@@ -106,6 +130,10 @@ internal static class NetworkPokerMainChecks
                 "active hand uses neutral expressions for local and remote dogs");
             await Until(() => session.DisplayView.Public.ActivePlayerId == client.Id && session.State.DealRemaining == 0 && !table.IsDealing,
                 "simulated clients pass to the local owner");
+            Check(client.SendChat(" ").Length > 0 && manualMessages == 0, "failed manual send does not take over chatting");
+            main.RoomPokerDogsForSmoke.LocalChat.OpenChat();
+            main.RoomPokerDogsForSmoke.LocalChat.CloseChat();
+            Check(manualMessages == 0, "opening and cancelling chat does not take over");
             Click(pause); await Wait();
             Check(session.State.Continuation == PokerContinuation.PauseRequested, "host panel requests pause after this hand");
             Click(pause); await Wait();
@@ -143,6 +171,26 @@ internal static class NetworkPokerMainChecks
             game.GetNode<HandAreaController>("HandArea").EmitSignal(HandAreaController.SignalName.HandKnocked);
             await Until(() => session.DisplayView.Public.Phase == PokerPhase.Settled, "arm finishes turn and all clients receive settlement");
             await Until(() => client.Bubbles.ContainsKey(2) || client.Bubbles.ContainsKey(3), "Mock settlement chat uses normal bubbles; a loser may stay silent");
+            await Until(() => client.Bubbles.ContainsKey(client.Id), "own dog also auto chats through the shared bubble");
+            Check(table.Round.WinnersVisible, "own automatic line cannot reveal the result ahead of its animation");
+            Check(manualMessages == 0 && localMessages == 1, "automatic speech does not count as manual takeover");
+            var chat = main.RoomPokerDogsForSmoke.LocalChat;
+            Check(client.AutomaticChatDelay > 0, "automatic line still observes normal transport cooldown");
+            chat.SubmitForSmoke("取消这句"); chat.CloseChat();
+            await Wait(.1);
+            Check(manualMessages == 0, "cancelling a delayed manual send does not take over");
+            chat.SubmitForSmoke("我来聊");
+            Check(chat.ErrorForSmoke.Length == 0 && chat.Editing && manualMessages == 0,
+                "manual send waits without a too-fast error or premature success");
+            await Until(() => manualMessages == 1 && !chat.Editing, "queued human message is sent after automatic cooldown", 3);
+            await Until(() => client.Bubbles.TryGetValue(client.Id, out var ownMessage) && ownMessage.Text == "我来聊",
+                "successful manual send receives its asynchronous local echo");
+            Check(SettingsManager.LoadAutoChat(), "manual takeover leaves the personal setting enabled");
+            await Until(() => page.MockClientForSmoke(2).Bubbles.TryGetValue(client.Id, out var seen) && seen.Text == "我来聊",
+                "remote receiver accepts the manual message under existing rate limits");
+            chat.SubmitForSmoke("又一句");
+            Check(chat.ErrorForSmoke == "Rooms_ChatTooFast" && manualMessages == 1, "manual-to-manual cooldown remains enforced");
+            chat.CloseChat();
             Check(client.ChatAllowed, "poker rooms permit chat");
             await Until(() => session.State.Continuation == PokerContinuation.Paused && table.Round.Stage == PokerRoundStage.AwaitingNext,
                 "pause retains all cards after winner payout", 25);
@@ -201,6 +249,7 @@ internal static class NetworkPokerMainChecks
             Check(lobby.Session == session && session.State.Table == tableId, "desktop/poker round trip preserves the network session");
             Click(pause);
             await Until(() => session.State.Continuation == PokerContinuation.Paused, "second pause completes without blocking timeout", 40);
+            Check(localMessages == 2, "manual takeover survives subsequent hands, overlays and desktop/poker switches");
             await Until(() => pokerPanel.GetNode<Button>("Actions/Restart").Visible
                 && !pokerPanel.GetNode<Button>("Actions/Restart").Disabled, "restart UI catches up with authority pause");
             Click(pokerPanel.GetNode<Button>("Actions/Restart"));
@@ -209,6 +258,10 @@ internal static class NetworkPokerMainChecks
                 && session.State.Hand.Public.Seats.All(s => s.Chips == 900)
                 && session.State.Hand.Public.Pot == 300, "restart resets 1000 each, takes one ante and gives host first dealership");
             Check(game.GetChildren().OfType<RoomPokerTableView>().Count() == 1, "restart replaces the old table without duplicate views");
+            session.SetPauseRequested(true);
+            await Until(() => session.DisplayView.Public.ActivePlayerId == client.Id && session.State.DealRemaining == 0, "restarted host gets its turn");
+            session.Act(PokerAction.EndTurn);
+            await Until(() => localMessages == 3, "restart restores automatic speech for the new match", 15);
             page.MockClientForSmoke(2).Leave();
             await Until(() => session.State.Status == PokerTableStatus.Interrupted && session.State.Hand == null, "participant departure interrupts the match safely");
             Check(game.IsSessionPokerReserved && game.IsSessionPokerActive && data.Chips == soloChips, "interruption stays in poker room UI without enabling solo play");
@@ -256,6 +309,10 @@ internal static class NetworkPokerMainChecks
             Check(game.PendingReward == null && data.Chips == beforeReadyChips, "ready discards unclaimed solo reward; stale collection cannot credit it");
             panel.CloseImmediate();
             session = lobby.Session;
+            await Until(() => game.GetNodeOrNull<RoomPokerTableView>("RoomPokerTable") is { } currentTable
+                && !currentTable.IsQueuedForDeletion()
+                && currentTable.Round.DisplayView?.Public.SessionId == session.State.Hand.Public.SessionId,
+                "guest presentation is bound to the new match before checking cards");
             table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
             await Until(() => session.DisplayView.Public.ActivePlayerId == client.Id && session.State.DealRemaining == 0 && !table.IsDealing
                 && !table.GetNode<TextureButton>("Board/Card2").Disabled,
@@ -300,6 +357,10 @@ internal static class NetworkPokerMainChecks
         }
         finally
         {
+            client.ManualChatSent -= OnManualMessage;
+            client.Changed -= OnRoomChanged;
+            SettingsManager.SaveAutoChat(previousAutoChat);
+            L10n.SetLocale(previousLocale, save: false);
             AudioManager.Instance.SetSfxVolume(0); AudioManager.Instance.StopBgm();
             await Wait(0.2);
             tree.ProcessFrame -= HideTest;

@@ -50,6 +50,11 @@ public sealed class RoomClient : IDisposable
     public bool ShowNames { get; set; } = true;
     public IReadOnlyDictionary<int, RoomChat> Bubbles => _bubbles;
     public event Action Changed;
+    public event Action ManualChatSent;
+    private double _lastAutomaticChatAt = double.NegativeInfinity;
+    // Keep the transport's shared rate limit. A composer may wait briefly for an
+    // automatic line, rather than rejecting the human who is taking over.
+    public double AutomaticChatDelay => Math.Max(0, _lastAutomaticChatAt + RoomRules.ChatCooldown + 0.05 - _now);
     // Local presentation only; never a room chat message or transport payload.
     public event Action<RoomFailure, bool> JoinFailed;
     private long _nextRequestId;
@@ -114,14 +119,25 @@ public sealed class RoomClient : IDisposable
         ? "Rooms_AccessUnavailable" : _service.SetAccess(this, access);
     public string SetName(string name) => _disposed || _committing || IsBusy || IsLocalArrival
         ? "Rooms_NameUnavailable" : _service.SetName(this, name);
-    public string SendChat(string text)
+    public string SendChat(string text) => SendChatCore(text, automatic: false);
+    public string SendAutomaticChat(string text) => SendChatCore(text, automatic: true);
+    private string SendChatCore(string text, bool automatic)
     {
         if (_disposed) return "Rooms_ChatUnavailable";
         if (View != null && !ChatAllowed) return "Rooms_ChatDisabled";
+        long session = Session;
+        string result;
 #if !DEMO_BUILD && !RECORDING_BUILD
-        if (IsLocalArrival) return SendArrivalChat(text);
+        if (IsLocalArrival) result = SendArrivalChat(text);
+        else
 #endif
-        return _service.SendChat(this, text);
+            result = _service.SendChat(this, text);
+        if (result.Length == 0 && Session == session)
+        {
+            _lastAutomaticChatAt = automatic ? _now : double.NegativeInfinity;
+            if (!automatic) ManualChatSent?.Invoke();
+        }
+        return result;
     }
     public string Kick(int memberId, long presence) => _disposed || _committing || IsLocalArrival
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
@@ -617,6 +633,7 @@ public sealed class RoomClient : IDisposable
         _bubbles.Clear();
         _chatSequences.Clear();
         _receivedChatAt.Clear();
+        _lastAutomaticChatAt = double.NegativeInfinity;
         if (!_committing) Changed?.Invoke();
     }
 

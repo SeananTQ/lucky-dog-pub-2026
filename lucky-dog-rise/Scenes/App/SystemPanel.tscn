@@ -41,13 +41,18 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_globalInputChipsEarnedLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_disableGlobalMouseListeningToggle", "_updateAndRestartButton", "_updateAndRestartStatusLabel", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
+[node name="SystemPanel" type="CanvasLayer" unique_id=548226029 node_paths=PackedStringArray("_buildVersionLabel", "_globalInputChipsEarnedLabel", "_armAppearanceOption", "_pokerFrameRateOption", "_vsyncToggle", "_onlineSettingsLabel", "_onlineSettingsSeparator", "_autoChatRow", "_autoChatLabel", "_autoChatToggle", "_disableGlobalMouseListeningToggle", "_updateAndRestartButton", "_updateAndRestartStatusLabel", "_exportDiagnosticsButton", "_exportDiagnosticsStatusLabel")]
 script = ExtResource("1_ctrl")
 _buildVersionLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/BuildVersionLabel")
 _globalInputChipsEarnedLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/GlobalInputChipsEarnedLabel")
 _armAppearanceOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/ArmAppearanceRow/ArmAppearanceOption")
 _pokerFrameRateOption = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/PokerFrameRateRow/PokerFrameRateOption")
 _vsyncToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/VsyncRow/VsyncToggle")
+_onlineSettingsLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OnlineSettingsLabel")
+_onlineSettingsSeparator = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/OnlineSettingsSep")
+_autoChatRow = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow")
+_autoChatLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow/Label")
+_autoChatToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow/Toggle")
 _disableGlobalMouseListeningToggle = NodePath("Panel/RootVBox/Scroll/ContentVBox/DebugContent/DisableGlobalMouseListeningRow/DisableGlobalMouseListeningToggle")
 _updateAndRestartButton = NodePath("Panel/RootVBox/SettingsActionRow/UpdateGameBtn")
 _updateAndRestartStatusLabel = NodePath("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/UpdateAndRestartStatusLabel")
@@ -439,6 +444,30 @@ layout_mode = 2
 size_flags_vertical = 4
 
 [node name="GameplaySep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="OnlineSettingsLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+text = "联机功能"
+label_settings = ExtResource("8_group_title")
+
+[node name="AutoChatRow" type="HBoxContainer" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "小狗自动闲聊"
+label_settings = ExtResource("9_option_label")
+autowrap_mode = 3
+
+[node name="Toggle" type="CheckButton" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoChatRow"]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+
+[node name="OnlineSettingsSep" type="HSeparator" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent"]
 layout_mode = 2
 
 [node name="DesktopPetLabel" type="Label" parent="Panel/RootVBox/Scroll/ContentVBox/SettingsContent" unique_id=1702498419]

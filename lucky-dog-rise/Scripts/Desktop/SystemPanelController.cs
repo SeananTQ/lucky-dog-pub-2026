@@ -45,6 +45,11 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private OptionButton _armAppearanceOption = null!;
     [Export] private OptionButton _pokerFrameRateOption = null!;
     [Export] private CheckButton _vsyncToggle = null!;
+    [Export] private Label _onlineSettingsLabel = null!;
+    [Export] private HSeparator _onlineSettingsSeparator = null!;
+    [Export] private HBoxContainer _autoChatRow = null!;
+    [Export] private Label _autoChatLabel = null!;
+    [Export] private CheckButton _autoChatToggle = null!;
     [Export] private CheckButton _disableGlobalMouseListeningToggle = null!;
     [Export] private Button _updateAndRestartButton = null!;
     [Export] private Label _updateAndRestartStatusLabel = null!;
@@ -589,6 +594,14 @@ public partial class SystemPanelController : CanvasLayer
         _autoEquipToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/AutoEquipRow/AutoEquipToggle");
         _autoEquipToggle.ButtonPressed = SettingsManager.LoadAutoEquipNewOutfits();
         _autoEquipToggle.Toggled += enabled => SettingsManager.SaveAutoEquipNewOutfits(enabled);
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _autoChatToggle.SetPressedNoSignal(SettingsManager.LoadAutoChat());
+        _autoChatToggle.Toggled += SettingsManager.SaveAutoChat;
+#else
+        _onlineSettingsLabel.Hide();
+        _onlineSettingsSeparator.Hide();
+        _autoChatRow.Hide();
+#endif
 
         _taskbarSnapToggle = GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/TaskbarSnapRow/TaskbarSnapToggle");
         _taskbarSnapToggle.ButtonPressed = SettingsManager.LoadSnapToWindowsTaskbar();
@@ -3626,6 +3639,9 @@ public partial class SystemPanelController : CanvasLayer
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (_roomTab != null) _roomTab.TooltipText = Rooms.InGameRoomPreview.ChatText("Rooms_Online");
+        _onlineSettingsLabel.Text = Rooms.InGameRoomPreview.ChatText("Rooms_Settings_OnlineFeatures");
+        _autoChatLabel.Text = Rooms.InGameRoomPreview.ChatText("Rooms_Settings_DogAutoChat");
+        _autoChatRow.TooltipText = Rooms.InGameRoomPreview.ChatText("Rooms_Settings_DogAutoChatHint");
 #endif
         if (_languageOption == null)
             return;
@@ -4080,6 +4096,9 @@ public partial class SystemPanelController : CanvasLayer
         _quickStartAfterWinToggle.SetPressedNoSignal(SettingsManager.LoadQuickStartAfterWin());
         _rightClickQuickModeSwitchToggle.SetPressedNoSignal(SettingsManager.LoadRightClickQuickModeSwitch());
         _autoEquipToggle.SetPressedNoSignal(SettingsManager.LoadAutoEquipNewOutfits());
+#if !DEMO_BUILD && !RECORDING_BUILD
+        _autoChatToggle.SetPressedNoSignal(SettingsManager.LoadAutoChat());
+#endif
         _taskbarSnapToggle.SetPressedNoSignal(SettingsManager.LoadSnapToWindowsTaskbar());
         GetNode<CheckButton>("Panel/RootVBox/Scroll/ContentVBox/SettingsContent/StreamerSafeRow/StreamerSafeToggle")
             .SetPressedNoSignal(SettingsManager.LoadStreamerSafeMode());

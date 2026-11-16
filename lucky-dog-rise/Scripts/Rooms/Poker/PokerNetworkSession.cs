@@ -51,7 +51,8 @@ public sealed class PokerNetworkSession : IDisposable
         return next.Length >= 2 && hand.Seats.Where(s => next.Contains(s.PlayerId)).All(s => s.Chips >= 100);
     }
     // A bounded authority clock, independent of render speed, windows and acknowledgement messages.
-    public static double PayoutDuration(PokerPublicView hand) => 2.5 + PokerShowdownSequence.RevealSeconds
+    public const double SettlementLeadSeconds = 2.5;
+    public static double PayoutDuration(PokerPublicView hand) => SettlementLeadSeconds + PokerShowdownSequence.RevealSeconds
         + (hand.Settlement?.Winners.Count ?? 1) * PokerShowdownSequence.WinnerSeconds;
     public const double CollectionDuration = 1.6;
     public PokerError LastError { get; private set; }

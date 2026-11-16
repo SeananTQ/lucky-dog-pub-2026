@@ -22,7 +22,13 @@ public partial class ModeManager
         var session = lobby?.Session;
         bool poker = _desktopRoomClient?.View?.GameId == RoomRules.MischiefPoker;
         bool reserved = poker;
-        if (lobby != null) lobby.CanPrepare = true;
+        if (lobby != null)
+        {
+            lobby.CanPrepare = true;
+            lobby.AutoChatRevealReady = false;
+            lobby.AutoChatBlocked = _roomDesktop?.LocalChat.Editing == true || _roomPokerDogs?.LocalChat.Editing == true
+                || !(RoomBubblePresentationAllowed || RoomPokerChatBaseAllowed) || UiInteractionOccupancy.IsOccupied(this);
+        }
 #if DEBUG
         if (_pokerPreview != null)
         {
@@ -99,6 +105,7 @@ public partial class ModeManager
         // A late snapshot or background stall must not replay an obsolete settlement before collecting.
         if (view.Public.Phase == PokerPhase.Settled && session.State.SettlementElapsed >= PokerNetworkSession.PayoutDuration(view.Public))
             _networkPokerTable.Round.CompletePayout(view);
+        if (lobby != null) lobby.AutoChatRevealReady = _networkPokerTable.Round.WinnersVisible;
         if (_networkPokerAttached)
         {
             _gameManager.SetRoomPokerInput(act && !_networkPokerTable.IsDealing);

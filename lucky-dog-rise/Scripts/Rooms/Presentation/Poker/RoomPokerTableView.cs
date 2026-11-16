@@ -171,22 +171,19 @@ public partial class RoomPokerTableView : Node2D
     }
 }
 
-// Preview copy only: Chinese and English fallback, pending final product terminology/localization.
+// Unconfirmed preview copy uses T; confirmed auto-chat copy and ranks use the language catalogs.
 public static class RoomPokerText
 {
-    public static string T(string chinese, string english) => TranslationServer.GetLocale().StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? chinese : english;
-    public static string Rank(DataTables.EHandRank rank) => rank switch
+    public static string AutoChat(PokerAutoChatLine line) => line.Kind switch
     {
-        DataTables.EHandRank.Nothing => T("高牌", "High card"),
-        DataTables.EHandRank.OnePair => T("一对", "One pair"),
-        DataTables.EHandRank.TwoPair => T("两对", "Two pair"),
-        DataTables.EHandRank.ThreeOfAKind => T("三条", "Three of a kind"),
-        DataTables.EHandRank.Straight => T("顺子", "Straight"),
-        DataTables.EHandRank.Flush => T("同花", "Flush"),
-        DataTables.EHandRank.FullHouse => T("葫芦", "Full house"),
-        DataTables.EHandRank.FourOfAKind => T("四条", "Four of a kind"),
-        DataTables.EHandRank.StraightFlush => T("同花顺", "Straight flush"),
-        _ => T("皇家同花顺", "Royal flush")
+        PokerAutoChatKind.Win => string.Format(InGameRoomPreview.ChatText("Rooms_AutoChat_Win"), Rank(line.Rank)),
+        PokerAutoChatKind.Tie => InGameRoomPreview.ChatText("Rooms_AutoChat_Tie"),
+        PokerAutoChatKind.CloseLoss => InGameRoomPreview.ChatText("Rooms_AutoChat_CloseLoss"),
+        _ => InGameRoomPreview.ChatText("Rooms_AutoChat_NextHand")
     };
+    public static string T(string chinese, string english) => TranslationServer.GetLocale().StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? chinese : english;
+    public static string Rank(DataTables.EHandRank rank) => rank == DataTables.EHandRank.Nothing
+        ? InGameRoomPreview.ChatText("Rooms_Poker_HighCard")
+        : L10n.Tr(L10n.GetHandRankKey(rank));
 }
 #endif

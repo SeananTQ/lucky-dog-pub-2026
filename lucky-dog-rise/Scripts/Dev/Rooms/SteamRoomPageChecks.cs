@@ -618,6 +618,28 @@ internal static class SteamRoomPageChecks
             Check(sendEvents == 1 && !chat.Editing && input.Text.Length == 0
                 && client.Bubbles[client.Id].Text == "preserved draft",
                 "explicit sending recovers through the real desktop forwarding handler");
+
+            foreach (var cancel in new[] { "close", "hide", "session" })
+            {
+                sandbox.Tick(2);
+                Check(client.SendAutomaticChat("automatic") == "", "automatic line starts a real cooldown");
+                sandbox.Tick(0);
+                desktop.Show(); chat.Present(true, true, "automatic");
+                chat.SubmitForSmoke("old context draft");
+                Check(chat.Editing && send.Disabled && !input.Editable, "one manual draft waits for the auto cooldown");
+                if (cancel == "close") chat.CloseChat();
+                else if (cancel == "hide") desktop.Hide();
+                else
+                {
+                    // Preserve the layout deliberately: session identity must cancel
+                    // even before the desktop renderer notices a room replacement.
+                    client.BeginSession("new-room", preserveLayout: true);
+                }
+                sandbox.Tick(2); await Frame();
+                Check(sendEvents == 1 && !chat.Editing && !send.Disabled && input.Editable,
+                    "delayed draft never sends after " + cancel);
+                if (cancel == "hide") desktop.Show();
+            }
             GD.Print("[RoomChatInteractionChecks] PASS hover, stale button/Enter, frame suspension, draft, hit testing, incoming expiry and manual recovery.");
         }
         finally { desktop.Free(); }

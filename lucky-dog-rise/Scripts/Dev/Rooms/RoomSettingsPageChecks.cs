@@ -64,6 +64,18 @@ internal static class RoomSettingsPageChecks
             {
                 L10n.SetLocale(nextLocale, save: false);
                 await Frame();
+                foreach (string key in new[] { "Rooms_Settings_OnlineFeatures", "Rooms_Settings_DogAutoChat",
+                    "Rooms_Settings_DogAutoChatHint", "Rooms_AutoChat_Win", "Rooms_AutoChat_Tie",
+                    "Rooms_AutoChat_CloseLoss", "Rooms_AutoChat_NextHand", "Rooms_Poker_HighCard" })
+                    Check(InGameRoomPreview.ChatText(key) != key && InGameRoomPreview.ChatText(key) == L10n.Tr(key),
+                        $"{nextLocale} independent room text lookup matches the registered catalog: {key}");
+                foreach (var rank in Enum.GetValues<DataTables.EHandRank>())
+                {
+                    string message = RoomPokerText.AutoChat(new Poker.PokerAutoChatLine(Poker.PokerAutoChatKind.Win, rank));
+                    Check(RoomRules.ValidateChat(message).Length == 0 && !message.Contains("{0}")
+                        && !message.Contains("Rooms_") && !message.Contains("Paytable_"),
+                        $"{nextLocale} {rank} auto-chat line fits the chat limit and resolves its hand name");
+                }
                 Check(name.Text == "Rooms_Social" && name.PlaceholderText == L10n.Tr("Rooms_Name")
                     && page.GetNode<OptionButton>("Room/Game/Choices/Current").Text == InGameRoomPreview.GameName("social"),
                     "locale changes translate game labels and placeholders but never the room name");

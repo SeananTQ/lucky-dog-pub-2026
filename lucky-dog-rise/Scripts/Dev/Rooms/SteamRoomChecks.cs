@@ -1202,6 +1202,8 @@ public static class SteamRoomChecks
         var transport = new FakeTransport();
         using var service = Service(transport);
         using var client = Client(service);
+        int manualMessages = 0;
+        client.ManualChatSent += () => manualMessages++;
         var token = Guid.NewGuid();
         var remote = new SteamRoomMemberData(88, "guest", "1:10:0:1001", ChatSession: token.ToString("N"));
         transport.Seed(100, remote);
@@ -1214,6 +1216,7 @@ public static class SteamRoomChecks
         void Advance(double seconds) { transport.Now += seconds; client.AdvanceTo(transport.Now); }
 
         Assert(client.SendChat(" 你好 🐶 : hello ") == "", "UTF-8 chat sends and echoes locally");
+        Assert(manualMessages == 1, "only successful human speech signals takeover");
         Assert(client.Bubbles[1].Text == "你好 🐶 : hello", "local whitespace trimmed");
         Assert(SteamRoomProtocol.TryDecodeChat(transport.Chats[0], out _, out _, out _, out var wireText)
             && wireText == client.Bubbles[1].Text, "binary envelope round trip");
@@ -1222,6 +1225,7 @@ public static class SteamRoomChecks
         Assert(client.SendChat("flood") == "Rooms_ChatTooFast" && transport.Chats.Count == 1, "sender rate limit");
         foreach (var invalid in new[] { " ", "\nhello", new string('字', 121), "\uD800" })
             Assert(client.SendChat(invalid).Length > 0, "outgoing invalid text blocked");
+        Assert(manualMessages == 1, "rate-limited and invalid sends never signal takeover");
 
         var valid = Packet(1, "来自另一只狗 🐕");
         Deliver(valid, lobby: 200); Deliver(valid, sender: 999);
@@ -1241,10 +1245,13 @@ public static class SteamRoomChecks
         Advance(7);
         Assert(client.Bubbles.Count == 0, "all messages expire");
         transport.ChatSucceeds = false;
-        Assert(client.SendChat("not sent") == "Rooms_ChatUnavailable" && client.Bubbles.Count == 0,
+        Assert(client.SendAutomaticChat("not sent") == "Rooms_ChatUnavailable" && client.Bubbles.Count == 0,
             "failed transport does not fake successful delivery");
-        Advance(2); transport.ChatSucceeds = true;
-        Assert(client.SendChat("retry") == "", "failure can retry");
+        transport.ChatSucceeds = true;
+        Assert(client.SendChat("retry") == "" && manualMessages == 2, "failed automatic send does not occupy human cooldown");
+        Advance(2);
+        Assert(client.SendAutomaticChat("automatic") == "" && manualMessages == 2 && client.AutomaticChatDelay > 0,
+            "automatic source shares chat transport without claiming manual takeover");
 
         transport.RemoveRemote(100, 88);
         var oldToken = token; token = Guid.NewGuid();
@@ -1254,6 +1261,7 @@ public static class SteamRoomChecks
         Deliver(Packet(1, "rejoined"));
         Assert(client.Bubbles.Count == 2, "new membership can start sequence at one");
         client.Leave();
+        Assert(client.AutomaticChatDelay == 0, "leaving clears the old automatic cooldown");
         Deliver(Packet(2, "after leaving"));
         Assert(client.Bubbles.Count == 0, "leave clears messages and rejects callbacks");
         client.Join(SteamRoomProtocol.Encode(100)); transport.SucceedMembership(100);

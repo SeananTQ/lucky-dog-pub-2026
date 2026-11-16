@@ -50,6 +50,17 @@ public static class SettingsManager
     private const string KeyLocale = "locale";
 #if !DEMO_BUILD && !RECORDING_BUILD
     private const string KeyRoomCodeHidden = "room_code_hidden";
+    private const string KeyAutoChat = "auto_chat";
+    public static event System.Action<bool> AutoChatChanged;
+
+    public static bool LoadAutoChat() => (bool)Load().GetValue(SectionSystem, KeyAutoChat, true);
+    public static void SaveAutoChat(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionSystem, KeyAutoChat, enabled);
+        config.Save(Path);
+        AutoChatChanged?.Invoke(enabled);
+    }
 #endif
     public enum DisplayMode
     {

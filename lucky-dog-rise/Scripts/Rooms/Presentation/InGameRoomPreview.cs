@@ -143,9 +143,18 @@ public partial class InGameRoomPreview : VBoxContainer
     // The standalone lab and unopened Online tab use these strings without creating the room page.
     public static string ChatText(string key)
     {
-        var locale = TranslationServer.GetLocale();
-        locale = locale.StartsWith("zh") ? (locale.Contains("TW") || locale.Contains("Hant") ? "zh_TW" : "zh_CN") : "en";
-        var value = GD.Load<Translation>($"res://Scenes/Rooms/InGameRoomText.{locale}.translation").GetMessage(key).ToString();
+        var locale = TranslationServer.GetLocale().Replace('-', '_');
+        if (locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+            locale = locale.Contains("TW") || locale.Contains("HK") || locale.Contains("Hant") ? "zh_TW" : "zh_CN";
+        // Godot imports the Latin American es_419 column as the parent es resource.
+        if (locale == "es_419") locale = "es";
+        var path = $"res://Scenes/Rooms/InGameRoomText.{locale}.translation";
+        if (!ResourceLoader.Exists(path))
+            path = $"res://Scenes/Rooms/InGameRoomText.{locale.Split('_')[0]}.translation";
+        if (!ResourceLoader.Exists(path)) path = "res://Scenes/Rooms/InGameRoomText.en.translation";
+        var value = GD.Load<Translation>(path).GetMessage(key).ToString();
+        if (value.Length == 0)
+            value = GD.Load<Translation>("res://Scenes/Rooms/InGameRoomText.en.translation").GetMessage(key).ToString();
         return value.Length > 0 ? value : key;
     }
 

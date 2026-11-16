@@ -10,16 +10,25 @@ public partial class RoomPokerLobbyView : VBoxContainer
 {
     [Export] private Button _start, _restart;
     private RoomClient _client;
+    private readonly PokerAutoChat _autoChat = new();
+    public bool AutoChatBlocked { get; set; } = true;
+    public bool AutoChatRevealReady { get; set; }
     public PokerNetworkSession Session { get; private set; }
     public bool CanPrepare { get; set; } = true;
     public bool ActionsAvailable => CanPrepare && _client?.IsBusy == false;
     public void Bind(RoomClient client)
     {
         if (_client == client) return;
+        if (_client != null) _client.ManualChatSent -= OnManualChatSent;
+        _autoChat.Reset();
         Session?.Dispose(); Session = null; _client = client;
+        if (_client != null) _client.ManualChatSent += OnManualChatSent;
     }
+    private void OnManualChatSent() => _autoChat.ManualMessageSent(Session?.Context?.Room, Session?.State);
     public override void _Ready()
     {
+        _autoChat.SetEnabled(SettingsManager.LoadAutoChat());
+        SettingsManager.AutoChatChanged += _autoChat.SetEnabled;
         _start.Pressed += ActivateLocal;
         _restart.Pressed += RestartLocal;
     }
@@ -122,14 +131,22 @@ public partial class RoomPokerLobbyView : VBoxContainer
     public override void _Process(double delta)
     {
         if (_client?.View == null || _client.IsLocalArrival)
-        { Session?.Dispose(); Session = null; Hide(); return; }
+        { _autoChat.Reset(); Session?.Dispose(); Session = null; Hide(); return; }
         if (Session == null && _client.OpenPokerLink() is { } link) Session = new(link);
         Session?.Tick(delta);
+        var line = _autoChat.Tick(Session?.Context?.Room, Session?.State, Session?.Connected == true,
+            AutoChatBlocked || !_client.ChatAllowed || _client.IsBusy, AutoChatRevealReady);
+        if (line != null) _client.SendAutomaticChat(RoomPokerText.AutoChat(line));
         if (Session == null || _client.View.GameId != RoomRules.MischiefPoker) { Hide(); return; }
         PresentActions(Session, _start, _restart, CanPrepare && !_client.IsBusy, includeInHandActions: false);
         _start.Visible &= Session.IsOwner;
         Visible = _start.Visible || _restart.Visible;
     }
-    public override void _ExitTree() { Session?.Dispose(); Session = null; }
+    public override void _ExitTree()
+    {
+        SettingsManager.AutoChatChanged -= _autoChat.SetEnabled;
+        if (_client != null) _client.ManualChatSent -= OnManualChatSent;
+        _autoChat.Reset(); Session?.Dispose(); Session = null;
+    }
 }
 #endif

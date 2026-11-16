@@ -86,25 +86,14 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
             || (pending.Room, pending.Table, pending.Hand) != key)
         {
             // Send once only after the shared reveal, with both bubbles overlapping in time.
-            _pokerChat[client.Id] = (key.Room, key.Table, key.HandNumber, Now + Math.Max(0, 2.5 - session.State.SettlementElapsed) + client.Id % 3 * .35);
+            _pokerChat[client.Id] = (key.Room, key.Table, key.HandNumber, Now + Math.Max(0,
+                PokerNetworkSession.SettlementLeadSeconds + PokerShowdownSequence.RevealSeconds - session.State.SettlementElapsed) + client.Id % 3 * .35);
             return;
         }
         if (Now < pending.At) return;
         _pokerChat[client.Id] = pending with { At = double.PositiveInfinity };
-        var me = session.State.Players.FirstOrDefault(p => p.Key == session.Context.LocalKey);
-        var result = hand.Settlement.Players.FirstOrDefault(p => p.PlayerId == me?.Id);
-        if (result == null) return;
-        bool won = hand.Settlement.Winners.Contains(result.PlayerId);
-        // Stable variation makes layout testing repeatable: losses alternate between two
-        // short lines and silence. A muted hand stays consumed when the switch is toggled.
-        int lossLine = (int)((hand.HandNumber + client.Id) % 3);
-        if (!won && lossLine == 0) return;
-        string text = won ? hand.Settlement.Winners.Count > 1
-            ? RoomPokerText.T("哈哈，一起赢！", "Ha! We tied!")
-            : RoomPokerText.T($"哈哈，我是{RoomPokerText.Rank(result.BestHand.Value.Rank)}！", $"Ha! {RoomPokerText.Rank(result.BestHand.Value.Rank)}!")
-            : lossLine == 1 ? RoomPokerText.T("哎呀，就差一点！", "Oh, so close!")
-            : RoomPokerText.T("下把再来！", "Next hand is mine!");
-        client.SendChat(text);
+        var line = PokerAutoChat.ChooseLine(session.State.Hand);
+        if (line != null) client.SendAutomaticChat(RoomPokerText.AutoChat(line));
     }
 }
 #endif

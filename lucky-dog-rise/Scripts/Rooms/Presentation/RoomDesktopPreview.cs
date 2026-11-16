@@ -21,6 +21,8 @@ public partial class RoomDesktopPreview : Node2D
     public override void _Ready()
     {
         LocalChat.InteractionAllowed = () => _client?.ChatAllowed == true;
+        LocalChat.ManualSendDelay = () => _client?.AutomaticChatDelay ?? 0;
+        LocalChat.SendSession = () => _client?.Session ?? -1;
         LocalChat.SendRequested += text =>
         {
             if (LocalChat.RefreshInteractionAvailability())

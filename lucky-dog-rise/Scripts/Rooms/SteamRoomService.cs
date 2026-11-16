@@ -907,9 +907,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             var displayText = _transport.FilterChatForDisplay(_transport.LocalSteamId, text);
             if (RoomRules.ValidateChat(displayText).Length > 0) return "Rooms_ChatUnavailable";
             long sequence = ++_chatSequence;
-            _lastChatSentAt = now;
             if (!_transport.SendChat(_lobby, SteamRoomProtocol.EncodeChat(_chatSession, sequence, sentAt, text, _gameState.Revision)))
                 return "Rooms_ChatUnavailable";
+            _lastChatSentAt = now;
             client.Receive(new RoomChat(sequence, client.JoinedCode, member.Id, member.Presence,
                 displayText, now + RoomRules.ChatLifetime), now);
             return "";

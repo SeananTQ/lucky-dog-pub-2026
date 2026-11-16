@@ -22,6 +22,10 @@ public partial class RoomChatView : Node2D
     // Evaluated at the input boundary as well as each frame: an overlay can start
     // after hover/rendering but before a queued click or Enter signal arrives.
     public Func<bool> InteractionAllowed { get; set; }
+    public Func<double> ManualSendDelay { get; set; }
+    public Func<long> SendSession { get; set; }
+    private bool _sendPending;
+    private long _pendingSendSession;
     public bool HoverEntryEnabled { get; set; } = true;
     private bool CanInteract => !_displaySuppressed && _local && IsVisibleInTree() && (InteractionAllowed?.Invoke() ?? true);
     public bool Editing => _composer.Visible;
@@ -91,6 +95,12 @@ public partial class RoomChatView : Node2D
         if (!IsVisibleInTree()) return;
         if (_displaySuppressed) return;
         bool interactive = RefreshInteractionAvailability();
+        if (_sendPending && _pendingSendSession != (SendSession?.Invoke() ?? 0)) CloseChat();
+        if (interactive && _sendPending && (ManualSendDelay?.Invoke() ?? 0) <= 0)
+        {
+            SetSendPending(false);
+            SendRequested?.Invoke(_input.Text);
+        }
         _errorShakeRemaining = HasBubble ? Math.Max(0, _errorShakeRemaining - delta) : 0;
         if (HoverEntryEnabled && interactive && RoomDogView.ContainsWindowPoint(_open, GetGlobalMousePosition())) _hoverGrace = 0.45;
         else _hoverGrace -= delta;
@@ -215,11 +225,24 @@ public partial class RoomChatView : Node2D
     }
     private void Send()
     {
-        if (!RefreshInteractionAvailability() || !Editing || _input.HasImeText()) return;
+        if (!RefreshInteractionAvailability() || !Editing || _input.HasImeText() || _sendPending) return;
+        if (!string.IsNullOrWhiteSpace(_input.Text) && (ManualSendDelay?.Invoke() ?? 0) > 0)
+        {
+            SetSendPending(true);
+            return;
+        }
         SendRequested?.Invoke(_input.Text);
+    }
+    private void SetSendPending(bool pending)
+    {
+        _sendPending = pending;
+        if (pending) _pendingSendSession = SendSession?.Invoke() ?? 0;
+        _send.Disabled = pending;
+        _input.Editable = !pending;
     }
     public void SetSendResult(string error)
     {
+        SetSendPending(false);
         if (string.IsNullOrEmpty(error)) { _input.Clear(); CloseChat(); }
         else { _errorKey = error; RefreshText(); ShakeError(); _input.GrabFocus(); _input.Edit(); }
     }
@@ -231,6 +254,7 @@ public partial class RoomChatView : Node2D
     }
     public void CloseChat()
     {
+        SetSendPending(false);
         _errorShakeRemaining = 0;
         _composer.Hide();
         _input.ReleaseFocus();
