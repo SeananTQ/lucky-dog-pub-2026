@@ -1,0 +1,90 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/CardPushReuseLab.cs" id="script"]
+[ext_resource type="PackedScene" path="res://Scenes/Poker/PokerPaws.tscn" id="paws"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/Card.tscn" id="card"]
+[ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="CardPushReuseLab" type="Control" unique_id=2080682807 node_paths=PackedStringArray("_paws", "_dog", "_cards", "_left", "_right", "_straighten", "_reset", "_close")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_paws = NodePath("Paws")
+_dog = NodePath("Dog")
+_cards = [NodePath("Cards/LeftCard"), NodePath("Cards/RightCard")]
+_left = NodePath("Tools/Left")
+_right = NodePath("Tools/Right")
+_straighten = NodePath("Tools/Straighten")
+_reset = NodePath("Tools/Reset")
+_close = NodePath("Tools/Close")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.14, 0.18, 0.20, 1)
+
+[node name="Tools" type="HBoxContainer" parent="."]
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 940.0
+offset_bottom = 56.0
+theme_override_constants/separation = 12
+
+[node name="Left" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "左爪推左牌"
+
+[node name="Right" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "右爪推右牌"
+
+[node name="Straighten" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "回正"
+
+[node name="Reset" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "重置"
+
+[node name="Close" type="Button" parent="Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "退出"
+
+[node name="Instructions" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 72.0
+offset_right = 940.0
+offset_bottom = 140.0
+mouse_filter = 2
+text = "单机卡牌 + 共用动画，可反复点击卡牌或上方按钮。\n仅演示推牌、翻面、推歪和回正，不运行房间或牌局规则。"
+
+[node name="Dog" parent="." instance=ExtResource("dog")]
+position = Vector2(480, 340)
+scale = Vector2(0.5, 0.5)
+
+[node name="Cards" type="Node2D" parent="."]
+position = Vector2(480, 490)
+
+[node name="LeftCard" parent="Cards" instance=ExtResource("card")]
+position = Vector2(-70, 0)
+
+[node name="RightCard" parent="Cards" instance=ExtResource("card")]
+position = Vector2(70, 0)
+
+[node name="Paws" parent="." instance=ExtResource("paws")]

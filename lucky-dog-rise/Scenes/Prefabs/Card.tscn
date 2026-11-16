@@ -2,6 +2,12 @@
 
 [ext_resource type="Script" uid="uid://duw70n1edgmeh" path="res://Scripts/CardController.cs" id="1_ctrl"]
 [ext_resource type="Texture2D" uid="uid://ccl41hit66lve" path="res://Assets/v1/CardBack/Basic.png" id="3_6kh0g"]
+[ext_resource type="Shader" path="res://Scenes/Poker/CardPushFlip.gdshader" id="push_flip"]
+
+[sub_resource type="ShaderMaterial" id="DirectionalFlip"]
+resource_local_to_scene = true
+shader = ExtResource("push_flip")
+shader_parameter/card_center = Vector2(0, 0)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hitbox"]
 bg_color = Color(1, 1, 1, 0)
@@ -16,8 +22,10 @@ texture = ExtResource("3_6kh0g")
 [node name="CardBody" type="Node2D" parent="." unique_id=1291110750]
 
 [node name="Front" type="Sprite2D" parent="CardBody" unique_id=306387111]
+material = SubResource("DirectionalFlip")
 
 [node name="Back" type="Sprite2D" parent="CardBody" unique_id=1733872990]
+material = SubResource("DirectionalFlip")
 texture = ExtResource("3_6kh0g")
 
 [node name="ClickButton" type="Button" parent="CardBody" unique_id=1520336561]

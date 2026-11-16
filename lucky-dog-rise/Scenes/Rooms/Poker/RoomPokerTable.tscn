@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerCard.tscn" id="card"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="hand"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
-[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerPaws.tscn" id="paws"]
+[ext_resource type="PackedScene" path="res://Scenes/Poker/PokerPaws.tscn" id="paws"]
 
 [node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn", "Paws")]
 z_index = 6

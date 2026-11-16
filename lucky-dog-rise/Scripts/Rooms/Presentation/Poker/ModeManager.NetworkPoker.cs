@@ -157,7 +157,7 @@ public partial class ModeManager
 
     private void BindRoomPokerPaws(RoomPokerTableView table)
     {
-        table.Paws.Bind(GetViewport(), (id, right) =>
+        table.BindPaws(GetViewport(), (id, right) =>
         {
             var dog = id == table.Round.DisplayView?.PlayerId ? _gameManager?.RoomPokerDog
                 : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.Dog;

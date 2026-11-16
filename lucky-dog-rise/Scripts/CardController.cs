@@ -16,6 +16,10 @@ public partial class CardController : Node2D
     private Node2D _body = null!;
     private Sprite2D _shadow = null!;
     private Tween _hintTween;
+    private Tween _slideTween, _faceTween;
+    private long _animationVersion;
+    private bool _targetFaceUp;
+    public CardPushAnimation PushAnimation { get; private set; }
 
     public int CardIndex { get; set; }
     public int CardValue { get; private set; } = -1;
@@ -31,12 +35,24 @@ public partial class CardController : Node2D
         _button = GetNode<Button>("CardBody/ClickButton");
         _button.Pressed += () => EmitSignal(SignalName.Clicked, CardIndex);
         _shadow.Visible = false;
+        PushAnimation = new(_body, _back.Texture.GetSize(), Vector2.Zero, this,
+            _front.Material as ShaderMaterial, _back.Material as ShaderMaterial);
+        VisibilityChanged += () =>
+        {
+            if (IsVisibleInTree()) return;
+            CancelCardAnimations();
+            // Returning from desktop must show the requested side even if a flip was
+            // interrupted before its midpoint. Do not infer this from IsHeld: deals and
+            // tutorial-only flips have their own presentation intent.
+            if (_targetFaceUp) ShowFront(); else ShowBack();
+        };
 
         ShowBack();
     }
 
     public void SetCard(int value, int index)
     {
+        CancelCardAnimations();
         CardValue = value;
         CardIndex = index;
         if (value >= 0)
@@ -48,12 +64,14 @@ public partial class CardController : Node2D
 
     public void ShowFront()
     {
+        _targetFaceUp = true;
         _front.Visible = true;
         _back.Visible = false;
     }
 
     public void ShowBack()
     {
+        _targetFaceUp = false;
         _front.Visible = false;
         _back.Visible = true;
     }
@@ -79,6 +97,7 @@ public partial class CardController : Node2D
     /// </summary>
     public void PlayInteractionHint(double delay, float lift, float rotation)
     {
+        PushAnimation?.Reset();
         ResetInteractionHint();
         _hintTween = CreateTween();
         _hintTween.TweenInterval(delay);
@@ -105,6 +124,41 @@ public partial class CardController : Node2D
         _body.Rotation = 0f;
     }
 
+    /// <summary>
+    /// Visual-only entry for a scripted tutorial or another poker mode. Does not change
+    /// CardValue, IsHeld, emit Clicked, replace a card, or debit chips.
+    /// Use PushAnimation as the target for PokerPawEffects.Play, and call this on contact.
+    /// </summary>
+    public void AnimatePushedFlip(bool faceUp, Vector2 direction, int order, float angle)
+    {
+        AudioManager.Instance?.PlaySfxOncePerFrame(faceUp ? "Card_PokerHandFlipToFront" : "Card_PokerHandFlipToBack", "PokerPush");
+        ++_animationVersion;
+        _slideTween?.Kill(); _faceTween?.Kill(); _hintTween?.Kill();
+        _body.Scale = PushAnimation.BaseScale;
+        _shadow.Hide();
+        _targetFaceUp = faceUp;
+        void SwapFace() { if (faceUp) ShowFront(); else ShowBack(); }
+        if (!PushAnimation.Flip(direction, SwapFace)) SwapFace();
+        PushAnimation.Tilt(order, angle);
+    }
+
+    public void ResetPushPresentation(bool faceUp)
+    {
+        CancelCardAnimations();
+        if (faceUp) ShowFront(); else ShowBack();
+    }
+
+    private void CancelCardAnimations()
+    {
+        ++_animationVersion;
+        _slideTween?.Kill(); _faceTween?.Kill();
+        ResetInteractionHint();
+        PushAnimation?.Reset();
+        _shadow?.Hide();
+    }
+
+    public override void _ExitTree() => CancelCardAnimations();
+
 
     /// <summary>
     ///  动画这里的行注释不要删，方便后期调整动画细节
@@ -113,15 +167,19 @@ public partial class CardController : Node2D
     /// <param name="delay"></param>
     public void AnimateDeal(float delay, float pitchCenter, float pitchVariation)
     {
+        CancelCardAnimations();
+        long version = _animationVersion;
         _body.Position = Vector2.Zero;
         _body.Scale = Vector2.Zero;
         _body.Modulate = Colors.White;
         _shadow.Scale = Vector2.Zero;
         _shadow.Modulate = new Color(0, 0, 0, 0.3f);
         ShowBack();
+        _targetFaceUp = true;
 
         GetTree().CreateTimer(delay).Timeout += () =>
         {
+            if (!IsInstanceValid(this) || !IsInsideTree() || version != _animationVersion) return;
             AudioManager.Instance.PlaySfx("Card_PokerHandDeal", pitchCenter, pitchVariation);
             // CardBody 在高处的起始状态
             _body.Position = new Vector2(0, -80);
@@ -135,7 +193,7 @@ public partial class CardController : Node2D
             _shadow.Position = new Vector2(0, 30);
 
             // 下滑 + 缩小 + 显现 + 阴影变化（并行）
-            var slideTween = CreateTween().SetParallel(true);
+            var slideTween = _slideTween = CreateTween().SetParallel(true);
             slideTween.TweenProperty(_body, "position", Vector2.Zero, DealSlideDuration)
                 .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
             slideTween.TweenProperty(_body, "scale", Vector2.One, DealSlideDuration)
@@ -153,7 +211,8 @@ public partial class CardController : Node2D
             // 翻转（下滑结束后，阴影同步缩小再恢复）
             GetTree().CreateTimer(DealSlideDuration).Timeout += () =>
             {
-                var flipTween = CreateTween().SetParallel(true);
+                if (!IsInstanceValid(this) || !IsInsideTree() || version != _animationVersion) return;
+                var flipTween = _faceTween = CreateTween().SetParallel(true);
                 flipTween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
                     .SetEase(Tween.EaseType.In);
                 flipTween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
@@ -174,13 +233,15 @@ public partial class CardController : Node2D
     // 反悔翻回：背面→正面（与阴影同步）
     public void AnimateRehold()
     {
+        CancelCardAnimations();
+        _targetFaceUp = true;
         AudioManager.Instance.PlaySfx("Card_PokerHandFlipToFront");
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
         _shadow.Visible = true;
 
-        var tween = CreateTween().SetParallel(true);
+        var tween = _faceTween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
         tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
@@ -199,14 +260,16 @@ public partial class CardController : Node2D
     // 弃牌动画：翻转显示卡背（与阴影同步）
     public void AnimateDiscard()
     {
+        CancelCardAnimations();
         AudioManager.Instance.PlaySfx("Card_PokerHandFlipToBack");
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
         _shadow.Visible = true;
         ShowFront();
+        _targetFaceUp = false;
 
-        var tween = CreateTween().SetParallel(true);
+        var tween = _faceTween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
         tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)
@@ -225,14 +288,16 @@ public partial class CardController : Node2D
     // 补牌翻转（与阴影同步，模仿发牌翻转的风格）
     public void AnimateReplace(float pitchCenter, float pitchVariation)
     {
+        CancelCardAnimations();
         AudioManager.Instance.PlaySfx("Card_PokerHandFlipToFront", pitchCenter, pitchVariation);
         ResetModulate();
         _body.Scale = Vector2.One;
         _shadow.Scale = Vector2.One;
         _shadow.Visible = true;
         ShowBack();
+        _targetFaceUp = true;
 
-        var tween = CreateTween().SetParallel(true);
+        var tween = _faceTween = CreateTween().SetParallel(true);
         tween.TweenProperty(_body, "scale:x", 0f, FlipDuration)
             .SetEase(Tween.EaseType.In);
         tween.TweenProperty(_shadow, "scale:x", 0f, FlipDuration)

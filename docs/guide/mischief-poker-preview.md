@@ -38,6 +38,8 @@ status: draft
 
 ## 爪子翻牌实验场景
 
+动画组件也供单机卡牌使用。独立的 `Scenes/Dev/Labs/CardPushReuseLab.tscn` 验证没有房间规则时的复用，接入与中断规则见[共用爪子推牌与卡牌动画](poker-push-animation.md)。
+
 `Scenes/Dev/Labs/PokerPawAnimationLab.tscn` 可直接 F6 运行，使用正式公共牌和爪子演出组件，不创建 Steam 会话或账号存档。1 号代表本机，2、3 号代表远端，分别使用现有不同毛色。
 
 - “本机回合／远端回合”重置对应行动场景，点击公共牌观察左、右爪；“同牌连续两翻”验证两次操作同槽位，“结束当前回合”切到下一位。

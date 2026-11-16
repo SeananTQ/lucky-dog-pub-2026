@@ -13,7 +13,14 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Godot.Collections.Array<RoomPokerCardView> _board = new();
     [Export] private RoomPokerHandView _hand;
     [Export] private Label _turn;
-    [Export] public RoomPokerPawEffects Paws { get; private set; }
+    [Export] public PokerPawEffects Paws { get; private set; }
+    private Func<int, bool, Node2D> _pawSource;
+
+    public void BindPaws(Viewport viewport, Func<int, bool, Node2D> source, Func<CanvasItem, Transform2D> toWindow)
+    {
+        _pawSource = source;
+        Paws.Bind(viewport, toWindow);
+    }
     public event Action<int> FlipRequested;
     private long _handNumber = -1;
     private Guid _session;
@@ -107,7 +114,7 @@ public partial class RoomPokerTableView : Node2D
                 _board[i].GetParent().MoveChild(_board[i], -1);
             }
             if (!sameHand || !animate || state.Phase != PokerPhase.Acting) _board[i].StopDealAnimation();
-            if (_predicted?.Slot != i && !Paws.HasPendingFlip(_board[i]))
+            if (_predicted?.Slot != i && !Paws.HasPendingFlip(_board[i].PushAnimation))
                 _board[i].Present(state.Board[i].Card, !state.Board[i].PendingReplacement, animate && sameHand);
             int card = state.Board[i].Card;
             _board[i].SetEmphasis(Emphasis != null && !Emphasis.WinnerCards.Contains(card),
@@ -154,12 +161,13 @@ public partial class RoomPokerTableView : Node2D
     {
         var node = _board[flip.Slot];
         int value = view.Public.Board[flip.Slot].Card, order = ++_topCard;
-        float angle = node.ChooseMischiefAngle();
-        Paws.Play(flip, node, flip.PlayerId == view.PlayerId, angle, direction =>
+        float angle = node.PushAnimation.ChooseTiltAngle();
+        bool local = flip.PlayerId == view.PlayerId;
+        Paws.Play(_pawSource?.Invoke(flip.PlayerId, flip.Number == 2), node.PushAnimation, angle, direction =>
         {
             node.Present(value, flip.FaceUp, true, direction);
             node.AnimateMischief(order, angle);
-        });
+        }, immediate: local, keepOriginalSize: local);
     }
 }
 

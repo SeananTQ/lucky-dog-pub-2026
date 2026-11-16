@@ -65,6 +65,7 @@ LuckyDogRise.Rooms.RoomLab
 LuckyDogRise.Rooms.RoomNameBarLocalizationLab
 LuckyDogRise.Rooms.PokerCardAnimationLab
 LuckyDogRise.Rooms.PokerPawAnimationLab
+LuckyDogRise.CardPushReuseLab
 LuckyDogRise.Rooms.RoomListRow
 LuckyDogRise.Rooms.RoomMemberRow
 LuckyDogRise.Tools.StoreDialogueController
@@ -77,7 +78,7 @@ PersistentTipController
 LuckyDogRise.Rooms.RoomPokerCardView
 LuckyDogRise.Rooms.RoomPokerHandView
 LuckyDogRise.Rooms.RoomPokerTableView
-LuckyDogRise.Rooms.RoomPokerPawEffects
+LuckyDogRise.PokerPawEffects
 LuckyDogRise.Rooms.RoomPokerPayoutView
 LuckyDogRise.Rooms.RoomPokerPanelView
 LuckyDogRise.Rooms.RoomPokerLobbyView

@@ -26,7 +26,7 @@ public partial class PokerPawAnimationLab : Control
         GetWindow().Title = "小狗来啦 · 爪子翻牌演出";
         GetWindow().Size = new Vector2I(1280, 800);
         GetWindow().ContentScaleMode = Window.ContentScaleModeEnum.Disabled;
-        _table.Paws.Bind(GetViewport(), (id, right) => _dogs[id - 1].PokerPaw(right), n => n.GetGlobalTransformWithCanvas());
+        _table.BindPaws(GetViewport(), (id, right) => _dogs[id - 1].PokerPaw(right), n => n.GetGlobalTransformWithCanvas());
         for (int i = 0; i < _dogs.Count; i++)
             _dogs[i].SetPreviewAppearance(DogAppearanceSpec.FromDogSkin(LubanData.Tables.TbDogSkin.Get(1001 + i)));
         _table.FlipRequested += slot => Flip(slot);
@@ -103,7 +103,7 @@ public partial class PokerPawAnimationLab : Control
             Reset(false);
             int before = paws.TouchCount;
             Flip(0);
-            Check(!card.IsFlipping && paws.HasPendingFlip(card) && paws.TouchCount == before, "remote flip waits for contact");
+            Check(!card.IsFlipping && paws.HasPendingFlip(card.PushAnimation) && paws.TouchCount == before, "remote flip waits for contact");
             await Wait(.13);
             Check(card.IsFlipping && paws.TouchCount == before + 1, "remote contact triggers exactly one flip");
             _dogs[1].Position += new Vector2(130, -60);
@@ -163,14 +163,14 @@ public partial class PokerPawAnimationLab : Control
                         card.Rotation = angle;
                         var root = dog.PokerPaw(number == 2);
                         var original = root.GetChildren().OfType<Sprite2D>().First(s => s.Visible);
-                        var cardPose = card.GetParent<CanvasItem>().GetGlobalTransformWithCanvas() * card.PawPose(angle);
+                        var cardPose = card.GetParent<CanvasItem>().GetGlobalTransformWithCanvas() * card.PushAnimation.PawPose(angle);
                         dog.Position += cardPose.Origin + from * 350 - original.GlobalPosition;
-                        paws.Play(new PokerFlip(1, playerId, number, 0, false), card, local, angle,
-                            direction => card.Present(4, false, true, direction));
+                        paws.Play(root, card.PushAnimation, angle,
+                            direction => card.Present(4, false, true, direction), immediate: local, keepOriginalSize: local);
                         var flying = paws.GetNode<Sprite2D>("Overlay/Paw1");
                         Vector2 toes = flying.Transform.Y.Normalized() * (flying.FlipV ? -1 : 1);
                         Check(toes.Dot(-from) > 0 && (flying.Position - cardPose.Origin).Dot(from) > 0
-                            && Mathf.Abs(toes.Y) <= Mathf.Sin(Mathf.DegToRad(RoomPokerPawEffects.MaxPushAngleDegrees)) + .001f,
+                            && Mathf.Abs(toes.Y) <= Mathf.Sin(Mathf.DegToRad(PokerPawEffects.MaxPushAngleDegrees)) + .001f,
                             $"player {playerId} paw {number} uses a shallow push from {from}");
                         var home = original.GetGlobalTransformWithCanvas();
                         bool OriginalSize() => Mathf.Abs(flying.Transform.X.Length() - home.X.Length()) < .001f
@@ -178,17 +178,17 @@ public partial class PokerPawAnimationLab : Control
                         Check(local ? OriginalSize() : Mathf.Abs(flying.Transform.X.Length() * flying.Texture.GetWidth()
                             - cardPose.X.Length() * card.Size.X * .64f) < .01f,
                             $"player {playerId} paw {number} uses the correct local/remote size");
-                        paws._Process((local ? 0 : RoomPokerPawEffects.ApproachSeconds) + .01);
+                        paws._Process((local ? 0 : PokerPawEffects.ApproachSeconds) + .01);
                         Vector2 projected = (cardPose.X * card.FlipDirection.X + cardPose.Y * card.FlipDirection.Y).Normalized();
                         Check(projected.Dot(toes) > .999f && card.IsFlipping,
                             $"player {playerId} paw {number} and card share direction from {from}");
-                        paws._Process(RoomPokerPawEffects.PushSeconds + RoomPokerPawEffects.ReturnTurnSeconds);
+                        paws._Process(PokerPawEffects.PushSeconds + PokerPawEffects.ReturnTurnSeconds);
                         Check(flying.Visible && flying.Position.DistanceTo(original.GlobalPosition) > 10
                             && flying.Transform.Y.Normalized().Dot(home.Y.Normalized()) > .999f
                             && Mathf.Sign(flying.Transform.Determinant()) == Mathf.Sign(home.Determinant())
                             && (!local || OriginalSize()),
                             $"player {playerId} paw {number} turns home early and keeps its return size from {from}");
-                        paws._Process(RoomPokerPawEffects.ReturnSeconds);
+                        paws._Process(PokerPawEffects.ReturnSeconds);
                         Check(paws.ActiveCount == 0 && root.Modulate.A == 1
                             && paws.LastReturnPosition.DistanceTo(original.GlobalPosition) < .1f,
                             $"player {playerId} paw {number} finishes at its original pose from {from}");

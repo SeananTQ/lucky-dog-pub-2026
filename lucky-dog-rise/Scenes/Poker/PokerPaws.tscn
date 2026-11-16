@@ -1,8 +1,8 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerPawEffects.cs" id="script"]
+[ext_resource type="Script" path="res://Scripts/PokerPawEffects.cs" id="script"]
 
-[node name="RoomPokerPaws" type="Node2D" node_paths=PackedStringArray("_layer", "_sprites")]
+[node name="PokerPaws" type="Node2D" node_paths=PackedStringArray("_layer", "_sprites")]
 script = ExtResource("script")
 _layer = NodePath("Overlay")
 _sprites = [NodePath("Overlay/Paw1"), NodePath("Overlay/Paw2"), NodePath("Overlay/Paw3"), NodePath("Overlay/Paw4"), NodePath("Overlay/Paw5"), NodePath("Overlay/Paw6"), NodePath("Overlay/Paw7"), NodePath("Overlay/Paw8"), NodePath("Overlay/Paw9"), NodePath("Overlay/Paw10"), NodePath("Overlay/Paw11"), NodePath("Overlay/Paw12")]

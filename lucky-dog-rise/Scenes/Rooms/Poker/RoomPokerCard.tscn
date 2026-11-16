@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerCardView.cs" id="script"]
 [ext_resource type="Texture2D" path="res://Assets/v1/CardBack/Basic.png" id="back"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
-[ext_resource type="Shader" path="res://Scenes/Rooms/Poker/RoomPokerFlip.gdshader" id="flip"]
+[ext_resource type="Shader" path="res://Scenes/Poker/CardPushFlip.gdshader" id="flip"]
 
 [sub_resource type="ShaderMaterial" id="DirectionalFlip"]
 resource_local_to_scene = true
