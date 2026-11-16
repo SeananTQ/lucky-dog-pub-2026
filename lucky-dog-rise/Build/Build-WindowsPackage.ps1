@@ -160,6 +160,21 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Demo editor assembly build failed.' }
             Invoke-GodotBuildStep 'import' @('--headless', '--path', "`"$projectRoot`"", '--editor', '--import')
         }
+        # Godot's converted-scene cache keys each scene by its own source hash, not
+        # its inherited scenes. A changed child can otherwise leave stale layout
+        # overrides in an unchanged parent. Repack scenes for every distributable.
+        $sceneCache = [System.IO.Path]::GetFullPath((Join-Path $projectRoot '.godot\exported'))
+        if (Test-Path -LiteralPath $sceneCache) {
+            $resolvedSceneCache = (Resolve-Path -LiteralPath $sceneCache).ProviderPath
+            $resolvedProject = (Resolve-Path -LiteralPath $projectRoot).ProviderPath.TrimEnd('\', '/')
+            if (!$resolvedSceneCache.StartsWith($resolvedProject + [System.IO.Path]::DirectorySeparatorChar,
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                ((Get-Item -LiteralPath $sceneCache).Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+                throw 'Converted-scene cache must be a normal directory inside the export project.'
+            }
+            Remove-Item -LiteralPath $resolvedSceneCache -Recurse -Force
+            Write-Host '[Build] Cleared converted-scene cache before export.'
+        }
         Invoke-GodotBuildStep 'export' @('--headless', '--path', "`"$projectRoot`"", '--export-release', "`"Windows $Channel`"", "`"$outputExe`"")
 
         # When the editor already owns the project, the command-line process can

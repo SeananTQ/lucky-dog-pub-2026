@@ -8,6 +8,8 @@
 [ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_PokerAutoplay.svg" id="autoplay"]
 
 [node name="PokerHand" type="Control" node_paths=PackedStringArray("_first", "_second", "_plate", "_drawer", "_seat", "_chips", "_dealer", "_rank", "_winner", "_waiting", "_autoplay", "_clock")]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 172.0
 offset_bottom = 200.0
 mouse_filter = 2
@@ -27,6 +29,7 @@ _autoplay = NodePath("Plate/Autoplay")
 _clock = NodePath("Plate/Clock")
 
 [node name="First" parent="." instance=ExtResource("card")]
+layout_mode = 0
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 78.0
@@ -35,6 +38,7 @@ mouse_filter = 2
 disabled = true
 
 [node name="Second" parent="." instance=ExtResource("card")]
+layout_mode = 0
 offset_left = 94.0
 offset_top = 12.0
 offset_right = 152.0
@@ -44,6 +48,7 @@ disabled = true
 
 [node name="Waiting" type="TextureRect" parent="."]
 visible = false
+layout_mode = 0
 offset_left = 64.0
 offset_top = 30.0
 offset_right = 108.0
@@ -54,6 +59,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Plate" type="Panel" parent="."]
+layout_mode = 0
 offset_left = 10.0
 offset_top = 108.0
 offset_right = 162.0
@@ -62,6 +68,7 @@ mouse_filter = 2
 theme_type_variation = &"RoomPokerPlate"
 
 [node name="Seat" type="Label" parent="Plate"]
+layout_mode = 0
 offset_left = 8.0
 offset_top = 12.0
 offset_right = 44.0
@@ -73,6 +80,7 @@ text = "#1"
 
 [node name="Dealer" type="Label" parent="Plate"]
 visible = false
+layout_mode = 0
 offset_left = -10.0
 offset_top = -10.0
 offset_right = 12.0
@@ -87,6 +95,7 @@ vertical_alignment = 1
 [node name="Autoplay" type="TextureRect" parent="Plate"]
 visible = false
 modulate = Color(0.6, 0.8, 1, 1)
+layout_mode = 0
 offset_left = 120.0
 offset_top = 14.0
 offset_right = 140.0
@@ -99,6 +108,7 @@ stretch_mode = 5
 [node name="Winner" type="TextureRect" parent="Plate"]
 visible = false
 modulate = Color(1, 0.86, 0.48, 1)
+layout_mode = 0
 offset_left = 132.0
 offset_top = -14.0
 offset_right = 160.0
@@ -109,6 +119,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Chips" type="Label" parent="Plate"]
+layout_mode = 0
 offset_left = 6.0
 offset_top = 30.0
 offset_right = 146.0
@@ -123,6 +134,8 @@ vertical_alignment = 1
 [node name="StatusClip" type="Control" parent="Plate"]
 clip_contents = true
 show_behind_parent = true
+layout_mode = 1
+anchors_preset = -1
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -132,12 +145,14 @@ mouse_filter = 2
 
 [node name="Drawer" type="Panel" parent="Plate/StatusClip"]
 visible = false
+layout_mode = 0
 offset_right = 152.0
 offset_bottom = 32.0
 mouse_filter = 2
 theme_type_variation = &"RoomPokerResultDrawer"
 
 [node name="Rank" type="Label" parent="Plate/StatusClip/Drawer"]
+layout_mode = 0
 offset_left = 4.0
 offset_top = 5.0
 offset_right = 148.0
@@ -150,6 +165,7 @@ vertical_alignment = 1
 
 [node name="Clock" type="ProgressBar" parent="Plate"]
 visible = false
+layout_mode = 0
 offset_left = 8.0
 offset_top = 54.0
 offset_right = 144.0

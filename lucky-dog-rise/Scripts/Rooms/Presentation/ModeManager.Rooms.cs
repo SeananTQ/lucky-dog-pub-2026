@@ -9,7 +9,7 @@ public partial class ModeManager
 {
     // Runs only through the existing isolated exported-package diagnostic entry.
     // Exercise scene bindings after obfuscation without joining Steam or touching inventory.
-    private void VerifyRoomExportSmoke()
+    private async System.Threading.Tasks.Task VerifyRoomExportSmoke()
     {
         if (!BuildCapabilities.SteamRooms) return;
         var tab = _settingsPanel.GetNodeOrNull<Button>("Panel/RootVBox/TitleRow/RoomTab");
@@ -75,6 +75,30 @@ public partial class ModeManager
                 || firstCard.Material is not ShaderMaterial { Shader: not null })
                 throw new System.InvalidOperationException("Exported room poker card resources or bindings are missing.");
             GD.Print("[RoomPokerExportSmoke] Table, hand, panel, payout, card textures and shader bindings passed.");
+
+            // Nested editable instances can load successfully yet reset inherited Control offsets
+            // during TSCN -> SCN export. Check actual geometry, including the deal's cached poses.
+            var localHand = pokerTable.LocalPanel;
+            var remoteHand = desktop.RemoteDogs.Single().PokerHand;
+            VerifyPokerHandLayout(localHand);
+            VerifyPokerHandLayout(remoteHand);
+            var match = new Rooms.Poker.MischiefPokerMatch(new[] { 1, 2 }, 1);
+            match.StartHand(0, Enumerable.Range(0, 52).ToArray());
+            var view = match.GetPlayerView(2);
+            desktop.Show();
+            localHand.Present(view.Public, 2, view.HoleCards, null, 0, true);
+            remoteHand.Present(view.Public, 1, null, null, 0, true);
+            await ToSignal(GetTree().CreateTimer(RoomPokerHandView.DealDuration + 0.25), SceneTreeTimer.SignalName.Timeout);
+            VerifyPokerHandLayout(localHand);
+            VerifyPokerHandLayout(remoteHand);
+            if (localHand.IsDealing || remoteHand.IsDealing || !localHand.CardsRevealed
+                || localHand.FirstCard.VisibleCard != view.HoleCards[0]
+                || localHand.SecondCard.VisibleCard != view.HoleCards[1]
+                || !localHand.IsActing || remoteHand.CardsRevealed
+                || localHand.GetNode<Label>("Plate/Seat").Text != "#2"
+                || localHand.GetNode<Label>("Plate/Chips").Text != view.Public.Seats.Single(s => s.PlayerId == 2).Chips.ToString("N0"))
+                throw new System.InvalidOperationException("Exported poker deal or player-panel display did not finish correctly.");
+            GD.Print("[RoomPokerLayoutSmoke] Local and remote hands, deal completion, labels and thin bottom clock passed.");
         }
         finally
         {
@@ -86,6 +110,30 @@ public partial class ModeManager
             pokerPanel.Free();
             pokerPayout.Free();
         }
+    }
+
+    private static void VerifyPokerHandLayout(RoomPokerHandView hand)
+    {
+        var first = hand.FirstCard;
+        var second = hand.SecondCard;
+        var plate = hand.GetNode<Panel>("Plate");
+        var seat = hand.GetNode<Label>("Plate/Seat");
+        var chips = hand.GetNode<Label>("Plate/Chips");
+        var clock = hand.GetNode<ProgressBar>("Plate/Clock");
+        var clip = hand.GetNode<Control>("Plate/StatusClip");
+        bool valid = first != second && first.Size.X > 0 && second.Size.X > 0
+            && first.Position.DistanceTo(second.Position) > Mathf.Min(first.Size.X, second.Size.X) * 0.5f
+            && seat.Position.X > 0 && seat.Position.Y > 0
+            && chips.Position.Y > seat.Position.Y + seat.Size.Y * 0.5f
+            && clock.Position.Y >= chips.GetRect().End.Y - 1
+            && clock.Size.Y > 0 && clock.Size.Y <= plate.Size.Y * 0.15f
+            && clock.Position.X > 0 && clock.GetRect().End.X <= plate.Size.X
+            && clock.GetRect().End.Y <= plate.Size.Y
+            && clip.Position.Y >= plate.Size.Y * 0.75f;
+        if (!valid)
+            throw new System.InvalidOperationException($"Exported poker layout collapsed: {hand.GetPath()}; "
+                + $"cards={first.GetRect()} / {second.GetRect()}, seat={seat.GetRect()}, "
+                + $"chips={chips.GetRect()}, clock={clock.GetRect()}, plate={plate.Size}, drawerClip={clip.GetRect()}");
     }
 
     private RoomClient _desktopRoomClient;

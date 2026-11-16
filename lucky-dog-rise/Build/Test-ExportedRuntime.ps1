@@ -70,6 +70,10 @@ if ($Channel -in 'Playtest', 'Release' -and
     !$output.Contains('[RoomPokerExportSmoke] Table, hand, panel, payout, card textures and shader bindings passed.')) {
     throw "Exported room poker resource/binding regression did not pass. See $logDirectory"
 }
+if ($Channel -in 'Playtest', 'Release' -and
+    !$output.Contains('[RoomPokerLayoutSmoke] Local and remote hands, deal completion, labels and thin bottom clock passed.')) {
+    throw "Exported room poker layout/dealing regression did not pass. See $logDirectory"
+}
 
 if ($Channel -eq 'Demo') {
     if ($DemoContentManifest -and !$output.Contains('[DemoContentSmoke] Packaged tables and assets verified.')) {
