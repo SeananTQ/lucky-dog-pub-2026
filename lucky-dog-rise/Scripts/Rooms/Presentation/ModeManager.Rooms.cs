@@ -28,10 +28,19 @@ public partial class ModeManager
         var notice = GD.Load<PackedScene>("res://Scenes/Rooms/RoomJoinNotice.tscn").Instantiate<CanvasLayer>();
         var proposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
             .Instantiate<RoomGameProposalOverlay>();
+        var pokerTable = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerTable.tscn")
+            .Instantiate<RoomPokerTableView>();
+        var pokerPanel = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPanel.tscn")
+            .Instantiate<RoomPokerPanelView>();
+        var pokerPayout = GD.Load<PackedScene>("res://Scenes/Rooms/Poker/RoomPokerPayout.tscn")
+            .Instantiate<RoomPokerPayoutView>();
         AddChild(row);
         AddChild(desktop);
         AddChild(notice);
         AddChild(proposal);
+        AddChild(pokerTable);
+        AddChild(pokerPanel);
+        AddChild(pokerPayout);
         try
         {
             row.Hide();
@@ -53,6 +62,19 @@ public partial class ModeManager
                 client.Id, 60, false, false, "");
             proposal.Hide();
             GD.Print("[RoomExportSmoke] Room page, translations, directory row, join notice, game proposal and remote dog bindings passed.");
+            pokerTable.PresentWaiting();
+            pokerPanel.PresentWaiting();
+            pokerPanel.PresentNetwork(null, false);
+            pokerPayout.PresentDealer(Vector2.Zero, Vector2.One, 0, 22, false);
+            var firstCard = pokerTable.LocalPanel.FirstCard;
+            var secondCard = pokerTable.LocalPanel.SecondCard;
+            firstCard.Present(0, true, false);
+            secondCard.Present(51, true, false);
+            if (pokerTable.Paws == null || firstCard.VisibleCard != 0 || secondCard.VisibleCard != 51
+                || firstCard.TextureNormal == null || secondCard.TextureNormal == null
+                || firstCard.Material is not ShaderMaterial { Shader: not null })
+                throw new System.InvalidOperationException("Exported room poker card resources or bindings are missing.");
+            GD.Print("[RoomPokerExportSmoke] Table, hand, panel, payout, card textures and shader bindings passed.");
         }
         finally
         {
@@ -60,6 +82,9 @@ public partial class ModeManager
             row.Free();
             notice.Free();
             proposal.Free();
+            pokerTable.Free();
+            pokerPanel.Free();
+            pokerPayout.Free();
         }
     }
 

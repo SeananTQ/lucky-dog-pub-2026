@@ -63,8 +63,12 @@ if (!$output.Contains('[ChipRewardSmoke] All nine winning hands passed.')) {
     throw "Exported ChipReward regression did not pass. See $logDirectory"
 }
 if ($Channel -in 'Playtest', 'Release' -and
-    !$output.Contains('[RoomExportSmoke] Room page, translations, directory row and remote dog bindings passed.')) {
+    !$output.Contains('[RoomExportSmoke] Room page, translations, directory row, join notice, game proposal and remote dog bindings passed.')) {
     throw "Exported room resource/binding regression did not pass. See $logDirectory"
+}
+if ($Channel -in 'Playtest', 'Release' -and
+    !$output.Contains('[RoomPokerExportSmoke] Table, hand, panel, payout, card textures and shader bindings passed.')) {
+    throw "Exported room poker resource/binding regression did not pass. See $logDirectory"
 }
 
 if ($Channel -eq 'Demo') {
