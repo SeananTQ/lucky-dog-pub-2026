@@ -97,6 +97,6 @@ focus_mode = 0
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"CapsuleSecondaryButton"
 auto_translate_mode = 2
 focus_mode = 0

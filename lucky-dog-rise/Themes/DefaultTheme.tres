@@ -30,6 +30,105 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Pressed.tres" id="20_capsule_pressed"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Disabled.tres" id="21_capsule_disabled"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.54509804, 0.41960784, 0.19607843, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.64705882, 0.50588235, 0.25098039, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.43921569, 0.33725490, 0.16078431, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.20784314, 0.42352941, 0.54901961, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.26274510, 0.52156863, 0.65882353, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.16078431, 0.33725490, 0.43529412, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.57254902, 0.32156863, 0.40784314, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.69019608, 0.40000000, 0.50196078, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.45882353, 0.25882353, 0.32549020, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
 content_margin_top = 4.0
@@ -961,6 +1060,12 @@ Button/styles/hover = ExtResource("4_l8k4y")
 Button/styles/hover_pressed = ExtResource("5_14jnw")
 Button/styles/normal = ExtResource("6_xhhvy")
 Button/styles/pressed = ExtResource("5_14jnw")
+CapsuleActionButton/base_type = &"CapsuleButton"
+CapsuleActionButton/styles/focus = SubResource("StyleBoxFlat_capsule_action_normal")
+CapsuleActionButton/styles/hover = SubResource("StyleBoxFlat_capsule_action_hover")
+CapsuleActionButton/styles/hover_pressed = SubResource("StyleBoxFlat_capsule_action_pressed")
+CapsuleActionButton/styles/normal = SubResource("StyleBoxFlat_capsule_action_normal")
+CapsuleActionButton/styles/pressed = SubResource("StyleBoxFlat_capsule_action_pressed")
 CapsuleButton/base_type = &"Button"
 CapsuleButton/colors/font_color = Color(0.92, 0.98, 0.96, 1)
 CapsuleButton/colors/font_disabled_color = Color(0.88, 0.88, 0.88, 0.5)
@@ -974,6 +1079,18 @@ CapsuleButton/styles/hover = ExtResource("19_capsule_hover")
 CapsuleButton/styles/hover_pressed = ExtResource("20_capsule_pressed")
 CapsuleButton/styles/normal = ExtResource("18_capsule_normal")
 CapsuleButton/styles/pressed = ExtResource("20_capsule_pressed")
+CapsuleDestructiveButton/base_type = &"CapsuleButton"
+CapsuleDestructiveButton/styles/focus = SubResource("StyleBoxFlat_capsule_destructive_normal")
+CapsuleDestructiveButton/styles/hover = SubResource("StyleBoxFlat_capsule_destructive_hover")
+CapsuleDestructiveButton/styles/hover_pressed = SubResource("StyleBoxFlat_capsule_destructive_pressed")
+CapsuleDestructiveButton/styles/normal = SubResource("StyleBoxFlat_capsule_destructive_normal")
+CapsuleDestructiveButton/styles/pressed = SubResource("StyleBoxFlat_capsule_destructive_pressed")
+CapsuleSecondaryButton/base_type = &"CapsuleButton"
+CapsuleSecondaryButton/styles/focus = SubResource("StyleBoxFlat_capsule_secondary_normal")
+CapsuleSecondaryButton/styles/hover = SubResource("StyleBoxFlat_capsule_secondary_hover")
+CapsuleSecondaryButton/styles/hover_pressed = SubResource("StyleBoxFlat_capsule_secondary_pressed")
+CapsuleSecondaryButton/styles/normal = SubResource("StyleBoxFlat_capsule_secondary_normal")
+CapsuleSecondaryButton/styles/pressed = SubResource("StyleBoxFlat_capsule_secondary_pressed")
 CategoryTab/base_type = &"Button"
 CategoryTab/colors/font_color = Color(0.62, 0.69, 0.65, 1)
 CategoryTab/colors/font_hover_color = Color(0.95, 0.98, 0.95, 1)

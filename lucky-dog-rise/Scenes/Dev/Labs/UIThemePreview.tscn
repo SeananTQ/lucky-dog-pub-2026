@@ -148,6 +148,78 @@ layout_mode = 2
 theme_type_variation = &"SecondaryButton"
 text = "Secondary Button"
 
+[node name="SectionCapsuleButtons" type="VBoxContainer" parent="Grid"]
+layout_mode = 2
+
+[node name="Header" type="Label" parent="Grid/SectionCapsuleButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "=== 扁平按钮 / Capsule Buttons ==="
+horizontal_alignment = 1
+
+[node name="Sep" type="HSeparator" parent="Grid/SectionCapsuleButtons"]
+layout_mode = 2
+
+[node name="Normal" type="HBoxContainer" parent="Grid/SectionCapsuleButtons"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Primary" type="Button" parent="Grid/SectionCapsuleButtons/Normal"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "绿色扁平"
+
+[node name="Secondary" type="Button" parent="Grid/SectionCapsuleButtons/Normal"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleSecondaryButton"
+text = "蓝色扁平"
+
+[node name="Destructive" type="Button" parent="Grid/SectionCapsuleButtons/Normal"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleDestructiveButton"
+text = "红色扁平"
+
+[node name="Action" type="Button" parent="Grid/SectionCapsuleButtons/Normal"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleActionButton"
+text = "黄色扁平"
+
+[node name="Disabled" type="HBoxContainer" parent="Grid/SectionCapsuleButtons"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Primary" type="Button" parent="Grid/SectionCapsuleButtons/Disabled"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+disabled = true
+text = "绿色禁用"
+
+[node name="Secondary" type="Button" parent="Grid/SectionCapsuleButtons/Disabled"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleSecondaryButton"
+disabled = true
+text = "蓝色禁用"
+
+[node name="Destructive" type="Button" parent="Grid/SectionCapsuleButtons/Disabled"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleDestructiveButton"
+disabled = true
+text = "红色禁用"
+
+[node name="Action" type="Button" parent="Grid/SectionCapsuleButtons/Disabled"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleActionButton"
+disabled = true
+text = "黄色禁用"
+
 [node name="SectionToggles" type="VBoxContainer" parent="Grid" unique_id=1806974027]
 layout_mode = 2
 

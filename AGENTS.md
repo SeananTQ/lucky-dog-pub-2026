@@ -426,6 +426,7 @@ ModeManager 持有设置面板实例，负责连接信号：
 
 - **UI 结构定义在 .tscn 里** — 脚本不 `new` 节点建 UI 树，而是引用预制好的场景或节点。程序化 new 出来的节点在编辑器中不可见，会导致主人无法手动调整位置和样式
 - **用 Theme.tres 统一管理样式** — 非必要不推荐直接在节点上调整 Theme Overrides，方便后续整体换肤
+- **按钮形态与颜色分开选择** — “立体按钮”使用 `Button`（绿）、`SecondaryButton`（蓝）、`DestructiveButton`（红）、`ActionButton`（黄）；“扁平按钮”对应 `CapsuleButton`、`CapsuleSecondaryButton`、`CapsuleDestructiveButton`、`CapsuleActionButton`。同组操作保持形态、边距和文字位置一致，不能为换颜色而混用立体样式。四色扁平样例见 `Scenes/Dev/Labs/UIThemePreview.tscn`。
 
 ## 音效工作流
 

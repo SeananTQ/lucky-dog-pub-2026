@@ -71,7 +71,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
                 bool pending = state.Continuation == PokerContinuation.PauseRequested;
                 primary.Text = pending ? RoomPokerText.T("取消暂停", "Cancel") : RoomPokerText.T("打完暂停", "Pause");
                 primary.Disabled |= session.IsCollecting;
-                primary.ThemeTypeVariation = pending ? "ActionButton" : "CapsuleButton";
+                primary.ThemeTypeVariation = pending ? "CapsuleActionButton" : "CapsuleButton";
                 primary.TooltipText = RoomPokerText.T("本局派彩后暂停；再次点击可取消。", "Pause after this hand's payouts. Click again to cancel.");
             }
         }
@@ -83,7 +83,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
             if (session.IsInHand && (!finished || session.IsReady))
             {
                 primary.Text = session.IsReady ? RoomPokerText.T("打完离座", "Sit out") : RoomPokerText.T("取消离座", "Cancel");
-                primary.ThemeTypeVariation = session.IsReady ? "CapsuleButton" : "ActionButton";
+                primary.ThemeTypeVariation = session.IsReady ? "CapsuleButton" : "CapsuleActionButton";
                 primary.TooltipText = RoomPokerText.T("完成本局后离座，不再扣底注；保留筹码与座位。", "Sit out after this hand. Keep your seat and chips without paying further antes.");
             }
             else
@@ -91,7 +91,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
                 bool returning = session.IsParticipant;
                 primary.Text = session.IsReady ? RoomPokerText.T("取消准备", "Cancel")
                     : returning ? RoomPokerText.T("入座", "Sit in") : RoomPokerText.T("准备", "Ready");
-                primary.ThemeTypeVariation = session.IsReady ? "ActionButton" : "CapsuleButton";
+                primary.ThemeTypeVariation = session.IsReady ? "CapsuleActionButton" : "CapsuleButton";
                 primary.TooltipText = returning ? RoomPokerText.T("从下一局回到原座位并保留筹码；收牌期间暂不可更改。", "Return to your existing seat next hand, keeping your chips. Locked during collection.")
                     : RoomPokerText.T("准备后等待房主开始或重开；不会中途加入当前牌桌。", "Ready for the host to start or restart. You will not join the existing table mid-game.");
             }

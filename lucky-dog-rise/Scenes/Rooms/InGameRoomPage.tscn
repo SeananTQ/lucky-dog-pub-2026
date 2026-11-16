@@ -370,7 +370,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 auto_translate_mode = 2
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"CapsuleSecondaryButton"
 focus_mode = 0
 
 [node name="PokerPreview" type="Button" parent="Room"]
