@@ -35,6 +35,7 @@ public sealed class PokerNetworkSession : IDisposable
     public bool IsInHand => State?.Hand is { } hand && hand.Public.ActionOrder.Contains(hand.PlayerId);
     public bool IsReady => _requestedReady ?? State?.Players.Any(p => p.Key == _room?.LocalKey && p.Ready) == true;
     public bool IsCollecting => State?.Continuation is PokerContinuation.Collecting or PokerContinuation.Restarting;
+    public bool IsPaused => State is { Status: PokerTableStatus.Playing, Continuation: PokerContinuation.Paused };
     public bool CanSetReady => Connected && !IsOwner && !IsCollecting
         && State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
     public bool ActionPending => _pendingAction != 0;
@@ -50,7 +51,9 @@ public sealed class PokerNetworkSession : IDisposable
         Continuation: PokerContinuation.Paused } && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
     private static bool CanContinue(PokerPublicView hand, PokerParticipant[] players)
     {
-        var next = players.Where(p => p.Playing && p.Ready).Select(p => p.Id).ToArray();
+        // Ready means preparation before the match, and a next-hand seat request after it starts.
+        // New seats receive their initial balance atomically with the next successful deal.
+        var next = players.Where(p => p.Ready).Select(p => p.Id).ToArray();
         return next.Length >= 2 && hand.Seats.Where(s => next.Contains(s.PlayerId)).All(s => s.Chips >= 100);
     }
     // A bounded authority clock, independent of render speed, windows and acknowledgement messages.
@@ -295,7 +298,7 @@ public sealed class PokerNetworkSession : IDisposable
         var ready = _players.Where(p => p.Ready || p.Key == _room.OwnerKey)
             .OrderBy(p => p.Key == _room.OwnerKey ? 0 : 1).ThenBy(p => p.Id).ToArray();
         if (ready.Length < 2) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
-        // A restart is the only admission/refill boundary. New table identity rejects old commands.
+        // Only a restart resets existing balances/seats. New table identity rejects old commands.
         _table = Guid.NewGuid();
         _players = _players.Select(p => p with { Playing = ready.Any(r => r.Id == p.Id), Ready = p.Ready || p.Key == _room.OwnerKey }).ToArray();
         _match = new(ready.Select(p => p.Id).ToArray(), ready[0].Id);
@@ -305,9 +308,11 @@ public sealed class PokerNetworkSession : IDisposable
     private void BeginHand()
     {
         if (_match == null) return;
-        var active = _players.Where(p => p.Playing && p.Ready).Select(p => p.Id).ToArray();
-        LastError = _match.StartHand(_matchClock, activePlayers: active);
+        var active = _players.Where(p => p.Ready).Select(p => p.Id).ToArray();
+        var entrants = _players.Where(p => p.Ready && !p.Playing).OrderBy(p => p.Id).Select(p => p.Id).ToArray();
+        LastError = _match.StartHand(_matchClock, newPlayers: entrants, activePlayers: active);
         if (LastError != PokerError.None) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
+        _players = _players.Select(p => entrants.Contains(p.Id) ? p with { Playing = true } : p).ToArray();
         _continuation = PokerContinuation.Automatic;
         _dealUntil = _now + 3; _botAt = _dealUntil + 1.2; _dirty = true;
     }

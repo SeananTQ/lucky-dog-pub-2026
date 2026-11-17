@@ -74,7 +74,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
             else if (state.Continuation == PokerContinuation.Paused)
             {
                 primary.Text = RoomPokerText.T("继续", "Resume"); primary.Disabled |= !session.CanResume;
-                primary.TooltipText = RoomPokerText.T("保留筹码、座位与庄家进度继续，不加入新成员；至少两人入座且各有 100 筹码。", "Resume existing seats, balances and dealer progress. No newcomers; at least two seated players with 100 chips each.");
+                primary.TooltipText = RoomPokerText.T("保留筹码、座位与庄家进度继续；已申请入座的玩家从下一局参加。至少两人入座且各有 100 筹码。", "Keep balances, seats and dealer progress. Pending players join next hand. At least two seated players need 100 chips each.");
             }
             else
             {
@@ -89,9 +89,18 @@ public partial class RoomPokerLobbyView : VBoxContainer
         else
         {
             primary.Disabled |= !session.CanSetReady;
-            bool finished = state?.Hand?.Public.Phase == PokerPhase.Settled
-                && state.Continuation is PokerContinuation.Paused or PokerContinuation.Collecting or PokerContinuation.Restarting;
-            if (session.IsInHand && (!finished || session.IsReady))
+            if (state?.Status != PokerTableStatus.Playing)
+            {
+                primary.Text = session.IsReady ? RoomPokerText.T("取消准备", "Cancel") : RoomPokerText.T("准备", "Ready");
+                primary.ThemeTypeVariation = session.IsReady ? "CapsuleActionButton" : "CapsuleButton";
+                primary.TooltipText = RoomPokerText.T("准备后等待房主开始；未准备的玩家留在房间旁观。", "Ready for the host to start. Unready players stay in the room as spectators.");
+            }
+            else if (session.IsPaused && session.IsParticipant && session.IsReady)
+            {
+                primary.Text = RoomPokerText.T("离座", "Sit out");
+                primary.TooltipText = RoomPokerText.T("暂停期间立即离座，保留筹码与座位。", "Sit out while paused, keeping your chips and seat.");
+            }
+            else if (session.IsInHand && !session.IsPaused)
             {
                 primary.Visible = includeInHandActions;
                 primary.Text = session.IsReady ? RoomPokerText.T("打完离座", "Sit out") : RoomPokerText.T("取消离座", "Cancel");
@@ -101,11 +110,10 @@ public partial class RoomPokerLobbyView : VBoxContainer
             else
             {
                 bool returning = session.IsParticipant;
-                primary.Text = session.IsReady ? RoomPokerText.T("取消准备", "Cancel")
-                    : returning ? RoomPokerText.T("入座", "Sit in") : RoomPokerText.T("准备", "Ready");
+                primary.Text = session.IsReady ? RoomPokerText.T("取消入座", "Cancel") : RoomPokerText.T("入座", "Sit in");
                 primary.ThemeTypeVariation = session.IsReady ? "CapsuleActionButton" : "CapsuleButton";
                 primary.TooltipText = returning ? RoomPokerText.T("从下一局回到原座位并保留筹码；收牌期间暂不可更改。", "Return to your existing seat next hand, keeping your chips. Locked during collection.")
-                    : RoomPokerText.T("准备后等待房主开始或重开；不会中途加入当前牌桌。", "Ready for the host to start or restart. You will not join the existing table mid-game.");
+                    : RoomPokerText.T("从下一局入座，首次分配 1000 筹码；不会加入正在进行的这一局。收牌期间暂不可更改。", "Join next hand with 1000 initial chips. You cannot join a hand already in progress. Locked during collection.");
             }
         }
     }
@@ -122,11 +130,13 @@ public partial class RoomPokerLobbyView : VBoxContainer
         else ready.Hide();
         status.Visible = poker && !ready.Visible;
         bool inHand = p != null && Session?.State?.Hand?.Public.ActionOrder.Contains(p.Id) == true;
-        status.Text = p?.Playing == true
-            ? !p.Ready ? inHand && Session.State.Continuation is PokerContinuation.Automatic or PokerContinuation.PauseRequested
-                ? RoomPokerText.T("待离座", "Sitting out next") : RoomPokerText.T("离座", "Sitting out")
-                : inHand ? RoomPokerText.T("参局", "Playing") : RoomPokerText.T("已准备", "Ready")
-            : owner ? RoomPokerText.T("房主", "Host") : p?.Ready == true ? RoomPokerText.T("已准备", "Ready") : RoomPokerText.T("等待", "Waiting");
+        status.Text = Session?.State?.Status == PokerTableStatus.Playing
+            ? inHand && !Session.IsPaused
+                ? p.Ready ? RoomPokerText.T("参局", "Playing") : RoomPokerText.T("待离座", "Sitting out next")
+                : p?.Ready == true
+                    ? p.Playing && Session.IsPaused ? RoomPokerText.T("已入座", "Seated") : RoomPokerText.T("待入座", "Joining next")
+                    : RoomPokerText.T("旁观", "Spectating")
+            : owner ? RoomPokerText.T("房主", "Host") : p?.Ready == true ? RoomPokerText.T("已准备", "Ready") : RoomPokerText.T("未准备", "Not ready");
     }
     public override void _Process(double delta)
     {

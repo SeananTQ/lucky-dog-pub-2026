@@ -24,6 +24,7 @@ public partial class RoomPokerPanelView : VBoxContainer
         _next.Hide();
         _error.Hide();
         RoomPokerLobbyView.PresentActions(session, _action, _restart, available);
+        if (session?.IsPaused == true) _resultHeading.Text = RoomPokerText.T("已暂停", "Paused");
     }
     public void PresentWaiting()
     {

@@ -1,5 +1,6 @@
 #if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
@@ -37,6 +38,13 @@ internal static class NetworkPokerMainChecks
             Check(condition(), reason);
         }
         void Click(BaseButton button) { Check(!button.Disabled, $"{button.Name} enabled"); button.EmitSignal(BaseButton.SignalName.Pressed); }
+        PokerNetworkSession SimulatedSession(int memberId)
+        {
+            const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var sandbox = (RoomSandbox)typeof(InGameRoomPreview).GetField("_sandbox", fields).GetValue(page);
+            var sessions = (Dictionary<int, PokerNetworkSession>)typeof(RoomSandbox).GetField("_pokerSimulated", fields).GetValue(sandbox);
+            return sessions.GetValueOrDefault(memberId);
+        }
         async Task PointerClick(Control card)
         {
             var container = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
@@ -373,8 +381,26 @@ internal static class NetworkPokerMainChecks
             pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
             var guestAction = pokerPanel.GetNode<Button>("Actions/Primary");
             Check(guestAction.Text == readyButton.Text && guestAction.Disabled == readyButton.Disabled, "guest preparation controls match in both panels");
+            await Until(() => SimulatedSession(client.View.OwnerId)?.CanStart == true, "two ready simulated players can start without local readiness");
+            var remoteHost = SimulatedSession(client.View.OwnerId);
+            Check(remoteHost.Start(), "simulated authority starts while local member is unready");
+            await Until(() => lobby.Session.State.Status == PokerTableStatus.Playing && game.GetNodeOrNull<RoomPokerTableView>("RoomPokerTable")
+                ?.Round.DisplayView?.Public.SessionId == lobby.Session.DisplayView.Public.SessionId,
+                "spectator receives running table without preparing");
+            await Wait(.1);
+            pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
+            guestAction = pokerPanel.GetNode<Button>("Actions/Primary");
+            Check(!lobby.Session.IsParticipant && lobby.Session.DisplayView.HoleCards.Count == 0
+                && game.GetNode<RoomPokerTableView>("RoomPokerTable").LocalPanel.IsWaiting
+                && guestAction.Text == RoomPokerText.T("入座", "Sit in"), "unready member becomes a spectator with empty cards and sit-in control");
             Click(guestAction);
-            await Until(() => lobby.Session.IsParticipant, "information-panel ready reaches simulated authority");
+            await Wait(.1);
+            Check(lobby.Session.IsReady && !lobby.Session.IsParticipant
+                && guestAction.Text == RoomPokerText.T("取消入座", "Cancel"), "sit-in request waits for the next deal and can be cancelled");
+            await Until(() => lobby.Session.IsParticipant, "spectator joins next hand without restarting", 30);
+            long firstGuestHand = lobby.Session.DisplayView.Public.HandNumber;
+            Check(firstGuestHand == 2 && lobby.Session.DisplayView.Public.Seats.Single(s => s.PlayerId == client.Id).Chips == 900,
+                "new spectator is funded once and pays one next-hand ante");
             game.Call("OnChipCollected");
             Check(game.PendingReward == null && data.Chips == beforeReadyChips, "ready discards unclaimed solo reward; stale collection cannot credit it");
             panel.CloseImmediate();
@@ -392,7 +418,7 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.DisplayView.Public.Revision > revision && !session.ActionPending, "guest command is acknowledged by remote authority");
             Check(session.DisplayView.Public.Board[1].PendingReplacement, "guest flip preserves real local dog identity");
             rewardProperty.SetValue(data, reward); game.ShowPendingBlindBoxReward(reward);
-            await Until(() => session.DisplayView.Public.HandNumber == 2, "guest box overlay also permits authoritative timeout and next hand", 40);
+            await Until(() => session.DisplayView.Public.HandNumber == firstGuestHand + 1, "guest box overlay also permits authoritative timeout and next hand", 40);
             Check(UiInteractionOccupancy.IsOccupied(main) && session.IsReady, "guest box remains open without revoking readiness");
             game.HidePendingBlindBoxReward(); rewardProperty.SetValue(data, null);
             await Wait(.2);
@@ -403,17 +429,44 @@ internal static class NetworkPokerMainChecks
             Click(guestAction); await Wait(.2);
             Check(session.IsReady, "guest can cancel sit-out before the hand ends");
             Click(guestAction);
-            await Until(() => session.DisplayView.Public.HandNumber == 3 && !session.IsInHand, "sit-out begins at next hand", 40);
+            await Until(() => session.DisplayView.Public.HandNumber == firstGuestHand + 2 && !session.IsInHand, "sit-out begins at next hand", 40);
             await Wait(.2);
             Check(table.LocalPanel.IsWaiting && session.DisplayView.HoleCards.Count == 0
                 && guestAction.Text == RoomPokerText.T("入座", "Sit in"), "sitting-out guest has no cards and sees sit-in action");
             var oldSeat = session.DisplayView.Public.Seats.Single(s => s.PlayerId == session.DisplayView.PlayerId);
             Click(guestAction); await Wait(.2);
-            Check(session.IsReady && !session.IsInHand && guestAction.Text == RoomPokerText.T("取消准备", "Cancel"), "reentry waits for next hand and is cancellable");
-            await Until(() => session.DisplayView.Public.HandNumber == 4 && session.IsInHand, "returning guest rejoins the existing seat", 30);
+            Check(session.IsReady && !session.IsInHand && guestAction.Text == RoomPokerText.T("取消入座", "Cancel"), "reentry waits for next hand and is cancellable");
+            await Until(() => session.DisplayView.Public.HandNumber == firstGuestHand + 3 && session.IsInHand, "returning guest rejoins the existing seat", 30);
             var restored = session.DisplayView.Public.Seats.Single(s => s.PlayerId == session.DisplayView.PlayerId);
             Check(restored.SeatNumber == oldSeat.SeatNumber && restored.Chips == oldSeat.Chips - 100
                 && session.DisplayView.HoleCards.Count == 2, "reentry preserves seat and balance with exactly one ante");
+            Check(remoteHost.SetPauseRequested(true), "remote host schedules pause");
+            await Until(() => session.State.Continuation == PokerContinuation.PauseRequested, "pause request reaches guest state");
+            await Wait(.1);
+            Check(guestAction.Text == RoomPokerText.T("打完离座", "Sit out")
+                && pokerPanel.GetNode<Label>("ResultHeading").Text != RoomPokerText.T("已暂停", "Paused"),
+                "host reservation causes no pause hint or button change for members");
+            await Until(() => session.IsPaused, "guest receives actual pause after the current hand pays out", 40);
+            await Wait(.1);
+            Check(guestAction.Text == RoomPokerText.T("离座", "Sit out")
+                && pokerPanel.GetNode<Label>("ResultHeading").Text == RoomPokerText.T("已暂停", "Paused"),
+                "paused information panel exposes immediate sit-out and paused heading");
+            var pausedSeat = session.DisplayView.Public.Seats.Single(s => s.PlayerId == client.Id);
+            Click(guestAction); await Wait(.2);
+            Check(!session.IsReady && guestAction.Text == RoomPokerText.T("入座", "Sit in"), "paused guest sits out immediately");
+            panel.ShowRoomPage(); await Wait();
+            readyButton = page.GetNode<VBoxContainer>("Room/Members").GetChildren().OfType<HBoxContainer>()
+                .Select(row => row.GetNode<Button>("Ready")).Single(button => button.Visible);
+            Check(readyButton.Text == guestAction.Text && readyButton.Disabled == guestAction.Disabled,
+                "system member row and information panel expose the same paused sit-in action");
+            Click(readyButton); await Wait(.2);
+            Check(session.IsReady && guestAction.Text == RoomPokerText.T("离座", "Sit out")
+                && session.DisplayView.Public.Seats.Single(s => s.PlayerId == client.Id) == pausedSeat,
+                "paused return changes willingness without resetting chips or the previous result");
+            L10n.SetLocale("en", save: false); await Wait(.1);
+            Check(guestAction.Text == "Sit out" && pokerPanel.GetNode<Label>("ResultHeading").Text == "Paused",
+                "paused controls provide English text");
+            L10n.SetLocale(previousLocale, save: false);
             Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host"));
             await Until(() => lobby.Session?.IsOwner == true && lobby.Session.State?.Status == PokerTableStatus.Preparing,
                 "Mock role reset during play reaches a fresh host preparation");
