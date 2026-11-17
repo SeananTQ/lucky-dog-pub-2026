@@ -18,7 +18,6 @@ public partial class RoomGameProposalOverlay : Control
     private Label _target;
     private Label _countdown;
     private Label _summary;
-    private Label _hint;
     private Label _error;
     private VBoxContainer _members;
     private Button _primary;
@@ -37,7 +36,6 @@ public partial class RoomGameProposalOverlay : Control
         _target = content.GetNode<Label>("Target");
         _countdown = content.GetNode<Label>("Countdown");
         _summary = content.GetNode<Label>("Summary");
-        _hint = content.GetNode<Label>("Hint");
         _error = content.GetNode<Label>("Error");
         _members = content.GetNode<VBoxContainer>("MemberScroll/Members");
         _primary = content.GetNode<Button>("Actions/Primary");
@@ -87,10 +85,6 @@ public partial class RoomGameProposalOverlay : Control
         _countdown.Text = string.Format(L10n.Tr("Rooms_GameChangeCountdown"), Math.Max(0, (int)Math.Ceiling(secondsRemaining)));
         _summary.Text = string.Format(L10n.Tr("Rooms_GameChangeVotes"),
             proposal.AcceptedCount, proposal.ElectorateCount, proposal.RequiredCount);
-        _hint.Text = L10n.Tr("Rooms_GameChangeFollowHint");
-        if (proposal.TargetGameId == RoomRules.MischiefPoker)
-            _hint.Text += "\n" + RoomPokerText.T("临时规则：1000 牌局筹码，底注 100，连庄上限 4 局。同意后自动准备，可舍弃未领取的单人奖励。",
-                "Trial rules: 1,000 table chips, 100 ante, max 4 consecutive dealer hands. Accepting readies you; unclaimed solo rewards may be discarded.");
         _error.Text = string.IsNullOrEmpty(errorKey) ? "" : L10n.Tr(errorKey);
         _error.Visible = _error.Text.Length > 0;
         _primary.Text = L10n.Tr(_host ? "Rooms_GameChangeSwitch" : "Rooms_GameChangeAccept");

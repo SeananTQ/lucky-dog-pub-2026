@@ -80,11 +80,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="Hint" type="Label" parent="OverlayPanel/Margin/Content"]
-layout_mode = 2
-label_settings = ExtResource("helper")
-autowrap_mode = 3
-
 [node name="Error" type="Label" parent="OverlayPanel/Margin/Content"]
 visible = false
 layout_mode = 2
