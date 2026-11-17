@@ -20,6 +20,7 @@ internal static class NetworkChecks
         AtomicCoreAdmission();
         CompanionRetirementBoundary();
         CompanionWinningsRemainValid();
+        CompanionThinkingIntervals();
         FlipHistory();
         Console.WriteLine("PASS serialized multiplayer readiness, private hands, permissions, retries, admission and interruption");
     }
@@ -65,7 +66,7 @@ internal static class NetworkChecks
         a.Start(); h.Step();
         Check.That(b.State!.Hand is { PlayerId: 0, HoleCards.Count: 0 } && !b.IsParticipant, "unready guest receives no private cards");
         Check.That(!b.Act(PokerAction.EndTurn), "spectators cannot operate the table");
-        h.Step(7);
+        h.Step(13.5);
         Check.That(a.State!.Hand!.Public.ActivePlayerId == a.State.Hand.PlayerId
             && a.State.Hand.Public.CompletedTurns.Count == 1, "authority finishes a companion's legal turn automatically");
         a.Act(PokerAction.EndTurn); h.Step();
@@ -477,6 +478,64 @@ internal static class NetworkChecks
         return h;
     }
 
+    private static void CompanionThinkingIntervals()
+    {
+        // Cover both ends of the tunable interval without relying on random test luck.
+        foreach (double fraction in new[] { 0.0, .999999 })
+        foreach (string departure in new[] { "two_flips", "pass", "timeout" })
+        {
+            using var h = new Hub(new ThinkingRandom(fraction), "a", "b");
+            h.Bot("c"); h.Bot("d"); h.Step(1.2);
+            var a = h.Sessions["a"]; var b = h.Sessions["b"];
+            b.SetReady(true); h.Step(); a.Start(); h.Step(3.2);
+            // The old shared bot timer used to expire while this human was thinking.
+            h.Step(6);
+            if (departure == "two_flips")
+            { b.Act(PokerAction.Flip, 0); h.Step(.02); b.Act(PokerAction.Flip, 1); h.Step(.02); }
+            else if (departure == "pass") { b.Act(PokerAction.EndTurn); h.Step(.02); }
+            else
+                for (int tick = 0; tick < 800 && a.State!.Hand!.Public.ActivePlayerId == b.State!.Hand!.PlayerId; tick++) h.Step(.02);
+
+            foreach (string bot in new[] { "c", "d" })
+            {
+                int id = a.State!.Players.Single(p => p.Key == bot).Id;
+                Check.Equal(a.State.Hand!.Public.ActivePlayerId, (int?)id, "human or previous companion hands over to the expected bot");
+                for (int action = 1; action <= 2; action++)
+                {
+                    double began = h.Time;
+                    int Flips() => a.State.Hand!.Public.Flips.Count(f => f.PlayerId == id);
+                    h.Step(1.8);
+                    Check.Equal(Flips(), action - 1, "each bot action waits at least two seconds after handoff or previous flip");
+                    for (int i = 0; i < 170 && Flips() < action; i++) h.Step(.02);
+                    Check.Equal(Flips(), action, "bot performs one action within the five-second thinking window");
+                    Check.That(h.Time - began >= 1.95 && h.Time - began <= 5.08,
+                        $"bot timing is sampled once: {departure}, fraction={fraction}, bot={bot}, action={action}, elapsed={h.Time - began:F3}s");
+                }
+                Check.That(a.State.Hand!.Public.CompletedTurns.Any(t => t.PlayerId == id && t.Reason == PokerTurnEnd.TwoFlipsUsed),
+                    "two maximum delays still fit the unchanged fifteen-second turn");
+            }
+        }
+
+        using var stall = new Hub(new ThinkingRandom(.999999), "a");
+        stall.Bot("c"); stall.Step(1.2);
+        var owner = stall.Sessions["a"];
+        owner.Start(); stall.Step(3.2);
+        int expired = owner.State!.Hand!.Public.ActivePlayerId!.Value;
+        owner.Tick(16);
+        Check.That(owner.State.Hand.Public.Flips.Count == 0 && owner.State.Hand.Public.CompletedTurns
+            .Any(t => t.PlayerId == expired && t.Reason == PokerTurnEnd.TimedOut),
+            "a stalled authority expires the old turn without catching up queued bot actions");
+        owner.Stop(); owner.Propose(); stall.Step(1.2); owner.Start(); stall.Step(3.2);
+        stall.Step(1.8);
+        Check.That(owner.State!.Hand!.Public.Flips.Count == 0, "new table cannot inherit the stopped table's pending bot timer");
+    }
+
+    private sealed class ThinkingRandom(double fraction) : Random
+    {
+        public override double NextDouble() => fraction;
+        public override int Next(int maxValue) => maxValue == 4 ? 1 : 0; // Always flip; strategy itself is unchanged.
+    }
+
     private static void CompanionWinningsRemainValid()
     {
         var match = new MischiefPokerMatch([1, 2, 3, 4], 1);
@@ -595,16 +654,20 @@ internal static class NetworkChecks
         public readonly Dictionary<string, PokerNetworkSession> Sessions = new();
         public readonly List<(string From, string To, byte[] Bytes)> Sent = new();
         private long _injected = 100000;
-        public Hub(params string[] humans) { foreach (string id in humans) Human(id); Step(); }
+        private readonly Random? _companionRandom;
+        public double Time { get; private set; }
+        public Hub(params string[] humans) : this(null, humans) { }
+        public Hub(Random? companionRandom, params string[] humans)
+        { _companionRandom = companionRandom; foreach (string id in humans) Human(id); Step(); }
         public void Human(string key)
         {
             Members[key] = (Guid.NewGuid().ToString("N"), false);
-            Links[key] = new(this, key); Sessions[key] = new(Links[key]);
+            Links[key] = new(this, key); Sessions[key] = new(Links[key], _companionRandom);
         }
         public void Bot(string key) => Members[key] = (Guid.NewGuid().ToString("N"), true);
         public void Remove(string key) { Sessions.Remove(key, out var session); session?.Dispose(); Links.Remove(key); Members.Remove(key); }
         public void Step(double seconds = 0.15)
-        { for (double t = 0; t < seconds; t += 0.02) foreach (var s in Sessions.Values.ToArray()) s.Tick(0.02); }
+        { for (double t = 0; t < seconds; t += 0.02) { Time += .02; foreach (var s in Sessions.Values.ToArray()) s.Tick(0.02); } }
         public PokerPacket Packet(string sender, string kind, PokerCommand? command = null, long hand = 0)
             => new(PokerNetworkProtocol.Version, "room:" + Game, Members[sender].Ticket, Members[Owner].Ticket,
                 kind, ++_injected, Sessions[Owner].State!.Table, Command: command, FinishedHand: hand);

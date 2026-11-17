@@ -5,6 +5,16 @@ internal static class PreviewChecks
 {
     public static void Run()
     {
+        var paced = new MischiefPokerPreviewSession([1, 2], 1, 1);
+        paced.NextHand(); paced.Tick(.02);
+        var pending = paced.View.Public;
+        paced.Tick(1.8);
+        Check.Equal(paced.View.Public.Revision, pending.Revision, "local preview also waits before its first automatic action");
+        paced.Paused = true; paced.Tick(100);
+        Check.That(Math.Abs(paced.View.Public.SecondsRemaining - (pending.SecondsRemaining - 1.8)) < .001,
+            "preview pause freezes both its turn clock and thinking time");
+        paced.Step();
+        Check.That(paced.View.Public.Revision > pending.Revision, "explicit debug single-step bypasses thinking while paused");
         for (int count = 2; count <= 6; count++)
         for (int preset = 0; preset <= 8; preset++)
         {
@@ -51,7 +61,7 @@ internal static class PreviewChecks
 
     private static void Finish(MischiefPokerPreviewSession session, bool automatic)
     {
-        for (int steps = 0; session.View.Public.Phase != PokerPhase.Settled && steps < 50; steps++)
+        for (int steps = 0; session.View.Public.Phase != PokerPhase.Settled && steps < 80; steps++)
             if (session.View.Public.ActivePlayerId == 1) session.EndTurn();
             else if (automatic) session.Tick(1.3);
             else session.Step();

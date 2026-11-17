@@ -48,6 +48,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
     }
     private readonly Dictionary<int, PokerNetworkSession> _pokerSimulated = new();
     private readonly Dictionary<int, double> _pokerActionAt = new();
+    private readonly Dictionary<int, PokerBotPacing> _pokerPacing = new();
     private readonly Dictionary<int, (string Room, Guid Table, long Hand, double At)> _pokerChat = new();
     public bool PokerSettlementChatEnabled { get; set; } = true;
     public int PokerSimulationLocalId { get; set; }
@@ -60,7 +61,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
     public void DisposePokerSimulation()
     {
         foreach (var session in _pokerSimulated.Values) session.Dispose();
-        _pokerSimulated.Clear(); _pokerActionAt.Clear(); _pokerChat.Clear();
+        _pokerSimulated.Clear(); _pokerActionAt.Clear(); _pokerPacing.Clear(); _pokerChat.Clear();
         foreach (var link in _pokerLinks.Values.ToArray()) link.Dispose();
     }
     partial void TickPokerSimulation(double delta)
@@ -72,19 +73,23 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
                 _pokerSimulated[client.Id] = session = new(OpenPokerLink(client));
             session.Tick(delta);
             TickPokerChat(client, session);
-            if (Now < _pokerActionAt.GetValueOrDefault(client.Id)) continue;
-            _pokerActionAt[client.Id] = Now + 1.2;
+            if (!_pokerPacing.TryGetValue(client.Id, out var pacing)) _pokerPacing[client.Id] = pacing = new();
             if (session.State?.Status == PokerTableStatus.Preparing)
             {
+                pacing.Reset();
+                if (Now < _pokerActionAt.GetValueOrDefault(client.Id)) continue;
+                _pokerActionAt[client.Id] = Now + 1.2;
                 if (!session.IsReady) session.SetReady(true);
                 if (session.IsOwner && session.CanStart && session.State.Players
                     .Any(p => p.Key == PokerSimulationLocalId.ToString() && p.Ready)) session.Start();
             }
-            if (session.State?.Status == PokerTableStatus.Playing && session.State.Hand is { } v)
+            if (session.State?.Status == PokerTableStatus.Playing && session.State.DealRemaining == 0
+                && session.State.Hand is { } v && v.Public.ActivePlayerId == v.PlayerId)
             {
-                if (v.Public.Phase == PokerPhase.Acting && v.Public.ActivePlayerId == v.PlayerId)
+                if (pacing.TryAct(v.Public, Now))
                     session.Act(PokerAction.EndTurn);
             }
+            else pacing.Reset();
         }
     }
 

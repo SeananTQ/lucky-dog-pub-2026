@@ -200,9 +200,11 @@ internal static class RoomCompanionChecks
         owner.ProposeGameChange("mischief"); hub.Tick(1.2);
         owner.ConfirmGameChange(owner.View.GameChange.Id); hub.Tick(0);
         using var table = new PokerNetworkSession(owner.OpenPokerLink());
+        Action<double> tickGuest = null;
         void Step(double seconds)
         {
-            for (double t = 0; t < seconds; t += .05) { hub.Tick(.05); table.Tick(.05); }
+            for (double t = 0; t < seconds; t += .05)
+            { hub.Tick(.05); table.Tick(.05); tickGuest?.Invoke(.05); }
         }
         Step(1.2);
         Check(table.Start(), "production Mock link starts a companion table"); Step(3.2);
@@ -211,7 +213,8 @@ internal static class RoomCompanionChecks
         hub.Join(guest, owner.JoinedCode);
         for (int id = 3; id <= 4; id++) hub.Join(hub.AddClient(id, "spectator", 1012), owner.JoinedCode);
         using var guestTable = new PokerNetworkSession(guest.OpenPokerLink());
-        Step(.1); guestTable.Tick(.1);
+        tickGuest = guestTable.Tick;
+        Step(.1);
         Check(owner.View.Members.Length == 6 && table.State.Players.Count(p => p.Companion) == 2,
             "actual membership callbacks do not interrupt or trim an active companion hand");
         table.SetPauseRequested(true);
@@ -221,13 +224,13 @@ internal static class RoomCompanionChecks
             Step(.05);
         }
         Check(table.State.Hand.Public.Phase == PokerPhase.Settled, "actual Mock companion hand completes");
-        Step(PokerNetworkSession.PayoutDuration(table.State.Hand.Public) + .2); guestTable.Tick(.1);
+        Step(PokerNetworkSession.PayoutDuration(table.State.Hand.Public) + .2);
         Check(table.IsPaused && owner.View.Members.Length == 5 && table.State.RetiredCompanions.Length == 1
             && guestTable.State.RetiredCompanions.Length == 1,
             "room broadcast and private serialized result agree after deferred retirement");
-        guestTable.SetReady(true); Step(.2); guestTable.Tick(.1);
+        guestTable.SetReady(true); Step(.2);
         Check(table.Resume(), "actual spectator admission allows continuation after retirement");
-        Step(PokerNetworkSession.CollectionDuration + .3); guestTable.Tick(.1);
+        Step(PokerNetworkSession.CollectionDuration + .3);
         Check(table.State.Hand.Public.HandNumber == 2 && guestTable.IsInHand && guestTable.State.Hand.HoleCards.Count == 2
             && guestTable.State.Hand.Public.Seats.Single(s => s.PlayerId == guestTable.State.Hand.PlayerId).Chips == 900,
             "replacement participant receives a fresh bankroll and private hand through real Mock transport");

@@ -11,6 +11,8 @@ namespace LuckyDogRise.Rooms.Poker;
 public sealed class PokerNetworkSession : IDisposable
 {
     private readonly IPokerLink _link;
+    private readonly Random _companionRandom;
+    private readonly PokerBotPacing _botPacing;
     private readonly Dictionary<string, long> _received = new();
     private readonly Dictionary<string, (double Time, int Count)> _rates = new();
     private PokerRoomContext? _room;
@@ -23,7 +25,7 @@ public sealed class PokerNetworkSession : IDisposable
     private Guid _table;
     private long _sequence, _version, _pendingAction, _pendingReadySequence;
     private bool? _requestedReady;
-    private double _now, _matchClock, _dealUntil, _botAt, _publishAt, _helloAt, _receivedAt, _settledAt;
+    private double _now, _matchClock, _dealUntil, _publishAt, _helloAt, _receivedAt, _settledAt;
     private double _companionReadyAt;
     private PokerContinuation _continuation;
     private double _collectUntil;
@@ -79,9 +81,11 @@ public sealed class PokerNetworkSession : IDisposable
         }
     }
 
-    public PokerNetworkSession(IPokerLink link)
+    public PokerNetworkSession(IPokerLink link, Random? companionRandom = null)
     {
         _link = link;
+        _companionRandom = companionRandom ?? Random.Shared;
+        _botPacing = new(_companionRandom);
         _link.Received += Receive;
     }
     public bool Propose() => IsOwner && _room?.Game == "mischief" && State?.Status is PokerTableStatus.Idle or PokerTableStatus.Interrupted && Request("prepare");
@@ -117,6 +121,7 @@ public sealed class PokerNetworkSession : IDisposable
             bool wasPlaying = State?.Status == PokerTableStatus.Playing;
             _players = Array.Empty<PokerParticipant>(); _match = null; _table = Guid.Empty;
             _retiredCompanions.Clear(); _plannedRetirements.Clear(); _nextPlayerId = 0;
+            _botPacing.Reset();
             _received.Clear(); _rates.Clear(); State = null; _pendingAction = 0; _requestedReady = null;
             _continuation = PokerContinuation.Automatic; _entryPrepared = wasPlaying;
             _status = wasPlaying ? PokerTableStatus.Interrupted : PokerTableStatus.Idle;
@@ -150,12 +155,15 @@ public sealed class PokerNetworkSession : IDisposable
                 _matchClock += Math.Max(0, Math.Min(delta, _now - _dealUntil));
                 _match.AdvanceTo(_matchClock);
                 var v = _match.GetPublicView();
-                if (v.ActivePlayerId is int id && _players.Any(p => p.Id == id && p.Companion) && _now >= _botAt)
+                if (v.ActivePlayerId is int id && _players.Any(p => p.Id == id && p.Companion))
                 {
-                    _botAt = _now + 1.2;
-                    var action = Random.Shared.Next(4) == 0 ? PokerAction.EndTurn : PokerAction.Flip;
-                    _match.Act(new(v.SessionId, v.HandNumber, v.Revision, id, action, Random.Shared.Next(5)), _matchClock);
+                    if (_botPacing.TryAct(v, _now))
+                    {
+                        var action = _companionRandom.Next(4) == 0 ? PokerAction.EndTurn : PokerAction.Flip;
+                        _match.Act(new(v.SessionId, v.HandNumber, v.Revision, id, action, _companionRandom.Next(5)), _matchClock);
+                    }
                 }
+                else _botPacing.Reset();
             }
             if (_match.GetPublicView().Phase == PokerPhase.AwaitingDraw)
             {
@@ -355,11 +363,12 @@ public sealed class PokerNetworkSession : IDisposable
         _players = _players.Select(p => entrants.Contains(p.Id) ? p with { Playing = true } : p).ToArray();
         _retiredCompanions.Clear();
         _continuation = PokerContinuation.Automatic;
-        _dealUntil = _now + 3; _botAt = _dealUntil + 1.2; _dirty = true;
+        _dealUntil = _now + 3; _botPacing.Reset(); _dirty = true;
     }
     private void Interrupt(string reason)
     {
         _status = PokerTableStatus.Interrupted; _notice = reason; _dirty = true; _match = null;
+        _botPacing.Reset();
         _retiredCompanions.Clear();
     }
     private void Publish()

@@ -11,6 +11,7 @@ public sealed class MischiefPokerPreviewSession
 {
     private readonly MischiefPokerMatch _match;
     private readonly Random _random = new();
+    private readonly PokerBotPacing _botPacing = new();
     private readonly int _localId;
     private double _now, _nextAction;
     public bool Paused { get; set; }
@@ -50,6 +51,7 @@ public sealed class MischiefPokerPreviewSession
         }
         LastError = _match.StartHand(_now, deck);
         if (LastError == PokerError.None) _activePreset = NextDealPreset;
+        _botPacing.Reset();
         _nextAction = _now + 1.2;
     }
 
@@ -93,7 +95,16 @@ public sealed class MischiefPokerPreviewSession
         if (Paused || !double.IsFinite(delta) || delta < 0) return;
         _now += delta;
         _match.AdvanceTo(_now);
-        if (_now >= _nextAction) Step();
+        var state = _match.GetPublicView();
+        if (state.Phase == PokerPhase.AwaitingDraw)
+        {
+            if (_now >= _nextAction) Step();
+        }
+        else if (state.ActivePlayerId is int id && id != _localId)
+        {
+            if (_botPacing.TryAct(state, _now)) Step();
+        }
+        else _botPacing.Reset();
     }
 
     public void Flip(int slot) => Act(_localId, PokerAction.Flip, slot);
@@ -117,6 +128,7 @@ public sealed class MischiefPokerPreviewSession
             else Act(id, PokerAction.Flip, _random.Next(5));
         }
         _nextAction = _now + 1.2;
+        _botPacing.Reset();
     }
 
     public void ExpireTurn()
@@ -126,6 +138,7 @@ public sealed class MischiefPokerPreviewSession
         _now += state.SecondsRemaining;
         LastError = _match.AdvanceTo(_now);
         _nextAction = _now + 1.2;
+        _botPacing.Reset();
     }
 }
 #endif
