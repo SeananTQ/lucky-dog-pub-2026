@@ -341,11 +341,10 @@ internal static class NetworkPokerMainChecks
             Check(session.State.Hand.Public.HandNumber == 1 && session.State.Hand.Public.Seats.All(s => s.Chips == 900),
                 "returning gameplay starts a new match without inheriting the paused balance");
             page.MockClientForSmoke(2).Leave();
-            await Until(() => session.State.Status == PokerTableStatus.Interrupted && session.State.Hand == null, "participant departure interrupts the match safely");
-            Check(game.IsSessionPokerReserved && game.IsSessionPokerActive && data.Chips == soloChips, "interruption stays in poker room UI without enabling solo play");
-            panel.ShowRoomPage(); await Wait();
-            Click(lobby.GetNode<Button>("Actions/Primary")); await Wait(.2);
-            Check(game.IsSessionPokerReserved, "fresh preparation reserves the solo table");
+            await Until(() => session.State.DepartedPlayers?.Any(p => p.Key == "2") == true,
+                "participant departure retains this hand's delegated seat");
+            Check(session.State.Status == PokerTableStatus.Playing && game.IsSessionPokerReserved && game.IsSessionPokerActive
+                && data.Chips == soloChips, "delegation keeps poker active without enabling solo play");
             game.Call("OnBetRequested");
             Check(game.State == GameState.WaitingForBet && data.Chips == soloChips, "ready state cannot debit a solo hand");
             client.Leave(); await Wait(.5);
@@ -448,6 +447,14 @@ internal static class NetworkPokerMainChecks
                 "host reservation causes no pause hint or button change for members");
             await Until(() => session.IsPaused, "guest receives actual pause after the current hand pays out", 40);
             await Wait(.1);
+            if (session.IsAutoplay)
+            {
+                Check(guestAction.Text == RoomPokerText.T("取消托管", "Take control")
+                    && game.GetNode<RoomPokerTableView>("RoomPokerTable").LocalPanel.IsAutoplay,
+                    "two idle turns show the local autoplay marker and explicit reclaim button");
+                Click(guestAction); await Wait(.2);
+                Check(!session.IsAutoplay, "explicit reclaim restores control without resetting the completed hand");
+            }
             Check(guestAction.Text == RoomPokerText.T("离座", "Sit out")
                 && pokerPanel.GetNode<Label>("ResultHeading").Text == RoomPokerText.T("已暂停", "Paused"),
                 "paused information panel exposes immediate sit-out and paused heading");
@@ -467,6 +474,32 @@ internal static class NetworkPokerMainChecks
             Check(guestAction.Text == "Sit out" && pokerPanel.GetNode<Label>("ResultHeading").Text == "Paused",
                 "paused controls provide English text");
             L10n.SetLocale(previousLocale, save: false);
+            // Real scene bindings: a network blackout delegates without turning an input overlay into authority.
+            panel.CloseImmediate();
+            Check(remoteHost.Resume(), "resume before host recovery scene check");
+            await Until(() => session.State.Hand.Public.Phase == PokerPhase.Acting && session.State.DealRemaining == 0,
+                "recovery test hand begins");
+            var recoveryHand = session.State.Hand.Public.SessionId;
+            page.TestNetworkPokerRecovery(2); // The simulated owner is player 2.
+            await Until(() => session.IsMigrating, "owner departure opens migration state", 5);
+            await Wait(.05);
+            var overlay = game.GetNode<RoomPokerTableView>("RoomPokerTable").GetNode<ConfirmOverlayController>("ConnectionOverlay");
+            Check(overlay.IsVisibleInTree() && !overlay.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton").Visible,
+                "migration overlay blocks the tabletop without a close button");
+            Check(!session.Act(PokerAction.Flip, 0), "migration rejects a direct action beyond visual shielding");
+            await Until(() => session.Connected && !session.IsMigrating, "new room owner restores the current hand", 15);
+            Check(session.State.Hand.Public.SessionId == recoveryHand && session.State.RestartRequired,
+                "restoration keeps hand identity and schedules Beta restart");
+            await Until(() => !overlay.Visible, "recovery overlay closes without user confirmation");
+            if (session.IsAutoplay) { Check(session.Reclaim(), "returning local player can explicitly cancel autoplay"); await Wait(.2); }
+            await Until(() =>
+            {
+                if (session.DisplayView.Public.ActivePlayerId == client.Id) session.Act(PokerAction.EndTurn);
+                return session.IsPaused;
+            }, "restored hand pays out then pauses", 45);
+            await Wait(.1);
+            Check(!pokerPanel.GetNode<Button>("Actions/Primary").Visible
+                && pokerPanel.GetNode<Button>("Actions/Restart").Visible, "new Beta host sees restart without resume");
             Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host"));
             await Until(() => lobby.Session?.IsOwner == true && lobby.Session.State?.Status == PokerTableStatus.Preparing,
                 "Mock role reset during play reaches a fresh host preparation");

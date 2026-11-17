@@ -5,14 +5,16 @@
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerHand.tscn" id="hand"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 [ext_resource type="PackedScene" path="res://Scenes/Poker/PokerPaws.tscn" id="paws"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="connection"]
 
-[node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn", "Paws")]
+[node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn", "Paws", "_connectionOverlay")]
 z_index = 6
 script = ExtResource("script")
 _board = [NodePath("Board/Card1"), NodePath("Board/Card2"), NodePath("Board/Card3"), NodePath("Board/Card4"), NodePath("Board/Card5")]
 _hand = NodePath("Hand")
 _turn = NodePath("Turn")
 Paws = NodePath("Paws")
+_connectionOverlay = NodePath("ConnectionOverlay")
 
 [node name="Paws" parent="." instance=ExtResource("paws")]
 
@@ -67,5 +69,10 @@ theme_type_variation = &"RoomPokerTableLabel"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="ConnectionOverlay" parent="." instance=ExtResource("connection")]
+z_index = 100
+offset_right = 1200.0
+offset_bottom = 1200.0
 
 [editable path="Hand"]

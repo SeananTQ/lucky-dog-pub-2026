@@ -20,10 +20,12 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_networkPokerChat", "_networkPokerTab", "_networkPokerPage", "_networkPokerHost", "_networkPokerGuest", "_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
+[node name="SteamMockPanel" type="CanvasLayer" node_paths=PackedStringArray("_networkRecoveryButtons", "_networkIdlePlayer", "_networkPokerChat", "_networkPokerTab", "_networkPokerPage", "_networkPokerHost", "_networkPokerGuest", "_panel", "_steamTab", "_pokerTab", "_steamPage", "PokerContent", "_scenarioOption", "_progressOption", "_recoveredItemsPreviewOption", "_recoveredItemsPreviewButton", "_resetButton", "_advanceButton", "_platformModeButton", "_closeButton", "_connectionValue", "_phaseValue", "_phaseTimerValue", "_rewardValue", "_transactionValue", "_lastEventValue", "_eventLog")]
 layer = 90
 script = ExtResource("1")
 _panel = NodePath("Panel")
+_networkRecoveryButtons = [NodePath("Panel/Root/NetworkPokerPage/Recovery/Offline"), NodePath("Panel/Root/NetworkPokerPage/Recovery/Online"), NodePath("Panel/Root/NetworkPokerPage/Recovery/Leave"), NodePath("Panel/Root/NetworkPokerPage/Recovery/Return")]
+_networkIdlePlayer = NodePath("Panel/Root/NetworkPokerPage/IdlePlayer")
 _networkPokerChat = NodePath("Panel/Root/NetworkPokerPage/SettlementChat")
 _networkPokerTab = NodePath("Panel/Root/TabRow/NetworkPokerTab")
 _networkPokerPage = NodePath("Panel/Root/NetworkPokerPage")
@@ -276,6 +278,37 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"CapsuleButton"
 text = "重置为房间成员"
+
+[node name="Recovery" type="HBoxContainer" parent="Panel/Root/NetworkPokerPage"]
+layout_mode = 2
+
+[node name="Offline" type="Button" parent="Panel/Root/NetworkPokerPage/Recovery"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "玩家2断网"
+
+[node name="Online" type="Button" parent="Panel/Root/NetworkPokerPage/Recovery"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "恢复连接"
+
+[node name="Leave" type="Button" parent="Panel/Root/NetworkPokerPage/Recovery"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "玩家2离房"
+
+[node name="Return" type="Button" parent="Panel/Root/NetworkPokerPage/Recovery"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CapsuleButton"
+text = "玩家2回房"
+
+[node name="IdlePlayer" type="CheckButton" parent="Panel/Root/NetworkPokerPage"]
+layout_mode = 2
+text = "玩家2不操作（连续两次15秒超时后托管）"
 
 [node name="SettlementChat" type="CheckButton" parent="Panel/Root/NetworkPokerPage"]
 layout_mode = 2

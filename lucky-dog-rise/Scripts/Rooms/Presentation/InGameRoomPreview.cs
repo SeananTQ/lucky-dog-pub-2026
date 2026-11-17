@@ -315,20 +315,20 @@ public partial class InGameRoomPreview : VBoxContainer
             if (current != null && _client.RebindArrivalService(current)) _service = current;
             return;
         }
-        ReplaceClient(null);
+        ReplaceClient(null, preservePokerRecovery: Reconnect?.IsPending == true);
         _service = current;
         if (current == null) return;
         var name = string.IsNullOrWhiteSpace(_platform.PersonaName) ? L10n.Tr("Rooms_You") : _platform.PersonaName;
         var client = new RoomClient(current, 1, name, LubanData.Tables.TbDogSkin.DataList[0].Id);
         client.AdvanceTo(current.Now);
-        ReplaceClient(client);
+        ReplaceClient(client, preservePokerRecovery: Reconnect?.IsPending == true);
         // A known invite already supplies the target. Do not put an unnecessary
         // directory search in front of the cold-start join on Steam's callback queue.
         if (Reconnect?.IsPending != true
             && current is not IRoomInviteService { HasPendingJoinRequest: true }) client.Search();
     }
 
-    private void ReplaceClient(RoomClient client)
+    private void ReplaceClient(RoomClient client, bool preservePokerRecovery = false)
     {
         ResetGamePresentation();
         CancelKick();
@@ -340,7 +340,7 @@ public partial class InGameRoomPreview : VBoxContainer
             _client.Dispose();
         }
         _client = client;
-        PokerLobby?.Bind(client);
+        PokerLobby?.Bind(client, preservePokerRecovery);
         _lastSession = 0;
         _lastListings = null;
         _browsing = true;

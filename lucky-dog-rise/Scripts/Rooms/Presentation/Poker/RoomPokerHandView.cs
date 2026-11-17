@@ -92,7 +92,7 @@ public partial class RoomPokerHandView : Control
         _dealer.TooltipText = RoomPokerText.T("本局庄家", "Dealer");
         _winner.TooltipText = RoomPokerText.T("本局胜者", "Hand winner");
         _waiting.TooltipText = RoomPokerText.T("等待入局", "Waiting to join a hand");
-        _autoplay.TooltipText = RoomPokerText.T("掉线托管", "Disconnected · Autoplay");
+        _autoplay.TooltipText = RoomPokerText.T("托管", "Autoplay");
         _clock.TooltipText = RoomPokerText.T("当前行动者 · 剩余时间", "Current player · Time remaining");
         var result = state.Settlement?.Players.FirstOrDefault(p => p.PlayerId == playerId);
         var turn = state.CompletedTurns.FirstOrDefault(t => t.PlayerId == playerId);

@@ -11,14 +11,23 @@ public partial class RoomPokerLobbyView : VBoxContainer
     [Export] private Button _start, _restart;
     private RoomClient _client;
     private readonly PokerAutoChat _autoChat = new();
+    private PokerRecoverySnapshot _reconnectCopy;
+    private string _reconnectKey;
+    private ulong _reconnectExpires;
     public bool AutoChatBlocked { get; set; } = true;
     public bool AutoChatRevealReady { get; set; }
     public PokerNetworkSession Session { get; private set; }
     public bool CanPrepare { get; set; } = true;
     public bool ActionsAvailable => CanPrepare && _client?.IsBusy == false;
-    public void Bind(RoomClient client)
+    public void Bind(RoomClient client, bool preserveRecovery = false)
     {
         if (_client == client) return;
+        if (preserveRecovery && Session?.RecoveryCopy is { } copy)
+        {
+            _reconnectCopy = copy; _reconnectKey = Session.Context?.LocalKey;
+            _reconnectExpires = Time.GetTicksMsec() + 180000;
+        }
+        else if (!preserveRecovery) _reconnectCopy = null;
         if (_client != null) _client.ManualChatSent -= OnManualChatSent;
         _autoChat.Reset();
         Session?.Dispose(); Session = null; _client = client;
@@ -41,6 +50,7 @@ public partial class RoomPokerLobbyView : VBoxContainer
     public static void Activate(PokerNetworkSession session)
     {
         if (session?.Connected != true) return;
+        if (session.IsAutoplay) { session.Reclaim(); return; }
         if (!session.IsOwner) { session.SetReady(!session.IsReady); return; }
         if (session.State?.Status == PokerTableStatus.Interrupted) session.Propose();
         else if (session.State?.Status == PokerTableStatus.Preparing) session.Start();
@@ -63,6 +73,15 @@ public partial class RoomPokerLobbyView : VBoxContainer
         }
         if (session == null) { primary.Text = RoomPokerText.T("准备", "Ready"); return; }
         var state = session.State;
+        if (session.IsAutoplay)
+        {
+            primary.Visible = includeInHandActions;
+            primary.Text = RoomPokerText.T("取消托管", "Take control");
+            primary.TooltipText = RoomPokerText.T("接管后续操作，已结束的回合不会重来。", "Take over future decisions. Completed turns are not replayed.");
+            primary.ThemeTypeVariation = "CapsuleActionButton";
+            primary.Disabled |= !session.CanReclaim;
+            return;
+        }
         if (session.IsOwner)
         {
             if (state?.Status != PokerTableStatus.Playing)
@@ -73,12 +92,13 @@ public partial class RoomPokerLobbyView : VBoxContainer
             }
             else if (state.Continuation == PokerContinuation.Paused)
             {
+                primary.Visible = !state.RestartRequired;
                 primary.Text = RoomPokerText.T("继续", "Resume"); primary.Disabled |= !session.CanResume;
                 primary.TooltipText = RoomPokerText.T("保留筹码、座位与庄家进度继续；已申请入座的玩家从下一局参加。至少两人入座且各有 100 筹码。", "Keep balances, seats and dealer progress. Pending players join next hand. At least two seated players need 100 chips each.");
             }
             else
             {
-                primary.Visible = includeInHandActions;
+                primary.Visible = includeInHandActions && !state.RestartRequired;
                 bool pending = state.Continuation == PokerContinuation.PauseRequested;
                 primary.Text = pending ? RoomPokerText.T("取消暂停", "Cancel") : RoomPokerText.T("打完暂停", "Pause");
                 primary.Disabled |= session.IsCollecting;
@@ -131,7 +151,8 @@ public partial class RoomPokerLobbyView : VBoxContainer
         status.Visible = poker && !ready.Visible;
         bool inHand = p != null && Session?.State?.Hand?.Public.ActionOrder.Contains(p.Id) == true;
         status.Text = Session?.State?.Status == PokerTableStatus.Playing
-            ? inHand && !Session.IsPaused
+            ? p?.Control is PokerControl.Away or PokerControl.Disconnected ? RoomPokerText.T("托管", "Autoplay")
+                : inHand && !Session.IsPaused
                 ? p.Ready ? RoomPokerText.T("参局", "Playing") : RoomPokerText.T("待离座", "Sitting out next")
                 : p?.Ready == true
                     ? p.Playing && Session.IsPaused ? RoomPokerText.T("已入座", "Seated") : RoomPokerText.T("待入座", "Joining next")
@@ -140,9 +161,16 @@ public partial class RoomPokerLobbyView : VBoxContainer
     }
     public override void _Process(double delta)
     {
+        if (Time.GetTicksMsec() >= _reconnectExpires) _reconnectCopy = null;
+        if (_client?.View == null && _client?.ReconnectPending == true)
+        { Session?.Tick(delta); Hide(); return; }
         if (_client?.View == null || _client.IsLocalArrival)
         { _autoChat.Reset(); Session?.Dispose(); Session = null; Hide(); return; }
-        if (Session == null && _client.OpenPokerLink() is { } link) Session = new(link);
+        if (Session == null && _client.OpenPokerLink() is { } link)
+        {
+            Session = new(link, recovery: _reconnectCopy, recoveryLocalKey: _reconnectKey);
+            _reconnectCopy = null;
+        }
         Session?.Tick(delta);
         var line = _autoChat.Tick(Session?.Context?.Room, Session?.State, Session?.Connected == true,
             AutoChatBlocked || !_client.ChatAllowed || _client.IsBusy, AutoChatRevealReady);

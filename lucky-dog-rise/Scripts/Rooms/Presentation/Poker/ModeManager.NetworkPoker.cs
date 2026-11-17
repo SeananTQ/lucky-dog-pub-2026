@@ -76,6 +76,8 @@ public partial class ModeManager
             AddChild(_networkPokerPayout);
             _gameManager.SessionPokerTurnEnd += NetworkPokerEndTurn;
         }
+        _networkPokerTable.LocalAutoplay = session.IsAutoplay;
+        _networkPokerTable.PresentConnection(session);
         var view = session.DisplayView;
         if (view == null)
         {
@@ -93,17 +95,17 @@ public partial class ModeManager
             return;
         }
         bool visible = _networkPokerAttached && CurrentMode == Mode.Play && !_hiddenByFullscreenApp && !UiInteractionOccupancy.IsOccupied(this);
-        bool act = NetworkPokerInputAllowed && session.Connected && !session.ActionPending && session.State.DealRemaining == 0
+        bool act = NetworkPokerInputAllowed && session.Connected && !session.IsAutoplay && !session.ActionPending && session.State.DealRemaining == 0
             && view.Public.Phase == PokerPhase.Acting && view.Public.ActivePlayerId == view.PlayerId;
         _networkPokerTable.Round.PauseAfterPayout = !session.IsCollecting;
         _networkPokerTable.Round.CollectionDealerId = session.State.Continuation == PokerContinuation.Restarting
             ? session.Context.Members.First(m => m.Key == session.Context.OwnerKey).LocalId : null;
         if (session.IsCollecting) _networkPokerTable.Round.CollectAuthoritative(view);
-        _networkPokerTable.Present(view, act, delta, animate: visible,
+        _networkPokerTable.Present(view, act, session.Connected ? delta : 0, animate: visible,
             otherCardsMoving: visible && _roomPokerDogs?.RemoteDogs.Any(d => d.PokerHand.IsMoving) == true,
             actionPending: session.ActionPending && session.Connected);
         // A late snapshot or background stall must not replay an obsolete settlement before collecting.
-        if (view.Public.Phase == PokerPhase.Settled && session.State.SettlementElapsed >= PokerNetworkSession.PayoutDuration(view.Public))
+        if (session.Connected && view.Public.Phase == PokerPhase.Settled && session.State.SettlementElapsed >= PokerNetworkSession.PayoutDuration(view.Public))
             _networkPokerTable.Round.CompletePayout(view);
         if (lobby != null) lobby.AutoChatRevealReady = _networkPokerTable.Round.WinnersVisible;
         if (_networkPokerAttached)
@@ -147,6 +149,7 @@ public partial class ModeManager
                 dog.PokerHand.Present(view.Public, dog.MemberId, result?.HoleCards, _networkPokerTable.Emphasis,
                     _networkPokerTable.Showdown.Cue, dogs.IsVisibleInTree(),
                     waiting: !view.Public.Seats.Any(s => s.PlayerId == dog.MemberId),
+                    autoplay: _networkPokerSession?.IsAutoplayForLocalId(dog.MemberId) == true,
                     dealDelay: RoomPokerHandView.RemoteDealDelay, round: _networkPokerTable.Round);
             }
             bool local = show && (dogs == _roomDesktop || !_networkPokerAttached);
@@ -154,6 +157,7 @@ public partial class ModeManager
             if (view == null) dogs.LocalPokerHand.PresentWaiting();
             else dogs.LocalPokerHand.Present(view.Public, _desktopRoomClient.Id, view.HoleCards,
                 _networkPokerTable.Emphasis, _networkPokerTable.Showdown.Cue, dogs.IsVisibleInTree(),
+                autoplay: _networkPokerSession?.IsAutoplay == true,
                 round: _networkPokerTable.Round);
         }
     }

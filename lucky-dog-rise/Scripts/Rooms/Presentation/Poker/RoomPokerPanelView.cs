@@ -25,6 +25,19 @@ public partial class RoomPokerPanelView : VBoxContainer
         _error.Hide();
         RoomPokerLobbyView.PresentActions(session, _action, _restart, available);
         if (session?.IsPaused == true) _resultHeading.Text = RoomPokerText.T("已暂停", "Paused");
+        if (session?.State?.RestartRequired == true && session.IsPaused)
+        {
+            _error.Text = RoomPokerText.T("房主已交接，请重开牌局。", "Host transfer complete. Start a new match.");
+            _error.Show();
+        }
+        if (session?.DisplayView is { } view && view.Public.Phase == PokerPhase.Acting)
+        {
+            var automatic = session.State.Players.Concat(session.State.DepartedPlayers ?? Array.Empty<PokerParticipant>())
+                .Where(p => p.Control != PokerControl.Manual).Select(p => p.Id).ToHashSet();
+            // Canonical seat numbers survive both owner changes and departure from the lobby.
+            foreach (var seat in session.State.Hand.Public.Seats.Where(s => automatic.Contains(s.PlayerId)))
+                _result.Text = _result.Text.Replace($"#{seat.SeatNumber}  ", $"#{seat.SeatNumber}  {RoomPokerText.T("托管", "Autoplay")} · ");
+        }
     }
     public void PresentWaiting()
     {

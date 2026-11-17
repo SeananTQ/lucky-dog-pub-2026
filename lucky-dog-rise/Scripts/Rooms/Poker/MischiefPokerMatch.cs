@@ -11,7 +11,7 @@ namespace LuckyDogRise.Rooms.Poker;
 /// Single-threaded authority; seats are fixed during a hand. Independent of Godot, Steam and saves.
 /// UI and transports consume projections; only the authority owns this object and the undealt deck.
 /// </summary>
-public sealed class MischiefPokerMatch
+public sealed partial class MischiefPokerMatch
 {
     private int[] _players;
     private int[] _seatNumbers;
@@ -31,7 +31,7 @@ public sealed class MischiefPokerMatch
     private PokerDealer _dealer;
     private PokerSettlement? _settlement;
 
-    public Guid SessionId { get; } = Guid.NewGuid();
+    public Guid SessionId { get; private init; } = Guid.NewGuid();
     public MischiefPokerRules Rules => _rules;
 
     /// <param name="playerIds">Fixed seat order; IDs may include companion IDs and are not SteamID64.</param>
@@ -58,13 +58,16 @@ public sealed class MischiefPokerMatch
     /// </summary>
     public PokerError StartHand(double nowSeconds, IReadOnlyList<int>? orderedDeck = null,
         IReadOnlyList<int>? newPlayers = null, IReadOnlyList<int>? activePlayers = null,
-        IReadOnlyList<int>? retiredPlayers = null)
+        IReadOnlyList<int>? retiredPlayers = null, IReadOnlyList<PokerSeat>? returningPlayers = null)
     {
         if (!IsValidTime(nowSeconds)) return PokerError.InvalidTime;
         if (_phase is PokerPhase.Acting or PokerPhase.AwaitingDraw) return PokerError.HandInProgress;
         // No negative balances, automatic refill, partial ante or unapproved elimination rule.
         // Admission and dealing commit together: a rejected start preserves the previous settlement.
         var entrants = newPlayers?.ToArray() ?? Array.Empty<int>();
+        var returning = returningPlayers?.ToArray() ?? Array.Empty<PokerSeat>();
+        if (returning.Any(s => !entrants.Contains(s.PlayerId) || s.Chips < 0 || s.SeatNumber is < 1 or > 6)
+            || returning.Select(s => s.PlayerId).Distinct().Count() != returning.Length) return PokerError.InvalidRoster;
         var retired = retiredPlayers?.ToArray() ?? Array.Empty<int>();
         if (retired.Length > 0 && (_phase != PokerPhase.Settled || retired.Distinct().Count() != retired.Length
             || retired.Any(id => !_players.Contains(id)))) return PokerError.InvalidRoster;
@@ -74,10 +77,16 @@ public sealed class MischiefPokerMatch
             || entrants.Distinct().Count() != entrants.Length || entrants.Any(_players.Contains)))
             return PokerError.InvalidRoster;
         var numbers = retained.Select(i => _seatNumbers[i]).ToList();
-        foreach (int _ in entrants) numbers.Add(Enumerable.Range(1, MischiefPokerRules.MaxPlayers).First(n => !numbers.Contains(n)));
+        foreach (int id in entrants)
+        {
+            int preferred = returning.FirstOrDefault(s => s.PlayerId == id)?.SeatNumber ?? 0;
+            numbers.Add(preferred > 0 && !numbers.Contains(preferred) ? preferred
+                : Enumerable.Range(1, MischiefPokerRules.MaxPlayers).First(n => !numbers.Contains(n)));
+        }
         // Reuse a vacant seat number, never its previous occupant's account or balance.
         var seating = retained.Select(i => (_players[i], _chips[i], _seatNumbers[i]))
-            .Concat(entrants.Select((id, i) => (id, _rules.InitialChips, numbers[retained.Length + i])))
+            .Concat(entrants.Select((id, i) => (id, returning.FirstOrDefault(s => s.PlayerId == id)?.Chips
+                ?? _rules.InitialChips, numbers[retained.Length + i])))
             .OrderBy(s => s.Item3).ToArray();
         var roster = seating.Select(s => s.Item1).ToArray();
         var balances = seating.Select(s => s.Item2).ToArray();
@@ -251,7 +260,7 @@ public sealed class MischiefPokerMatch
             Copy(_board.Select((card, slot) => new PokerBoardCard(card, _pending[slot]))),
             acting ? _players[_order[_turnIndex]] : null,
             acting ? MischiefPokerRules.FlipsPerTurn - _flipsUsed : 0,
-            acting ? _deadline : null, acting ? Math.Max(0, _deadline - _now) : 0,
+            acting ? _deadline : null, acting ? Math.Clamp(_deadline - _now, 0, _rules.TurnSeconds) : 0,
             Copy(_completedTurns), _pot, _systemTips, _settlement) { Flips = Copy(_flips) };
     }
 

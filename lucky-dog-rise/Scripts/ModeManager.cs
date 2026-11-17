@@ -643,6 +643,7 @@ public partial class ModeManager : Control
                 _settingsPanel.SetNetworkPokerMockChat(_steamMockPanel.NetworkPokerChatEnabled);
             };
             _steamMockPanel.NetworkPokerChatChanged += enabled => _settingsPanel.SetNetworkPokerMockChat(enabled);
+            _steamMockPanel.NetworkPokerRecoveryRequested += action => _settingsPanel.TestNetworkPokerRecovery(action);
 #endif
         }
 #endif

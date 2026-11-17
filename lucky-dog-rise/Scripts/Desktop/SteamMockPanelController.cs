@@ -12,6 +12,9 @@ public partial class SteamMockPanelController : CanvasLayer
     [Signal] public delegate void RecoveredItemsPreviewRequestedEventHandler(int itemCount);
     [Signal] public delegate void NetworkPokerMockRequestedEventHandler(bool localHost);
     [Signal] public delegate void NetworkPokerChatChangedEventHandler(bool enabled);
+    [Signal] public delegate void NetworkPokerRecoveryRequestedEventHandler(int action);
+    [Export] private Godot.Collections.Array<Button> _networkRecoveryButtons = new();
+    [Export] private CheckButton _networkIdlePlayer = null!;
     [Export] private CheckButton _networkPokerChat = null!;
 
     [Export] private PanelContainer _panel = null!;
@@ -60,6 +63,12 @@ public partial class SteamMockPanelController : CanvasLayer
         _networkPokerHost.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, true);
         _networkPokerGuest.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, false);
         _networkPokerChat.Toggled += enabled => EmitSignal(SignalName.NetworkPokerChatChanged, enabled);
+        for (int i = 0; i < _networkRecoveryButtons.Count; i++)
+        {
+            int action = i;
+            _networkRecoveryButtons[i].Pressed += () => EmitSignal(SignalName.NetworkPokerRecoveryRequested, action);
+        }
+        _networkIdlePlayer.Toggled += enabled => EmitSignal(SignalName.NetworkPokerRecoveryRequested, enabled ? 4 : 5);
         _steamTab.Pressed += () => SelectPage(MockPage.Steam);
         _networkPokerTab.Pressed += () => SelectPage(MockPage.NetworkPoker);
         _pokerTab.Pressed += () => SelectPage(MockPage.PokerPreview);

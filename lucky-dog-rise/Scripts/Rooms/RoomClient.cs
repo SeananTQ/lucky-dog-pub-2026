@@ -45,6 +45,7 @@ public sealed class RoomClient : IDisposable
     public bool IsLocalArrival => false;
 #endif
     public RoomSnapshot View { get; private set; }
+    public bool ReconnectPending => (_service as IRoomReconnectService)?.ReconnectContext.IsPending == true;
     public float LocalScale { get; set; } = 1;
     public HashSet<int> HiddenMembers { get; } = new();
     public bool ShowNames { get; set; } = true;

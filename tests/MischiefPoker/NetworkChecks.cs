@@ -1,7 +1,7 @@
 using System.Text.Json;
 using LuckyDogRise.Rooms.Poker;
 
-internal static class NetworkChecks
+internal static partial class NetworkChecks
 {
     public static void Run()
     {
@@ -16,6 +16,7 @@ internal static class NetworkChecks
         SitOutAndReturn();
         RestartDepletedTable();
         MembershipAndRecovery();
+        RecoveryAndAutoplay();
         MalformedMessages();
         AtomicCoreAdmission();
         CompanionRetirementBoundary();
@@ -414,15 +415,16 @@ internal static class NetworkChecks
             Check.That(!b.Connected && !b.Act(PokerAction.EndTurn), "stale state disables client input");
             h.Links["b"].Hold = false; h.Step();
             Check.That(b.Connected, "heartbeat snapshots resume after a transient delivery pause");
-            h.Owner = "b"; h.Step();
-            Check.Equal(h.Sessions["b"].State!.Status, PokerTableStatus.Interrupted, "new host does not reconstruct hidden deck or continue old game");
-            b.Propose(); h.Step();
-            Check.Equal(b.State!.Status, PokerTableStatus.Preparing, "new host can propose a fresh table after interruption");
+            h.Owner = "b"; h.Step(1.2);
+            Check.That(b.State!.Status == PokerTableStatus.Playing && b.State.RestartRequired,
+                "new host restores the backup and schedules a stop after this hand");
         }
         using (var h = Started())
         {
             h.Remove("b"); h.Step();
-            Check.Equal(h.Sessions["a"].State!.Status, PokerTableStatus.Interrupted, "participant removal stops the fixed hand safely");
+            Check.That(h.Sessions["a"].State!.Status == PokerTableStatus.Playing
+                && h.Sessions["a"].State!.DepartedPlayers!.Single().Control == PokerControl.Disconnected,
+                "participant removal preserves the hand under autoplay");
         }
         using (var h = new Hub("a", "b"))
         {
@@ -564,7 +566,7 @@ internal static class NetworkChecks
         var packet = new PokerPacket(PokerNetworkProtocol.Version, "room", "t1", "t1", "state", 1, match.SessionId, State: state);
         Check.That(PokerNetworkProtocol.ValidState(PokerNetworkProtocol.Decode(PokerNetworkProtocol.Encode(packet))!.State!, room),
             "serialized results accept legal accumulated companion winnings above the old six-player starting total");
-        var impossible = view with { Public = view.Public with { Seats = view.Public.Seats.Select(s => s.PlayerId == 1 ? s with { Chips = 9001 } : s).ToArray() } };
+        var impossible = view with { Public = view.Public with { Seats = view.Public.Seats.Select(s => s.PlayerId == 1 ? s with { Chips = (PokerNetworkProtocol.MaxReservedPlayers + 9) * 1000 + 1 } : s).ToArray() } };
         Check.That(!PokerNetworkProtocol.ValidState(state with { Hand = impossible }, room), "funding validation remains bounded after allowing companion winnings");
     }
 
@@ -670,7 +672,8 @@ internal static class NetworkChecks
         { for (double t = 0; t < seconds; t += 0.02) { Time += .02; foreach (var s in Sessions.Values.ToArray()) s.Tick(0.02); } }
         public PokerPacket Packet(string sender, string kind, PokerCommand? command = null, long hand = 0)
             => new(PokerNetworkProtocol.Version, "room:" + Game, Members[sender].Ticket, Members[Owner].Ticket,
-                kind, ++_injected, Sessions[Owner].State!.Table, Command: command, FinishedHand: hand);
+                kind, ++_injected, Sessions[Owner].State!.Table, Command: command, FinishedHand: hand,
+                Epoch: Sessions[Owner].State!.Epoch);
         public void Inject(string sender, string kind, PokerCommand? command = null, long hand = 0)
             => Links[Owner].Enqueue(sender, PokerNetworkProtocol.Encode(Packet(sender, kind, command, hand)));
         public void Dispose() { foreach (var s in Sessions.Values) s.Dispose(); }
@@ -679,17 +682,20 @@ internal static class NetworkChecks
     {
         private readonly Queue<(string Sender, byte[] Bytes)> _queue = new();
         public bool Hold;
+        public bool Disconnected;
+        public bool DropStates;
         public event Action<string, byte[]> Received = delegate { };
-        public PokerRoomContext? Context => hub.Members.ContainsKey(key) ? new("room:" + hub.Game, key, hub.Owner,
+        public PokerRoomContext? Context => !Disconnected && hub.Members.ContainsKey(key) ? new("room:" + hub.Game, key, hub.Owner,
             hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game, hub.GameChangePending, hub.Reconcile, hub.CapacityReady) : null;
         public bool Send(string recipient, byte[] bytes)
         {
             hub.Sent.Add((key, recipient, (byte[])bytes.Clone()));
-            if (!hub.Links.TryGetValue(recipient, out var link)) return false;
+            if (Disconnected || !hub.Links.TryGetValue(recipient, out var link) || link.Disconnected) return false;
+            if (link.DropStates && PokerNetworkProtocol.Decode(bytes)?.Kind == "state") return true;
             link.Enqueue(key, bytes); return true;
         }
         public void Enqueue(string sender, byte[] bytes) => _queue.Enqueue((sender, (byte[])bytes.Clone()));
-        public void Poll() { if (!Hold) while (_queue.TryDequeue(out var m)) Received(m.Sender, m.Bytes); }
+        public void Poll() { if (!Hold && !Disconnected) while (_queue.TryDequeue(out var m)) Received(m.Sender, m.Bytes); }
         public void Dispose() => _queue.Clear();
     }
 }

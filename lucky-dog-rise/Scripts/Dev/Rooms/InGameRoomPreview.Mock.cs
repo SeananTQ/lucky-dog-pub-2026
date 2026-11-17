@@ -59,6 +59,7 @@ public partial class InGameRoomPreview
     public void PrepareNetworkPokerMock(bool localHost)
     {
         if (_sandbox == null) return;
+        _sandbox.SetPokerOffline(2, false);
         foreach (var client in _mockClients) client.Leave();
         var owner = localHost ? _client : MockClientForSmoke(2);
         _sandbox.Create(owner, "捣乱德州 · 联机模拟");
@@ -68,6 +69,22 @@ public partial class InGameRoomPreview
     }
     public void SetNetworkPokerMockChat(bool enabled)
     { if (_sandbox != null) _sandbox.PokerSettlementChatEnabled = enabled; }
+    public void TestNetworkPokerRecovery(int action)
+    {
+        if (_sandbox == null) return;
+        var other = MockClientForSmoke(2);
+        switch (action)
+        {
+            case 0: _sandbox.SetPokerOffline(2, true); break;
+            case 1: _sandbox.SetPokerOffline(2, false); break;
+            case 2: other.Leave(); break;
+            case 3:
+                if (_client.View != null && other.View == null) other.Join(_client.JoinedCode);
+                break;
+            case 4: _sandbox.PokerIdlePlayerId = 2; break;
+            case 5: _sandbox.PokerIdlePlayerId = 0; break;
+        }
+    }
     partial void RenderMockNotice()
     {
         if (_isMock) _connection.Text = L10n.Tr("Rooms_MockNotice");

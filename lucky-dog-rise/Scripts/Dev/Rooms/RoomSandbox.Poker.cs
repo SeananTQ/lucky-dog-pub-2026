@@ -12,7 +12,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
     {
         private readonly Queue<(string Sender, byte[] Data)> _queue = new();
         public event Action<string, byte[]> Received = delegate { };
-        public PokerRoomContext Context => client.View is { } room && !client.IsLocalArrival
+        public PokerRoomContext Context => !hub._pokerOffline.Contains(client.Id) && client.View is { } room && !client.IsLocalArrival
             ? new(room.Code + ":" + room.GameId, client.Id.ToString(), room.OwnerId.ToString(), room.Members.Select(m =>
                 new PokerPeer(m.Id.ToString(), m.Presence.ToString(), m.Id, m.Name, m.IsCompanion,
                     client.ReadyOnPokerEntry(m))).ToArray(), room.GameId,
@@ -27,6 +27,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         }
         public void Poll()
         {
+            if (hub._pokerOffline.Contains(client.Id)) { _queue.Clear(); return; }
             for (int i = 0; i < 32 && _queue.TryDequeue(out var message); i++)
                 if (!hub.Settings(client).Paused) Received(message.Sender, message.Data);
         }
@@ -34,6 +35,12 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         { if (hub._pokerLinks.GetValueOrDefault(client.Id) == this) hub._pokerLinks.Remove(client.Id); _queue.Clear(); }
     }
     private readonly Dictionary<int, PokerLink> _pokerLinks = new();
+    private readonly HashSet<int> _pokerOffline = new();
+    public int PokerIdlePlayerId { get; set; }
+    public void SetPokerOffline(int id, bool offline)
+    {
+        if (offline) _pokerOffline.Add(id); else _pokerOffline.Remove(id);
+    }
     private string[] ReconcilePokerCompanions(RoomClient client, int minimum, string[] preferred)
     {
         if (!_rooms.TryGetValue(client.JoinedCode ?? "", out var room) || room.Owner != client.Id
@@ -86,7 +93,7 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
             if (session.State?.Status == PokerTableStatus.Playing && session.State.DealRemaining == 0
                 && session.State.Hand is { } v && v.Public.ActivePlayerId == v.PlayerId)
             {
-                if (pacing.TryAct(v.Public, Now))
+                if (client.Id != PokerIdlePlayerId && pacing.TryAct(v.Public, Now))
                     session.Act(PokerAction.EndTurn);
             }
             else pacing.Reset();

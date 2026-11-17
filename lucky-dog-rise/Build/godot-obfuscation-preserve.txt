@@ -85,6 +85,10 @@ LuckyDogRise.Rooms.RoomPokerLobbyView
 LuckyDogRise.Rooms.RoomPokerDebugPanelView
 # Network JSON record constructors and properties must retain their wire contract.
 LuckyDogRise.Rooms.Poker.PokerParticipant
+LuckyDogRise.Rooms.Poker.PokerPrivateSeat
+LuckyDogRise.Rooms.Poker.PokerMatchSnapshot
+LuckyDogRise.Rooms.Poker.PokerBankrollReserve
+LuckyDogRise.Rooms.Poker.PokerRecoverySnapshot
 LuckyDogRise.Rooms.Poker.PokerNetworkState
 LuckyDogRise.Rooms.Poker.PokerPacket
 LuckyDogRise.Rooms.Poker.PokerCommand

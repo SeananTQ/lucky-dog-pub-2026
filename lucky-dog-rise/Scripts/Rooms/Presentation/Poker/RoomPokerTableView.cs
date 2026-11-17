@@ -13,6 +13,9 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Godot.Collections.Array<RoomPokerCardView> _board = new();
     [Export] private RoomPokerHandView _hand;
     [Export] private Label _turn;
+    [Export] private ConfirmOverlayController _connectionOverlay;
+    private bool _connectionBlocking, _failureShown;
+    public bool LocalAutoplay { get; set; }
     [Export] public PokerPawEffects Paws { get; private set; }
     private Func<int, bool, Node2D> _pawSource;
 
@@ -68,6 +71,29 @@ public partial class RoomPokerTableView : Node2D
         _hand.PresentWaiting();
         _turn.Text = "";
     }
+    public void PresentConnection(PokerNetworkSession session)
+    {
+        bool blocked = session.IsMigrating || !session.Connected;
+        if (blocked)
+        {
+            _connectionOverlay.ShowBlocking(RoomPokerText.T("正在恢复牌局", "Restoring the hand"),
+                session.IsMigrating
+                    ? RoomPokerText.T("房主连接发生变化，正在交接牌局，请稍候…", "The host connection changed. Transferring the hand, please wait…")
+                    : RoomPokerText.T("连接中断，正在等待房间连接恢复…", "Connection interrupted. Waiting to reconnect…"));
+            _connectionBlocking = true;
+        }
+        else
+        {
+            if (_connectionBlocking) { _connectionOverlay.Hide(); _connectionBlocking = false; }
+            if (!_failureShown && session.State?.Notice == "recovery_failed")
+            {
+                _failureShown = true;
+                _connectionOverlay.ShowNotice(RoomPokerText.T("牌局已中止", "Match ended"),
+                    RoomPokerText.T("房主连接中断，未能恢复完整牌局。房间仍然保留，可由新房主重新开始。", "The host disconnected and the complete hand could not be recovered. The room remains open; the new host can start a new match."),
+                    RoomPokerText.T("好的", "Got it"));
+            }
+        }
+    }
     public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true,
         bool otherCardsMoving = false, bool actionPending = false)
     {
@@ -98,7 +124,7 @@ public partial class RoomPokerTableView : Node2D
             }
         _lastFlip = state.Flips.LastOrDefault()?.Revision ?? 0;
         _wasAnimated = animate;
-        _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, animate, round: Round);
+        _hand.Present(state, view.PlayerId, view.HoleCards, Emphasis, Showdown.Cue, animate, autoplay: LocalAutoplay, round: Round);
         bool deal = !sameHand && state.Phase == PokerPhase.Acting && animate && DealAnimationsEnabled;
         if (!sameHand) _topCard = 0;
         float pitchStart = deal ? Mathf.Lerp(0.98f, 1f, GD.Randf()) : 1f;

@@ -17,6 +17,7 @@ public partial class ConfirmOverlayController : Control
     private string _confirmKey = "";
     private string _cancelKey = "";
     private bool _usesLocalizationKeys;
+    private bool _blocking;
     private bool _timedConfirmActive;
     private double _timedConfirmRemaining;
     private string _timedMessageKey = "";
@@ -55,6 +56,7 @@ public partial class ConfirmOverlayController : Control
 
     public void ShowConfirm(string title, string message, string confirmText = "确认", string cancelText = "取消")
     {
+        ResetButtons();
         StopTimedConfirm();
         _usesLocalizationKeys = false;
         _titleLabel.Text = title;
@@ -66,6 +68,7 @@ public partial class ConfirmOverlayController : Control
 
     public void ShowConfirmKey(string titleKey, string messageKey, string confirmKey = L10nKey.Common_Confirm, string cancelKey = L10nKey.Common_Cancel)
     {
+        ResetButtons();
         StopTimedConfirm();
         _usesLocalizationKeys = true;
         _titleKey = titleKey;
@@ -83,6 +86,7 @@ public partial class ConfirmOverlayController : Control
         string cancelKey,
         double timeoutSeconds)
     {
+        ResetButtons();
         _usesLocalizationKeys = true;
         _titleKey = titleKey;
         _timedMessageKey = messageKey;
@@ -93,6 +97,29 @@ public partial class ConfirmOverlayController : Control
         _lastDisplayedCountdown = -1;
         RefreshLocalizedText();
         Visible = true;
+    }
+
+    public void ShowBlocking(string title, string message)
+    {
+        StopTimedConfirm();
+        _usesLocalizationKeys = false;
+        _titleLabel.Text = title;
+        _messageLabel.Text = message;
+        _blocking = true;
+        _confirmButton.Hide(); _cancelButton.Hide();
+        Visible = true;
+    }
+
+    public void ShowNotice(string title, string message, string confirmText)
+    {
+        ShowConfirm(title, message, confirmText);
+        _cancelButton.Hide();
+    }
+
+    private void ResetButtons()
+    {
+        _blocking = false;
+        _confirmButton.Show(); _cancelButton.Show();
     }
 
     public bool CancelIfPending()
@@ -112,6 +139,7 @@ public partial class ConfirmOverlayController : Control
 
     private void Confirm()
     {
+        if (_blocking) return;
         StopTimedConfirm();
         Visible = false;
         EmitSignal(SignalName.Confirmed);
@@ -119,6 +147,7 @@ public partial class ConfirmOverlayController : Control
 
     private void Cancel()
     {
+        if (_blocking) return;
         StopTimedConfirm();
         Visible = false;
         EmitSignal(SignalName.Canceled);
