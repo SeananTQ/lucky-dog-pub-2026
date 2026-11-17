@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Godot;
+using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
 
@@ -39,6 +40,9 @@ public partial class RoomDesktopPreview : Node2D
     {
         public long Session = -1;
         public readonly HashSet<(int Id, long Presence)> Members = new();
+        public Guid PokerTable;
+        // At most the current hand's six appearances; shared across desktop/poker views.
+        public readonly Dictionary<int, RoomMember> PokerMembers = new();
     }
     private static readonly ConditionalWeakTable<RoomClient, SeenMembers> Seen = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)
@@ -52,6 +56,48 @@ public partial class RoomDesktopPreview : Node2D
     private long _session = -1;
     private RoomArrivalState _awaitingArrivalFrame;
     public IReadOnlyCollection<RoomDogView> RemoteDogs => _dogs.Values;
+    private readonly Dictionary<int, int> _pokerDisplayIds = new();
+    private readonly HashSet<int> _retainedPokerMembers = new();
+
+    private RoomMember[] PresentationMembers(RoomClient client, PokerNetworkSession poker)
+    {
+        var members = client.View?.Members ?? Array.Empty<RoomMember>();
+        var seen = Seen.GetOrCreateValue(client);
+        if (seen.Session != client.LayoutSession)
+        {
+            seen.Members.Clear(); seen.PokerMembers.Clear(); seen.Session = client.LayoutSession;
+        }
+        _pokerDisplayIds.Clear(); _retainedPokerMembers.Clear();
+        if (client.View?.GameId != RoomRules.MischiefPoker || poker?.Context is not { } context
+            || poker.State is not { Status: PokerTableStatus.Playing, Hand: { } hand } state)
+        { seen.PokerMembers.Clear(); return members; }
+        if (seen.PokerTable != state.Table)
+        { seen.PokerMembers.Clear(); seen.PokerTable = state.Table; }
+        foreach (int id in seen.PokerMembers.Keys.Where(id => !hand.Public.ActionOrder.Contains(id)).ToArray())
+            seen.PokerMembers.Remove(id);
+        foreach (var member in members)
+        {
+            var peer = context.Members.FirstOrDefault(p => p.LocalId == member.Id);
+            var player = state.Players.FirstOrDefault(p => p.Key == peer?.Key && p.Ticket == peer.Ticket);
+            if (player != null && hand.Public.ActionOrder.Contains(player.Id)) seen.PokerMembers[player.Id] = member;
+        }
+        bool retain = hand.Public.Phase != PokerPhase.Settled
+            || state.SettlementElapsed < PokerNetworkSession.PayoutDuration(hand.Public);
+        var visible = members.ToList();
+        foreach (var (id, member) in seen.PokerMembers)
+        {
+            bool present = members.Any(m => m.Id == member.Id && m.Presence == member.Presence);
+            if (!present)
+            {
+                // Do not reserve Steam capacity or mistake a reused local ID for the departed player.
+                if (!retain || member.Id == client.Id || members.Any(m => m.Id == member.Id)) continue;
+                visible.Add(member);
+                _retainedPokerMembers.Add(member.Id);
+            }
+            _pokerDisplayIds[member.Id] = PokerNetworkProtocol.DisplayId(state, context, id);
+        }
+        return visible.ToArray();
+    }
 
     public override void _Notification(int what)
     {
@@ -69,7 +115,7 @@ public partial class RoomDesktopPreview : Node2D
     }
 
     public Vector2 Present(RoomClient client, Rect2 usable, float scale, float spacing,
-        float taskbarAnchorOffsetY, bool snapEnabled, bool showLocalChat = true)
+        float taskbarAnchorOffsetY, bool snapEnabled, bool showLocalChat = true, PokerNetworkSession poker = null)
     {
         if (_session != client.LayoutSession)
         {
@@ -87,9 +133,8 @@ public partial class RoomDesktopPreview : Node2D
             UpdateRemoteCanvases();
             return previousSelf.Position;
         }
-        var members = client.View?.Members ?? Array.Empty<RoomMember>();
+        var members = PresentationMembers(client, poker);
         var seen = Seen.GetOrCreateValue(client);
-        if (seen.Session != client.LayoutSession) { seen.Members.Clear(); seen.Session = client.LayoutSession; }
         seen.Members.RemoveWhere(key => !members.Any(m => m.Id == key.Id && m.Presence == key.Presence));
         var self = members.FirstOrDefault(member => member.Id == client.Id);
         if (self != null && _placements.TryGetValue(client.Id, out var selfPlacement))
@@ -146,9 +191,11 @@ public partial class RoomDesktopPreview : Node2D
             dog.Scale = Vector2.One * scale;
             dog.Position = placement.Position;
             dog.Visible = !client.HiddenMembers.Contains(member.Id);
+            dog.PokerPlayerId = _pokerDisplayIds.GetValueOrDefault(member.Id, member.Id);
+            dog.RetainedForPoker = _retainedPokerMembers.Contains(member.Id);
             dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
-                client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
-                client.IsTongueActive(member.Id));
+                !dog.RetainedForPoker && client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
+                !dog.RetainedForPoker && client.IsTongueActive(member.Id));
             if (client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival && member.Id == arrival.HostMemberId)
                 dog.SetArrivalDepartureProgress((float)arrival.DepartureProgress);
             else if (IsVisibleInTree() && dog.Visible && seen.Members.Add((member.Id, member.Presence))) dog.BeginEntry();
@@ -174,16 +221,15 @@ public partial class RoomDesktopPreview : Node2D
     // Both host sizes share free screen-space positions with the desktop renderer.
     public void PresentPoker(RoomClient client, Rect2 usable, float scale,
         RoomDesktopPreview desktopSeed, Vector2 desktopSeedOffset, Rect2 table, bool snapEnabled, float taskbarAnchorOffsetY,
-        bool foreground)
+        bool foreground, PokerNetworkSession poker = null)
     {
         // Poker content is on canvas 0, InfoPanel on 1, and the system panel on
         // 100. Poker's modal overlays live inside its SubViewport, so yield to
         // them while occupied without changing the desktop instance's layer.
         int layer = foreground ? 2 : -1;
         if (_remoteLayer.Layer != layer) _remoteLayer.Layer = layer;
-        var fresh = client.View?.Members.Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray()
-            ?? Array.Empty<RoomMember>();
-        Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled);
+        var fresh = PresentationMembers(client, poker).Where(m => !HasMember(client.LayoutSession, m.Id, m.Presence)).ToArray();
+        Present(client, usable, scale, 220 * scale, taskbarAnchorOffsetY, snapEnabled, poker: poker);
         PositionLocalPokerHand(table.Position + table.Size * new Vector2(.72f, .48f), scale, usable);
         foreach (var member in fresh)
         {
@@ -343,6 +389,7 @@ public partial class RoomDesktopPreview : Node2D
         foreach (var dog in _drawOrder.ToArray()) RemoveRemoteCanvas(dog);
         _dogs.Clear();
         _placements.Clear();
+        _pokerDisplayIds.Clear(); _retainedPokerMembers.Clear();
         _awaitingArrivalFrame = null;
         _session = -1;
     }

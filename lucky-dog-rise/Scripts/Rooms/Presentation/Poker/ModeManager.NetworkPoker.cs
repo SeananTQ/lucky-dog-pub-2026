@@ -133,7 +133,7 @@ public partial class ModeManager
         Apply(_gameManager?.RoomPokerDog, localId);
         foreach (var dogs in new[] { _roomPokerDogs, _roomDesktop })
             if (GodotObject.IsInstanceValid(dogs))
-                foreach (var dog in dogs.RemoteDogs) Apply(dog.Dog, dog.MemberId);
+                foreach (var dog in dogs.RemoteDogs) Apply(dog.Dog, dog.PokerPlayerId);
     }
 
     private void PresentNetworkHands(PokerPlayerView view, bool show)
@@ -145,11 +145,12 @@ public partial class ModeManager
             {
                 if (!show || dog.Transitioning) { dog.PokerHand.Hide(); continue; }
                 if (view == null) { dog.PokerHand.PresentWaiting(); continue; }
-                var result = view.Public.Settlement?.Players.FirstOrDefault(p => p.PlayerId == dog.MemberId);
-                dog.PokerHand.Present(view.Public, dog.MemberId, result?.HoleCards, _networkPokerTable.Emphasis,
+                int id = dog.PokerPlayerId;
+                var result = view.Public.Settlement?.Players.FirstOrDefault(p => p.PlayerId == id);
+                dog.PokerHand.Present(view.Public, id, result?.HoleCards, _networkPokerTable.Emphasis,
                     _networkPokerTable.Showdown.Cue, dogs.IsVisibleInTree(),
-                    waiting: !view.Public.Seats.Any(s => s.PlayerId == dog.MemberId),
-                    autoplay: _networkPokerSession?.IsAutoplayForLocalId(dog.MemberId) == true,
+                    waiting: !view.Public.Seats.Any(s => s.PlayerId == id),
+                    autoplay: dog.RetainedForPoker || _networkPokerSession?.IsAutoplayForDisplayId(id) == true,
                     dealDelay: RoomPokerHandView.RemoteDealDelay, round: _networkPokerTable.Round);
             }
             bool local = show && (dogs == _roomDesktop || !_networkPokerAttached);
@@ -171,7 +172,7 @@ public partial class ModeManager
         table.BindPaws(GetViewport(), (id, right) =>
         {
             var dog = id == table.Round.DisplayView?.PlayerId ? _gameManager?.RoomPokerDog
-                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.Dog;
+                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.PokerPlayerId == id)?.Dog;
             return GodotObject.IsInstanceValid(dog) ? dog.PokerPaw(right) : null;
         }, node =>
         {
@@ -190,7 +191,7 @@ public partial class ModeManager
         if (visible && table.Round.DealerInFlight && view.Public.Settlement is { } result)
         {
             Vector2? Anchor(int id) => id == view.PlayerId ? FromTable(table.LocalPanel.DealerAnchor)
-                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == id)?.PokerHand.DealerAnchor;
+                : _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.PokerPlayerId == id)?.PokerHand.DealerAnchor;
             var start = Anchor(view.Public.Dealer.PlayerId);
             var end = Anchor(table.Round.CollectionDealerId ?? result.NextDealer.PlayerId);
             if (start.HasValue && end.HasValue)
@@ -203,7 +204,7 @@ public partial class ModeManager
         if (current.WinnerId == view.PlayerId) target = FromTable(table.LocalPanel.AwardAnchor);
         else
         {
-            var dog = _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.MemberId == current.WinnerId);
+            var dog = _roomPokerDogs?.RemoteDogs.FirstOrDefault(d => d.PokerPlayerId == current.WinnerId);
             if (dog == null || dog.PokerHand.IsWaiting) { payout.Hide(); return; }
             target = dog.PokerHand.AwardAnchor;
         }

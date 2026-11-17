@@ -480,17 +480,35 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.State.Hand.Public.Phase == PokerPhase.Acting && session.State.DealRemaining == 0,
                 "recovery test hand begins");
             var recoveryHand = session.State.Hand.Public.SessionId;
+            var oldHostDog = main.RoomPokerDogsForSmoke.RemoteDogs.Single(d => d.MemberId == 2);
+            var oldHostPosition = oldHostDog.Position;
             page.TestNetworkPokerRecovery(2); // The simulated owner is player 2.
             await Until(() => session.IsMigrating, "owner departure opens migration state", 5);
             await Wait(.05);
             var overlay = game.GetNode<RoomPokerTableView>("RoomPokerTable").GetNode<ConfirmOverlayController>("ConnectionOverlay");
             Check(overlay.IsVisibleInTree() && !overlay.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton").Visible,
                 "migration overlay blocks the tabletop without a close button");
+            Check(overlay.Scale == new Vector2(2, 2) && overlay.Size == new Vector2(600, 600)
+                && overlay.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").GetThemeFontSize("font_size") >= 18
+                && overlay.GetNode<PanelContainer>("OverlayPanel").GetThemeStylebox("panel") is StyleBoxFlat { BgColor.A: <= .6f },
+                "migration overlay uses poker logical coordinates, readable text and a translucent shield");
+            Check(main.RoomPokerDogsForSmoke.RemoteDogs.Contains(oldHostDog) && !oldHostDog.Departing,
+                "owner departure does not start visual exit during recovery");
             Check(!session.Act(PokerAction.Flip, 0), "migration rejects a direct action beyond visual shielding");
             await Until(() => session.Connected && !session.IsMigrating, "new room owner restores the current hand", 15);
             Check(session.State.Hand.Public.SessionId == recoveryHand && session.State.RestartRequired,
                 "restoration keeps hand identity and schedules Beta restart");
             await Until(() => !overlay.Visible, "recovery overlay closes without user confirmation");
+            await Wait(.1);
+            Check(!client.View.Members.Any(m => m.Id == 2) && oldHostDog.RetainedForPoker
+                && oldHostDog.PokerHand.IsAutoplay && !oldHostDog.PokerHand.IsWaiting
+                && oldHostDog.Position == oldHostPosition && oldHostDog.PokerPlayerId < 0,
+                "departed owner remains in place as a delegated hand, without a real room membership");
+            Check(!oldHostDog.ContainsDogPoint(oldHostDog.Position), "departed hand presentation cannot receive room input");
+            game.EmitSignal(GameManager.SignalName.DesktopModeRequested); await Wait(.1);
+            Check(main.RoomDesktopForSmoke.RemoteDogs.Any(d => d.MemberId == 2 && d.RetainedForPoker && d.PokerHand.IsAutoplay),
+                "switching to desktop retains the departed hand and autoplay marker");
+            main.RoomRequestPokerForSmoke(); await Wait(.1);
             if (session.IsAutoplay) { Check(session.Reclaim(), "returning local player can explicitly cancel autoplay"); await Wait(.2); }
             await Until(() =>
             {
@@ -498,6 +516,11 @@ internal static class NetworkPokerMainChecks
                 return session.IsPaused;
             }, "restored hand pays out then pauses", 45);
             await Wait(.1);
+            await Until(() => !main.RoomPokerDogsForSmoke.RemoteDogs.Any(d => d.MemberId == 2),
+                "departed owner leaves only after current hand payout");
+            Check(oldHostDog.Departing && !oldHostDog.DepartureFinished, "departed hand uses the normal descent after payout");
+            await Wait(1);
+            Check(!GodotObject.IsInstanceValid(oldHostDog), "post-hand departure releases the retained avatar");
             Check(!pokerPanel.GetNode<Button>("Actions/Primary").Visible
                 && pokerPanel.GetNode<Button>("Actions/Restart").Visible, "new Beta host sees restart without resume");
             Click(mock.GetNode<Button>("Panel/Root/NetworkPokerPage/NetworkPokerRow/Host"));

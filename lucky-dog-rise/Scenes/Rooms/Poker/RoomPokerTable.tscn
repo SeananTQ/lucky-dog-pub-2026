@@ -7,6 +7,9 @@
 [ext_resource type="PackedScene" path="res://Scenes/Poker/PokerPaws.tscn" id="paws"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/ConfirmOverlay.tscn" id="connection"]
 
+[sub_resource type="StyleBoxFlat" id="connection_shade"]
+bg_color = Color(0, 0, 0, 0.5)
+
 [node name="RoomPokerTable" type="Node2D" node_paths=PackedStringArray("_board", "_hand", "_turn", "Paws", "_connectionOverlay")]
 z_index = 6
 script = ExtResource("script")
@@ -72,7 +75,27 @@ autowrap_mode = 3
 
 [node name="ConnectionOverlay" parent="." instance=ExtResource("connection")]
 z_index = 100
-offset_right = 1200.0
-offset_bottom = 1200.0
+offset_right = 600.0
+offset_bottom = 600.0
+scale = Vector2(2, 2)
+
+[node name="OverlayPanel" parent="ConnectionOverlay" index="0"]
+theme_override_styles/panel = SubResource("connection_shade")
+
+[node name="Margin" parent="ConnectionOverlay/OverlayPanel" index="0"]
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 48
+
+[node name="Title" parent="ConnectionOverlay/OverlayPanel/Margin/Content" index="1"]
+max_lines_visible = 3
+
+[node name="MessageBg" parent="ConnectionOverlay/OverlayPanel/Margin/Content" index="2"]
+size_flags_vertical = 1
+
+[node name="Message" parent="ConnectionOverlay/OverlayPanel/Margin/Content/MessageBg" index="0"]
+theme_override_font_sizes/font_size = 18
 
 [editable path="Hand"]
+[editable path="ConnectionOverlay"]

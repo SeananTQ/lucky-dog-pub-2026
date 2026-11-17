@@ -28,12 +28,9 @@ public sealed partial class PokerNetworkSession
     public bool IsAutoplay => State?.Players.Any(p => p.Key == _room?.LocalKey && p.Control != PokerControl.Manual) == true;
     public bool CanReclaim => Connected && IsAutoplay && !IsCollecting && State?.Status == PokerTableStatus.Playing;
     public bool Reclaim() => CanReclaim && Request("reclaim", hand: State!.Hand!.Public.HandNumber);
-    public bool IsAutoplayForLocalId(int localId)
-    {
-        var member = _room?.Members.FirstOrDefault(m => m.LocalId == localId);
-        return member != null && State?.Players.Any(p => p.Key == member.Key && p.Ticket == member.Ticket
-            && p.Control != PokerControl.Manual) == true;
-    }
+    public bool IsAutoplayForDisplayId(int displayId) => State != null && _room != null
+        && State.Players.Concat(State.DepartedPlayers ?? []).Any(p => p.Control != PokerControl.Manual
+            && PokerNetworkProtocol.DisplayId(State, _room, p.Id) == displayId);
     private IEnumerable<PokerParticipant> AllParticipants() => _players.Concat(_departedPlayers);
     private void UpdatePlayer(int id, Func<PokerParticipant, PokerParticipant> update)
     {

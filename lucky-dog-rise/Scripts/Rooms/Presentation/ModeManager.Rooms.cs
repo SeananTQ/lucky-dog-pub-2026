@@ -442,7 +442,7 @@ public partial class ModeManager
         }
         var dogPosition = _roomDesktop.Present(_desktopRoomClient,
             new Rect2(usable.Intersection(host).Position - host.Position, usable.Intersection(host).Size), _desktopPetScaleFactor, _panelSize.X,
-            RoomTaskbarAnchorOffsetY, RoomSnapEnabled);
+            RoomTaskbarAnchorOffsetY, RoomSnapEnabled, poker: _settingsPanel?.RoomPokerLobby?.Session);
         if (_roomPokerDesktopPositions != null && _desktopRoomClient.View != null)
         {
             // Restore before the first revealed frame, including dogs that joined

@@ -135,12 +135,18 @@ internal static partial class NetworkChecks
         h.Remove("b"); h.Step(.3);
         Check.That(a.State!.DepartedPlayers!.Any(p => p.Key == "b") && a.State.Hand!.Public.Board[1].PendingReplacement,
             "leaving preserves accepted flips and the current hand's seat");
+        int departedDisplayId = PokerNetworkProtocol.DisplayId(a.State, a.Context!, hand.PlayerId);
+        Check.That(departedDisplayId < 0 && a.IsAutoplayForDisplayId(departedDisplayId)
+            && a.DisplayView!.Public.ActionOrder.Contains(departedDisplayId),
+            "departed hand keeps a distinct display identity with an autoplay marker");
         h.Human("b"); h.Step(.3); b = h.Sessions["b"];
         Check.That(b.IsAutoplay && !b.IsReady && b.State!.Hand!.PlayerId == hand.PlayerId, "fresh membership ticket rebinds original delegated seat");
         Check.Sequence(b.State!.Hand!.HoleCards, hand.HoleCards, "returned owner sees their original two cards");
         Check.Equal(b.State.Hand.Public.Seats.Single(s => s.PlayerId == hand.PlayerId).Chips, bank, "return never refills or charges chips");
         Check.That(b.Reclaim(), "returned player must explicitly cancel autoplay"); h.Step();
         Check.That(b.IsReady && !b.IsAutoplay && b.State!.Hand!.Public.FlipsRemaining == 1, "explicit reclaim keeps used flip");
+        Check.That(!a.IsAutoplayForDisplayId(departedDisplayId)
+            && !a.DisplayView!.Public.ActionOrder.Contains(departedDisplayId), "rejoining replaces the departed display identity without duplication");
         // A real transport outage without Lobby removal also delegates after the heartbeat deadline.
         h.Links["b"].Disconnected = true; h.Step(10.2);
         Check.That(a.State!.Players.Single(p => p.Key == "b").Control == PokerControl.Disconnected, "missing heartbeat delegates a still-listed peer");

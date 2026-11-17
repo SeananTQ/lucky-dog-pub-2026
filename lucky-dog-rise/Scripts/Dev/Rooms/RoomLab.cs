@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Godot;
 using DataTables;
+using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
 
@@ -648,9 +649,62 @@ public partial class RoomLab : Control
             first.Clear();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Verify(first.GetNode<CanvasLayer>("RemoteLayer").GetChildCount() == 0, "clearing a room also cancels active entrance shells");
+            await CheckDepartedPokerAppearance(hub, owner, guest, first, second);
             GD.Print("[RoomMembershipAnimations] PASS entry, departure, noninteractive exit, mode handoff, appearance update and cleanup");
         }
         finally { first.Clear(); second.Clear(); first.QueueFree(); second.QueueFree(); }
+    }
+
+    private async System.Threading.Tasks.Task CheckDepartedPokerAppearance(RoomSandbox hub, RoomClient owner,
+        RoomClient guest, RoomDesktopPreview first, RoomDesktopPreview second)
+    {
+        owner.ProposeGameChange(RoomRules.MischiefPoker); hub.Tick(0);
+        guest.RespondGameChange(owner.View.GameChange.Id, true); hub.Tick(0);
+        owner.ConfirmGameChange(owner.View.GameChange.Id); hub.Tick(0);
+        using var table = new PokerNetworkSession(owner.OpenPokerLink());
+        using var other = new PokerNetworkSession(guest.OpenPokerLink());
+        void Step(double seconds)
+        {
+            for (double t = 0; t < seconds; t += .05)
+            { hub.Tick(.05); table.Tick(.05); other.Tick(.05); }
+        }
+        void Present(RoomDesktopPreview view) => view.Present(owner, new Rect2(0, 0, 1200, 800), 1, 300, 30, true, poker: table);
+        Step(.3); other.SetReady(true); Step(.3);
+        Verify(table.Start(), "appearance check starts a real Mock hand"); Step(3);
+        table.SetPauseRequested(true); Step(.1); Present(first);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        var dog = first.RemoteDogs.Single();
+        var position = dog.Position;
+        guest.Leave(); Step(.2); Present(first);
+        Verify(owner.View.Members.Length == 1 && first.RemoteDogs.Single() == dog && dog.RetainedForPoker
+            && !dog.Departing && dog.Position == position && table.IsAutoplayForDisplayId(dog.PokerPlayerId),
+            "non-owner departure retains the original appearance and delegated seat without retaining membership");
+        Verify(first.HitTest(dog.Position) == 0, "retained hand appearance is not a room input target");
+        // Even a newly constructed alternate mode can draw from the same bounded appearance cache.
+        second.Clear(); Present(second);
+        Verify(second.RemoteDogs.Single().RetainedForPoker && !second.RemoteDogs.Single().Transitioning,
+            "departed appearance survives alternate-mode creation without replaying entry");
+        guest.Join(owner.JoinedCode); Step(.3); Present(first); Present(second);
+        Verify(first.RemoteDogs.Count == 1 && !first.RemoteDogs.Single().RetainedForPoker
+            && other.IsAutoplay && table.IsAutoplayForDisplayId(first.RemoteDogs.Single().PokerPlayerId),
+            "same-hand return has one current avatar and does not cancel autoplay");
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        dog = first.RemoteDogs.Single();
+        guest.Leave(); Step(.2); Present(first);
+        for (int i = 0; i < 400 && table.State.Hand.Public.Phase != PokerPhase.Settled; i++)
+        {
+            if (table.State.Hand.Public.ActivePlayerId == table.State.Hand.PlayerId) table.Act(PokerAction.EndTurn);
+            Step(.05);
+        }
+        Verify(table.State.Hand.Public.Phase == PokerPhase.Settled, "delegated departed hand settles normally");
+        Present(first);
+        Verify(first.RemoteDogs.Single() == dog && !dog.Departing, "settlement still retains the avatar for its payout");
+        Step(PokerNetworkSession.PayoutDuration(table.State.Hand.Public) + .2); Present(first); Present(second);
+        Verify(first.RemoteDogs.Count == 0 && second.RemoteDogs.Count == 0 && dog.Departing && !dog.DepartureFinished,
+            "payout completion retires both mode views with the ordinary descent");
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        Verify(!IsInstanceValid(dog), "retained avatar is freed after one exit animation");
+        GD.Print("[RoomPokerDeparture] PASS departure, original pose, alternate mode, rejoin, payout and final descent");
     }
 
     private async void RunUiSmoke()

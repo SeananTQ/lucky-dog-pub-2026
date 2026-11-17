@@ -203,16 +203,19 @@ public static class PokerNetworkProtocol
         return true;
     }
 
+    // Missing members retain a distinct presentation identity, never a transport identity.
+    public static int DisplayId(PokerNetworkState state, PokerRoomContext room, int id)
+    {
+        var p = state.Players.Concat(state.RetiredCompanions ?? Array.Empty<PokerParticipant>())
+            .Concat(state.DepartedPlayers ?? Array.Empty<PokerParticipant>()).FirstOrDefault(p => p.Id == id);
+        return room.Members.FirstOrDefault(m => m.Key == p?.Key && m.Ticket == p.Ticket)?.LocalId ?? int.MinValue + id;
+    }
+
     // Rebind canonical seat IDs to the viewer's existing dog IDs, without changing seat numbers.
     public static PokerPlayerView? ForDisplay(PokerNetworkState? state, PokerRoomContext? room)
     {
         if (state?.Hand is not { } v || room == null) return null;
-        int Id(int id)
-        {
-            var p = state.Players.Concat(state.RetiredCompanions ?? Array.Empty<PokerParticipant>())
-                .Concat(state.DepartedPlayers ?? Array.Empty<PokerParticipant>()).FirstOrDefault(p => p.Id == id);
-            return room.Members.FirstOrDefault(m => m.Key == p?.Key && m.Ticket == p.Ticket)?.LocalId ?? int.MinValue + id;
-        }
+        int Id(int id) => DisplayId(state, room, id);
         var h = v.Public;
         PokerDealer Dealer(PokerDealer d) => d with { PlayerId = Id(d.PlayerId) };
         var r = h.Settlement;

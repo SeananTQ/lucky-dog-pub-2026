@@ -36,6 +36,9 @@ public partial class RoomDogView : Node2D
     private bool _measuredCompanion;
     public bool Editing => Chat.Editing;
     public int MemberId => _member?.Id ?? 0;
+    // A departed seat still has a poker result, but is no longer a room member.
+    public int PokerPlayerId { get; set; }
+    public bool RetainedForPoker { get; set; }
 
     public override void _Ready()
     {
@@ -200,7 +203,7 @@ public partial class RoomDogView : Node2D
     }
     public bool ContainsDogPoint(Vector2 windowPoint)
     {
-        if (Departing || Transitioning) return false;
+        if (Departing || Transitioning || RetainedForPoker) return false;
         if (ContainsWindowPoint(PokerHand, windowPoint)) return true;
         foreach (var hit in _dogHits) if (ContainsWindowPoint(hit, windowPoint)) return true;
         return false;

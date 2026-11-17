@@ -201,7 +201,8 @@ public partial class ModeManager
             _roomDesktop,
             _roomDesktopHostPosition - DisplayServer.WindowGetPosition(),
             new Rect2(_contentOffset, new Vector2(GetPlayInfoPanelWidth() + GetPlayGameSize(), GetPlayGameSize())),
-            RoomSnapEnabled, RoomTaskbarAnchorOffsetY, foreground: !UiInteractionOccupancy.IsOccupied(this, _settingsPanel));
+            RoomSnapEnabled, RoomTaskbarAnchorOffsetY, foreground: !UiInteractionOccupancy.IsOccupied(this, _settingsPanel),
+            poker: _settingsPanel?.RoomPokerLobby?.Session);
         var chat = _roomPokerDogs.LocalChat;
         chat.Position = _playViewport.GetGlobalTransformWithCanvas() * _gameManager.RoomChatAnchorPosition;
         chat.Scale = Vector2.One * _roomPokerRenderScale;
