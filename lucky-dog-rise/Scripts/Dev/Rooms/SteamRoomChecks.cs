@@ -20,6 +20,7 @@ public static class SteamRoomChecks
         CheckFailedJoinKeepsOldRoom();
         CheckValidationAndPresence();
         CheckSearchAndRandomJoin();
+        CheckBackgroundDirectory();
         CheckOfflineAndSuspension();
         CheckMissingCallback();
         CheckDispose();
@@ -55,6 +56,31 @@ public static class SteamRoomChecks
     }
 
     private const ulong InviteLobby = 109775243348102719;
+
+    private static void CheckBackgroundDirectory()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("directory background"); transport.SucceedMembership(InviteLobby);
+        Assert(client.SearchInBackground() && client.IsBackgroundSearch && !client.IsBusy,
+            "background directory query does not mark the Steam room client busy");
+        Assert(!client.Search() && transport.SearchCalls == 1 && client.SetName("still editable") == "ok"
+            && client.SendChat("still chatting") == "", "background search coalesces and leaves room actions available");
+        transport.CompleteSearch(InviteLobby);
+        Assert(client.Operation == RoomOperation.Create && client.Failure == RoomFailure.None
+            && client.Listings.Length == 1, "background success updates results without changing foreground intent");
+        client.SearchInBackground();
+        var result = client.Listings;
+        Assert(client.Create("priority create") && client.IsBusy && transport.MembershipCalls == 1,
+            "foreground create supersedes background intent while native callbacks remain serialized");
+        transport.CompleteSearch();
+        Assert(ReferenceEquals(result, client.Listings) && transport.MembershipCalls == 2,
+            "cancelled search result is discarded and releases the queued native membership request");
+        transport.SucceedMembership(InviteLobby + 1);
+        Assert(client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby + 1) && client.RequestState == RoomRequestState.Succeeded,
+            "Steam service completes the foreground operation after automatic query cancellation");
+    }
 
     private static void CheckGameChange()
     {

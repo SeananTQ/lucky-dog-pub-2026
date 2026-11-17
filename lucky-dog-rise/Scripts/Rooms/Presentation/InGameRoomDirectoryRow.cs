@@ -11,6 +11,7 @@ public partial class InGameRoomDirectoryRow : HBoxContainer
     [Export] private Button _join = null!;
     [Export] private TextureRect _game = null!;
     private bool _full;
+    private Action _joinAction;
     public void Bind(RoomListing room, bool busy, Action join)
     {
         _name.Text = room.Name;
@@ -20,7 +21,9 @@ public partial class InGameRoomDirectoryRow : HBoxContainer
         _count.Text = $"{room.Count}/{room.Capacity}";
         _full = room.IsFull;
         SetBusy(busy);
-        _join.Pressed += join;
+        if (_joinAction != null) _join.Pressed -= _joinAction;
+        _joinAction = join;
+        _join.Pressed += _joinAction;
     }
     public void SetBusy(bool busy) => _join.Disabled = busy || _full;
 }

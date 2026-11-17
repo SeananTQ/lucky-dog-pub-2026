@@ -254,6 +254,7 @@ public partial class InGameRoomPreview : VBoxContainer
         ConsumeAcceptedInvite();
         UpdateRoomReconnect();
         UpdateRoomConnection(delta);
+        UpdateDirectoryRefresh();
         if (!IsVisibleInTree())
         {
             CancelKick();
@@ -343,6 +344,7 @@ public partial class InGameRoomPreview : VBoxContainer
         PokerLobby?.Bind(client, preservePokerRecovery);
         _lastSession = 0;
         _lastListings = null;
+        ResetDirectoryRefresh();
         _browsing = true;
         _noticeKey = "";
         if (_client != null)
@@ -365,6 +367,7 @@ public partial class InGameRoomPreview : VBoxContainer
     }
     private void OnClientChanged()
     {
+        ObserveDirectoryRequest();
         // Lock synchronously: a dropdown signal may already be queued when a join starts.
         RenderDisplayMode();
         if (_nameEditClient != null && NameEditError(_nameEditClient, _nameEditSession).Length > 0)
@@ -444,6 +447,7 @@ public partial class InGameRoomPreview : VBoxContainer
         RefreshService();
         if (_client == null) (_platform as IRecoverablePlatformService)?.RequestReconnect();
         else _client.Search();
+        ObserveDirectoryRequest();
         _dirty = true;
     }
     private void NotifyPageChanged() => Callable.From(() =>
@@ -799,8 +803,7 @@ public partial class InGameRoomPreview : VBoxContainer
     }
 
     private bool HasEmptySearchResult => _client != null && !_client.IsBusy
-        && _client.Operation == RoomOperation.Search && _client.RequestState == RoomRequestState.Succeeded
-        && _client.Listings.Length == 0;
+        && _client.HasSuccessfulDirectory && _client.Listings.Length == 0;
 
     private void JoinCompanionEntry(InGameRoomDirectoryRow row, RoomClient client, long session,
         RoomListing[] listings, string name)
@@ -810,6 +813,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // and queued signals from removed rows cannot create a different room.
         if (!ReferenceEquals(client, _client) || client.Session != session
             || !ReferenceEquals(client.Listings, listings) || !HasEmptySearchResult
+            || client.DirectoryState != RoomRequestState.Succeeded
             || !_lobby.IsVisibleInTree() || !GodotObject.IsInstanceValid(row)
             || row.GetParent() != _rooms) return;
         EnterCompanionRoom(client, name);
@@ -860,6 +864,7 @@ public partial class InGameRoomPreview : VBoxContainer
             _status.Text = L10n.Tr(_restartRequired ? "Rooms_SteamRestartRequired" : "Rooms_SteamUnavailable");
             _status.Show();
             Clear(_rooms);
+            _directoryRows.Clear();
             RenderMembers();
             return;
         }
@@ -867,42 +872,16 @@ public partial class InGameRoomPreview : VBoxContainer
         _lobby.Visible = _browsing || !joined;
         _room.Visible = !_lobby.Visible;
         _return.Visible = joined;
-        _create.Disabled = _join.Disabled = _refresh.Disabled = _client.IsBusy;
+        _create.Disabled = _join.Disabled = _client.IsBusy;
+        _refresh.Disabled = _client.IsBusy || _client.IsBackgroundSearch;
         _cancel.Visible = _client.IsBusy && !_client.IsLocalArrival && Reconnect?.IsPending != true;
         _invite.Disabled = !joined || _client.IsLocalArrival || _client.IsBusy || _isMock || _service is not IRoomInviteService;
         _invite.TooltipText = _isMock || _service is not IRoomInviteService
             ? L10n.Tr("Rooms_InviteUnavailable") : "";
         _status.Text = L10n.Tr(_noticeKey.Length > 0 ? _noticeKey : _client.IsLocalArrival ? "" : StatusKey());
         _status.Visible = _status.Text.Length > 0;
-        bool companionEntry = HasEmptySearchResult && Reconnect?.IsPending != true;
-        // Empty successful searches offer the local companion entry. Pending or
-        // failed requests must not imply that the actual Steam directory is empty.
         _empty.Hide();
-        if (!ReferenceEquals(_lastListings, _client.Listings) || _lastCompanionEntry != companionEntry)
-        {
-            _lastListings = _client.Listings;
-            _lastCompanionEntry = companionEntry;
-            Clear(_rooms);
-            foreach (var room in _client.Listings)
-            {
-                var row = _directoryRow.Instantiate<InGameRoomDirectoryRow>();
-                _rooms.AddChild(row);
-                row.Bind(room, _client.IsBusy, () => { _noticeKey = ""; _client.Join(room.Code); });
-            }
-            if (companionEntry)
-            {
-                var row = _directoryRow.Instantiate<InGameRoomDirectoryRow>();
-                _rooms.AddChild(row);
-                var client = _client;
-                var session = client.Session;
-                var listings = client.Listings;
-                string name = L10n.Tr("Rooms_DefaultName");
-                row.Bind(new RoomListing("", name, "social", RoomCompanionPlan.Count, RoomRules.Capacity),
-                    false, () => JoinCompanionEntry(row, client, session, listings, name));
-            }
-        }
-        else
-            foreach (var row in _rooms.GetChildren().OfType<InGameRoomDirectoryRow>()) row.SetBusy(_client.IsBusy);
+        RenderDirectory();
 
         RenderMembers();
     }

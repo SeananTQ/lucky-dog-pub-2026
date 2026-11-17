@@ -257,6 +257,160 @@ internal static class RoomEmptyDirectoryPageChecks
         if (!condition) throw new InvalidOperationException(message);
     }
 
+    public static async Task CheckAutoRefresh(Node parent)
+    {
+        var service = new Service();
+        var provider = new Provider { RoomService = service };
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
+        // Reuse the real settings scroll container without starting the unrelated
+        // settings, inventory and debug controllers in this focused page fixture.
+        var shell = GD.Load<PackedScene>("res://Scenes/App/SystemPanel.tscn").Instantiate();
+        var scroll = shell.GetNode<ScrollContainer>("Panel/RootVBox/Scroll");
+        scroll.GetParent().RemoveChild(scroll);
+        foreach (Node child in scroll.GetChildren()) { scroll.RemoveChild(child); child.Free(); }
+        shell.Free();
+        scroll.Size = new Vector2(396, 420);
+        page.Configure(provider, null);
+        page.DirectoryInteractionForSmoke = () => false;
+        scroll.AddChild(page);
+        parent.AddChild(scroll);
+        var rows = page.GetNode<VBoxContainer>("Lobby/RoomList");
+        async Task Frame()
+        {
+            for (int i = 0; i < 3; i++) await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        async Task Due()
+        {
+            service.Now += InGameRoomPreview.DirectoryRefreshIntervalSeconds;
+            await Frame();
+        }
+        try
+        {
+            service.Directory = Enumerable.Range(0, 16).Select(i => new RoomListing($"R{i}", $"Room {i}", "social", 2, 6)).ToArray();
+            service.Complete(RoomFailure.None);
+            await Frame();
+            var client = page.CurrentClient;
+            Check(service.SearchRequests == 1 && rows.GetChildCount() == 16, "initial directory is loaded once");
+            scroll.ScrollVertical = 500;
+            await Frame();
+            var stableRow = rows.GetChild<InGameRoomDirectoryRow>(7);
+            float stableY = stableRow.GetGlobalRect().Position.Y;
+            Check(scroll.ScrollVertical > 0, "fixture exercises the real scroll container");
+            service.Now += InGameRoomPreview.DirectoryRefreshIntervalSeconds - 1;
+            await Frame();
+            Check(service.SearchRequests == 1, "visible page waits for the full refresh interval");
+            service.Now++;
+            await Frame();
+            long searchId = client.ActiveRequestId;
+            Check(service.SearchRequests == 2 && client.IsBackgroundSearch && !client.IsBusy
+                && client.RequestState == RoomRequestState.Succeeded && rows.GetChildCount() == 16,
+                "automatic query preserves foreground status, controls and cached list");
+            page.RefreshRooms(); page.RefreshRooms();
+            Check(service.SearchRequests == 2 && client.ActiveRequestId == searchId,
+                "manual and automatic refresh coalesce into the same in-flight request");
+            service.Directory = service.Directory.Skip(1).Reverse().Select(room => room with { Count = 4 })
+                .Append(new RoomListing("NEW", "New room", "work", 1, 6)).ToArray();
+            service.Complete(RoomFailure.None);
+            await Frame();
+            Check(rows.GetChild(6) == stableRow && rows.GetChild(0).GetNode<Label>("Name").Text == "Room 1"
+                && rows.GetChild(15).GetNode<Label>("Name").Text == "New room"
+                && stableRow.GetNode<Label>("Count").Text == "4/6",
+                "surviving rows keep identity and order while counts and additions update");
+            Check(Math.Abs(stableRow.GetGlobalRect().Position.Y - stableY) <= 2,
+                "removing a row above the scroll position preserves the visible anchor");
+
+            page.DirectoryInteractionForSmoke = () => true;
+            await Due();
+            var disappearing = rows.GetChild<InGameRoomDirectoryRow>(0);
+            service.Directory = service.Directory.Where(room => room.Code != "R1").ToArray();
+            service.Complete(RoomFailure.None);
+            await Frame();
+            Check(rows.GetChild(0) == disappearing && disappearing.GetNode<Button>("Join").Disabled,
+                "hover/press defers removal but makes a vanished room unavailable");
+            disappearing.GetNode<Button>("Join").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(service.JoinRequests == 0, "a queued click on a removed room cannot join a different row");
+            page.DirectoryInteractionForSmoke = () => false;
+            await Frame();
+            Check(rows.GetChildCount() == 15 && rows.GetChild(0).GetNode<Label>("Name").Text == "Room 2",
+                "deferred edits apply once the pointer leaves the list");
+
+            await Due();
+            long timedOut = client.ActiveRequestId;
+            service.Now += RoomRules.RequestTimeout + 1;
+            await Frame();
+            Check(client.DirectoryState == RoomRequestState.TimedOut && !client.IsBusy
+                && client.RequestState == RoomRequestState.Succeeded && rows.GetChildCount() == 15
+                && !client.TryComplete(timedOut, () => new RoomResult(RoomFailure.None, [])),
+                "automatic timeout preserves foreground status and rows; late results are rejected");
+            await Due(); service.Complete(RoomFailure.Unavailable); await Frame();
+            Check(rows.GetChildCount() == 15 && !client.HasSuccessfulDirectory,
+                "background error keeps cached real rooms and never fabricates a companion entry");
+            await Due(); service.Directory = []; service.Complete(RoomFailure.None); await Frame();
+            Check(rows.GetChildCount() == 1 && client.HasSuccessfulDirectory, "only successful empty refresh offers a companion room");
+            await Due();
+            Check(rows.GetChildCount() == 1 && rows.GetChild(0).GetNode<Button>("Join").Disabled,
+                "existing companion invitation stays visible but cannot use an unconfirmed pending result");
+            service.Complete(RoomFailure.Unavailable); await Frame();
+            Check(rows.GetChildCount() == 0, "failed refresh does not keep offering an unconfirmed companion room");
+
+            page.RefreshRooms(); service.Complete(RoomFailure.Unavailable); await Frame();
+            Check(client.Failure == RoomFailure.Unavailable, "manual query failure is visible");
+            await Due(); service.Complete(RoomFailure.None); await Frame();
+            Check(client.Failure == RoomFailure.None && client.RequestState == RoomRequestState.Succeeded,
+                "a successful retry clears the previous directory error");
+
+            page.Hide();
+            int requests = service.SearchRequests;
+            service.Now += 120;
+            await Frame();
+            Check(service.SearchRequests == requests, "hidden page stops periodic requests");
+            page.Show(); await Frame();
+            Check(service.SearchRequests == requests + 1, "reopening a stale page submits exactly one refresh");
+            long superseded = client.ActiveRequestId;
+            Check(client.Create("My room") && service.Pending.Operation == RoomOperation.Create,
+                "explicit creation supersedes a background query");
+            Check(!client.TryComplete(superseded, () => new RoomResult(RoomFailure.None, [])),
+                "superseded search cannot affect the create operation");
+            service.Complete(RoomFailure.None); await Frame();
+            requests = service.SearchRequests;
+            service.Now += 120; await Frame();
+            Check(service.SearchRequests == requests, "room detail view does not poll the directory");
+            page.OnBrowse(); service.Complete(RoomFailure.None); await Frame();
+            var roomCode = client.JoinedCode;
+            await Due();
+            Check(client.IsBackgroundSearch && !client.IsBusy && page.PokerLobby.ActionsAvailable
+                && client.SetAccess(RoomAccess.Public) == "ok" && client.JoinedCode == roomCode,
+                "browsing refresh leaves membership and poker/host actions available");
+            long beforeJoin = client.ActiveRequestId;
+            Check(client.Join("R3") && service.Pending.Operation == RoomOperation.Join
+                && !client.TryComplete(beforeJoin, () => new RoomResult(RoomFailure.None, [])),
+                "explicit joining preempts refresh and invalidates its delayed result");
+            service.Complete(RoomFailure.Full); await Frame();
+            await Due();
+            Check(client.IsBackgroundSearch, "failed membership operation can be followed by background refresh");
+            service.Complete(RoomFailure.None); await Frame();
+            Check(client.Failure == RoomFailure.Full && client.RequestState == RoomRequestState.Failed,
+                "successful automatic refresh cannot erase a foreground join failure notice");
+            await Due();
+            long beforeRandom = client.ActiveRequestId;
+            Check(client.FindAndJoin() && !client.TryComplete(beforeRandom, () => new RoomResult(RoomFailure.None, [])),
+                "random join starts its own query rather than inheriting the background result");
+            service.Directory = [new RoomListing("TARGET", "Target", "social", 2, 6)];
+            service.Complete(RoomFailure.None);
+            Check(service.Pending?.Operation == RoomOperation.Join && service.Pending.Value == "TARGET",
+                "random join keeps its join intent after cancelling an automatic query");
+            service.Complete(RoomFailure.Full); await Frame();
+            await Due();
+            long obsolete = client.ActiveRequestId;
+            provider.RoomService = null; page.Configure(provider, null);
+            Check(!client.TryComplete(obsolete, () => new RoomResult(RoomFailure.None, [])),
+                "service replacement invalidates an old automatic response");
+            await Frame();
+            GD.Print("[RoomDirectoryAutoRefreshChecks] PASS cadence, visibility, coalescing, background status, stable rows/scroll, pointer deferral, failures/timeouts, priority and stale callbacks.");
+        }
+        finally { scroll.Free(); }
+    }
+
     private sealed class Provider : IGamePlatformService, IPlatformRoomServiceProvider
     {
         public IRoomService RoomService { get; set; }
@@ -283,6 +437,7 @@ internal static class RoomEmptyDirectoryPageChecks
         public RoomListing[] Directory = Array.Empty<RoomListing>();
         public int CreateRequests;
         public int JoinRequests;
+        public int SearchRequests;
         private RoomClient _client;
         private RoomCompanionPlan _companions;
         private long _revision;
@@ -292,6 +447,7 @@ internal static class RoomEmptyDirectoryPageChecks
             Pending = request;
             if (request.Operation == RoomOperation.Create) CreateRequests++;
             if (request.Operation == RoomOperation.Join) JoinRequests++;
+            if (request.Operation == RoomOperation.Search) SearchRequests++;
         }
         public void Complete(RoomFailure failure)
         {

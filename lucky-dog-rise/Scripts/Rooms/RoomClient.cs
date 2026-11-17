@@ -61,13 +61,18 @@ public sealed class RoomClient : IDisposable
     private long _nextRequestId;
     private RoomRequest _request;
     private double _now;
+    internal double Clock => _now;
     private double _deadline;
     private bool _joinAfterSearch;
     private Func<bool> _enterCompanionRoom;
     private long _directoryCreateRequestId;
     private bool _disposed;
     private bool _committing;
-    public bool IsBusy => _request != null;
+    private bool _backgroundSearch;
+    public bool IsBackgroundSearch => _request != null && _backgroundSearch;
+    public bool IsBusy => _request != null && !_backgroundSearch;
+    public RoomRequestState DirectoryState { get; private set; }
+    public bool HasSuccessfulDirectory { get; private set; }
     public RoomOperation Operation { get; private set; }
     public RoomRequestState RequestState { get; private set; }
     public RoomFailure Failure { get; private set; }
@@ -84,12 +89,17 @@ public sealed class RoomClient : IDisposable
     public bool Join(string code) => BeginRequest(RoomOperation.Join, code);
     internal bool JoinForRecovery(string code, long generation) => BeginRequest(RoomOperation.Join, code, recoveryGeneration: generation);
     public bool Search() => BeginRequest(RoomOperation.Search, "");
+    // Shares the normal single-flight transport, but does not lock room/poker
+    // actions or overwrite the last explicit operation's status and notices.
+    public bool SearchInBackground() => BeginRequest(RoomOperation.Search, "", backgroundSearch: true);
     public bool FindAndJoin(Func<bool> enterCompanionRoom = null)
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (IsLocalArrival) Cancel();
 #endif
         if (IsBusy || _disposed || _committing) return false;
+        if (IsBackgroundSearch) CancelPending(RoomRequestState.Cancelled);
+        if (_request != null || _disposed || _committing) return false;
         CancelReconnect();
         _joinAfterSearch = true;
         _enterCompanionRoom = enterCompanionRoom;
@@ -143,16 +153,27 @@ public sealed class RoomClient : IDisposable
     public string Kick(int memberId, long presence) => _disposed || _committing || IsLocalArrival
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
-    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0, bool arrivalCreation = false)
+    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0, bool arrivalCreation = false, bool backgroundSearch = false)
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (IsLocalArrival && !arrivalCreation && operation is RoomOperation.Create or RoomOperation.Join) Cancel();
 #endif
         if (IsBusy || _disposed || _committing) return false;
+        if (backgroundSearch && (IsLocalArrival || ReconnectPending)) return false;
+        if (IsBackgroundSearch && operation != RoomOperation.Search) CancelPending(RoomRequestState.Cancelled);
+        // Manual refresh joins an existing query. Foreground membership work
+        // supersedes a background query; its late response cannot commit.
+        if (_request != null || _disposed || _committing) return false;
         if (recoveryGeneration == 0 && operation is RoomOperation.Create or RoomOperation.Join) CancelReconnect();
-        Operation = operation;
-        RequestState = RoomRequestState.Pending;
-        Failure = RoomFailure.None;
+        _backgroundSearch = backgroundSearch;
+        if (!backgroundSearch)
+        {
+            Operation = operation;
+            RequestState = RoomRequestState.Pending;
+            Failure = RoomFailure.None;
+            HasSuccessfulDirectory = false;
+        }
+        DirectoryState = operation == RoomOperation.Search ? RoomRequestState.Pending : RoomRequestState.Idle;
         _request = new RoomRequest(++_nextRequestId, operation, value ?? "", recoveryGeneration);
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (arrivalCreation) _request = _request with { Arrival = Arrival };
@@ -186,6 +207,26 @@ public sealed class RoomClient : IDisposable
         catch { result = new RoomResult(RoomFailure.Unavailable); }
         finally { _committing = false; }
         if (!IsRequestCurrent(id)) return false;
+        if (IsBackgroundSearch)
+        {
+            _request = null;
+            _backgroundSearch = false;
+            HasSuccessfulDirectory = result.Failure == RoomFailure.None;
+            DirectoryState = HasSuccessfulDirectory ? RoomRequestState.Succeeded : RoomRequestState.Failed;
+            if (HasSuccessfulDirectory)
+            {
+                Listings = (RoomListing[])(result.Rooms ?? Array.Empty<RoomListing>()).Clone();
+                // A recovered search clears its own old error, but never hides a
+                // failed join/create or changes membership-related notifications.
+                if (Operation == RoomOperation.Search)
+                {
+                    RequestState = RoomRequestState.Succeeded;
+                    Failure = RoomFailure.None;
+                }
+            }
+            Changed?.Invoke();
+            return true;
+        }
         var autoJoin = _joinAfterSearch && Operation == RoomOperation.Search;
         var enterCompanionRoom = autoJoin ? _enterCompanionRoom : null;
         bool directoryJoin = _directoryCreateRequestId == id && Operation == RoomOperation.Create;
@@ -202,6 +243,11 @@ public sealed class RoomClient : IDisposable
         _request = null;
         Failure = result.Failure;
         RequestState = Failure == RoomFailure.None ? RoomRequestState.Succeeded : RoomRequestState.Failed;
+        if (Operation == RoomOperation.Search)
+        {
+            DirectoryState = RequestState;
+            HasSuccessfulDirectory = Failure == RoomFailure.None;
+        }
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (arrivalRequest && Arrival is { Committed: false } && Failure != RoomFailure.None)
             ScheduleArrivalRetry(Failure);
@@ -255,6 +301,22 @@ public sealed class RoomClient : IDisposable
     private void CancelPending(RoomRequestState state)
     {
         if (_request == null) return;
+        if (IsBackgroundSearch)
+        {
+            long searchId = _request.Id;
+            _request = null;
+            _backgroundSearch = false;
+            DirectoryState = state;
+            HasSuccessfulDirectory = false;
+            _service.Cancel(this, searchId);
+            if (!_committing && !_disposed && _nextRequestId == searchId) Changed?.Invoke();
+            return;
+        }
+        if (_request.Operation == RoomOperation.Search)
+        {
+            DirectoryState = state;
+            HasSuccessfulDirectory = false;
+        }
         bool joining = Operation == RoomOperation.Join || _joinAfterSearch || _directoryCreateRequestId == _request.Id;
         bool recovering = _request.RecoveryGeneration != 0;
 #if !DEMO_BUILD && !RECORDING_BUILD
@@ -312,6 +374,9 @@ public sealed class RoomClient : IDisposable
         {
             var requestId = _request?.Id ?? 0;
             _request = null;
+            _backgroundSearch = false;
+            DirectoryState = RoomRequestState.Idle;
+            HasSuccessfulDirectory = false;
             _joinAfterSearch = false;
             _enterCompanionRoom = null;
             _directoryCreateRequestId = 0;

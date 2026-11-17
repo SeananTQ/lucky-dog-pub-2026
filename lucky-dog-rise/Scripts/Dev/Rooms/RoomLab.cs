@@ -604,6 +604,7 @@ public partial class RoomLab : Control
             await RoomSettingsPageChecks.Run(this);
             await RoomGameChangePageChecks.Run(this);
             await RoomEmptyDirectoryPageChecks.Run(this);
+            await RoomEmptyDirectoryPageChecks.CheckAutoRefresh(this);
             await RoomArrivalPageChecks.Run(this);
             GetTree().Quit();
         }
