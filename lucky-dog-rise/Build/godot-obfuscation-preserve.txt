@@ -64,6 +64,7 @@ LuckyDogRise.Rooms.RoomGameProposalOverlay
 LuckyDogRise.Rooms.RoomLab
 LuckyDogRise.Rooms.RoomNameBarLocalizationLab
 LuckyDogRise.Rooms.PokerCardAnimationLab
+LuckyDogRise.Rooms.PokerConnectionOverlayLab
 LuckyDogRise.Rooms.PokerPawAnimationLab
 LuckyDogRise.CardPushReuseLab
 LuckyDogRise.Rooms.RoomListRow

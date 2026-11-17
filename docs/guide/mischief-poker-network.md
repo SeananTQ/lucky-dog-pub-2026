@@ -166,6 +166,12 @@ dotnet run --project tests/MischiefPoker/MischiefPoker.csproj --no-restore
 - Mock 双方结算气泡与小狗位置、模式往返及旧房间消息清理。此类验证仍不替代真实 Steam 双机和实际气泡布局验收。
 - 自动闲聊开关保存、成功手动发言后本场静默、打开／取消／失败不接管、自动后紧接手动的发送顺序、重开恢复、关闭再打开不重播，以及设置关闭后表情仍独立显示。
 
+## 交接遮罩独立预览
+
+在编辑器打开 `lucky-dog-rise/Scenes/Dev/Labs/PokerConnectionOverlayLab.tscn`，按 F6 运行。控制区可切换简体中文和 English，预览中的房主交接遮罩持续显示，方便检查字号、换行和透明度；右上角关闭预览，拖动顶部标题可移动窗口。
+
+场景直接实例化正式 `RoomPokerTable.tscn` 及其 `ConfirmOverlay`，保留 1200×1200 扑克视口和相同的缩放关系。切换语言不保存游戏语言设置；不创建房间、不连接 Steam、不访问玩家业务存档，也不延长正式牌局交接时间。此场景仅用于 Dev，随现有 Labs 排除规则从发行包中移除。
+
 ## 验证记录
 
 2026-11-18，交接提示与离房托管展示修正：

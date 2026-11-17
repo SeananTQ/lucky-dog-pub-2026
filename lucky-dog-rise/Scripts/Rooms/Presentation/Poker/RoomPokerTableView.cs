@@ -75,13 +75,7 @@ public partial class RoomPokerTableView : Node2D
     {
         bool blocked = session.IsMigrating || !session.Connected;
         if (blocked)
-        {
-            _connectionOverlay.ShowBlocking(RoomPokerText.T("正在恢复牌局", "Restoring the hand"),
-                session.IsMigrating
-                    ? RoomPokerText.T("房主连接发生变化，正在交接牌局，请稍候…", "The host connection changed. Transferring the hand, please wait…")
-                    : RoomPokerText.T("连接中断，正在等待房间连接恢复…", "Connection interrupted. Waiting to reconnect…"));
-            _connectionBlocking = true;
-        }
+            ShowConnectionWait(session.IsMigrating);
         else
         {
             if (_connectionBlocking) { _connectionOverlay.Hide(); _connectionBlocking = false; }
@@ -93,6 +87,16 @@ public partial class RoomPokerTableView : Node2D
                     RoomPokerText.T("好的", "Got it"));
             }
         }
+    }
+
+    // Shared with the standalone visual preview; recovery timing stays in the network session.
+    internal void ShowConnectionWait(bool migrating)
+    {
+        _connectionOverlay.ShowBlocking(RoomPokerText.T("正在恢复牌局", "Restoring the hand"),
+            migrating
+                ? RoomPokerText.T("房主连接发生变化，正在交接牌局，请稍候…", "The host connection changed. Transferring the hand, please wait…")
+                : RoomPokerText.T("连接中断，正在等待房间连接恢复…", "Connection interrupted. Waiting to reconnect…"));
+        _connectionBlocking = true;
     }
     public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true,
         bool otherCardsMoving = false, bool actionPending = false)

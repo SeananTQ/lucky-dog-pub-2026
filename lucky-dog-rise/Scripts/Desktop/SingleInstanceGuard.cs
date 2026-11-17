@@ -65,7 +65,9 @@ public partial class SingleInstanceGuard : Node
                 || argument.Replace('\\', '/').EndsWith(
                     "/Scenes/Dev/Rooms/RoomNameBarLocalizationLab.tscn", StringComparison.OrdinalIgnoreCase)
                 || argument.Replace('\\', '/').EndsWith(
-                    "/Scenes/Dev/Labs/PokerCardAnimationLab.tscn", StringComparison.OrdinalIgnoreCase)))
+                    "/Scenes/Dev/Labs/PokerCardAnimationLab.tscn", StringComparison.OrdinalIgnoreCase)
+                || argument.Replace('\\', '/').EndsWith(
+                    "/Scenes/Dev/Labs/PokerConnectionOverlayLab.tscn", StringComparison.OrdinalIgnoreCase)))
             return;
 #endif
 #if DEBUG

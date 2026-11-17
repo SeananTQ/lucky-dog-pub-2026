@@ -1,0 +1,114 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Dev/Rooms/PokerConnectionOverlayLab.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerTable.tscn" id="poker"]
+[ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+
+[node name="PokerConnectionOverlayLab" type="Control" unique_id=1707623784 node_paths=PackedStringArray("_table", "_dog", "_language", "_title", "_close", "_previewArea", "_preview")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("theme")
+script = ExtResource("script")
+_table = NodePath("Margin/Content/Preview/ViewportContainer/SubViewport/Poker")
+_dog = NodePath("Margin/Content/Preview/ViewportContainer/SubViewport/Dog")
+_language = NodePath("Margin/Content/Toolbar/Language")
+_title = NodePath("Margin/Content/Toolbar/Title")
+_close = NodePath("Margin/Content/Toolbar/Close")
+_previewArea = NodePath("Margin/Content/Preview")
+_preview = NodePath("Margin/Content/Preview/ViewportContainer")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.10, 0.15, 0.17, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Toolbar" type="HBoxContainer" parent="Margin/Content"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Margin/Content/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+text = "牌局交接遮罩预览"
+clip_text = true
+
+[node name="Language" type="OptionButton" parent="Margin/Content/Toolbar"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "语言 / Language"
+auto_translate_mode = 2
+item_count = 2
+selected = 0
+popup/item_0/text = "简体中文"
+popup/item_0/id = 0
+popup/item_1/text = "English"
+popup/item_1/id = 1
+
+[node name="Close" type="Button" parent="Margin/Content/Toolbar"]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "×"
+
+[node name="Preview" type="Control" parent="Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="ViewportContainer" type="SubViewportContainer" parent="Margin/Content/Preview"]
+layout_mode = 0
+offset_right = 1200.0
+offset_bottom = 1200.0
+scale = Vector2(0.5, 0.5)
+
+[node name="SubViewport" type="SubViewport" parent="Margin/Content/Preview/ViewportContainer"]
+handle_input_locally = false
+size = Vector2i(1200, 1200)
+render_target_update_mode = 4
+
+[node name="Backdrop" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+offset_right = 1200.0
+offset_bottom = 1200.0
+mouse_filter = 2
+color = Color(0.75, 0.76, 0.72, 1)
+
+[node name="TableBackground" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+offset_top = 677.0
+offset_right = 1200.0
+offset_bottom = 1200.0
+mouse_filter = 2
+color = Color(0, 0.46, 0.24, 1)
+
+[node name="Dog" parent="Margin/Content/Preview/ViewportContainer/SubViewport" instance=ExtResource("dog")]
+position = Vector2(600, 677)
+
+[node name="Poker" parent="Margin/Content/Preview/ViewportContainer/SubViewport" instance=ExtResource("poker")]
