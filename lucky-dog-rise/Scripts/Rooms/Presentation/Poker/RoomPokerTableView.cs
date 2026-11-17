@@ -13,7 +13,7 @@ public partial class RoomPokerTableView : Node2D
     [Export] private Godot.Collections.Array<RoomPokerCardView> _board = new();
     [Export] private RoomPokerHandView _hand;
     [Export] private Label _turn;
-    [Export] private ConfirmOverlayController _connectionOverlay;
+    [Export] private RoomPokerConnectionOverlay _connectionOverlay;
     private bool _connectionBlocking, _failureShown;
     public bool LocalAutoplay { get; set; }
     [Export] public PokerPawEffects Paws { get; private set; }
@@ -82,20 +82,15 @@ public partial class RoomPokerTableView : Node2D
             if (!_failureShown && session.State?.Notice == "recovery_failed")
             {
                 _failureShown = true;
-                _connectionOverlay.ShowNotice(RoomPokerText.T("牌局已中止", "Match ended"),
-                    RoomPokerText.T("房主连接中断，未能恢复完整牌局。房间仍然保留，可由新房主重新开始。", "The host disconnected and the complete hand could not be recovered. The room remains open; the new host can start a new match."),
-                    RoomPokerText.T("好的", "Got it"));
+                _connectionOverlay.ShowFailure();
             }
         }
     }
 
-    // Shared with the standalone visual preview; recovery timing stays in the network session.
+    // The network session owns recovery timing; the overlay only presents its current state.
     internal void ShowConnectionWait(bool migrating)
     {
-        _connectionOverlay.ShowBlocking(RoomPokerText.T("正在恢复牌局", "Restoring the hand"),
-            migrating
-                ? RoomPokerText.T("房主连接发生变化，正在交接牌局，请稍候…", "The host connection changed. Transferring the hand, please wait…")
-                : RoomPokerText.T("连接中断，正在等待房间连接恢复…", "Connection interrupted. Waiting to reconnect…"));
+        _connectionOverlay.ShowWaiting(migrating);
         _connectionBlocking = true;
     }
     public void Present(PokerPlayerView view, bool canAct, double presentationDelta = 0, bool animate = true,

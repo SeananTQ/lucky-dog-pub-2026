@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" path="res://Scripts/Dev/Rooms/PokerConnectionOverlayLab.cs" id="script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
-[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerTable.tscn" id="poker"]
 [ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerConnectionOverlay.tscn" id="connection"]
 
-[node name="PokerConnectionOverlayLab" type="Control" unique_id=1707623784 node_paths=PackedStringArray("_table", "_dog", "_language", "_title", "_close", "_previewArea", "_preview")]
+[node name="PokerConnectionOverlayLab" type="Control" unique_id=1707623784 node_paths=PackedStringArray("_connectionOverlay", "_dog", "_language", "_title", "_close", "_previewArea", "_preview")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,7 +14,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("theme")
 script = ExtResource("script")
-_table = NodePath("Margin/Content/Preview/ViewportContainer/SubViewport/Poker")
+_connectionOverlay = NodePath("Margin/Content/Preview/ViewportContainer/SubViewport/WaitingOverlay/Dialog")
 _dog = NodePath("Margin/Content/Preview/ViewportContainer/SubViewport/Dog")
 _language = NodePath("Margin/Content/Toolbar/Language")
 _title = NodePath("Margin/Content/Toolbar/Title")
@@ -66,12 +66,16 @@ layout_mode = 2
 size_flags_vertical = 4
 tooltip_text = "语言 / Language"
 auto_translate_mode = 2
-item_count = 2
+item_count = 4
 selected = 0
 popup/item_0/text = "简体中文"
 popup/item_0/id = 0
 popup/item_1/text = "English"
 popup/item_1/id = 1
+popup/item_2/text = "Русский"
+popup/item_2/id = 2
+popup/item_3/text = "Français"
+popup/item_3/id = 3
 
 [node name="Close" type="Button" parent="Margin/Content/Toolbar"]
 custom_minimum_size = Vector2(42, 0)
@@ -111,4 +115,7 @@ color = Color(0, 0.46, 0.24, 1)
 [node name="Dog" parent="Margin/Content/Preview/ViewportContainer/SubViewport" instance=ExtResource("dog")]
 position = Vector2(600, 677)
 
-[node name="Poker" parent="Margin/Content/Preview/ViewportContainer/SubViewport" instance=ExtResource("poker")]
+[node name="WaitingOverlay" type="CanvasLayer" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+layer = 21
+
+[node name="Dialog" parent="Margin/Content/Preview/ViewportContainer/SubViewport/WaitingOverlay" instance=ExtResource("connection")]

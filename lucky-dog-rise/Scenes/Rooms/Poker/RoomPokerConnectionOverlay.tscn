@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Rooms/Presentation/Poker/RoomPokerConnectionOverlay.cs" id="script"]
+[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
+
+[node name="RoomPokerConnectionOverlay" type="Control" unique_id=1814971272 node_paths=PackedStringArray("_title", "_message", "_confirm")]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 600.0
+offset_bottom = 600.0
+scale = Vector2(2, 2)
+mouse_filter = 0
+theme = ExtResource("theme")
+script = ExtResource("script")
+_title = NodePath("Center/Panel/Margin/Content/Title")
+_message = NodePath("Center/Panel/Margin/Content/Message")
+_confirm = NodePath("Center/Panel/Margin/Content/Confirm")
+
+[node name="Dim" type="ColorRect" parent="."]
+offset_right = 600.0
+offset_bottom = 600.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Center" type="CenterContainer" parent="."]
+offset_left = 40.0
+offset_top = 80.0
+offset_right = 560.0
+offset_bottom = 560.0
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeMargin"
+
+[node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeContent"
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeTitle"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Message" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PokerWelcomeBody"
+autowrap_mode = 3
+
+[node name="Confirm" type="Button" parent="Center/Panel/Margin/Content"]
+visible = false
+custom_minimum_size = Vector2(160, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"PokerWelcomeConfirm"

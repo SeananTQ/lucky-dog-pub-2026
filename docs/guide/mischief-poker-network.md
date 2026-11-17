@@ -168,11 +168,23 @@ dotnet run --project tests/MischiefPoker/MischiefPoker.csproj --no-restore
 
 ## 交接遮罩独立预览
 
-在编辑器打开 `lucky-dog-rise/Scenes/Dev/Labs/PokerConnectionOverlayLab.tscn`，按 F6 运行。控制区可切换简体中文和 English，预览中的房主交接遮罩持续显示，方便检查字号、换行和透明度；右上角关闭预览，拖动顶部标题可移动窗口。
+在编辑器打开 `lucky-dog-rise/Scenes/Dev/Labs/PokerConnectionOverlayLab.tscn`，按 F6 运行。控制区可切换简体中文、English、Русский 和 Français，预览中的房主交接遮罩持续显示，方便检查字号、换行和透明度；右上角关闭预览，拖动顶部标题可移动窗口。四种语言沿用相同的字号、宽度和自动换行规则。
 
-场景直接实例化正式 `RoomPokerTable.tscn` 及其 `ConfirmOverlay`，保留 1200×1200 扑克视口和相同的缩放关系。切换语言不保存游戏语言设置；不创建房间、不连接 Steam、不访问玩家业务存档，也不延长正式牌局交接时间。此场景仅用于 Dev，随现有 Labs 排除规则从发行包中移除。
+正式牌桌和独立预览共同实例化 `lucky-dog-rise/Scenes/Rooms/Poker/RoomPokerConnectionOverlay.tscn`。外观沿用扑克欢迎提示的 50% 黑色遮罩、居中深色面板，以及 Theme 中的 `PokerWelcome*` 字体和间距，保留 1200×1200 扑克视口、600×600 内部布局及 2 倍字体采样。交接和断线等待没有关闭按钮，由连接恢复自动收起；恢复失败时使用同一外观显示中止原因及“好的”按钮。交接状态、逻辑操作锁与欢迎提示的确认及账号记录仍各自独立；该界面通过 `UiInteractionOccupancy` 登记占用。
+
+交接、重连及恢复失败的五条文案统一来自正式房间语言表 `lucky-dog-rise/Scenes/Rooms/InGameRoomText.csv`，覆盖现有 20 种语言。控制器使用 `Rooms_PokerRecoveryTitle`、`Rooms_PokerMigrationBody`、`Rooms_PokerReconnectBody`、`Rooms_PokerRecoveryFailedTitle` 和 `Rooms_PokerRecoveryFailedBody`，确认按钮复用正式主语言表的 `PokerWelcome_Confirm`。游戏与预览均读取相同的导出翻译资源；未打开联机页时也能加载，语言改变时立即刷新，不保留预览专用译文。
+
+切换语言不保存游戏语言设置；不创建房间、不连接 Steam、不访问玩家业务存档，也不延长正式牌局交接时间。此场景仅用于 Dev，随现有 Labs 排除规则从发行包中移除。
 
 ## 验证记录
+
+2026-11-18，交接对话框正式接入及本地化：
+
+- 正式牌桌与独立预览共用恢复对话框，等待、重连及恢复失败文案进入正式房间 CSV；GPT-6.1 Sol 子智能体完成现有 20 种语言翻译。新控制器加入混淆保留名单，沿用房间与 Dev 场景的 Demo／录屏排除规则。
+- Debug 与 ExportRelease 编译通过，零警告、零错误；本地化校验通过，房间表共 135 条记录，跨语言表编号无冲突。
+- 独立运行检查覆盖 20 种语言、三种提示状态、预览的四语言即时切换、面板布局范围、等待时不可确认关闭及失败后的确认关闭。检查在未打开联机页时读取正式翻译资源，同时核对游戏与预览使用相同场景；没有以代码内临时译文替代。
+- 隔离 Mock 主场景通过新遮罩的尺寸、字体、透明度、无关闭按钮、逻辑层拒绝翻牌，以及恢复同一局后自动关闭；原房主原位托管、局末退场和既有参局流程也通过。日志位于 `.local-build/recovery-overlay-374b437aaf3943f0bc66d16373f51a12/` 和 `.local-build/recovery-main-9374da661660454ab06867a051fef526/`。
+- 运行检查使用独立数据目录、headless 或 Dummy 渲染／音频，日志仅有既有系统根证书读取和隔离新档提示。没有进行截图视觉验收或真实 Steam 双机测试，未打 Playtest 包。
 
 2026-11-18，交接提示与离房托管展示修正：
 

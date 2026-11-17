@@ -3,10 +3,10 @@ using Godot;
 
 namespace LuckyDogRise.Rooms;
 
-// Persistent preview of the real poker overlay, without a room, account or recovery timer.
+// Persistent preview of the same localized recovery overlay used by the live poker table.
 public partial class PokerConnectionOverlayLab : Control
 {
-    [Export] private RoomPokerTableView _table;
+    [Export] private RoomPokerConnectionOverlay _connectionOverlay;
     [Export] private DogVisual _dog;
     [Export] private OptionButton _language;
     [Export] private Label _title;
@@ -41,19 +41,20 @@ public partial class PokerConnectionOverlayLab : Control
         };
         _previewArea.Resized += FitPreview;
         _language.ItemSelected += SelectLanguage;
-        _language.Select(TranslationServer.GetLocale().StartsWith("zh") ? 0 : 1);
+        string locale = TranslationServer.GetLocale();
+        _language.Select(locale.StartsWith("zh") ? 0 : locale.StartsWith("ru") ? 2 : locale.StartsWith("fr") ? 3 : 1);
         _dog.SetPreviewAppearance(DogAppearanceSpec.FromDogSkin(LubanData.Tables.TbDogSkin.Get(1001)));
-        _table.PresentWaiting();
         SelectLanguage(_language.Selected);
         Callable.From(FitPreview).CallDeferred();
     }
 
     private void SelectLanguage(long index)
     {
-        L10n.SetLocale(index == 0 ? "zh_CN" : "en", save: false);
+        string locale = index switch { 0 => "zh_CN", 2 => "ru", 3 => "fr", _ => "en" };
+        L10n.SetLocale(locale, save: false);
         _title.Text = index == 0 ? "牌局交接遮罩预览" : "Host transfer preview";
         _close.TooltipText = index == 0 ? "关闭预览" : "Close preview";
-        _table.ShowConnectionWait(migrating: true);
+        _connectionOverlay.ShowWaiting(migrating: true);
     }
 
     private void FitPreview()

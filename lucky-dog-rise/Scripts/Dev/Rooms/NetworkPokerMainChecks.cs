@@ -485,12 +485,12 @@ internal static class NetworkPokerMainChecks
             page.TestNetworkPokerRecovery(2); // The simulated owner is player 2.
             await Until(() => session.IsMigrating, "owner departure opens migration state", 5);
             await Wait(.05);
-            var overlay = game.GetNode<RoomPokerTableView>("RoomPokerTable").GetNode<ConfirmOverlayController>("ConnectionOverlay");
-            Check(overlay.IsVisibleInTree() && !overlay.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton").Visible,
+            var overlay = game.GetNode<RoomPokerTableView>("RoomPokerTable").GetNode<RoomPokerConnectionOverlay>("ConnectionOverlay");
+            Check(overlay.IsVisibleInTree() && !overlay.GetNode<Button>("Center/Panel/Margin/Content/Confirm").Visible,
                 "migration overlay blocks the tabletop without a close button");
             Check(overlay.Scale == new Vector2(2, 2) && overlay.Size == new Vector2(600, 600)
-                && overlay.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").GetThemeFontSize("font_size") >= 18
-                && overlay.GetNode<PanelContainer>("OverlayPanel").GetThemeStylebox("panel") is StyleBoxFlat { BgColor.A: <= .6f },
+                && overlay.GetNode<Label>("Center/Panel/Margin/Content/Message").GetThemeFontSize("font_size") >= 18
+                && overlay.GetNode<ColorRect>("Dim").Color.A <= .6f,
                 "migration overlay uses poker logical coordinates, readable text and a translucent shield");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.Contains(oldHostDog) && !oldHostDog.Departing,
                 "owner departure does not start visual exit during recovery");
