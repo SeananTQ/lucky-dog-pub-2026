@@ -27,7 +27,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         }
         var owner = peers.FirstOrDefault(p => p.LocalId == client.View.OwnerId);
         return owner == null ? null : new Poker.PokerRoomContext(client.View.Code + ":" + client.View.GameId,
-            _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray(), client.View.GameId);
+            _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray(), client.View.GameId,
+            client.View.GameChange != null && client.GameChangeSecondsRemaining > 0);
     });
     private enum DisconnectKind { NetworkLost, Terminal, SessionDisposed }
     private sealed class Pending(RoomClient client, RoomRequest request)

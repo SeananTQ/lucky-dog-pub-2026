@@ -27,9 +27,17 @@ public partial class InGameRoomPreview
     private bool _proposalPendingPresentation;
     private bool _proposalRespondedLocally;
     private string _proposalError = "";
+    private ConfirmOverlayController _gamePauseConfirm;
+    private Button _gamePauseAccept;
+    private RoomClient _gamePauseClient;
+    private Poker.PokerNetworkSession _gamePausePoker;
+    private long _gamePauseRoomSession;
+    private Guid _gamePauseTable;
+    private string _gamePausePresentation = "";
 
     public PopupMenu GamePopup => GodotObject.IsInstanceValid(_gameChoice) ? _gameChoice.GetPopup() : null;
     public bool GameProposalVisible => GodotObject.IsInstanceValid(_gameProposalOverlay) && _gameProposalOverlay.Visible;
+    public bool GamePauseConfirmationVisible => GodotObject.IsInstanceValid(_gamePauseConfirm) && _gamePauseConfirm.Visible;
     public bool HasPendingGameProposalPresentation => !_waitingForRoomConnection && _proposalPendingPresentation && ProposalIsCurrent;
     private bool ProposalIsCurrent => ReferenceEquals(_proposalClient, _client) && _client != null
         && _client.Session == _proposalSession && _client.View?.GameChange?.Id == _proposalId
@@ -76,10 +84,13 @@ public partial class InGameRoomPreview
         if (_client?.View == null || _client.JoinedCode.Length == 0 || _client.IsBusy)
             return "Rooms_GameChangeUnavailable";
         if (_client.View.OwnerId != _client.Id) return "Rooms_GameChangeNotOwner";
-        if (PokerLobby?.Session?.State?.Status == Poker.PokerTableStatus.Playing)
-            return RoomPokerText.T("牌局进行中，暂不支持切换玩法。", "Finish this table before changing games.");
         return _client.View.GameChange != null ? "Rooms_GameChangeAlreadyPending" : "";
     }
+
+    // Choosing a different game is harmless during play. Only starting/confirming
+    // its vote requires a settled, fully paused table (including automatic pauses).
+    private bool PokerAllowsGameChange => PokerLobby?.Session?.State is not { Status: Poker.PokerTableStatus.Playing } state
+        || state is { Continuation: Poker.PokerContinuation.Paused, Hand.Public.Settlement: not null };
 
     private void RememberGameContext()
     {
@@ -130,7 +141,7 @@ public partial class InGameRoomPreview
 
     private void RequestGameChange()
     {
-        if (_client?.View == null || GameProposalVisible) return;
+        if (_client?.View == null || GameProposalVisible || GamePauseConfirmationVisible) return;
         if (CanReviewGameProposal)
         {
             ProcessGameProposal();
@@ -143,12 +154,105 @@ public partial class InGameRoomPreview
         {
             CommitNameEdit();
             CloseRoomDropdowns();
+            if (!PokerAllowsGameChange) { ShowGamePauseConfirmation(); return; }
             string result = _client.ProposeGameChange(_gameDraft);
             error = result == "ok" ? "" : result;
         }
         _noticeKey = error;
         _dirty = true;
         ProcessGameProposal();
+    }
+
+    public void BindGamePauseConfirmation(ConfirmOverlayController overlay)
+    {
+        HideGamePauseConfirmation();
+        if (GodotObject.IsInstanceValid(_gamePauseConfirm))
+        {
+            _gamePauseConfirm.Confirmed -= ScheduleGamePause;
+            _gamePauseConfirm.Canceled -= HideGamePauseConfirmation;
+        }
+        _gamePauseConfirm = overlay;
+        _gamePauseAccept = null;
+        if (overlay == null) return;
+        overlay.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        overlay.Confirmed += ScheduleGamePause;
+        overlay.Canceled += HideGamePauseConfirmation;
+        var actions = overlay.GetNode<BoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
+        _gamePauseAccept = actions.GetNode<Button>("ConfirmButton");
+        var dismiss = actions.GetNode<Button>("CancelButton");
+        actions.Vertical = true;
+        actions.MoveChild(_gamePauseAccept, 0);
+        overlay.FocusMode = FocusModeEnum.All;
+        overlay.FocusNext = overlay.FocusNeighborBottom = overlay.GetPathTo(_gamePauseAccept);
+        overlay.FocusPrevious = overlay.FocusNeighborTop = overlay.GetPathTo(dismiss);
+        foreach (var (button, other) in new[] { (_gamePauseAccept, dismiss), (dismiss, _gamePauseAccept) })
+        {
+            button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            var path = button.GetPathTo(other);
+            button.FocusNext = button.FocusPrevious = path;
+            button.FocusNeighborLeft = button.FocusNeighborRight = path;
+            button.FocusNeighborTop = button.FocusNeighborBottom = path;
+        }
+    }
+
+    private bool GamePauseContextIsCurrent => ReferenceEquals(_gamePauseClient, _client) && _client != null
+        && _client.Session == _gamePauseRoomSession && _client.View?.OwnerId == _client.Id
+        && _client.View.GameId == RoomRules.MischiefPoker && _client.View.GameChange == null
+        && !_client.IsBusy && !_waitingForRoomConnection
+        && ReferenceEquals(_gamePausePoker, PokerLobby?.Session) && _gamePausePoker?.Connected == true
+        && _gamePausePoker.State?.Table == _gamePauseTable;
+
+    private void ShowGamePauseConfirmation()
+    {
+        if (!GodotObject.IsInstanceValid(_gamePauseConfirm) || PokerLobby?.Session?.State == null) return;
+        CancelKick();
+        _gamePauseClient = _client;
+        _gamePauseRoomSession = _client.Session;
+        _gamePausePoker = PokerLobby.Session;
+        _gamePauseTable = _gamePausePoker.State.Table;
+        _gamePausePresentation = "";
+        RefreshGamePauseConfirmation();
+        // Focus the overlay, not an action: neither button starts highlighted.
+        if (GamePauseConfirmationVisible) _gamePauseConfirm.GrabFocus();
+    }
+
+    private void RefreshGamePauseConfirmation()
+    {
+        if (_gamePauseClient == null) return;
+        if (!GamePauseContextIsCurrent || !IsVisibleInTree() || PokerAllowsGameChange)
+        { HideGamePauseConfirmation(); return; }
+        var continuation = _gamePausePoker.State.Continuation;
+        string presentation = TranslationServer.GetLocale() + ":" + continuation;
+        if (_gamePausePresentation == presentation) return;
+        _gamePausePresentation = presentation;
+        bool requested = continuation == Poker.PokerContinuation.PauseRequested;
+        _gamePauseConfirm.ShowConfirm(RoomPokerText.T("切换玩法", "Change game"),
+            requested
+                ? RoomPokerText.T("已预约暂停。等本局结束后，再点击「切换」。",
+                    "A pause is already scheduled. Click Switch again after this hand ends.")
+                : RoomPokerText.T("请先预约暂停。等本局结束后，再点击「切换」。",
+                    "Schedule a pause first. Click Switch again after this hand ends."),
+            RoomPokerText.T("预约暂停", "Schedule pause"), RoomPokerText.T("好的", "Got it"));
+        _gamePauseAccept.Disabled = requested || _gamePausePoker.IsCollecting;
+    }
+
+    private void ScheduleGamePause()
+    {
+        // Revalidate after the overlay closes; a stale dialog must not affect a
+        // replacement room/table or undo a pause requested from the other entry.
+        if (GamePauseContextIsCurrent && _gamePausePoker.State.Continuation == Poker.PokerContinuation.Automatic)
+            _gamePausePoker.SetPauseRequested(true);
+        HideGamePauseConfirmation();
+        _dirty = true;
+    }
+
+    public void HideGamePauseConfirmation()
+    {
+        if (GodotObject.IsInstanceValid(_gamePauseConfirm)) _gamePauseConfirm.Hide();
+        _gamePauseClient = null;
+        _gamePausePoker = null;
+        _gamePausePresentation = "";
     }
 
     private void RefreshRoomAge()
@@ -198,6 +302,7 @@ public partial class InGameRoomPreview
 
     private void ResetGamePresentation()
     {
+        HideGamePauseConfirmation();
         _proposalClient = null;
         _proposalSession = 0;
         _proposalOwner = 0;
@@ -246,6 +351,7 @@ public partial class InGameRoomPreview
         if (!HasPendingGameProposalPresentation || !GodotObject.IsInstanceValid(_gameProposalOverlay)
             || _exitingTree || !IsInsideTree() || !IsVisibleInTree()) return false;
         CancelKick();
+        HideGamePauseConfirmation();
         CommitNameEdit();
         CloseRoomDropdowns();
         if (!ProposalIsCurrent) return false;
@@ -261,7 +367,7 @@ public partial class InGameRoomPreview
     {
         if (!ProposalIsCurrent) { HideGameProposal(); return; }
         _gameProposalOverlay.Present(_client.View, _client.Id, _client.GameChangeSecondsRemaining,
-            _client.CanConfirmGameChange, _client.IsBusy, _proposalError, takeFocus);
+            _client.CanConfirmGameChange && PokerAllowsGameChange, _client.IsBusy, _proposalError, takeFocus);
     }
 
     private void ConfirmGameProposal() => ActOnGameProposal(0);
@@ -272,7 +378,7 @@ public partial class InGameRoomPreview
     private void ActOnGameProposal(int action)
     {
         if (!GameProposalVisible || !ProposalIsCurrent) { HideGameProposal(); return; }
-        if (action == 0 && !_client.CanConfirmGameChange) return;
+        if (action == 0 && (!_client.CanConfirmGameChange || !PokerAllowsGameChange)) return;
         var client = _client;
         long session = client.Session;
         string id = _proposalId;

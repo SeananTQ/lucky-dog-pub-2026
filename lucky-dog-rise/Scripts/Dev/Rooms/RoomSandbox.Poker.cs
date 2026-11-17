@@ -15,7 +15,8 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         public PokerRoomContext Context => client.View is { } room && !client.IsLocalArrival
             ? new(room.Code + ":" + room.GameId, client.Id.ToString(), room.OwnerId.ToString(), room.Members.Select(m =>
                 new PokerPeer(m.Id.ToString(), m.Presence.ToString(), m.Id, m.Name, m.IsCompanion,
-                    client.ReadyOnPokerEntry(m))).ToArray(), room.GameId) : null;
+                    client.ReadyOnPokerEntry(m))).ToArray(), room.GameId,
+                room.GameChange != null && client.GameChangeSecondsRemaining > 0) : null;
         public bool Send(string recipient, byte[] payload)
         {
             if (!int.TryParse(recipient, out var id) || !hub._pokerLinks.TryGetValue(id, out var link)

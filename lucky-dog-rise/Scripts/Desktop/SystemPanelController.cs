@@ -116,6 +116,7 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _roomContent;
     private Rooms.InGameRoomPreview _roomPreview;
     private ConfirmOverlayController _roomKickConfirm;
+    private ConfirmOverlayController _roomGamePauseConfirm;
     private Rooms.RoomGameProposalOverlay _roomGameProposal;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
     public event Action<Rooms.RoomClient> RoomPokerPreviewRequested;
@@ -129,7 +130,8 @@ public partial class SystemPanelController : CanvasLayer
     public void SetNetworkPokerMockChat(bool enabled) => _roomPreview?.SetNetworkPokerMockChat(enabled);
 #endif
     private int _roomTabIndex = -1;
-    public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGameProposal?.Visible == true;
+    public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGamePauseConfirm?.Visible == true
+        || _roomGameProposal?.Visible == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
 #endif
 #if DEBUG
@@ -1050,6 +1052,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomPreview?.CloseRoomDropdowns();
             _roomPreview?.CancelKickConfirmation();
+            _roomPreview?.HideGamePauseConfirmation();
             _roomPreview?.HideGameProposal();
         }
 #endif
@@ -1127,6 +1130,14 @@ public partial class SystemPanelController : CanvasLayer
         _roomKickConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
         _roomKickConfirm.VisibilityChanged += ResetPanelScrollDrag;
         _roomPreview.BindKickConfirmation(_roomKickConfirm);
+        _roomGamePauseConfirm = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
+            .Instantiate<ConfirmOverlayController>();
+        _roomGamePauseConfirm.Name = "RoomGamePauseConfirm";
+        AddChild(_roomGamePauseConfirm);
+        _roomGamePauseConfirm.Scale = _panel.Scale;
+        _roomGamePauseConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
+        _roomGamePauseConfirm.VisibilityChanged += ResetPanelScrollDrag;
+        _roomPreview.BindGamePauseConfirmation(_roomGamePauseConfirm);
         _roomGameProposal = GD.Load<PackedScene>("res://Scenes/Rooms/RoomGameProposalOverlay.tscn")
             .Instantiate<Rooms.RoomGameProposalOverlay>();
         AddChild(_roomGameProposal);
@@ -1145,6 +1156,7 @@ public partial class SystemPanelController : CanvasLayer
         _roomContent.AddChild(_roomPreview);
         ApplyPopupRenderQuality(_roomPreview);
         ApplyPopupRenderQuality(_roomKickConfirm);
+        ApplyPopupRenderQuality(_roomGamePauseConfirm);
         ApplyPopupRenderQuality(_roomGameProposal);
         // Only reset scrolling when the player is actually viewing this page.
         if (_roomContent.Visible) _panelScroll.ScrollVertical = 0;
@@ -3121,6 +3133,7 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Position = pos;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomKickConfirm?.SetOverlayRect(pos, PanelDesignSize);
+        _roomGamePauseConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _roomGameProposal?.SetOverlayRect(pos, PanelDesignSize);
 #endif
         _desktopScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
@@ -3145,6 +3158,11 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomKickConfirm.Scale = value;
             ApplyPopupRenderQuality(_roomKickConfirm);
+        }
+        if (_roomGamePauseConfirm != null)
+        {
+            _roomGamePauseConfirm.Scale = value;
+            ApplyPopupRenderQuality(_roomGamePauseConfirm);
         }
         if (_roomGameProposal != null)
         {
@@ -3263,6 +3281,7 @@ public partial class SystemPanelController : CanvasLayer
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.HideGamePauseConfirmation();
         _roomPreview?.HideGameProposal();
 #endif
         CancelPendingDesktopPetScaleChange();
@@ -3293,6 +3312,7 @@ public partial class SystemPanelController : CanvasLayer
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.HideGamePauseConfirmation();
         _roomPreview?.HideGameProposal();
 #endif
         bool wasOpen = _panel.Visible;

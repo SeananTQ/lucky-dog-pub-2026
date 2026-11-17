@@ -263,6 +263,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_dirty) { _dirty = false; Render(); }
         UpdateArrivalPresentation();
         RefreshRoomAge();
+        RefreshGamePauseConfirmation();
         ProcessGameProposal();
         var poker = PokerLobby?.Session;
         if (_client?.View != null && (poker?.State != _renderedPokerState || (poker?.IsReady == true) != _renderedPokerReady))
@@ -281,6 +282,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         ReplaceClient(null);
         BindKickConfirmation(null);
+        BindGamePauseConfirmation(null);
         BindGameProposal(null);
         DisposeMock();
         if (_registeredTranslations && --_translationUsers == 0)

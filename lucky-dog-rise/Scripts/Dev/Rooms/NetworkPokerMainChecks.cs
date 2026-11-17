@@ -117,7 +117,7 @@ internal static class NetworkPokerMainChecks
             await Until(() => game.IsSessionPokerActive, "explicit mode switch attaches the existing network table");
             await Wait();
             var gameChoice = page.GetNode<OptionButton>("Room/Game/Choices/Current");
-            Check(gameChoice.Selected == 2 && gameChoice.Disabled, "current gameplay shows poker and running table locks game switching");
+            Check(gameChoice.Selected == 2 && !gameChoice.Disabled, "host can select a different gameplay during an active hand");
             var table = game.GetNode<RoomPokerTableView>("RoomPokerTable");
             var pokerPanel = info.SessionContent.GetChild<RoomPokerPanelView>(0);
             var pause = pokerPanel.GetNode<Button>("Actions/Primary");
@@ -138,7 +138,31 @@ internal static class NetworkPokerMainChecks
             Check(session.State.Continuation == PokerContinuation.PauseRequested, "host panel requests pause after this hand");
             Click(pause); await Wait();
             Check(session.State.Continuation == PokerContinuation.Automatic, "same button can undo a pending pause");
-            Click(pause); await Wait();
+            panel.ShowRoomPage(); await Wait();
+            gameChoice.EmitSignal(Control.SignalName.FocusEntered);
+            gameChoice.Select(0);
+            gameChoice.EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
+            var switchGame = page.GetNode<Button>("Room/Game/Choices/Apply");
+            var pausePrompt = panel.GetNode<ConfirmOverlayController>("RoomGamePauseConfirm");
+            var schedule = pausePrompt.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/ConfirmButton");
+            var gotIt = pausePrompt.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/CancelButton");
+            Click(switchGame); await Wait();
+            Check(pausePrompt.Visible && !schedule.Disabled && panel.HasRoomModal && !gotIt.HasFocus()
+                && !schedule.HasFocus() && client.View.GameChange == null, "in-hand switch opens a modal without voting or focusing either action");
+            Check(gotIt.Text == RoomPokerText.T("好的", "Got it"), "dismissal is labelled Got it rather than cancellation");
+            Click(gotIt); await Wait();
+            Check(!pausePrompt.Visible && session.State.Continuation == PokerContinuation.Automatic,
+                "Got it closes the dialog without scheduling pause");
+            Click(switchGame); Click(schedule); await Wait();
+            Check(!pausePrompt.Visible && session.State.Continuation == PokerContinuation.PauseRequested
+                && client.View.GameChange == null && gameChoice.Selected == 0, "schedule only requests pause and preserves the target gameplay");
+            Click(switchGame); await Wait();
+            Check(pausePrompt.Visible && schedule.Disabled, "an existing pause cannot be requested twice");
+            L10n.SetLocale("en", save: false); await Wait();
+            Check(gotIt.Text == "Got it" && schedule.Text == "Schedule pause", "pause prompt updates English text while open");
+            L10n.SetLocale(previousLocale, save: false);
+            Click(gotIt); await Wait();
+            Check(session.State.Continuation == PokerContinuation.PauseRequested, "Got it preserves an already scheduled pause");
             long revision = session.DisplayView.Public.Revision;
             panel.ShowRoomPage(); await Wait(.2);
             var container = main.GetNode<SubViewportContainer>("PlayRoot/SubViewportContainer");
@@ -211,6 +235,23 @@ internal static class NetworkPokerMainChecks
             Check(pause.Text == RoomPokerText.T("继续", "Resume")
                 && pokerPanel.GetNode<Button>("Actions/Restart").Visible
                 && !pokerPanel.GetNode<Button>("Actions/Restart").Disabled, "paused host sees both resume and restart");
+            Check(client.View.GameChange == null && gameChoice.Selected == 0, "reaching pause does not automatically vote or discard the selected game");
+            panel.ShowRoomPage(); await Wait();
+            Click(switchGame);
+            await Until(() => client.View.GameChange != null, "paused host can explicitly start the gameplay vote");
+            page.TryShowPendingGameProposal(); await Wait();
+            Check(pause.Disabled && pokerPanel.GetNode<Button>("Actions/Restart").Disabled
+                && lobby.GetNode<Button>("Actions/Primary").Disabled
+                && lobby.GetNode<Button>("Actions/Restart").Disabled, "both button entries lock resume and restart during the vote");
+            string pendingGame = client.View.GameChange.Id;
+            foreach (int id in new[] { 2, 3 }) page.MockClientForSmoke(id).RespondGameChange(pendingGame, true);
+            await Until(() => client.CanConfirmGameChange && page.GameProposalVisible, "accepted vote remains an owner-confirmed modal");
+            var voteOverlay = panel.GetNode<RoomGameProposalOverlay>("RoomGameProposalOverlay");
+            Click(voteOverlay.GetNode<Button>("OverlayPanel/Margin/Content/Actions/Secondary"));
+            await Until(() => client.View.GameChange == null && !pause.Disabled, "cancelling vote releases continuation controls");
+            Check(session.State.Table == tableId && session.State.Continuation == PokerContinuation.Paused
+                && session.DisplayView.Public.Seats.SequenceEqual(result.Seats), "cancelled vote retains result, balances, seats and the paused table");
+            panel.CloseImmediate();
             Click(pause);
             await Until(() => session.DisplayView.Public.HandNumber == 2, "resume collects cards and begins next hand in the same session", 8);
             Check(session.State.Table == tableId && session.DisplayView.Public.Dealer == result.Settlement.NextDealer, "resume keeps original session and planned dealer");
@@ -262,6 +303,35 @@ internal static class NetworkPokerMainChecks
             await Until(() => session.DisplayView.Public.ActivePlayerId == client.Id && session.State.DealRemaining == 0, "restarted host gets its turn");
             session.Act(PokerAction.EndTurn);
             await Until(() => localMessages == 3, "restart restores automatic speech for the new match", 15);
+            await Until(() => session.State.Continuation == PokerContinuation.Paused, "restarted hand completes its scheduled pause", 20);
+            async Task SwitchPausedGameplay(int index, string expectedGame)
+            {
+                panel.ShowRoomPage(); await Wait();
+                gameChoice.EmitSignal(Control.SignalName.FocusEntered);
+                gameChoice.Select(index);
+                gameChoice.EmitSignal(OptionButton.SignalName.ItemSelected, (long)index);
+                Click(switchGame);
+                await Until(() => client.View.GameChange != null, "new gameplay vote begins");
+                string id = client.View.GameChange.Id;
+                foreach (int member in new[] { 2, 3 }) page.MockClientForSmoke(member).RespondGameChange(id, true);
+                page.TryShowPendingGameProposal();
+                var confirm = voteOverlay.GetNode<Button>("OverlayPanel/Margin/Content/Actions/Primary");
+                await Until(() => voteOverlay.Visible && !confirm.Disabled, "majority unlocks manual switch confirmation");
+                Click(confirm);
+                await Until(() => client.View.GameId == expectedGame && client.View.GameChange == null, "confirmed gameplay is applied");
+            }
+            var memberIdsBeforeSwitch = client.View.Members.Select(m => m.Id).Order().ToArray();
+            await SwitchPausedGameplay(0, "social");
+            await Until(() => !game.IsSessionPokerReserved && !game.IsSessionPokerActive && session.State.Hand == null,
+                "switching to chat releases the solo table and removes the old poker projection");
+            Check(client.View.Members.Select(m => m.Id).Order().SequenceEqual(memberIdsBeforeSwitch) && data.Chips == soloChips,
+                "gameplay switch keeps members, including a late arrival, and personal chips");
+            await SwitchPausedGameplay(2, RoomRules.MischiefPoker);
+            await Until(() => session.State.Status == PokerTableStatus.Preparing && session.CanStart,
+                "returning to poker creates fresh preparation after consent");
+            Click(lobby.GetNode<Button>("Actions/Primary")); await Wait(.2);
+            Check(session.State.Hand.Public.HandNumber == 1 && session.State.Hand.Public.Seats.All(s => s.Chips == 900),
+                "returning gameplay starts a new match without inheriting the paused balance");
             page.MockClientForSmoke(2).Leave();
             await Until(() => session.State.Status == PokerTableStatus.Interrupted && session.State.Hand == null, "participant departure interrupts the match safely");
             Check(game.IsSessionPokerReserved && game.IsSessionPokerActive && data.Chips == soloChips, "interruption stays in poker room UI without enabling solo play");
@@ -353,7 +423,7 @@ internal static class NetworkPokerMainChecks
                 Click(game.GetNode<Button>("PokerWelcomeDialog/InputShield/Center/Panel/Margin/Content/Confirm"));
             game.Call("OnBetRequested"); await Wait(1.2);
             Check(game.State == GameState.Dealt, "single-player poker remains available after leaving");
-            GD.Print("[NetworkPokerMainChecks] PASS real card input with side panel, shared preparation controls, observer solo lock, pause/resume/restart, sit-out/return, box-independent continuation, private hands, Mock chat and solo restoration.");
+            GD.Print("[NetworkPokerMainChecks] PASS real card input with side panel, shared preparation controls, observer solo lock, pause/resume/restart, gameplay switch pause dialog and voting, sit-out/return, box-independent continuation, private hands, Mock chat and solo restoration.");
         }
         finally
         {

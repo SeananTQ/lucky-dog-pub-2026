@@ -38,12 +38,15 @@ public sealed class PokerNetworkSession : IDisposable
     public bool CanSetReady => Connected && !IsOwner && !IsCollecting
         && State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing;
     public bool ActionPending => _pendingAction != 0;
-    public bool CanStart => Connected && IsOwner && State?.Status == PokerTableStatus.Preparing
+    // Read live lobby metadata as a proposal may begin between two session ticks.
+    // A vote never resets the table: cancellation/expiry simply releases this lock.
+    private bool GameChangePending => _link.Context?.GameChangePending == true;
+    public bool CanStart => Connected && IsOwner && !GameChangePending && State?.Status == PokerTableStatus.Preparing
         && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
-    public bool CanResume => Connected && IsOwner && State is { Status: PokerTableStatus.Playing,
+    public bool CanResume => Connected && IsOwner && !GameChangePending && State is { Status: PokerTableStatus.Playing,
         Continuation: PokerContinuation.Paused, Hand.Public.Settlement: not null }
         && CanContinue(State.Hand.Public, State.Players);
-    public bool CanRestart => Connected && IsOwner && State is { Status: PokerTableStatus.Playing,
+    public bool CanRestart => Connected && IsOwner && !GameChangePending && State is { Status: PokerTableStatus.Playing,
         Continuation: PokerContinuation.Paused } && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
     private static bool CanContinue(PokerPublicView hand, PokerParticipant[] players)
     {
@@ -248,7 +251,7 @@ public sealed class PokerNetworkSession : IDisposable
                 && packet.FinishedHand == (_match?.GetPublicView().HandNumber ?? 0):
                 _players = _players.Select(x => x.Key == sender ? x with { Ready = packet.Ready } : x).ToArray();
                 _dirty = true; break;
-            case "start" when sender == _room.OwnerKey && _status == PokerTableStatus.Preparing:
+            case "start" when sender == _room.OwnerKey && _status == PokerTableStatus.Preparing && !GameChangePending:
                 StartFreshMatch(); break;
             case "action" when p.Playing && _match != null && _status == PokerTableStatus.Playing && _now >= _dealUntil:
                 if (packet.Command is not { } c) return;

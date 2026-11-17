@@ -10,6 +10,7 @@ internal static class NetworkChecks
         AdmissionAndTimedContinuation();
         GameEntryConsent();
         PauseAndResume();
+        GameplayVoteKeepsPausedTable();
         SitOutAndReturn();
         RestartDepletedTable();
         MembershipAndRecovery();
@@ -150,6 +151,46 @@ internal static class NetworkChecks
         Check.Equal(a.State!.Continuation, PokerContinuation.Automatic, "previous hand pause cannot affect the new hand");
         h.Inject("b", "pause", hand: next.HandNumber); h.Step();
         Check.Equal(a.State!.Continuation, PokerContinuation.Automatic, "forged guest pause is ignored");
+    }
+
+    private static void GameplayVoteKeepsPausedTable()
+    {
+        using var h = new Hub("a", "b");
+        var a = h.Sessions["a"]; var b = h.Sessions["b"];
+        b.SetReady(true); h.Step();
+        h.GameChangePending = true;
+        Check.That(!a.CanStart && !a.Start(), "vote blocks start even before the next session tick");
+        h.Inject("a", "start"); h.Step();
+        Check.Equal(a.State!.Status, PokerTableStatus.Preparing, "queued start cannot bypass the gameplay vote");
+        h.GameChangePending = false;
+        Check.That(a.Start(), "cancelled vote restores preparation without requiring readiness again");
+        h.Step(3.6); a.SetPauseRequested(true); PassHand(h);
+        h.Step(PokerNetworkSession.PayoutDuration(a.State!.Hand!.Public) + .2);
+        var table = a.State!.Table;
+        var hand = a.State.Hand!.Public;
+        string result = JsonSerializer.Serialize(hand);
+        h.GameChangePending = true;
+        Check.That(!a.CanResume && !a.CanRestart && !a.Resume() && !a.Restart(), "vote locks resume and restart immediately");
+        h.Inject("a", "resume", hand: hand.HandNumber);
+        h.Inject("a", "restart", hand: hand.HandNumber);
+        h.Step(61);
+        Check.That(a.State!.Table == table && a.State.Continuation == PokerContinuation.Paused
+            && JsonSerializer.Serialize(a.State.Hand!.Public) == result, "vote keeps cards, chips, seats and dealer intact without another ante");
+        h.GameChangePending = false;
+        Check.That(a.CanResume && a.CanRestart, "expiry or cancellation releases both controls");
+        Check.That(JsonSerializer.Serialize(a.State.Hand!.Public) == result, "releasing a vote never starts a hand automatically");
+        h.GameChangePending = true; h.Step();
+        h.Game = "social"; h.GameChangePending = false; h.Step();
+        Check.That(a.State!.Hand == null && b.State!.Hand == null && !a.CanResume && !a.CanRestart,
+            "successful gameplay change clears both endpoints' old table projection");
+        h.Inject("a", "resume", hand: hand.HandNumber); h.Step();
+        Check.That(a.State!.Hand == null, "late continuation cannot revive a table in chat gameplay");
+        h.Accepted.Add("b"); h.Game = "mischief"; h.Step();
+        Check.That(a.State!.Status == PokerTableStatus.Preparing && a.State.Table != table && a.CanStart,
+            "returning to poker prepares a new table with fresh consent");
+        a.Start(); h.Step();
+        Check.That(a.State!.Hand!.Public.HandNumber == 1 && a.State.Hand.Public.Dealer.PlayerId == a.State.Hand.PlayerId
+            && a.State.Hand.Public.Seats.All(s => s.Chips == 900), "new gameplay session starts from host dealer and initial chips");
     }
 
     private static void AuthenticationAndOrdering()
@@ -369,6 +410,7 @@ internal static class NetworkChecks
     {
         public string Owner = "a";
         public string Game = "mischief";
+        public bool GameChangePending;
         public readonly HashSet<string> Accepted = new();
         public readonly Dictionary<string, (string Ticket, bool Bot)> Members = new();
         public readonly Dictionary<string, Link> Links = new();
@@ -398,7 +440,7 @@ internal static class NetworkChecks
         public bool Hold;
         public event Action<string, byte[]> Received = delegate { };
         public PokerRoomContext? Context => hub.Members.ContainsKey(key) ? new("room:" + hub.Game, key, hub.Owner,
-            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game) : null;
+            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game, hub.GameChangePending) : null;
         public bool Send(string recipient, byte[] bytes)
         {
             hub.Sent.Add((key, recipient, (byte[])bytes.Clone()));

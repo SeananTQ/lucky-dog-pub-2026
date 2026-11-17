@@ -10,7 +10,9 @@ namespace LuckyDogRise.Rooms.Poker;
 // Keys identify a platform member; tickets identify this particular room membership.
 // LocalId is presentation-only and is deliberately never used to authenticate a sender.
 public sealed record PokerPeer(string Key, string Ticket, int LocalId, string Name, bool Companion, bool ReadyOnEntry = false);
-public sealed record PokerRoomContext(string Room, string LocalKey, string OwnerKey, PokerPeer[] Members, string Game = "mischief");
+// GameChangePending is local lobby metadata, not a poker wire-protocol field.
+public sealed record PokerRoomContext(string Room, string LocalKey, string OwnerKey, PokerPeer[] Members,
+    string Game = "mischief", bool GameChangePending = false);
 public interface IPokerLink : IDisposable
 {
     PokerRoomContext? Context { get; }
