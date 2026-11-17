@@ -54,16 +54,22 @@ public sealed class RoomCompanionPlan
         return new RoomCompanionPlan(fixedSeed, startedAt, 0, appearances);
     }
 
-    public RoomCompanionPlan WithHumanCount(int humanCount)
+    public RoomCompanionPlan WithHumanCount(int humanCount, int minimumCompanions = 0,
+        bool reserveHumanSlot = false, IReadOnlyCollection<int> preferred = null)
     {
         if (humanCount is < 0 or > RoomRules.Capacity)
             throw new ArgumentOutOfRangeException(nameof(humanCount));
         // No human means the room has ended. A temporary decrease never brings
         // retired companions back, and real players always have capacity priority.
-        int remaining = humanCount == 0 ? 0 : Math.Max(0, TargetMemberCount - humanCount);
+        int remaining = humanCount == 0 ? 0 : Math.Min(
+            Math.Max(0, RoomRules.Capacity - humanCount - (reserveHumanSlot ? 1 : 0)),
+            Math.Max(minimumCompanions, TargetMemberCount - humanCount));
         int mask = RetiredMask;
-        for (int slot = 0; slot < Count && Remaining(mask) > remaining; slot++)
+        foreach (int slot in Enumerable.Range(0, Count).OrderBy(slot => preferred?.Contains(-slot - 1) == true ? 1 : 0))
+        {
+            if (Remaining(mask) <= remaining) break;
             mask |= 1 << slot;
+        }
         return mask == RetiredMask ? this
             : new RoomCompanionPlan(Seed, StartedAt, mask, _appearances, TargetMemberCount);
     }

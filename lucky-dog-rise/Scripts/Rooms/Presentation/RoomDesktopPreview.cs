@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Godot;
 
 namespace LuckyDogRise.Rooms;
@@ -31,6 +32,15 @@ public partial class RoomDesktopPreview : Node2D
     }
     private readonly Dictionary<int, RoomDogView> _dogs = new();
     private readonly List<RoomDogView> _drawOrder = new();
+    private readonly List<RoomDogView> _departing = new();
+    // Desktop/poker use separate views of one membership. Weak ownership prevents
+    // a disposed client from being kept alive, and mode switches never replay entry.
+    private sealed class SeenMembers
+    {
+        public long Session = -1;
+        public readonly HashSet<(int Id, long Presence)> Members = new();
+    }
+    private static readonly ConditionalWeakTable<RoomClient, SeenMembers> Seen = new();
     private sealed class Placement(long presence, int slot, Vector2 position, bool taskbarSnapped)
     {
         public long Presence = presence;
@@ -78,17 +88,24 @@ public partial class RoomDesktopPreview : Node2D
             return previousSelf.Position;
         }
         var members = client.View?.Members ?? Array.Empty<RoomMember>();
+        var seen = Seen.GetOrCreateValue(client);
+        if (seen.Session != client.LayoutSession) { seen.Members.Clear(); seen.Session = client.LayoutSession; }
+        seen.Members.RemoveWhere(key => !members.Any(m => m.Id == key.Id && m.Presence == key.Presence));
         var self = members.FirstOrDefault(member => member.Id == client.Id);
         if (self != null && _placements.TryGetValue(client.Id, out var selfPlacement))
             selfPlacement.Presence = self.Presence;
         foreach (var id in _placements.Keys.Where(id => !members.Any(member =>
                      member.Id == id && member.Presence == _placements[id].Presence)).ToArray())
             _placements.Remove(id);
-        foreach (var id in _dogs.Keys.Where(id => !members.Any(member => member.Id == id)).ToArray())
+        foreach (var id in _dogs.Keys.Where(id => !members.Any(member => member.Id == id && member.Presence == _dogs[id].Presence)).ToArray())
         {
-            RemoveRemoteCanvas(_dogs[id]);
+            var dog = _dogs[id];
+            if (IsVisibleInTree() && dog.Visible && dog.BeginExit()) _departing.Add(dog);
+            else RemoveRemoteCanvas(dog);
             _dogs.Remove(id);
         }
+        // Rapid join/leave churn cannot accumulate unbounded visual shells.
+        while (_departing.Count > RoomRules.Capacity) RemoveRemoteCanvas(_departing[0]);
         float snappedDogY = usable.End.Y - taskbarAnchorOffsetY;
         var center = new Vector2(usable.GetCenter().X, snapEnabled ? snappedDogY : usable.End.Y - 75 * scale);
         var localPosition = center;
@@ -118,6 +135,9 @@ public partial class RoomDesktopPreview : Node2D
                 var canvas = _dogScene.Instantiate<CanvasLayer>();
                 canvas.Name = $"RemoteDog{member.Id}";
                 _remoteLayer.AddChild(canvas);
+                // Set visibility before measuring the original pose for entry.
+                // The source is hidden again before the first rendered frame.
+                canvas.Visible = IsVisibleInTree();
                 dog = canvas.GetNode<RoomDogView>("Dog");
                 dog.MakePassivePreview();
                 _dogs.Add(member.Id, dog);
@@ -129,8 +149,9 @@ public partial class RoomDesktopPreview : Node2D
             dog.Display(member, false, member.Id == client.View.OwnerId, client.ShowNames,
                 client.Bubbles.TryGetValue(member.Id, out var bubble) ? bubble.Text : "",
                 client.IsTongueActive(member.Id));
-            dog.SetDepartureProgress(client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival
-                && member.Id == arrival.HostMemberId ? (float)arrival.DepartureProgress : null);
+            if (client.Arrival is { Phase: RoomArrivalPhase.Departing } arrival && member.Id == arrival.HostMemberId)
+                dog.SetArrivalDepartureProgress((float)arrival.DepartureProgress);
+            else if (IsVisibleInTree() && dog.Visible && seen.Members.Add((member.Id, member.Presence))) dog.BeginEntry();
         }
         UpdateRemoteCanvases();
         // Same anchor as RoomDogView, aligned to the original countdown balloon.
@@ -212,7 +233,7 @@ public partial class RoomDesktopPreview : Node2D
         // Give each avatar its own canvas, without render textures or a CanvasGroup
         // back-buffer. All desktop canvases stay below the local dog (canvas 0);
         // poker canvases start above InfoPanel (1) and remain below system UI.
-        int layer = _remoteLayer.Layer < 0 ? _remoteLayer.Layer - _dogs.Count + 1 : _remoteLayer.Layer;
+        int layer = _remoteLayer.Layer < 0 ? _remoteLayer.Layer - _drawOrder.Count + 1 : _remoteLayer.Layer;
         foreach (var dog in _drawOrder)
         {
             var canvas = dog.GetParent<CanvasLayer>();
@@ -226,10 +247,17 @@ public partial class RoomDesktopPreview : Node2D
 
     private void RemoveRemoteCanvas(RoomDogView dog)
     {
+        _departing.Remove(dog);
         _drawOrder.Remove(dog);
         var canvas = dog.GetParent<CanvasLayer>();
         canvas.Hide();
         canvas.QueueFree();
+    }
+
+    public override void _Process(double delta)
+    {
+        for (int i = _departing.Count - 1; i >= 0; i--)
+            if (_departing[i].DepartureFinished || !IsVisibleInTree()) RemoveRemoteCanvas(_departing[i]);
     }
 
     public void UpdateNameBars(Rect2 idleRect, Font font, StyleBox style, bool centerOnTaskbar,
@@ -312,7 +340,7 @@ public partial class RoomDesktopPreview : Node2D
         Boundary?.Clear();
         LocalChat?.Reset();
         _client = null;
-        foreach (var dog in _dogs.Values) RemoveRemoteCanvas(dog);
+        foreach (var dog in _drawOrder.ToArray()) RemoveRemoteCanvas(dog);
         _dogs.Clear();
         _placements.Clear();
         _awaitingArrivalFrame = null;

@@ -18,6 +18,8 @@ internal static class NetworkChecks
         MembershipAndRecovery();
         MalformedMessages();
         AtomicCoreAdmission();
+        CompanionRetirementBoundary();
+        CompanionWinningsRemainValid();
         FlipHistory();
         Console.WriteLine("PASS serialized multiplayer readiness, private hands, permissions, retries, admission and interruption");
     }
@@ -474,6 +476,92 @@ internal static class NetworkChecks
         Check.Equal(h.Sessions["b"].State!.Status, PokerTableStatus.Playing, "two endpoints receive started table");
         return h;
     }
+
+    private static void CompanionWinningsRemainValid()
+    {
+        var match = new MischiefPokerMatch([1, 2, 3, 4], 1);
+        int[][] holes = [Check.Cards("As Ks"), Check.Cards("2c 3c"), Check.Cards("4c 5c"),
+            Check.Cards("6c 7c"), Check.Cards("8c 9c"), Check.Cards("Tc Jc")];
+        const string board = "Qs Js Ts 6d 7d";
+        for (int hand = 0; hand < 10; hand++)
+        {
+            Check.Equal(match.StartHand(hand, Check.Deck(holes.Take(4).ToArray(), board)), PokerError.None, "original companions fund ten hands");
+            Check.PassAll(match, hand);
+        }
+        Check.Equal(match.GetPublicView().Seats.Single(s => s.PlayerId == 1).Chips, 4000L, "human legitimately wins all original companion chips");
+        int[] humans = [1, 5, 6, 7, 8, 9];
+        for (int hand = 10; hand < 20; hand++)
+        {
+            Check.Equal(match.StartHand(hand, Check.Deck(holes, board), newPlayers: hand == 10 ? humans.Skip(1).ToArray() : null,
+                activePlayers: humans, retiredPlayers: hand == 10 ? [2, 3, 4] : null), PokerError.None, "fresh human bankrolls coexist with retained companion winnings");
+            Check.PassAll(match, hand);
+        }
+        var view = match.GetPlayerView(1);
+        Check.Equal(view.Public.Seats.Single(s => s.PlayerId == 1).Chips, 9000L, "total funding includes six humans and the three retired original companions");
+        var peers = humans.Select(id => new PokerPeer(id.ToString(), "t" + id, id, "player", false)).ToArray();
+        var room = new PokerRoomContext("room", "1", "1", peers);
+        var state = new PokerNetworkState(match.SessionId, 1, PokerTableStatus.Playing,
+            humans.Select(id => new PokerParticipant(id.ToString(), "t" + id, id, true, true, false)).ToArray(), view, 0, "");
+        var packet = new PokerPacket(PokerNetworkProtocol.Version, "room", "t1", "t1", "state", 1, match.SessionId, State: state);
+        Check.That(PokerNetworkProtocol.ValidState(PokerNetworkProtocol.Decode(PokerNetworkProtocol.Encode(packet))!.State!, room),
+            "serialized results accept legal accumulated companion winnings above the old six-player starting total");
+        var impossible = view with { Public = view.Public with { Seats = view.Public.Seats.Select(s => s.PlayerId == 1 ? s with { Chips = 9001 } : s).ToArray() } };
+        Check.That(!PokerNetworkProtocol.ValidState(state with { Hand = impossible }, room), "funding validation remains bounded after allowing companion winnings");
+    }
+
+    private static void CompanionRetirementBoundary()
+    {
+        using var h = new Hub("a");
+        h.Bot("bot1"); h.Bot("bot2"); h.AutomaticRetirement = true; h.Step(1.2);
+        var a = h.Sessions["a"];
+        h.CapacityReady = false;
+        Check.That(!a.CanStart && !a.Start(), "initial deal waits for native capacity protection");
+        h.CapacityReady = true;
+        Check.That(a.Start(), "owner starts with real companions"); h.Step(3.2);
+        h.Human("b"); h.Human("c"); h.Human("d"); h.Step();
+        Check.Equal(h.Members.Count, 6, "current hand may temporarily fill all six visible slots");
+        Check.That(a.State!.Players.Count(p => p.Companion) == 2 && a.State.Players.Count(p => p.Ready) == 3,
+            "three spectators neither replace bots mid-hand nor count as willing players");
+        a.SetPauseRequested(true);
+        for (int i = 0; i < 500 && a.State.Hand!.Public.Phase != PokerPhase.Settled; i++)
+        {
+            if (a.State.Hand!.Public.ActivePlayerId == a.State.Hand.PlayerId) a.Act(PokerAction.EndTurn);
+            h.Step(.1);
+        }
+        var settled = a.State.Hand!.Public;
+        Check.Equal(settled.Phase, PokerPhase.Settled, "companions complete their own current hand");
+        long balance = settled.Seats.Single(s => s.PlayerId == a.State.Hand.PlayerId).Chips;
+        h.Step(Math.Max(0, PokerNetworkSession.PayoutDuration(settled) - a.State.SettlementElapsed - .15));
+        Check.Equal(h.Members.Count, 6, "payout is not cut short by bot retirement");
+        h.Step(.3);
+        Check.That(a.IsPaused && h.Members.Count == 5 && h.Members.Count(m => m.Value.Bot) == 1,
+            "after payout reserve an open slot while retaining one opponent");
+        Check.Equal(a.State.RetiredCompanions!.Length, 1, "historical result retains retired companion's paid hand");
+        Check.That(h.Sessions["b"].State!.RetiredCompanions!.Length == 1,
+            "serialized recipient accepts historical result after lobby membership removal");
+        Check.Equal(a.State.Hand!.Public.Seats.Single(s => s.PlayerId == a.State.Hand.PlayerId).Chips, balance,
+            "retirement neither refunds nor resets the human balance");
+        var table = a.State.Table;
+        h.CapacityReady = false;
+        Check.That(!a.CanResume && !a.CanRestart && !a.Resume() && !a.Restart(), "native capacity retry blocks both pause exits");
+        h.Inject("a", "restart", hand: settled.HandNumber); h.Step();
+        Check.That(a.State.Table == table && a.IsPaused, "forged restart cannot reset a table while capacity is unsafe");
+        h.CapacityReady = true;
+        h.Human("e"); h.Step();
+        Check.That(h.Members.Count == 5 && h.Members.All(m => !m.Value.Bot) && !a.CanResume,
+            "five unwilling humans force the final bot out; insufficient participation pauses safely");
+        h.Sessions["b"].SetReady(true); h.Step();
+        Check.That(a.CanResume && a.Resume(), "a spectator's own seat request makes continuation possible");
+        h.Step(PokerNetworkSession.CollectionDuration + .3);
+        var b = h.Sessions["b"];
+        Check.Equal(b.State!.Hand!.HoleCards.Count, 2, "admitted spectator receives their own two private cards");
+        Check.Equal(b.State.Hand.Public.Seats.Single(s => s.PlayerId == b.State.Hand.PlayerId).Chips, 900L,
+            "new human starts with own 1000 balance, not retired companion's balance");
+        Check.Equal(a.State!.Hand!.Public.Seats.Single(s => s.PlayerId == a.State.Hand.PlayerId).SeatNumber, 1,
+            "remaining player's seat number is stable across companion retirement");
+        Check.That(a.State.RetiredCompanions!.Length == 0 && a.State.Hand.Public.Seats.Count == 2,
+            "next deal discards retired ledger seats and historical projections atomically");
+    }
     private static void PassHand(Hub h)
     {
         for (int i = 0; i < 8 && h.Sessions[h.Owner].State!.Hand!.Public.Phase == PokerPhase.Acting; i++)
@@ -489,6 +577,18 @@ internal static class NetworkChecks
         public string Owner = "a";
         public string Game = "mischief";
         public bool GameChangePending;
+        public bool AutomaticRetirement;
+        public bool CapacityReady = true;
+        public string[] Reconcile(int minimum, string[] preferred)
+        {
+            if (!AutomaticRetirement) return [];
+            int humans = Members.Count(m => !m.Value.Bot);
+            int keep = Math.Min(Math.Max(0, 5 - humans), Math.Max(minimum, 3 - humans));
+            var retired = Members.Where(m => m.Value.Bot).OrderBy(m => preferred.Contains(m.Key) ? 1 : 0)
+                .Take(Math.Max(0, Members.Count(m => m.Value.Bot) - keep)).Select(m => m.Key).ToArray();
+            foreach (var key in retired) Members.Remove(key);
+            return retired;
+        }
         public readonly HashSet<string> Accepted = new();
         public readonly Dictionary<string, (string Ticket, bool Bot)> Members = new();
         public readonly Dictionary<string, Link> Links = new();
@@ -518,7 +618,7 @@ internal static class NetworkChecks
         public bool Hold;
         public event Action<string, byte[]> Received = delegate { };
         public PokerRoomContext? Context => hub.Members.ContainsKey(key) ? new("room:" + hub.Game, key, hub.Owner,
-            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game, hub.GameChangePending) : null;
+            hub.Members.Select((m, i) => new PokerPeer(m.Key, m.Value.Ticket, m.Key == key ? 1 : i + 20, m.Key, m.Value.Bot, hub.Accepted.Contains(m.Key))).ToArray(), hub.Game, hub.GameChangePending, hub.Reconcile, hub.CapacityReady) : null;
         public bool Send(string recipient, byte[] bytes)
         {
             hub.Sent.Add((key, recipient, (byte[])bytes.Clone()));

@@ -15,6 +15,9 @@ public sealed class PokerNetworkSession : IDisposable
     private readonly Dictionary<string, (double Time, int Count)> _rates = new();
     private PokerRoomContext? _room;
     private PokerParticipant[] _players = Array.Empty<PokerParticipant>();
+    private readonly List<PokerParticipant> _retiredCompanions = new();
+    private readonly HashSet<(string Key, string Ticket)> _plannedRetirements = new();
+    private int _nextPlayerId;
     private MischiefPokerMatch? _match;
     private PokerTableStatus _status;
     private Guid _table;
@@ -42,12 +45,12 @@ public sealed class PokerNetworkSession : IDisposable
     // Read live lobby metadata as a proposal may begin between two session ticks.
     // A vote never resets the table: cancellation/expiry simply releases this lock.
     private bool GameChangePending => _link.Context?.GameChangePending == true;
-    public bool CanStart => Connected && IsOwner && !GameChangePending && State?.Status == PokerTableStatus.Preparing
+    public bool CanStart => Connected && IsOwner && !GameChangePending && _link.Context?.CompanionCapacityReady == true && State?.Status == PokerTableStatus.Preparing
         && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
-    public bool CanResume => Connected && IsOwner && !GameChangePending && State is { Status: PokerTableStatus.Playing,
+    public bool CanResume => Connected && IsOwner && !GameChangePending && _link.Context?.CompanionCapacityReady == true && State is { Status: PokerTableStatus.Playing,
         Continuation: PokerContinuation.Paused, Hand.Public.Settlement: not null }
         && CanContinue(State.Hand.Public, State.Players);
-    public bool CanRestart => Connected && IsOwner && !GameChangePending && State is { Status: PokerTableStatus.Playing,
+    public bool CanRestart => Connected && IsOwner && !GameChangePending && _link.Context?.CompanionCapacityReady == true && State is { Status: PokerTableStatus.Playing,
         Continuation: PokerContinuation.Paused } && State.Players.Count(p => p.Ready || p.Key == _room?.OwnerKey) >= 2;
     private static bool CanContinue(PokerPublicView hand, PokerParticipant[] players)
     {
@@ -113,6 +116,7 @@ public sealed class PokerNetworkSession : IDisposable
         {
             bool wasPlaying = State?.Status == PokerTableStatus.Playing;
             _players = Array.Empty<PokerParticipant>(); _match = null; _table = Guid.Empty;
+            _retiredCompanions.Clear(); _plannedRetirements.Clear(); _nextPlayerId = 0;
             _received.Clear(); _rates.Clear(); State = null; _pendingAction = 0; _requestedReady = null;
             _continuation = PokerContinuation.Automatic; _entryPrepared = wasPlaying;
             _status = wasPlaying ? PokerTableStatus.Interrupted : PokerTableStatus.Idle;
@@ -130,10 +134,12 @@ public sealed class PokerNetworkSession : IDisposable
         }
         if (!_entryPrepared && room.Game == "mischief" && _status == PokerTableStatus.Idle)
             Prepare(useEntryConsent: true);
+        if (room.Game == "mischief" && _status == PokerTableStatus.Interrupted) ReconcileCompanions();
         if (_status == PokerTableStatus.Preparing && _now >= _companionReadyAt)
         {
             if (_players.Any(p => p.Companion && !p.Ready))
             { _players = _players.Select(p => p.Companion ? p with { Ready = true } : p).ToArray(); _dirty = true; }
+            ReconcileCompanions();
         }
         if (_match != null && _status == PokerTableStatus.Playing)
         {
@@ -159,6 +165,9 @@ public sealed class PokerNetworkSession : IDisposable
             _dirty |= current.Revision != before.Revision;
             if (current.Phase == PokerPhase.Settled)
             {
+                // Retire only after the current hand and its awards have finished,
+                // including when the host has requested a pause.
+                if (_now - _settledAt >= PayoutDuration(current)) ReconcileCompanions();
                 if (_continuation is PokerContinuation.Collecting or PokerContinuation.Restarting && _now >= _collectUntil)
                 {
                     if (_continuation == PokerContinuation.Restarting) StartFreshMatch();
@@ -188,11 +197,31 @@ public sealed class PokerNetworkSession : IDisposable
             ? p with { Playing = false, Ready = false } : p).ToList();
         foreach (var m in _room.Members.OrderBy(m => m.Key == _room.OwnerKey ? 0 : 1).ThenBy(m => m.Key, StringComparer.Ordinal))
         {
-            if (list.Any(p => p.Key == m.Key) || list.Count == 6) continue;
-            int id = Enumerable.Range(1, 6).First(id => list.All(p => p.Id != id));
+            if (list.Any(p => p.Key == m.Key) || list.Count == 6 || _plannedRetirements.Contains((m.Key, m.Ticket))) continue;
+            int id = ++_nextPlayerId;
             list.Add(new(m.Key, m.Ticket, id, false, false, m.Companion));
         }
         if (!_players.SequenceEqual(list)) { _players = list.ToArray(); _dirty = true; }
+    }
+    private void ReconcileCompanions()
+    {
+        if (!IsOwner || _room?.ReconcileCompanions == null) return;
+        var view = _match?.GetPublicView();
+        bool Funded(PokerParticipant p) => !p.Playing
+            || view?.Seats.FirstOrDefault(s => s.PlayerId == p.Id)?.Chips >= 100;
+        int humans = _players.Count(p => !p.Companion && (p.Ready || p.Key == _room.OwnerKey) && Funded(p));
+        var preferred = _players.Where(p => p.Companion && p.Ready && Funded(p)).Select(p => p.Key).ToArray();
+        var retired = _room.ReconcileCompanions(Math.Max(0, 2 - humans), preferred);
+        if (retired.Length == 0) return;
+        foreach (var p in _players.Where(p => p.Companion && retired.Contains(p.Key)))
+        {
+            _plannedRetirements.Add((p.Key, p.Ticket));
+            if (p.Playing) _retiredCompanions.Add(p with { Ready = false });
+            _received.Remove(p.Key); _rates.Remove(p.Key);
+        }
+        _players = _players.Where(p => !p.Companion || !retired.Contains(p.Key)).ToArray();
+        _room = _link.Context ?? _room;
+        _dirty = true;
     }
     private bool Request(string kind, bool ready = false, PokerCommand? command = null, long hand = 0)
     {
@@ -281,8 +310,9 @@ public sealed class PokerNetworkSession : IDisposable
     {
         _entryPrepared = true;
         _table = Guid.NewGuid(); _match = null; _status = PokerTableStatus.Preparing; _notice = "";
+        _retiredCompanions.Clear();
         _continuation = PokerContinuation.Automatic;
-        _players = Array.Empty<PokerParticipant>(); SyncMembers();
+        _players = Array.Empty<PokerParticipant>(); _nextPlayerId = 0; SyncMembers();
         _players = _players.Select(x => x with { Ready = x.Key == _room!.OwnerKey
             || useEntryConsent && !x.Companion && _room.Members.Any(m => m.Key == x.Key && m.Ticket == x.Ticket && m.ReadyOnEntry) }).ToArray();
         _companionReadyAt = _now + 1; _dirty = true;
@@ -295,11 +325,18 @@ public sealed class PokerNetworkSession : IDisposable
     private void StartFreshMatch()
     {
         if (_room == null) return;
+        // A native lobby-limit retry must not discard the previous settlement or bankroll.
+        if (_link.Context?.CompanionCapacityReady != true)
+        {
+            if (_status == PokerTableStatus.Playing) { _continuation = PokerContinuation.Paused; _dirty = true; }
+            return;
+        }
         var ready = _players.Where(p => p.Ready || p.Key == _room.OwnerKey)
             .OrderBy(p => p.Key == _room.OwnerKey ? 0 : 1).ThenBy(p => p.Id).ToArray();
         if (ready.Length < 2) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
         // Only a restart resets existing balances/seats. New table identity rejects old commands.
         _table = Guid.NewGuid();
+        _retiredCompanions.Clear();
         _players = _players.Select(p => p with { Playing = ready.Any(r => r.Id == p.Id), Ready = p.Ready || p.Key == _room.OwnerKey }).ToArray();
         _match = new(ready.Select(p => p.Id).ToArray(), ready[0].Id);
         _matchClock = 0; _notice = ""; _status = PokerTableStatus.Playing;
@@ -308,17 +345,22 @@ public sealed class PokerNetworkSession : IDisposable
     private void BeginHand()
     {
         if (_match == null) return;
+        if (_link.Context?.CompanionCapacityReady != true)
+        { _continuation = PokerContinuation.Paused; _dirty = true; return; }
         var active = _players.Where(p => p.Ready).Select(p => p.Id).ToArray();
         var entrants = _players.Where(p => p.Ready && !p.Playing).OrderBy(p => p.Id).Select(p => p.Id).ToArray();
-        LastError = _match.StartHand(_matchClock, newPlayers: entrants, activePlayers: active);
+        LastError = _match.StartHand(_matchClock, newPlayers: entrants, activePlayers: active,
+            retiredPlayers: _retiredCompanions.Select(p => p.Id).ToArray());
         if (LastError != PokerError.None) { _continuation = PokerContinuation.Paused; _dirty = true; return; }
         _players = _players.Select(p => entrants.Contains(p.Id) ? p with { Playing = true } : p).ToArray();
+        _retiredCompanions.Clear();
         _continuation = PokerContinuation.Automatic;
         _dealUntil = _now + 3; _botAt = _dealUntil + 1.2; _dirty = true;
     }
     private void Interrupt(string reason)
     {
         _status = PokerTableStatus.Interrupted; _notice = reason; _dirty = true; _match = null;
+        _retiredCompanions.Clear();
     }
     private void Publish()
     {
@@ -335,7 +377,8 @@ public sealed class PokerNetworkSession : IDisposable
             var state = new PokerNetworkState(_table, _version, _status, _players.ToArray(), view,
                 _status == PokerTableStatus.Playing ? Math.Max(0, _dealUntil - _now) : 0, _notice,
                 _received.GetValueOrDefault(peer.Key), _continuation,
-                view?.Public.Phase == PokerPhase.Settled ? Math.Min(86400, Math.Max(0, _now - _settledAt)) : 0);
+                view?.Public.Phase == PokerPhase.Settled ? Math.Min(86400, Math.Max(0, _now - _settledAt)) : 0,
+                _retiredCompanions.ToArray());
             if (peer.Key == _room.LocalKey) { State = state; _receivedAt = _now; continue; }
             _link.Send(peer.Key, PokerNetworkProtocol.Encode(new(PokerNetworkProtocol.Version, _room.Room,
                 owner.Ticket, peer.Ticket, "state", ++_sequence, _table, State: state)));

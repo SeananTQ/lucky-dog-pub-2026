@@ -16,7 +16,8 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
             ? new(room.Code + ":" + room.GameId, client.Id.ToString(), room.OwnerId.ToString(), room.Members.Select(m =>
                 new PokerPeer(m.Id.ToString(), m.Presence.ToString(), m.Id, m.Name, m.IsCompanion,
                     client.ReadyOnPokerEntry(m))).ToArray(), room.GameId,
-                room.GameChange != null && client.GameChangeSecondsRemaining > 0) : null;
+                room.GameChange != null && client.GameChangeSecondsRemaining > 0,
+                (minimum, preferred) => hub.ReconcilePokerCompanions(client, minimum, preferred)) : null;
         public bool Send(string recipient, byte[] payload)
         {
             if (!int.TryParse(recipient, out var id) || !hub._pokerLinks.TryGetValue(id, out var link)
@@ -33,6 +34,18 @@ public sealed partial class RoomSandbox : IRoomPokerLinkProvider
         { if (hub._pokerLinks.GetValueOrDefault(client.Id) == this) hub._pokerLinks.Remove(client.Id); _queue.Clear(); }
     }
     private readonly Dictionary<int, PokerLink> _pokerLinks = new();
+    private string[] ReconcilePokerCompanions(RoomClient client, int minimum, string[] preferred)
+    {
+        if (!_rooms.TryGetValue(client.JoinedCode ?? "", out var room) || room.Owner != client.Id
+            || room.GameId != "mischief" || room.Companions == null) return Array.Empty<string>();
+        var before = room.Companions;
+        room.Companions = before.WithHumanCount(room.Members.Count, minimum, true,
+            preferred.Select(key => int.TryParse(key, out var id) ? id : 0).ToArray());
+        if (ReferenceEquals(before, room.Companions)) return Array.Empty<string>();
+        var remaining = room.Companions.MembersAt((long)Now).Select(m => m.Id).ToHashSet();
+        Broadcast(room);
+        return before.MembersAt((long)Now).Where(m => !remaining.Contains(m.Id)).Select(m => m.Id.ToString()).ToArray();
+    }
     private readonly Dictionary<int, PokerNetworkSession> _pokerSimulated = new();
     private readonly Dictionary<int, double> _pokerActionAt = new();
     private readonly Dictionary<int, (string Room, Guid Table, long Hand, double At)> _pokerChat = new();

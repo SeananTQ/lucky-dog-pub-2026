@@ -14,6 +14,7 @@ namespace LuckyDogRise.Rooms.Poker;
 public sealed class MischiefPokerMatch
 {
     private int[] _players;
+    private int[] _seatNumbers;
     private long[] _chips;
     private readonly MischiefPokerRules _rules;
     private readonly List<PokerCompletedTurn> _completedTurns = new();
@@ -44,6 +45,7 @@ public sealed class MischiefPokerMatch
         if (playerIds.Count is < 2 or > MischiefPokerRules.MaxPlayers)
             throw new ArgumentException("A match needs 2..6 participants.", nameof(playerIds));
         _players = playerIds.ToArray();
+        _seatNumbers = Enumerable.Range(1, _players.Length).ToArray();
         if (_players.Distinct().Count() != _players.Length || !_players.Contains(firstDealerId))
             throw new ArgumentException("Seats must be unique and include the first dealer.", nameof(playerIds));
         _chips = Enumerable.Repeat(_rules.InitialChips, _players.Length).ToArray();
@@ -55,19 +57,30 @@ public sealed class MischiefPokerMatch
     /// a trusted deterministic-test seam, not a client command. Dealing uses two passes in fixed seat order.
     /// </summary>
     public PokerError StartHand(double nowSeconds, IReadOnlyList<int>? orderedDeck = null,
-        IReadOnlyList<int>? newPlayers = null, IReadOnlyList<int>? activePlayers = null)
+        IReadOnlyList<int>? newPlayers = null, IReadOnlyList<int>? activePlayers = null,
+        IReadOnlyList<int>? retiredPlayers = null)
     {
         if (!IsValidTime(nowSeconds)) return PokerError.InvalidTime;
         if (_phase is PokerPhase.Acting or PokerPhase.AwaitingDraw) return PokerError.HandInProgress;
         // No negative balances, automatic refill, partial ante or unapproved elimination rule.
         // Admission and dealing commit together: a rejected start preserves the previous settlement.
         var entrants = newPlayers?.ToArray() ?? Array.Empty<int>();
+        var retired = retiredPlayers?.ToArray() ?? Array.Empty<int>();
+        if (retired.Length > 0 && (_phase != PokerPhase.Settled || retired.Distinct().Count() != retired.Length
+            || retired.Any(id => !_players.Contains(id)))) return PokerError.InvalidRoster;
+        var retained = Enumerable.Range(0, _players.Length).Where(i => !retired.Contains(_players[i])).ToArray();
         if (entrants.Length > 0 && (_phase != PokerPhase.Settled
-            || entrants.Length + _players.Length > MischiefPokerRules.MaxPlayers
+            || entrants.Length + retained.Length > MischiefPokerRules.MaxPlayers
             || entrants.Distinct().Count() != entrants.Length || entrants.Any(_players.Contains)))
             return PokerError.InvalidRoster;
-        var roster = _players.Concat(entrants).ToArray();
-        var balances = _chips.Concat(Enumerable.Repeat(_rules.InitialChips, entrants.Length)).ToArray();
+        var numbers = retained.Select(i => _seatNumbers[i]).ToList();
+        foreach (int _ in entrants) numbers.Add(Enumerable.Range(1, MischiefPokerRules.MaxPlayers).First(n => !numbers.Contains(n)));
+        // Reuse a vacant seat number, never its previous occupant's account or balance.
+        var seating = retained.Select(i => (_players[i], _chips[i], _seatNumbers[i]))
+            .Concat(entrants.Select((id, i) => (id, _rules.InitialChips, numbers[retained.Length + i])))
+            .OrderBy(s => s.Item3).ToArray();
+        var roster = seating.Select(s => s.Item1).ToArray();
+        var balances = seating.Select(s => s.Item2).ToArray();
         var active = activePlayers?.ToArray() ?? roster;
         if (active.Length is < 2 or > MischiefPokerRules.MaxPlayers
             || active.Distinct().Count() != active.Length || active.Any(id => !roster.Contains(id)))
@@ -93,17 +106,21 @@ public sealed class MischiefPokerMatch
         }
 
         // Validate everything before collecting any ante or replacing the previous result.
+        var nextDealer = _settlement?.NextDealer ?? _dealer;
+        if (!active.Contains(nextDealer.PlayerId))
+        {
+            // Include the departing dealer's old seat while choosing the successor.
+            int oldSeat = Array.IndexOf(_players, nextDealer.PlayerId);
+            int number = oldSeat < 0 ? 1 : _seatNumbers[oldSeat];
+            int successor = seating.Where(s => active.Contains(s.Item1))
+                .OrderBy(s => ((s.Item3 - number) * (int)nextDealer.Direction + 5) % 6 + 1).First().Item1;
+            nextDealer = new(successor, 1, nextDealer.Direction);
+        }
         _players = roster;
         _chips = balances;
+        _seatNumbers = seating.Select(s => s.Item3).ToArray();
         _now = nowSeconds;
-        if (_settlement != null) _dealer = _settlement.NextDealer;
-        if (!active.Contains(_dealer.PlayerId))
-        {
-            int oldSeat = Array.IndexOf(_players, _dealer.PlayerId);
-            int successor = Enumerable.Range(1, _players.Length)
-                .Select(step => Wrap(oldSeat + step * (int)_dealer.Direction)).First(seat => active.Contains(_players[seat]));
-            _dealer = new(_players[successor], 1, _dealer.Direction);
-        }
+        _dealer = nextDealer;
         _settlement = null;
         _deck = deck;
         _deckIndex = 0;
@@ -229,7 +246,7 @@ public sealed class MischiefPokerMatch
     {
         bool acting = _phase == PokerPhase.Acting;
         return new PokerPublicView(SessionId, _handNumber, _revision, _phase,
-            Copy(_players.Select((id, seat) => new PokerSeat(id, seat + 1, _chips[seat]))),
+            Copy(_players.Select((id, seat) => new PokerSeat(id, _seatNumbers[seat], _chips[seat]))),
             _dealer, Copy(_order.Select(seat => _players[seat])),
             Copy(_board.Select((card, slot) => new PokerBoardCard(card, _pending[slot]))),
             acting ? _players[_order[_turnIndex]] : null,

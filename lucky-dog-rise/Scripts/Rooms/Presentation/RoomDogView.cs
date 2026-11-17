@@ -16,6 +16,15 @@ public partial class RoomDogView : Node2D
     [Export] private Godot.Collections.Array<Button> _dogHits = new();
     [Export] private PackedScene _departureScene = null!;
     private DesktopRiseIntroController _departure;
+    private float _transitionTime, _departureProgress;
+    private bool _entering, _showName;
+    private Rect2 _transitionFootprint;
+    private Vector2 _transitionScale = Vector2.One;
+    public bool Departing { get; private set; }
+    public bool DepartureFinished => Departing && _transitionTime <= 0;
+    public bool Transitioning => _departure != null;
+    public long Presence => _member?.Presence ?? 0;
+    private const float MembershipAnimationSeconds = .8f;
     public event Action<string> SendRequested;
     private RoomMember _member;
     private bool _isLocal;
@@ -58,9 +67,10 @@ public partial class RoomDogView : Node2D
         _member = member;
         _name.Text = (owner ? "♛ " : "") + InGameRoomPreview.MemberName(member) + (local ? " · 本机" : "");
         FitCompanionName();
+        _showName = showName;
         _nameBar.Visible = showName && _departure == null;
         _currentBubble = bubble;
-        Chat.Present(local, IsPointerOverDog(), bubble);
+        if (!Transitioning) Chat.Present(local, IsPointerOverDog(), bubble);
     }
 
     public void SetDepartureProgress(float? progress)
@@ -72,10 +82,13 @@ public partial class RoomDogView : Node2D
             _departure.QueueFree();
             _departure = null;
             Dog.Show();
+            _nameBar.Visible = _showName;
             return;
         }
         if (_departure == null)
         {
+            _transitionFootprint = Footprint;
+            _transitionScale = Scale;
             _departure = _departureScene.Instantiate<DesktopRiseIntroController>();
             _departure.Name = "Departure";
             AddChild(_departure);
@@ -83,8 +96,35 @@ public partial class RoomDogView : Node2D
             Dog.Hide();
         }
         _nameBar.Hide();
+        PokerHand?.Hide();
         CloseChat();
+        _departureProgress = progress.Value;
         _departure.SeekReverse(progress.Value);
+    }
+
+    public void SetArrivalDepartureProgress(float progress)
+    {
+        _transitionTime = 0;
+        _entering = false;
+        SetDepartureProgress(progress);
+    }
+
+    public void BeginEntry()
+    {
+        _entering = true;
+        _transitionTime = MembershipAnimationSeconds;
+        SetDepartureProgress(1);
+    }
+
+    public bool BeginExit()
+    {
+        Departing = true;
+        // The staging host has already performed the same reverse animation.
+        if (!_entering && _departure != null && _departureProgress >= .99f) return false;
+        _entering = false;
+        _transitionTime = MembershipAnimationSeconds * (1 - (_departure != null ? _departureProgress : 0));
+        SetDepartureProgress(_departure != null ? _departureProgress : 0);
+        return _transitionTime > 0;
     }
 
     public void ApplyNameBarLayout(Rect2 idleRect, Font font, StyleBox style,
@@ -140,7 +180,14 @@ public partial class RoomDogView : Node2D
 
     public override void _Process(double delta)
     {
-        if (Visible && _isLocal && IsPointerOverDog()) Chat.Present(true, true, _currentBubble);
+        if (_transitionTime > 0)
+        {
+            _transitionTime = Mathf.Max(0, _transitionTime - (float)delta);
+            SetDepartureProgress(_entering ? _transitionTime / MembershipAnimationSeconds
+                : 1 - _transitionTime / MembershipAnimationSeconds);
+            if (_entering && _transitionTime == 0) { _entering = false; SetDepartureProgress(null); }
+        }
+        if (!Transitioning && Visible && _isLocal && IsPointerOverDog()) Chat.Present(true, true, _currentBubble);
     }
 
     private string _currentBubble = "";
@@ -153,6 +200,7 @@ public partial class RoomDogView : Node2D
     }
     public bool ContainsDogPoint(Vector2 windowPoint)
     {
+        if (Departing || Transitioning) return false;
         if (ContainsWindowPoint(PokerHand, windowPoint)) return true;
         foreach (var hit in _dogHits) if (ContainsWindowPoint(hit, windowPoint)) return true;
         return false;
@@ -165,6 +213,11 @@ public partial class RoomDogView : Node2D
     {
         get
         {
+            if (Transitioning)
+            {
+                var ratio = Scale / _transitionScale;
+                return new Rect2(_transitionFootprint.Position * ratio, _transitionFootprint.Size * ratio);
+            }
             var footprint = MeasureFootprint(_footprintSprites, _nameBar, Position);
             if (!PokerHand.IsVisibleInTree()) return footprint;
             var hand = PokerHand.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, PokerHand.Size);

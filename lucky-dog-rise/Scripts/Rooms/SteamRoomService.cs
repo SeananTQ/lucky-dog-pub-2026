@@ -28,8 +28,41 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         var owner = peers.FirstOrDefault(p => p.LocalId == client.View.OwnerId);
         return owner == null ? null : new Poker.PokerRoomContext(client.View.Code + ":" + client.View.GameId,
             _transport.LocalSteamId.ToString(), owner.Key, peers.ToArray(), client.View.GameId,
-            client.View.GameChange != null && client.GameChangeSecondsRemaining > 0);
+            client.View.GameChange != null && client.GameChangeSecondsRemaining > 0,
+            (minimum, preferred) => ReconcilePokerCompanions(client, minimum, preferred), _companionCapacityReady);
     });
+    private bool _companionCapacityReady = true;
+    private double _nextCapacityWrite;
+
+    private string[] ReconcilePokerCompanions(RoomClient client, int minimum, string[] preferred)
+    {
+        if (!ReferenceEquals(client, _client) || !_companionPlanAvailable || _lastRoomData is not { Game: "mischief" } data
+            || data.LobbyId != _lobby || data.OwnerId != _transport.LocalSteamId) return Array.Empty<string>();
+        var before = _companionPlan;
+        var next = before.WithHumanCount(data.Count, minimum, true,
+            before.MembersAt(_gameNow).Where(m => preferred.Contains("bot:" + m.Id)).Select(m => m.Id).ToArray());
+        if (ReferenceEquals(before, next)) return Array.Empty<string>();
+        _companionPlan = next;
+        // The owner applies the change locally once and retries only its metadata write.
+        // Poker records the retired seats before its next SyncMembers invocation.
+        Publish(data);
+        var remaining = next.MembersAt(_gameNow).Select(m => m.Id).ToHashSet();
+        return before.MembersAt(_gameNow).Where(m => !remaining.Contains(m.Id)).Select(m => "bot:" + m.Id).ToArray();
+    }
+
+    private void UpdateAdmissionLimit(SteamRoomData data)
+    {
+        if (data.OwnerId != _transport.LocalSteamId) return;
+        int desired = RoomRules.Capacity - (data.Game == "mischief" && _companionPlanAvailable ? _companionPlan.RemainingCount : 0);
+        _companionCapacityReady = data.AdmissionLimit <= desired;
+        if (data.AdmissionLimit == desired || Now < _nextCapacityWrite) return;
+        _nextCapacityWrite = Now + 2;
+        if (_transport.SetMemberLimit(data.LobbyId, desired))
+        {
+            _companionCapacityReady = true;
+            if (_lastRoomData?.LobbyId == data.LobbyId) _lastRoomData = _lastRoomData with { AdmissionLimit = desired };
+        }
+    }
     private enum DisconnectKind { NetworkLost, Terminal, SessionDisposed }
     private sealed class Pending(RoomClient client, RoomRequest request)
     {
@@ -345,7 +378,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 foreach (var id in (result.LobbyIds ?? []).Distinct().Take(50))
                 {
                     var data = _transport.ReadLobby(id, false);
-                    if (!Compatible(data) || data.Access != RoomAccess.Public || _blockedLobbies.Contains(id)
+                    if (!Compatible(data) || data.AdmissionLimit < RoomRules.Capacity && data.Count >= data.AdmissionLimit
+                        || data.Access != RoomAccess.Public || _blockedLobbies.Contains(id)
                         || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
                         || bans.Contains(_transport.LocalSteamId)) continue;
                     int visibleCount = data.Count;
@@ -357,7 +391,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                             companions = companions.SameGeneration(_companionPlan)
                                 ? companions.MergeRetirements(_companionPlan) : null;
                         if (companions != null)
-                            visibleCount += companions.WithHumanCount(data.Count).RemainingCount;
+                            visibleCount += (data.Game == "mischief" ? companions : companions.WithHumanCount(data.Count)).RemainingCount;
                     }
                     listings.Add(new RoomListing(SteamRoomProtocol.Encode(data.LobbyId), data.Name,
                         SteamRoomProtocol.IsGameValid(data.Game) ? data.Game : "social", visibleCount,
@@ -563,7 +597,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             && (_companionPlan == null || plan.SameGeneration(_companionPlan)))
         {
             if (_companionPlan != null) plan = plan.MergeRetirements(_companionPlan);
-            foreach (var bot in plan.WithHumanCount(voters.Count).MembersAt(_gameNow).OrderBy(m => m.Id))
+            foreach (var bot in (data.Game == "mischief" ? plan : plan.WithHumanCount(voters.Count)).MembersAt(_gameNow).OrderBy(m => m.Id))
                 voters.Add(new(0, Guid.Empty, bot.Id, bot.Presence));
         }
         return voters.Count is >= 1 and <= RoomRules.Capacity ? voters.ToArray() : null;
@@ -825,7 +859,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 if (!RoomCompanionPlan.TryRead(data.Companions, out var plan)
                     || _companionPlan != null && !plan.SameGeneration(_companionPlan))
                     return "Rooms_KickInvalidTarget";
-                plan = plan.MergeRetirements(_companionPlan).WithHumanCount(data.Count);
+                plan = plan.MergeRetirements(_companionPlan);
+                if (data.Game != "mischief") plan = plan.WithHumanCount(data.Count);
                 if (!plan.TryRetire(memberId, presence, out var retired)) return "Rooms_KickInvalidTarget";
                 bool written;
                 _companionWriteInProgress = true;
@@ -1056,6 +1091,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             UpdateCompanionPlan(data);
             _lastRoomData = data;
         }
+        UpdateAdmissionLimit(data);
         var present = data.Members.Where(m => !_banned.Contains(m.SteamId)).Select(m => m.SteamId).ToHashSet();
         foreach (var stale in _identities.Keys.Where(id => !present.Contains(id)).ToArray()) _identities.Remove(stale);
         foreach (var stale in _chatSessions.Keys.Where(id => !present.Contains(id)).ToArray()) _chatSessions.Remove(stale);
@@ -1130,7 +1166,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             _pendingCompanions = "";
             return;
         }
-        _companionPlan = incoming.MergeRetirements(_companionPlan).WithHumanCount(data.Count);
+        _companionPlan = incoming.MergeRetirements(_companionPlan);
+        if (data.Game != "mischief") _companionPlan = _companionPlan.WithHumanCount(data.Count);
         _companionPlanAvailable = true;
         var desired = _companionPlan.ToWire();
         if (data.OwnerId != _transport.LocalSteamId || desired == data.Companions)
@@ -1259,6 +1296,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                     if (_lobby == 0 || _lastRoomData == null) return;
                 }
                 FlushCompanionWrite(_lastRoomData);
+                UpdateAdmissionLimit(_lastRoomData);
                 AdvanceGameClock();
                 if (_gameState?.Proposal is { } proposal && _gameNow != _lastGameDisplaySecond)
                 {

@@ -592,6 +592,7 @@ public partial class RoomLab : Control
             GD.Print(RoomSandboxChecks.Run());
             RoomPokerChecks.Layout();
             GD.Print(RoomCompanionChecks.Run());
+            await CheckMembershipAnimations();
             SteamRoomChecks.Run();
             GD.Print(RoomReconnectChecks.Run());
             GD.Print(RoomArrivalChecks.Run());
@@ -606,6 +607,50 @@ public partial class RoomLab : Control
             GetTree().Quit();
         }
         catch (Exception ex) { GD.PushError(ex.ToString()); GetTree().Quit(1); }
+    }
+
+    private async System.Threading.Tasks.Task CheckMembershipAnimations()
+    {
+        var hub = new RoomSandbox();
+        int skin = LubanData.Tables.TbDogSkin.DataList[0].Id;
+        using var owner = hub.AddClient(101, "owner", skin);
+        using var guest = hub.AddClient(102, "guest", skin);
+        hub.Settings(owner).Latency = hub.Settings(guest).Latency = 0;
+        hub.Create(owner, "animation"); hub.Tick(0); hub.Join(guest, owner.JoinedCode); hub.Tick(0);
+        var scene = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDesktopPreview.tscn");
+        var first = scene.Instantiate<RoomDesktopPreview>(); AddChild(first);
+        var second = scene.Instantiate<RoomDesktopPreview>(); AddChild(second);
+        void Present(RoomDesktopPreview preview) => preview.Present(owner, new Rect2(0, 0, 1200, 800), 1, 300, 30, true);
+        try
+        {
+            Present(first);
+            var dog = first.RemoteDogs.Single();
+            Verify(dog.Transitioning && !dog.Dog.Visible, "new remote dog starts a rise using the captured remote pose");
+            Verify(dog.GetNode<DesktopRiseIntroController>("Departure").GetParent() == dog,
+                "membership animation is inside the avatar's canvas");
+            var footprint = dog.Footprint;
+            Verify(footprint.Size.X > 20 && footprint.Size.Y > 20, "entry keeps its full footprint while the original sprite is hidden");
+            Present(second);
+            Verify(!second.RemoteDogs.Single().Transitioning, "a second mode view does not replay entry for the same presence");
+            await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+            Present(first);
+            Verify(!dog.Transitioning && dog.Dog.Visible, "rise releases the temporary shell and restores the original dog");
+            guest.SetAppearance(skin, 0, 1003); hub.Tick(0); Present(first);
+            Verify(!dog.Transitioning, "appearance change does not replay entry");
+            hub.Leave(guest); hub.Tick(0); Present(first);
+            Verify(first.RemoteDogs.Count == 0 && dog.Departing && !dog.DepartureFinished,
+                "membership is removed immediately while the visual descends");
+            Verify(first.HitTest(dog.Position) == 0, "departing avatar cannot receive input");
+            await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+            Verify(!IsInstanceValid(dog), "departure frees its canvas after animation");
+            hub.Join(guest, owner.JoinedCode); hub.Tick(0); Present(first);
+            Verify(first.RemoteDogs.Single().Transitioning, "a new membership ticket replays entry");
+            first.Clear();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Verify(first.GetNode<CanvasLayer>("RemoteLayer").GetChildCount() == 0, "clearing a room also cancels active entrance shells");
+            GD.Print("[RoomMembershipAnimations] PASS entry, departure, noninteractive exit, mode handoff, appearance update and cleanup");
+        }
+        finally { first.Clear(); second.Clear(); first.QueueFree(); second.QueueFree(); }
     }
 
     private async void RunUiSmoke()

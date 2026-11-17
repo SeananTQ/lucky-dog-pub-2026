@@ -141,7 +141,7 @@ public partial class ModeManager
             if (!GodotObject.IsInstanceValid(dogs)) continue;
             foreach (var dog in dogs.RemoteDogs)
             {
-                if (!show) { dog.PokerHand.Hide(); continue; }
+                if (!show || dog.Transitioning) { dog.PokerHand.Hide(); continue; }
                 if (view == null) { dog.PokerHand.PresentWaiting(); continue; }
                 var result = view.Public.Settlement?.Players.FirstOrDefault(p => p.PlayerId == dog.MemberId);
                 dog.PokerHand.Present(view.Public, dog.MemberId, result?.HoleCards, _networkPokerTable.Emphasis,

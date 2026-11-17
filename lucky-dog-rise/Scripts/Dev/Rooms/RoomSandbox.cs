@@ -111,9 +111,10 @@ public sealed partial class RoomSandbox : IRoomService
         };
     }
 
-    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public && r.Members.Count < RoomRules.Capacity).OrderBy(r => r.Code)
+    private static int AdmissionLimit(Room room) => RoomRules.Capacity - (room.GameId == "mischief" ? room.Companions?.RemainingCount ?? 0 : 0);
+    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public && r.Members.Count < AdmissionLimit(r)).OrderBy(r => r.Code)
         .Select(r => new RoomListing(r.Code, r.Name, r.GameId,
-            r.Members.Count + (r.Companions?.WithHumanCount(r.Members.Count).RemainingCount ?? 0),
+            r.Members.Count + (r.Companions?.RemainingCount ?? 0),
             RoomRules.Capacity, r.Members.Count)).ToArray();
 
     private RoomListing[] Search(RoomClient client) => Search()
@@ -160,12 +161,12 @@ public sealed partial class RoomSandbox : IRoomService
             && !(room.Access == RoomAccess.FriendsOnly && room.Members.Keys.Any(id =>
                 _friends.Contains((Math.Min(id, client.Id), Math.Max(id, client.Id))))))
             return new RoomResult(RoomFailure.AccessDenied);
-        if (room.Members.Count >= RoomRules.Capacity) return new RoomResult(RoomFailure.Full);
+        if (room.Members.Count >= AdmissionLimit(room)) return new RoomResult(RoomFailure.Full);
         Leave(client);
         client.BeginSession(room.Code);
         room.Members.Add(client.Id, new RoomMember(client.Id, client.Name,
             client.SkinId, client.HeadwearId, client.Reaction, ++_nextPresence, client.ActivitySequence));
-        room.Companions = room.Companions?.WithHumanCount(room.Members.Count);
+        if (room.GameId != "mischief") room.Companions = room.Companions?.WithHumanCount(room.Members.Count);
         Broadcast(room);
         return RoomResult.Success;
     }
@@ -527,6 +528,7 @@ public sealed partial class RoomSandbox : IRoomService
     private void Broadcast(Room room)
     {
         UpdateGameChange(room);
+        if (room.GameId != "mischief") room.Companions = room.Companions?.WithHumanCount(room.Members.Count);
         room.LastCompanionMembers = room.Companions?.MembersAt((long)Now) ?? Array.Empty<RoomMember>();
         room.LastCompanionSecond = (long)Now;
         room.Revision++;

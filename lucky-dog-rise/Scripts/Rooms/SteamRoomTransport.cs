@@ -231,14 +231,18 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.NameKey),
             game,
             SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID, count,
-            SteamMatchmaking.GetLobbyMemberLimit(lobby), members.ToArray(),
+            RoomRules.Capacity, members.ToArray(),
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.BanListKey),
             SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey)),
-            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CompanionsKey), created, gameState);
+            SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.CompanionsKey), created, gameState,
+            SteamMatchmaking.GetLobbyMemberLimit(lobby));
     }
 
     public bool InitializeLobby(ulong lobbyId, string name)
         => InitializeLobby(lobbyId, name, RoomAccess.Public);
+
+    public bool SetMemberLimit(ulong lobbyId, int limit) => CanUseApi && limit is >= 1 and <= RoomRules.Capacity
+        && SteamMatchmaking.SetLobbyMemberLimit(new CSteamID(lobbyId), limit);
 
     public bool InitializeLobby(ulong lobbyId, string name, RoomAccess access)
     {

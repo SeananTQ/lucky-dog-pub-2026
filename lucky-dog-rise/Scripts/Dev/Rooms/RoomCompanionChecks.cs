@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using LuckyDogRise.Rooms.Poker;
 
 namespace LuckyDogRise.Rooms;
 
@@ -13,6 +14,9 @@ internal static class RoomCompanionChecks
     {
         CheckCreationAndWire();
         CheckRetirements();
+        CheckPokerRetirements();
+        CheckSandboxPokerCapacity();
+        CheckSandboxPokerHandoff();
         CheckArrivalHandoff();
         CheckActivity();
         return "Companion plans: fixed appearances, bounded v1/v2 codec, random-host arrival handoff, monotonic retirements, input-led mood rises and quiet cooldowns passed.";
@@ -185,6 +189,93 @@ internal static class RoomCompanionChecks
             "missing prior plan is harmless");
         Throws(() => original.WithHumanCount(-1), "negative real-member count rejected");
         Throws(() => original.WithHumanCount(RoomRules.Capacity + 1), "over-capacity real-member count rejected");
+    }
+
+    private static void CheckSandboxPokerHandoff()
+    {
+        var hub = new RoomSandbox();
+        using var owner = hub.AddClient(1, "owner", 1012);
+        hub.Settings(owner).Latency = 0;
+        hub.Create(owner, "companions", RoomCompanionPlan.Create([1012], [0], 0, 99).ForArrivalHandoff(-1)); hub.Tick(0);
+        owner.ProposeGameChange("mischief"); hub.Tick(1.2);
+        owner.ConfirmGameChange(owner.View.GameChange.Id); hub.Tick(0);
+        using var table = new PokerNetworkSession(owner.OpenPokerLink());
+        void Step(double seconds)
+        {
+            for (double t = 0; t < seconds; t += .05) { hub.Tick(.05); table.Tick(.05); }
+        }
+        Step(1.2);
+        Check(table.Start(), "production Mock link starts a companion table"); Step(3.2);
+        using var guest = hub.AddClient(2, "spectator", 1012);
+        hub.Settings(guest).Latency = 0;
+        hub.Join(guest, owner.JoinedCode);
+        for (int id = 3; id <= 4; id++) hub.Join(hub.AddClient(id, "spectator", 1012), owner.JoinedCode);
+        using var guestTable = new PokerNetworkSession(guest.OpenPokerLink());
+        Step(.1); guestTable.Tick(.1);
+        Check(owner.View.Members.Length == 6 && table.State.Players.Count(p => p.Companion) == 2,
+            "actual membership callbacks do not interrupt or trim an active companion hand");
+        table.SetPauseRequested(true);
+        for (int i = 0; i < 1000 && table.State.Hand.Public.Phase != PokerPhase.Settled; i++)
+        {
+            if (table.State.Hand.Public.ActivePlayerId == table.State.Hand.PlayerId) table.Act(PokerAction.EndTurn);
+            Step(.05);
+        }
+        Check(table.State.Hand.Public.Phase == PokerPhase.Settled, "actual Mock companion hand completes");
+        Step(PokerNetworkSession.PayoutDuration(table.State.Hand.Public) + .2); guestTable.Tick(.1);
+        Check(table.IsPaused && owner.View.Members.Length == 5 && table.State.RetiredCompanions.Length == 1
+            && guestTable.State.RetiredCompanions.Length == 1,
+            "room broadcast and private serialized result agree after deferred retirement");
+        guestTable.SetReady(true); Step(.2); guestTable.Tick(.1);
+        Check(table.Resume(), "actual spectator admission allows continuation after retirement");
+        Step(PokerNetworkSession.CollectionDuration + .3); guestTable.Tick(.1);
+        Check(table.State.Hand.Public.HandNumber == 2 && guestTable.IsInHand && guestTable.State.Hand.HoleCards.Count == 2
+            && guestTable.State.Hand.Public.Seats.Single(s => s.PlayerId == guestTable.State.Hand.PlayerId).Chips == 900,
+            "replacement participant receives a fresh bankroll and private hand through real Mock transport");
+    }
+
+    private static void CheckSandboxPokerCapacity()
+    {
+        var hub = new RoomSandbox();
+        using var owner = hub.AddClient(1, "owner", 1012);
+        hub.Settings(owner).Latency = 0;
+        hub.Create(owner, "companions", RoomCompanionPlan.Create([1012], [0], 0, 99).ForArrivalHandoff(-1));
+        hub.Tick(0);
+        Check(owner.ProposeGameChange("mischief") == "ok", "Mock owner can propose poker"); hub.Tick(1.2);
+        Check(owner.ConfirmGameChange(owner.View.GameChange.Id) == "ok", "Mock companions accept the poker switch"); hub.Tick(0);
+        using var link = owner.OpenPokerLink();
+        for (int id = 2; id <= 4; id++) Check(hub.Join(hub.AddClient(id, "spectator", 1012), owner.JoinedCode) == "", "Mock admits humans into vacant places");
+        hub.Tick(0);
+        Check(owner.View.Members.Length == 6 && hub.Search().Length == 0, "full in-hand Mock room disappears from discovery temporarily");
+        var fifth = hub.AddClient(5, "fifth", 1012);
+        Check(hub.Join(fifth, owner.JoinedCode) != "", "Mock rejects a seventh visible dog without evicting an active bot");
+        var retired = link.Context.ReconcileCompanions(1, ["-3"]); hub.Tick(0);
+        Check(retired.SequenceEqual(new[] { "-2" }) && hub.Search().Single().Count == 5,
+            "safe-boundary retirement reopens the Mock room with the correct displayed count");
+        Check(hub.Join(fifth, owner.JoinedCode) == "", "human can take the newly opened vacancy"); hub.Tick(0);
+        Check(link.Context.ReconcileCompanions(1, ["-3"]).Length == 1, "five humans retire the final bot despite a requested opponent"); hub.Tick(0);
+        Check(owner.View.Members.Length == 5 && owner.View.Members.All(m => !m.IsCompanion), "Mock final bot removal restores the open slot");
+    }
+
+    private static void CheckPokerRetirements()
+    {
+        var plan = RoomCompanionPlan.Create([1012], [0], 100, 99).ForArrivalHandoff(-1);
+        Check(plan.WithHumanCount(2, 1, true).RemainingCount == 1, "one real opponent replaces a surplus companion at a safe boundary");
+        var retained = plan.WithHumanCount(4, 1, true, [-3]);
+        Check(retained.RemainingCount == 1 && retained.MembersAt(200).Single().Id == -3,
+            "four humans with three spectators retain a funded companion and leave one slot open");
+        Check(plan.WithHumanCount(5, 1, true).RemainingCount == 0,
+            "open entrance outranks minimum participants at five humans; session must pause");
+        Check(plan.WithHumanCount(4, 0, true).RemainingCount == 0, "ready humans do not unnecessarily retain companions");
+        Check(retained.WithHumanCount(1, 2, true).RemainingCount == 1, "safe-boundary adjustment never respawns companions");
+        Check(retained.TryRetire(-3, retained.Seed, out var kicked) && kicked.RemainingCount == 0,
+            "host can explicitly remove a protected last companion");
+        for (int humans = 1; humans <= 6; humans++)
+        for (int minimum = 0; minimum <= 5; minimum++)
+        {
+            var next = plan.WithHumanCount(humans, minimum, true);
+            Check(next.RemainingCount == 0 || humans + next.RemainingCount <= 5,
+                "every boundary population with bots reserves a human slot");
+        }
     }
 
     private static void CheckActivity()

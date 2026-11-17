@@ -6,7 +6,8 @@ namespace LuckyDogRise.Rooms;
 public sealed record SteamRoomMemberData(ulong SteamId, string Name, string Appearance, string Activity = "", string ChatSession = "", string GameVote = "");
 public sealed record SteamRoomData(ulong LobbyId, string Protocol, string Name, string Game,
     ulong OwnerId, int Count, int Capacity, SteamRoomMemberData[] Members, string BannedMembers = "1:",
-    RoomAccess Access = RoomAccess.Public, string Companions = "", long? CreatedAt = null, string GameState = "");
+    RoomAccess Access = RoomAccess.Public, string Companions = "", long? CreatedAt = null, string GameState = "",
+    int AdmissionLimit = RoomRules.Capacity);
 public sealed record SteamRoomJoinResult(RoomFailure Failure, ulong LobbyId);
 public sealed record SteamRoomSearchResult(RoomFailure Failure, ulong[] LobbyIds);
 public enum SteamRoomDepartureKind { Left, Disconnected, Removed, Banned }
@@ -49,6 +50,7 @@ public interface ISteamRoomTransport : IDisposable
     // fails and native admission can no longer be confirmed against metadata.
     bool SetAccess(ulong lobbyId, RoomAccess access);
     bool SetCompanions(ulong lobbyId, string companions);
+    bool SetMemberLimit(ulong lobbyId, int limit) => false;
     bool SetBannedMembers(ulong lobbyId, string members);
     void SetAppearance(ulong lobbyId, string appearance);
     void SetActivity(ulong lobbyId, string activity);

@@ -43,6 +43,7 @@ public static class SteamRoomChecks
         CheckAccessAuthorityAndMigration();
         CheckAccessFailuresAndAdmission();
         CheckCompanionLifecycle();
+        CheckPokerCompanionCapacity();
         CheckCompanionMigrationAndFallback();
         CheckCompanionWritesAndActivityLease();
         CheckRoomRenaming();
@@ -248,6 +249,30 @@ public static class SteamRoomChecks
             "six real Steam members stay full even if old companion metadata remains in the lobby");
         Assert(transport.CompanionWriteAttempts == writes && transport.AppearanceWrites.Count == 1,
             "directory character counts require no extra member-data writes or companion heartbeats");
+    }
+
+    private static void CheckPokerCompanionCapacity()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport, companions: started => RoomCompanionPlan.Create([10], [0], started, 2026).ForArrivalHandoff(-1));
+        using var client = Client(service);
+        client.Create("poker companions"); transport.SucceedMembership(1603);
+        var room = transport.Rooms[1603];
+        transport.Rooms[1603] = room with { Game = "mischief", GameState = SteamRoomProtocol.EncodeGameState(new(2, "mischief")) };
+        transport.SetOwner(1603, room.OwnerId);
+        Assert(transport.Rooms[1603].AdmissionLimit == 4, "Steam reserves two human capacity places for in-hand companions");
+        foreach (ulong id in new ulong[] { 88, 99, 100 }) transport.SetRemote(1603, new(id, "spectator", "1:10:0:1001"));
+        Assert(client.View.Members.Length == 6 && client.View.Members.Count(m => m.IsCompanion) == 2,
+            "Steam membership arrivals do not locally retire participating companions");
+        using var link = service.OpenPokerLink(client);
+        var retired = link.Context.ReconcileCompanions(1, ["bot:-3"]);
+        Assert(retired.SequenceEqual(new[] { "bot:-2" }) && client.View.Members.Length == 5,
+            "authority safe-boundary callback preserves one companion and opens an entrance");
+        transport.Now += 3; client.AdvanceTo(transport.Now); service.Tick();
+        Assert(transport.Rooms[1603].AdmissionLimit == 5 && transport.Rooms[1603].Capacity == 6,
+            "native admission limit expands without changing displayed room capacity");
+        Assert(link.Context.ReconcileCompanions(1, ["bot:-3"]).Length == 0,
+            "repeat boundary checks do not duplicate retirement or metadata writes");
     }
 
     private static void CheckCompanionLifecycle()
@@ -1743,6 +1768,21 @@ public static class SteamRoomChecks
             ArrivalEvents.Add("companions");
             ChangeCompanions(lobbyId, companions, CompanionWriteNotifies);
             return true;
+        }
+        public bool SetMemberLimit(ulong lobbyId, int limit)
+        {
+            if (Rooms[lobbyId].OwnerId != LocalSteamId) return false;
+            Rooms[lobbyId] = Rooms[lobbyId] with { AdmissionLimit = limit };
+            return true;
+        }
+        public Poker.IPokerLink OpenPokerLink(Func<Poker.PokerRoomContext> context) => new FakePokerLink(context);
+        private sealed class FakePokerLink(Func<Poker.PokerRoomContext> context) : Poker.IPokerLink
+        {
+            public Poker.PokerRoomContext Context => context();
+            public event Action<string, byte[]> Received { add { } remove { } }
+            public bool Send(string recipient, byte[] bytes) => false;
+            public void Poll() { }
+            public void Dispose() { }
         }
         public void ChangeCompanions(ulong lobbyId, string companions, bool notify = true)
         {
