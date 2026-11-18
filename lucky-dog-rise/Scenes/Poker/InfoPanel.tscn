@@ -113,6 +113,8 @@ layout_mode = 2
 text = "88,888"
 label_settings = SubResource("LabelSettings_fok14")
 horizontal_alignment = 1
+vertical_alignment = 1
+clip_text = true
 
 [node name="SessionContent" type="VBoxContainer" parent="Panel/RootVBox"]
 visible = false

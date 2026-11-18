@@ -19,6 +19,7 @@ public static class InGameRoomSmoke
         || OS.GetCmdlineUserArgs().Contains("--rooms-poker-network-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-namebar-main-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--chips-display-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
@@ -34,6 +35,12 @@ public static class InGameRoomSmoke
             async Task Wait(double seconds) =>
                 await main.ToSignal(tree.CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
             await main.ToSignal(tree.CreateTimer(2), SceneTreeTimer.SignalName.Timeout);
+            if (OS.GetCmdlineUserArgs().Contains("--chips-display-main-smoke"))
+            {
+                await ChipDisplayChecks.Run(main);
+                tree.Quit();
+                return;
+            }
             var panel = main.SettingsPanelObj;
             panel.Open();
             await Frame();

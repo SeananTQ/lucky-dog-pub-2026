@@ -67,6 +67,7 @@ public partial class InfoPanelController : CanvasLayer
     private Color _defaultValueColor;
     private Color _normalChipsTextColor;
     private LabelSettings _chipsLabelSettings;
+    private int _normalChipsFontSize;
 
     private int _displayedChips;
     private Tween _chipsTween;
@@ -118,6 +119,12 @@ public partial class InfoPanelController : CanvasLayer
         {
             _normalChipsTextColor = _chipsLabel.GetThemeColor("font_color");
         }
+        _normalChipsFontSize = _chipsLabelSettings?.FontSize ?? _chipsLabel.GetThemeFontSize("font_size");
+        // Keep the authored row height while fitting long amounts. Otherwise shrinking
+        // the font would move everything below the balance during the count animation.
+        _chipsLabel.CustomMinimumSize = new Vector2(_chipsLabel.CustomMinimumSize.X,
+            Mathf.Max(_chipsLabel.CustomMinimumSize.Y, _chipsLabel.GetMinimumSize().Y));
+        _chipsLabel.Resized += FitChipsText;
 
         _settingsBtn.Pressed += () => EmitSignal(SignalName.SettingsRequested);
         _blindBoxBtn.Pressed += () => EmitSignal(SignalName.BlindBoxRequested);
@@ -268,14 +275,29 @@ public partial class InfoPanelController : CanvasLayer
     /// </summary>
     private void SetChipsText(int chips)
     {
-        if (_sessionDisplay) { _chipsLabel.Text = _sessionChips?.ToString("N0") ?? "—"; return; }
-        if (_gameData != null && chips < _gameData.BetAmount)
-        {
-            _chipsLabel.Text = $"{chips:N0}/{_gameData.BetAmount:N0}";
-            return;
-        }
+        _chipsLabel.Text = _sessionDisplay
+            ? _sessionChips?.ToString("N0") ?? "—"
+            : _gameData != null && chips < _gameData.BetAmount
+                ? $"{chips:N0}/{_gameData.BetAmount:N0}"
+                : chips.ToString("N0");
+        FitChipsText();
+    }
 
-        _chipsLabel.Text = chips.ToString("N0");
+    private void FitChipsText()
+    {
+        float width = _chipsLabel.Size.X - 2;
+        if (width <= 0 || _normalChipsFontSize <= 0) return;
+        var font = _chipsLabelSettings?.Font ?? _chipsLabel.GetThemeFont("font");
+        int size = _normalChipsFontSize;
+        while (size > 1 && font.GetStringSize(_chipsLabel.Text, fontSize: size).X > width) size--;
+        if (_chipsLabelSettings != null)
+        {
+            if (_chipsLabelSettings.FontSize != size) _chipsLabelSettings.FontSize = size;
+        }
+        else if (_chipsLabel.GetThemeFontSize("font_size") != size)
+        {
+            _chipsLabel.AddThemeFontSizeOverride("font_size", size);
+        }
     }
 
     /// <summary>
