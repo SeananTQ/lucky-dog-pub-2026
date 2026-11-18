@@ -60,8 +60,10 @@ public partial class SteamMockPanelController : CanvasLayer
     public override void _Ready()
     {
         _networkPokerTab.Visible = BuildCapabilities.SteamRooms;
-        _networkPokerHost.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, true);
-        _networkPokerGuest.Pressed += () => EmitSignal(SignalName.NetworkPokerMockRequested, false);
+        _networkPokerHost.Pressed += () => RequestNetworkPokerMock(true);
+        _networkPokerGuest.Pressed += () => RequestNetworkPokerMock(false);
+        SettingsManager.MischiefPokerEntryChanged += RefreshPokerEntry;
+        RefreshPokerEntry();
         _networkPokerChat.Toggled += enabled => EmitSignal(SignalName.NetworkPokerChatChanged, enabled);
         for (int i = 0; i < _networkRecoveryButtons.Count; i++)
         {
@@ -100,6 +102,25 @@ public partial class SteamMockPanelController : CanvasLayer
         Visible = false;
         SetProcess(false);
         SelectPage(MockPage.Steam);
+    }
+
+    public override void _ExitTree()
+    {
+        SettingsManager.MischiefPokerEntryChanged -= RefreshPokerEntry;
+    }
+
+    private void RequestNetworkPokerMock(bool localHost)
+    {
+        if (BuildCapabilities.CanInitiateMischiefPoker)
+            EmitSignal(SignalName.NetworkPokerMockRequested, localHost);
+    }
+
+    private void RefreshPokerEntry()
+    {
+        bool enabled = BuildCapabilities.CanInitiateMischiefPoker;
+        _networkPokerHost.Disabled = _networkPokerGuest.Disabled = !enabled;
+        _networkPokerHost.TooltipText = _networkPokerGuest.TooltipText = enabled ? ""
+            : "请先在 Debug 页开启「开放捣乱德州测试入口」。";
     }
 
     public override void _Process(double delta)

@@ -39,6 +39,8 @@ public static class RoomRules
     public const double CompanionVoteDelay = 1;
     public const string MischiefPoker = "mischief";
     public static bool IsRoomMode(string mode) => mode is "social" or "work" or MischiefPoker;
+    public static bool RequiresInviteOnly(string game, string proposedGame = null)
+        => game == MischiefPoker || proposedGame == MischiefPoker;
     public const int MaxNameCharacters = 40;
     public static bool TryNormalizeName(string value, out string name)
     {

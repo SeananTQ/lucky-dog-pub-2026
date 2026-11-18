@@ -14,6 +14,8 @@ public static class SettingsManager
     // Use a new key because older builds consumed the one-shot value by writing
     // false. Debug now defaults to showing the launcher until explicitly disabled.
     private const string KeyShowDeveloperLauncherOnStartup = "show_developer_launcher_on_startup";
+    private const string KeyMischiefPokerEntry = "mischief_poker_entry";
+    private static bool? _mischiefPokerEntry;
     private const string KeyReplayFirstUseGuidanceOnStartup = "replay_first_use_guidance_on_startup";
     private const string KeyRepeatPokerWelcomeOnStartup = "repeat_poker_welcome_on_startup";
     private const string KeyRepeatPokerQuickBarDiscoveryOnStartup = "repeat_poker_quick_bar_discovery_on_startup";
@@ -574,6 +576,26 @@ public static class SettingsManager
         return (bool)config.GetValue(SectionDebug, KeyShowDeveloperLauncherOnStartup, true);
     }
 
+    public static bool LoadMischiefPokerEntry()
+        => _mischiefPokerEntryForChecks ?? (_mischiefPokerEntry ??= (bool)Load().GetValue(SectionDebug, KeyMischiefPokerEntry, false));
+
+    // Main-scene checks must not write the developer's actual preference.
+    private static bool? _mischiefPokerEntryForChecks;
+    internal static bool? MischiefPokerEntryForChecks
+    {
+        get => _mischiefPokerEntryForChecks;
+        set { _mischiefPokerEntryForChecks = value; MischiefPokerEntryChanged?.Invoke(); }
+    }
+
+    public static void SaveMischiefPokerEntry(bool enabled)
+    {
+        var config = Load();
+        config.SetValue(SectionDebug, KeyMischiefPokerEntry, enabled);
+        config.Save(Path);
+        _mischiefPokerEntry = enabled;
+        MischiefPokerEntryChanged?.Invoke();
+    }
+
     public static void SaveShowDeveloperLauncherOnStartup(bool enabled)
     {
         var config = Load();
@@ -615,6 +637,10 @@ public static class SettingsManager
         CurrentDisplayMode = DisplayMode.Chips;
         var config = new ConfigFile();
         config.Save(Path);
+#if DEBUG
+        _mischiefPokerEntry = false;
+        MischiefPokerEntryChanged?.Invoke();
+#endif
         ApplyDisplayPerformanceSettings();
         PokerFrameRateChanged?.Invoke(LoadPokerFrameRate());
         ProactiveInteractionHintsChanged?.Invoke(true);
@@ -632,4 +658,11 @@ public static class SettingsManager
         }
         return config;
     }
+
+#if DEBUG
+    public static event System.Action MischiefPokerEntryChanged;
+#else
+    // The initiating preference cannot change in a retail build.
+    public static event System.Action MischiefPokerEntryChanged { add { } remove { } }
+#endif
 }

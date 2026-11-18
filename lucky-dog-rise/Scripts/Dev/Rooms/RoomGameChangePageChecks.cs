@@ -11,6 +11,8 @@ internal static class RoomGameChangePageChecks
 {
     public static async Task Run(Node parent)
     {
+        var oldPokerEntry = SettingsManager.MischiefPokerEntryForChecks;
+        SettingsManager.MischiefPokerEntryForChecks = false;
         var service = new Service();
         var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
         page.Theme = GD.Load<Theme>("res://Themes/DefaultTheme.tres");
@@ -48,6 +50,38 @@ internal static class RoomGameChangePageChecks
                 choice.GetPopup().Hide();
             }
             Check(!choice.Disabled && apply.Disabled && choice.Selected == 0, "owner starts with the confirmed room activity");
+            Check(choice.ItemCount == 2 && !client.CanInitiateMischiefPoker,
+                "public client offers only social/work initiation");
+            SettingsManager.MischiefPokerEntryForChecks = true;
+            await Frame();
+            Check(choice.ItemCount == 3 && client.CanInitiateMischiefPoker, "Dev toggle reveals poker immediately");
+            SelectGame(2);
+            SettingsManager.MischiefPokerEntryForChecks = false;
+            await Frame();
+            Click(apply);
+            Check(choice.ItemCount == 2 && choice.Selected == 0 && service.Proposal == null
+                && client.ProposeGameChange(RoomRules.MischiefPoker) != "ok",
+                "disabling removes stale poker selection and queued UI commands cannot initiate it");
+            service.Owner = 2;
+            service.StartProposal(RoomRules.MischiefPoker);
+            service.Publish(client);
+            await Frame();
+            Check(page.TryShowPendingGameProposal() && !primary.Disabled,
+                "invited public client can review a poker vote without enabling the Dev switch");
+            Click(primary);
+            Check(service.ResponseWrites == 1, "invited public client can accept the vote");
+            service.Game = RoomRules.MischiefPoker;
+            service.Proposal = null;
+            service.Publish(client);
+            await Frame();
+            Check(choice.ItemCount == 3 && choice.Selected == 2 && !client.CanInitiateMischiefPoker,
+                "active poker is accurately displayed without granting permanent initiation");
+            service.Game = "social";
+            service.Owner = 1;
+            service.ResponseWrites = 0;
+            service.Publish(client);
+            await Frame();
+            Check(choice.ItemCount == 2 && choice.Selected == 0, "leaving poker removes its public selection again");
             foreach (string nextLocale in RoomSettingsPageChecks.Locales)
             {
                 L10n.SetLocale(nextLocale, save: false);
@@ -178,12 +212,13 @@ internal static class RoomGameChangePageChecks
             Check(service.ResponseWrites == 2, "a queued answer cannot cross the captured room session");
             await Frame();
             Check(!overlay.Visible && !page.HasPendingGameProposalPresentation, "session replacement removes old proposal presentation");
-            GD.Print("[RoomGameChangePageChecks] PASS host/guest proposals, manual majority, cancellation, response/dismiss/review, expiry/session guards, draft retention, localized room age and two-row layout (fake service).");
+            GD.Print("[RoomGameChangePageChecks] PASS Dev entry toggles/stale selection, public invite vote/current mode, host/guest proposals, majority, cancellation, expiry/session guards, localized room age and layout (fake service).");
         }
         finally
         {
             L10n.SetLocale(locale, save: false);
             page.Free(); overlay.Free();
+            SettingsManager.MischiefPokerEntryForChecks = oldPokerEntry;
         }
     }
 

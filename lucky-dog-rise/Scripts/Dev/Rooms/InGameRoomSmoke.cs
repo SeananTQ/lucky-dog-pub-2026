@@ -24,6 +24,8 @@ public static class InGameRoomSmoke
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
     {
+        var oldPokerEntry = SettingsManager.MischiefPokerEntryForChecks;
+        SettingsManager.MischiefPokerEntryForChecks = true;
         try
         {
             var tree = main.GetTree();
@@ -1143,6 +1145,7 @@ public static class InGameRoomSmoke
             GD.PushError("[InGameRoomSmoke] FAIL: " + exception);
             main.GetTree().Quit(1);
         }
+        finally { SettingsManager.MischiefPokerEntryForChecks = oldPokerEntry; }
     }
     private static void Check(bool condition, string name)
     {

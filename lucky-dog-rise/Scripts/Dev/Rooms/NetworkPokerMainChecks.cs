@@ -104,6 +104,7 @@ internal static class NetworkPokerMainChecks
             Check(client.ConfirmGameChange(proposal) == "ok", "owner confirms game change");
             await Until(() => lobby.Session.CanStart && game.IsSessionPokerReserved, "accepted vote automatically prepares consenting members");
             var session = lobby.Session;
+            SettingsManager.MischiefPokerEntryForChecks = false;
             await Wait(1.2);
             Check(game.State == GameState.WaitingForBet && data.Chips == soloChips, "unfinished solo hand discarded without refund or late reward");
             var info = main.GetNode<InfoPanelController>("InfoPanel");
@@ -131,6 +132,9 @@ internal static class NetworkPokerMainChecks
             var pause = pokerPanel.GetNode<Button>("Actions/Primary");
             Check(main.PokerPreviewForSmoke == null, "formal game is independent of the manual local preview");
             Check(session.State.Hand.Public.Pot == 300 && session.State.Hand.HoleCards.Count == 2, "initial ante and own two private cards");
+            Check(!client.CanInitiateMischiefPoker && gameChoice.Selected == 2,
+                "closing the Dev entry leaves the real preparation/start/gameplay UI available in its current room");
+            SettingsManager.MischiefPokerEntryForChecks = true;
             await Until(() => main.RoomPokerDogsForSmoke?.RemoteDogs.Count() == 2, "remote dogs have table presentations");
             Check(main.RoomPokerDogsForSmoke.RemoteDogs.All(d => d.PokerHand.Visible && !d.PokerHand.CardsRevealed), "opponents show backs during play");
             Check(game.RoomPokerDog.RoomPokerReaction == DataTables.EDogReactionTrigger.Default
@@ -286,7 +290,7 @@ internal static class NetworkPokerMainChecks
             Check(game.IsSessionPokerActive && table.Round.DisplayView.Public.HandNumber == 3 && data.Chips == soloChips,
                 "closing a box shows the latest hand without changing personal assets");
 
-            var late = page.AddMockClientForSmoke(4); late.Join(client.JoinedCode);
+            var late = page.AddMockClientForSmoke(4); page.InviteMockClientForSmoke(late); late.Join(client.JoinedCode);
             await Until(() => session.State.Players.Length == 4, "late room join is tracked separately from current hand");
             Check(session.State.Hand.Public.Seats.Count == 3, "late member waits for host restart");
             await Until(() => main.RoomPokerDogsForSmoke.RemoteDogs.Any(d => d.MemberId == 4 && d.PokerHand.IsWaiting), "late dog displays waiting instead of private cards");

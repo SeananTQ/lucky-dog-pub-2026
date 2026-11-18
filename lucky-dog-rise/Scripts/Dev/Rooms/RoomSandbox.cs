@@ -66,10 +66,12 @@ public sealed partial class RoomSandbox : IRoomService
     // Opt-in C-stage feature. The A-stage lab keeps independent human simulators.
     public Func<long, RoomCompanionPlan> CompanionFactory { get; set; }
 
-    public RoomClient AddClient(int id, string name, int skinId)
+    public RoomClient AddClient(int id, string name, int skinId, Func<bool> canInitiateMischiefPoker = null)
     {
         if (id <= 0 || _clients.ContainsKey(id)) throw new ArgumentException("Invalid or duplicate client identity.");
-        var client = new RoomClient(this, id, name, skinId);
+        // Standalone rule labs opt in; the real game's local Mock client passes
+        // the same Dev preference as the Steam client.
+        var client = new RoomClient(this, id, name, skinId, canInitiateMischiefPoker ?? (() => true));
         _clients.Add(id, client);
         _settings.Add(id, new MockRoomSettings());
         client.AdvanceTo(Now);
@@ -112,7 +114,9 @@ public sealed partial class RoomSandbox : IRoomService
     }
 
     private static int AdmissionLimit(Room room) => RoomRules.Capacity - (room.GameId == "mischief" ? room.Companions?.RemainingCount ?? 0 : 0);
-    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public && r.Members.Count < AdmissionLimit(r)).OrderBy(r => r.Code)
+    public RoomListing[] Search() => _rooms.Values.Where(r => r.Access == RoomAccess.Public
+        && !RoomRules.RequiresInviteOnly(r.GameId, r.GameChange?.TargetGameId)
+        && r.Members.Count < AdmissionLimit(r)).OrderBy(r => r.Code)
         .Select(r => new RoomListing(r.Code, r.Name, r.GameId,
             r.Members.Count + (r.Companions?.RemainingCount ?? 0),
             RoomRules.Capacity, r.Members.Count)).ToArray();
@@ -242,9 +246,11 @@ public sealed partial class RoomSandbox : IRoomService
         if (room.Owner != client.Id) return "Rooms_GameChangeNotOwner";
         if (!RoomRules.IsRoomMode(targetGameId) || room.GameId == targetGameId)
             return "Rooms_GameChangeInvalidMode";
+        if (!client.CanProposeGame(targetGameId)) return "Rooms_GameChangeUnavailable";
         if (UpdateGameChange(room)) Broadcast(room);
         if (room.GameChange != null) return "Rooms_GameChangeAlreadyPending";
         if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
+        if (targetGameId == RoomRules.MischiefPoker) room.Access = RoomAccess.InviteOnly;
         var votes = DisplayMembers(room).Select(member => new RoomGameVote(member.Id, member.Presence,
             member.Id == room.Owner ? RoomGameVoteState.Accepted : RoomGameVoteState.Pending)).ToArray();
         room.GameChange = new RoomGameChange($"mock-{++_nextGameChange}", targetGameId,
@@ -285,6 +291,7 @@ public sealed partial class RoomSandbox : IRoomService
         if (room.Owner != client.Id) return "Rooms_GameChangeNotOwner";
         error = CurrentGameChange(room, proposalId);
         if (error.Length > 0) return error;
+        if (!client.CanProposeGame(room.GameChange.TargetGameId)) return "Rooms_GameChangeUnavailable";
         if (!room.GameChange.HasMajority) return "Rooms_GameChangeNoMajority";
         if (FailGameChange(client)) return "Rooms_GameChangeUpdateFailed";
         room.GameId = room.GameChange.TargetGameId;
@@ -385,6 +392,8 @@ public sealed partial class RoomSandbox : IRoomService
             || client.IsBusy) return "Rooms_AccessUnavailable";
         if (room.Owner != client.Id) return "Rooms_AccessNotOwner";
         if (!Enum.IsDefined(access)) return "Rooms_AccessUpdateFailed";
+        if (access != RoomAccess.InviteOnly && RoomRules.RequiresInviteOnly(room.GameId, room.GameChange?.TargetGameId))
+            return "Rooms_AccessInviteOnly";
         if (Settings(client).NextFailure != MockRoomFailure.None)
         {
             Settings(client).NextFailure = MockRoomFailure.None;

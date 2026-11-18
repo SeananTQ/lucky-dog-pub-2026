@@ -16,7 +16,8 @@ internal static class RoomGameChangeChecks
         CheckWorkChat();
         CheckChatAcrossDelayedModeChanges();
         CheckRoomClock();
-        return "ROOM_GAME_CHANGE_PASS: all-member majority, manual commit, companion delay, timeout/cancel, stale proposals, roster changes, work chat and room age.";
+        CheckInviteTestBoundary();
+        return "ROOM_GAME_CHANGE_PASS: majority, vote lifecycle, work chat, room age, Dev initiation gate, invite-only discovery/admission, public participation and successor management.";
     }
 
     private static (RoomSandbox Server, RoomClient[] Players) CreateRoom(int humans, bool companions = false)
@@ -272,6 +273,66 @@ internal static class RoomGameChangeChecks
         server.Tick(4);
         Check(delayed.View.GameId == "social" && delayed.Bubbles.Count == 0,
             "coalesced work-to-social snapshots cannot resurrect a queued pre-work message");
+    }
+
+    private static void CheckInviteTestBoundary()
+    {
+        var server = new RoomSandbox();
+        bool enabled = false;
+        using var host = server.AddClient(1, "Dev host", 1012, () => enabled);
+        using var publicPlayer = server.AddClient(2, "invited player", 1012, () => false);
+        using var outsider = server.AddClient(3, "public browser", 1012, () => false);
+        server.Create(host, "invite test"); server.Tick(0);
+        Check(host.ProposeGameChange(RoomRules.MischiefPoker) != "ok"
+            && server.ProposeGameChange(host, RoomRules.MischiefPoker) != "ok",
+            "disabled entry is enforced by both the client and Mock service");
+        server.Join(publicPlayer, host.JoinedCode); server.Tick(0);
+        enabled = true;
+        string proposal = Propose(server, host, RoomRules.MischiefPoker);
+        Check(host.View.Access == RoomAccess.InviteOnly && server.Search().Length == 0
+            && host.SetAccess(RoomAccess.Public) != "ok", "test vote immediately hides the room and locks its access");
+        Check(publicPlayer.RespondGameChange(proposal, true) == "ok", "public player may accept poker");
+        server.Tick(0);
+        enabled = false;
+        Check(!host.CanConfirmGameChange && host.ConfirmGameChange(proposal) != "ok"
+            && server.ConfirmGameChange(host, proposal) != "ok", "turning off entry also blocks a stale confirmation");
+        enabled = true;
+        Check(host.ConfirmGameChange(proposal) == "ok", "enabled host starts the test mode"); server.Tick(0);
+        enabled = false;
+        using (var hostTable = new Poker.PokerNetworkSession(host.OpenPokerLink()))
+        using (var guestTable = new Poker.PokerNetworkSession(publicPlayer.OpenPokerLink()))
+        {
+            void Step()
+            {
+                for (int i = 0; i < 20; i++) { server.Tick(.05); hostTable.Tick(.05); guestTable.Tick(.05); }
+            }
+            Step();
+            Check(hostTable.CanStart, "disabling entry preserves accepted-vote readiness and host start");
+            Check(hostTable.Start(), "disabled Dev host may still start its current test room"); Step();
+            Check(guestTable.IsParticipant && guestTable.State.Hand.HoleCards.Count == 2,
+                "public invited participant receives private cards without initiation permission");
+        }
+        outsider.FindAndJoin(); server.Tick(0);
+        Check(outsider.JoinedCode.Length == 0, "random join cannot discover a test room");
+        server.Join(outsider, host.JoinedCode); server.Tick(0);
+        Check(outsider.JoinedCode.Length == 0, "room code alone does not grant an invitation");
+        server.GrantInvitation(host.JoinedCode, outsider);
+        server.Join(outsider, host.JoinedCode); server.Tick(0);
+        Check(outsider.View?.GameId == RoomRules.MischiefPoker && !outsider.CanInitiateMischiefPoker,
+            "explicit invitation admits a public client without unlocking its menu");
+        host.Leave(); server.Tick(0);
+        Check(publicPlayer.View.OwnerId == publicPlayer.Id && publicPlayer.View.Access == RoomAccess.InviteOnly,
+            "public successor retains the current test mode and invite-only privacy");
+        Check(publicPlayer.SetAccess(RoomAccess.Public) != "ok", "successor cannot publish an active test room");
+        proposal = Propose(server, publicPlayer, "social");
+        outsider.RespondGameChange(proposal, true); server.Tick(0);
+        Check(publicPlayer.ConfirmGameChange(proposal) == "ok", "public successor can leave the test mode"); server.Tick(0);
+        Check(publicPlayer.View.Access == RoomAccess.InviteOnly && publicPlayer.SetAccess(RoomAccess.Public) == "ok",
+            "return to social stays private until the owner explicitly publishes it");
+        publicPlayer.Leave(); server.Tick(0); publicPlayer.Create("ordinary new room"); server.Tick(0);
+        Check(publicPlayer.View.GameId == "social" && publicPlayer.View.Access == RoomAccess.Public
+            && publicPlayer.ProposeGameChange(RoomRules.MischiefPoker) != "ok",
+            "new room has ordinary access and no inherited test initiation grant");
     }
 
     private static void Check(bool condition, string message)

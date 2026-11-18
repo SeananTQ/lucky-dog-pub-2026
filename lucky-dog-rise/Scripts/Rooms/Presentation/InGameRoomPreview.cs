@@ -206,7 +206,8 @@ public partial class InGameRoomPreview : VBoxContainer
         _displayMode.AddItem("", (int)RoomDisplayMode.FullScreenFree);
         _displayMode.AddItem("", (int)RoomDisplayMode.HalfScreenCompact);
         _displayMode.ItemSelected += SelectDisplayMode;
-        _pokerPreviewButton.Pressed += () => { if (_isMock) PokerPreviewRequested?.Invoke(_client); };
+        _pokerPreviewButton.Pressed += () =>
+        { if (_isMock && _client?.CanInitiateMischiefPoker == true) PokerPreviewRequested?.Invoke(_client); };
         RenderDisplayMode();
         _refresh.Pressed += RefreshRooms;
         _cancel.Pressed += () => _client?.Cancel();
@@ -239,6 +240,7 @@ public partial class InGameRoomPreview : VBoxContainer
         InitializeArrivalControls();
         InitializeGameControls();
         L10n.Changed += OnLanguageChanged;
+        SettingsManager.MischiefPokerEntryChanged += OnMischiefPokerEntryChanged;
         InitializeMock();
         RefreshService();
         _dirty = true;
@@ -280,6 +282,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _exitingTree = true;
         Reconnect?.Clear();
         L10n.Changed -= OnLanguageChanged;
+        SettingsManager.MischiefPokerEntryChanged -= OnMischiefPokerEntryChanged;
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         ReplaceClient(null);
         BindKickConfirmation(null);
@@ -320,7 +323,8 @@ public partial class InGameRoomPreview : VBoxContainer
         _service = current;
         if (current == null) return;
         var name = string.IsNullOrWhiteSpace(_platform.PersonaName) ? L10n.Tr("Rooms_You") : _platform.PersonaName;
-        var client = new RoomClient(current, 1, name, LubanData.Tables.TbDogSkin.DataList[0].Id);
+        var client = new RoomClient(current, 1, name, LubanData.Tables.TbDogSkin.DataList[0].Id,
+            () => BuildCapabilities.CanInitiateMischiefPoker);
         client.AdvanceTo(current.Now);
         ReplaceClient(client, preservePokerRecovery: Reconnect?.IsPending == true);
         // A known invite already supplies the target. Do not put an unnecessary
@@ -521,7 +525,9 @@ public partial class InGameRoomPreview : VBoxContainer
         if (!ReferenceEquals(client, _client) || client == null || client.Session != session
             || client.JoinedCode.Length == 0 || client.IsBusy || client.View == null)
             return "Rooms_AccessUnavailable";
-        return client.View.OwnerId == client.Id ? "" : "Rooms_AccessNotOwner";
+        if (client.View.OwnerId != client.Id) return "Rooms_AccessNotOwner";
+        return RoomRules.RequiresInviteOnly(client.View.GameId, client.View.GameChange?.TargetGameId)
+            ? "Rooms_AccessInviteOnly" : "";
     }
 
     private void RememberAccessContext()
@@ -563,8 +569,8 @@ public partial class InGameRoomPreview : VBoxContainer
             _access.SetItemText(_access.GetItemIndex((int)value), L10n.Tr(AccessKey(value)));
         _access.Select(_access.GetItemIndex((int)access));
         _access.Disabled = AccessError(_client, _client?.Session ?? 0).Length > 0;
-        _access.TooltipText = _client?.View != null && _client.View.OwnerId != _client.Id
-            ? L10n.Tr("Rooms_AccessNotOwner") : "";
+        string error = AccessError(_client, _client?.Session ?? 0);
+        _access.TooltipText = _client?.View != null && error.Length > 0 ? L10n.Tr(error) : "";
         if (_access.Disabled) CloseAccessChoices();
     }
 
@@ -840,7 +846,7 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void Render()
     {
-        _pokerPreviewButton.Visible = _isMock;
+        _pokerPreviewButton.Visible = _isMock && _client?.CanInitiateMischiefPoker == true;
         _pokerPreviewButton.Text = RoomPokerText.T("捣乱德州 · 本机试玩", "Poker · Local preview");
         _pokerPreviewButton.Disabled = _client?.View == null || _client.IsBusy || _client.IsLocalArrival || _client.View.Members.Length < 2;
         RenderDisplayMode();

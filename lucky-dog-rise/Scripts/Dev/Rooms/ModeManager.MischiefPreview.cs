@@ -29,6 +29,7 @@ public partial class ModeManager
             if (CurrentMode == Mode.Play) _settingsPanel.CloseImmediate();
             return;
         }
+        if (client?.CanInitiateMischiefPoker != true) return;
         if (_steamMockPanel == null || client != _desktopRoomClient || client.View == null || client.IsBusy || client.IsLocalArrival
             || client.View.Members.Length < 2 || UiInteractionOccupancy.IsOccupied(this)) return;
         if (_settingsPanel.RoomPokerLobby?.Session?.State?.Status is PokerTableStatus.Preparing or PokerTableStatus.Playing) return;

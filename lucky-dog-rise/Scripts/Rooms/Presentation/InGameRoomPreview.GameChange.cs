@@ -7,7 +7,9 @@ namespace LuckyDogRise.Rooms;
 
 public partial class InGameRoomPreview
 {
-    private static readonly string[] SelectableGames = ["social", "work", RoomRules.MischiefPoker];
+    private static readonly string[] PublicGames = ["social", "work"];
+    private static readonly string[] AllGames = ["social", "work", RoomRules.MischiefPoker];
+    private string[] _selectableGames = PublicGames;
     private OptionButton _gameChoice;
     private TextureRect _gameIcon;
     private Button _gameApply;
@@ -56,7 +58,6 @@ public partial class InGameRoomPreview
         _gameChoice = GetNode<OptionButton>("Room/Game/Choices/Current");
         _gameIcon = GetNode<TextureRect>("Room/Game/Choices/Icon");
         _gameApply = GetNode<Button>("Room/Game/Choices/Apply");
-        for (int i = 0; i < SelectableGames.Length; i++) _gameChoice.AddItem(GameName(SelectableGames[i]), i);
         GamePopup.AboutToPopup += RememberGameContext;
         GamePopup.PopupHide += () =>
         {
@@ -72,8 +73,8 @@ public partial class InGameRoomPreview
         {
             if (!ReferenceEquals(_gameSelectionClient, _client) || _client == null
                 || _client.Session != _gameSelectionSession || GameEditError().Length > 0
-                || index < 0 || index >= SelectableGames.Length) { RenderGameControls(); return; }
-            _gameDraft = SelectableGames[(int)index];
+                || index < 0 || index >= _selectableGames.Length) { RenderGameControls(); return; }
+            _gameDraft = _selectableGames[(int)index];
             RenderGameControls();
         };
         _gameApply.Pressed += RequestGameChange;
@@ -115,6 +116,16 @@ public partial class InGameRoomPreview
         if (_gameChoice == null) return;
         var view = _client?.View;
         string actual = view?.GameId ?? "social";
+        var choices = _client?.CanInitiateMischiefPoker == true || actual == RoomRules.MischiefPoker
+            ? AllGames : PublicGames;
+        if (!ReferenceEquals(_selectableGames, choices) || _gameChoice.ItemCount != choices.Length)
+        {
+            CloseGameChoices();
+            _selectableGames = choices;
+            _gameChoice.Clear();
+            for (int i = 0; i < choices.Length; i++) _gameChoice.AddItem(GameName(choices[i]), i);
+            if (!choices.Contains(_gameDraft)) _gameDraft = actual;
+        }
         if (!ReferenceEquals(_gameDraftClient, _client) || _gameDraftSession != (_client?.Session ?? 0)
             || _gameDraftOwner != (view?.OwnerId ?? 0) || _gameConfirmed != actual)
         {
@@ -125,8 +136,8 @@ public partial class InGameRoomPreview
             _gameDraft = actual;
             CloseGameChoices();
         }
-        for (int i = 0; i < SelectableGames.Length; i++) _gameChoice.SetItemText(i, GameName(SelectableGames[i]));
-        _gameChoice.Select(Math.Max(0, Array.IndexOf(SelectableGames, _gameDraft)));
+        for (int i = 0; i < _selectableGames.Length; i++) _gameChoice.SetItemText(i, GameName(_selectableGames[i]));
+        _gameChoice.Select(Math.Max(0, Array.IndexOf(_selectableGames, _gameDraft)));
         _game.Text = L10n.Tr("Rooms_GameTitle");
         _gameIcon.Texture = GameIcon(_gameDraft);
         string error = GameEditError();
@@ -137,6 +148,12 @@ public partial class InGameRoomPreview
         _gameApply.Text = L10n.Tr(canReview ? "Rooms_GameChangeReview" : "Rooms_GameChangePropose");
         _gameApply.Disabled = !canReview && (error.Length > 0 || _gameDraft == actual);
         if (_gameChoice.Disabled) CloseGameChoices();
+    }
+
+    private void OnMischiefPokerEntryChanged()
+    {
+        CloseGameChoices();
+        _dirty = true;
     }
 
     private void RequestGameChange()

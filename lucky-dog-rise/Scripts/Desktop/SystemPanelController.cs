@@ -51,6 +51,7 @@ public partial class SystemPanelController : CanvasLayer
     [Export] private Label _autoChatLabel = null!;
     [Export] private CheckButton _autoChatToggle = null!;
     [Export] private CheckButton _disableGlobalMouseListeningToggle = null!;
+    [Export] private CheckButton _mischiefPokerEntryToggle = null!;
     [Export] private Button _updateAndRestartButton = null!;
     [Export] private Label _updateAndRestartStatusLabel = null!;
     [Export] private Button _exportDiagnosticsButton = null!;
@@ -720,6 +721,9 @@ public partial class SystemPanelController : CanvasLayer
             EmitSignal(SignalName.SteamMockPanelVisibilityChanged, visible);
         _showDeveloperLauncherNextStartupToggle.ButtonPressed = SettingsManager.LoadShowDeveloperLauncherOnStartup();
         _showDeveloperLauncherNextStartupToggle.Toggled += SettingsManager.SaveShowDeveloperLauncherOnStartup;
+        _mischiefPokerEntryToggle.GetParent<Control>().Visible = BuildCapabilities.SteamRooms;
+        _mischiefPokerEntryToggle.SetPressedNoSignal(SettingsManager.LoadMischiefPokerEntry());
+        _mischiefPokerEntryToggle.Toggled += SettingsManager.SaveMischiefPokerEntry;
         _replayFirstUseGuidanceOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadReplayFirstUseGuidanceOnStartup());
         _replayFirstUseGuidanceOnStartupToggle.Toggled += SettingsManager.SaveReplayFirstUseGuidanceOnStartup;
         wishlistPageOpenedDebugRow.Visible = BuildCapabilities.CollectionEvents;
@@ -4146,6 +4150,7 @@ public partial class SystemPanelController : CanvasLayer
             : (int)SettingsManager.LoadSaveDataMode());
         _showDeveloperLauncherNextStartupToggle.SetPressedNoSignal(
             SettingsManager.LoadShowDeveloperLauncherOnStartup());
+        _mischiefPokerEntryToggle.SetPressedNoSignal(SettingsManager.LoadMischiefPokerEntry());
         _replayFirstUseGuidanceOnStartupToggle.SetPressedNoSignal(SettingsManager.LoadReplayFirstUseGuidanceOnStartup());
 #endif
         RefreshLocalizedOptionText();

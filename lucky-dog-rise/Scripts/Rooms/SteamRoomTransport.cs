@@ -302,6 +302,9 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         var lobby = new CSteamID(lobbyId);
         if (!SteamRoomProtocol.IsAccessValid(access)
             || SteamMatchmaking.GetLobbyOwner(lobby).m_SteamID != LocalSteamId) return false;
+        if (access != RoomAccess.InviteOnly
+            && SteamRoomProtocol.TryDecodeGameState(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.GameKey), out var game)
+            && RoomRules.RequiresInviteOnly(game.Game, game.Proposal?.Target)) return false;
         var previous = SteamRoomProtocol.DecodeAccess(
             SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey));
         return SteamRoomProtocol.WriteAccess(previous, access,

@@ -379,7 +379,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 {
                     var data = _transport.ReadLobby(id, false);
                     if (!Compatible(data) || data.AdmissionLimit < RoomRules.Capacity && data.Count >= data.AdmissionLimit
-                        || data.Access != RoomAccess.Public || _blockedLobbies.Contains(id)
+                        || data.Access != RoomAccess.Public || RequiresInviteOnly(data) || _blockedLobbies.Contains(id)
                         || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
                         || bans.Contains(_transport.LocalSteamId)) continue;
                     int visibleCount = data.Count;
@@ -454,6 +454,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             }
             // The stored policy survives the former host. Reconcile native
             // admission once when joining as owner, before committing our view.
+            if (RequiresInviteOnly(data)) data = data with { Access = RoomAccess.InviteOnly };
             if (data.OwnerId == _transport.LocalSteamId
                 && !_transport.SetAccess(result.LobbyId, data.Access))
             {
@@ -647,6 +648,16 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         try
         {
             string wire = SteamRoomProtocol.EncodeGameState(next);
+            // Hide the room before advertising the vote, not just after the game starts.
+            // A cancelled/failed vote deliberately leaves it private; only the owner
+            // can explicitly publish the social room again.
+            if (RoomRules.RequiresInviteOnly(next.Game, next.Proposal?.Target)
+                && data.Access != RoomAccess.InviteOnly)
+            {
+                if (!_transport.SetAccess(lobby, RoomAccess.InviteOnly)) return "Rooms_AccessUpdateFailed";
+                data = data with { Access = RoomAccess.InviteOnly };
+                Publish(data);
+            }
             if (!_transport.SetGameState(lobby, wire)) return "Rooms_GameChangeUpdateFailed";
             if (_lobby != lobby) return "Rooms_GameChangeUnavailable";
             _gameState = next;
@@ -677,6 +688,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             var error = ReadGame(client, true, out var data);
             if (error.Length > 0) return error;
             if (!RoomRules.IsRoomMode(gameId) || gameId == _gameState.Game) return "Rooms_GameChangeInvalidMode";
+            if (!client.CanProposeGame(gameId)) return "Rooms_GameChangeUnavailable";
             if (_gameState.Proposal is { } current && ProposalMatches(data, current) && _gameNow < current.ExpiresAt)
                 return "Rooms_GameChangeAlreadyPending";
             var voters = CurrentVoters(data);
@@ -714,6 +726,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         {
             var error = GetProposal(client, proposalId, true, out var data, out var proposal);
             if (error.Length > 0) return error;
+            if (!client.CanProposeGame(proposal.Target)) return "Rooms_GameChangeUnavailable";
             if (BuildGameChange(data)?.HasMajority != true) return "Rooms_GameChangeNoMajority";
             return WriteGame(data, new(checked(_gameState.Revision + 1), proposal.Target));
         }
@@ -827,6 +840,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             var data = _transport.ReadLobby(lobby, false);
             if (data?.OwnerId != _transport.LocalSteamId) return "Rooms_AccessNotOwner";
             if (!Compatible(data)) return "Rooms_AccessUnavailable";
+            if (access != RoomAccess.InviteOnly && RequiresInviteOnly(data)) return "Rooms_AccessInviteOnly";
             if (data.Access == access) return "ok";
             if (!_transport.SetAccess(lobby, access)) return "Rooms_AccessUpdateFailed";
             OnLobbyChanged(lobby);
@@ -1060,18 +1074,32 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 return;
             }
             if (!ApplyBans(bans)) return;
-            if (data.OwnerId != _accessOwner)
+            bool needsPrivate = RequiresInviteOnly(data);
+            if (data.OwnerId != _accessOwner || needsPrivate && data.Access != RoomAccess.InviteOnly)
             {
-                if (data.OwnerId == _transport.LocalSteamId && !_transport.SetAccess(_lobby, data.Access))
+                var access = needsPrivate ? RoomAccess.InviteOnly : data.Access;
+                if (data.OwnerId == _transport.LocalSteamId && !_transport.SetAccess(_lobby, access))
                 {
                     Disconnect();
                     return;
                 }
+                data = data with { Access = access };
                 _accessOwner = data.OwnerId;
             }
             Publish(data);
         }
         catch { DisconnectForCurrentAvailability(); }
+    }
+
+    private bool RequiresInviteOnly(SteamRoomData data)
+    {
+        SteamRoomProtocol.TryDecodeGameState(data.GameState, out var state);
+        // Native metadata can lag a successful local game write. A stale public
+        // callback must not reopen access or republish our own test room.
+        if (data.LobbyId == _lobby && _gameState != null
+            && (state == null || _gameState.Revision > state.Revision)) state = _gameState;
+        return state != null ? RoomRules.RequiresInviteOnly(state.Game, state.Proposal?.Target)
+            : RoomRules.RequiresInviteOnly(data.Game);
     }
 
     private bool ApplyBans(HashSet<ulong> bans)

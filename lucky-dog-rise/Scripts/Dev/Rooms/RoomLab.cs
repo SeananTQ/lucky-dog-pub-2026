@@ -685,6 +685,7 @@ public partial class RoomLab : Control
         second.Clear(); Present(second);
         Verify(second.RemoteDogs.Single().RetainedForPoker && !second.RemoteDogs.Single().Transitioning,
             "departed appearance survives alternate-mode creation without replaying entry");
+        hub.GrantInvitation(owner.JoinedCode, guest);
         guest.Join(owner.JoinedCode); Step(.3); Present(first); Present(second);
         Verify(first.RemoteDogs.Count == 1 && !first.RemoteDogs.Single().RetainedForPoker
             && other.IsAutoplay && table.IsAutoplayForDisplayId(first.RemoteDogs.Single().PokerPlayerId),

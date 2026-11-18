@@ -210,8 +210,14 @@ internal static class RoomCompanionChecks
         Check(table.Start(), "production Mock link starts a companion table"); Step(3.2);
         using var guest = hub.AddClient(2, "spectator", 1012);
         hub.Settings(guest).Latency = 0;
+        hub.GrantInvitation(owner.JoinedCode, guest);
         hub.Join(guest, owner.JoinedCode);
-        for (int id = 3; id <= 4; id++) hub.Join(hub.AddClient(id, "spectator", 1012), owner.JoinedCode);
+        for (int id = 3; id <= 4; id++)
+        {
+            var spectator = hub.AddClient(id, "spectator", 1012);
+            hub.GrantInvitation(owner.JoinedCode, spectator);
+            hub.Join(spectator, owner.JoinedCode);
+        }
         using var guestTable = new PokerNetworkSession(guest.OpenPokerLink());
         tickGuest = guestTable.Tick;
         Step(.1);
@@ -246,14 +252,20 @@ internal static class RoomCompanionChecks
         Check(owner.ProposeGameChange("mischief") == "ok", "Mock owner can propose poker"); hub.Tick(1.2);
         Check(owner.ConfirmGameChange(owner.View.GameChange.Id) == "ok", "Mock companions accept the poker switch"); hub.Tick(0);
         using var link = owner.OpenPokerLink();
-        for (int id = 2; id <= 4; id++) Check(hub.Join(hub.AddClient(id, "spectator", 1012), owner.JoinedCode) == "", "Mock admits humans into vacant places");
+        for (int id = 2; id <= 4; id++)
+        {
+            var spectator = hub.AddClient(id, "spectator", 1012);
+            hub.GrantInvitation(owner.JoinedCode, spectator);
+            Check(hub.Join(spectator, owner.JoinedCode) == "", "Mock admits invited humans into vacant places");
+        }
         hub.Tick(0);
         Check(owner.View.Members.Length == 6 && hub.Search().Length == 0, "full in-hand Mock room disappears from discovery temporarily");
         var fifth = hub.AddClient(5, "fifth", 1012);
+        hub.GrantInvitation(owner.JoinedCode, fifth);
         Check(hub.Join(fifth, owner.JoinedCode) != "", "Mock rejects a seventh visible dog without evicting an active bot");
         var retired = link.Context.ReconcileCompanions(1, ["-3"]); hub.Tick(0);
-        Check(retired.SequenceEqual(new[] { "-2" }) && hub.Search().Single().Count == 5,
-            "safe-boundary retirement reopens the Mock room with the correct displayed count");
+        Check(retired.SequenceEqual(new[] { "-2" }) && owner.View.Members.Length == 5 && hub.Search().Length == 0,
+            "safe-boundary retirement opens a vacancy without publishing an invite-only test room");
         Check(hub.Join(fifth, owner.JoinedCode) == "", "human can take the newly opened vacancy"); hub.Tick(0);
         Check(link.Context.ReconcileCompanions(1, ["-3"]).Length == 1, "five humans retire the final bot despite a requested opponent"); hub.Tick(0);
         Check(owner.View.Members.Length == 5 && owner.View.Members.All(m => !m.IsCompanion), "Mock final bot removal restores the open slot");

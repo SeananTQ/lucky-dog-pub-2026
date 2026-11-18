@@ -7,6 +7,9 @@ namespace LuckyDogRise.Rooms;
 public sealed class RoomClient : IDisposable
 {
     private IRoomService _service;
+    private readonly Func<bool> _canInitiateMischiefPoker;
+    public bool CanInitiateMischiefPoker => _canInitiateMischiefPoker?.Invoke() == true;
+    public bool CanProposeGame(string gameId) => gameId != RoomRules.MischiefPoker || CanInitiateMischiefPoker;
     private readonly Dictionary<int, RoomChat> _bubbles = new();
     private readonly Dictionary<int, long> _chatSequences = new();
     private readonly Dictionary<int, double> _receivedChatAt = new();
@@ -82,7 +85,8 @@ public sealed class RoomClient : IDisposable
     public double RoomAgeSeconds => View?.CreatedAt == null ? 0 : Math.Max(0, _roomAgeAtReceipt + _now - _roomClockReceipt);
     public double GameChangeSecondsRemaining => View?.GameChange is { } change ? Math.Max(0, change.ExpiresAt - _now) : 0;
     public bool CanConfirmGameChange => !IsBusy && View?.OwnerId == Id
-        && View.GameChange is { HasMajority: true } && GameChangeSecondsRemaining > 0;
+        && View.GameChange is { HasMajority: true } proposal && CanProposeGame(proposal.TargetGameId)
+        && GameChangeSecondsRemaining > 0;
 
     public bool Create(string name, bool joiningFromDirectory = false)
         => BeginRequest(RoomOperation.Create, name, joiningFromDirectory);
@@ -106,12 +110,14 @@ public sealed class RoomClient : IDisposable
         return BeginRequest(RoomOperation.Search, "");
     }
     public string SetGame(string gameId) => "Rooms_GameChangeRequired";
-    public string ProposeGameChange(string gameId) => CanChangeGame() ? _service.ProposeGameChange(this, gameId) : "Rooms_GameChangeUnavailable";
+    public string ProposeGameChange(string gameId) => CanChangeGame() && CanProposeGame(gameId)
+        ? _service.ProposeGameChange(this, gameId) : "Rooms_GameChangeUnavailable";
     public string RespondGameChange(string proposalId, bool accept) => CanChangeGame() ? _service.RespondGameChange(this, proposalId, accept) : "Rooms_GameChangeUnavailable";
     public string ConfirmGameChange(string proposalId)
     {
         if (!CanChangeGame()) return "Rooms_GameChangeUnavailable";
         var proposal = View.GameChange;
+        if (proposal != null && !CanProposeGame(proposal.TargetGameId)) return "Rooms_GameChangeUnavailable";
         var result = _service.ConfirmGameChange(this, proposalId);
 #if !DEMO_BUILD && !RECORDING_BUILD
         // Only the authority seeds readiness, from this exact successful vote and membership.
@@ -425,8 +431,10 @@ public sealed class RoomClient : IDisposable
         _service.Release(this);
     }
 
-    public RoomClient(IRoomService service, int id, string name, int skinId)
-        => (_service, Id, Name, SkinId) = (service, id, name, skinId);
+    public RoomClient(IRoomService service, int id, string name, int skinId,
+        Func<bool> canInitiateMischiefPoker = null)
+        => (_service, Id, Name, SkinId, _canInitiateMischiefPoker) =
+            (service, id, name, skinId, canInitiateMischiefPoker);
 
 #if !DEMO_BUILD && !RECORDING_BUILD
     public bool BeginArrival(string name, RoomCompanionPlan plan, int hostMemberId)

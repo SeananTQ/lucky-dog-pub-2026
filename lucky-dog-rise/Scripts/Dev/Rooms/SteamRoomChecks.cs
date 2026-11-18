@@ -53,6 +53,9 @@ public static class SteamRoomChecks
         CheckGameChange();
         CheckGameChangeMembershipAndVotes();
         CheckGameChangeClock();
+        CheckPokerEntryAndPrivacy();
+        CheckInvitedPublicPokerClient();
+        Godot.GD.Print("[SteamPokerEntryChecks] PASS native privacy before vote, failed writes, stale discovery/random join, disabled confirmation, invited public client and owner transfer (fake Steam).");
     }
 
     private const ulong InviteLobby = 109775243348102719;
@@ -80,6 +83,90 @@ public static class SteamRoomChecks
         transport.SucceedMembership(InviteLobby + 1);
         Assert(client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby + 1) && client.RequestState == RoomRequestState.Succeeded,
             "Steam service completes the foreground operation after automatic query cancellation");
+    }
+
+    private static void CheckPokerEntryAndPrivacy()
+    {
+        const ulong lobby = 1801;
+        var transport = new FakeTransport { GameStateWriteNotifies = true };
+        using var service = Service(transport);
+        bool enabled = false;
+        using var client = new RoomClient(service, 1, "host", 10, () => enabled);
+        client.Create("private test"); transport.SucceedMembership(lobby);
+        Assert(client.ProposeGameChange(RoomRules.MischiefPoker) != "ok"
+            && service.ProposeGameChange(client, RoomRules.MischiefPoker) != "ok"
+            && transport.GameStateWrites.Count == 0, "public initiation rejected before any Steam write");
+        enabled = true;
+        transport.AccessNativeResults.Enqueue(false);
+        Assert(client.ProposeGameChange(RoomRules.MischiefPoker) == "Rooms_AccessUpdateFailed"
+            && client.View.GameChange == null && transport.GameStateWrites.Count == 0,
+            "failed native privacy change cannot advertise a test vote");
+        transport.GameStateWriteSucceeds = false;
+        Assert(client.ProposeGameChange(RoomRules.MischiefPoker) == "Rooms_GameChangeUpdateFailed"
+            && client.View.Access == RoomAccess.InviteOnly && client.View.GameChange == null,
+            "failed proposal after privacy succeeds leaves an accurate private social room");
+        transport.GameStateWriteSucceeds = true;
+        Assert(client.ProposeGameChange(RoomRules.MischiefPoker) == "ok"
+            && transport.NativeAccess[lobby] == RoomAccess.InviteOnly, "native lobby is private before a valid test vote");
+        string proposal = client.View.GameChange.Id;
+        enabled = false;
+        Assert(!client.CanConfirmGameChange && client.ConfirmGameChange(proposal) != "ok"
+            && service.ConfirmGameChange(client, proposal) != "ok", "stale confirmation cannot bypass a disabled Dev gate");
+        // A cached discovery response may still advertise the old public access.
+        transport.Rooms[lobby] = transport.Rooms[lobby] with { Access = RoomAccess.Public };
+        client.Search(); transport.CompleteSearch(lobby);
+        Assert(client.Listings.Length == 0, "pending test vote filtered even with stale public access metadata");
+        client.FindAndJoin(); transport.CompleteSearch(lobby);
+        Assert(transport.MembershipCalls == 1, "random joining never targets the pending test room");
+        enabled = true;
+        Assert(client.ConfirmGameChange(proposal) == "ok", "permitted owner can commit test mode");
+        enabled = false;
+        Assert(client.SetAccess(RoomAccess.Public) != "ok" && client.SetAccess(RoomAccess.FriendsOnly) != "ok",
+            "active test mode cannot become publicly discoverable or friend-joinable");
+        transport.Rooms[lobby] = transport.Rooms[lobby] with { Access = RoomAccess.Public };
+        client.Search(); transport.CompleteSearch(lobby);
+        Assert(client.Listings.Length == 0, "active test game excluded despite stale public metadata");
+        var active = transport.Rooms[lobby];
+        transport.Rooms[lobby] = active with { Game = "social", GameState = SteamRoomProtocol.EncodeGameState(new(1, "social")) };
+        Assert(client.SetAccess(RoomAccess.Public) != "ok", "older social metadata cannot reopen a confirmed test game");
+        client.Search(); transport.CompleteSearch(lobby);
+        Assert(client.Listings.Length == 0, "older social metadata cannot republish our own confirmed test game");
+        transport.Rooms[lobby] = active;
+        transport.SetOwner(lobby, 88);
+        transport.SetOwner(lobby, 77);
+        Assert(client.View.Access == RoomAccess.InviteOnly && transport.NativeAccess[lobby] == RoomAccess.InviteOnly,
+            "ownership reconciliation restores native test privacy without requiring Dev access");
+        Assert(client.ProposeGameChange("social") == "ok" && client.ConfirmGameChange(client.View.GameChange.Id) == "ok",
+            "disabled owner may switch the current test room back to social");
+        Assert(client.View.Access == RoomAccess.InviteOnly && client.SetAccess(RoomAccess.Public) == "ok",
+            "switching back never silently reopens admission; explicit public access works afterwards");
+        enabled = true;
+        Assert(client.ProposeGameChange(RoomRules.MischiefPoker) == "ok", "new test proposal can be made later");
+        Assert(client.CancelGameChange(client.View.GameChange.Id) == "ok"
+            && client.View.Access == RoomAccess.InviteOnly, "cancelled test proposal deliberately stays private");
+    }
+
+    private static void CheckInvitedPublicPokerClient()
+    {
+        var transport = new FakeTransport();
+        transport.Seed(InviteLobby, new SteamRoomMemberData(88, "test host", "1:10:0:1001", ChatSession: Guid.NewGuid().ToString("N")));
+        transport.Rooms[InviteLobby] = transport.Rooms[InviteLobby] with { OwnerId = 88, Access = RoomAccess.InviteOnly,
+            Game = RoomRules.MischiefPoker, GameState = SteamRoomProtocol.EncodeGameState(new(2, RoomRules.MischiefPoker)) };
+        transport.NativeAccess[InviteLobby] = RoomAccess.InviteOnly;
+        using var service = Service(transport);
+        using var client = new RoomClient(service, 1, "public client", 10); // Default deny.
+        transport.DeliverInvitation(InviteLobby);
+        Assert(service.TryTakeJoinRequest(out var code), "public client receives the normal Steam invitation callback");
+        client.Join(code); transport.SucceedMembership(InviteLobby);
+        using var link = client.OpenPokerLink();
+        Assert(client.View?.GameId == RoomRules.MischiefPoker && link?.Context?.Game == RoomRules.MischiefPoker
+            && !client.CanInitiateMischiefPoker, "native successful invitation opens the full poker transport without Dev access");
+        transport.SetOwner(InviteLobby, 77);
+        Assert(client.View.OwnerId == client.Id && link.Context.Game == RoomRules.MischiefPoker,
+            "public successor retains its existing poker link and authority context");
+        client.Leave(); client.Create("ordinary room"); transport.SucceedMembership(InviteLobby + 1);
+        Assert(client.View.GameId == "social" && client.ProposeGameChange(RoomRules.MischiefPoker) != "ok",
+            "invitation and former ownership do not unlock future poker initiation");
     }
 
     private static void CheckGameChange()
@@ -1329,7 +1416,7 @@ public static class SteamRoomChecks
         Func<long, RoomCompanionPlan> companions = null) => new(transport, 10,
         skin => skin is 10 or 20, hat => hat is 30 or 40, reaction => reaction is 1001 or 1002,
         () => transport.Now, invitations, companions);
-    private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10);
+    private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10, () => true);
 
     private static void CheckCodes()
     {

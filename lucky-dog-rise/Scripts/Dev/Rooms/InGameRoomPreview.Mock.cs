@@ -29,7 +29,8 @@ public partial class InGameRoomPreview
         _sandbox = new RoomSandbox { PokerSimulationLocalId = 1 };
         var skins = LubanData.Tables.TbDogSkin;
         var skin = skins.DataList[0].Id;
-        var client = _sandbox.AddClient(1, L10n.Tr("Rooms_You"), skin);
+        var client = _sandbox.AddClient(1, L10n.Tr("Rooms_You"), skin,
+            () => BuildCapabilities.CanInitiateMischiefPoker);
         // Distinct table-defined coats make the two test companions easier to follow.
         var host = _sandbox.AddClient(2, L10n.Tr("Rooms_MockPlayer2"), skins.GetOrDefault(1002)?.Id ?? skin); // 黑柴
         var guest = _sandbox.AddClient(3, L10n.Tr("Rooms_MockPlayer3"), skins.GetOrDefault(1003)?.Id ?? skin); // 白柴
@@ -47,6 +48,7 @@ public partial class InGameRoomPreview
     {
         _sandbox?.Tick(delta);
         if (_pendingPokerMockHost == 0) return;
+        if (!BuildCapabilities.CanInitiateMischiefPoker) { _pendingPokerMockHost = 0; return; }
         var owner = MockClientForSmoke(_pendingPokerMockHost);
         if (owner.View?.GameId == RoomRules.MischiefPoker) { _pendingPokerMockHost = 0; return; }
         if (owner.View?.Members.Length != 3) return;
@@ -58,7 +60,7 @@ public partial class InGameRoomPreview
     }
     public void PrepareNetworkPokerMock(bool localHost)
     {
-        if (_sandbox == null) return;
+        if (_sandbox == null || !BuildCapabilities.CanInitiateMischiefPoker) return;
         _sandbox.SetPokerOffline(2, false);
         foreach (var client in _mockClients) client.Leave();
         var owner = localHost ? _client : MockClientForSmoke(2);
@@ -79,7 +81,11 @@ public partial class InGameRoomPreview
             case 1: _sandbox.SetPokerOffline(2, false); break;
             case 2: other.Leave(); break;
             case 3:
-                if (_client.View != null && other.View == null) other.Join(_client.JoinedCode);
+                if (_client.View != null && other.View == null)
+                {
+                    _sandbox.GrantInvitation(_client.JoinedCode, other);
+                    other.Join(_client.JoinedCode);
+                }
                 break;
             case 4: _sandbox.PokerIdlePlayerId = 2; break;
             case 5: _sandbox.PokerIdlePlayerId = 0; break;
@@ -105,6 +111,7 @@ public partial class InGameRoomPreview
             new[] { owner.SkinId }, new[] { owner.HeadwearId }, owner.CompanionTime));
     }
     public RoomClient MockClientForSmoke(int id) => _mockClients.Single(client => client.Id == id);
+    public void InviteMockClientForSmoke(RoomClient client) => _sandbox.GrantInvitation(_client.JoinedCode, client);
     public RoomClient AddMockClientForSmoke(int id)
     {
         var client = _sandbox.AddClient(id, $"测试玩家 {id}", LubanData.Tables.TbDogSkin.DataList[0].Id);

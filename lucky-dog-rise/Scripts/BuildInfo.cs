@@ -251,6 +251,19 @@ public static class BuildCapabilities
         }
     }
     public static bool PlatformStatistics => !IsDemoRuntime && !BuildInfo.IsRecording;
+    // Initiation only. Invited retail players still run the full room game,
+    // including readiness, recovery and management after becoming the owner.
+    public static bool CanInitiateMischiefPoker
+    {
+        get
+        {
+#if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
+            return SteamRooms && SettingsManager.LoadMischiefPokerEntry();
+#else
+            return false;
+#endif
+        }
+    }
     public static bool Achievements => !IsDemoRuntime && !BuildInfo.IsRecording;
     // Demo progress is local-only, including consumables and outfit presets.
     public static bool SteamCloud => !IsDemoRuntime && !BuildInfo.IsRecording;
