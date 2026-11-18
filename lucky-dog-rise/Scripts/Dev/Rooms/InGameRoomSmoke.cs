@@ -18,6 +18,7 @@ public static class InGameRoomSmoke
         || OS.GetCmdlineUserArgs().Contains("--rooms-mischief-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-poker-network-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke")
+        || OS.GetCmdlineUserArgs().Contains("--rooms-namebar-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-game-change-main-smoke")
         || OS.GetCmdlineUserArgs().Contains("--rooms-arrival-main-smoke");
     public static async void Run(ModeManager main)
@@ -66,6 +67,12 @@ public static class InGameRoomSmoke
             }
             void Click(string path) => page.GetNode<Button>(path).EmitSignal(BaseButton.SignalName.Pressed);
             await Settle();
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-namebar-main-smoke"))
+            {
+                await RoomDesktopBoundsChecks.NameBars(main, page);
+                tree.Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-bounds-main-smoke"))
             {
                 await Wait(2);

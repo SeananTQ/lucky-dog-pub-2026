@@ -184,5 +184,116 @@ internal static class RoomDesktopBoundsChecks
 
     private static void Check(bool pass, string text, bool quiet = false)
     { if (!pass) throw new InvalidOperationException(text); if (!quiet) GD.Print("[RoomDesktopBounds] PASS " + text); }
+
+    public static async Task NameBars(ModeManager main, InGameRoomPreview page)
+    {
+        async Task Wait(double seconds = .05) => await main.ToSignal(
+            main.GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
+        async Task Step() { page.AdvancePreview(0); await Wait(); }
+        var client = page.PreviewClient;
+        var remoteClient = page.MockClientForSmoke(2);
+        bool savedCenter = SettingsManager.LoadCenterCounterOnTaskbar();
+        int savedScale = SettingsManager.LoadDesktopPetScaleStep();
+        try
+        {
+            SettingsManager.SaveCenterCounterOnTaskbar(true);
+            main.RoomSnapForSmoke(true);
+            foreach (var mode in new[] { RoomDisplayMode.FullScreenFree, RoomDisplayMode.HalfScreenCompact })
+            {
+                main.RoomModeForSmoke(false);
+                client.Leave(); await Step();
+                var selector = page.GetNode<OptionButton>("Lobby/Display/Mode");
+                selector.EmitSignal(OptionButton.SignalName.ItemSelected, selector.GetItemIndex((int)mode));
+                client.Join(remoteClient.JoinedCode); await Step(); await Wait(1);
+                main.SettingsPanelObj.CloseImmediate();
+                foreach (bool poker in new[] { false, true })
+                {
+                    if (poker) main.RoomRequestPokerForSmoke();
+                    await Wait(.8);
+                    var desktop = poker ? main.RoomPokerDogsForSmoke : main.RoomDesktopForSmoke;
+                    var dog = desktop.RemoteDogs.Single(d => d.MemberId == remoteClient.Id);
+                    var bar = dog.GetNode<Control>("NameBar");
+                    var tongue = dog.Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
+                    GD.Print($"[RoomNameBar] host={DisplayServer.WindowGetPosition()}/{DisplayServer.WindowGetSize()}, screen={DisplayServer.ScreenGetSize()}, usable={DisplayServer.ScreenGetUsableRect()}, centered={SettingsManager.LoadCenterCounterOnTaskbar()}, attached={desktop.IsTaskbarSnapped(dog.MemberId)}");
+                    foreach (int step in Enumerable.Range(SettingsManager.DesktopPetScaleStepMin,
+                        SettingsManager.DesktopPetScaleStepMax - SettingsManager.DesktopPetScaleStepMin + 1))
+                    {
+                        main.ApplyDesktopPetScaleStep(step);
+                        // All fur colors plus the thin and round heads; each skin refreshes the layout.
+                        foreach (int skin in new[] { 1001, 1002, 1003, 1004, 1005 })
+                        {
+                            remoteClient.SetAppearance(skin, 0, 1003); await Step();
+                            var barPosition = bar.Position;
+                            var dogPosition = dog.Position;
+                            var barSize = bar.Size;
+                            var tonguePosition = tongue.Position;
+                            bool moved = false;
+                            float minimumGap = float.PositiveInfinity;
+                            for (int frame = 0; frame < 20; frame++)
+                            {
+                                remoteClient.NotifyInputActivity(); page.AdvancePreview(0);
+                                await main.ToSignal(main.GetTree(), SceneTree.SignalName.ProcessFrame);
+                                moved |= !tongue.Position.IsEqualApprox(tonguePosition);
+                                Check(bar.Position.IsEqualApprox(barPosition) && bar.Size.IsEqualApprox(barSize),
+                                    $"name bar stable during tongue motion: {mode}, poker={poker}, scale={step}, skin={skin}, before={barPosition}, now={bar.Position}", true);
+                                Check(dog.Position.IsEqualApprox(dogPosition) && desktop.IsTaskbarSnapped(dog.MemberId),
+                                    "tongue motion never moves or detaches the dog", true);
+                                var tongueRect = tongue.GetGlobalTransformWithCanvas() * tongue.GetRect();
+                                var barRect = bar.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, bar.Size);
+                                minimumGap = Mathf.Min(minimumGap, barRect.Position.Y - tongueRect.End.Y);
+                            }
+                            Check(moved, "test samples actual tongue movement", true);
+                            Check(minimumGap >= -.1f, "name bar leaves room for the moving tongue", true);
+                            remoteClient.StopInputActivity(); await Step();
+                            Check(bar.Position.IsEqualApprox(barPosition), "tongue stop keeps the same reserved clearance", true);
+                        }
+                    }
+                    // A larger pant offset is an authored parameter, not a fixed pixel assumption.
+                    main.ApplyDesktopPetScaleStep(SettingsManager.DesktopPetScaleStepMax); await Wait();
+                    dog.Dog.Set("_tonguePantOffset", 24f);
+                    remoteClient.SetReaction(1009); await Step();
+                    var pantBarPosition = bar.Position;
+                    var pantTonguePosition = tongue.Position;
+                    bool pantMoved = false;
+                    for (int frame = 0; frame < 24; frame++)
+                    {
+                        await main.ToSignal(main.GetTree(), SceneTree.SignalName.ProcessFrame);
+                        pantMoved |= !tongue.Position.IsEqualApprox(pantTonguePosition);
+                        Check(bar.Position.IsEqualApprox(pantBarPosition), "pant tween also leaves the name bar still", true);
+                        Check((bar.GetGlobalTransformWithCanvas() * Vector2.Zero).Y >=
+                            (tongue.GetGlobalTransformWithCanvas() * tongue.GetRect()).End.Y - .1f,
+                            "name bar clears the authored pant range", true);
+                    }
+                    Check(pantMoved, "test samples actual pant movement", true);
+                    dog.Dog.Set("_tonguePantOffset", 10f);
+                    remoteClient.SetReaction(1003); await Step();
+                    SettingsManager.SaveCenterCounterOnTaskbar(false); await Wait();
+                    var idle = bar.Position;
+                    SettingsManager.SaveCenterCounterOnTaskbar(true); await Wait();
+                    var snappedPosition = dog.Position;
+                    desktop.MoveMember(dog.MemberId, snappedPosition - new Vector2(0, 200), 0, false, 0, 0);
+                    await Wait();
+                    Check(!desktop.IsTaskbarSnapped(dog.MemberId) && bar.Position.IsEqualApprox(idle),
+                        "detached name bar restores its original layout", true);
+                    desktop.MoveMember(dog.MemberId, snappedPosition, snappedPosition.Y, true, 16, 28);
+                    await Wait();
+                    Check(desktop.IsTaskbarSnapped(dog.MemberId), "dragging back restores taskbar attachment", true);
+                    main.RoomSnapForSmoke(false); await Wait();
+                    Check(bar.Position.IsEqualApprox(idle), "disabling taskbar attachment restores original name bar", true);
+                    main.RoomSnapForSmoke(true);
+                    desktop.MoveMember(dog.MemberId, snappedPosition, snappedPosition.Y, true, 16, 28);
+                    await Wait();
+                    GD.Print($"[RoomNameBar] PASS {mode}, poker={poker}: six scales, five skins, typing, stop, pant, centering and attachment.");
+                }
+            }
+        }
+        finally
+        {
+            remoteClient.StopInputActivity(); client.Leave();
+            SettingsManager.SaveCenterCounterOnTaskbar(savedCenter);
+            main.ApplyDesktopPetScaleStep(savedScale);
+        }
+        GD.Print("[RoomNameBar] PASS stable name bars across desktop/poker and full/half-screen hosts.");
+    }
 }
 #endif

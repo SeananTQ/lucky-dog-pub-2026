@@ -21,6 +21,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private Sprite2D _eyes = null!;
     private Sprite2D _ears = null!;
     private Sprite2D _tongue = null!;
+    private Vector2 _tongueRestPosition;
     private bool _reactionShowsTongue = true;
     private bool _introShowsTongue = true;
     private Node2D _clawLeft = null!;
@@ -39,6 +40,21 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
     private EDogReactionTrigger _currentReaction = EDogReactionTrigger.Default;
     public EDogReactionTrigger CurrentReaction => _currentReaction;
 #if !DEMO_BUILD && !RECORDING_BUILD
+    // Reserve the whole authored motion range. A name bar must not follow the
+    // current animation frame, or change position when typing/panting starts.
+    internal float TongueLayoutBottomY
+    {
+        get
+        {
+            if (_tongue?.Texture == null) return float.NegativeInfinity;
+            var rest = _tongue.Transform;
+            rest.Origin = _tongueRestPosition;
+            float travel = Mathf.Max(Mathf.Abs(_desktopTongueTapOffset), Mathf.Abs(_tonguePantOffset));
+            var bounds = (rest * _tongue.GetRect()).GrowIndividual(0, travel, 0, travel);
+            return (_tongue.GetParent<Node2D>().Transform * bounds).End.Y;
+        }
+    }
+
     private bool _roomTongueDriven;
     private bool _roomTongueActive;
     internal EDogReactionTrigger? RoomPokerReaction { get; private set; }
@@ -113,6 +129,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
         _eyes = GetNode<Sprite2D>("HeadRoot/Eyes");
         _ears = GetNode<Sprite2D>("HeadRoot/Ears");
         _tongue = GetNodeOrNull<Sprite2D>("HeadRoot/Tonghe");
+        _tongueRestPosition = _tongue?.Position ?? Vector2.Zero;
         _clawLeft = GetNode<Node2D>("ClawLeft");
         _clawRight = GetNode<Node2D>("ClawRight");
         _eyewear = GetNode<Sprite2D>("HeadRoot/Eyewear");
@@ -746,6 +763,7 @@ public partial class DogVisual : Node2D, IInteractionHintTarget
             if (sprite.FlipH)
                 position.X = 2f * reference.Position.X - position.X;
             sprite.Position = position;
+            if (sprite == _tongue) _tongueRestPosition = position;
         }
     }
 

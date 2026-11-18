@@ -28,7 +28,6 @@ public partial class RoomDogView : Node2D
     public event Action<string> SendRequested;
     private RoomMember _member;
     private bool _isLocal;
-    private Sprite2D _tongue;
     private Sprite2D[] _footprintSprites;
     private string _measuredName;
     private Font _measuredNameFont;
@@ -42,7 +41,6 @@ public partial class RoomDogView : Node2D
 
     public override void _Ready()
     {
-        _tongue = Dog.GetNode<Sprite2D>("HeadRoot/Tonghe");
         _footprintSprites = Dog.FindChildren("*", "Sprite2D", true, false).OfType<Sprite2D>().ToArray();
         Chat.SendRequested += text =>
         {
@@ -141,12 +139,8 @@ public partial class RoomDogView : Node2D
         if (centerOnTaskbar && taskbarHeight > 0)
         {
             position.Y = taskbarAnchorY + (taskbarHeight - idleRect.Size.Y) / 2;
-            if (_tongue.Texture != null)
-            {
-                float halfHeight = _tongue.Texture.GetHeight() * Mathf.Abs(_tongue.Scale.Y) / 2;
-                float tongueBottom = Dog.Position.Y + (_tongue.Position.Y + halfHeight) * Mathf.Abs(Dog.Scale.Y);
-                position.Y = Mathf.Max(position.Y, tongueBottom + tongueClearance);
-            }
+            float tongueBottom = Dog.Position.Y + Dog.TongueLayoutBottomY * Mathf.Abs(Dog.Scale.Y);
+            position.Y = Mathf.Max(position.Y, tongueBottom + tongueClearance);
         }
         _nameBar.Position = position;
         _nameBar.Size = idleRect.Size;
