@@ -30,105 +30,6 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Pressed.tres" id="20_capsule_pressed"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Capsule_Disabled.tres" id="21_capsule_disabled"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_normal"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.54509804, 0.41960784, 0.19607843, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_hover"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.64705882, 0.50588235, 0.25098039, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_pressed"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.43921569, 0.33725490, 0.16078431, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_normal"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.20784314, 0.42352941, 0.54901961, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_hover"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.26274510, 0.52156863, 0.65882353, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_pressed"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.16078431, 0.33725490, 0.43529412, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_normal"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.57254902, 0.32156863, 0.40784314, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_hover"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.69019608, 0.40000000, 0.50196078, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_pressed"]
-content_margin_left = 12.0
-content_margin_top = 5.0
-content_margin_right = 12.0
-content_margin_bottom = 5.0
-bg_color = Color(0.45882353, 0.25882353, 0.32549020, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7288i"]
 content_margin_left = 4.0
 content_margin_top = 4.0
@@ -144,6 +45,105 @@ corner_detail = 1
 [sub_resource type="FontVariation" id="FontVariation_cme4l"]
 fallbacks = Array[Font]([ExtResource("2_wn4m6")])
 base_font = ExtResource("4_inter_bold")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.54509807, 0.41960785, 0.19607843, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.64705884, 0.5058823, 0.25098038, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_action_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.4392157, 0.3372549, 0.1607843, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.57254905, 0.32156864, 0.40784314, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.6901961, 0.4, 0.50196075, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_destructive_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.45882353, 0.25882354, 0.3254902, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_normal"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.20784314, 0.42352942, 0.54901963, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_hover"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.2627451, 0.52156866, 0.65882355, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_capsule_secondary_pressed"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.1607843, 0.3372549, 0.43529412, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_category_tab"]
 content_margin_left = 1.0
@@ -594,6 +594,22 @@ bg_color = Color(0.49411765, 0.61960787, 0.654902, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_sticky_button"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sticky_note"]
+content_margin_left = 16.0
+content_margin_top = 14.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+bg_color = Color(0.98039216, 0.92941177, 0.7490196, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.16)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+
 [sub_resource type="SystemFont" id="SystemFont_help_fallback"]
 font_names = PackedStringArray("Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "Arial")
 font_weight = 700
@@ -765,6 +781,125 @@ corner_radius_bottom_left = 16
 expand_margin_top = 2.0
 expand_margin_bottom = 2.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_active"]
+bg_color = Color(0.13, 0.24, 0.29, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.58, 0.82, 0.91, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_bg"]
+bg_color = Color(0.06, 0.09, 0.1, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_fill"]
+bg_color = Color(0.58, 0.82, 0.91, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_dealer"]
+bg_color = Color(0.77, 0.82, 0.83, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_own_card"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.53, 1, 0.36, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_plate"]
+bg_color = Color(0.11, 0.14, 0.16, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.58, 0.6, 0.8)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_result_drawer"]
+bg_color = Color(0.08, 0.11, 0.13, 0.98)
+border_width_left = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.58, 0.6, 0.8)
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_room_poker_status"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.11, 0.14, 0.16, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.58, 0.6, 0.65)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+expand_margin_left = 4.0
+expand_margin_top = 3.0
+expand_margin_right = 4.0
+expand_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_room_poker_status_bar"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.11, 0.14, 0.16, 0.96)
+border_width_top = 1
+border_color = Color(0.5, 0.58, 0.6, 0.65)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner"]
+bg_color = Color(0.31, 0.24, 0.12, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.66, 0.3, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner_focus"]
+bg_color = Color(0.39, 0.29, 0.12, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.85, 0.45, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
 [sub_resource type="FontVariation" id="FontVariation_hgkal"]
 fallbacks = Array[Font]([ExtResource("11_sts5i")])
 base_font = ExtResource("3_inter_reg")
@@ -871,164 +1006,7 @@ content_margin_bottom = 0.0
 thickness = 3
 vertical = true
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sticky_note"]
-content_margin_left = 16.0
-content_margin_right = 16.0
-content_margin_top = 14.0
-content_margin_bottom = 14.0
-bg_color = Color(0.98039216, 0.92941177, 0.7490196, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_left = 12
-corner_radius_bottom_right = 12
-shadow_color = Color(0, 0, 0, 0.16)
-shadow_size = 3
-shadow_offset = Vector2(0, 3)
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_sticky_button"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_room_poker_status"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-bg_color = Color(0.11, 0.14, 0.16, 0.96)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.5, 0.58, 0.6, 0.65)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
-expand_margin_left = 4.0
-expand_margin_top = 3.0
-expand_margin_right = 4.0
-expand_margin_bottom = 3.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_room_poker_status_bar"]
-content_margin_left = 20.0
-content_margin_top = 8.0
-content_margin_right = 20.0
-content_margin_bottom = 8.0
-bg_color = Color(0.11, 0.14, 0.16, 0.96)
-border_width_top = 1
-border_color = Color(0.5, 0.58, 0.6, 0.65)
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_plate"]
-bg_color = Color(0.11, 0.14, 0.16, 0.98)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.5, 0.58, 0.6, 0.8)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_active"]
-bg_color = Color(0.13, 0.24, 0.29, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.58, 0.82, 0.91, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner"]
-bg_color = Color(0.31, 0.24, 0.12, 0.98)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.85, 0.66, 0.3, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_winner_focus"]
-bg_color = Color(0.39, 0.29, 0.12, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.85, 0.45, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_own_card"]
-draw_center = false
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.53, 1, 0.36, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_bg"]
-bg_color = Color(0.06, 0.09, 0.1, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_left = 3
-corner_radius_bottom_right = 3
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_clock_fill"]
-bg_color = Color(0.58, 0.82, 0.91, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_left = 3
-corner_radius_bottom_right = 3
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_dealer"]
-bg_color = Color(0.77, 0.82, 0.83, 1)
-corner_radius_top_left = 9
-corner_radius_top_right = 9
-corner_radius_bottom_left = 9
-corner_radius_bottom_right = 9
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_poker_result_drawer"]
-bg_color = Color(0.08, 0.11, 0.13, 0.98)
-border_width_left = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.5, 0.58, 0.6, 0.8)
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
-
 [resource]
-RoomPokerResultDrawer/base_type = &"Panel"
-RoomPokerResultDrawer/styles/panel = SubResource("StyleBox_poker_result_drawer")
-RoomPokerPlate/base_type = &"Panel"
-RoomPokerPlate/styles/panel = SubResource("StyleBox_poker_plate")
-RoomPokerActive/base_type = &"Panel"
-RoomPokerActive/styles/panel = SubResource("StyleBox_poker_active")
-RoomPokerWinner/base_type = &"Panel"
-RoomPokerWinner/styles/panel = SubResource("StyleBox_poker_winner")
-RoomPokerWinnerFocus/base_type = &"Panel"
-RoomPokerWinnerFocus/styles/panel = SubResource("StyleBox_poker_winner_focus")
-RoomPokerOwnCard/base_type = &"Panel"
-RoomPokerOwnCard/styles/panel = SubResource("StyleBox_poker_own_card")
-RoomPokerClock/base_type = &"ProgressBar"
-RoomPokerClock/styles/background = SubResource("StyleBox_poker_clock_bg")
-RoomPokerClock/styles/fill = SubResource("StyleBox_poker_clock_fill")
-RoomPokerDealer/base_type = &"Label"
-RoomPokerDealer/styles/normal = SubResource("StyleBox_poker_dealer")
-RoomPokerDealer/font_sizes/font_size = 13
-RoomPokerDealer/colors/font_color = Color(0.11, 0.14, 0.16, 1)
-RoomPokerRank/base_type = &"Label"
-RoomPokerRank/font_sizes/font_size = 13
-RoomPokerRank/colors/font_color = Color(0.87, 0.95, 0.97, 1)
 default_font = ExtResource("4_inter_bold")
 ActionButton/base_type = &"Button"
 ActionButton/styles/disabled = ExtResource("1_5li03")
@@ -1224,6 +1202,10 @@ LineEdit/icons/clear = SubResource("DPITexture_ox3pi")
 LineEdit/styles/focus = SubResource("StyleBoxFlat_5li03")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_p7m14")
 LineEdit/styles/read_only = SubResource("StyleBoxFlat_5gcxy")
+MockPanelTabSelected/base_type = &"PanelTopTabSelected"
+MockPanelTabSelected/colors/font_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
+MockPanelTabSelected/colors/font_hover_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
+MockPanelTabSelected/colors/font_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
 OptionButton/colors/font_color = Color(1, 1, 1, 1)
 OptionButton/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 OptionButton/colors/font_focus_color = Color(1, 1, 1, 1)
@@ -1286,6 +1268,22 @@ PanelTopTabSelected/styles/focus = SubResource("StyleBoxFlat_panel_top_tab_selec
 PanelTopTabSelected/styles/hover = SubResource("StyleBoxFlat_panel_top_tab_selected_hover")
 PanelTopTabSelected/styles/normal = SubResource("StyleBoxFlat_panel_top_tab_selected")
 PanelTopTabSelected/styles/pressed = SubResource("StyleBoxFlat_panel_top_tab_selected_pressed")
+PersistentTipBody/base_type = &"PokerHelpBodyLabel"
+PersistentTipBody/colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
+PersistentTipBody/constants/line_spacing = 2
+PersistentTipBody/font_sizes/font_size = 28
+PersistentTipButton/base_type = &"Button"
+PersistentTipButton/styles/focus = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/hover = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/normal = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipButton/styles/pressed = SubResource("StyleBoxEmpty_sticky_button")
+PersistentTipContent/base_type = &"VBoxContainer"
+PersistentTipContent/constants/separation = 10
+PersistentTipDismissLabel/base_type = &"PersistentTipBody"
+PersistentTipDismissLabel/colors/font_color = Color(0.58, 0.42, 0.34, 1)
+PersistentTipDismissLabel/font_sizes/font_size = 23
+PersistentTipPanel/base_type = &"PanelContainer"
+PersistentTipPanel/styles/panel = SubResource("StyleBoxFlat_sticky_note")
 PokerHelpBodyLabel/base_type = &"Label"
 PokerHelpBodyLabel/colors/font_color = Color(0.9607843, 0.98039216, 0.98039216, 1)
 PokerHelpBodyLabel/constants/line_spacing = 6
@@ -1383,6 +1381,50 @@ PopupMenu/styles/panel = SubResource("StyleBoxFlat_popup_panel")
 ProgressBar/font_sizes/font_size = 22
 ProgressBar/styles/background = SubResource("StyleBoxFlat_7eo5n")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_i6fns")
+RoomPokerActive/base_type = &"Panel"
+RoomPokerActive/styles/panel = SubResource("StyleBox_poker_active")
+RoomPokerClock/base_type = &"ProgressBar"
+RoomPokerClock/styles/background = SubResource("StyleBox_poker_clock_bg")
+RoomPokerClock/styles/fill = SubResource("StyleBox_poker_clock_fill")
+RoomPokerDealer/base_type = &"Label"
+RoomPokerDealer/colors/font_color = Color(0.11, 0.14, 0.16, 1)
+RoomPokerDealer/font_sizes/font_size = 13
+RoomPokerDealer/styles/normal = SubResource("StyleBox_poker_dealer")
+RoomPokerOwnCard/base_type = &"Panel"
+RoomPokerOwnCard/styles/panel = SubResource("StyleBox_poker_own_card")
+RoomPokerPanelLabel/base_type = &"Label"
+RoomPokerPanelLabel/font_sizes/font_size = 16
+RoomPokerPanelTitle/base_type = &"Label"
+RoomPokerPanelTitle/font_sizes/font_size = 18
+RoomPokerPanelTitle/fonts/font = SubResource("FontVariation_cme4l")
+RoomPokerPlate/base_type = &"Panel"
+RoomPokerPlate/styles/panel = SubResource("StyleBox_poker_plate")
+RoomPokerRank/base_type = &"Label"
+RoomPokerRank/colors/font_color = Color(0.87, 0.95, 0.97, 1)
+RoomPokerRank/font_sizes/font_size = 13
+RoomPokerResultDrawer/base_type = &"Panel"
+RoomPokerResultDrawer/styles/panel = SubResource("StyleBox_poker_result_drawer")
+RoomPokerSectionHeading/base_type = &"Label"
+RoomPokerSectionHeading/colors/font_color = Color(0.65, 0.8, 0.83, 1)
+RoomPokerSectionHeading/font_sizes/font_size = 14
+RoomPokerSectionHeading/fonts/font = SubResource("FontVariation_cme4l")
+RoomPokerSmallLabel/base_type = &"Label"
+RoomPokerSmallLabel/colors/font_shadow_color = Color(0.08, 0.1, 0.1, 1)
+RoomPokerSmallLabel/constants/shadow_offset_x = 1
+RoomPokerSmallLabel/constants/shadow_offset_y = 1
+RoomPokerSmallLabel/font_sizes/font_size = 14
+RoomPokerStatusLabel/base_type = &"RoomPokerSmallLabel"
+RoomPokerStatusLabel/styles/normal = SubResource("StyleBoxFlat_room_poker_status")
+RoomPokerTableLabel/base_type = &"Label"
+RoomPokerTableLabel/colors/font_shadow_color = Color(0.08, 0.1, 0.1, 1)
+RoomPokerTableLabel/constants/shadow_offset_x = 1
+RoomPokerTableLabel/constants/shadow_offset_y = 2
+RoomPokerTableLabel/font_sizes/font_size = 28
+RoomPokerTableLabel/styles/normal = SubResource("StyleBox_room_poker_status_bar")
+RoomPokerWinner/base_type = &"Panel"
+RoomPokerWinner/styles/panel = SubResource("StyleBox_poker_winner")
+RoomPokerWinnerFocus/base_type = &"Panel"
+RoomPokerWinnerFocus/styles/panel = SubResource("StyleBox_poker_winner_focus")
 SecondaryButton/base_type = &"Button"
 SecondaryButton/styles/disabled = ExtResource("13_kaug1")
 SecondaryButton/styles/hover = ExtResource("14_kaug1")
@@ -1402,48 +1444,3 @@ VScrollBar/styles/grabber_pressed = SubResource("StyleBoxTexture_scrollbar_grabb
 VScrollBar/styles/scroll = SubResource("StyleBoxTexture_scrollbar_track")
 VSeparator/constants/separation = 4
 VSeparator/styles/separator = SubResource("StyleBoxLine_sts5i")
-
-PersistentTipPanel/base_type = &"PanelContainer"
-PersistentTipPanel/styles/panel = SubResource("StyleBoxFlat_sticky_note")
-PersistentTipContent/base_type = &"VBoxContainer"
-PersistentTipContent/constants/separation = 10
-PersistentTipBody/base_type = &"PokerHelpBodyLabel"
-PersistentTipBody/font_sizes/font_size = 28
-PersistentTipBody/constants/line_spacing = 2
-PersistentTipBody/colors/font_color = Color(0.40784314, 0.22745098, 0.19607843, 1)
-PersistentTipDismissLabel/base_type = &"PersistentTipBody"
-PersistentTipDismissLabel/font_sizes/font_size = 23
-PersistentTipDismissLabel/colors/font_color = Color(0.58, 0.42, 0.34, 1)
-PersistentTipButton/base_type = &"Button"
-PersistentTipButton/styles/normal = SubResource("StyleBoxEmpty_sticky_button")
-PersistentTipButton/styles/hover = SubResource("StyleBoxEmpty_sticky_button")
-PersistentTipButton/styles/pressed = SubResource("StyleBoxEmpty_sticky_button")
-PersistentTipButton/styles/focus = SubResource("StyleBoxEmpty_sticky_button")
-
-RoomPokerPanelLabel/base_type = &"Label"
-RoomPokerPanelLabel/font_sizes/font_size = 16
-RoomPokerPanelTitle/base_type = &"Label"
-RoomPokerPanelTitle/font_sizes/font_size = 18
-RoomPokerPanelTitle/fonts/font = SubResource("FontVariation_cme4l")
-RoomPokerSectionHeading/base_type = &"Label"
-RoomPokerSectionHeading/font_sizes/font_size = 14
-RoomPokerSectionHeading/fonts/font = SubResource("FontVariation_cme4l")
-RoomPokerSectionHeading/colors/font_color = Color(0.65, 0.8, 0.83, 1)
-RoomPokerSmallLabel/base_type = &"Label"
-RoomPokerSmallLabel/font_sizes/font_size = 14
-RoomPokerSmallLabel/colors/font_shadow_color = Color(0.08, 0.10, 0.10, 1)
-RoomPokerSmallLabel/constants/shadow_offset_x = 1
-RoomPokerSmallLabel/constants/shadow_offset_y = 1
-RoomPokerStatusLabel/base_type = &"RoomPokerSmallLabel"
-RoomPokerStatusLabel/styles/normal = SubResource("StyleBoxFlat_room_poker_status")
-RoomPokerTableLabel/base_type = &"Label"
-RoomPokerTableLabel/font_sizes/font_size = 28
-RoomPokerTableLabel/colors/font_shadow_color = Color(0.08, 0.10, 0.10, 1)
-RoomPokerTableLabel/constants/shadow_offset_x = 1
-RoomPokerTableLabel/constants/shadow_offset_y = 2
-RoomPokerTableLabel/styles/normal = SubResource("StyleBox_room_poker_status_bar")
-
-MockPanelTabSelected/base_type = &"PanelTopTabSelected"
-MockPanelTabSelected/colors/font_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-MockPanelTabSelected/colors/font_hover_color = Color(0.08235294, 0.19607843, 0.30588236, 1)
-MockPanelTabSelected/colors/font_pressed_color = Color(0.08235294, 0.19607843, 0.30588236, 1)

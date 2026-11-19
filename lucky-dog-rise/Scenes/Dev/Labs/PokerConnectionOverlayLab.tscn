@@ -1,9 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bk16s8xbldf0p"]
 
-[ext_resource type="Script" path="res://Scripts/Dev/Rooms/PokerConnectionOverlayLab.cs" id="script"]
-[ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
-[ext_resource type="PackedScene" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
 [ext_resource type="PackedScene" path="res://Scenes/Rooms/Poker/RoomPokerConnectionOverlay.tscn" id="connection"]
+[ext_resource type="PackedScene" uid="uid://d0enetq5iqkwr" path="res://Scenes/Shared/DogArea.tscn" id="dog"]
+[ext_resource type="Script" uid="uid://c75dmhio46pcy" path="res://Scripts/Dev/Rooms/PokerConnectionOverlayLab.cs" id="script"]
+[ext_resource type="Theme" uid="uid://iavownpnqk7j" path="res://Themes/DefaultTheme.tres" id="theme"]
 
 [node name="PokerConnectionOverlayLab" type="Control" unique_id=1707623784 node_paths=PackedStringArray("_connectionOverlay", "_dog", "_language", "_title", "_close", "_previewArea", "_preview")]
 layout_mode = 3
@@ -22,7 +22,7 @@ _close = NodePath("Margin/Content/Toolbar/Close")
 _previewArea = NodePath("Margin/Content/Preview")
 _preview = NodePath("Margin/Content/Preview/ViewportContainer")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=450179846]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -30,9 +30,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.10, 0.15, 0.17, 1)
+color = Color(0.1, 0.15, 0.17, 1)
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=1540016971]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -44,30 +44,30 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="Content" type="VBoxContainer" parent="Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin" unique_id=1585377137]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Toolbar" type="HBoxContainer" parent="Margin/Content"]
+[node name="Toolbar" type="HBoxContainer" parent="Margin/Content" unique_id=1886836810]
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Margin/Content/Toolbar"]
+[node name="Title" type="Label" parent="Margin/Content/Toolbar" unique_id=1280102467]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 text = "牌局交接遮罩预览"
 clip_text = true
 
-[node name="Language" type="OptionButton" parent="Margin/Content/Toolbar"]
+[node name="Language" type="OptionButton" parent="Margin/Content/Toolbar" unique_id=1359773358]
+auto_translate_mode = 2
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
 tooltip_text = "语言 / Language"
-auto_translate_mode = 2
-item_count = 4
 selected = 0
+item_count = 4
 popup/item_0/text = "简体中文"
 popup/item_0/id = 0
 popup/item_1/text = "English"
@@ -77,45 +77,45 @@ popup/item_2/id = 2
 popup/item_3/text = "Français"
 popup/item_3/id = 3
 
-[node name="Close" type="Button" parent="Margin/Content/Toolbar"]
+[node name="Close" type="Button" parent="Margin/Content/Toolbar" unique_id=634804893]
 custom_minimum_size = Vector2(42, 0)
 layout_mode = 2
 theme_type_variation = &"CapsuleButton"
 text = "×"
 
-[node name="Preview" type="Control" parent="Margin/Content"]
+[node name="Preview" type="Control" parent="Margin/Content" unique_id=358290155]
+clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
-clip_contents = true
 
-[node name="ViewportContainer" type="SubViewportContainer" parent="Margin/Content/Preview"]
+[node name="ViewportContainer" type="SubViewportContainer" parent="Margin/Content/Preview" unique_id=1040057537]
 layout_mode = 0
 offset_right = 1200.0
 offset_bottom = 1200.0
 scale = Vector2(0.5, 0.5)
 
-[node name="SubViewport" type="SubViewport" parent="Margin/Content/Preview/ViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="Margin/Content/Preview/ViewportContainer" unique_id=586464409]
 handle_input_locally = false
 size = Vector2i(1200, 1200)
 render_target_update_mode = 4
 
-[node name="Backdrop" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+[node name="Backdrop" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport" unique_id=1504950896]
 offset_right = 1200.0
 offset_bottom = 1200.0
 mouse_filter = 2
 color = Color(0.75, 0.76, 0.72, 1)
 
-[node name="TableBackground" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+[node name="TableBackground" type="ColorRect" parent="Margin/Content/Preview/ViewportContainer/SubViewport" unique_id=39296911]
 offset_top = 677.0
 offset_right = 1200.0
 offset_bottom = 1200.0
 mouse_filter = 2
 color = Color(0, 0.46, 0.24, 1)
 
-[node name="Dog" parent="Margin/Content/Preview/ViewportContainer/SubViewport" instance=ExtResource("dog")]
+[node name="Dog" parent="Margin/Content/Preview/ViewportContainer/SubViewport" unique_id=1639740194 instance=ExtResource("dog")]
 position = Vector2(600, 677)
 
-[node name="WaitingOverlay" type="CanvasLayer" parent="Margin/Content/Preview/ViewportContainer/SubViewport"]
+[node name="WaitingOverlay" type="CanvasLayer" parent="Margin/Content/Preview/ViewportContainer/SubViewport" unique_id=245753960]
 layer = 21
 
-[node name="Dialog" parent="Margin/Content/Preview/ViewportContainer/SubViewport/WaitingOverlay" instance=ExtResource("connection")]
+[node name="Dialog" parent="Margin/Content/Preview/ViewportContainer/SubViewport/WaitingOverlay" unique_id=2074928504 instance=ExtResource("connection")]
