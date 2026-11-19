@@ -326,20 +326,18 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         pending.StartedAt = _now();
         try
         {
-            Trace("rooms_request_started", new { operation = pending.Request.Operation.ToString(),
-                request = pending.Request.Id, recovery = pending.Request.RecoveryGeneration != 0 });
+            Trace("rooms_request_started", ("operation", pending.Request.Operation.ToString()),
+                ("request", pending.Request.Id), ("recovery", pending.Request.RecoveryGeneration != 0));
             if (pending.Request.Operation == RoomOperation.Join && pending.Request.RecoveryGeneration != 0)
             {
                 var target = Decode(pending.Request.Value);
-                var cached = _transport.ReadLobby(target, true);
-                if (cached?.Members?.Any(member => member.SteamId == _transport.LocalSteamId) == true)
-                {
-                    // An offline leave may not have cleared Steam's old local
-                    // membership. Clear it while connected before asking for a
-                    // fresh join; cached members are not evidence of recovery.
-                    Trace("rooms_reconnect_cached_membership", new { lobby = target });
-                    _transport.Leave(target);
-                }
+                // Offline LeaveLobby can clear the SDK cache without settling
+                // remote membership. Always clean up while online, even when
+                // ReadLobby would return no members or omit the local player.
+                // An empty local cache is not proof that the server saw us leave.
+                Trace("rooms_reconnect_cleanup", ("lobby", target));
+                _transport.Leave(target);
+                if (!CanCommit(pending)) throw new InvalidOperationException("Room recovery was interrupted during cleanup.");
             }
             var handle = pending.Request.Operation switch
             {
@@ -376,8 +374,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void CompleteRequestFailure(RoomClient client, RoomRequest request, RoomFailure failure, bool retryable = true)
     {
-        Trace("rooms_request_failed", new { operation = request.Operation.ToString(), request = request.Id,
-            failure = failure.ToString(), recovery = request.RecoveryGeneration != 0 });
+        Trace("rooms_request_failed", ("operation", request.Operation.ToString()), ("request", request.Id),
+            ("failure", failure.ToString()), ("recovery", request.RecoveryGeneration != 0));
         if (request.RecoveryGeneration != 0)
         {
             if (!retryable && _reconnect.IsAttemptCurrent(_reconnectSource, request.RecoveryGeneration)) _reconnect.Stop(failure);
@@ -420,8 +418,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                         data.Capacity, data.Count));
                 }
             }
-            Trace("rooms_directory_received", new { request = pending.Request.Id, failure = failure.ToString(),
-                returned = result.LobbyIds?.Length ?? 0, shown = listings.Count });
+            Trace("rooms_directory_received", ("request", pending.Request.Id), ("failure", failure.ToString()),
+                ("returned", result.LobbyIds?.Length ?? 0), ("shown", listings.Count));
             pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(failure, listings.ToArray()));
         }
         catch { pending.Client.TryComplete(pending.Request.Id, () => new RoomResult(RoomFailure.Unavailable)); }
@@ -430,6 +428,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void CompleteMembership(Pending pending, SteamRoomJoinResult result)
     {
+        Trace("rooms_membership_callback", ("request", pending.Request.Id), ("lobby", result.LobbyId),
+            ("failure", result.Failure.ToString()), ("recovery", pending.Request.RecoveryGeneration != 0),
+            ("current", _inFlight == pending), ("cancelled", pending.Cancelled));
         if (_inFlight != pending) return;
         _completing = true;
         var accepted = false;
@@ -457,6 +458,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                     throw new InvalidOperationException("Steam room companions could not be initialized.");
             }
             var data = _transport.ReadLobby(result.LobbyId, true);
+            Trace("rooms_membership_snapshot", ("request", pending.Request.Id), ("lobby", result.LobbyId),
+                ("local", _transport.LocalSteamId), ("owner", data?.OwnerId ?? 0),
+                ("members", data?.Members?.Select(member => member.SteamId).ToArray() ?? Array.Empty<ulong>()));
             if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
                 || !data.Members.Any(member => member.SteamId == _transport.LocalSteamId))
             {
@@ -533,8 +537,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival, preserveArrival: arrival);
                 if (arrival) pending.Client.PrepareArrival(pending.Request.Id, committed: true);
                 Publish(data);
-                Trace("rooms_membership_joined", new { lobby = _lobby, members = data.Count,
-                    owner = data.OwnerId, recovery = pending.Request.RecoveryGeneration != 0 });
+                Trace("rooms_membership_joined", ("lobby", _lobby), ("members", data.Count),
+                    ("owner", data.OwnerId), ("recovery", pending.Request.RecoveryGeneration != 0));
                 if (pending.Request.RecoveryGeneration != 0)
                     _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.None);
                 accepted = true;
@@ -1061,7 +1065,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     private void OnMemberDeparture(ulong lobby, ulong member, SteamRoomDepartureKind reason)
     {
         if (!_disposed && lobby == _lobby)
-            Trace("rooms_member_departure", new { lobby, member, reason = reason.ToString(), local = member == _transport.LocalSteamId });
+            Trace("rooms_member_departure", ("lobby", lobby), ("member", member),
+                ("reason", reason.ToString()), ("local", member == _transport.LocalSteamId));
         if (_disposed || lobby != _lobby || member != _transport.LocalSteamId) return;
         if (reason == SteamRoomDepartureKind.Disconnected) { Disconnect(DisconnectKind.NetworkLost); return; }
         if (reason is SteamRoomDepartureKind.Removed or SteamRoomDepartureKind.Banned)
@@ -1108,15 +1113,15 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 // the disconnect callback. A vanished local membership needs
                 // the same fresh join as a transport outage. Explicit leave and
                 // kicks have already cleared _lobby and cannot reach this path.
-                Trace("rooms_membership_missing", new { lobby = _lobby, members = data.Count });
+                Trace("rooms_membership_missing", ("lobby", _lobby), ("members", data.Count));
                 Disconnect(DisconnectKind.NetworkLost);
                 return;
             }
             if (_lastRoomData == null || data.OwnerId != _lastRoomData.OwnerId
                 || !data.Members.Select(m => m.SteamId).OrderBy(id => id)
                     .SequenceEqual(_lastRoomData.Members.Select(m => m.SteamId).OrderBy(id => id)))
-                Trace("rooms_membership_changed", new { lobby = _lobby, owner = data.OwnerId,
-                    members = data.Members.Select(m => m.SteamId).ToArray() });
+                Trace("rooms_membership_changed", ("lobby", _lobby), ("owner", data.OwnerId),
+                    ("members", data.Members.Select(m => m.SteamId).ToArray()));
             bool needsPrivate = RequiresInviteOnly(data);
             if (data.OwnerId != _accessOwner || needsPrivate && data.Access != RoomAccess.InviteOnly)
             {
@@ -1410,7 +1415,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void Disconnect(DisconnectKind kind = DisconnectKind.Terminal)
     {
-        if (_lobby != 0) Trace("rooms_disconnected", new { lobby = _lobby, reason = kind.ToString() });
+        if (_lobby != 0) Trace("rooms_disconnected", ("lobby", _lobby), ("reason", kind.ToString()));
         if (_reconnect.IsSourceCurrent(_reconnectSource))
         {
             bool explicitMembershipPending = new[] { _queued, _inFlight }.Any(p => p != null && !p.Cancelled
@@ -1445,13 +1450,22 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void SafeLeave(ulong lobby)
     {
+        Trace("rooms_membership_leave", ("lobby", lobby), ("active_lobby", _lobby));
         try { _transport.Leave(lobby); }
         catch { /* Local teardown must remain safe if Steam has already shut down. */ }
     }
 
-    private void Trace(string name, object data)
+    private void Trace(string name, params (string Key, object Value)[] fields)
     {
-        try { _diagnostics?.Invoke(name, data); }
+        try
+        {
+            if (_diagnostics == null) return;
+            // Fixed string keys survive export obfuscation. Anonymous objects
+            // require reflected constructor/property names and fail in Playtest.
+            var data = new Dictionary<string, object>();
+            foreach (var (key, value) in fields) data[key] = value;
+            _diagnostics(name, data);
+        }
         catch { /* Diagnostics must never interrupt Steam's shared callback pump. */ }
     }
 

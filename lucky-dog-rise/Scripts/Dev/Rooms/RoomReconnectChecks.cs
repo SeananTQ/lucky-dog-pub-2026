@@ -1,6 +1,8 @@
 #if DEBUG && !DEMO_BUILD && !RECORDING_BUILD
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace LuckyDogRise.Rooms;
 
@@ -17,6 +19,7 @@ public static class RoomReconnectChecks
         CheckIdentityAndGeneration();
         CheckSameService();
         CheckCachedMembership();
+        CheckClearedLocalCache();
         CheckMissedRosterCallback();
         CheckRetryFeedback();
         CheckServiceReplacement();
@@ -24,7 +27,8 @@ public static class RoomReconnectChecks
         CheckUserIntent();
         CheckDepartureCauses();
         CheckMissingCallback();
-        return "[RoomReconnectChecks] PASS 180-second budget, 3 attempts, 5/15-second backoff, source/account/App isolation, same/replaced service, late callbacks, explicit intent, departure causes and fresh chat membership (fake Steam).";
+        CheckDiagnostics();
+        return "[RoomReconnectChecks] PASS 180-second budget, 3 attempts, 5/15-second backoff, source/account/App isolation, same/replaced service, late callbacks, explicit intent, departure causes, fresh chat membership and fixed-key diagnostics (fake Steam).";
     }
 
     private static void CheckBudget()
@@ -172,6 +176,38 @@ public static class RoomReconnectChecks
         Assert(client.View?.Members.Length == 2 && !service.ReconnectContext.IsPending,
             "only the fresh membership callback restores both members");
         transport.AfterLeave = null;
+    }
+
+    private static void CheckClearedLocalCache()
+    {
+        foreach (bool emptyCache in new[] { true, false })
+        {
+            var transport = new SteamRoomChecks.FakeTransport();
+            using var service = Service(transport);
+            using var client = Client(service);
+            transport.Seed(Lobby, new SteamRoomMemberData(88, "owner", "1:10:0:1001"));
+            transport.Rooms[Lobby] = transport.Rooms[Lobby] with { OwnerId = 88 };
+            client.Join(Code); transport.SucceedMembership(Lobby);
+            var joined = transport.Rooms[Lobby];
+            transport.IsAvailable = false; service.Tick();
+            // Offline LeaveLobby may clear the local cache before peers receive
+            // the leave. An empty cache is not proof of server-side cleanup.
+            if (emptyCache) transport.Rooms.Remove(Lobby);
+            else transport.Rooms[Lobby] = joined with
+                { Count = 1, Members = joined.Members.Where(m => m.SteamId != transport.LocalSteamId).ToArray() };
+            bool clearedOnline = false;
+            transport.AfterLeave = lobby => clearedOnline = transport.IsAvailable && lobby == Lobby;
+            transport.BeforeJoin = _ => Assert(clearedOnline, "online cleanup precedes join even without a cached local member");
+            transport.IsAvailable = true;
+            service.TryReconnect(client);
+            Assert(clearedOnline && client.IsBusy && transport.MembershipCalls == 2 && client.View == null,
+                "empty or partial SDK cache must not bypass online cleanup or publish a recovered room");
+            transport.Rooms[Lobby] = joined;
+            transport.SucceedMembership(Lobby);
+            Assert(client.View?.Members.Length == 2 && !service.ReconnectContext.IsPending,
+                "recovery commits the new join after empty-cache cleanup");
+            transport.AfterLeave = null;
+        }
     }
 
     private static void CheckMissedRosterCallback()
@@ -351,10 +387,42 @@ public static class RoomReconnectChecks
         Assert(client.View == null && transport.Left.Count(id => id == Lobby) == 3, "very late callback only cleans the native membership");
     }
 
+    private static void CheckDiagnostics()
+    {
+        var events = new List<(string Name, object Data)>();
+        var transport = new SteamRoomChecks.FakeTransport();
+        using var service = Service(transport, diagnostics: (name, data) => events.Add((name, data)));
+        using var client = Client(service);
+        transport.Seed(Lobby, new SteamRoomMemberData(88, "remote", "1:10:0:1001"));
+        client.Join(Code); transport.SucceedMembership(Lobby);
+        transport.IsAvailable = false; service.Tick();
+        transport.IsAvailable = true; service.TryReconnect(client); transport.SucceedMembership(Lobby);
+        Assert(client.JoinedCode == Code, "diagnostics preserve reconnect behavior");
+        foreach (var name in new[] { "rooms_request_started", "rooms_membership_callback", "rooms_membership_snapshot",
+            "rooms_membership_joined", "rooms_disconnected", "rooms_membership_leave" })
+            Assert(events.Any(e => e.Name == name), "diagnostics retain lifecycle checkpoint " + name);
+        // Assert outside the diagnostic sink: its exceptions are intentionally swallowed.
+        foreach (var entry in events)
+        {
+            Assert(entry.Data is Dictionary<string, object>, "diagnostics must not depend on reflected application property names");
+            using var json = JsonDocument.Parse(JsonSerializer.Serialize(entry.Data));
+            Assert(json.RootElement.EnumerateObject().Any(), "diagnostic payload remains serializable");
+            if (entry.Name == "rooms_membership_snapshot")
+                Assert(json.RootElement.GetProperty("members").GetArrayLength() == 2
+                    && json.RootElement.GetProperty("lobby").GetUInt64() == Lobby, "fixed keys retain roster evidence");
+        }
+        var brokenLogTransport = new SteamRoomChecks.FakeTransport();
+        using var brokenLogService = Service(brokenLogTransport, diagnostics: (_, _) => throw new InvalidOperationException("log unavailable"));
+        using var brokenLogClient = Client(brokenLogService);
+        brokenLogClient.Join(Code); brokenLogTransport.SucceedMembership(Lobby);
+        Assert(brokenLogClient.JoinedCode == Code, "diagnostic failures cannot prevent joining a room");
+    }
+
     private static string Code => SteamRoomProtocol.Encode(Lobby);
-    private static SteamRoomService Service(SteamRoomChecks.FakeTransport transport, RoomReconnectContext context = null)
+    private static SteamRoomService Service(SteamRoomChecks.FakeTransport transport, RoomReconnectContext context = null,
+        Action<string, object> diagnostics = null)
         => new(transport, 10, skin => skin is 10 or 20, hat => hat is 30 or 40,
-            reaction => reaction is 1001 or 1002, () => transport.Now, reconnect: context, appId: App);
+            reaction => reaction is 1001 or 1002, () => transport.Now, reconnect: context, appId: App, diagnostics: diagnostics);
     private static RoomClient Client(SteamRoomService service) => new(service, 1, "local", 10);
     private static void Assert(bool condition, string message)
     {

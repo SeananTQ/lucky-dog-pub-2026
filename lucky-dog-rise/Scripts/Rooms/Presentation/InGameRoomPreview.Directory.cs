@@ -78,8 +78,12 @@ public partial class InGameRoomPreview
         // Native playtest reports need to distinguish a paused timer from a
         // failed Steam request. No names, room codes or chat text are recorded.
         if (!_isMock && _gameData != null)
-            DiagnosticLog.Record("rooms_directory_polling", new { state,
-                directory = _client.DirectoryState.ToString(), remaining = Math.Max(0, _nextDirectoryRefresh - _client.Clock) });
+            DiagnosticLog.Record("rooms_directory_polling", new Dictionary<string, object>
+            {
+                ["state"] = state,
+                ["directory"] = _client.DirectoryState.ToString(),
+                ["remaining"] = Math.Max(0, _nextDirectoryRefresh - _client.Clock),
+            });
     }
 
     private bool DirectoryInteractionActive(bool structuralChange = true)
