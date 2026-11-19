@@ -65,7 +65,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
                 _roomService = new Rooms.SteamRoomService(new Rooms.SteamRoomTransport(_runtime),
                     tables.TbDogSkin.DataList[0].Id, skins.Contains, hats.Contains, reactions.Contains,
                     invitations: _roomInvitations,
-                    reconnect: _roomReconnect, appId: AppId);
+                    reconnect: _roomReconnect, appId: AppId, diagnostics: DiagnosticLog.Record);
             }
             return _roomService.CheckAvailability() ? _roomService : null;
         }

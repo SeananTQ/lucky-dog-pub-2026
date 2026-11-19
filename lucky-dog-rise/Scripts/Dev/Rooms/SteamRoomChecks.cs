@@ -1730,6 +1730,8 @@ public static class SteamRoomChecks
         public readonly List<ulong> JoinTargets = new();
         public readonly Dictionary<ulong, SteamRoomData> Rooms = new();
         public readonly List<ulong> Left = new();
+        public Action<ulong> BeforeJoin;
+        public Action<ulong> AfterLeave;
         public readonly List<string> AppearanceWrites = new();
         public readonly List<string> ActivityWrites = new();
         public readonly List<FakeHandle> RequestHandles = new();
@@ -1768,6 +1770,7 @@ public static class SteamRoomChecks
         }
         public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
         {
+            BeforeJoin?.Invoke(lobbyId);
             MembershipCalls++;
             JoinTargets.Add(lobbyId);
             var handle = new FakeHandle();
@@ -1904,7 +1907,7 @@ public static class SteamRoomChecks
         }
         public void SetAppearance(ulong lobbyId, string appearance) => AppearanceWrites.Add(appearance);
         public void SetActivity(ulong lobbyId, string activity) => ActivityWrites.Add(activity);
-        public void Leave(ulong lobbyId) { Left.Add(lobbyId); ArrivalEvents.Add("leave:" + lobbyId); }
+        public void Leave(ulong lobbyId) { Left.Add(lobbyId); ArrivalEvents.Add("leave:" + lobbyId); AfterLeave?.Invoke(lobbyId); }
         public void Dispose() => Disposed = true;
         public void SetBans(ulong lobbyId, string value, bool notify = true)
         {

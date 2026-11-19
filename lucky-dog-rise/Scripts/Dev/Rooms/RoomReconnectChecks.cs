@@ -16,6 +16,8 @@ public static class RoomReconnectChecks
         CheckDeadline();
         CheckIdentityAndGeneration();
         CheckSameService();
+        CheckCachedMembership();
+        CheckMissedRosterCallback();
         CheckRetryFeedback();
         CheckServiceReplacement();
         CheckTerminalFailures();
@@ -140,6 +142,66 @@ public static class RoomReconnectChecks
         Assert(client.Bubbles.Count == 1, "fresh post-rejoin chat still works");
     }
 
+    private static void CheckCachedMembership()
+    {
+        var transport = new SteamRoomChecks.FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(Lobby, new SteamRoomMemberData(88, "owner", "1:10:0:1001"));
+        transport.Rooms[Lobby] = transport.Rooms[Lobby] with { OwnerId = 88 };
+        client.Join(Code); transport.SucceedMembership(Lobby);
+        var joined = transport.Rooms[Lobby];
+        // Model a local SDK roster that survives an offline LeaveLobby. The
+        // remote owner has already removed this peer while this cache says two.
+        transport.IsAvailable = false; service.Tick();
+        bool clearedOnline = false;
+        transport.AfterLeave = lobby =>
+        {
+            Assert(transport.IsAvailable && lobby == Lobby, "stale membership cleanup runs after connection returns");
+            clearedOnline = true;
+            transport.Rooms[lobby] = joined with { Count = 1, Members = joined.Members.Where(m => m.SteamId != transport.LocalSteamId).ToArray() };
+        };
+        transport.BeforeJoin = lobby => Assert(clearedOnline
+            && !transport.Rooms[lobby].Members.Any(m => m.SteamId == transport.LocalSteamId),
+            "recovery cannot accept the old cached membership as a fresh join");
+        transport.IsAvailable = true;
+        Assert(service.TryReconnect(client) && client.View == null, "recovery waits for a new join callback after cleanup");
+        // Both native sides now acknowledge the fresh membership.
+        transport.Rooms[Lobby] = joined;
+        transport.SucceedMembership(Lobby);
+        Assert(client.View?.Members.Length == 2 && !service.ReconnectContext.IsPending,
+            "only the fresh membership callback restores both members");
+        transport.AfterLeave = null;
+    }
+
+    private static void CheckMissedRosterCallback()
+    {
+        var transport = new SteamRoomChecks.FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        transport.Seed(Lobby, new SteamRoomMemberData(88, "remote", "1:10:0:1001"));
+        client.Join(Code); transport.SucceedMembership(Lobby);
+        var both = transport.Rooms[Lobby];
+        transport.Rooms[Lobby] = both with { Count = 1, Members = both.Members.Where(m => m.SteamId == transport.LocalSteamId).ToArray() };
+        transport.Now = SteamRoomService.MembershipRefreshSeconds - 0.01;
+        service.Tick();
+        Assert(client.View.Members.Length == 2, "roster cache reconciliation respects its interval");
+        transport.Now += 0.01; service.Tick();
+        Assert(client.View.Members.Length == 1, "missed remote departure callback cannot leave a permanent ghost dog");
+        transport.Rooms[Lobby] = both;
+        transport.Now += SteamRoomService.MembershipRefreshSeconds; service.Tick();
+        Assert(client.View.Members.Length == 2 && transport.SearchCalls == 0 && transport.MembershipCalls == 1,
+            "missed re-entry callback restores the peer using cache reads, without rejoining or searching");
+        transport.Rooms[Lobby] = both with { OwnerId = 88, Count = 1,
+            Members = both.Members.Where(m => m.SteamId != transport.LocalSteamId).ToArray() };
+        transport.Now += SteamRoomService.MembershipRefreshSeconds; service.Tick();
+        Assert(client.View == null && service.ReconnectContext.IsPending,
+            "missing local membership triggers recovery even if BLoggedOn stayed true and no disconnect callback arrived");
+        client.Leave();
+        Assert(!service.ReconnectContext.IsPending && !service.TryReconnect(client),
+            "explicit departure still cancels automatic recovery");
+    }
+
     private static void CheckServiceReplacement()
     {
         double now = 0;
@@ -210,7 +272,7 @@ public static class RoomReconnectChecks
         incompatible.Rooms[Lobby] = incompatible.Rooms[Lobby] with { Protocol = "different-client-version" };
         incompatible.SucceedMembership(Lobby);
         Assert(!incompatibleService.ReconnectContext.IsPending && incompatibleClient.View == null
-            && incompatible.Left.Count(id => id == Lobby) == 2, "incompatible recovered lobby is left and terminates retries");
+            && incompatible.Left.Count(id => id == Lobby) == 3, "incompatible recovered lobby is left after stale-cache cleanup and terminates retries");
     }
 
     private static void CheckUserIntent()
@@ -238,7 +300,7 @@ public static class RoomReconnectChecks
             if (invitation) transport.DeliverInvitation(Lobby + 1); else client.Cancel();
             transport.SucceedMembership(Lobby);
             Assert(client.View == null && !client.IsBusy && !service.ReconnectContext.IsPending
-                && transport.Left.Count(id => id == Lobby) == 2, "late success after cancel/new invitation cannot pull player back");
+                && transport.Left.Count(id => id == Lobby) == 3, "late success after cancel/new invitation cannot pull player back");
             if (invitation)
                 Assert(service.TryTakeJoinRequest(out var code) && code == SteamRoomProtocol.Encode(Lobby + 1),
                     "accepted invitation remains available after old recovery settles");
@@ -286,7 +348,7 @@ public static class RoomReconnectChecks
         Assert(service.RestartRequired && !service.ReconnectContext.IsPending && !service.TryReconnect(client),
             "unsettled native operation fails closed at forty-five seconds");
         transport.SucceedMembership(Lobby);
-        Assert(client.View == null && transport.Left.Count(id => id == Lobby) == 2, "very late callback only cleans the native membership");
+        Assert(client.View == null && transport.Left.Count(id => id == Lobby) == 3, "very late callback only cleans the native membership");
     }
 
     private static string Code => SteamRoomProtocol.Encode(Lobby);

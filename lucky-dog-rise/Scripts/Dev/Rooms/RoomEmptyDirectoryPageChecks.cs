@@ -300,11 +300,12 @@ internal static class RoomEmptyDirectoryPageChecks
             await Frame();
             Check(service.SearchRequests == 1, "visible page waits for the full refresh interval");
             service.Now++;
-            await Frame();
+            using (UiInteractionOccupancy.Track(parent, () => true))
+                await Frame();
             long searchId = client.ActiveRequestId;
             Check(service.SearchRequests == 2 && client.IsBackgroundSearch && !client.IsBusy
                 && client.RequestState == RoomRequestState.Succeeded && rows.GetChildCount() == 16,
-                "automatic query preserves foreground status, controls and cached list");
+                "automatic query runs despite unrelated UI occupancy and preserves foreground status, controls and cached list");
             page.RefreshRooms(); page.RefreshRooms();
             Check(service.SearchRequests == 2 && client.ActiveRequestId == searchId,
                 "manual and automatic refresh coalesce into the same in-flight request");
@@ -347,6 +348,20 @@ internal static class RoomEmptyDirectoryPageChecks
                 "background error keeps cached real rooms and never fabricates a companion entry");
             await Due(); service.Directory = []; service.Complete(RoomFailure.None); await Frame();
             Check(rows.GetChildCount() == 1 && client.HasSuccessfulDirectory, "only successful empty refresh offers a companion room");
+            var companionRow = rows.GetChild<InGameRoomDirectoryRow>(0);
+            page.DirectoryInteractionForSmoke = () => true;
+            await Due();
+            service.Directory = [new RoomListing("LIVE", "Live room", "social", 1, 6)];
+            service.Complete(RoomFailure.None); await Frame();
+            Check(rows.GetChildCount() == 2 && rows.GetChild(0) == companionRow
+                && companionRow.GetNode<Button>("Join").Disabled
+                && rows.GetChild(1).GetNode<Label>("Name").Text == "Live room",
+                "new real room appears during hover without moving or reusing the stale companion target");
+            page.DirectoryInteractionForSmoke = () => false;
+            await Frame();
+            Check(rows.GetChildCount() == 1 && rows.GetChild(0) != companionRow,
+                "obsolete companion row is removed after the pointer leaves");
+            await Due(); service.Directory = []; service.Complete(RoomFailure.None); await Frame();
             await Due();
             Check(rows.GetChildCount() == 1 && rows.GetChild(0).GetNode<Button>("Join").Disabled,
                 "existing companion invitation stays visible but cannot use an unconfirmed pending result");
