@@ -28,7 +28,9 @@ public static class RoomReconnectChecks
         CheckDepartureCauses();
         CheckMissingCallback();
         CheckDiagnostics();
-        return "[RoomReconnectChecks] PASS 180-second budget, 3 attempts, 5/15-second backoff, source/account/App isolation, same/replaced service, late callbacks, explicit intent, departure causes, fresh chat membership and fixed-key diagnostics (fake Steam).";
+        CheckPeerVerification();
+        CheckVerificationCancellation();
+        return "[RoomReconnectChecks] PASS bounded recovery, staged cleanup, two-peer stale roster/late leave verification, replay/identity guards, cancellation, retries, source/account isolation and fixed-key diagnostics (fake Steam).";
     }
 
     private static void CheckBudget()
@@ -136,7 +138,9 @@ public static class RoomReconnectChecks
         Assert(!service.TryReconnect(client) && transport.MembershipCalls == 1, "no join calls while Steam is unavailable");
         transport.Now = 2; client.AdvanceTo(2); transport.IsAvailable = true;
         Assert(service.TryReconnect(client), "same Steam service can reconnect");
+        StartRecoveryJoin(transport, service);
         transport.SucceedMembership(Lobby);
+        ConfirmRecovery(transport, service);
         Assert(client.JoinedCode == Code && !service.ReconnectContext.IsPending && transport.ChatSessions[Lobby] != oldChatSession,
             "successful rejoin is a fresh membership in the original lobby");
         transport.DeliverChat(Lobby, 88, SteamRoomProtocol.EncodeChat(remoteSession, 2, transport.ServerTime - 2, "late old message"));
@@ -170,11 +174,14 @@ public static class RoomReconnectChecks
             "recovery cannot accept the old cached membership as a fresh join");
         transport.IsAvailable = true;
         Assert(service.TryReconnect(client) && client.View == null, "recovery waits for a new join callback after cleanup");
-        // Both native sides now acknowledge the fresh membership.
+        Assert(transport.MembershipCalls == 1, "online Leave and Join must not execute in the same pump turn");
+        StartRecoveryJoin(transport, service);
         transport.Rooms[Lobby] = joined;
         transport.SucceedMembership(Lobby);
+        Assert(client.View == null, "a local SDK callback alone cannot restore a peer room");
+        ConfirmRecovery(transport, service);
         Assert(client.View?.Members.Length == 2 && !service.ReconnectContext.IsPending,
-            "only the fresh membership callback restores both members");
+            "fresh peer acknowledgments restore both members");
         transport.AfterLeave = null;
     }
 
@@ -200,10 +207,12 @@ public static class RoomReconnectChecks
             transport.BeforeJoin = _ => Assert(clearedOnline, "online cleanup precedes join even without a cached local member");
             transport.IsAvailable = true;
             service.TryReconnect(client);
-            Assert(clearedOnline && client.IsBusy && transport.MembershipCalls == 2 && client.View == null,
+            Assert(clearedOnline && client.IsBusy && transport.MembershipCalls == 1 && client.View == null,
                 "empty or partial SDK cache must not bypass online cleanup or publish a recovered room");
+            StartRecoveryJoin(transport, service);
             transport.Rooms[Lobby] = joined;
             transport.SucceedMembership(Lobby);
+            ConfirmRecovery(transport, service);
             Assert(client.View?.Members.Length == 2 && !service.ReconnectContext.IsPending,
                 "recovery commits the new join after empty-cache cleanup");
             transport.AfterLeave = null;
@@ -248,6 +257,7 @@ public static class RoomReconnectChecks
         oldClient.Join(Code); oldTransport.SucceedMembership(Lobby);
         oldTransport.Disconnect();
         Assert(oldService.TryReconnect(oldClient), "connection-lost event can recover even before polling notices unavailability");
+        StartRecoveryJoin(oldTransport, oldService);
 
         var transport = new SteamRoomChecks.FakeTransport();
         using var service = Service(transport, context);
@@ -260,9 +270,11 @@ public static class RoomReconnectChecks
             "late old callback cleans native membership without restoring old UI or consuming new intent");
         now = transport.Now = 5; client.AdvanceTo(5);
         Assert(service.TryReconnect(client), "replacement service retries with the original budget");
+        StartRecoveryJoin(transport, service);
         oldService.Dispose();
         Assert(context.IsAttempting, "late disposal of replaced service does not cancel the new attempt");
         transport.SucceedMembership(Lobby);
+        ConfirmRecovery(transport, service);
         Assert(client.JoinedCode == Code && context.StatusKey == "Rooms_ReconnectRestored", "new service commits same-account recovery");
     }
 
@@ -274,12 +286,15 @@ public static class RoomReconnectChecks
         client.Join(Code); transport.SucceedMembership(Lobby); transport.Disconnect();
         int notices = 0;
         client.JoinFailed += (_, _) => notices++;
-        foreach (double at in new[] { 0d, 5d, 20d })
+        int attempt = 0;
+        foreach (double delay in new[] { 0d, 5d, 15d })
         {
-            transport.Now = at; client.AdvanceTo(at); service.Tick();
+            attempt++;
+            transport.Now += delay; client.AdvanceTo(transport.Now); service.Tick();
             Assert(service.TryReconnect(client), "scheduled transient retry reaches the real service adapter");
+            StartRecoveryJoin(transport, service);
             transport.FailMembership(RoomFailure.Unavailable);
-            Assert(notices == (at == 20 ? 1 : 0), "transient retries stay quiet and only the terminal failure raises a notice");
+            Assert(notices == (attempt == 3 ? 1 : 0), "transient retries stay quiet and only the terminal failure raises a notice");
             Assert(!service.TryReconnect(client), "repeated frame updates cannot bypass retry backoff");
         }
         Assert(transport.MembershipCalls == 4 && transport.JoinTargets.All(id => id == Lobby)
@@ -295,6 +310,7 @@ public static class RoomReconnectChecks
             using var client = Client(service);
             client.Join(Code); transport.SucceedMembership(Lobby); transport.Disconnect();
             Assert(service.TryReconnect(client), "terminal failure fixture begins a recovery");
+            StartRecoveryJoin(transport, service);
             transport.FailMembership(failure);
             transport.Now = 100; service.Tick();
             Assert(!service.ReconnectContext.IsPending && !service.TryReconnect(client) && client.Failure == failure
@@ -305,6 +321,7 @@ public static class RoomReconnectChecks
         using var incompatibleClient = Client(incompatibleService);
         incompatibleClient.Join(Code); incompatible.SucceedMembership(Lobby); incompatible.Disconnect();
         Assert(incompatibleService.TryReconnect(incompatibleClient), "incompatible fixture begins recovery");
+        StartRecoveryJoin(incompatible, incompatibleService);
         incompatible.Rooms[Lobby] = incompatible.Rooms[Lobby] with { Protocol = "different-client-version" };
         incompatible.SucceedMembership(Lobby);
         Assert(!incompatibleService.ReconnectContext.IsPending && incompatibleClient.View == null
@@ -333,6 +350,7 @@ public static class RoomReconnectChecks
             using var client = Client(service);
             client.Join(Code); transport.SucceedMembership(Lobby); transport.Disconnect();
             Assert(service.TryReconnect(client), "cancellation fixture has an in-flight recovery");
+            StartRecoveryJoin(transport, service);
             if (invitation) transport.DeliverInvitation(Lobby + 1); else client.Cancel();
             transport.SucceedMembership(Lobby);
             Assert(client.View == null && !client.IsBusy && !service.ReconnectContext.IsPending
@@ -376,11 +394,12 @@ public static class RoomReconnectChecks
         using var client = Client(service);
         client.Join(Code); transport.SucceedMembership(Lobby); transport.Disconnect();
         Assert(service.TryReconnect(client), "missing callback fixture begins recovery");
+        StartRecoveryJoin(transport, service);
         transport.Now = 15; client.AdvanceTo(15); service.Tick();
         transport.Now = 20; client.AdvanceTo(20); service.Tick();
         Assert(!service.TryReconnect(client) && transport.MembershipCalls == 2,
             "unsettled timed-out Steam operation prevents overlapping join calls");
-        transport.Now = 45; client.AdvanceTo(45); service.Tick();
+        transport.Now = 46; client.AdvanceTo(46); service.Tick();
         Assert(service.RestartRequired && !service.ReconnectContext.IsPending && !service.TryReconnect(client),
             "unsettled native operation fails closed at forty-five seconds");
         transport.SucceedMembership(Lobby);
@@ -396,10 +415,13 @@ public static class RoomReconnectChecks
         transport.Seed(Lobby, new SteamRoomMemberData(88, "remote", "1:10:0:1001"));
         client.Join(Code); transport.SucceedMembership(Lobby);
         transport.IsAvailable = false; service.Tick();
-        transport.IsAvailable = true; service.TryReconnect(client); transport.SucceedMembership(Lobby);
+        transport.IsAvailable = true; service.TryReconnect(client);
+        StartRecoveryJoin(transport, service);
+        transport.SucceedMembership(Lobby);
+        ConfirmRecovery(transport, service);
         Assert(client.JoinedCode == Code, "diagnostics preserve reconnect behavior");
         foreach (var name in new[] { "rooms_request_started", "rooms_membership_callback", "rooms_membership_snapshot",
-            "rooms_membership_joined", "rooms_disconnected", "rooms_membership_leave" })
+            "rooms_membership_joined", "rooms_disconnected", "rooms_membership_leave", "rooms_reconnect_probe", "rooms_reconnect_ack" })
             Assert(events.Any(e => e.Name == name), "diagnostics retain lifecycle checkpoint " + name);
         // Assert outside the diagnostic sink: its exceptions are intentionally swallowed.
         foreach (var entry in events)
@@ -410,12 +432,157 @@ public static class RoomReconnectChecks
             if (entry.Name == "rooms_membership_snapshot")
                 Assert(json.RootElement.GetProperty("members").GetArrayLength() == 2
                     && json.RootElement.GetProperty("lobby").GetUInt64() == Lobby, "fixed keys retain roster evidence");
+            if (entry.Name == "rooms_disconnected")
+                Assert(json.RootElement.GetProperty("reason").GetString() == "NetworkLost", "disconnect cause survives private enum obfuscation");
         }
         var brokenLogTransport = new SteamRoomChecks.FakeTransport();
         using var brokenLogService = Service(brokenLogTransport, diagnostics: (_, _) => throw new InvalidOperationException("log unavailable"));
         using var brokenLogClient = Client(brokenLogService);
         brokenLogClient.Join(Code); brokenLogTransport.SucceedMembership(Lobby);
         Assert(brokenLogClient.JoinedCode == Code, "diagnostic failures cannot prevent joining a room");
+    }
+
+    private static void CheckPeerVerification()
+    {
+        foreach (bool leaveAfterFirstReply in new[] { false, true })
+        {
+            var host = new SteamRoomChecks.FakeTransport { LocalSteamId = 77 };
+            var guest = new SteamRoomChecks.FakeTransport { LocalSteamId = 88 };
+            using var hostService = Service(host);
+            using var guestService = Service(guest);
+            using var hostClient = Client(hostService);
+            using var guestClient = Client(guestService);
+            host.Seed(Lobby, new SteamRoomMemberData(88, "guest", "1:10:0:1001"));
+            // Verification must also work when player text chat is disabled.
+            var both = host.Rooms[Lobby] with { Game = "work", GameState = SteamRoomProtocol.EncodeGameState(new(1, "work")) };
+            host.Rooms[Lobby] = guest.Rooms[Lobby] = both;
+            var alone = both with { Count = 1, Members = both.Members.Where(m => m.SteamId == 77).ToArray() };
+            hostClient.Join(Code); host.SucceedMembership(Lobby);
+            guestClient.Join(Code); guest.SucceedMembership(Lobby);
+            byte[] lastReply = null;
+            guest.ChatSent = (lobby, message) => host.DeliverChat(lobby, 88, message);
+            host.ChatSent = (lobby, message) => { lastReply = message; guest.DeliverChat(lobby, 77, message); };
+            guest.IsAvailable = false; guestService.Tick();
+            host.Rooms[Lobby] = leaveAfterFirstReply ? both : alone;
+            guest.IsAvailable = true;
+            Assert(guestService.TryReconnect(guestClient), "two-peer fixture begins recovery");
+            StartRecoveryJoin(guest, guestService);
+            guest.SucceedMembership(Lobby);
+            Assert(guestClient.View == null && guestService.ReconnectContext.IsPending,
+                "successful Join plus a cached two-person roster is not sufficient");
+            guest.Now += SteamRoomService.RecoverySettleSeconds; host.Now = guest.Now;
+            guestService.Tick();
+            if (leaveAfterFirstReply)
+            {
+                Assert(lastReply != null && guestClient.View == null, "first acknowledgment cannot immediately restore the UI");
+                // Reproduce A's late Left notification after briefly seeing B.
+                host.Rooms[Lobby] = alone;
+                guest.DeliverChat(Lobby, 77, lastReply);
+                guest.DeliverChat(Lobby, 99, lastReply);
+                Assert(guestClient.View == null, "replayed or wrong-sender replies cannot pass the second check");
+            }
+            else Assert(lastReply == null, "host refuses to acknowledge an absent guest even if it receives a probe");
+            guest.Now += SteamRoomService.RecoverySettleSeconds; host.Now = guest.Now;
+            guestService.Tick();
+            Assert(guestClient.View == null && guest.Rooms[Lobby].Members.Length == 2,
+                "stale B cache remains hidden after A removes B");
+            guest.Now = host.Now = RoomRules.RequestTimeout;
+            guestService.Tick(); guestClient.AdvanceTo(guest.Now); hostService.Tick();
+            Assert(guestClient.View == null && !guestClient.IsBusy && guestService.ReconnectContext.IsPending
+                && !guestService.ReconnectContext.IsAttempting && hostClient.View.Members.Length == 1,
+                "unconfirmed native success times out into bounded retry without restarting Steam");
+            Assert(guest.Left.Count == 3, "failed verification cleans its native membership exactly once");
+
+            guest.Now = host.Now = RoomRules.RequestTimeout + 5; guestClient.AdvanceTo(guest.Now);
+            Assert(guestService.TryReconnect(guestClient), "peer disagreement honors the existing five-second retry backoff");
+            StartRecoveryJoin(guest, guestService);
+            host.Rooms[Lobby] = guest.Rooms[Lobby] = both;
+            guest.SucceedMembership(Lobby);
+            if (lastReply != null) guest.DeliverChat(Lobby, 77, lastReply);
+            Assert(guestClient.View == null, "a previous attempt's reply cannot restore a new visit");
+            guest.Now += SteamRoomService.RecoverySettleSeconds; host.Now = guest.Now;
+            guestService.Tick();
+            var firstReply = lastReply;
+            Assert(firstReply != null && guestClient.View == null, "retry waits between its two independent probes");
+            guest.DeliverChat(Lobby, 77, firstReply);
+            guest.Now += SteamRoomService.RecoverySettleSeconds; host.Now = guest.Now;
+            guestService.Tick(); hostService.Tick();
+            Assert(guestClient.View?.Members.Length == 2 && hostClient.View?.Members.Length == 2
+                && !guestService.ReconnectContext.IsPending && !guestService.RestartRequired,
+                "both endpoints recover after a genuinely new membership and two fresh round trips");
+            Assert(hostClient.Bubbles.Count == 0 && guestClient.Bubbles.Count == 0
+                && host.FilterCalls.Count == 0 && guest.FilterCalls.Count == 0,
+                "membership control traffic never creates bubbles, invokes word filtering or requires enabled chat");
+            var malformed = firstReply[..^1];
+            Assert(!SteamRoomProtocol.TryDecodeMembershipProbe(malformed, out _, out _, out _, out _), "truncated controls are rejected");
+        }
+    }
+
+    private static void CheckVerificationCancellation()
+    {
+        foreach (string action in new[] { "cleanup", "cancel", "invite", "dispose", "ban", "owner-change" })
+        {
+            var transport = new SteamRoomChecks.FakeTransport();
+            using var service = Service(transport);
+            using var client = Client(service);
+            transport.Seed(Lobby, new SteamRoomMemberData(88, "owner", "1:10:0:1001"), new SteamRoomMemberData(99, "peer", "1:10:0:1001"));
+            transport.Rooms[Lobby] = transport.Rooms[Lobby] with { OwnerId = 88 };
+            client.Join(Code); transport.SucceedMembership(Lobby); transport.Disconnect();
+            service.TryReconnect(client);
+            if (action == "cleanup")
+            {
+                client.Cancel(); StartRecoveryJoin(transport, service);
+                Assert(transport.MembershipCalls == 1 && !client.IsBusy && !service.ReconnectContext.IsPending,
+                    "cancelling during cleanup never launches JoinLobby later");
+                continue;
+            }
+            StartRecoveryJoin(transport, service);
+            transport.SucceedMembership(Lobby);
+            transport.Now += SteamRoomService.RecoverySettleSeconds; service.Tick();
+            Assert(SteamRoomProtocol.TryDecodeMembershipProbe(transport.Chats.Last(), out var requester,
+                out var peer, out var nonce, out var reply) && !reply && peer == 88, "candidate requests confirmation from its current owner");
+            var ack = SteamRoomProtocol.EncodeMembershipProbe(requester, peer, nonce, true);
+            if (action == "owner-change")
+            {
+                transport.Rooms[Lobby] = transport.Rooms[Lobby] with { OwnerId = 99 };
+                transport.DeliverChat(Lobby, 88, ack);
+                Assert(client.View == null, "former owner's late reply cannot confirm a new owner");
+                service.Tick(); ConfirmRecovery(transport, service);
+                Assert(client.View != null && !service.ReconnectContext.IsPending, "verification restarts against the new owner");
+                continue;
+            }
+            if (action == "cancel") client.Cancel();
+            if (action == "invite") transport.DeliverInvitation(Lobby + 1);
+            if (action == "dispose") service.Dispose();
+            if (action == "ban") transport.SetBans(Lobby, SteamRoomProtocol.EncodeBannedMembers(new[] { 77UL }), notify: false);
+            if (action != "dispose") service.Tick();
+            transport.DeliverChat(Lobby, 88, ack);
+            Assert(client.View == null && !service.ReconnectContext.IsAttempting && transport.Left.Count == 3,
+                action + " cleans an already-returned native join without waiting for a nonexistent second callback");
+            if (action == "ban") Assert(client.Failure == RoomFailure.Banned && !service.ReconnectContext.IsPending,
+                "fresh ban data terminates recovery during verification");
+        }
+    }
+
+    private static void StartRecoveryJoin(SteamRoomChecks.FakeTransport transport, SteamRoomService service)
+    {
+        transport.Now += SteamRoomService.RecoverySettleSeconds;
+        service.Tick();
+    }
+
+    // Existing tests isolate request/cancellation policy. Dedicated two-service
+    // checks below exercise the responder with separate native membership caches.
+    private static void ConfirmRecovery(SteamRoomChecks.FakeTransport transport, SteamRoomService service)
+    {
+        for (int round = 0; round < 2 && service.ReconnectContext.IsPending; round++)
+        {
+            transport.Now += SteamRoomService.RecoverySettleSeconds;
+            service.Tick();
+            if (!service.ReconnectContext.IsPending) break; // Lone owner.
+            Assert(SteamRoomProtocol.TryDecodeMembershipProbe(transport.Chats.LastOrDefault(),
+                out var requester, out var peer, out var nonce, out var reply) && !reply, "recovery sends a fresh control probe");
+            transport.DeliverChat(Lobby, peer, SteamRoomProtocol.EncodeMembershipProbe(requester, peer, nonce, true));
+        }
     }
 
     private static string Code => SteamRoomProtocol.Encode(Lobby);

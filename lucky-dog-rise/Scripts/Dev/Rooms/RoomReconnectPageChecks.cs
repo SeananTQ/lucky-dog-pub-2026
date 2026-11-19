@@ -69,6 +69,7 @@ internal static class RoomReconnectPageChecks
         test.Page.Hide();
         test.ReplaceService();
         await test.Frame();
+        await test.BeginRecoveryJoin();
         var replacement = test.Page.CurrentClient;
         Check(replacement != null && !ReferenceEquals(original, replacement)
             && test.Transport.JoinTargets.SequenceEqual(new[] { OriginalLobby }) && test.Transport.SearchCalls == 0,
@@ -76,6 +77,7 @@ internal static class RoomReconnectPageChecks
         Check(test.Context.IsAttempting && test.Message.Text == L10n.Tr("Rooms_ReconnectJoining") && test.Cancel.Visible,
             "an in-flight automatic join retains translated recovery feedback and cancellation");
         test.Transport.SucceedMembership(OriginalLobby);
+        test.Now += SteamRoomService.RecoverySettleSeconds;
         await test.Frame();
         Check(replacement.JoinedCode == SteamRoomProtocol.Encode(OriginalLobby)
             && test.Page.GetNode<Control>("Room").Visible && !test.Page.GetNode<Control>("Lobby").Visible,
@@ -136,10 +138,12 @@ internal static class RoomReconnectPageChecks
         oldService.Dispose();
         test.ReplaceService();
         await test.Frame();
+        await test.BeginRecoveryJoin();
         Check(test.Transport.SearchCalls == 0
             && test.Transport.JoinTargets.SequenceEqual(new[] { OriginalLobby }),
             "the detach-before-tick ordering still rejoins the original lobby without a search");
         test.Transport.SucceedMembership(OriginalLobby);
+        test.Now += SteamRoomService.RecoverySettleSeconds;
         await test.Frame();
         Check(test.Page.CurrentClient.JoinedCode == SteamRoomProtocol.Encode(OriginalLobby)
             && !test.Context.IsPending && test.Context.StatusKey == "Rooms_ReconnectRestored",
@@ -217,6 +221,7 @@ internal static class RoomReconnectPageChecks
         await test.Frame();
         test.ReplaceService();
         await test.Frame();
+        await test.BeginRecoveryJoin();
         Check(test.Transport.MembershipCalls == 1, "precondition: one recovery request is in flight");
         test.Transport.FailMembership(failure);
         await test.Frame();
@@ -275,9 +280,18 @@ internal static class RoomReconnectPageChecks
 
         public async Task Frame(bool tickService = true)
         {
+            if (Transport != null) Transport.Now = Now;
             if (tickService) Service?.Tick();
             await _parent.ToSignal(_parent.GetTree(), SceneTree.SignalName.ProcessFrame);
             await _parent.ToSignal(_parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        public async Task BeginRecoveryJoin()
+        {
+            Check(Context.IsAttempting && Transport.MembershipCalls == 0,
+                "page keeps recovery pending while online cleanup settles");
+            Now += SteamRoomService.RecoverySettleSeconds;
+            await Frame();
         }
 
         public async Task JoinInitially()

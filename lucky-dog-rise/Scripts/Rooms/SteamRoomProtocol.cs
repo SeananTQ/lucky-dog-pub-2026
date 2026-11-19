@@ -16,8 +16,9 @@ public sealed record SteamRoomGameState(long Revision, string Game, SteamRoomGam
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Earlier clients cannot preserve the arrival handoff's companion retirements.
-    public const string Version = "lucky-dog-room-6";
+    // Rejoining clients require a peer membership handshake. Older clients cannot
+    // answer it and must not silently share a room with this protocol.
+    public const string Version = "lucky-dog-room-7";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";
@@ -186,6 +187,30 @@ public static class SteamRoomProtocol
         target = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(4));
         membership = new Guid(bytes.AsSpan(12));
         return target != 0 && membership != Guid.Empty;
+    }
+
+    // Membership control traffic, independent of player text and its cooldown.
+    // A fresh nonce belongs to one recovery attempt; Steam supplies sender identity.
+    public static byte[] EncodeMembershipProbe(ulong requester, ulong peer, Guid nonce, bool reply)
+    {
+        var bytes = new byte[36];
+        (reply ? "LDM2"u8 : "LDM1"u8).CopyTo(bytes);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(4), requester);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(12), peer);
+        nonce.TryWriteBytes(bytes.AsSpan(20));
+        return bytes;
+    }
+
+    public static bool TryDecodeMembershipProbe(byte[] bytes, out ulong requester, out ulong peer, out Guid nonce, out bool reply)
+    {
+        requester = peer = 0; nonce = Guid.Empty; reply = false;
+        if (bytes == null || bytes.Length != 36
+            || !(bytes.AsSpan(0, 4).SequenceEqual("LDM1"u8) || bytes.AsSpan(0, 4).SequenceEqual("LDM2"u8))) return false;
+        reply = bytes[3] == (byte)'2';
+        requester = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(4));
+        peer = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(12));
+        nonce = new Guid(bytes.AsSpan(20));
+        return requester != 0 && peer != 0 && requester != peer && nonce != Guid.Empty;
     }
 
     // Binary envelope: magic/version, per-membership token, sequence, Steam time,

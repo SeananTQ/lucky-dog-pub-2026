@@ -1689,6 +1689,7 @@ public static class SteamRoomChecks
         public readonly List<(ulong Lobby, string Members)> BanWrites = new();
         public bool BanWriteSucceeds = true;
         public bool ChatSucceeds = true;
+        public Action<ulong, byte[]> ChatSent;
         public bool InviteDialogSucceeds = true;
         public readonly List<ulong> InviteDialogs = new();
         public event Action<ulong> JoinRequested = delegate { };
@@ -1711,6 +1712,7 @@ public static class SteamRoomChecks
             Events.Add("chat");
             if (!ChatSucceeds) return false;
             Chats.Add(message);
+            ChatSent?.Invoke(lobbyId, message);
             return true;
         }
         public bool SetBannedMembers(ulong lobbyId, string members)

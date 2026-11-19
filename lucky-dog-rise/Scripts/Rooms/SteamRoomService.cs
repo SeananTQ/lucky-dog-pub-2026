@@ -73,6 +73,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         public double RequestedAt;
         public double StartedAt;
         public bool MembershipCleaned;
+        public bool RecoveryCleanupStarted;
+        public double JoinNotBefore;
+        public ulong VerificationLobby;
+        public ulong VerificationPeer;
+        public Guid VerificationNonce;
+        public int VerificationReplies;
+        public double NextVerification;
     }
 
     private readonly ISteamRoomTransport _transport;
@@ -86,7 +93,10 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     private readonly Func<double> _now;
     private readonly Action<string, object> _diagnostics;
     internal const double MembershipRefreshSeconds = 5;
+    internal const double RecoverySettleSeconds = 1;
+    internal const double RecoveryProbeIntervalSeconds = 2;
     private double _nextMembershipRefresh;
+    private readonly Dictionary<ulong, double> _receivedMembershipProbeAt = new();
     private readonly Func<long, RoomCompanionPlan> _createCompanions;
     private readonly Dictionary<ulong, (int Id, long Presence)> _identities = new();
     private readonly HashSet<ulong> _banned = new();
@@ -312,33 +322,37 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     {
         if (_disposed || _completing || _inFlight != null || _queued == null) return;
         var pending = _queued;
-        _queued = null;
-        if (!pending.Client.IsRequestCurrent(pending.Request.Id)) return;
-        // The shared callback pump may run before the page advances its client clock.
-        // Do not launch a queued operation whose original UI deadline has elapsed.
-        if (_now() - pending.RequestedAt >= RoomRules.RequestTimeout) return;
-        if (!IsAvailable)
+        // The shared callback pump may run before the page advances its client
+        // clock. CanCommit also enforces the original UI/recovery deadline.
+        if (!CanCommit(pending))
         {
+            _queued = null;
             CompleteMembershipFailure(pending, RoomFailure.Unavailable);
             return;
         }
+        if (pending.Request.Operation == RoomOperation.Join && pending.Request.RecoveryGeneration != 0)
+        {
+            if (!pending.RecoveryCleanupStarted)
+            {
+                // LeaveLobby has no server-side completion callback. Let the shared
+                // Steam pump advance before JoinLobby, then verify with a real peer;
+                // this delay alone is deliberately not considered proof of cleanup.
+                pending.RecoveryCleanupStarted = true;
+                pending.JoinNotBefore = Now + RecoverySettleSeconds;
+                var target = Decode(pending.Request.Value);
+                Trace("rooms_reconnect_cleanup", ("lobby", target), ("request", pending.Request.Id));
+                SafeLeave(target);
+                return;
+            }
+            if (Now < pending.JoinNotBefore) return;
+        }
+        _queued = null;
         _inFlight = pending;
         pending.StartedAt = _now();
         try
         {
             Trace("rooms_request_started", ("operation", pending.Request.Operation.ToString()),
                 ("request", pending.Request.Id), ("recovery", pending.Request.RecoveryGeneration != 0));
-            if (pending.Request.Operation == RoomOperation.Join && pending.Request.RecoveryGeneration != 0)
-            {
-                var target = Decode(pending.Request.Value);
-                // Offline LeaveLobby can clear the SDK cache without settling
-                // remote membership. Always clean up while online, even when
-                // ReadLobby would return no members or omit the local player.
-                // An empty local cache is not proof that the server saw us leave.
-                Trace("rooms_reconnect_cleanup", ("lobby", target));
-                _transport.Leave(target);
-                if (!CanCommit(pending)) throw new InvalidOperationException("Room recovery was interrupted during cleanup.");
-            }
             var handle = pending.Request.Operation switch
             {
                 RoomOperation.Search => _transport.Search(result => CompleteSearch(pending, result)),
@@ -426,14 +440,15 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         finally { Finish(pending); }
     }
 
-    private void CompleteMembership(Pending pending, SteamRoomJoinResult result)
+    private void CompleteMembership(Pending pending, SteamRoomJoinResult result, bool verified = false)
     {
-        Trace("rooms_membership_callback", ("request", pending.Request.Id), ("lobby", result.LobbyId),
+        Trace(verified ? "rooms_membership_verified" : "rooms_membership_callback", ("request", pending.Request.Id), ("lobby", result.LobbyId),
             ("failure", result.Failure.ToString()), ("recovery", pending.Request.RecoveryGeneration != 0),
             ("current", _inFlight == pending), ("cancelled", pending.Cancelled));
         if (_inFlight != pending) return;
         _completing = true;
         var accepted = false;
+        var deferred = false;
         try
         {
             if (!CanCommit(pending)) return;
@@ -478,6 +493,17 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             {
                 _blockedLobbies.Add(result.LobbyId);
                 CompleteMembershipFailure(pending, RoomFailure.Banned);
+                return;
+            }
+            if (pending.Request.RecoveryGeneration != 0 && !verified)
+            {
+                // LobbyEnter and ReadLobby may agree with each other while the
+                // remote owner has already removed us. Keep the UI disconnected
+                // until fresh control messages prove bidirectional membership.
+                pending.VerificationLobby = result.LobbyId;
+                pending.VerificationPeer = VerificationPeer(data);
+                pending.NextVerification = Now + RecoverySettleSeconds;
+                deferred = true;
                 return;
             }
             // The stored policy survives the former host. Reconcile native
@@ -534,6 +560,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 _chatSequence = 0;
                 _chatSessions.Clear();
                 _receivedChatAt.Clear();
+                _receivedMembershipProbeAt.Clear();
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival, preserveArrival: arrival);
                 if (arrival) pending.Client.PrepareArrival(pending.Request.Id, committed: true);
                 Publish(data);
@@ -549,15 +576,113 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         catch { CompleteMembershipFailure(pending, RoomFailure.Unavailable, retryable: !_transport.IsAvailable); }
         finally
         {
-            if (!accepted && pending.Request.RecoveryGeneration != 0)
-                _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.Unavailable);
-            if (!accepted && !pending.MembershipCleaned && result.Failure == RoomFailure.None && result.LobbyId != 0 && result.LobbyId != _lobby)
+            if (deferred) _completing = false;
+            else
             {
-                pending.MembershipCleaned = true;
-                SafeLeave(result.LobbyId);
+                if (!accepted && pending.Request.RecoveryGeneration != 0)
+                    _reconnect.CompleteAttempt(_reconnectSource, pending.Request.RecoveryGeneration, RoomFailure.Unavailable);
+                var cleanup = pending.VerificationLobby != 0 ? pending.VerificationLobby
+                    : result.Failure == RoomFailure.None ? result.LobbyId : 0;
+                if (!accepted && !pending.MembershipCleaned && cleanup != 0 && cleanup != _lobby)
+                {
+                    pending.MembershipCleaned = true;
+                    SafeLeave(cleanup);
+                }
+                Finish(pending);
             }
-            Finish(pending);
         }
+    }
+
+    private ulong VerificationPeer(SteamRoomData data) => data.OwnerId != _transport.LocalSteamId
+        ? data.OwnerId : data.Members.Where(m => m.SteamId != _transport.LocalSteamId)
+            .Select(m => m.SteamId).OrderBy(id => id).FirstOrDefault();
+
+    private void AdvanceMembershipVerification()
+    {
+        if (_completing || _inFlight is not { VerificationLobby: not 0 } pending) return;
+        var lobby = pending.VerificationLobby;
+        if (!CanCommit(pending))
+        {
+            CompleteMembership(pending, new(RoomFailure.Unavailable, lobby), verified: true);
+            return;
+        }
+        try
+        {
+            var data = _transport.ReadLobby(lobby, true);
+            if (!Compatible(data) || data.Members == null || data.Members.Length > RoomRules.Capacity
+                || !data.Members.Any(m => m.SteamId == _transport.LocalSteamId)
+                || !data.Members.Any(m => m.SteamId == data.OwnerId))
+            {
+                CompleteMembership(pending, new(RoomFailure.Unavailable, lobby), verified: true);
+                return;
+            }
+            if (!SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans) || bans.Contains(_transport.LocalSteamId))
+            {
+                CompleteMembership(pending, new(bans.Contains(_transport.LocalSteamId) ? RoomFailure.Banned : RoomFailure.NotFound, lobby), verified: true);
+                return;
+            }
+            var peer = VerificationPeer(data);
+            if (pending.VerificationPeer != peer)
+            {
+                pending.VerificationPeer = peer;
+                pending.VerificationNonce = Guid.Empty;
+                pending.VerificationReplies = 0;
+                pending.NextVerification = Now + RecoverySettleSeconds;
+            }
+            if (Now < pending.NextVerification) return;
+            // A genuinely lone owner has nobody to acknowledge. Its successful
+            // native Join remains the authority; never use this path with peers.
+            if (peer == 0)
+            {
+                Trace("rooms_reconnect_verified", ("lobby", lobby), ("peer", 0UL), ("replies", 0));
+                CompleteMembership(pending, new(RoomFailure.None, lobby), verified: true);
+                return;
+            }
+            if (pending.VerificationNonce == Guid.Empty) pending.VerificationNonce = Guid.NewGuid();
+            pending.NextVerification = Now + RecoveryProbeIntervalSeconds;
+            Trace("rooms_reconnect_probe", ("lobby", lobby), ("peer", peer), ("request", pending.Request.Id),
+                ("round", pending.VerificationReplies + 1));
+            _transport.SendChat(lobby, SteamRoomProtocol.EncodeMembershipProbe(_transport.LocalSteamId, peer, pending.VerificationNonce, false));
+        }
+        catch { CompleteMembership(pending, new(RoomFailure.Unavailable, lobby), verified: true); }
+    }
+
+    private void OnMembershipProbe(ulong lobby, ulong sender, ulong requester, ulong peer, Guid nonce, bool reply)
+    {
+        try
+        {
+            if (reply)
+            {
+                if (requester != _transport.LocalSteamId || sender != peer
+                    || _inFlight is not { VerificationLobby: not 0 } pending || pending.VerificationLobby != lobby
+                    || pending.VerificationPeer != peer || pending.VerificationNonce != nonce || !CanCommit(pending)) return;
+                var data = _transport.ReadLobby(lobby, true);
+                if (!Compatible(data) || data.Members == null || VerificationPeer(data) != peer
+                    || !data.Members.Any(m => m.SteamId == requester) || !data.Members.Any(m => m.SteamId == peer)) return;
+                pending.VerificationNonce = Guid.Empty; // Replayed replies cannot count twice.
+                pending.VerificationReplies++;
+                Trace("rooms_reconnect_ack", ("lobby", lobby), ("peer", peer), ("request", pending.Request.Id),
+                    ("round", pending.VerificationReplies));
+                if (pending.VerificationReplies < 2)
+                    pending.NextVerification = Now + RecoverySettleSeconds;
+                else
+                    CompleteMembership(pending, new(RoomFailure.None, lobby), verified: true);
+                return;
+            }
+            if (sender != requester || peer != _transport.LocalSteamId || _banned.Contains(sender)) return;
+            if (lobby != _lobby && !(_inFlight is { VerificationLobby: not 0 } candidate
+                && candidate.VerificationLobby == lobby && CanCommit(candidate))) return;
+            var room = _transport.ReadLobby(lobby, true);
+            if (!Compatible(room) || room.Members == null || room.Members.Length > RoomRules.Capacity
+                || !room.Members.Any(m => m.SteamId == requester) || !room.Members.Any(m => m.SteamId == peer)
+                || !SteamRoomProtocol.TryDecodeBannedMembers(room.BannedMembers, out var banned)
+                || banned.Contains(requester) || banned.Contains(peer)) return;
+            if (_receivedMembershipProbeAt.TryGetValue(sender, out var last) && Now - last < 0.5) return;
+            _receivedMembershipProbeAt[sender] = Now;
+            Trace("rooms_reconnect_peer_ack", ("lobby", lobby), ("requester", requester));
+            _transport.SendChat(lobby, SteamRoomProtocol.EncodeMembershipProbe(requester, peer, nonce, true));
+        }
+        catch { /* Control traffic cannot break the shared Steam callback pump. */ }
     }
 
     private void Finish(Pending pending)
@@ -1003,7 +1128,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void OnChatReceived(ulong lobby, ulong sender, byte[] bytes)
     {
-        if (!IsAvailable || _lobby == 0 || lobby != _lobby || sender == _transport.LocalSteamId) return;
+        if (!IsAvailable || sender == _transport.LocalSteamId) return;
+        if (SteamRoomProtocol.TryDecodeMembershipProbe(bytes, out var requester, out var peer, out var nonce, out var reply))
+        {
+            OnMembershipProbe(lobby, sender, requester, peer, nonce, reply);
+            return;
+        }
+        if (_lobby == 0 || lobby != _lobby) return;
         if (SteamRoomProtocol.TryDecodeKick(bytes, out var target, out var membership))
         {
             if (target != _transport.LocalSteamId || membership != _chatSession) return;
@@ -1054,6 +1185,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             if (_gameState?.Proposal is { } proposal && proposal.Voters.Any(v => v.SteamId == member))
                 _invalidGameProposals.Add(proposal.Id);
             _identities.Remove(member); _chatSessions.Remove(member); _receivedChatAt.Remove(member);
+            _receivedMembershipProbeAt.Remove(member);
         }
     }
 
@@ -1343,6 +1475,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         _chatSession = Guid.Empty;
         _chatSessions.Clear();
         _receivedChatAt.Clear();
+        _receivedMembershipProbeAt.Clear();
         if (client.JoinedCode.Length > 0) client.BeginSession("");
         if (old != 0) SafeLeave(old);
     }
@@ -1359,6 +1492,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         // needed, and we must not reset the shared inventory session speculatively.
         if (_inFlight != null && _now() - _inFlight.StartedAt >= 45) _settlementTimedOut = true;
         CheckAvailability();
+        AdvanceMembershipVerification();
+        StartQueued();
         // The membership is already committed. Only presentation time advances;
         // the end of the fade must never perform another fallible network action.
         if (_client?.Arrival is { Committed: true }) _client.AdvanceTo(Now);
@@ -1415,7 +1550,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
 
     private void Disconnect(DisconnectKind kind = DisconnectKind.Terminal)
     {
-        if (_lobby != 0) Trace("rooms_disconnected", ("lobby", _lobby), ("reason", kind.ToString()));
+        if (_lobby != 0) Trace("rooms_disconnected", ("lobby", _lobby), ("reason", kind switch
+        {
+            DisconnectKind.NetworkLost => "NetworkLost",
+            DisconnectKind.SessionDisposed => "SessionDisposed",
+            _ => "Terminal"
+        }));
         if (_reconnect.IsSourceCurrent(_reconnectSource))
         {
             bool explicitMembershipPending = new[] { _queued, _inFlight }.Any(p => p != null && !p.Cancelled
@@ -1474,6 +1614,13 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         if (_disposed) return;
         Disconnect(DisconnectKind.SessionDisposed);
         _disposed = true;
+        // The native callback already arrived for a verification candidate; it
+        // will not arrive again to clean this temporary membership on disposal.
+        if (_inFlight is { VerificationLobby: not 0, MembershipCleaned: false } candidate)
+        {
+            candidate.MembershipCleaned = true;
+            SafeLeave(candidate.VerificationLobby);
+        }
         _transport.LobbyChanged -= OnLobbyChanged;
         _transport.MemberDeparted -= OnMemberDeparted;
         _transport.MemberDeparture -= OnMemberDeparture;
