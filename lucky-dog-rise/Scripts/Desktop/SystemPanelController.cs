@@ -117,6 +117,7 @@ public partial class SystemPanelController : CanvasLayer
     private VBoxContainer _roomContent;
     private Rooms.InGameRoomPreview _roomPreview;
     private ConfirmOverlayController _roomKickConfirm;
+    private ConfirmOverlayController _roomJoinFailureNotice;
     private ConfirmOverlayController _roomGamePauseConfirm;
     private Rooms.RoomGameProposalOverlay _roomGameProposal;
     public event Action<Rooms.RoomClient> RoomPreviewCreated;
@@ -133,7 +134,8 @@ public partial class SystemPanelController : CanvasLayer
 #endif
     private int _roomTabIndex = -1;
     public bool HasRoomModal => _roomKickConfirm?.Visible == true || _roomGamePauseConfirm?.Visible == true
-        || _roomGameProposal?.Visible == true;
+        || _roomGameProposal?.Visible == true || _roomJoinFailureNotice?.Visible == true;
+    public bool HasPendingRoomJoinFailure => _roomPreview?.HasPendingJoinFailureNotice == true;
     public bool HasPendingRoomGameProposal => _roomPreview?.HasPendingGameProposalPresentation == true;
 #endif
 #if DEBUG
@@ -1057,6 +1059,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomPreview?.CloseRoomDropdowns();
             _roomPreview?.CancelKickConfirmation();
+            _roomPreview?.DismissJoinFailureNotice();
             _roomPreview?.HideGamePauseConfirmation();
             _roomPreview?.HideGameProposal();
         }
@@ -1119,6 +1122,12 @@ public partial class SystemPanelController : CanvasLayer
         return _roomPreview.TryShowPendingGameProposal();
     }
 
+    public bool TryShowPendingRoomJoinFailure()
+    {
+        if (!HasPendingRoomJoinFailure || !ShowRoomPage()) return false;
+        return _roomPreview.TryShowPendingJoinFailureNotice();
+    }
+
     public Rooms.RoomDisplayMode RoomDisplayPreference => _roomPreview?.SelectedDisplayMode
         ?? SettingsManager.LoadRoomDisplayMode();
 
@@ -1135,6 +1144,14 @@ public partial class SystemPanelController : CanvasLayer
         _roomKickConfirm.SetOverlayRect(_panel.Position, PanelDesignSize);
         _roomKickConfirm.VisibilityChanged += ResetPanelScrollDrag;
         _roomPreview.BindKickConfirmation(_roomKickConfirm);
+        _roomJoinFailureNotice = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
+            .Instantiate<ConfirmOverlayController>();
+        _roomJoinFailureNotice.Name = "RoomJoinFailureNotice";
+        AddChild(_roomJoinFailureNotice);
+        _roomJoinFailureNotice.Scale = _panel.Scale;
+        _roomJoinFailureNotice.SetOverlayRect(_panel.Position, PanelDesignSize);
+        _roomJoinFailureNotice.VisibilityChanged += ResetPanelScrollDrag;
+        _roomPreview.BindJoinFailureNotice(_roomJoinFailureNotice);
         _roomGamePauseConfirm = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
             .Instantiate<ConfirmOverlayController>();
         _roomGamePauseConfirm.Name = "RoomGamePauseConfirm";
@@ -1161,6 +1178,7 @@ public partial class SystemPanelController : CanvasLayer
         _roomContent.AddChild(_roomPreview);
         ApplyPopupRenderQuality(_roomPreview);
         ApplyPopupRenderQuality(_roomKickConfirm);
+        ApplyPopupRenderQuality(_roomJoinFailureNotice);
         ApplyPopupRenderQuality(_roomGamePauseConfirm);
         ApplyPopupRenderQuality(_roomGameProposal);
         // Only reset scrolling when the player is actually viewing this page.
@@ -3138,6 +3156,7 @@ public partial class SystemPanelController : CanvasLayer
         _panel.Position = pos;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomKickConfirm?.SetOverlayRect(pos, PanelDesignSize);
+        _roomJoinFailureNotice?.SetOverlayRect(pos, PanelDesignSize);
         _roomGamePauseConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _roomGameProposal?.SetOverlayRect(pos, PanelDesignSize);
 #endif
@@ -3168,6 +3187,11 @@ public partial class SystemPanelController : CanvasLayer
         {
             _roomGamePauseConfirm.Scale = value;
             ApplyPopupRenderQuality(_roomGamePauseConfirm);
+        }
+        if (_roomJoinFailureNotice != null)
+        {
+            _roomJoinFailureNotice.Scale = value;
+            ApplyPopupRenderQuality(_roomJoinFailureNotice);
         }
         if (_roomGameProposal != null)
         {
@@ -3291,6 +3315,7 @@ public partial class SystemPanelController : CanvasLayer
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.DismissJoinFailureNotice();
         _roomPreview?.HideGamePauseConfirmation();
         _roomPreview?.HideGameProposal();
 #endif
@@ -3322,6 +3347,7 @@ public partial class SystemPanelController : CanvasLayer
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomPreview?.CloseRoomDropdowns();
         _roomPreview?.CancelKickConfirmation();
+        _roomPreview?.DismissJoinFailureNotice();
         _roomPreview?.HideGamePauseConfirmation();
         _roomPreview?.HideGameProposal();
 #endif

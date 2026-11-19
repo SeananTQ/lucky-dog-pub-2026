@@ -11,6 +11,144 @@ internal static class RoomSettingsPageChecks
 {
     internal static readonly string[] Locales = { "zh_CN", "zh_TW", "ja", "es_ES", "es_419", "pt_BR", "pt_PT",
         "fr", "de", "da", "id", "nb", "sv", "nl", "vi", "ms", "ko", "ru", "uk", "en" };
+
+    public static async Task RunFeedback(Node parent)
+    {
+        var service = new Service();
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
+        page.Theme = GD.Load<Theme>("res://Themes/DefaultTheme.tres");
+        page.Size = new Vector2(396, 600);
+        page.Configure(new Provider(service), null);
+        parent.AddChild(page);
+        var notice = GD.Load<PackedScene>("res://Scenes/Prefabs/ConfirmOverlay.tscn")
+            .Instantiate<ConfirmOverlayController>();
+        parent.AddChild(notice);
+        notice.SetOverlayRect(Vector2.Zero, new Vector2(420, 600));
+        page.BindJoinFailureNotice(notice);
+        string locale = TranslationServer.GetLocale();
+        bool clipboardSupported = DisplayServer.HasFeature(DisplayServer.Feature.Clipboard)
+            && !DisplayServer.ClipboardHasImage();
+        string clipboard = clipboardSupported ? DisplayServer.ClipboardGet() : "";
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        try
+        {
+            await Frame();
+            var client = page.CurrentClient;
+            client.Create("Feedback test");
+            await Frame();
+            var code = page.GetNode<LinkButton>("Room/CodeRow/Code");
+            var feedback = page.GetNode<Label>("Room/CodeRow/CopyFeedback");
+            var status = page.GetNode<Label>("Status");
+            var copy = page.GetNode<Button>("Room/CodeRow/Copy");
+            Check(feedback.Modulate.A == 0 && feedback.MouseFilter == Control.MouseFilterEnum.Ignore,
+                "copy check reserves space but starts invisible and cannot intercept clicks");
+            foreach (string language in Locales)
+            {
+                L10n.SetLocale(language, save: false);
+                await Frame();
+                page.FitCodeRow();
+                page.Size = new Vector2(396, 600);
+                await Frame();
+                Check(code.GetParent<Control>().Size.X <= 396.5f,
+                    $"{language} code row must fit 396px: row={code.GetParent<Control>().Size.X}, page minimum={page.GetCombinedMinimumSize().X}, code={code.GetCombinedMinimumSize().X}, copy={copy.GetCombinedMinimumSize().X}, privacy={page.GetNode<Button>("Room/CodeRow/Visibility").GetCombinedMinimumSize().X}");
+                Check(code.GetGlobalRect().End.X <= feedback.GlobalPosition.X
+                    && feedback.GetGlobalRect().End.X <= copy.GlobalPosition.X,
+                    $"{language} the copy check follows the code without overlapping actions");
+                Check(feedback.GetThemeFont("font").HasChar('✓'), $"{language} the check glyph is available");
+            }
+            if (clipboardSupported)
+            {
+                var width = code.GetParent<Control>().Size;
+                var copyPosition = copy.Position;
+                code.EmitSignal(BaseButton.SignalName.Pressed);
+                await Frame();
+                Check(DisplayServer.ClipboardGet() == client.JoinedCode && feedback.Modulate.A > 0.99f
+                    && !status.Visible && code.GetParent<Control>().Size == width && copy.Position == copyPosition,
+                    "code click copies the full code and shows a check without a status line or layout jump");
+                await parent.ToSignal(parent.GetTree().CreateTimer(1.7), SceneTreeTimer.SignalName.Timeout);
+                Check(feedback.Modulate.A > 0 && feedback.Modulate.A < 1, "copy check fades before expiry");
+                copy.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(feedback.Modulate.A == 1, "another copy restarts the same check");
+                await parent.ToSignal(parent.GetTree().CreateTimer(2.1), SceneTreeTimer.SignalName.Timeout);
+                Check(feedback.Modulate.A == 0 && !status.Visible, "copy feedback expires without leaving text");
+                code.EmitSignal(BaseButton.SignalName.Pressed);
+                client.Leave();
+                await Frame();
+                Check(feedback.Modulate.A == 0, "leaving clears copy feedback");
+            }
+            else
+                GD.Print("[RoomFeedbackChecks] Clipboard unavailable or contains an image: native copy and timed fade checks skipped.");
+
+            client.Leave();
+            service.JoinFailure = RoomFailure.Banned;
+            client.Join("WWWWWWWWWWWWW");
+            await Frame();
+            Check(page.HasPendingJoinFailureNotice && !notice.Visible && !status.Visible,
+                "a banned code join queues one dialog without a permanent status line");
+            using (UiInteractionOccupancy.Track(parent, () => true))
+                Check(!page.TryShowPendingJoinFailureNotice(), "join rejection waits behind existing interaction occupancy");
+            Check(page.TryShowPendingJoinFailureNotice() && notice.Visible
+                && UiInteractionOccupancy.IsOccupied(page), "shared notice opens and registers modal occupancy");
+            var content = notice.GetNode<VBoxContainer>("OverlayPanel/Margin/Content");
+            var accept = content.GetNode<Button>("ButtonRow/ConfirmButton");
+            var cancel = content.GetNode<Button>("ButtonRow/CancelButton");
+            foreach (string language in Locales)
+            {
+                L10n.SetLocale(language, save: false);
+                await Frame();
+                Check(content.GetNode<Label>("Title").Text == L10n.Tr("Rooms_JoinFailedTitle")
+                    && content.GetNode<Label>("Title").Text != "Rooms_JoinFailedTitle"
+                    && content.GetNode<Label>("MessageBg/Message").Text == L10n.Tr("Rooms_Banned")
+                    && accept.Text == L10n.Tr(L10nKey.PokerWelcome_Confirm) && !cancel.Visible,
+                    $"{language} rejection title, body and sole acknowledgement use the shared catalogs");
+                Check(content.GetMinimumSize().Y <= content.Size.Y + 0.5f
+                    && accept.GetGlobalRect().End.Y <= notice.GetGlobalRect().End.Y,
+                    $"{language} rejection dialog content and acknowledgement fit the panel");
+            }
+            accept.EmitSignal(BaseButton.SignalName.Pressed);
+            client.SearchInBackground();
+            await Frame();
+            Check(!notice.Visible && !page.HasPendingJoinFailureNotice && !status.Visible
+                && !UiInteractionOccupancy.IsOccupied(page),
+                "acknowledgement clears the dialog; background refresh cannot resurrect it or its text");
+            client.Join("WWWWWWWWWWWWW");
+            await Frame();
+            Check(page.TryShowPendingJoinFailureNotice(), "a deliberate new rejected join shows a new notice");
+            page._Input(new InputEventKey { Pressed = true, Keycode = Key.Escape });
+            Check(!notice.Visible && !page.HasPendingJoinFailureNotice, "Escape dismisses the notice");
+            client.Join("WWWWWWWWWWWWW");
+            Check(page.TryShowPendingJoinFailureNotice(), "notice can be shown for a subsequent attempt");
+            page.Hide();
+            await Frame();
+            Check(!notice.Visible && !UiInteractionOccupancy.IsOccupied(parent), "hiding the page removes the sibling overlay");
+            page.Show();
+            client.Join("WWWWWWWWWWWWW");
+            service.JoinFailure = RoomFailure.None;
+            client.Create("New room");
+            await Frame();
+            Check(!page.HasPendingJoinFailureNotice && !notice.Visible && !status.Visible,
+                "a new successful operation invalidates an unshown rejection");
+            client.Leave();
+            service.JoinFailure = RoomFailure.Full;
+            client.Join("WWWWWWWWWWWWW");
+            await Frame();
+            Check(!page.HasPendingJoinFailureNotice && !notice.Visible && status.Text == L10n.Tr("Rooms_Full"),
+                "other join failure presentation remains available");
+            GD.Print("[RoomFeedbackChecks] PASS code layout in 20 locales, rejection/acknowledgement, repeated attempts, refresh, occupancy, locale changes and lifecycle.");
+        }
+        finally
+        {
+            if (clipboardSupported) DisplayServer.ClipboardSet(clipboard);
+            L10n.SetLocale(locale, save: false);
+            page.Free();
+            notice.Free();
+        }
+    }
+
     public static async Task Run(Node parent)
     {
         var service = new Service();
@@ -411,11 +549,13 @@ internal static class RoomSettingsPageChecks
         public bool TongueActive;
         public RoomAccess Access = RoomAccess.Public;
         public long CompanionPresence = 91;
+        public RoomFailure JoinFailure;
         private bool _companion = true;
         private long _revision;
         public void Request(RoomClient client, RoomRequest request) => client.TryComplete(request.Id, () =>
         {
             if (request.Operation == RoomOperation.Search) return new RoomResult(RoomFailure.None, Array.Empty<RoomListing>());
+            if (request.Operation == RoomOperation.Join && JoinFailure != RoomFailure.None) return new RoomResult(JoinFailure);
             client.BeginSession("WWWWWWWWWWWWW");
             Publish(client);
             return RoomResult.Success;

@@ -182,9 +182,10 @@ public partial class ModeManager
     private bool RoomChatInteractionAllowed => RoomBubblePresentationAllowed
         && _desktopRoomClient?.ChatAllowed == true && _settingsPanel?.HasRoomModal != true;
 
-    private void UpdateRoomGameProposalPresentation()
+    private void UpdateRoomDialogPresentation()
     {
-        if (_settingsPanel?.HasPendingRoomGameProposal != true
+        bool joinFailure = _settingsPanel?.HasPendingRoomJoinFailure == true;
+        if ((!joinFailure && _settingsPanel?.HasPendingRoomGameProposal != true)
             || _startupState != StartupState.Interactive || _hiddenByFullscreenApp
             || CurrentMode == Mode.Immersive || UiInteractionOccupancy.IsOccupied(this)) return;
 
@@ -193,7 +194,8 @@ public partial class ModeManager
         CancelWindowDrag();
         RefreshSettingsPanelModeActions();
         PositionPanelInBestSlot();
-        if (!_settingsPanel.TryShowPendingRoomGameProposal()) return;
+        if (!(joinFailure ? _settingsPanel.TryShowPendingRoomJoinFailure()
+            : _settingsPanel.TryShowPendingRoomGameProposal())) return;
         _settingsPanelOpenedAtSeconds = Time.GetTicksMsec() / 1000.0;
         _roomDesktop?.LocalChat.RefreshInteractionAvailability();
         _roomPokerDogs?.LocalChat.RefreshInteractionAvailability();
@@ -318,6 +320,9 @@ public partial class ModeManager
 
     private void OnRoomJoinFailed(RoomFailure failure, bool timedOut)
     {
+        // The room page owns the acknowledgement dialog for a removal ban.
+        // Do not show the same rejection again above the dog.
+        if (failure == RoomFailure.Banned && !timedOut) { ClearRoomJoinNotice(); return; }
         _roomNoticeIsHostChange = false;
         _roomJoinNoticeKey = timedOut ? "Rooms_TimedOut" : InGameRoomPreview.FailureKey(failure);
         _roomJoinNoticeRemaining = RoomRules.ChatLifetime;

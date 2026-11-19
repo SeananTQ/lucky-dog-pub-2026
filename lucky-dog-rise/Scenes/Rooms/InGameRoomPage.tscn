@@ -11,7 +11,7 @@
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Secretary_Hover.tres" id="browse_focus"]
 [ext_resource type="StyleBox" path="res://Themes/Buttons/Destructive_Hover.tres" id="leave_focus"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="loading_indicator"]
-[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("PokerLobby", "_pokerPreviewButton", "_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
+[node name="InGameRoomPage" type="VBoxContainer" node_paths=PackedStringArray("PokerLobby", "_pokerPreviewButton", "_lobby", "_room", "_rooms", "_members", "_nameInput", "_codeInput", "_roomTitle", "_roomCount", "_code", "_copyFeedback", "_codeVisibility", "_invite", "_access", "_displayMode", "_displayDescription", "_displayLocked", "_status", "_empty", "_connection", "_game", "_create", "_join", "_refresh", "_return", "_cancel", "_connectionWait", "_connectionWaitMessage", "_connectionWaitCancel")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -27,6 +27,7 @@ _codeInput = NodePath("Lobby/JoinRow/Code")
 _roomTitle = NodePath("Room/TitleRow/Name")
 _roomCount = NodePath("Room/TitleRow/Count")
 _code = NodePath("Room/CodeRow/Code")
+_copyFeedback = NodePath("Room/CodeRow/CopyFeedback")
 _codeVisibility = NodePath("Room/CodeRow/Visibility")
 _invite = NodePath("Room/Invite")
 _access = NodePath("Room/Access/Current")
@@ -313,12 +314,28 @@ theme_override_constants/separation = 6
 
 [node name="Code" type="LinkButton" parent="Room/CodeRow"]
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 18
 text = ""
 underline = 0
 auto_translate_mode = 2
+
+[node name="CopyFeedback" type="Label" parent="Room/CodeRow"]
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+auto_translate_mode = 2
+theme_type_variation = &"SuccessLabel"
+text = "✓"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CodeSpacer" type="Control" parent="Room/CodeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 
 [node name="Visibility" type="Button" parent="Room/CodeRow"]
 layout_mode = 2

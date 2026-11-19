@@ -27,6 +27,7 @@ public partial class InGameRoomPreview : VBoxContainer
     [Export] private LineEdit _roomTitle = null!;
     [Export] private Label _roomCount = null!;
     [Export] private LinkButton _code = null!;
+    [Export] private Label _copyFeedback = null!;
     [Export] private Button _codeVisibility = null!;
     [Export] private Button _invite = null!;
     [Export] private OptionButton _access = null!;
@@ -69,6 +70,15 @@ public partial class InGameRoomPreview : VBoxContainer
     private bool _nameDraftEdited;
     private long _lastSession;
     private string _noticeKey = "";
+    private const double CopyFeedbackSeconds = 2;
+    private const double CopyFeedbackFadeSeconds = 0.4;
+    private double _copyFeedbackRemaining;
+    private string _copiedCode = "";
+    private int _codeActionFontSize;
+    private ConfirmOverlayController _joinFailureNotice;
+    private bool _joinFailurePending;
+    private bool _joinFailureHandled;
+    private long _joinFailureSession;
     private bool _hideRoomCode;
     private bool _localPreferencesLoaded;
     private RoomClient _kickClient;
@@ -141,6 +151,73 @@ public partial class InGameRoomPreview : VBoxContainer
     }
 
     public void CancelKickConfirmation() => CancelKick();
+
+    public bool HasPendingJoinFailureNotice => _joinFailurePending && !_waitingForRoomConnection
+        && _client != null && _client.Session == _joinFailureSession;
+
+    public void BindJoinFailureNotice(ConfirmOverlayController notice)
+    {
+        ResetJoinFailureNotice();
+        if (GodotObject.IsInstanceValid(_joinFailureNotice))
+        {
+            _joinFailureNotice.Confirmed -= DismissJoinFailureNotice;
+            _joinFailureNotice.Canceled -= DismissJoinFailureNotice;
+        }
+        _joinFailureNotice = notice;
+        if (notice == null) return;
+        notice.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        notice.Confirmed += DismissJoinFailureNotice;
+        notice.Canceled += DismissJoinFailureNotice;
+        var actions = notice.GetNode<BoxContainer>("OverlayPanel/Margin/Content/ButtonRow");
+        var accept = actions.GetNode<Button>("ConfirmButton");
+        actions.Vertical = true;
+        accept.ThemeTypeVariation = "Button";
+        accept.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        accept.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        notice.FocusMode = FocusModeEnum.All;
+        notice.FocusNext = notice.FocusPrevious = notice.GetPathTo(accept);
+        accept.FocusNext = accept.FocusPrevious = accept.GetPathTo(accept);
+    }
+
+    private void OnJoinFailed(RoomFailure failure, bool timedOut)
+    {
+        // Other join errors retain their existing timed bubble. A removal ban
+        // needs acknowledgement, without leaving a second permanent status line.
+        if (failure != RoomFailure.Banned || timedOut) return;
+        _joinFailureHandled = _joinFailurePending = true;
+        _joinFailureSession = _client.Session;
+        _noticeKey = "";
+        _dirty = true;
+    }
+
+    public bool TryShowPendingJoinFailureNotice()
+    {
+        if (!HasPendingJoinFailureNotice || !GodotObject.IsInstanceValid(_joinFailureNotice)
+            || _exitingTree || !IsInsideTree() || !IsVisibleInTree()
+            || UiInteractionOccupancy.IsOccupied(this)) return false;
+        CloseRoomDropdowns();
+        _joinFailurePending = false;
+        RenderJoinFailureNotice();
+        _joinFailureNotice.GrabFocus();
+        return true;
+    }
+
+    private void RenderJoinFailureNotice() => _joinFailureNotice.ShowNotice(
+        L10n.Tr("Rooms_JoinFailedTitle"), L10n.Tr("Rooms_Banned"), L10n.Tr(L10nKey.PokerWelcome_Confirm));
+
+    public void DismissJoinFailureNotice()
+    {
+        _joinFailurePending = false;
+        if (GodotObject.IsInstanceValid(_joinFailureNotice)) _joinFailureNotice.Hide();
+        _dirty = true;
+    }
+
+    private void ResetJoinFailureNotice()
+    {
+        DismissJoinFailureNotice();
+        _joinFailureHandled = false;
+        _joinFailureSession = 0;
+    }
 
     // The standalone lab and unopened Online tab use these strings without creating the room page.
     public static string ChatText(string key)
@@ -260,9 +337,11 @@ public partial class InGameRoomPreview : VBoxContainer
         UpdateRoomReconnect();
         UpdateRoomConnection(delta);
         UpdateDirectoryRefresh();
+        UpdateCopyFeedback(delta);
         if (!IsVisibleInTree())
         {
             CancelKick();
+            if (_joinFailureNotice?.Visible == true) DismissJoinFailureNotice();
             CloseRoomDropdowns();
             if (_nameEditClient != null && !_nameCommitQueued) QueueNameCommit();
         }
@@ -289,6 +368,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_gameData != null) _gameData.EquipmentChanged -= SyncLocalAppearance;
         ReplaceClient(null);
         BindKickConfirmation(null);
+        BindJoinFailureNotice(null);
         BindGamePauseConfirmation(null);
         BindGameProposal(null);
         DisposeMock();
@@ -339,12 +419,15 @@ public partial class InGameRoomPreview : VBoxContainer
     private void ReplaceClient(RoomClient client, bool preservePokerRecovery = false)
     {
         ResetGamePresentation();
+        ResetCopyFeedback();
+        ResetJoinFailureNotice();
         CancelKick();
         CloseAccessChoices();
         CancelNameEdit();
         if (_client != null)
         {
             _client.Changed -= OnClientChanged;
+            _client.JoinFailed -= OnJoinFailed;
             _client.Dispose();
         }
         _client = client;
@@ -357,6 +440,7 @@ public partial class InGameRoomPreview : VBoxContainer
         if (_client != null)
         {
             _client.Changed += OnClientChanged;
+            _client.JoinFailed += OnJoinFailed;
             SyncLocalAppearance();
         }
         _dirty = true;
@@ -375,18 +459,21 @@ public partial class InGameRoomPreview : VBoxContainer
     private void OnClientChanged()
     {
         ObserveDirectoryRequest();
+        if (_joinFailureHandled && (_client.Failure != RoomFailure.Banned || _client.Session != _joinFailureSession))
+            ResetJoinFailureNotice();
         // Lock synchronously: a dropdown signal may already be queued when a join starts.
         RenderDisplayMode();
         if (_nameEditClient != null && NameEditError(_nameEditClient, _nameEditSession).Length > 0)
             CancelNameEdit();
         if (_accessClient != null && AccessError(_accessClient, _accessSession).Length > 0)
             CloseAccessChoices();
-        if (_client.Failure is RoomFailure.Removed or RoomFailure.Banned)
+        if (_client.Failure == RoomFailure.Removed || (_client.Failure == RoomFailure.Banned && !_joinFailureHandled))
             _noticeKey = _client.Failure == RoomFailure.Removed ? "Rooms_Removed" : "Rooms_Banned";
         if (_kickClient != null && KickTargetError(_kickClient, _kickSession, _kickMemberId, _kickPresence).Length > 0)
             CancelKick();
         if (_client.Session != _lastSession)
         {
+            ResetCopyFeedback();
             _lastSession = _client.Session;
             _browsing = _client.JoinedCode.Length == 0;
             NotifyPageChanged();
@@ -468,6 +555,7 @@ public partial class InGameRoomPreview : VBoxContainer
         _lastListings = null;
         _dirty = true;
         if (_kickClient != null) ShowKickConfirmation();
+        if (_joinFailureNotice?.Visible == true) RenderJoinFailureNotice();
     }
     private void RefreshJoinAction() => _join.Text = L10n.Tr(
         string.IsNullOrWhiteSpace(_codeInput.Text) ? "Rooms_Random" : "Rooms_JoinByCode");
@@ -528,10 +616,29 @@ public partial class InGameRoomPreview : VBoxContainer
     public void OnLeave() { CancelRoomReconnect(); CancelKick(); HideGameProposal(); CancelNameEdit(); CloseRoomDropdowns(); _client?.Leave(); _browsing = true; RefreshRooms(); NotifyPageChanged(); }
     public void OnCopyCode()
     {
-        if (_client == null || _client.IsLocalArrival || _client.JoinedCode.Length == 0) return;
+        if (_client == null || _client.IsLocalArrival || _client.JoinedCode.Length == 0
+            || !DisplayServer.HasFeature(DisplayServer.Feature.Clipboard)) return;
         DisplayServer.ClipboardSet(_client.JoinedCode);
-        _noticeKey = "Rooms_CodeCopied";
-        _dirty = true;
+        _copiedCode = _client.JoinedCode;
+        _copyFeedbackRemaining = CopyFeedbackSeconds;
+        _copyFeedback.Modulate = Colors.White;
+    }
+
+    private void UpdateCopyFeedback(double delta)
+    {
+        if (_copyFeedbackRemaining <= 0) return;
+        if (!_room.IsVisibleInTree() || _client?.JoinedCode != _copiedCode)
+        { ResetCopyFeedback(); return; }
+        _copyFeedbackRemaining = Math.Max(0, _copyFeedbackRemaining - delta);
+        float alpha = (float)Math.Min(1, _copyFeedbackRemaining / CopyFeedbackFadeSeconds);
+        _copyFeedback.Modulate = new Color(1, 1, 1, alpha);
+    }
+
+    private void ResetCopyFeedback()
+    {
+        _copyFeedbackRemaining = 0;
+        _copiedCode = "";
+        if (GodotObject.IsInstanceValid(_copyFeedback)) _copyFeedback.Modulate = new Color(1, 1, 1, 0);
     }
 
     private void ToggleCodeVisibility()
@@ -567,13 +674,31 @@ public partial class InGameRoomPreview : VBoxContainer
             if (bar.Visible) width -= bar.Size.X;
         }
         var row = _code.GetParent<HBoxContainer>();
-        width -= _codeVisibility.GetCombinedMinimumSize().X
-            + row.GetNode<Button>("Copy").GetCombinedMinimumSize().X
-            + 2 * row.GetThemeConstant("separation");
+        var copy = row.GetNode<Button>("Copy");
         var font = _code.GetThemeFont("font");
+        width -= _copyFeedback.GetCombinedMinimumSize().X
+            + 4 * row.GetThemeConstant("separation");
+        // Long translations must leave room for the complete code and check.
+        // Keep the Theme's action size unless even a 12px code would not fit.
+        if (_codeActionFontSize == 0) _codeActionFontSize = copy.GetThemeFontSize("font_size");
+        float ActionWidth(Button button, int fontSize) => Mathf.Ceil(button.GetThemeFont("font")
+            .GetStringSize(L10n.Tr(button.Text), HorizontalAlignment.Left, -1, fontSize).X)
+            + button.GetThemeStylebox("normal").GetMinimumSize().X;
+        float codeMinimum = Mathf.Ceil(font.GetStringSize(_code.Text, HorizontalAlignment.Left, -1, 12).X);
+        int actionSize = _codeActionFontSize;
+        while (actionSize > 12 && ActionWidth(copy, actionSize) + ActionWidth(_codeVisibility, actionSize)
+            + codeMinimum > width) actionSize--;
+        if (copy.GetThemeFontSize("font_size") != actionSize) copy.AddThemeFontSizeOverride("font_size", actionSize);
+        if (_codeVisibility.GetThemeFontSize("font_size") != actionSize)
+            _codeVisibility.AddThemeFontSizeOverride("font_size", actionSize);
+        width -= ActionWidth(copy, actionSize) + ActionWidth(_codeVisibility, actionSize);
         int size = 18;
         while (size > 12 && font.GetStringSize(_code.Text, HorizontalAlignment.Left, -1, size).X > width) size--;
         if (_code.GetThemeFontSize("font_size") != size) _code.AddThemeFontSizeOverride("font_size", size);
+        // LinkButton rounds its shaped minimum size; text metrics alone can
+        // underestimate it by a pixel and make the whole settings page wider.
+        while (size > 12 && _code.GetCombinedMinimumSize().X > width)
+            _code.AddThemeFontSizeOverride("font_size", --size);
     }
 
     private void InviteFriends()
@@ -742,6 +867,12 @@ public partial class InGameRoomPreview : VBoxContainer
 
     public override void _Input(InputEvent @event)
     {
+        if (_joinFailureNotice?.Visible == true)
+        {
+            if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+            { DismissJoinFailureNotice(); GetViewport().SetInputAsHandled(); }
+            return;
+        }
         if (GameProposalVisible) return;
         if (_kickClient != null)
         {
@@ -1044,7 +1175,8 @@ public partial class InGameRoomPreview : VBoxContainer
         },
         RoomRequestState.Cancelled => "Rooms_Cancelled",
         RoomRequestState.TimedOut => "Rooms_TimedOut",
-        RoomRequestState.Failed => FailureKey(_client.Failure),
+        RoomRequestState.Failed => _joinFailureHandled && _client.Failure == RoomFailure.Banned
+            ? "" : FailureKey(_client.Failure),
         _ => ""
     };
     public static string FailureKey(RoomFailure failure) => failure switch

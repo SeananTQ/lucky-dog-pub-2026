@@ -957,7 +957,7 @@ public partial class ModeManager : Control
         UpdateRoomDesktopPreview();
         TickPokerPreview(_);
         TickNetworkPoker(_);
-        UpdateRoomGameProposalPresentation();
+        UpdateRoomDialogPresentation();
         UpdateRoomJoinNotice(_);
         UpdateRoomChatBlindBoxDelay(_);
 #endif

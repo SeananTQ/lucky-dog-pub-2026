@@ -90,7 +90,8 @@ public partial class RoomLab : Control
             return;
         }
         if (OS.GetCmdlineUserArgs().Contains("--rooms-smoke")
-            || OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke"))
+            || OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke")
+            || OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke"))
         {
             RunSmokeAndQuit();
             return;
@@ -591,6 +592,13 @@ public partial class RoomLab : Control
     {
         try
         {
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke"))
+            {
+                await RoomSettingsPageChecks.RunFeedback(this);
+                await RoomGameChangePageChecks.Run(this);
+                GetTree().Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke"))
             {
                 await RoomSettingsPageChecks.RunInputMenus(this);
