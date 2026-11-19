@@ -109,7 +109,11 @@ public partial class InGameRoomPreview
     }
 
     public void CloseRoomDropdowns()
-    { CloseAccessChoices(); CloseGameChoices(); DisplayModePopup?.Hide(); }
+    {
+        CloseAccessChoices(); CloseGameChoices(); DisplayModePopup?.Hide();
+        foreach (var menu in _inputMenus)
+            if (GodotObject.IsInstanceValid(menu)) menu.Hide();
+    }
 
     private void RenderGameControls()
     {

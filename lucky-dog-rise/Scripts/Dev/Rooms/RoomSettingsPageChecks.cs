@@ -240,6 +240,142 @@ internal static class RoomSettingsPageChecks
         finally { L10n.SetLocale(locale, save: false); page.Free(); confirm.Free(); }
     }
 
+    public static async Task RunInputMenus(Node parent)
+    {
+        var service = new Service();
+        var page = GD.Load<PackedScene>("res://Scenes/Rooms/InGameRoomPage.tscn").Instantiate<InGameRoomPreview>();
+        page.Theme = GD.Load<Theme>("res://Themes/DefaultTheme.tres");
+        page.Position = new Vector2(24, 24);
+        page.Size = new Vector2(390, 600);
+        page.Configure(new Provider(service), null);
+        parent.AddChild(page);
+        string locale = TranslationServer.GetLocale();
+        bool clipboardSupported = DisplayServer.HasFeature(DisplayServer.Feature.Clipboard);
+        string clipboard = clipboardSupported ? DisplayServer.ClipboardGet() : "";
+        async Task Frame()
+        {
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+            await parent.ToSignal(parent.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        bool Disabled(PopupMenu menu, LineEdit.MenuItems action) => menu.IsItemDisabled(menu.GetItemIndex((int)action));
+        void Choose(PopupMenu menu, LineEdit.MenuItems action)
+        {
+            menu.EmitSignal(PopupMenu.SignalName.IdPressed, (int)action);
+            menu.Hide();
+        }
+        async Task Open(LineEdit input)
+        {
+            await Frame();
+            var position = input.GetGlobalTransformWithCanvas() * (input.Size / 2);
+            parent.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Right, Pressed = true, Position = position, GlobalPosition = position }, true);
+            parent.GetViewport().PushInput(new InputEventMouseButton
+            { ButtonIndex = MouseButton.Right, Pressed = false, Position = position, GlobalPosition = position }, true);
+            await Frame();
+            Check(input.IsMenuVisible(), "right-click opens the real LineEdit context menu");
+        }
+        try
+        {
+            await Frame();
+            var name = page.GetNode<LineEdit>("Lobby/CreateRow/Name");
+            var code = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
+            var title = page.GetNode<LineEdit>("Room/TitleRow/Name");
+            var actions = new[] { "Cut", "Copy", "Paste", "SelectAll", "Clear", "Undo", "Redo" };
+            name.Text = "literal room name";
+            code.Text = "031G002KAW0FD";
+            foreach (string language in Locales)
+            {
+                L10n.SetLocale(language, save: false);
+                await Frame();
+                foreach (var input in new[] { name, code, title })
+                {
+                    var menu = input.GetMenu();
+                    var labels = Enumerable.Range(0, menu.ItemCount).Where(i => !menu.IsItemSeparator(i))
+                        .Select(menu.GetItemText).ToArray();
+                    var expected = actions.Select(action => L10n.Tr("Rooms_Edit" + action)).ToArray();
+                    Check(labels.SequenceEqual(expected) && labels.All(text => !text.StartsWith("Rooms_")),
+                        $"{language}: all three inputs contain exactly seven translated edit actions");
+                }
+                Check(name.Text == "literal room name" && code.Text == "031G002KAW0FD",
+                    "menu translation never translates player-entered names or codes");
+            }
+            L10n.SetLocale("zh_CN", save: false);
+            name.Text = "";
+            await Frame();
+            await Open(name);
+            var popup = name.GetMenu();
+            Check(Disabled(popup, LineEdit.MenuItems.Copy) && Disabled(popup, LineEdit.MenuItems.Cut)
+                && Disabled(popup, LineEdit.MenuItems.Clear) && Disabled(popup, LineEdit.MenuItems.SelectAll)
+                && Disabled(popup, LineEdit.MenuItems.Undo), "empty input disables inapplicable actions");
+            L10n.SetLocale("fr", save: false);
+            Check(popup.GetItemText(popup.GetItemIndex((int)LineEdit.MenuItems.Paste)) == "Coller",
+                "an already open menu updates when the language changes");
+            popup.Hide();
+            name.Text = "Keep this";
+            name.SelectAll();
+            await Open(name);
+            Check(!Disabled(popup, LineEdit.MenuItems.Copy) && !Disabled(popup, LineEdit.MenuItems.Cut),
+                "selected text enables native copy and cut");
+            Choose(popup, LineEdit.MenuItems.Clear);
+            Check(name.Text == "", "native Clear empties the complete input");
+            await Open(name);
+            Check(!Disabled(popup, LineEdit.MenuItems.Undo), "native Clear retains undo history");
+            Choose(popup, LineEdit.MenuItems.Undo);
+            Check(name.Text == "Keep this", "native Undo restores text");
+            await Open(name);
+            Check(!Disabled(popup, LineEdit.MenuItems.Redo), "undo makes native redo available");
+            Choose(popup, LineEdit.MenuItems.Redo);
+            Check(name.Text == "", "native Redo reapplies clear");
+            if (clipboardSupported)
+            {
+                DisplayServer.ClipboardSet("031G002KAW0FD");
+                code.Text = "";
+                await Open(code);
+                Choose(code.GetMenu(), LineEdit.MenuItems.Paste);
+                Check(code.Text == "031G002KAW0FD" && page.CurrentClient.JoinedCode.Length == 0,
+                    "native paste fills the code without joining a room");
+                code.SelectAll();
+                await Open(code);
+                Choose(code.GetMenu(), LineEdit.MenuItems.Cut);
+                Check(code.Text == "" && DisplayServer.ClipboardGet() == "031G002KAW0FD",
+                    "native Cut writes selection to the clipboard");
+            }
+            page.CurrentClient.Create("Original room");
+            await Frame();
+            title.GrabFocus();
+            title.Text = "Edited room";
+            await Open(title);
+            title.ReleaseFocus();
+            await Frame();
+            Check(service.NameWrites == 0 && title.Text == "Edited room",
+                "opening the context menu does not prematurely commit the room name");
+            Choose(title.GetMenu(), LineEdit.MenuItems.SelectAll);
+            title.ReleaseFocus();
+            await Frame();
+            Check(service.Name == "Edited room" && service.NameWrites == 1,
+                "room rename commits after the menu operation and real focus loss");
+            service.Owner = 2;
+            service.Publish(page.CurrentClient);
+            await Frame();
+            title.SelectAll();
+            await Open(title);
+            Check(!title.Editable && !Disabled(title.GetMenu(), LineEdit.MenuItems.Copy)
+                && new[] { LineEdit.MenuItems.Cut, LineEdit.MenuItems.Paste, LineEdit.MenuItems.Clear,
+                    LineEdit.MenuItems.Undo, LineEdit.MenuItems.Redo }.All(action => Disabled(title.GetMenu(), action)),
+                "guest can copy the room title but cannot modify it through the menu");
+            page.CloseRoomDropdowns();
+            Check(page.InputMenus.All(menu => !menu.Visible), "closing the page also closes text menus");
+            GD.Print($"[RoomInputMenus] PASS native right-click, 20 locales, live translation, edit/undo/redo, read-only, rename focus and popup cleanup; clipboard={clipboardSupported}.");
+        }
+        finally
+        {
+            page.CloseRoomDropdowns();
+            page.Free();
+            L10n.SetLocale(locale, save: false);
+            if (clipboardSupported) DisplayServer.ClipboardSet(clipboard);
+        }
+    }
+
     private static void Check(bool value, string message)
     { if (!value) throw new InvalidOperationException(message); }
 

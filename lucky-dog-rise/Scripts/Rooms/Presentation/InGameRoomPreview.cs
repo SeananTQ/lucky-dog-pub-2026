@@ -97,6 +97,8 @@ public partial class InGameRoomPreview : VBoxContainer
     public RoomClient CurrentClient => _client;
     public PopupMenu AccessPopup => _access?.GetPopup();
     public PopupMenu DisplayModePopup => _displayMode?.GetPopup();
+    private PopupMenu[] _inputMenus = Array.Empty<PopupMenu>();
+    internal IReadOnlyList<PopupMenu> InputMenus => _inputMenus;
     public RoomDisplayMode SelectedDisplayMode { get; private set; } = RoomDisplayMode.FullScreenFree;
     private bool DisplayModeLocked => _client?.IsBusy == true || _client?.JoinedCode.Length > 0
         || _client?.IsLocalArrival == true || Reconnect?.IsPending == true;
@@ -196,6 +198,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // Registering a resource alone does not refresh those caches; notify
         // only this preview, without changing the player's selected locale.
         PropagateNotification((int)NotificationTranslationChanged);
+        InitializeInputMenus();
         _nameInput.Text = _defaultNameDraft = L10n.Tr("Rooms_DefaultName");
         _nameInput.TextChanged += _ => _nameDraftEdited = true;
         _create.Pressed += () => { _noticeKey = ""; _client?.Create(_nameInput.Text); };
@@ -390,8 +393,71 @@ public partial class InGameRoomPreview : VBoxContainer
         }
         _dirty = true;
     }
+    private static readonly (LineEdit.MenuItems Action, string Key)[] InputMenuLabels =
+    {
+        (LineEdit.MenuItems.Cut, "Rooms_EditCut"),
+        (LineEdit.MenuItems.Copy, "Rooms_EditCopy"),
+        (LineEdit.MenuItems.Paste, "Rooms_EditPaste"),
+        (LineEdit.MenuItems.SelectAll, "Rooms_EditSelectAll"),
+        (LineEdit.MenuItems.Clear, "Rooms_EditClear"),
+        (LineEdit.MenuItems.Undo, "Rooms_EditUndo"),
+        (LineEdit.MenuItems.Redo, "Rooms_EditRedo"),
+    };
+
+    private void InitializeInputMenus()
+    {
+        var inputs = new[] { _nameInput, _codeInput, _roomTitle };
+        _inputMenus = inputs.Select(input => input.GetMenu()).ToArray();
+        foreach (var input in inputs)
+        {
+            var menu = input.GetMenu();
+            // Keep Godot's native action IDs, accelerators and undo history.
+            // Only remove the optional emoji entry and advanced text tools.
+            menu.ItemCount = menu.GetItemIndex((int)LineEdit.MenuItems.Redo) + 1;
+            while (menu.GetItemIndex((int)LineEdit.MenuItems.Cut) > 0) menu.RemoveItem(0);
+            menu.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+            TranslateInputMenu(menu);
+            menu.AboutToPopup += () => UpdateInputMenu(input, menu);
+        }
+        _roomTitle.GetMenu().PopupHide += () => Callable.From(() =>
+        {
+            // PopupHide can precede the native edit action and focus restoration.
+            if (CanUseNameEditor && !_roomTitle.HasFocus()) QueueNameCommit();
+        }).CallDeferred();
+    }
+
+    private static void TranslateInputMenu(PopupMenu menu)
+    {
+        foreach (var (action, key) in InputMenuLabels)
+            menu.SetItemText(menu.GetItemIndex((int)action), L10n.Tr(key));
+        menu.ResetSize();
+    }
+
+    private static void UpdateInputMenu(LineEdit input, PopupMenu menu)
+    {
+        bool empty = input.Text.Length == 0;
+        bool selection = input.HasSelection() && !input.Secret;
+        foreach (var (action, _) in InputMenuLabels)
+        {
+            bool disabled = action switch
+            {
+                LineEdit.MenuItems.Cut => !input.Editable || !selection,
+                LineEdit.MenuItems.Copy => !selection,
+                LineEdit.MenuItems.Paste => !input.Editable || !DisplayServer.HasFeature(DisplayServer.Feature.Clipboard)
+                    || DisplayServer.ClipboardGet().Length == 0,
+                LineEdit.MenuItems.SelectAll => !input.SelectingEnabled || empty,
+                LineEdit.MenuItems.Clear => !input.Editable || empty,
+                LineEdit.MenuItems.Undo => !input.Editable || !input.HasUndo(),
+                LineEdit.MenuItems.Redo => !input.Editable || !input.HasRedo(),
+                _ => true,
+            };
+            menu.SetItemDisabled(menu.GetItemIndex((int)action), disabled);
+        }
+    }
+
     private void OnLanguageChanged()
     {
+        foreach (var menu in _inputMenus) TranslateInputMenu(menu);
         // Only the untouched creation suggestion follows the UI language.
         // User drafts and names already published to a room remain literal.
         string nextDefault = L10n.Tr("Rooms_DefaultName");
@@ -603,6 +669,7 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         if (_nameEditClient == null || _nameCommitQueued) return;
         if (!CanUseNameEditor) { CancelNameEdit(); return; }
+        if (_roomTitle.IsMenuVisible()) return;
         // Losing focus while composition is unfinished must not publish the
         // partial pre-composition text as a new room name.
         if (HasNameIme || _nameImeAtKey) { CancelNameEdit(); return; }
@@ -610,7 +677,11 @@ public partial class InGameRoomPreview : VBoxContainer
         long epoch = _nameEditEpoch;
         Callable.From(() =>
         {
-            if (GodotObject.IsInstanceValid(this) && epoch == _nameEditEpoch) CommitNameEdit();
+            if (!CanUseNameEditor || epoch != _nameEditEpoch) return;
+            // The native popup can take focus during the same input dispatch.
+            // Editing continues until its action has completed and focus leaves.
+            if (_roomTitle.IsMenuVisible()) { _nameCommitQueued = false; return; }
+            CommitNameEdit();
         }).CallDeferred();
     }
 
@@ -680,7 +751,7 @@ public partial class InGameRoomPreview : VBoxContainer
         }
         if (_access.HasFocus() && @event is InputEventKey { Pressed: true }) RememberAccessContext();
         if (_gameChoice.HasFocus() && @event is InputEventKey { Pressed: true }) RememberGameContext();
-        if (!_roomTitle.HasFocus() || _nameEditClient == null) return;
+        if (!_roomTitle.HasFocus() || _nameEditClient == null || _roomTitle.IsMenuVisible()) return;
         if (@event is InputEventKey { Pressed: true } key)
         {
             _nameImeAtKey = HasNameIme;

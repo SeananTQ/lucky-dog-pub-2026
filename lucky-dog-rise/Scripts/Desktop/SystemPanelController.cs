@@ -3193,9 +3193,14 @@ public partial class SystemPanelController : CanvasLayer
         if (node is BaseButton button)
             ApplyButtonFontRenderQuality(button);
 
-        if (node is OptionButton optionButton)
+        PopupMenu popup = node switch
         {
-            var popup = optionButton.GetPopup();
+            OptionButton optionButton => optionButton.GetPopup(),
+            LineEdit { ContextMenuEnabled: true } input => input.GetMenu(),
+            _ => null,
+        };
+        if (popup != null)
+        {
             var oversampling = Math.Max(1, Mathf.CeilToInt(_renderScale));
             popup.OversamplingOverride = oversampling;
             _popupSourceFont ??= popup.GetThemeFont("font");
@@ -3468,6 +3473,7 @@ public partial class SystemPanelController : CanvasLayer
             || PopupContainsPoint(_roomPreview?.DisplayModePopup, windowPosition)
             || PopupContainsPoint(_roomPreview?.AccessPopup, windowPosition)
             || PopupContainsPoint(_roomPreview?.GamePopup, windowPosition)
+            || RoomInputMenuContainsPoint(windowPosition)
 #endif
 #if DEBUG
             || PopupContainsPoint(_reactionOption.GetPopup(), windowPosition)
@@ -3483,6 +3489,7 @@ public partial class SystemPanelController : CanvasLayer
     private static bool HasVisibleDropdown(Node node)
     {
         if (node is OptionButton option && option.GetPopup().Visible) return true;
+        if (node is LineEdit input && input.IsMenuVisible()) return true;
         foreach (var child in node.GetChildren())
             if (HasVisibleDropdown(child)) return true;
         return false;
@@ -3500,6 +3507,16 @@ public partial class SystemPanelController : CanvasLayer
         var screenRelativePosition = popup.Position - DisplayServer.WindowGetPosition();
         return new Rect2(screenRelativePosition, popup.Size).HasPoint(windowPosition);
     }
+
+#if !DEMO_BUILD && !RECORDING_BUILD
+    private bool RoomInputMenuContainsPoint(Vector2 windowPosition)
+    {
+        if (_roomPreview == null) return false;
+        foreach (var menu in _roomPreview.InputMenus)
+            if (PopupContainsPoint(menu, windowPosition)) return true;
+        return false;
+    }
+#endif
 
 #if DEBUG
     public void UpdateSeed(int seed)

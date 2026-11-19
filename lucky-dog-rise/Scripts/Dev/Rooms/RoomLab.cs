@@ -89,7 +89,8 @@ public partial class RoomLab : Control
             GetTree().Quit(1);
             return;
         }
-        if (OS.GetCmdlineUserArgs().Contains("--rooms-smoke"))
+        if (OS.GetCmdlineUserArgs().Contains("--rooms-smoke")
+            || OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke"))
         {
             RunSmokeAndQuit();
             return;
@@ -590,6 +591,13 @@ public partial class RoomLab : Control
     {
         try
         {
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke"))
+            {
+                await RoomSettingsPageChecks.RunInputMenus(this);
+                await RoomSettingsPageChecks.Run(this);
+                GetTree().Quit();
+                return;
+            }
             GD.Print(RoomSandboxChecks.Run());
             RoomPokerChecks.Layout();
             GD.Print(RoomCompanionChecks.Run());
@@ -602,6 +610,7 @@ public partial class RoomLab : Control
             await RoomReconnectPageChecks.Run(this);
             await RoomAccessPageChecks.Run(this);
             await RoomSettingsPageChecks.Run(this);
+            await RoomSettingsPageChecks.RunInputMenus(this);
             await RoomGameChangePageChecks.Run(this);
             await RoomEmptyDirectoryPageChecks.Run(this);
             await RoomEmptyDirectoryPageChecks.CheckAutoRefresh(this);
