@@ -13,13 +13,14 @@ internal static class RoomCompanionChecks
     public static string Run()
     {
         CheckCreationAndWire();
+        CheckFixedNames();
         CheckRetirements();
         CheckPokerRetirements();
         CheckSandboxPokerCapacity();
         CheckSandboxPokerHandoff();
         CheckArrivalHandoff();
         CheckActivity();
-        return "Companion plans: fixed appearances, bounded v1/v2 codec, random-host arrival handoff, monotonic retirements, input-led mood rises and quiet cooldowns passed.";
+        return "Companion plans: fixed room-owned names and appearances, bounded v3/legacy codec, random-host arrival handoff, monotonic retirements, input-led mood rises and quiet cooldowns passed.";
     }
 
     private static void CheckCreationAndWire()
@@ -92,6 +93,38 @@ internal static class RoomCompanionChecks
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, new[] { -1 }, 0), "invalid hat rejected");
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, null, -1), "negative creation time rejected");
         Throws(() => RoomCompanionPlan.Create(new[] { 1 }, null, 0, 0), "zero seed rejected");
+    }
+
+    private static void CheckFixedNames()
+    {
+        var names = new[] { "働きづめのプログラマー", "髪を洗わない絵師", "くしゃみするプランナー" };
+        var expected = names.ToArray();
+        var plan = RoomCompanionPlan.Create([1012], [0], 100, 123, names);
+        names[0] = "Overworked Coder";
+        Check(plan.Names.SequenceEqual(expected) && plan.MembersAt(100).Select(m => m.Name).SequenceEqual(expected),
+            "creation captures actual names and cannot be renamed by the caller");
+        Check(RoomCompanionPlan.TryRead(plan.ToWire(), out var received) && received.SameGeneration(plan)
+            && received.MembersAt(200).Select(m => m.Name).SequenceEqual(expected),
+            "a late joiner or new owner receives the same Japanese names");
+        var handoff = received.ForArrivalHandoff(-2);
+        var retired = handoff.WithHumanCount(2);
+        Check(handoff.Names.SequenceEqual(expected) && retired.Names.SequenceEqual(expected)
+            && handoff.MergeRetirements(retired).Names.SequenceEqual(expected),
+            "handoff, population changes and merged retirement snapshots retain names");
+        var renamed = RoomCompanionPlan.Create([1012], [0], 100, 123, names);
+        Check(!renamed.SameGeneration(plan), "names participate in generation identity");
+        var maximum = RoomCompanionPlan.Create([int.MaxValue], [int.MaxValue], long.MaxValue, int.MaxValue,
+            Enumerable.Repeat(new string('猫', RoomCompanionPlan.MaxNameLength), 3));
+        Check(maximum.ToWire().Length <= RoomCompanionPlan.MaxWireLength
+            && RoomCompanionPlan.TryRead(maximum.ToWire(), out _), "largest valid UTF-8 names fit the metadata bound");
+        foreach (var bad in new[] { "", " ", "one\ntwo", "one\ttwo", "one\u2028two", "\ud800", new string('x', 65) })
+            Throws(() => RoomCompanionPlan.Create([1012], [0], 0, names: [bad, "artist", "designer"]),
+                "invalid names cannot enter a new plan");
+        Throws(() => RoomCompanionPlan.Create([1012], [0], 0, names: ["one"]), "missing names rejected");
+        string prefix = string.Join(':', plan.ToWire().Split(':').Take(11));
+        foreach (var badWireName in new[] { "", "not-base64", "/w==", "Cg==", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(new string('x', 65))) })
+            Check(!RoomCompanionPlan.TryRead(prefix + ":" + badWireName + ":YQ==:Yg==", out _),
+                "malformed, invalid UTF-8, multiline and oversized wire names fail closed");
     }
 
     private static void CheckArrivalHandoff()

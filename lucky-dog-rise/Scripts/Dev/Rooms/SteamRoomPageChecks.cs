@@ -363,7 +363,8 @@ internal static class SteamRoomPageChecks
             service.PendingInvitation = "PROVIDER1";
             await Frame();
             Check(client.JoinedCode.Length == 0 && client.Failure == RoomFailure.Banned
-                && status.Text == L10n.Tr("Rooms_Banned"), "invitations still obey room-level reentry bans");
+                && page.HasPendingJoinFailureNotice && !status.Visible,
+                "invitations still obey room-level reentry bans and queue the rejection dialog");
             service.RejoinFailure = RoomFailure.None;
             service.PendingInvitation = "PROVIDER1";
             await Frame();
@@ -525,9 +526,9 @@ internal static class SteamRoomPageChecks
             service.RejoinFailure = RoomFailure.Banned;
             client.Join("PROVIDER1");
             await Frame();
-            Check(client.JoinedCode.Length == 0 && status.Text == L10n.Tr("Rooms_Banned")
-                && status.Text != "Rooms_Banned" && service.SearchRequests == searches,
-                "denied reentry stays in directory and shows its own reason");
+            Check(client.JoinedCode.Length == 0 && page.HasPendingJoinFailureNotice
+                && !status.Visible && service.SearchRequests == searches,
+                "denied reentry stays in directory and queues the rejection dialog without a persistent status line");
             page.RefreshRooms();
             await Frame();
             Check(!status.Visible && service.SearchRequests == searches + 1,

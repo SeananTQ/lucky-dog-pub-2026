@@ -95,6 +95,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     internal const double MembershipRefreshSeconds = 5;
     internal const double RecoverySettleSeconds = 1;
     internal const double RecoveryProbeIntervalSeconds = 2;
+    internal const double MembershipProbeIntervalSeconds = 10;
+    internal const double MembershipProbeTimeoutSeconds = 15;
+    private ulong _membershipPeer;
+    private Guid _membershipNonce;
+    private double _nextMembershipProbe;
+    private double _membershipProbeDeadline;
     private double _nextMembershipRefresh;
     private readonly Dictionary<ulong, double> _receivedMembershipProbeAt = new();
     private readonly Func<long, RoomCompanionPlan> _createCompanions;
@@ -561,6 +567,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                 _chatSessions.Clear();
                 _receivedChatAt.Clear();
                 _receivedMembershipProbeAt.Clear();
+                ResetMembershipProbe(pending.Request.RecoveryGeneration != 0
+                    ? RecoveryProbeIntervalSeconds : MembershipProbeIntervalSeconds);
                 pending.Client.BeginSession(SteamRoomProtocol.Encode(_lobby), preserveLayout: arrival, preserveArrival: arrival);
                 if (arrival) pending.Client.PrepareArrival(pending.Request.Id, committed: true);
                 Publish(data);
@@ -596,6 +604,72 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     private ulong VerificationPeer(SteamRoomData data) => data.OwnerId != _transport.LocalSteamId
         ? data.OwnerId : data.Members.Where(m => m.SteamId != _transport.LocalSteamId)
             .Select(m => m.SteamId).OrderBy(id => id).FirstOrDefault();
+
+    private void ResetMembershipProbe(double delay = MembershipProbeIntervalSeconds)
+    {
+        _membershipPeer = 0;
+        _membershipNonce = Guid.Empty;
+        _membershipProbeDeadline = 0;
+        _nextMembershipProbe = Now + delay;
+    }
+
+    private void AdvanceMembershipProbe()
+    {
+        // The owner must not abandon a healthy room just because one guest is
+        // offline. Guests verify that their current owner still recognizes them.
+        var data = _lastRoomData;
+        if (_completing || data == null || _lobby == 0 || _inFlight != null || _queued != null) return;
+        ulong peer = data.OwnerId == _transport.LocalSteamId ? 0 : data.OwnerId;
+        if (peer == 0)
+        {
+            ResetMembershipProbe();
+            if (data.Count == 1) _reconnect.ConfirmStableMembership(_reconnectSource, _lobby);
+            return;
+        }
+        if (_membershipPeer != peer)
+        {
+            // A new owner gets its own challenge and deadline; an old owner's
+            // delayed reply cannot satisfy it. Preserve the first join's delay.
+            bool changed = _membershipPeer != 0;
+            _membershipPeer = peer;
+            _membershipNonce = Guid.Empty;
+            _membershipProbeDeadline = 0;
+            if (changed) _nextMembershipProbe = Now + RecoverySettleSeconds;
+        }
+        if (_membershipNonce != Guid.Empty && Now >= _membershipProbeDeadline)
+        {
+            Trace("rooms_membership_probe_timeout", ("lobby", _lobby), ("peer", peer),
+                ("cached_members", data.Members.Select(m => m.SteamId).ToArray()));
+            Disconnect(DisconnectKind.NetworkLost);
+            return;
+        }
+        if (Now < _nextMembershipProbe) return;
+        if (_membershipNonce == Guid.Empty)
+        {
+            _membershipNonce = Guid.NewGuid();
+            _membershipProbeDeadline = Now + MembershipProbeTimeoutSeconds;
+            Trace("rooms_membership_probe", ("lobby", _lobby), ("peer", peer));
+        }
+        _nextMembershipProbe = Now + MembershipRefreshSeconds;
+        _transport.SendChat(_lobby, SteamRoomProtocol.EncodeMembershipProbe(
+            _transport.LocalSteamId, peer, _membershipNonce, false));
+    }
+
+    private void AcceptMembershipProbe(ulong lobby, ulong peer, Guid nonce)
+    {
+        if (_lobby == 0 || lobby != _lobby || nonce == Guid.Empty || nonce != _membershipNonce
+            || peer != _membershipPeer || Now >= _membershipProbeDeadline || !IsAvailable) return;
+        var data = _transport.ReadLobby(lobby, true);
+        if (!Compatible(data) || data.Members == null || data.OwnerId != peer
+            || !data.Members.Any(m => m.SteamId == _transport.LocalSteamId)
+            || !data.Members.Any(m => m.SteamId == peer)
+            || !SteamRoomProtocol.TryDecodeBannedMembers(data.BannedMembers, out var bans)
+            || bans.Contains(_transport.LocalSteamId)) return;
+        _membershipNonce = Guid.Empty;
+        _nextMembershipProbe = Now + MembershipProbeIntervalSeconds;
+        _reconnect.ConfirmStableMembership(_reconnectSource, lobby);
+        Trace("rooms_membership_ack", ("lobby", lobby), ("peer", peer));
+    }
 
     private void AdvanceMembershipVerification()
     {
@@ -653,8 +727,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         {
             if (reply)
             {
-                if (requester != _transport.LocalSteamId || sender != peer
-                    || _inFlight is not { VerificationLobby: not 0 } pending || pending.VerificationLobby != lobby
+                if (requester != _transport.LocalSteamId || sender != peer) return;
+                AcceptMembershipProbe(lobby, peer, nonce);
+                if (_inFlight is not { VerificationLobby: not 0 } pending || pending.VerificationLobby != lobby
                     || pending.VerificationPeer != peer || pending.VerificationNonce != nonce || !CanCommit(pending)) return;
                 var data = _transport.ReadLobby(lobby, true);
                 if (!Compatible(data) || data.Members == null || VerificationPeer(data) != peer
@@ -680,7 +755,9 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             if (_receivedMembershipProbeAt.TryGetValue(sender, out var last) && Now - last < 0.5) return;
             _receivedMembershipProbeAt[sender] = Now;
             Trace("rooms_reconnect_peer_ack", ("lobby", lobby), ("requester", requester));
-            _transport.SendChat(lobby, SteamRoomProtocol.EncodeMembershipProbe(requester, peer, nonce, true));
+            if (_transport.SendChat(lobby, SteamRoomProtocol.EncodeMembershipProbe(requester, peer, nonce, true))
+                && lobby == _lobby && room.OwnerId == _transport.LocalSteamId)
+                _reconnect.ConfirmStableMembership(_reconnectSource, lobby);
         }
         catch { /* Control traffic cannot break the shared Steam callback pump. */ }
     }
@@ -1476,6 +1553,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         _chatSessions.Clear();
         _receivedChatAt.Clear();
         _receivedMembershipProbeAt.Clear();
+        ResetMembershipProbe();
         if (client.JoinedCode.Length > 0) client.BeginSession("");
         if (old != 0) SafeLeave(old);
     }
@@ -1516,6 +1594,8 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
                     OnLobbyChanged(_lobby);
                     if (_lobby == 0 || _lastRoomData == null) return;
                 }
+                AdvanceMembershipProbe();
+                if (_lobby == 0 || _lastRoomData == null) return;
                 FlushCompanionWrite(_lastRoomData);
                 UpdateAdmissionLimit(_lastRoomData);
                 AdvanceGameClock();

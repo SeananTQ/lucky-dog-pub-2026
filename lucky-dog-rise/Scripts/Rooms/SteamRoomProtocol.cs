@@ -16,9 +16,9 @@ public sealed record SteamRoomGameState(long Revision, string Game, SteamRoomGam
 // A lobby id is encoded losslessly, without a mapping server or collision-prone short hash.
 public static class SteamRoomProtocol
 {
-    // Rejoining clients require a peer membership handshake. Older clients cannot
-    // answer it and must not silently share a room with this protocol.
-    public const string Version = "lucky-dog-room-7";
+    // Companion names are room-owned v3 data. Older clients would discard the
+    // plan or translate the names again; they cannot share this room protocol.
+    public const string Version = "lucky-dog-room-8";
     public const string ProtocolKey = "ld_protocol";
     public const string NameKey = "ld_name";
     public const string GameKey = "ld_game";

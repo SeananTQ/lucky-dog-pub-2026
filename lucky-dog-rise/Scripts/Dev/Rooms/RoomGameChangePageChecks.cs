@@ -140,8 +140,8 @@ internal static class RoomGameChangePageChecks
                     $"{nextLocale} proposal text and stacked actions fit the overlay");
                 var votes = content.GetNode<VBoxContainer>("MemberScroll/Members");
                 var companionName = votes.GetChild(votes.GetChildCount() - 1).GetNode<Label>("Name");
-                Check(companionName.Text == L10n.Tr("Rooms_CompanionCoder") && companionName.GetLineCount() == 1,
-                    $"{nextLocale} proposal uses the same single-line companion nickname");
+                Check(companionName.Text == client.View.Members.Last(m => m.IsCompanion).Name && companionName.GetLineCount() == 1,
+                    $"{nextLocale} proposal retains the room-owned single-line companion nickname");
             }
             page.HideGameProposal();
             service.Publish(client);

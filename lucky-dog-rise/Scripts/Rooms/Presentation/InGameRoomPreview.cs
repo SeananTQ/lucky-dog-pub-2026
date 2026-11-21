@@ -1040,7 +1040,7 @@ public partial class InGameRoomPreview : VBoxContainer
             .Where(i => i.ItemType == EItemType.Headwear && BuildInfo.IncludesCurrentChannel(i.BuildChannelMask))
             .Select(i => i.Id).Prepend(0).ToArray();
         if (skins.Length == 0) return false;
-        var plan = RoomCompanionPlan.Create(skins, hats, client.CompanionTime);
+        var plan = RoomCompanionPlan.Create(skins, hats, client.CompanionTime, names: CompanionNames());
         bool entered = client.BeginArrival(name, plan, -1 - Random.Shared.Next(RoomCompanionPlan.Count));
         _dirty = true;
         return entered;
@@ -1148,17 +1148,13 @@ public partial class InGameRoomPreview : VBoxContainer
         }
     }
     partial void RenderMockNotice();
-    // Companion slots are stable room identities. Translate their display names
-    // locally; never translate a human persona or write translated text to Steam.
+    // Capture the creator's locale once. All viewers display the room-owned names.
+    internal static string[] CompanionNames() => new[]
+    {
+        L10n.Tr("Rooms_CompanionCoder"), L10n.Tr("Rooms_CompanionArtist"), L10n.Tr("Rooms_CompanionDesigner")
+    };
     public static string MemberName(RoomMember member) => member == null ? L10n.Tr("Rooms_You")
-        : member.IsCompanion && member.Id is >= -RoomCompanionPlan.Count and < 0
-            ? L10n.Tr(member.Id switch
-            {
-                -1 => "Rooms_CompanionCoder",
-                -2 => "Rooms_CompanionArtist",
-                _ => "Rooms_CompanionDesigner"
-            })
-            : member.Name;
+        : member.Name;
 
     public static string GameName(string gameId) => gameId switch
     {

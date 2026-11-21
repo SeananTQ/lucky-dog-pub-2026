@@ -108,7 +108,7 @@ public partial class InGameRoomPreview
     {
         owner ??= _client;
         _sandbox.Create(owner, name, RoomCompanionPlan.Create(
-            new[] { owner.SkinId }, new[] { owner.HeadwearId }, owner.CompanionTime));
+            new[] { owner.SkinId }, new[] { owner.HeadwearId }, owner.CompanionTime, names: CompanionNames()));
     }
     public RoomClient MockClientForSmoke(int id) => _mockClients.Single(client => client.Id == id);
     public void InviteMockClientForSmoke(RoomClient client) => _sandbox.GrantInvitation(_client.JoinedCode, client);

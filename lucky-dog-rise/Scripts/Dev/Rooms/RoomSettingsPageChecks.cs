@@ -196,6 +196,13 @@ internal static class RoomSettingsPageChecks
             var nameBar = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDogView.tscn").Instantiate<RoomDogView>();
             parent.AddChild(nameBar);
             var nameLabel = nameBar.GetNode<Label>("NameBar/Name");
+            L10n.SetLocale("ja", save: false);
+            var japanese = RoomCompanionPlan.Create([client.SkinId], [0], 100,
+                names: InGameRoomPreview.CompanionNames());
+            Check(RoomCompanionPlan.TryRead(japanese.ToWire(), out var received), "Japanese room names survive the wire codec");
+            service.CompanionName = received.Names[0];
+            service.Publish(client);
+            await Frame();
             var companion = client.View.Members.First(member => member.IsCompanion);
             var companionKeys = new[] { "Rooms_CompanionCoder", "Rooms_CompanionArtist", "Rooms_CompanionDesigner" };
             foreach (string nextLocale in Locales)
@@ -219,18 +226,20 @@ internal static class RoomSettingsPageChecks
                     "locale changes translate game labels and placeholders but never the room name");
                 CheckOriginalRows("locale changes preserve live member rows and their buttons");
                 Check(members.GetChild(0).GetNode<Label>("Name").Text == "♛ Rooms_Social"
-                    && members.GetChild(2).GetNode<Label>("Name").Text == L10n.Tr(companionKeys[0]),
-                    "locale changes translate companion names, never human personas");
-                // A real player can deliberately use a companion's name or even
-                // a translation key. Only the companion identity may localize.
+                    && members.GetChild(2).GetNode<Label>("Name").Text == companion.Name,
+                    "locale changes preserve both the Japanese companion name and human personas");
                 Check(InGameRoomPreview.MemberName(companion with { IsCompanion = false }) == companion.Name,
                     "human identities cannot accidentally receive translated companion names");
+                nameBar.Display(companion, false, true, true, "");
+                await Frame();
+                Check(nameLabel.Text == "♛ " + companion.Name,
+                    $"{nextLocale} existing companion name bar remains Japanese");
                 for (int slot = 0; slot < companionKeys.Length; slot++)
                 {
                     string text = L10n.Tr(companionKeys[slot]);
                     Check(text != companionKeys[slot] && !text.Contains('\n') && !text.Contains('\r')
                         && !text.Contains("\\n"), $"{nextLocale} companion nickname is translated and single line");
-                    nameBar.Display(companion with { Id = -slot - 1 }, false, true, true, "");
+                    nameBar.Display(companion with { Id = -slot - 1, Name = text }, false, true, true, "");
                     await Frame();
                     Check(nameLabel.Text == "♛ " + text && nameLabel.GetLineCount() == 1,
                         $"{nextLocale} companion name bar uses the translated single line");
@@ -349,7 +358,7 @@ internal static class RoomSettingsPageChecks
             Check(kick.Visible && !kick.Disabled, "host can remove a companion using the member-row action");
             Click(kick);
             Check(confirm.Visible && confirm.GetNode<Label>("OverlayPanel/Margin/Content/MessageBg/Message").Text
-                .StartsWith(L10n.Tr("Rooms_CompanionCoder") + "\n", StringComparison.Ordinal),
+                .StartsWith(service.CompanionName + "\n", StringComparison.Ordinal),
                 "companion removal uses the shared named confirmation");
             Click(cancel);
             Check(!confirm.Visible && service.KickWrites == 0 && client.View.Members.Any(member => member.IsCompanion),
@@ -549,6 +558,7 @@ internal static class RoomSettingsPageChecks
         public bool TongueActive;
         public RoomAccess Access = RoomAccess.Public;
         public long CompanionPresence = 91;
+        public string CompanionName = "连轴转的程序员";
         public RoomFailure JoinFailure;
         private bool _companion = true;
         private long _revision;
@@ -567,7 +577,7 @@ internal static class RoomSettingsPageChecks
                 new(1, client.Name, client.SkinId, 0, Reaction, 1, ActivitySequence, TongueActive),
                 new(2, RemoteName, client.SkinId, 0, Reaction, 2, ActivitySequence, TongueActive)
             };
-            if (_companion) members.Add(new(-1, "熬夜的程序员", client.SkinId, 0, Reaction, CompanionPresence,
+            if (_companion) members.Add(new(-1, CompanionName, client.SkinId, 0, Reaction, CompanionPresence,
                 ActivitySequence, TongueActive, IsCompanion: true));
             client.Receive(new RoomSnapshot(client.JoinedCode, Name, "social", Owner, ++_revision, members.ToArray(), Access));
         }

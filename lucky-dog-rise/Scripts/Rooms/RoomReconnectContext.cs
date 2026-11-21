@@ -11,6 +11,7 @@ public sealed class RoomReconnectContext
 {
     public const double LifetimeSeconds = 180;
     public const int MaximumAttempts = 3;
+    public const double StableMembershipSeconds = 30;
     private readonly Func<double> _clock;
     private long _source;
     private long _generation;
@@ -21,6 +22,8 @@ public sealed class RoomReconnectContext
     private double _attemptExpiresAt;
     private double _retryAt;
     private int _attempts;
+    private ulong _restoredLobby;
+    private double _restoredAt;
 
     public bool IsPending { get; private set; }
     public bool IsAttempting { get; private set; }
@@ -49,11 +52,24 @@ public sealed class RoomReconnectContext
         if (!IsSourceCurrent(source) || _steamId == 0 || lobbyId == 0) return;
         Tick();
         if (IsPending) return; // Repeated disconnect callbacks do not restart the budget.
+        bool unstableRecovery = _restoredLobby == lobbyId;
         _generation++;
         _lobbyId = lobbyId;
-        _expiresAt = _clock() + LifetimeSeconds;
-        _retryAt = _clock();
-        _attempts = 0;
+        _restoredLobby = 0;
+        if (unstableRecovery)
+        {
+            // An accepted join can still lose membership moments later. Such a
+            // flap belongs to the original outage, not a fresh unlimited budget.
+            if (_attempts >= MaximumAttempts || _clock() >= _expiresAt)
+            { Stop(); return; }
+            _retryAt = _clock() + (_attempts <= 1 ? 5 : 15);
+        }
+        else
+        {
+            _expiresAt = _clock() + LifetimeSeconds;
+            _retryAt = _clock();
+            _attempts = 0;
+        }
         IsPending = true;
         IsAttempting = false;
         LastFailure = RoomFailure.None;
@@ -88,6 +104,8 @@ public sealed class RoomReconnectContext
         if (!IsPending || !IsAttempting) return;
         if (failure == RoomFailure.None)
         {
+            _restoredLobby = _lobbyId;
+            _restoredAt = _clock();
             IsPending = IsAttempting = false;
             _lobbyId = 0;
             LastFailure = RoomFailure.None;
@@ -95,6 +113,14 @@ public sealed class RoomReconnectContext
             return;
         }
         FinishAttempt(failure);
+    }
+
+    // Call only after a fresh peer acknowledgment (or a confirmed lone owner).
+    // Time alone does not prove a cached membership is still connected.
+    public void ConfirmStableMembership(long source, ulong lobbyId)
+    {
+        if (IsSourceCurrent(source) && !IsPending && _restoredLobby == lobbyId
+            && _clock() - _restoredAt >= StableMembershipSeconds) _restoredLobby = 0;
     }
 
     private void FinishAttempt(RoomFailure failure)
@@ -132,6 +158,7 @@ public sealed class RoomReconnectContext
     {
         _generation++;
         _lobbyId = 0;
+        _restoredLobby = 0;
         IsPending = IsAttempting = false;
         StatusKey = "";
         LastFailure = RoomFailure.None;
