@@ -77,8 +77,8 @@ internal static class RoomAccessPageChecks
                 await Frame();
                 Check(current.Text.Contains(L10n.Tr("Rooms_AccessInviteOnly"))
                     && !current.Text.Contains("Rooms_")
-                    && current.TooltipText == L10n.Tr("Rooms_AccessNotOwner")
-                    && current.TooltipText != "Rooms_AccessNotOwner",
+                    && current.TooltipText == L10n.Tr("Rooms_AccessInviteOnlyHint") + "\n" + L10n.Tr("Rooms_AccessNotOwner")
+                    && !current.TooltipText.Contains("Rooms_"),
                     "permission selection and read-only explanation follow language changes");
             }
 
@@ -111,7 +111,7 @@ internal static class RoomAccessPageChecks
                 "leaving invalidates the menu's captured room session");
 
             Check(InGameRoomPreview.FailureKey(RoomFailure.AccessDenied) == "Rooms_AccessDenied",
-                "entry permission errors have the shared local bubble/status translation");
+                "entry permission errors use the shared dialog reason translation");
             GD.Print("[RoomAccessPageChecks] PASS host/member controls, rollback, host transfer, stale signals, pending requests, locales and entry error mapping (fake service).");
         }
         finally

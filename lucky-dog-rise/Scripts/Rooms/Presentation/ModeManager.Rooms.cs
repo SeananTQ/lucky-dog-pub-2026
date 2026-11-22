@@ -320,13 +320,9 @@ public partial class ModeManager
 
     private void OnRoomJoinFailed(RoomFailure failure, bool timedOut)
     {
-        // The room page owns the acknowledgement dialog for a removal ban.
-        // Do not show the same rejection again above the dog.
-        if (failure == RoomFailure.Banned && !timedOut) { ClearRoomJoinNotice(); return; }
-        _roomNoticeIsHostChange = false;
-        _roomJoinNoticeKey = timedOut ? "Rooms_TimedOut" : InGameRoomPreview.FailureKey(failure);
-        _roomJoinNoticeRemaining = RoomRules.ChatLifetime;
-        _roomJoinNoticeWasVisible = false;
+        // All explicit join failures belong to the room page's shared dialog.
+        // This bubble remains available for host-transfer announcements only.
+        ClearRoomJoinNotice();
     }
 
     private void OnRoomJoinNoticeStateChanged()

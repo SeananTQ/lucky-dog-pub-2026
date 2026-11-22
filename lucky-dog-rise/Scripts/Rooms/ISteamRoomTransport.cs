@@ -38,6 +38,9 @@ public interface ISteamRoomTransport : IDisposable
         return null;
     }
     IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed);
+    // Fetch current policy without entering the lobby. Disposing this read cannot
+    // create orphan membership, unlike cancelling an already submitted Join.
+    IDisposable RequestJoinAccess(ulong lobbyId, Action<RoomFailure, RoomAccess> completed);
     SteamRoomData ReadLobby(ulong lobbyId, bool includeMembers);
     bool InitializeLobby(ulong lobbyId, string name);
     bool InitializeLobby(ulong lobbyId, string name, RoomAccess access)

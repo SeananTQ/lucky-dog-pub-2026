@@ -78,6 +78,7 @@ public partial class InGameRoomPreview : VBoxContainer
     private ConfirmOverlayController _joinFailureNotice;
     private bool _joinFailurePending;
     private bool _joinFailureHandled;
+    private string _joinFailureKey = "";
     private long _joinFailureSession;
     private bool _hideRoomCode;
     private bool _localPreferencesLoaded;
@@ -181,10 +182,10 @@ public partial class InGameRoomPreview : VBoxContainer
 
     private void OnJoinFailed(RoomFailure failure, bool timedOut)
     {
-        // Other join errors retain their existing timed bubble. A removal ban
-        // needs acknowledgement, without leaving a second permanent status line.
-        if (failure != RoomFailure.Banned || timedOut) return;
+        // JoinFailed excludes background refresh/retry attempts. Present explicit
+        // join failures once, using the same modal for every reason and timeout.
         _joinFailureHandled = _joinFailurePending = true;
+        _joinFailureKey = timedOut ? "Rooms_TimedOut" : FailureKey(failure);
         _joinFailureSession = _client.Session;
         _noticeKey = "";
         _dirty = true;
@@ -203,7 +204,7 @@ public partial class InGameRoomPreview : VBoxContainer
     }
 
     private void RenderJoinFailureNotice() => _joinFailureNotice.ShowNotice(
-        L10n.Tr("Rooms_JoinFailedTitle"), L10n.Tr("Rooms_Banned"), L10n.Tr(L10nKey.PokerWelcome_Confirm));
+        L10n.Tr("Rooms_JoinFailedTitle"), L10n.Tr(_joinFailureKey), L10n.Tr(L10nKey.PokerWelcome_Confirm));
 
     public void DismissJoinFailureNotice()
     {
@@ -216,6 +217,7 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         DismissJoinFailureNotice();
         _joinFailureHandled = false;
+        _joinFailureKey = "";
         _joinFailureSession = 0;
     }
 
@@ -459,7 +461,8 @@ public partial class InGameRoomPreview : VBoxContainer
     private void OnClientChanged()
     {
         ObserveDirectoryRequest();
-        if (_joinFailureHandled && (_client.Failure != RoomFailure.Banned || _client.Session != _joinFailureSession))
+        if (_joinFailureHandled && (_client.RequestState is not (RoomRequestState.Failed or RoomRequestState.TimedOut)
+            || _client.Session != _joinFailureSession))
             ResetJoinFailureNotice();
         // Lock synchronously: a dropdown signal may already be queued when a join starts.
         RenderDisplayMode();
@@ -757,11 +760,17 @@ public partial class InGameRoomPreview : VBoxContainer
     {
         var access = _client?.View?.Access ?? RoomAccess.Public;
         foreach (var value in Enum.GetValues<RoomAccess>())
-            _access.SetItemText(_access.GetItemIndex((int)value), L10n.Tr(AccessKey(value)));
+        {
+            int index = _access.GetItemIndex((int)value);
+            _access.SetItemText(index, L10n.Tr(AccessKey(value)));
+            _access.SetItemTooltip(index, L10n.Tr(AccessKey(value) + "Hint"));
+        }
         _access.Select(_access.GetItemIndex((int)access));
-        _access.Disabled = AccessError(_client, _client?.Session ?? 0).Length > 0;
         string error = AccessError(_client, _client?.Session ?? 0);
-        _access.TooltipText = _client?.View != null && error.Length > 0 ? L10n.Tr(error) : "";
+        _access.Disabled = error.Length > 0;
+        string hint = L10n.Tr(AccessKey(access) + "Hint");
+        _access.TooltipText = _client?.View != null && error.Length > 0
+            ? hint + "\n" + L10n.Tr(error) : hint;
         if (_access.Disabled) CloseAccessChoices();
     }
 
@@ -909,7 +918,7 @@ public partial class InGameRoomPreview : VBoxContainer
         // Reuse the ordinary join path so errors retain the previous membership,
         // and Steam callback cleanup remains serialized by the room service.
         if (!string.Equals(_client.JoinedCode, code, StringComparison.OrdinalIgnoreCase))
-            _client.Join(code);
+            _client.JoinFromInvitation(code);
         _dirty = true;
     }
 
@@ -1170,8 +1179,8 @@ public partial class InGameRoomPreview : VBoxContainer
             RoomOperation.Create => "Rooms_Creating", RoomOperation.Join => "Rooms_Joining", _ => "Rooms_Searching"
         },
         RoomRequestState.Cancelled => "Rooms_Cancelled",
-        RoomRequestState.TimedOut => "Rooms_TimedOut",
-        RoomRequestState.Failed => _joinFailureHandled && _client.Failure == RoomFailure.Banned
+        RoomRequestState.TimedOut => _joinFailureHandled ? "" : "Rooms_TimedOut",
+        RoomRequestState.Failed => _joinFailureHandled
             ? "" : FailureKey(_client.Failure),
         _ => ""
     };

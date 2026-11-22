@@ -91,6 +91,7 @@ public sealed class RoomClient : IDisposable
     public bool Create(string name, bool joiningFromDirectory = false)
         => BeginRequest(RoomOperation.Create, name, joiningFromDirectory);
     public bool Join(string code) => BeginRequest(RoomOperation.Join, code);
+    internal bool JoinFromInvitation(string code) => BeginRequest(RoomOperation.Join, code, acceptedInvitation: true);
     internal bool JoinForRecovery(string code, long generation) => BeginRequest(RoomOperation.Join, code, recoveryGeneration: generation);
     public bool Search() => BeginRequest(RoomOperation.Search, "");
     // Shares the normal single-flight transport, but does not lock room/poker
@@ -159,7 +160,7 @@ public sealed class RoomClient : IDisposable
     public string Kick(int memberId, long presence) => _disposed || _committing || IsLocalArrival
         ? "Rooms_KickUnavailable" : _service.Kick(this, memberId, presence);
 
-    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0, bool arrivalCreation = false, bool backgroundSearch = false)
+    private bool BeginRequest(RoomOperation operation, string value, bool joiningFromDirectory = false, long recoveryGeneration = 0, bool arrivalCreation = false, bool backgroundSearch = false, bool acceptedInvitation = false)
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (IsLocalArrival && !arrivalCreation && operation is RoomOperation.Create or RoomOperation.Join) Cancel();
@@ -180,7 +181,8 @@ public sealed class RoomClient : IDisposable
             HasSuccessfulDirectory = false;
         }
         DirectoryState = operation == RoomOperation.Search ? RoomRequestState.Pending : RoomRequestState.Idle;
-        _request = new RoomRequest(++_nextRequestId, operation, value ?? "", recoveryGeneration);
+        _request = new RoomRequest(++_nextRequestId, operation, value ?? "", recoveryGeneration)
+        { AcceptedInvitation = acceptedInvitation };
 #if !DEMO_BUILD && !RECORDING_BUILD
         if (arrivalCreation) _request = _request with { Arrival = Arrival };
 #endif

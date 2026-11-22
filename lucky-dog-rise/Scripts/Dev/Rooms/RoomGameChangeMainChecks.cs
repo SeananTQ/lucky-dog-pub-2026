@@ -72,9 +72,11 @@ internal static class RoomGameChangeMainChecks
         Check(!chat.Editing && client.SendChat("blocked") == "Rooms_ChatDisabled", "work blocks composer and message command");
         client.Join("missing-during-work");
         await Settle(0.5);
-        Check(main.RoomJoinNoticeForSmoke?.HasBubble == true,
-            "work mode still displays local join failure system notices");
-        main.RoomAdvanceJoinNoticeForSmoke(RoomRules.ChatLifetime + 1);
+        var joinNotice = panel.GetNode<ConfirmOverlayController>("RoomJoinFailureNotice");
+        Check(joinNotice.Visible && main.RoomJoinNoticeForSmoke?.HasBubble != true,
+            "work mode displays join failure once in the shared dialog, never in chat");
+        joinNotice.GetNode<Button>("OverlayPanel/Margin/Content/ButtonRow/ConfirmButton")
+            .EmitSignal(BaseButton.SignalName.Pressed);
         Check(client.ProposeGameChange("social") == "ok", "work still allows control proposals");
         await Settle(1.1);
         Click(confirm);

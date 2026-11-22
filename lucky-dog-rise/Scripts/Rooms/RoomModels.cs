@@ -86,6 +86,8 @@ public enum RoomRequestState { Idle, Pending, Succeeded, Failed, Cancelled, Time
 public enum RoomFailure { None, InvalidName, NotFound, Full, Unavailable, NoMatchingRoom, Removed, Banned, AccessDenied }
 public sealed record RoomRequest(long Id, RoomOperation Operation, string Value, long RecoveryGeneration = 0)
 {
+    // Local request provenance, not a wire credential or permission cached for later joins.
+    public bool AcceptedInvitation { get; init; }
 #if !DEMO_BUILD && !RECORDING_BUILD
     public RoomArrivalState Arrival { get; init; }
 #endif

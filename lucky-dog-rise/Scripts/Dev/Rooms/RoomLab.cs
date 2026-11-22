@@ -91,7 +91,8 @@ public partial class RoomLab : Control
         }
         if (OS.GetCmdlineUserArgs().Contains("--rooms-smoke")
             || OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke")
-            || OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke"))
+            || OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke")
+            || OS.GetCmdlineUserArgs().Contains("--rooms-admission-smoke"))
         {
             RunSmokeAndQuit();
             return;
@@ -592,6 +593,16 @@ public partial class RoomLab : Control
     {
         try
         {
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-admission-smoke"))
+            {
+                SteamRoomChecks.Run();
+                GD.Print(RoomReconnectChecks.Run());
+                await SteamRoomPageChecks.Run(this);
+                await RoomSettingsPageChecks.RunFeedback(this);
+                GD.Print("[RoomAdmissionChecks] PASS private code gate, invitation, recovery and join failure dialogs (fake Steam; no native session).");
+                GetTree().Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke"))
             {
                 await RoomSettingsPageChecks.RunFeedback(this);

@@ -167,6 +167,40 @@ public sealed class SteamRoomTransport : ISteamRoomTransport
         return call;
     }
 
+    public IDisposable RequestJoinAccess(ulong lobbyId, Action<RoomFailure, RoomAccess> completed)
+    {
+        RequireAvailable();
+        var lobby = new CSteamID(lobbyId);
+        if (!lobby.IsValid() || !lobby.IsLobby())
+        {
+            completed(RoomFailure.NotFound, default);
+            return null;
+        }
+        bool delivered = false;
+        var callback = Callback<LobbyDataUpdate_t>.Create(data =>
+        {
+            if (delivered || data.m_ulSteamIDLobby != lobbyId
+                || data.m_bSuccess != 0 && data.m_ulSteamIDMember != lobbyId) return;
+            delivered = true;
+            if (!IsAvailable) { completed(RoomFailure.Unavailable, default); return; }
+            if (data.m_bSuccess == 0) { completed(RoomFailure.NotFound, default); return; }
+            var access = SteamRoomProtocol.DecodeAccess(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.AccessKey));
+            if (SteamRoomProtocol.TryDecodeGameState(SteamMatchmaking.GetLobbyData(lobby, SteamRoomProtocol.GameKey), out var game)
+                && RoomRules.RequiresInviteOnly(game.Game, game.Proposal?.Target)) access = RoomAccess.InviteOnly;
+            completed(SteamRoomProtocol.IsAccessValid(access) ? RoomFailure.None : RoomFailure.NotFound, access);
+        });
+        try
+        {
+            if (!SteamMatchmaking.RequestLobbyData(lobby))
+            {
+                delivered = true;
+                completed(RoomFailure.Unavailable, default);
+            }
+            return callback;
+        }
+        catch { callback.Dispose(); throw; }
+    }
+
     public IDisposable Join(ulong lobbyId, Action<SteamRoomJoinResult> completed)
     {
         RequireAvailable();

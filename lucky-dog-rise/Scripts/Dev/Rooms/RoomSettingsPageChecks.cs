@@ -133,11 +133,28 @@ internal static class RoomSettingsPageChecks
             Check(!page.HasPendingJoinFailureNotice && !notice.Visible && !status.Visible,
                 "a new successful operation invalidates an unshown rejection");
             client.Leave();
-            service.JoinFailure = RoomFailure.Full;
+            foreach (var failure in new[] { RoomFailure.NotFound, RoomFailure.Full, RoomFailure.AccessDenied, RoomFailure.Unavailable })
+            {
+                service.JoinFailure = failure;
+                client.Join("WWWWWWWWWWWWW");
+                await Frame();
+                Check(page.HasPendingJoinFailureNotice && !status.Visible && page.TryShowPendingJoinFailureNotice()
+                    && content.GetNode<Label>("MessageBg/Message").Text == L10n.Tr(InGameRoomPreview.FailureKey(failure)),
+                    "each join failure uses one dialog with the actual reason and no status duplicate");
+                page.DismissJoinFailureNotice();
+                client.SearchInBackground();
+                await Frame();
+                Check(!status.Visible && !notice.Visible && !page.HasPendingJoinFailureNotice,
+                    "background refresh cannot resurrect acknowledged errors");
+            }
+            service.HoldJoin = true;
             client.Join("WWWWWWWWWWWWW");
+            service.Now += RoomRules.RequestTimeout + 1;
+            client.AdvanceTo(service.Now);
             await Frame();
-            Check(!page.HasPendingJoinFailureNotice && !notice.Visible && status.Text == L10n.Tr("Rooms_Full"),
-                "other join failure presentation remains available");
+            Check(!status.Visible && page.TryShowPendingJoinFailureNotice()
+                && content.GetNode<Label>("MessageBg/Message").Text == L10n.Tr("Rooms_TimedOut"),
+                "explicit join timeout uses the same single acknowledgement dialog");
             GD.Print("[RoomFeedbackChecks] PASS code layout in 20 locales, rejection/acknowledgement, repeated attempts, refresh, occupancy, locale changes and lifecycle.");
         }
         finally
@@ -546,7 +563,7 @@ internal static class RoomSettingsPageChecks
     }
     private sealed class Service : IRoomService
     {
-        public double Now => 1000;
+        public double Now { get; set; } = 1000;
         public string Name = "Rooms_Social";
         public string NameError = "";
         public int Owner = 1;
@@ -560,9 +577,13 @@ internal static class RoomSettingsPageChecks
         public long CompanionPresence = 91;
         public string CompanionName = "连轴转的程序员";
         public RoomFailure JoinFailure;
+        public bool HoldJoin;
         private bool _companion = true;
         private long _revision;
-        public void Request(RoomClient client, RoomRequest request) => client.TryComplete(request.Id, () =>
+        public void Request(RoomClient client, RoomRequest request)
+        {
+            if (HoldJoin && request.Operation == RoomOperation.Join) return;
+            client.TryComplete(request.Id, () =>
         {
             if (request.Operation == RoomOperation.Search) return new RoomResult(RoomFailure.None, Array.Empty<RoomListing>());
             if (request.Operation == RoomOperation.Join && JoinFailure != RoomFailure.None) return new RoomResult(JoinFailure);
@@ -570,6 +591,7 @@ internal static class RoomSettingsPageChecks
             Publish(client);
             return RoomResult.Success;
         });
+        }
         public void Publish(RoomClient client)
         {
             var members = new List<RoomMember>

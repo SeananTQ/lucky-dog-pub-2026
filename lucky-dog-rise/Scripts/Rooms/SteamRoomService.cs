@@ -70,6 +70,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         public readonly RoomRequest Request = request;
         public IDisposable Handle;
         public bool Cancelled;
+        public bool CheckingAccess;
         public double RequestedAt;
         public double StartedAt;
         public bool MembershipCleaned;
@@ -263,6 +264,7 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         // acceptance after failure is still allowed, and an invite never bypasses join validation.
         var pending = _queued ?? _inFlight;
         if (pending != null && !pending.Cancelled && pending.Request.Operation == RoomOperation.Join
+            && pending.Request.AcceptedInvitation
             && pending.Client.IsRequestCurrent(pending.Request.Id)
             && SteamRoomProtocol.TryDecode(pending.Request.Value, out var joining) && joining == lobbyId)
             return false;
@@ -320,7 +322,12 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
     {
         if (_queued?.Client == client && _queued.Request.Id == requestId) _queued = null;
         if (_inFlight?.Client == client && _inFlight.Request.Id == requestId)
+        {
             _inFlight.Cancelled = true;
+            // A metadata read has no membership to settle. Release it immediately;
+            // late data must never start a native join after cancellation/timeout.
+            if (_inFlight.CheckingAccess) Finish(_inFlight);
+        }
         // Keep the native CallResult registered: cancellation is local, not remote.
     }
 
@@ -355,10 +362,49 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
         _queued = null;
         _inFlight = pending;
         pending.StartedAt = _now();
+        if (pending.Request.Operation == RoomOperation.Join && !AllowsPrivateJoin(pending.Request))
+        {
+            pending.CheckingAccess = true;
+            try
+            {
+                var handle = _transport.RequestJoinAccess(Decode(pending.Request.Value),
+                    (failure, access) => CompleteJoinAccess(pending, failure, access));
+                if (_inFlight == pending && pending.CheckingAccess) pending.Handle = handle;
+                else handle?.Dispose();
+            }
+            catch { CompleteMembership(pending, new SteamRoomJoinResult(RoomFailure.Unavailable, 0)); }
+            return;
+        }
+        StartNativeRequest(pending);
+    }
+
+    private static bool AllowsPrivateJoin(RoomRequest request)
+        => request.AcceptedInvitation || request.RecoveryGeneration != 0;
+
+    private void CompleteJoinAccess(Pending pending, RoomFailure failure, RoomAccess access)
+    {
+        if (_inFlight != pending || !pending.CheckingAccess) return;
+        pending.Handle?.Dispose();
+        pending.Handle = null;
+        pending.CheckingAccess = false;
+        if (!CanCommit(pending)) { if (_inFlight == pending) Finish(pending); return; }
+        if (failure == RoomFailure.None)
+            failure = !SteamRoomProtocol.IsAccessValid(access) ? RoomFailure.NotFound
+                : access == RoomAccess.InviteOnly ? RoomFailure.AccessDenied : RoomFailure.None;
+        Trace("rooms_join_access_checked", ("lobby", Decode(pending.Request.Value)),
+            ("access", access.ToString()), ("failure", failure.ToString()));
+        if (failure != RoomFailure.None)
+            CompleteMembership(pending, new SteamRoomJoinResult(failure, 0));
+        else StartNativeRequest(pending);
+    }
+
+    private void StartNativeRequest(Pending pending)
+    {
         try
         {
             Trace("rooms_request_started", ("operation", pending.Request.Operation.ToString()),
-                ("request", pending.Request.Id), ("recovery", pending.Request.RecoveryGeneration != 0));
+                ("request", pending.Request.Id), ("recovery", pending.Request.RecoveryGeneration != 0),
+                ("invitation", pending.Request.AcceptedInvitation));
             var handle = pending.Request.Operation switch
             {
                 RoomOperation.Search => _transport.Search(result => CompleteSearch(pending, result)),
@@ -499,6 +545,14 @@ public sealed class SteamRoomService : IRoomService, IRoomInviteService, IRoomRe
             {
                 _blockedLobbies.Add(result.LobbyId);
                 CompleteMembershipFailure(pending, RoomFailure.Banned);
+                return;
+            }
+            // The host can change policy while JoinLobby is in flight. Check again
+            // before publishing appearance or committing this client's room view.
+            if (pending.Request.Operation == RoomOperation.Join && !AllowsPrivateJoin(pending.Request)
+                && (data.Access == RoomAccess.InviteOnly || RequiresInviteOnly(data)))
+            {
+                CompleteMembershipFailure(pending, RoomFailure.AccessDenied);
                 return;
             }
             if (pending.Request.RecoveryGeneration != 0 && !verified)

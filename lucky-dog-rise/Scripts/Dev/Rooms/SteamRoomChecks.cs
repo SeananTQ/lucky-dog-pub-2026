@@ -40,6 +40,7 @@ public static class SteamRoomChecks
         CheckInvitationAdmission();
         CheckInvitationLifetime();
         CheckInvitationRecovery();
+        CheckPrivateCodeAdmission();
         CheckAccessProtocol();
         CheckAccessAuthorityAndMigration();
         CheckAccessFailuresAndAdmission();
@@ -157,7 +158,7 @@ public static class SteamRoomChecks
         using var client = new RoomClient(service, 1, "public client", 10); // Default deny.
         transport.DeliverInvitation(InviteLobby);
         Assert(service.TryTakeJoinRequest(out var code), "public client receives the normal Steam invitation callback");
-        client.Join(code); transport.SucceedMembership(InviteLobby);
+        client.JoinFromInvitation(code); transport.SucceedMembership(InviteLobby);
         using var link = client.OpenPokerLink();
         Assert(client.View?.GameId == RoomRules.MischiefPoker && link?.Context?.Game == RoomRules.MischiefPoker
             && !client.CanInitiateMischiefPoker, "native successful invitation opens the full poker transport without Dev access");
@@ -751,7 +752,7 @@ public static class SteamRoomChecks
         client.Search(); transport.CompleteSearch(1502, 1503, 1504, 1505);
         Assert(client.Listings.Length == 1 && client.Listings[0].Code == SteamRoomProtocol.Encode(1502),
             "public discovery excludes restricted and malformed metadata even if a cached result contains them");
-        client.Join(SteamRoomProtocol.Encode(1505)); transport.SucceedMembership(1505);
+        client.Join(SteamRoomProtocol.Encode(1505));
         Assert(client.Failure == RoomFailure.NotFound && client.JoinedCode == SteamRoomProtocol.Encode(1502),
             "missing policy cannot be joined as compatible public room");
 
@@ -823,7 +824,7 @@ public static class SteamRoomChecks
 
         using var client = Client(service);
         transport.Seed(InviteLobby + 1);
-        client.Join(code);
+        client.JoinFromInvitation(code);
         transport.DeliverInvitation(InviteLobby + 1);
         Assert(!service.TryTakeJoinRequest(out _), "duplicate invite during the same pending join does not restart it");
         transport.SucceedMembership(InviteLobby + 1);
@@ -837,7 +838,7 @@ public static class SteamRoomChecks
         transport.DeliverInvitation(InviteLobby + 1);
         Assert(service.TryTakeJoinRequest(out code),
             "an invitation to the current room can cancel a different pending destination");
-        client.Cancel(); client.Join(code);
+        client.Cancel(); client.JoinFromInvitation(code);
         transport.SucceedMembership(InviteLobby + 2);
         Assert(client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby + 1)
             && transport.Left.Contains(InviteLobby + 2) && !client.IsBusy,
@@ -846,7 +847,7 @@ public static class SteamRoomChecks
         client.FindAndJoin();
         transport.DeliverInvitation(InviteLobby + 2);
         Assert(service.TryTakeJoinRequest(out code), "an explicit invitation supersedes automatic room search");
-        client.Cancel(); client.Join(code);
+        client.Cancel(); client.JoinFromInvitation(code);
         transport.DeliverInvitation(InviteLobby + 2);
         Assert(!service.TryTakeJoinRequest(out _), "duplicate of a queued invitation join is ignored");
         transport.CompleteSearch(InviteLobby + 1);
@@ -865,7 +866,7 @@ public static class SteamRoomChecks
         {
             transport.DeliverInvitation(InviteLobby + 1);
             Assert(service.TryTakeJoinRequest(out var code), "fresh explicit invitation can retry after an earlier failure");
-            client.Cancel(); client.Join(code); transport.FailMembership(failure);
+            client.Cancel(); client.JoinFromInvitation(code); transport.FailMembership(failure);
             Assert(client.Failure == failure && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
                 && !transport.Left.Contains(InviteLobby) && !service.TryTakeJoinRequest(out _),
                 "full or closed invited room keeps the existing room and does not repeat automatically");
@@ -874,7 +875,7 @@ public static class SteamRoomChecks
         transport.Rooms[InviteLobby + 2] = transport.Rooms[InviteLobby + 2] with { Protocol = "incompatible-game" };
         transport.DeliverInvitation(InviteLobby + 2);
         Assert(service.TryTakeJoinRequest(out var incompatible), "incompatible invite enters normal admission checking");
-        client.Cancel(); client.Join(incompatible); transport.SucceedMembership(InviteLobby + 2);
+        client.Cancel(); client.JoinFromInvitation(incompatible); transport.SucceedMembership(InviteLobby + 2);
         Assert(client.Failure != RoomFailure.None && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
             && transport.Left.Contains(InviteLobby + 2), "invitation cannot bypass room protocol validation");
 
@@ -882,15 +883,82 @@ public static class SteamRoomChecks
         transport.SetBans(InviteLobby + 3, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }), notify: false);
         transport.DeliverInvitation(InviteLobby + 3);
         Assert(service.TryTakeJoinRequest(out var banned), "banned destination still uses shared admission logic");
-        client.Cancel(); client.Join(banned); transport.SucceedMembership(InviteLobby + 3);
+        client.Cancel(); client.JoinFromInvitation(banned); transport.SucceedMembership(InviteLobby + 3);
         Assert(client.Failure == RoomFailure.Banned && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby)
             && transport.Left.Contains(InviteLobby + 3), "Steam invite is not an exemption from the room ban list");
         int calls = transport.MembershipCalls;
         transport.DeliverInvitation(InviteLobby + 3);
         Assert(service.TryTakeJoinRequest(out banned), "a new explicit banned-room invitation can report the failure");
-        client.Cancel(); client.Join(banned);
+        client.Cancel(); client.JoinFromInvitation(banned);
         Assert(client.Failure == RoomFailure.Banned && transport.MembershipCalls == calls,
             "known banned room fails without another native join or rejoin loop");
+    }
+
+    private static void CheckPrivateCodeAdmission()
+    {
+        var transport = new FakeTransport();
+        using var service = Service(transport);
+        using var client = Client(service);
+        client.Create("retained room"); transport.SucceedMembership(InviteLobby);
+        ulong target = InviteLobby + 10;
+        string code = SteamRoomProtocol.Encode(target);
+        transport.Seed(target);
+        transport.Rooms[target] = transport.Rooms[target] with { Access = RoomAccess.InviteOnly };
+        int joins = transport.MembershipCalls;
+        client.Join(code);
+        Assert(client.Failure == RoomFailure.AccessDenied && transport.MembershipCalls == joins
+            && client.JoinedCode == SteamRoomProtocol.Encode(InviteLobby) && transport.Left.Count == 0,
+            "private room code is rejected before entering or disturbing the current room, even if native Steam would allow it");
+
+        transport.DeliverInvitation(target);
+        Assert(service.TryTakeJoinRequest(out var invitedCode), "private invitation is available");
+        client.JoinFromInvitation(invitedCode); transport.SucceedMembership(target);
+        Assert(client.JoinedCode == code && client.Failure == RoomFailure.None, "accepted invitation can enter a private room");
+        client.Leave();
+        joins = transport.MembershipCalls;
+        client.Join(code);
+        Assert(client.Failure == RoomFailure.AccessDenied && transport.MembershipCalls == joins,
+            "consumed invitation does not authorize later manual code joins");
+
+        transport.Rooms[target] = transport.Rooms[target] with { Access = RoomAccess.Public };
+        client.Join(code);
+        transport.Rooms[target] = transport.Rooms[target] with { Access = RoomAccess.InviteOnly };
+        transport.SucceedMembership(target);
+        Assert(client.Failure == RoomFailure.AccessDenied && client.View == null && transport.Left.Contains(target),
+            "permission changing during native join is checked again before committing the view");
+
+        transport.HoldAccessQueries = true;
+        joins = transport.MembershipCalls;
+        client.Join(code);
+        Assert(client.IsBusy && transport.MembershipCalls == joins, "metadata query waits without joining");
+        client.Cancel();
+        transport.CompleteAccess(RoomFailure.None, RoomAccess.Public);
+        Assert(client.RequestState == RoomRequestState.Cancelled && transport.MembershipCalls == joins,
+            "late policy callback after cancellation never starts membership");
+        client.Join(code);
+        transport.Now += RoomRules.RequestTimeout + 1;
+        client.AdvanceTo(transport.Now);
+        transport.CompleteAccess(RoomFailure.None, RoomAccess.Public);
+        Assert(client.RequestState == RoomRequestState.TimedOut && transport.MembershipCalls == joins,
+            "policy query shares the original deadline and ignores late success");
+        client.Join(code);
+        transport.CompleteAccess(RoomFailure.Unavailable, default);
+        Assert(client.Failure == RoomFailure.Unavailable && transport.MembershipCalls == joins,
+            "policy request failure cannot fall through to an unchecked native join");
+        client.Join(code);
+        transport.DeliverInvitation(target);
+        Assert(service.TryTakeJoinRequest(out invitedCode),
+            "accepting an invitation while a manual query is pending must not be mistaken for a duplicate");
+        client.Cancel(); client.JoinFromInvitation(invitedCode);
+        transport.CompleteAccess(RoomFailure.None, RoomAccess.InviteOnly);
+        transport.SucceedMembership(target);
+        Assert(client.JoinedCode == code && client.Failure == RoomFailure.None,
+            "the obsolete manual query cannot revoke the newly accepted invitation");
+        client.Leave();
+        transport.HoldAccessQueries = false;
+        transport.Rooms[target] = transport.Rooms[target] with { Access = RoomAccess.FriendsOnly };
+        client.Join(code); transport.SucceedMembership(target);
+        Assert(client.JoinedCode == code, "friends-only still delegates friendship admission to native Steam");
     }
 
     private static void CheckInvitationLifetime()
@@ -907,7 +975,7 @@ public static class SteamRoomChecks
         transport.SetOwner(InviteLobby + 2, 88, notify: false);
         transport.DeliverInvitation(InviteLobby + 2);
         Assert(service.TryTakeJoinRequest(out var code), "fresh invitation after leaving can join another room");
-        client.Join(code); transport.SucceedMembership(InviteLobby + 2);
+        client.JoinFromInvitation(code); transport.SucceedMembership(InviteLobby + 2);
         transport.DeliverInvitation(InviteLobby + 3);
         transport.SetBans(InviteLobby + 2, SteamRoomProtocol.EncodeBannedMembers(new ulong[] { 77 }));
         Assert(client.Failure == RoomFailure.Removed && client.JoinedCode == "" && !service.TryTakeJoinRequest(out _),
@@ -1656,6 +1724,25 @@ public static class SteamRoomChecks
 
     internal sealed class FakeTransport : ISteamRoomTransport
     {
+        private readonly Queue<(Action<RoomFailure, RoomAccess> Callback, FakeHandle Handle)> _accessQueries = new();
+        public bool HoldAccessQueries;
+        public IDisposable RequestJoinAccess(ulong lobbyId, Action<RoomFailure, RoomAccess> completed)
+        {
+            var handle = new FakeHandle();
+            if (HoldAccessQueries) _accessQueries.Enqueue((completed, handle));
+            else
+            {
+                handle.CallbackDelivered = true;
+                completed(RoomFailure.None, Rooms.GetValueOrDefault(lobbyId)?.Access ?? RoomAccess.Public);
+            }
+            return handle;
+        }
+        public void CompleteAccess(RoomFailure failure, RoomAccess access)
+        {
+            var request = _accessQueries.Dequeue();
+            request.Handle.CallbackDelivered = true;
+            request.Callback(failure, access);
+        }
         private readonly Queue<(Action<SteamRoomJoinResult> Callback, FakeHandle Handle, bool PrivateCreate)> _membership = new();
         private Action<SteamRoomSearchResult> _search;
         private FakeHandle _searchHandle;

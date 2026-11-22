@@ -134,6 +134,7 @@ public static class RoomReconnectChecks
         transport.DeliverChat(Lobby, 88, SteamRoomProtocol.EncodeChat(remoteSession, 1, transport.ServerTime, "old message"));
         client.NotifyInputActivity();
         Assert(client.Bubbles.Count == 1 && client.TongueActive, "fixture contains transient chat and activity");
+        transport.Rooms[Lobby] = transport.Rooms[Lobby] with { Access = RoomAccess.InviteOnly };
         transport.IsAvailable = false;
         service.Tick();
         Assert(service.ReconnectContext.IsPending && client.View == null && client.JoinedCode == ""
@@ -145,7 +146,7 @@ public static class RoomReconnectChecks
         transport.SucceedMembership(Lobby);
         ConfirmRecovery(transport, service);
         Assert(client.JoinedCode == Code && !service.ReconnectContext.IsPending && transport.ChatSessions[Lobby] != oldChatSession,
-            "successful rejoin is a fresh membership in the original lobby");
+            "successful recovery is a fresh membership in the original now-private lobby without another invitation");
         transport.DeliverChat(Lobby, 88, SteamRoomProtocol.EncodeChat(remoteSession, 2, transport.ServerTime - 2, "late old message"));
         Assert(client.Bubbles.Count == 0 && transport.CreateCalls == 0 && transport.SearchCalls == 0
             && transport.JoinTargets.All(id => id == Lobby), "recovery does not replay old chat, create or search for a replacement room");

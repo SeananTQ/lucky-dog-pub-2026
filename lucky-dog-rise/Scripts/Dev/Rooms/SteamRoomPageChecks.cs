@@ -318,7 +318,7 @@ internal static class SteamRoomPageChecks
             var visibility = page.GetNode<Button>("Room/CodeRow/Visibility");
             var codeInput = page.GetNode<LineEdit>("Lobby/JoinRow/Code");
             var status = page.GetNode<Label>("Status");
-            Check(!page.Visible && client.JoinedCode == "PROVIDER1" && service.JoinRequests == 1,
+            Check(!page.Visible && client.JoinedCode == "PROVIDER1" && service.JoinRequests == 1 && service.LastJoinFromInvitation,
                 "hidden production page consumes startup invitation once through ordinary join");
             Check(service.SearchRequests == 0, "startup invitation does not wait for an unrelated directory search");
             await Frame();
@@ -352,8 +352,8 @@ internal static class SteamRoomPageChecks
             service.PendingInvitation = "MISSING";
             await Frame();
             Check(service.CancelRequests == 1 && !client.IsBusy && client.JoinedCode == "PROVIDER1"
-                && client.Failure == RoomFailure.NotFound && status.Text == L10n.Tr("Rooms_NotFound"),
-                "accepted invitation supersedes pending search, retains old room on failure and clears stale overlay notice");
+                && client.Failure == RoomFailure.NotFound && !status.Visible && page.HasPendingJoinFailureNotice,
+                "accepted invitation supersedes pending search, retains old room on failure and queues one dialog");
             int joins = service.JoinRequests;
             await Frame();
             Check(service.JoinRequests == joins, "failed invitation does not form a retry loop");
@@ -678,6 +678,7 @@ internal static class SteamRoomPageChecks
         public long RemotePresence = 2;
         public int SearchRequests;
         public int JoinRequests;
+        public bool LastJoinFromInvitation;
         public int CancelRequests;
         public bool HoldSearch;
         public string PendingInvitation = "";
@@ -705,7 +706,11 @@ internal static class SteamRoomPageChecks
                 SearchRequests++;
                 return;
             }
-            if (request.Operation == RoomOperation.Join) JoinRequests++;
+            if (request.Operation == RoomOperation.Join)
+            {
+                JoinRequests++;
+                LastJoinFromInvitation = request.AcceptedInvitation;
+            }
             client.TryComplete(request.Id, () =>
             {
                 if (request.Operation == RoomOperation.Search)
