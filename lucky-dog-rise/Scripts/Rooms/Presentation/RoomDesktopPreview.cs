@@ -34,6 +34,7 @@ public partial class RoomDesktopPreview : Node2D
     private readonly Dictionary<int, RoomDogView> _dogs = new();
     private readonly List<RoomDogView> _drawOrder = new();
     private readonly List<RoomDogView> _departing = new();
+    private bool _suppressDeparturesOnResume;
     // Desktop/poker use separate views of one membership. Weak ownership prevents
     // a disposed client from being kept alive, and mode switches never replay entry.
     private sealed class SeenMembers
@@ -104,7 +105,16 @@ public partial class RoomDesktopPreview : Node2D
         // CanvasLayer does not inherit a Node2D ancestor's visibility.
         if (what == NotificationVisibilityChanged && IsInstanceValid(_remoteLayer))
         {
-            _remoteLayer.Visible = IsVisibleInTree();
+            bool visible = IsVisibleInTree();
+            if (!visible)
+            {
+                // The other mode keeps presenting membership while this view is
+                // hidden. On return, reconcile its stale dogs without replaying exits.
+                _suppressDeparturesOnResume = true;
+                // Hide/show may happen in one frame, before _Process can retire shells.
+                foreach (var dog in _departing.ToArray()) RemoveRemoteCanvas(dog);
+            }
+            _remoteLayer.Visible = visible;
             UpdateRemoteCanvases();
         }
         if (what == NotificationVisibilityChanged && IsInstanceValid(_chatLayer))
@@ -145,7 +155,7 @@ public partial class RoomDesktopPreview : Node2D
         foreach (var id in _dogs.Keys.Where(id => !members.Any(member => member.Id == id && member.Presence == _dogs[id].Presence)).ToArray())
         {
             var dog = _dogs[id];
-            if (IsVisibleInTree() && dog.Visible && dog.BeginExit()) _departing.Add(dog);
+            if (IsVisibleInTree() && !_suppressDeparturesOnResume && dog.Visible && dog.BeginExit()) _departing.Add(dog);
             else RemoveRemoteCanvas(dog);
             _dogs.Remove(id);
         }
@@ -215,6 +225,7 @@ public partial class RoomDesktopPreview : Node2D
             _awaitingArrivalFrame = pending;
             ObserveArrivalAfterDraw(client, pending);
         }
+        if (IsVisibleInTree()) _suppressDeparturesOnResume = false;
         return localPosition;
     }
 

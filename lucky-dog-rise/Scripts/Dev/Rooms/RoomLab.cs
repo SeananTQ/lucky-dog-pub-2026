@@ -92,6 +92,7 @@ public partial class RoomLab : Control
         if (OS.GetCmdlineUserArgs().Contains("--rooms-smoke")
             || OS.GetCmdlineUserArgs().Contains("--rooms-input-menu-smoke")
             || OS.GetCmdlineUserArgs().Contains("--rooms-feedback-smoke")
+            || OS.GetCmdlineUserArgs().Contains("--rooms-membership-smoke")
             || OS.GetCmdlineUserArgs().Contains("--rooms-admission-smoke"))
         {
             RunSmokeAndQuit();
@@ -593,6 +594,12 @@ public partial class RoomLab : Control
     {
         try
         {
+            if (OS.GetCmdlineUserArgs().Contains("--rooms-membership-smoke"))
+            {
+                await CheckMembershipAnimations();
+                GetTree().Quit();
+                return;
+            }
             if (OS.GetCmdlineUserArgs().Contains("--rooms-admission-smoke"))
             {
                 SteamRoomChecks.Run();
@@ -678,10 +685,59 @@ public partial class RoomLab : Control
             first.Clear();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Verify(first.GetNode<CanvasLayer>("RemoteLayer").GetChildCount() == 0, "clearing a room also cancels active entrance shells");
+            await CheckHiddenMembershipChanges(hub, owner, guest, first, second);
             await CheckDepartedPokerAppearance(hub, owner, guest, first, second);
             GD.Print("[RoomMembershipAnimations] PASS entry, departure, noninteractive exit, mode handoff, appearance update and cleanup");
         }
         finally { first.Clear(); second.Clear(); first.QueueFree(); second.QueueFree(); }
+    }
+
+    private async System.Threading.Tasks.Task CheckHiddenMembershipChanges(RoomSandbox hub, RoomClient owner,
+        RoomClient guest, RoomDesktopPreview first, RoomDesktopPreview second)
+    {
+        void Present(RoomDesktopPreview view) => view.Present(owner, new Rect2(0, 0, 1200, 800), 1, 300, 30, true);
+        first.Clear(); second.Clear();
+        Present(first); Present(second);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        var oldHiddenDog = second.RemoteDogs.Single();
+        second.Hide();
+        hub.Leave(guest); hub.Tick(0); Present(first);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        hub.Join(guest, owner.JoinedCode); hub.Tick(0); Present(first);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        first.Hide(); second.Show(); Present(second);
+        Verify(second.RemoteDogs.Count == 1 && !second.RemoteDogs.Single().Transitioning,
+            "returning to an inactive mode shows the guest's current membership without replaying entry");
+        Verify(!oldHiddenDog.Departing && !oldHiddenDog.GetParent<CanvasLayer>().Visible,
+            "a hidden mode discards its stale guest without showing a duplicate departing dog");
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Verify(!IsInstanceValid(oldHiddenDog) && second.GetNode<CanvasLayer>("RemoteLayer").GetChildCount() == 1,
+            "only the current guest canvas remains after the mode handoff");
+
+        // A guest who left while this view was hidden must not reappear just to descend.
+        oldHiddenDog = second.RemoteDogs.Single();
+        second.Hide(); first.Show(); Present(first);
+        hub.Leave(guest); hub.Tick(0); Present(first);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        first.Hide(); second.Show(); Present(second);
+        Verify(second.RemoteDogs.Count == 0 && !oldHiddenDog.Departing
+            && !oldHiddenDog.GetParent<CanvasLayer>().Visible,
+            "an already-departed guest is not replayed when an inactive mode is revealed");
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        hub.Join(guest, owner.JoinedCode); hub.Tick(0); Present(second);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        var exiting = second.RemoteDogs.Single();
+        hub.Leave(guest); hub.Tick(0); Present(second);
+        Verify(exiting.Departing && exiting.GetParent<CanvasLayer>().Visible, "visible departures still animate");
+        second.Hide(); second.Show(); Present(second);
+        Verify(!exiting.GetParent<CanvasLayer>().Visible,
+            "hiding and showing in one frame cannot resurrect a departure shell");
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Verify(!IsInstanceValid(exiting), "hidden departure shells are immediately retired");
+        hub.Join(guest, owner.JoinedCode); hub.Tick(0); first.Show(); Present(first); Present(second);
+        await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+        GD.Print("[RoomHiddenMembership] PASS rejoin while hidden, departed while hidden, same-frame mode handoff and active departure");
     }
 
     private async System.Threading.Tasks.Task CheckDepartedPokerAppearance(RoomSandbox hub, RoomClient owner,
