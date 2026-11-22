@@ -1,5 +1,6 @@
 using Godot;
 using System.Linq;
+using DataTables;
 
 namespace LuckyDogRise;
 
@@ -106,9 +107,10 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
         }
     }
 
-    public void ReplaceCards(int[] finalHand, bool[] held)
+    public void ReplaceCards(int[] finalHand, bool[] held, EHandRank rank)
     {
         long generation = ++_animationGeneration;
+        var coreCards = rank == EHandRank.Nothing ? [] : PokerHandComposition.GetCoreCards(finalHand, rank);
         float perCardDelay = 0.2f;
         int replacementCount = 0;
         for (int i = 0; i < CardCount; i++)
@@ -126,16 +128,31 @@ public partial class CardTableController : Node2D, IInteractionHintTarget
                 GetTree().CreateTimer(delay).Timeout += () =>
                 {
                     if (generation != _animationGeneration || IsQueuedForDeletion()) return;
-                    if (scheduledIndex == replacementCount - 1)
-                        EmitSignal(SignalName.LastReplacementStarted, true);
                     _cards[idx].AnimateReplace(GetSequentialPitch(handPitchStart, scheduledIndex), 0f);
+                    if (scheduledIndex != replacementCount - 1) return;
+
+                    EmitSignal(SignalName.LastReplacementStarted, true);
+                    // Keep the table's settlement cue even if hiding the table cancels a card flip.
+                    var emphasis = CreateTween();
+                    emphasis.TweenInterval(CardController.ReplacementAnimationDuration);
+                    emphasis.TweenCallback(Callable.From(ApplySettlementEmphasis));
                 };
                 replaced++;
             }
         }
 
         if (replacementCount == 0)
+        {
+            ApplySettlementEmphasis();
             Callable.From(() => { if (generation == _animationGeneration) EmitLastReplacementStarted(); }).CallDeferred();
+        }
+
+        void ApplySettlementEmphasis()
+        {
+            if (generation != _animationGeneration || IsQueuedForDeletion()) return;
+            foreach (var card in _cards)
+                card.SetSettlementDimmed(!coreCards.Contains(card.CardValue));
+        }
     }
 
     private void EmitLastReplacementStarted()

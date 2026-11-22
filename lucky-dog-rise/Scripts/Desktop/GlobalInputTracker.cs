@@ -14,6 +14,7 @@ public partial class GlobalInputTracker : Node
     [Signal] public delegate void GlobalEscapeKeyPressedEventHandler();
 
     public GameData GameData { get; set; } = null!;
+    public Func<int> GetChipRewardLimit { private get; set; }
 
     private IntPtr _kbHook = IntPtr.Zero;
     private RawInputMouseListener _rawMouseListener = null!;
@@ -126,7 +127,8 @@ public partial class GlobalInputTracker : Node
         if (count <= 0 || GameData == null)
             return;
 
-        var rewardedCount = Math.Min(count, (int)_inputRewardTokens);
+        var rewardLimit = GetChipRewardLimit?.Invoke() ?? int.MaxValue;
+        var rewardedCount = Math.Min(Math.Min(count, (int)_inputRewardTokens), rewardLimit);
         if (rewardedCount <= 0)
             return;
 

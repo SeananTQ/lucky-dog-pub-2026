@@ -600,8 +600,8 @@ public partial class GameManager : Node2D
         RefreshUI();
         _cardTable.BrightenAll();
         var finalHand = _deck.DrawReplacements(_held);
-        _cardTable.ReplaceCards(finalHand, _held);
         var rank = CardEvaluator.Evaluate(finalHand);
+        _cardTable.ReplaceCards(finalHand, _held, rank);
         int payout = CardEvaluator.GetPayout(finalHand, _gameData.BetAmount);
         _gameData.EmitHandResolved(rank, payout);
         _gameData.RecordPokerHandResolved(rank, payout, _dogHint.HasGivenHint, _currentHandProgressSource);

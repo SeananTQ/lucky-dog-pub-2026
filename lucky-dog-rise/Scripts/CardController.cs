@@ -8,6 +8,8 @@ public partial class CardController : Node2D
     public delegate void ClickedEventHandler(int index);
 
     private const float FlipDuration = 0.08f;
+    internal const double ReplacementAnimationDuration = 2 * FlipDuration;
+    internal static readonly Color SettlementDimmedTint = new(0.43f, 0.43f, 0.43f);
     private const float DealSlideDuration = 0.25f;
 
     private Sprite2D _front = null!;
@@ -90,6 +92,11 @@ public partial class CardController : Node2D
     {
         _front.Modulate = Colors.White;
         _back.Modulate = Colors.White;
+    }
+
+    public void SetSettlementDimmed(bool dimmed)
+    {
+        _front.Modulate = dimmed ? SettlementDimmedTint : Colors.White;
     }
 
     /// <summary>

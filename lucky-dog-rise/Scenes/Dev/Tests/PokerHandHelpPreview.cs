@@ -310,6 +310,9 @@ public partial class PokerHandHelpPreview : Control
         var initials = Enumerable.Range(3, 3).Select(i => demo.GetNode<TextureRect>($"Card{i}/InitialFace")).ToArray();
         var backs = Enumerable.Range(3, 3).Select(i => demo.GetNode<TextureRect>($"Card{i}/Back")).ToArray();
         var results = Enumerable.Range(3, 3).Select(i => demo.GetNode<TextureRect>($"Card{i}/ResultFace")).ToArray();
+        Require(results[0].Modulate.IsEqualApprox(Colors.White)
+            && results.Skip(1).All(card => card.Modulate.IsEqualApprox(CardController.SettlementDimmedTint)),
+            "The example must keep the third nine bright and dim both kickers to the gameplay settlement tint.");
         var pointer = demo.GetNode<Control>("Pointer");
         var hand = demo.GetNode<Control>("Hand");
         var reward = demo.GetNode<Control>("Reward");

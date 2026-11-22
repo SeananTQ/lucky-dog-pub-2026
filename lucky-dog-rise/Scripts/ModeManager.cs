@@ -703,6 +703,7 @@ public partial class ModeManager : Control
         _globalInputTracker = new GlobalInputTracker();
         _globalInputTracker.Name = "GlobalInputTracker";
         _globalInputTracker.GameData = _gameData;
+        _globalInputTracker.GetChipRewardLimit = GetGlobalInputChipRewardLimit;
         _globalInputTracker.TypingInputOccurred += OnTypingInputOccurred;
         _globalInputTracker.GlobalMousePressed += OnGlobalMousePressed;
         _globalInputTracker.GlobalWinKeyPressed += OnGlobalWinKeyPressed;
@@ -2870,6 +2871,18 @@ public partial class ModeManager : Control
         }
         else
             _gameManager?.OnPlayDogReaction((int)EDogReactionTrigger.SawRoyalFlush);
+    }
+
+    private int GetGlobalInputChipRewardLimit()
+    {
+        if (CurrentMode == Mode.BossKey)
+            return int.MaxValue;
+
+        if (_gameManager?.State != GameState.WaitingForBet
+            || _gameManager.IsSessionPokerActive || _gameManager.IsSessionPokerReserved)
+            return 0;
+
+        return Math.Max(0, _gameData.BetAmount - _gameData.Chips);
     }
 
     private void OnTypingInputOccurred(int count)

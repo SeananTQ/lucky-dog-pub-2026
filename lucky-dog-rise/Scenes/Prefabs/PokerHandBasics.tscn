@@ -1265,7 +1265,7 @@ mouse_filter = 2
 texture = ExtResource("tex_9")
 expand_mode = 1
 stretch_mode = 5
-modulate = Color(0.9, 0.9, 0.9, 1)
+modulate = Color(0.43, 0.43, 0.43, 1)
 
 [node name="Card5" type="Control" parent="Pair/Comparison/After/Demo"]
 offset_left = 392.0
@@ -1312,7 +1312,7 @@ mouse_filter = 2
 texture = ExtResource("tex_10")
 expand_mode = 1
 stretch_mode = 5
-modulate = Color(0.9, 0.9, 0.9, 1)
+modulate = Color(0.43, 0.43, 0.43, 1)
 
 [node name="Hand" type="TextureRect" parent="Pair/Comparison/After/Demo"]
 offset_top = 164.0

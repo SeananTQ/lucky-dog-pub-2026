@@ -35,7 +35,7 @@ public static class PokerShowdownPresentation
             : local;
         if (opponent != null && opponent.BestHand.Value.Rank == winner.BestHand.Value.Rank
             && winner.BestHand.Value.CompareTo(opponent.BestHand.Value) > 0
-            && HasKickers(winner.BestHand.Value.Rank))
+            && PokerHandComposition.GetMatchingRankCount(winner.BestHand.Value.Rank) > 0)
         {
             var opponentBest = localWinner ? SelectBest(state.Board, opponent.HoleCards) : localBest;
             var opponentCore = Core(opponentBest, opponent.BestHand.Value.Rank, false);
@@ -84,15 +84,8 @@ public static class PokerShowdownPresentation
     }
 
     public static int Rank(int card) => card % 13 == 0 ? 14 : card % 13 + 1;
-    private static bool HasKickers(EHandRank rank) => rank is EHandRank.OnePair or EHandRank.TwoPair
-        or EHandRank.ThreeOfAKind or EHandRank.FourOfAKind;
-    private static HashSet<int> Core(int[] best, EHandRank rank, bool full)
-    {
-        if (full || !HasKickers(rank)) return best.ToHashSet();
-        int count = rank == EHandRank.ThreeOfAKind ? 3 : rank == EHandRank.FourOfAKind ? 4 : 2;
-        var ranks = best.GroupBy(Rank).Where(g => g.Count() == count).Select(g => g.Key).ToHashSet();
-        return best.Where(c => ranks.Contains(Rank(c))).ToHashSet();
-    }
+    private static HashSet<int> Core(int[] best, EHandRank rank, bool full) =>
+        full ? best.ToHashSet() : PokerHandComposition.GetCoreCards(best, rank);
 }
 
 // One pass through winners in this hand's action order. No accounting or scene timers.
