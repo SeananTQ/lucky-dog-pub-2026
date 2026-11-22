@@ -1,15 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ed3dw4kxafkl"]
 
 [ext_resource type="Script" uid="uid://bqt7jksk08p1p" path="res://Scripts/ModeManager.cs" id="1_ctrl"]
 
-[node name="ModeManager" type="Control" node_paths=PackedStringArray("_playPanelDismissOverlay")]
+[node name="ModeManager" type="Control" unique_id=1173598859 node_paths=PackedStringArray("_playPanelDismissOverlay")]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_ctrl")
 _playPanelDismissOverlay = NodePath("PlayPanelDismissLayer/DismissOverlay")
 
-[node name="PlayPanelDismissLayer" type="CanvasLayer" parent="."]
+[node name="PlayPanelDismissLayer" type="CanvasLayer" parent="." unique_id=1514739432]
 layer = 90
 
-[node name="DismissOverlay" type="ColorRect" parent="PlayPanelDismissLayer"]
+[node name="DismissOverlay" type="ColorRect" parent="PlayPanelDismissLayer" unique_id=1063538849]
 visible = false
-mouse_filter = 0
 color = Color(0, 0, 0, 0.5)
