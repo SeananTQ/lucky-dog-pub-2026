@@ -784,7 +784,7 @@ public static class InGameRoomSmoke
                     && page.Size.X <= panel.PanelSize.X + .5f, $"{locale} room controls fit the actual settings panel");
                 foreach (var member in companionMembers)
                 {
-                    var label = desktop.RemoteDogs.Single(d => d.MemberId == member.Id).GetNode<Label>("NameBar/Name");
+                    var label = desktop.RemoteDogs.Single(d => d.MemberId == member.Id).GetNode<Label>("NameBar/Content/Name");
                     Check(label.Text == InGameRoomPreview.MemberName(member) && label.GetLineCount() == 1,
                         $"{locale} desktop companion nickname is localized and single line");
                 }
@@ -883,8 +883,8 @@ public static class InGameRoomSmoke
                     local: true, owner: true, showName: true, bubble: "");
                 dog.OpenChat();
                 dog.SubmitChatForSmoke("must not send");
-                Check(!dog.Editing && sends == 0 && dog.GetNode<Label>("NameBar/Name").Text.Contains("♛")
-                    && !dog.GetNode<Label>("NameBar/Name").Text.Contains("本机"),
+                Check(!dog.Editing && sends == 0 && dog.GetNode<TextureRect>("NameBar/Content/HostIcon").Visible
+                    && !dog.GetNode<Label>("NameBar/Content/Name").Text.Contains("本机"),
                     "companion presentation permits a host marker without granting local input");
             }
             page.AdvancePreview(9);

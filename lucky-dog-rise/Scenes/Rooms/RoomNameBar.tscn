@@ -2,6 +2,8 @@
 
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="counter_font"]
 
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomHostIcon.tscn" id="host_icon"]
+
 [sub_resource type="StyleBoxFlat" id="counter_bg"]
 content_margin_left = 5.0
 content_margin_top = 3.0
@@ -27,7 +29,15 @@ offset_bottom = 29.0
 theme_override_styles/panel = SubResource("counter_bg")
 mouse_filter = 2
 
-[node name="Name" type="Label" parent="."]
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="HostIcon" parent="Content" instance=ExtResource("host_icon")]
+
+[node name="Name" type="Label" parent="Content"]
+size_flags_horizontal = 3
 auto_translate_mode = 2
 custom_minimum_size = Vector2(0, 22)
 layout_mode = 2

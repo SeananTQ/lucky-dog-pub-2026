@@ -110,8 +110,10 @@ public partial class RoomChatView : Node2D
             var inverse = GetGlobalTransformWithCanvas().AffineInverse();
             var min = inverse * new Vector2(8, 8);
             var max = inverse * (GetViewportRect().Size - new Vector2(8, 8));
-            _open.Position = new Vector2(Mathf.Clamp(-16, min.X, Mathf.Max(min.X, max.X - _open.Size.X)),
-                Mathf.Clamp(-24, min.Y, Mathf.Max(min.Y, max.Y - _open.Size.Y)));
+            // Keep the entry centered on its anchor when its artwork/hit area grows.
+            var origin = new Vector2(2, -6) - _open.Size / 2;
+            _open.Position = new Vector2(Mathf.Clamp(origin.X, min.X, Mathf.Max(min.X, max.X - _open.Size.X)),
+                Mathf.Clamp(origin.Y, min.Y, Mathf.Max(min.Y, max.Y - _open.Size.Y)));
         }
         _message.Visible = !Editing && _messageText.Length > 0;
         _tail.Visible = Editing || _message.Visible;

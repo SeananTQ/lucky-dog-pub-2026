@@ -64,7 +64,7 @@ public partial class RoomNameBarLocalizationLab : Control
         _scaleOption.Select(1);
         var prototype = _template.GetNode<PanelContainer>("Coder");
         _barSize = prototype.Size;
-        _sourceFont = prototype.GetNode<Label>("Name").GetThemeFont("font");
+        _sourceFont = prototype.GetNode<Label>("Content/Name").GetThemeFont("font");
         _sourceStyle = (StyleBoxFlat)prototype.GetThemeStylebox("panel");
         Populate();
         _scaleOption.ItemSelected += _ => { _page = 0; QueueLayout(); };
@@ -120,7 +120,7 @@ public partial class RoomNameBarLocalizationLab : Control
             root.Name = $"Locale_{(locale.Length > 0 ? locale : $"Reserved{index + 1}")}";
             var bars = new[] { "Coder", "Artist", "Designer" }.Select(name => root.GetNode<PanelContainer>(name)).ToArray();
             var sample = new Sample(locale, texts, root, root.GetNode<Label>("Locale"), bars,
-                bars.Select(bar => bar.GetNode<Label>("Name")).ToArray(), root.GetNode<Label>("Status"));
+                bars.Select(bar => bar.GetNode<Label>("Content/Name")).ToArray(), root.GetNode<Label>("Status"));
             sample.Heading.Text = locale.Length > 0
                 ? $"{index + 1:00} · {locale}  {L10n.GetDisplayName(locale)}" : $"{index + 1:00} · 预留语言（未配置）";
             root.Show();
@@ -177,14 +177,16 @@ public partial class RoomNameBarLocalizationLab : Control
             {
                 var bar = sample.Bars[job];
                 var label = sample.Names[job];
+                bar.GetNode<TextureRect>("Content/HostIcon").Visible = _crown.ButtonPressed;
                 bool absent = string.IsNullOrWhiteSpace(sample.Texts[job]) || sample.Texts[job] == Keys[job];
-                label.Text = absent ? $"{Jobs[job]} · 缺译文" : (_crown.ButtonPressed ? "♛ " : "") + sample.Texts[job];
+                label.Text = absent ? $"{Jobs[job]} · 缺译文" : sample.Texts[job];
                 bar.Position = new Vector2(12, 32 + job * (_barSize.Y * scale + 8));
                 bar.Size = _barSize;
                 bar.Scale = Vector2.One * scale;
                 bar.AddThemeStyleboxOverride("panel", style);
                 label.AddThemeFontOverride("font", font);
                 float width = _barSize.X - style.GetContentMargin(Side.Left) - style.GetContentMargin(Side.Right);
+                if (_crown.ButtonPressed) width -= 18 + bar.GetNode<HBoxContainer>("Content").GetThemeConstant("separation");
                 int fontSize = RoomDogView.NameFontSize(font, label.Text, width, true);
                 label.AddThemeFontSizeOverride("font_size", fontSize);
                 sizes.Add(fontSize);

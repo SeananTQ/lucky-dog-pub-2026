@@ -62,7 +62,7 @@ internal static class RoomArrivalMainChecks
             Check(hostId is >= -3 and <= -1 && client.View.OwnerId == hostId,
                 "one of the three companions is the temporary host");
             var hostDog = desktop.RemoteDogs.Single(d => d.MemberId == hostId);
-            Check(hostDog.GetNode<Label>("NameBar/Name").Text.StartsWith("♛ "),
+            Check(hostDog.GetNode<TextureRect>("NameBar/Content/HostIcon").Visible,
                 "the selected temporary host has a visible crown on its actual name bar");
             Check(!page.GetNode<Control>("Room/CodeRow").Visible
                 && !page.GetNode<LineEdit>("Room/TitleRow/Name").Editable,

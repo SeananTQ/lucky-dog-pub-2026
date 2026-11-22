@@ -1146,7 +1146,8 @@ public partial class InGameRoomPreview : VBoxContainer
             if (row.GetIndex() != index) _members.MoveChild(row, index);
             var name = string.IsNullOrWhiteSpace(member.Name) && member.Id == _client.Id ? L10n.Tr("Rooms_You") : MemberName(member);
             var nameLabel = row.GetNode<Label>("Name");
-            nameLabel.Text = (member.Id == view.OwnerId ? "♛ " : "") + name;
+            nameLabel.Text = name;
+            row.GetNode<TextureRect>("HostIcon").Visible = member.Id == view.OwnerId;
             nameLabel.AutowrapMode = member.IsCompanion ? TextServer.AutowrapMode.Off : TextServer.AutowrapMode.WordSmart;
             nameLabel.ClipText = member.IsCompanion;
             nameLabel.TextOverrunBehavior = member.IsCompanion ? TextServer.OverrunBehavior.TrimEllipsis : TextServer.OverrunBehavior.NoTrimming;

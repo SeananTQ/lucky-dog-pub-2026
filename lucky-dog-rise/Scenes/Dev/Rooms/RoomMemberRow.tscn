@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://Scripts/Dev/Rooms/RoomMemberRow.cs" id="script"]
 [ext_resource type="Theme" path="res://Themes/DefaultTheme.tres" id="theme"]
 
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomHostIcon.tscn" id="host_icon"]
+
 [node name="RoomMemberRow" type="HBoxContainer" node_paths=PackedStringArray("_name", "_hide")]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
@@ -10,6 +12,9 @@ theme = ExtResource("theme")
 script = ExtResource("script")
 _name = NodePath("Name")
 _hide = NodePath("Hide")
+
+[node name="HostIcon" parent="." instance=ExtResource("host_icon")]
+custom_minimum_size = Vector2(22, 22)
 
 [node name="Name" type="Label" parent="."]
 layout_mode = 2

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=15 format=3]
+[gd_resource type="Theme" load_steps=16 format=3]
 
 [ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="latin"]
 [ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="cjk"]
@@ -103,6 +103,12 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
+[sub_resource type="StyleBoxEmpty" id="chat_entry"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
 [resource]
 default_font = SubResource("font")
 default_font_size = 18
@@ -134,3 +140,16 @@ ChatButton/styles/hover = SubResource("button_hover")
 ChatButton/styles/hover_pressed = SubResource("button_pressed")
 ChatButton/styles/normal = SubResource("button_normal")
 ChatButton/styles/pressed = SubResource("button_pressed")
+ChatEntryButton/base_type = &"Button"
+ChatEntryButton/constants/icon_max_width = 34
+ChatEntryButton/colors/icon_normal_color = Color(0.88, 0.88, 0.88, 1)
+ChatEntryButton/colors/icon_hover_color = Color(1, 1, 1, 1)
+ChatEntryButton/colors/icon_pressed_color = Color(0.7, 0.7, 0.7, 1)
+ChatEntryButton/colors/icon_hover_pressed_color = Color(0.7, 0.7, 0.7, 1)
+ChatEntryButton/colors/icon_disabled_color = Color(1, 1, 1, 0.4)
+ChatEntryButton/styles/normal = SubResource("chat_entry")
+ChatEntryButton/styles/hover = SubResource("chat_entry")
+ChatEntryButton/styles/pressed = SubResource("chat_entry")
+ChatEntryButton/styles/hover_pressed = SubResource("chat_entry")
+ChatEntryButton/styles/disabled = SubResource("chat_entry")
+ChatEntryButton/styles/focus = SubResource("chat_entry")

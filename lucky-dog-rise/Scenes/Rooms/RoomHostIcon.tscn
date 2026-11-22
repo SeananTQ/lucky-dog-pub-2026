@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/UI/Icon/Icon_RoomHost.svg" id="icon"]
+
+[node name="HostIcon" type="TextureRect"]
+visible = false
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("icon")
+expand_mode = 1
+stretch_mode = 5

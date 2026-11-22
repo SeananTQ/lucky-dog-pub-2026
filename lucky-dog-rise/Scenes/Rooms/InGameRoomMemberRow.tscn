@@ -1,9 +1,14 @@
 [gd_scene format=3]
 [ext_resource type="LabelSettings" path="res://Themes/Label_SettingsOption.tres" id="option_label"]
+[ext_resource type="PackedScene" path="res://Scenes/Rooms/RoomHostIcon.tscn" id="host_icon"]
+
 [node name="Member" type="HBoxContainer"]
 custom_minimum_size = Vector2(0, 32)
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="HostIcon" parent="." instance=ExtResource("host_icon")]
+custom_minimum_size = Vector2(22, 22)
 
 [node name="Name" type="Label" parent="."]
 layout_mode = 2

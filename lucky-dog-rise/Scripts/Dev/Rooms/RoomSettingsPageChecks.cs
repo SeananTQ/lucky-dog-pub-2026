@@ -200,7 +200,8 @@ internal static class RoomSettingsPageChecks
             Check(name.Editable && name.Text == "Rooms_Social" && count.Text == "3/6"
                 && name.AutoTranslateMode == Node.AutoTranslateModeEnum.Disabled,
                 "room name is editable host content with a separate population count");
-            Check(members.GetChild(0).GetNode<Label>("Name").Text == "♛ Rooms_Social",
+            Check(members.GetChild(0).GetNode<Label>("Name").Text == "Rooms_Social"
+                && members.GetChild(0).GetNode<TextureRect>("HostIcon").Visible,
                 "member list preserves the local Steam persona instead of replacing it with You");
             var originalRows = members.GetChildren().Select(row => row.GetInstanceId()).ToArray();
             var originalButtons = members.GetChildren().Select(row => row.GetNode<Button>("Kick").GetInstanceId()).ToArray();
@@ -212,7 +213,7 @@ internal static class RoomSettingsPageChecks
             }
             var nameBar = GD.Load<PackedScene>("res://Scenes/Rooms/RoomDogView.tscn").Instantiate<RoomDogView>();
             parent.AddChild(nameBar);
-            var nameLabel = nameBar.GetNode<Label>("NameBar/Name");
+            var nameLabel = nameBar.GetNode<Label>("NameBar/Content/Name");
             L10n.SetLocale("ja", save: false);
             var japanese = RoomCompanionPlan.Create([client.SkinId], [0], 100,
                 names: InGameRoomPreview.CompanionNames());
@@ -242,14 +243,15 @@ internal static class RoomSettingsPageChecks
                     && page.GetNode<OptionButton>("Room/Game/Choices/Current").Text == InGameRoomPreview.GameName("social"),
                     "locale changes translate game labels and placeholders but never the room name");
                 CheckOriginalRows("locale changes preserve live member rows and their buttons");
-                Check(members.GetChild(0).GetNode<Label>("Name").Text == "♛ Rooms_Social"
+                Check(members.GetChild(0).GetNode<Label>("Name").Text == "Rooms_Social"
                     && members.GetChild(2).GetNode<Label>("Name").Text == companion.Name,
                     "locale changes preserve both the Japanese companion name and human personas");
                 Check(InGameRoomPreview.MemberName(companion with { IsCompanion = false }) == companion.Name,
                     "human identities cannot accidentally receive translated companion names");
                 nameBar.Display(companion, false, true, true, "");
                 await Frame();
-                Check(nameLabel.Text == "♛ " + companion.Name,
+                Check(nameLabel.Text == companion.Name
+                    && nameBar.GetNode<TextureRect>("NameBar/Content/HostIcon").Visible,
                     $"{nextLocale} existing companion name bar remains Japanese");
                 for (int slot = 0; slot < companionKeys.Length; slot++)
                 {
@@ -258,12 +260,12 @@ internal static class RoomSettingsPageChecks
                         && !text.Contains("\\n"), $"{nextLocale} companion nickname is translated and single line");
                     nameBar.Display(companion with { Id = -slot - 1, Name = text }, false, true, true, "");
                     await Frame();
-                    Check(nameLabel.Text == "♛ " + text && nameLabel.GetLineCount() == 1,
+                    Check(nameLabel.Text == text && nameLabel.GetLineCount() == 1,
                         $"{nextLocale} companion name bar uses the translated single line");
                     float width = nameLabel.GetThemeFont("font").GetStringSize(nameLabel.Text,
                         HorizontalAlignment.Left, -1, nameLabel.GetThemeFontSize("font_size")).X;
                     Check(width <= nameLabel.Size.X + 0.5f,
-                        $"{nextLocale} {text}: name including crown is {width}px, available {nameLabel.Size.X}px");
+                        $"{nextLocale} {text}: name beside host icon is {width}px, available {nameLabel.Size.X}px");
                 }
             }
             nameBar.Free();
@@ -340,7 +342,9 @@ internal static class RoomSettingsPageChecks
                 "host transfer invalidates the old owner's captured draft");
             CheckOriginalRows("host transfer updates existing member rows without replacing them");
             Check(members.GetChildren().All(row => !row.GetNode<Button>("Kick").Visible)
-                && members.GetChild(1).GetNode<Label>("Name").Text == "♛ " + service.RemoteName,
+                && members.GetChild(1).GetNode<Label>("Name").Text == service.RemoteName
+                && members.GetChild(1).GetNode<TextureRect>("HostIcon").Visible
+                && !members.GetChild(0).GetNode<TextureRect>("HostIcon").Visible,
                 "host transfer updates both kick visibility and the host crown");
             service.Owner = 1;
             service.Publish(client);

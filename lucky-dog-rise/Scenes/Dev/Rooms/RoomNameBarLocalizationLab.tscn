@@ -96,7 +96,7 @@ size_flags_vertical = 4
 
 [node name="Crown" type="CheckButton" parent="Margin/Content/Toolbar"]
 layout_mode = 2
-text = "显示房主皇冠"
+text = "显示房主图标"
 
 [node name="Order" type="Label" parent="Margin/Content/Toolbar"]
 layout_mode = 2

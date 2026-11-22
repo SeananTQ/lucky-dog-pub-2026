@@ -12,6 +12,7 @@ public partial class RoomDogView : Node2D
     [Export] public DogVisual Dog { get; private set; } = null!;
     [Export] private PanelContainer _nameBar = null!;
     [Export] private Label _name = null!;
+    [Export] private TextureRect _hostIcon = null!;
     [Export] public RoomChatView Chat { get; private set; } = null!;
     [Export] private Godot.Collections.Array<Button> _dogHits = new();
     [Export] private PackedScene _departureScene = null!;
@@ -66,7 +67,8 @@ public partial class RoomDogView : Node2D
             Dog.ApplyReaction((EDogReactionTrigger)member.Reaction);
         Dog.SetRoomTongueActivity(tongueActive);
         _member = member;
-        _name.Text = (owner ? "♛ " : "") + InGameRoomPreview.MemberName(member) + (local ? " · 本机" : "");
+        _hostIcon.Visible = owner;
+        _name.Text = InGameRoomPreview.MemberName(member) + (local ? " · 本机" : "");
         FitCompanionName();
         _showName = showName;
         _nameBar.Visible = showName && _departure == null;
@@ -152,6 +154,7 @@ public partial class RoomDogView : Node2D
         var font = _name.GetThemeFont("font");
         var style = _nameBar.GetThemeStylebox("panel");
         float width = _nameBar.Size.X - style.GetContentMargin(Side.Left) - style.GetContentMargin(Side.Right);
+        if (_hostIcon.Visible) width -= _hostIcon.CustomMinimumSize.X + _hostIcon.GetParent<HBoxContainer>().GetThemeConstant("separation");
         bool companion = _member?.IsCompanion == true;
         if (_measuredName == _name.Text && _measuredNameFont == font
             && Mathf.IsEqualApprox(_measuredNameWidth, width) && _measuredCompanion == companion) return;
@@ -159,7 +162,7 @@ public partial class RoomDogView : Node2D
         _measuredNameFont = font;
         _measuredNameWidth = width;
         _measuredCompanion = companion;
-        // Preserve the compact single-line nickname and crown. Only a few
+        // Preserve the compact single-line nickname alongside the host icon. Only a few
         // translations need a one-point reduction; human name styling is unchanged.
         int size = NameFontSize(font, _name.Text, width, companion);
         if (_name.GetThemeFontSize("font_size") != size) _name.AddThemeFontSizeOverride("font_size", size);
