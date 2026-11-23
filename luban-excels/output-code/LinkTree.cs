@@ -127,7 +127,7 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly int ParticipationAppId;
     /// <summary>
-    /// 勾选后，领取条件未满足或尚未核实的入口隐藏。
+    /// 勾选后，领取条件未满足或尚未核实的入口隐藏。当前尚无入口启用此字段，启用时请充分测试。
     /// </summary>
     public readonly bool HideWhenIneligible;
     /// <summary>

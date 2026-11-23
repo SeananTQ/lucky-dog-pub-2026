@@ -1920,10 +1920,10 @@ public partial class SystemPanelController : CanvasLayer
     private void RefreshLinkTreePagePresentation()
     {
         var state = _linkTreePageState;
-        var showBanners = state == LinkTreePageState.Ready;
+        var ready = state == LinkTreePageState.Ready;
+        var allowOfflinePreview = state == LinkTreePageState.Unavailable && _gameData != null;
         var unavailableText = L10n.Tr(L10nKey.LinkTree_RewardsUnavailable);
         var syncingText = GetLinkTreeSyncStatusText(_linkTreeShowRecoveryAdvice);
-        _linkTreeStatusCenter.Visible = !showBanners;
         _linkTreeStatusLabel.Text = state switch
         {
             LinkTreePageState.Loading => syncingText,
@@ -1933,11 +1933,12 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var entry in _linkTreeRewardEntries)
         {
             RefreshLinkTreeRewardEntry(entry);
-            entry.Banner.Visible = MeetsLinkTreeVisibilityCondition(entry) && (entry.Data.ParticipationAppId > 0
-                ? CanShowParticipationGift(entry)
-                : showBanners && entry.SelectedForDisplay);
+            entry.Banner.Visible = (ready || (allowOfflinePreview && UsesSessionParticipationGift(entry)))
+                && entry.SelectedForDisplay && MeetsLinkTreeVisibilityCondition(entry)
+                && (entry.Data.ParticipationAppId == 0 || CanShowParticipationGift(entry));
         }
 
+        _linkTreeStatusCenter.Visible = !ready && !_linkTreeRewardEntries.Any(entry => entry.Banner.Visible);
         TryPlayPendingLinkTreeRewardFeedbacks();
     }
 
@@ -2663,7 +2664,7 @@ public partial class SystemPanelController : CanvasLayer
     {
         if (!entry.RewardFeedbackPending
             || _closingPanel || _displayedLinkTreeReward != null
-            || (_linkTreePageState != LinkTreePageState.Ready && entry.Data.ParticipationAppId == 0)
+            || _linkTreeStatusCenter.Visible
             || !_linkTreeContent.Visible
             || !entry.SelectedForDisplay
             || !entry.Banner.IsVisibleInTree())

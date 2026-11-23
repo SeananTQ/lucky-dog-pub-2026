@@ -258,21 +258,32 @@ public partial class DemoLinkTreeSmoke : Node
         var query = new GiftInventory();
         Set(panel, "_participationChannel", BuildChannel.Playtest);
         Set(panel, "_inventoryService", query);
+        Set(panel, "_recoverablePlatformService", query);
+        query.ConnectionStateChanged += state => Call(panel, "OnPlatformConnectionStateChanged", state);
+        var statusCenter = (Control)Field(panel, "_linkTreeStatusCenter");
+        void RequirePageLoading()
+        {
+            Require(statusCenter.IsVisibleInTree() && ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
+                .All(entry => !((Button)Field(entry, "Banner")).IsVisibleInTree()),
+                "Page-level Steam loading must hide every banner, including the Playtest gift");
+        }
         Set(freshSession, "_steamMockSimulationActive", true);
         Set(freshSession, "_saveDataMode", SettingsManager.SaveDataMode.LocalSave);
         var isolatedProgress = new PlayerProgress(AccountStorageContext.ForDevelopment("linktree-smoke"));
         typeof(GameData).GetProperty(nameof(GameData.PlayerProgress))!.SetValue(freshSession, isolatedProgress);
-        Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners.All(button => button.Visible && button.Disabled), "Offline gifts must wait for trusted inventory");
-        query.IsInventoryReady = true;
-        Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners.All(button => button.Visible && !button.Disabled
+        Call(panel, "RefreshLinkTreePageFromPlatformState");
+        RequirePageLoading();
+        query.SetReady(true);
+        Require(!statusCenter.Visible && banners.All(button => button.IsVisibleInTree() && !button.Disabled
             && button.TooltipText.Contains(L10n.Tr(L10nKey.LinkTree_CheckAndClaim))), "Unclaimed gifts must allow a Steam check");
         var notice = (ConfirmOverlayController)Field(panel, "_participationNotice");
         var beforePlaytest = freshSession.Inventory.GetCount(rows[1].RewardItemId);
         banners[0].EmitSignal(Button.SignalName.Pressed);
         banners[0].EmitSignal(Button.SignalName.Pressed);
         banners[1].EmitSignal(Button.SignalName.Pressed);
+        Require(!statusCenter.Visible && ((Control)Field(gifts[0], "LoadingIndicator")).IsVisibleInTree()
+            && banners[1].IsVisibleInTree() && !((Control)Field(gifts[1], "LoadingIndicator")).IsVisibleInTree(),
+            "Only the initiating banner should show loading while Steam processes the claim");
         Require(query.Requests.SequenceEqual([(rows[0].SteamClaimBundleItemDefId, rows[0].SteamReceiptItemDefId)])
             && freshSession.PendingLinkTreeClaim?.LinkTreeId == rows[0].Id, "Duplicate or competing Steam claim accepted");
         Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
@@ -290,6 +301,7 @@ public partial class DemoLinkTreeSmoke : Node
         Call(panel, "SuspendLinkTreeRewards");
         banners[0].EmitSignal(Button.SignalName.Pressed);
         Require(query.Requests.Count == 2, "Retried an unresolved Steam claim before inventory reconciliation");
+        query.SetReady(true);
         Call(panel, "OnPlatformInventorySnapshotChanged", new PlatformInventorySnapshot(
             true, "verified empty inventory", new HashSet<int>(), []));
         Require(freshSession.PendingLinkTreeClaim == null && !banners[0].Disabled, "Empty trusted snapshot did not unlock retry");
@@ -302,6 +314,10 @@ public partial class DemoLinkTreeSmoke : Node
         };
         Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
             rows[1].SteamClaimBundleItemDefId, rows[1].SteamReceiptItemDefId, true, true, "Steam grant", playtestResult));
+        RequirePageLoading();
+        Require((bool)Field(gifts[1], "RewardFeedbackPending") && !(bool)Field(gifts[1], "RewardFeedbackPlaying"),
+            "Playtest animation started during inventory synchronization");
+        query.SetReady(true);
         Require(freshSession.HasAppliedLinkTreeReward(rows[1].Id) && !modal.Visible
             && ((Control)Field(gifts[1], "RewardVisualRoot")).Visible, "Confirmed Playtest claim did not show single-item feedback");
         await ToSignal(GetTree().CreateTimer(1.3), SceneTreeTimer.SignalName.Timeout);
@@ -337,6 +353,8 @@ public partial class DemoLinkTreeSmoke : Node
             });
             Set(panel, "_gameData", inFlight);
             Call(panel, "BuildLinkTree");
+            var currentBanners = ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
+                .ToDictionary(entry => ((LinkTree)Field(entry, "Data")).Id, entry => (Button)Field(entry, "Banner"));
             var complete = gift.FixedRewardItemIds.Select(id => new PlatformInventoryItem(
                 (ulong)id, LubanData.Tables.TbItem.Get(id).SteamItemDefId, 1)).Prepend(receipt).ToArray();
             var partial = complete.SkipLast(1).ToArray();
@@ -351,11 +369,16 @@ public partial class DemoLinkTreeSmoke : Node
             Sync(partial);
             Require(inFlight.PendingLinkTreeClaim != null && !modal.Visible, "Partial Steam reward shown as complete");
             Sync(complete);
+            RequirePageLoading();
+            Require(!modal.Visible, "Demo reward dialog covered the page-level loading indicator");
+            query.SetReady(true);
             Require(modal.Visible && grid.GetChildCount() == 16 && inFlight.PendingLinkTreeClaim == null,
                 "Complete Steam bundle did not display all rewards");
             confirm.EmitSignal(Button.SignalName.Pressed);
             Sync(complete);
-            Require(!modal.Visible && inFlight.HasAppliedLinkTreeReward(gift.Id), "Steam snapshot replayed the reward dialog");
+            Require(!modal.Visible && inFlight.HasAppliedLinkTreeReward(gift.Id)
+                && !currentBanners[gift.Id].IsVisibleInTree() && currentBanners[rows[1].Id].IsVisibleInTree(),
+                "After the Demo dialog only the unclaimed Playtest gift should return");
         }
         finally
         {
@@ -365,17 +388,33 @@ public partial class DemoLinkTreeSmoke : Node
         GD.Print("[ParticipationGifts] PASS: Dev preview, Steam claim on click, empty result, transport recovery, confirmed rewards, scrollable 16-item gift, single Playtest animation and historical receipts.");
     }
 
-    private sealed class GiftInventory : IPlatformInventoryService
+    private sealed class GiftInventory : IPlatformInventoryService, IRecoverablePlatformService
     {
         public List<(int Bundle, int Receipt)> Requests { get; } = [];
         public event Action<PlatformInventorySnapshot> InventorySnapshotChanged { add { } remove { } }
         public event Action<PlatformPromoItemGrantResult> PromoItemGrantCompleted { add { } remove { } }
         public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted { add { } remove { } }
-        public bool IsInventoryReady { get; set; }
+        public event Action<PlatformConnectionState> ConnectionStateChanged = delegate { };
+        public event Action<PlatformInventoryTrustState> InventoryTrustStateChanged { add { } remove { } }
+        public event Action<string, string> AccountIdentityConflictDetected { add { } remove { } }
+        public bool IsInventoryReady { get; private set; }
+        public PlatformConnectionState ConnectionState => IsInventoryReady ? PlatformConnectionState.Ready : PlatformConnectionState.InventorySyncing;
+        public PlatformInventoryTrustState InventoryTrustState => IsInventoryReady ? PlatformInventoryTrustState.Trusted : PlatformInventoryTrustState.Unknown;
+        public string InventoryTrustMessage => string.Empty;
+        public bool HasAccountIdentityConflict => false;
+        public bool CanRequestClientRelaunch => false;
+        public void RequestReconnect() { }
+        public bool TryRequestClientRelaunch(out string message) => throw new NotSupportedException();
+        public void RequireInventoryRevalidation(string reason) => SetReady(false);
         public bool IsPromoGrantPending => false;
         public bool IsPlaytimeDropPending => false;
         public IReadOnlyList<PlatformInventoryItem> InventoryItems { get; set; } = [];
-        public void StartInventorySynchronization() { }
+        public void StartInventorySynchronization() => SetReady(false);
+        public void SetReady(bool ready)
+        {
+            IsInventoryReady = ready;
+            ConnectionStateChanged(ConnectionState);
+        }
         public bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message)
         {
             Requests.Add((promoItemDefId, receiptItemDefId));
