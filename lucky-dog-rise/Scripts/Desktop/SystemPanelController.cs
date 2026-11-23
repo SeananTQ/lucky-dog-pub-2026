@@ -875,7 +875,7 @@ public partial class SystemPanelController : CanvasLayer
 
         var grants = _linkTreeRewardEntries.Select(entry =>
         {
-            int[] rewardItemDefIds = entry.Data.RewardType == ELinkTreeRewardType.FixedItem
+            int[] rewardItemDefIds = entry.Data.HasFixedItemReward
                 ? entry.Data.FixedRewardItemIds.Select(id => LubanData.Tables.TbItem.Get(id).SteamItemDefId).ToArray()
                 : [];
             return new DebugSteamLinkTreeGrant(
@@ -1794,14 +1794,18 @@ public partial class SystemPanelController : CanvasLayer
 
     private void MarkOpenedLinkTreeRewardsReadyToClaim()
     {
+        bool visibilityChanged = false;
         foreach (var entry in _linkTreeRewardEntries)
         {
             if (entry.State != LinkTreeRewardState.OpenedAwaitingReturn)
                 continue;
 
             entry.State = LinkTreeRewardState.ReadyToClaim;
+            visibilityChanged |= entry.Data.HideWhenIneligible;
             RefreshLinkTreeRewardEntry(entry);
         }
+        if (visibilityChanged)
+            RefreshLinkTreeVisibleEntries();
     }
 
     private static bool IsLinkTreeOpenCheckPassed(ELinkTreeOpenCheckType checkType, Error shellOpenResult)
@@ -1927,9 +1931,9 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var entry in _linkTreeRewardEntries)
         {
             RefreshLinkTreeRewardEntry(entry);
-            entry.Banner.Visible = entry.Data.ParticipationAppId > 0
+            entry.Banner.Visible = MeetsLinkTreeVisibilityCondition(entry) && (entry.Data.ParticipationAppId > 0
                 ? CanShowParticipationGift(entry)
-                : showBanners && entry.SelectedForDisplay;
+                : showBanners && entry.SelectedForDisplay);
         }
 
         TryPlayPendingLinkTreeRewardFeedbacks();
@@ -1980,7 +1984,7 @@ public partial class SystemPanelController : CanvasLayer
                     entry.RewardVisualRoot.Visible = false;
                 }
             }
-            RefreshLinkTreeInteractionPresentation();
+            RefreshLinkTreeVisibleEntries();
             SetLinkTreePageState(_gameData != null ? LinkTreePageState.Ready : LinkTreePageState.Loading);
             return;
         }
@@ -2009,7 +2013,7 @@ public partial class SystemPanelController : CanvasLayer
             GD.PushWarning("[LinkTree] LinkTreeVisibleBannerCount must be positive; showing all enabled banners.");
 
         var selected = new HashSet<LinkTreeRewardEntry>();
-        var ordinary = _linkTreeRewardEntries.Where(entry => entry.Data.ParticipationAppId == 0).ToList();
+        var ordinary = _linkTreeRewardEntries.Where(entry => entry.Data.ParticipationAppId == 0 && MeetsLinkTreeVisibilityCondition(entry)).ToList();
         foreach (var entry in ordinary.Where(entry => entry.Data.IsPinned))
             selected.Add(entry);
 
@@ -2268,7 +2272,7 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
-        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItem)
+        if (entry.Data.HasFixedItemReward)
         {
             // The reward is a known Steam increase. Persist that attribution before the
             // LinkTree transaction is cleared so a later full snapshot cannot present the
@@ -2317,7 +2321,8 @@ public partial class SystemPanelController : CanvasLayer
                 return true;
 
             case ELinkTreeRewardType.FixedItem:
-                if (data.FixedRewardItemIds.Any(id => LubanData.Tables.TbItem.GetOrDefault(id) == null))
+            case ELinkTreeRewardType.FixedItemList:
+                if (data.FixedRewardItemIds.Count == 0 || data.FixedRewardItemIds.Any(id => LubanData.Tables.TbItem.GetOrDefault(id) == null))
                 {
                     GD.PushWarning($"[LinkTree] A reward item is missing for {data.Key} ({data.Id}).");
                     return false;
@@ -2353,7 +2358,7 @@ public partial class SystemPanelController : CanvasLayer
         LinkTree data,
         PlatformInventorySnapshot snapshot)
     {
-        if (data.RewardType != ELinkTreeRewardType.FixedItem)
+        if (!data.HasFixedItemReward)
             return true;
 
         return data.FixedRewardItemIds.All(id => LubanData.Tables.TbItem.GetOrDefault(id) is { SteamItemDefId: > 0 } item
@@ -2364,7 +2369,7 @@ public partial class SystemPanelController : CanvasLayer
         LinkTree data,
         IReadOnlyList<PlatformInventoryItem> items)
     {
-        if (data.RewardType != ELinkTreeRewardType.FixedItem)
+        if (!data.HasFixedItemReward)
             return true;
 
         return data.FixedRewardItemIds.All(id => LubanData.Tables.TbItem.GetOrDefault(id) is { SteamItemDefId: > 0 } item
@@ -2527,7 +2532,8 @@ public partial class SystemPanelController : CanvasLayer
         switch (entry.Data.RewardType)
         {
             case ELinkTreeRewardType.FixedItem:
-                var item = LubanData.Tables.TbItem.GetOrDefault(entry.Data.RewardItemId);
+            case ELinkTreeRewardType.FixedItemList:
+                var item = LubanData.Tables.TbItem.GetOrDefault(entry.Data.FixedRewardItemIds.FirstOrDefault());
                 if (item != null)
                 {
                     entry.RewardCell.Visible = true;
@@ -2558,7 +2564,7 @@ public partial class SystemPanelController : CanvasLayer
         entry.RewardFeedbackPlaying = true;
         entry.RewardFeedbackTween?.Kill();
 
-        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItem && entry.Data.AdditionalRewardItemIds.Count > 0)
+        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItemList && entry.Data.RewardItemIds.Count > 1)
         {
             _displayedLinkTreeReward = entry;
             _linkTreeRewardsOverlay.ShowRewards(entry.Data.FixedRewardItemIds);

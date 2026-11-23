@@ -716,23 +716,27 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             continue;
         }
 
-        const extraItems = record.AdditionalRewardItemIds ?? [];
-        if (extraItems.length && record.RewardType !== 1) {
-            errors.push(`${key}：只有 FixedItem 入口可以配置 AdditionalRewardItemIds。`);
+        const itemList = record.RewardItemIds ?? [];
+        const isItemList = record.RewardType === 5;
+        const isFixedReward = record.RewardType === 1 || isItemList;
+        if (isItemList && (!itemList.length || (record.RewardItemId ?? 0) !== 0)) {
+            errors.push(`${key}：固定物品组需在 RewardItemIds 填写完整列表，RewardItemId 留空或为 0。`);
+        } else if (!isItemList && itemList.length) {
+            errors.push(`${key}：只有固定物品组可以填写 RewardItemIds。`);
         }
+        const rewardIds = isItemList ? itemList : [record.RewardItemId];
         // Demo-only activities settle in the local save and never create Steam rewards.
         if (buildChannelMask === BUILD_CHANNEL_MASKS.demo) {
             if (receiptItemDefId !== 0 || claimBundleItemDefId !== 0) {
                 errors.push(`${key}：Demo 本地入口的 Steam 回执和 Bundle 必须为 0。`);
             }
             if (isEnabled) {
-                if (record.RewardType === 1) {
-                    const ids = [record.RewardItemId, ...extraItems];
-                    const invalidItem = ids.some(id => {
+                if (isFixedReward) {
+                    const invalidItem = rewardIds.some(id => {
                         const item = itemsById.get(id);
                         return !item || item.ItemType !== 9 || item.AcquisitionType !== 3;
                     });
-                    if (invalidItem || new Set(ids).size !== ids.length
+                    if (invalidItem || new Set(rewardIds).size !== rewardIds.length
                         || (record.RewardChips ?? 0) !== 0) {
                         errors.push(`${key}：Demo 固定物品奖励必须是有效的本地 Refreshment 消耗品，RewardChips 必须为 0。`);
                     }
@@ -776,7 +780,7 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         const participationApp = record.ParticipationAppId ?? 0;
         const isParticipation = participationApp > 0;
         if (!Number.isSafeInteger(participationApp) || participationApp < 0
-            || (isParticipation && record.RewardType !== 1)) {
+            || (isParticipation && !isFixedReward)) {
             errors.push(`${key}：参与礼物必须配置有效的 AppID 和固定装扮。`);
         }
         const receiptRule = isParticipation ? "" : "manual";
@@ -826,14 +830,15 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         }
 
         const expected = new Map([[receiptItemDefId, 1]]);
-        if (record.RewardType === 1) {
-            const item = itemsById.get(record.RewardItemId);
-            if (!item) {
-                errors.push(`${key}：RewardItemId ${record.RewardItemId} 不存在。`);
-            } else if (!Number.isInteger(item.SteamItemDefId) || item.SteamItemDefId <= 0) {
-                errors.push(`${key}：奖励 Item ${record.RewardItemId} 没有配置 SteamItemDefId。`);
-            } else {
-                expected.set(item.SteamItemDefId, (expected.get(item.SteamItemDefId) ?? 0) + 1);
+        if (isFixedReward) {
+            for (const id of rewardIds) {
+                const item = itemsById.get(id);
+                if (!item || !(item.SteamItemDefId > 0) || expected.has(item.SteamItemDefId)
+                    || (item.BuildChannelMask != null && (item.BuildChannelMask & buildChannelMask) !== buildChannelMask)) {
+                    errors.push(`${key}：奖励物品 ${id} 重复、未映射或渠道不匹配。`);
+                } else {
+                    expected.set(item.SteamItemDefId, 1);
+                }
             }
         } else if (record.RewardType === 2) {
             if (!Number.isInteger(record.RewardChips) || record.RewardChips <= 0) {
@@ -850,15 +855,6 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             errors.push(`${key}：不支持的 RewardType ${record.RewardType}。`);
         }
 
-        for (const itemId of extraItems) {
-            const item = itemsById.get(itemId);
-            if (!item || !(item.SteamItemDefId > 0) || expected.has(item.SteamItemDefId)
-                || (item.BuildChannelMask & buildChannelMask) !== buildChannelMask) {
-                errors.push(`${key}：附加装扮 ${itemId} 重复、未映射或渠道不匹配。`);
-                continue;
-            }
-            expected.set(item.SteamItemDefId, 1);
-        }
         const actual = parseFixedBundleRecipe(claimBundle.Bundle);
         const expectedRecipe = formatExpectedBundle([...expected.entries()]);
         if (!actual || actual.size !== expected.size

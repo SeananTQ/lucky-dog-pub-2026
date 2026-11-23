@@ -107,9 +107,9 @@
     "Id": 1013,
     "StartItemDefId": 501000,
     "EndItemDefId": 501999,
-    "Description": "LinkTree 永久回执子段。",
+    "Description": "LinkTree 永久回执子段。新入口优先与 LinkTree ID 的末三位对齐，方便按入口找回执，允许留空号。已发布编号保留。",
     "Purpose": "记录每个 LinkTree Banner 是否已经领取",
-    "Example": "一个启用领奖的 Banner 对应一个独立回执"
+    "Example": "入口 1012 → 回执 501012；入口 1013 → 回执 501013。"
   },
   {
     "Id": 1014,
@@ -139,9 +139,9 @@
     "Id": 1017,
     "StartItemDefId": 601000,
     "EndItemDefId": 601999,
-    "Description": "LinkTree 领取 Bundle 子段。",
+    "Description": "LinkTree 领取 Bundle 子段。新入口优先与入口和回执的末三位对齐，方便配套查找，允许留空号。关联以表中实际引用为准。",
     "Purpose": "发放 LinkTree 永久回执及其固定奖励",
-    "Example": "永久回执加固定物品，或仅永久回执"
+    "Example": "入口 1012 → 601012，内含回执 501012 及配置的奖励。"
   },
   {
     "Id": 1018,

@@ -107,8 +107,21 @@ public partial class DemoLinkTreeSmoke : Node
             multiJson["Id"] = 2998;
             var extra = LubanData.Tables.TbItem.DataList.First(item => item.Id != first.RewardItemId
                 && item.ItemType == EItemType.Refreshment && item.AcquisitionType == EAcquisitionType.RefreshmentBlindBox);
-            multiJson["AdditionalRewardItemIds"].AsArray.Add(extra.Id);
+            multiJson["RewardType"] = (int)ELinkTreeRewardType.FixedItemList;
+            multiJson["RewardItemId"] = 0;
+            multiJson["RewardItemIds"].AsArray.Add(first.RewardItemId);
+            multiJson["RewardItemIds"].AsArray.Add(extra.Id);
+            multiJson["HideWhenIneligible"] = true;
             var multi = new LinkTree(multiJson);
+            var ordinaryEntry = ((IList)Field(panel, "_linkTreeRewardEntries"))[0]!;
+            Set(ordinaryEntry, "Data", multi);
+            Call(panel, "RefreshLinkTreeVisibleEntries");
+            var ordinaryBanner = (Button)Field(ordinaryEntry, "Banner");
+            Require(!ordinaryBanner.Visible, "Unqualified ordinary entry remained visible");
+            var state = Field(ordinaryEntry, "State").GetType();
+            Set(ordinaryEntry, "State", Enum.Parse(state, "OpenedAwaitingReturn"));
+            panel.OnGlobalMousePressed(Vector2I.Zero, true);
+            Require(ordinaryBanner.Visible, "Ordinary entry stayed hidden after meeting its condition");
             var previousCounts = multi.FixedRewardItemIds.ToDictionary(id => id, restored.Inventory.GetCount);
             Require(restored.TryApplyDemoLinkTreeRewardOnce(multi) && restored.TryApplyDemoLinkTreeRewardOnce(multi)
                 && previousCounts.All(pair => restored.Inventory.GetCount(pair.Key) == pair.Value + 1),
@@ -252,9 +265,9 @@ public partial class DemoLinkTreeSmoke : Node
         banners[1].EmitSignal(Button.SignalName.Pressed);
         query.EligiblePromoItemDefs = new HashSet<int> { rows[0].SteamClaimBundleItemDefId };
         Call(panel, "RefreshLinkTreePagePresentation");
-        var beforeDemo = freshSession.Inventory.GetCount(rows[0].RewardItemId);
+        var beforeDemo = freshSession.Inventory.GetCount(rows[0].FixedRewardItemIds[0]);
         banners[0].EmitSignal(Button.SignalName.Pressed);
-        Require(freshSession.Inventory.GetCount(rows[0].RewardItemId) == beforeDemo + 1
+        Require(freshSession.Inventory.GetCount(rows[0].FixedRewardItemIds[0]) == beforeDemo + 1
             && freshSession.Inventory.GetCount(rows[1].RewardItemId) == beforePlaytest + 1,
             "Real-eligibility branch did not grant both independent session rewards");
         Set(panel, "_participationChannel", BuildChannel.Release);

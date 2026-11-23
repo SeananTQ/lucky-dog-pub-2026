@@ -20,8 +20,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1002,
@@ -44,8 +44,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1003,
@@ -68,8 +68,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1004,
@@ -92,8 +92,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1005,
@@ -116,8 +116,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1006,
@@ -140,8 +140,8 @@
     "SteamReceiptItemDefId": 501002,
     "SteamClaimBundleItemDefId": 601002,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1007,
@@ -164,8 +164,8 @@
     "SteamReceiptItemDefId": 501003,
     "SteamClaimBundleItemDefId": 601003,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1008,
@@ -188,8 +188,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1009,
@@ -212,8 +212,8 @@
     "SteamReceiptItemDefId": 501005,
     "SteamClaimBundleItemDefId": 601005,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1010,
@@ -236,8 +236,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1011,
@@ -260,8 +260,8 @@
     "SteamReceiptItemDefId": 501007,
     "SteamClaimBundleItemDefId": 601007,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410001,
@@ -284,8 +284,8 @@
     "SteamReceiptItemDefId": 410001,
     "SteamClaimBundleItemDefId": 410101,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410002,
@@ -308,8 +308,8 @@
     "SteamReceiptItemDefId": 410002,
     "SteamClaimBundleItemDefId": 410102,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410003,
@@ -332,8 +332,8 @@
     "SteamReceiptItemDefId": 410003,
     "SteamClaimBundleItemDefId": 410103,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410004,
@@ -356,8 +356,8 @@
     "SteamReceiptItemDefId": 410004,
     "SteamClaimBundleItemDefId": 410104,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2001,
@@ -380,8 +380,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2002,
@@ -404,8 +404,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2003,
@@ -428,8 +428,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2004,
@@ -452,8 +452,8 @@
     "SteamReceiptItemDefId": 0,
     "SteamClaimBundleItemDefId": 0,
     "ParticipationAppId": 0,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1012,
@@ -468,16 +468,17 @@
     "PreClaimUrl": "https://store.steampowered.com/app/5220880/",
     "PostClaimUrl": "",
     "OpenCheckType": 0,
-    "RewardType": 1,
-    "RewardItemId": 2034,
+    "RewardType": 5,
+    "RewardItemId": 0,
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 501008,
-    "SteamClaimBundleItemDefId": 601008,
+    "SteamReceiptItemDefId": 501012,
+    "SteamClaimBundleItemDefId": 601012,
     "ParticipationAppId": 5220880,
-    "ShowBeforeEligible": true,
-    "AdditionalRewardItemIds": [
+    "HideWhenIneligible": false,
+    "RewardItemIds": [
+      2034,
       1008,
       1011,
       1013,
@@ -513,10 +514,10 @@
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
-    "SteamReceiptItemDefId": 501009,
-    "SteamClaimBundleItemDefId": 601009,
+    "SteamReceiptItemDefId": 501013,
+    "SteamClaimBundleItemDefId": 601013,
     "ParticipationAppId": 4972240,
-    "ShowBeforeEligible": false,
-    "AdditionalRewardItemIds": []
+    "HideWhenIneligible": true,
+    "RewardItemIds": []
   }
 ]

@@ -103,8 +103,8 @@ Steam Inventory 写操作在盲盒与 LinkTree 之间共用事务保护。客户
 
 2. `FixedItem`
    - 固定道具奖励。
-   - `RewardItemId` 填第一件物品的本地 `Item.Id`，其余物品按展示顺序填入 `AdditionalRewardItemIds`，在 Excel 单元格内用半角分号分隔。每种物品发一件，同一礼包内的 ID 必须互不重复。
-   - 单件物品在 Banner 上播放获得动画。两件及以上共用“小狗找回物品”的滚动图标网格，标题显示本次领取件数。玩家可在确认前查看全部奖励，离开系统面板后再次进入 LinkTree 可继续查看。确认只关闭奖励展示。
+   - `RewardItemId` 填单件奖励的本地 `Item.Id`。
+   - 单件物品在 Banner 上播放获得动画。
    - 实际物品由 Steam 领取 Bundle 直接发放，其 ItemDef 来自 `Item.SteamItemDefId`；客户端不在本地凭空添加该道具。
 
 3. `FixedChips`
@@ -123,7 +123,10 @@ Steam Inventory 写操作在盲盒与 LinkTree 之间共用事务保护。客户
    - 旧设计曾计划发放 Steam 开箱成本券并自动进入开盒表演，但盲盒系统已经移除券与 `ExchangeItems`，该配方不再成立。
    - 转换器会拒绝启用的 LinkTree `BlindBox` 奖励，避免重新引入第二套开奖路径。后续若需要活动盲盒，应另行设计直接奖励实例的归因、待揭晓暂扣和玩家可见展示点。
 
-当前客户端已实现 `None`、`FixedItem` 和 `FixedChips`。`SequentialPack` 与 `BlindBox` 仍属于后续工作。
+6. `FixedItemList`（固定物品组）
+   - `RewardItemIds` 填整份奖励的本地 Item ID，按展示顺序用半角分号分隔，每种发一件。`RewardItemId` 留空或填 0。两件及以上共用“小狗找回物品”的滚动图标网格，标题显示领取件数。确认只关闭展示，离开面板后再进入 LinkTree 可继续查看。
+
+当前客户端已实现 `None`、`FixedItem`、`FixedItemList` 和 `FixedChips`。`SequentialPack` 与 `BlindBox` 仍属于后续工作。
 
 ## 领取记录
 
@@ -228,6 +231,8 @@ Steam Inventory 不可用或库存状态需要重新验证时，LinkTree 显示�
 
 ## 枚举
 
+`HideWhenIneligible` 表示“未满足领取条件时隐藏本条”。需要玩家先通过本入口完成外部操作的活动应留空或填否，以便玩家能看到并完成第一步。参与礼物按其 Steam 资格判断，Demo 填否，Playtest 填是。
+
 `ELinkTreeOpenCheckType`：
 
 1. `None`
@@ -249,6 +254,7 @@ Steam Inventory 不可用或库存状态需要重新验证时，LinkTree 显示�
 3. `FixedChips`
 4. `SequentialPack`
 5. `BlindBox`
+6. `FixedItemList`
 
 ## 暂不实现内容
 

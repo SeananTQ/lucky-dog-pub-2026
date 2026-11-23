@@ -25,6 +25,10 @@ namespace DataTables
         /// </summary>
         FixedItem = 1,
         /// <summary>
+        /// 一次领取 RewardItemIds 中的全部物品，每种一件。
+        /// </summary>
+        FixedItemList = 5,
+        /// <summary>
         /// 所有玩家领取相同数量的 RewardChips 筹码
         /// </summary>
         FixedChips = 2,

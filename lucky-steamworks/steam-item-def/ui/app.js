@@ -303,6 +303,7 @@ function renderDetail() {
     const rewards = row.linkTrees.map(entry => {
         if (entry.rewardChips) return `${entry.key}: +${entry.rewardChips} Chips`;
         if (entry.rewardItemId) return `${entry.key}: Item ${entry.rewardItemId}`;
+        if (entry.rewardItemIds.length) return `${entry.key} · ${entry.rewardItemIds.length} 件物品 · ${entry.rewardItemIds.join("、")}`;
         return `${entry.key}: 无本地奖励`;
     });
     const blindBoxes = row.blindBoxes.map(entry => `BlindBox ${entry.blindBoxId}: ${entry.role}`);

@@ -67,8 +67,8 @@ def prepare(source, output):
         require(row['NextScheduleId'], schedules, 'Schedule next')
     for row in tables['tblinktree']:
         require(row['RewardItemId'], items, 'LinkTree reward')
-        for item_id in row.get('AdditionalRewardItemIds', []):
-            require(item_id, items, 'Additional LinkTree reward')
+        for item_id in row.get('RewardItemIds', []):
+            require(item_id, items, 'LinkTree reward list')
         require(row['RewardBlindBoxId'], boxes, 'LinkTree box')
     for name in ('tbblindboxitemweight', 'tbblindboxrarityrate'):
         tables[name] = [r for r in tables[name] if r['BlindBoxId'] in boxes]

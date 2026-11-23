@@ -1350,7 +1350,7 @@
     "SteamDropLimit": 0
   },
   {
-    "Id": 501008,
+    "Id": 501012,
     "Key": "DemoParticipationReceipt",
     "Type": 1,
     "Name": "Demo participation receipt",
@@ -1368,7 +1368,7 @@
     "SteamDropLimit": 0
   },
   {
-    "Id": 601008,
+    "Id": 601012,
     "Key": "DemoParticipationGift",
     "Type": 2,
     "Name": "Demo participation gift",
@@ -1380,13 +1380,13 @@
     "GameOnly": true,
     "StoreHidden": true,
     "AutoStack": false,
-    "Bundle": "501008x1;102034x1;101008x1;101011x1;101013x1;102003x1;102009x1;102013x1;102022x1;102029x1;102032x1;105004x1;106006x1;106008x1;107008x1;108005x1;108012x1",
+    "Bundle": "501012x1;102034x1;101008x1;101011x1;101013x1;102003x1;102009x1;102013x1;102022x1;102029x1;102032x1;105004x1;106006x1;106008x1;107008x1;108005x1;108012x1",
     "IsEnabled": true,
     "SteamUseDropLimit": false,
     "SteamDropLimit": 0
   },
   {
-    "Id": 501009,
+    "Id": 501013,
     "Key": "PlaytestParticipationReceipt",
     "Type": 1,
     "Name": "Playtest participation receipt",
@@ -1404,7 +1404,7 @@
     "SteamDropLimit": 0
   },
   {
-    "Id": 601009,
+    "Id": 601013,
     "Key": "PlaytestParticipationGift",
     "Type": 2,
     "Name": "Playtest participation gift",
@@ -1416,7 +1416,7 @@
     "GameOnly": true,
     "StoreHidden": true,
     "AutoStack": false,
-    "Bundle": "501009x1;101002x1",
+    "Bundle": "501013x1;101002x1",
     "IsEnabled": true,
     "SteamUseDropLimit": false,
     "SteamDropLimit": 0

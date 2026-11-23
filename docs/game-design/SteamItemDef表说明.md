@@ -73,7 +73,7 @@ flowchart LR
 1. `RewardType=None` 或 `FixedChips`
    - 只包含永久回执。
 2. `RewardType=FixedItem`
-   - 包含一张永久回执，以及 `RewardItemId` 和 `AdditionalRewardItemIds` 各自对应的 `Item.SteamItemDefId`，每件数量为一。转换器逐件核对配方。
+   - 包含一张永久回执和配置的全部物品。单件取 `RewardItemId`，固定物品组取 `RewardItemIds`，逐项映射到 `Item.SteamItemDefId`，每件一份。
 3. `RewardType=BlindBox`
    - 尚未迁移到直接奖励架构；转换器拒绝启用的真实领奖入口，不能用旧券配方继续导出。
 4. `RewardType=SequentialPack`

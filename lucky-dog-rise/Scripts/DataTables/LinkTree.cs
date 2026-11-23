@@ -37,8 +37,8 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["SteamReceiptItemDefId"].IsNumber) { throw new SerializationException(); }  SteamReceiptItemDefId = _buf["SteamReceiptItemDefId"]; }
         { if(!_buf["SteamClaimBundleItemDefId"].IsNumber) { throw new SerializationException(); }  SteamClaimBundleItemDefId = _buf["SteamClaimBundleItemDefId"]; }
         { if(!_buf["ParticipationAppId"].IsNumber) { throw new SerializationException(); }  ParticipationAppId = _buf["ParticipationAppId"]; }
-        { if(!_buf["ShowBeforeEligible"].IsBoolean) { throw new SerializationException(); }  ShowBeforeEligible = _buf["ShowBeforeEligible"]; }
-        { var __json0 = _buf["AdditionalRewardItemIds"]; if(!__json0.IsArray) { throw new SerializationException(); } AdditionalRewardItemIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  AdditionalRewardItemIds.Add(__v0); }   }
+        { if(!_buf["HideWhenIneligible"].IsBoolean) { throw new SerializationException(); }  HideWhenIneligible = _buf["HideWhenIneligible"]; }
+        { var __json0 = _buf["RewardItemIds"]; if(!__json0.IsArray) { throw new SerializationException(); } RewardItemIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  RewardItemIds.Add(__v0); }   }
     }
 
     public static LinkTree DeserializeLinkTree(JSONNode _buf)
@@ -127,13 +127,13 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly int ParticipationAppId;
     /// <summary>
-    /// 参与礼物未达标时仍显示，点击前往试玩。
+    /// 勾选后，领取条件未满足或尚未核实的入口隐藏。
     /// </summary>
-    public readonly bool ShowBeforeEligible;
+    public readonly bool HideWhenIneligible;
     /// <summary>
-    /// 固定物品奖励除主物品外的其余 Item ID，每种发放一件。
+    /// 固定物品组的完整 Item ID 列表，按展示顺序用半角分号分隔，每种发一件。
     /// </summary>
-    public readonly System.Collections.Generic.List<int> AdditionalRewardItemIds;
+    public readonly System.Collections.Generic.List<int> RewardItemIds;
    
     public const int __ID__ = 1258843864;
     public override int GetTypeId() => __ID__;
@@ -165,8 +165,8 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "SteamReceiptItemDefId:" + SteamReceiptItemDefId + ","
         + "SteamClaimBundleItemDefId:" + SteamClaimBundleItemDefId + ","
         + "ParticipationAppId:" + ParticipationAppId + ","
-        + "ShowBeforeEligible:" + ShowBeforeEligible + ","
-        + "AdditionalRewardItemIds:" + Luban.StringUtil.CollectionToString(AdditionalRewardItemIds) + ","
+        + "HideWhenIneligible:" + HideWhenIneligible + ","
+        + "RewardItemIds:" + Luban.StringUtil.CollectionToString(RewardItemIds) + ","
         + "}";
     }
 }

@@ -91,6 +91,7 @@ function loadPreview() {
                 role,
                 rewardType: entry.RewardType,
                 rewardItemId: entry.RewardItemId,
+                rewardItemIds: entry.RewardItemIds ?? [],
                 rewardChips: entry.RewardChips,
                 rewardBlindBoxId: entry.RewardBlindBoxId,
                 isEnabled: entry.IsEnabled,

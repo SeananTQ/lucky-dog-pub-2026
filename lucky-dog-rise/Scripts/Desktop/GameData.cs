@@ -2505,8 +2505,8 @@ public partial class GameData : Node
         return linkTree != null
                && linkTree.SteamClaimBundleItemDefId == pending.SteamClaimBundleItemDefId
                && linkTree.SteamReceiptItemDefId == pending.SteamReceiptItemDefId
-               && linkTree.RewardType == ELinkTreeRewardType.FixedItem
-               && (linkTree.RewardItemId == itemId || linkTree.AdditionalRewardItemIds.Contains(itemId));
+               && linkTree.HasFixedItemReward
+               && linkTree.FixedRewardItemIds.Contains(itemId);
     }
 
     private void QueueRecoveredItem(int itemId, int count, string reason)
@@ -2659,13 +2659,14 @@ public partial class GameData : Node
         switch (data.RewardType)
         {
             case ELinkTreeRewardType.FixedItem:
-                if (data.FixedRewardItemIds.Any(id => LubanData.Tables.TbItem.GetOrDefault(id)
+            case ELinkTreeRewardType.FixedItemList:
+                if (data.FixedRewardItemIds.Count == 0 || data.FixedRewardItemIds.Any(id => LubanData.Tables.TbItem.GetOrDefault(id)
                     is not { ItemType: EItemType.Refreshment, AcquisitionType: EAcquisitionType.RefreshmentBlindBox })
                     || data.RewardChips != 0)
                     return false;
                 break;
             case ELinkTreeRewardType.FixedChips:
-                if (data.RewardChips <= 0 || data.RewardItemId != 0 || data.AdditionalRewardItemIds.Count != 0)
+                if (data.RewardChips <= 0 || data.RewardItemId != 0 || data.RewardItemIds.Count != 0)
                     return false;
                 break;
             default:
@@ -2674,7 +2675,7 @@ public partial class GameData : Node
 
         // Mark before notifications can re-enter; flush the reward and ledger together.
         _appliedLinkTreeRewardIds.Add(data.Id);
-        if (data.RewardType == ELinkTreeRewardType.FixedItem)
+        if (data.HasFixedItemReward)
         {
             foreach (var itemId in data.FixedRewardItemIds)
                 AddItem(itemId);

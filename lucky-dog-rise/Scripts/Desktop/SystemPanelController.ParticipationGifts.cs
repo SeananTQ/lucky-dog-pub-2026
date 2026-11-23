@@ -27,7 +27,12 @@ public partial class SystemPanelController
 
     private bool CanShowParticipationGift(LinkTreeRewardEntry entry) =>
         entry.RewardFeedbackPending || entry.RewardFeedbackPlaying || entry.ClaimPending
-        || (!HasClaimedParticipationGift(entry) && (entry.Data.ShowBeforeEligible || IsParticipationEligible(entry) == true));
+        || !HasClaimedParticipationGift(entry);
+
+    private bool MeetsLinkTreeVisibilityCondition(LinkTreeRewardEntry entry) =>
+        !entry.Data.HideWhenIneligible || entry.ClaimPending || entry.RewardFeedbackPending || entry.RewardFeedbackPlaying
+        || (entry.Data.ParticipationAppId > 0 ? IsParticipationEligible(entry) == true
+            : entry.State is LinkTreeRewardState.ReadyToClaim or LinkTreeRewardState.Claimed);
 
     public override void _Notification(int what)
     {
@@ -88,7 +93,7 @@ public partial class SystemPanelController
         var eligible = IsParticipationEligible(entry);
         if (eligible != true)
         {
-            if (eligible == false && entry.Data.ShowBeforeEligible)
+            if (eligible == false && !entry.Data.HideWhenIneligible)
                 OpenLinkTreeUrl(entry.Data.Key, entry.Data.PreClaimUrl);
             RequestParticipationEligibility();
             return;
