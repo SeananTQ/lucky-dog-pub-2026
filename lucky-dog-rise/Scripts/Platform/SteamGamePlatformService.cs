@@ -129,12 +129,27 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private CallResult<SteamInventoryEligiblePromoItemDefIDs_t> _eligibilityCall;
     private long _eligibilityRequestedAt;
     private bool _participationBundlesLoaded;
+    private Task<HashSet<int>> _playtestTimeRead;
     public IReadOnlySet<int> EligiblePromoItemDefs { get; private set; }
 
     public void RefreshPromoEligibility()
     {
         if (!IsInventoryReady || !_runtime.TryGetCurrentSteamId(out var id) || id != _runtime.SteamId)
             return;
+        if (BuildInfo.Channel == BuildChannel.Playtest)
+        {
+            if (_playtestTimeRead != null)
+                return;
+            var tables = LubanData.Tables;
+            var gifts = tables.TbLinkTree.DataList.Where(entry => entry.IsEnabled && entry.ParticipationAppId > 0
+                    && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask))
+                .Select(entry => new PlaytestParticipationPlaytime.Gift(entry.ParticipationAppId,
+                    entry.SteamClaimBundleItemDefId, tables.TbSteamItemDef.GetOrDefault(entry.SteamClaimBundleItemDefId)?.PromoRule ?? ""))
+                .ToArray();
+            var accountId = new CSteamID(id).GetAccountID().m_AccountID;
+            _playtestTimeRead = Task.Run(() => PlaytestParticipationPlaytime.Read(accountId, gifts));
+            return;
+        }
         var now = Environment.TickCount64;
         if (_eligibilityCall != null && now - _eligibilityRequestedAt < 10_000)
             return;
@@ -200,6 +215,16 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         _roomService?.Tick();
 #endif
         _runtime.RunCallbacks();
+        if (_playtestTimeRead is { IsCompleted: true } read)
+        {
+            _playtestTimeRead = null;
+            var eligible = IsInventoryReady && _runtime.TryGetCurrentSteamId(out var currentId) && currentId == _runtime.SteamId
+                && read.IsCompletedSuccessfully ? read.Result : null;
+            if (read.IsFaulted)
+                Godot.GD.PushWarning($"[LinkTree] Playtest playtime read failed ({read.Exception.GetBaseException().GetType().Name}).");
+            if (eligible == null || EligiblePromoItemDefs == null || !eligible.SetEquals(EligiblePromoItemDefs))
+                EligiblePromoItemDefs = eligible;
+        }
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomService?.Tick();
 #endif

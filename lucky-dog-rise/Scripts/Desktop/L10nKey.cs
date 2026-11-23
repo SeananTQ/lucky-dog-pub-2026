@@ -106,6 +106,7 @@ public static class L10nKey
     public const string LinkTree_PlaytestGift = nameof(LinkTree_PlaytestGift);
     public const string LinkTree_TryDemo = nameof(LinkTree_TryDemo);
     public const string LinkTree_CheckingParticipation = nameof(LinkTree_CheckingParticipation);
+    public const string LinkTree_ParticipationRequired = nameof(LinkTree_ParticipationRequired);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
     public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);
     public const string InfoPanel_Open = nameof(InfoPanel_Open);

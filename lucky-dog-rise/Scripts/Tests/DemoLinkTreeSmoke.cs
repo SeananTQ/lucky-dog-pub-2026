@@ -165,13 +165,42 @@ public partial class DemoLinkTreeSmoke : Node
         for (var i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
+    private static void VerifyLocalPlaytimeRules()
+    {
+        const string config = """
+            "UserLocalConfigStore" {
+              "apps" { "5220880" { "Playtime" "999" } }
+              "Software" { "Valve" { "Steam" { "apps" {
+                "5220880" { "Playtime" "1" "Playtime2wks" "99" }
+                "4972240" { "Playtime" "2" }
+              } } } }
+            }
+            """;
+        PlaytestParticipationPlaytime.Gift[] gifts =
+            [new(5220880, 601012, "played:5220880/2"), new(4972240, 601013, "played:4972240/2")];
+        Require(PlaytestParticipationPlaytime.Evaluate(config, gifts)?.SetEquals([601013]) == true,
+            "Expected only the app with two lifetime minutes to qualify");
+        gifts[1] = gifts[1] with { PromoRule = "played:4972240/30" };
+        Require(PlaytestParticipationPlaytime.Evaluate(config, gifts)?.Count == 0, "Threshold ignored schema minutes");
+        Require(PlaytestParticipationPlaytime.Evaluate(config[..config.IndexOf("\"4972240\"", StringComparison.Ordinal)], gifts) == null,
+            "An interrupted VDF read must remain unknown");
+    }
+
     private async Task VerifyParticipationGifts(SystemPanelController panel, GameData data, GameData freshSession)
     {
+        VerifyLocalPlaytimeRules();
         var gifts = ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
             .Where(entry => ((LinkTree)Field(entry, "Data")).ParticipationAppId > 0).ToArray();
         Require(gifts.Length == 2, "Expected two independent participation gifts");
         var banners = gifts.Select(entry => (Button)Field(entry, "Banner")).ToArray();
         var rows = gifts.Select(entry => (LinkTree)Field(entry, "Data")).ToArray();
+        var ordinaryBanners = ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
+            .Where(entry => Field(entry, "Data") is LinkTree { ParticipationAppId: 0 } row
+                && (row.BuildChannelMask & EBuildChannelMask.Release) != 0)
+            .Select(entry => (Button)Field(entry, "Banner")).ToArray();
+        Require(ordinaryBanners.Length > 0 && ordinaryBanners.All(banner =>
+                banners[0].GetIndex() < banner.GetIndex() && banner.GetIndex() < banners[1].GetIndex()),
+            "Expected the Demo gift above and the Playtest gift below the regular banners");
         foreach (var banner in banners)
         {
             Require(banner.IsVisibleInTree() && !banner.Disabled, "Dev gift not claimable");
@@ -252,10 +281,12 @@ public partial class DemoLinkTreeSmoke : Node
         Set(panel, "_participationChannel", BuildChannel.Playtest);
         Set(panel, "_inventoryService", query);
         Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners[0].Visible && banners[0].Disabled && !banners[1].Visible, "Unknown eligibility visibility");
+        Require(banners.All(banner => banner.Visible && banner.Disabled), "Both gifts must remain visible during verification");
         query.EligiblePromoItemDefs = new HashSet<int>();
         Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners[0].Visible && !banners[0].Disabled && !banners[1].Visible, "Ineligible visibility");
+        Require(banners[0].Visible && !banners[0].Disabled && banners[1].Visible && banners[1].Disabled
+            && banners[1].TooltipText.Contains(L10n.Tr(L10nKey.LinkTree_ParticipationRequired)),
+            "Only the Demo gift should offer a trial link when ineligible");
         var beforePlaytest = freshSession.Inventory.GetCount(rows[1].RewardItemId);
         banners[1].EmitSignal(Button.SignalName.Pressed);
         Require(freshSession.Inventory.GetCount(rows[1].RewardItemId) == beforePlaytest, "Ineligible Playtest claim");

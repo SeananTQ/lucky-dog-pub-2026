@@ -70,7 +70,8 @@ public partial class SystemPanelController
         var eligible = IsParticipationEligible(entry);
         var busy = _gameData == null || entry.ClaimPending
             || (!UsesSessionParticipationGift(entry) && IsSharedInventoryWritePending());
-        entry.Banner.Disabled = claimed || busy || eligible == null;
+        var hasTrialLink = !string.IsNullOrWhiteSpace(entry.Data.PreClaimUrl);
+        entry.Banner.Disabled = claimed || busy || eligible == null || (eligible == false && !hasTrialLink);
         entry.BannerImage.Modulate = busy ? LinkTreeBusyImageModulate : Colors.White;
         entry.LoadingIndicator.SetLoading(entry.ClaimPending);
         entry.GiftBadge.Visible = !claimed && !entry.ClaimPending;
@@ -80,7 +81,8 @@ public partial class SystemPanelController
         var action = claimed ? string.Empty : L10n.Tr(eligible switch
         {
             true => L10nKey.BlindBox_TapToClaim,
-            false => L10nKey.LinkTree_TryDemo,
+            false when hasTrialLink => L10nKey.LinkTree_TryDemo,
+            false => L10nKey.LinkTree_ParticipationRequired,
             null => L10nKey.LinkTree_CheckingParticipation,
         });
         entry.Banner.TooltipText = claimed ? entry.ParticipationTitle.Text : entry.ParticipationTitle.Text + "\n" + action;
@@ -93,7 +95,7 @@ public partial class SystemPanelController
         var eligible = IsParticipationEligible(entry);
         if (eligible != true)
         {
-            if (eligible == false && !entry.Data.HideWhenIneligible)
+            if (eligible == false && !string.IsNullOrWhiteSpace(entry.Data.PreClaimUrl))
                 OpenLinkTreeUrl(entry.Data.Key, entry.Data.PreClaimUrl);
             RequestParticipationEligibility();
             return;

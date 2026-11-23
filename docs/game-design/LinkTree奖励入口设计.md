@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-11-23
+last_edit: 2026-11-24
 status: draft
 ---
 
@@ -231,7 +231,7 @@ Steam Inventory 不可用或库存状态需要重新验证时，LinkTree 显示�
 
 ## 枚举
 
-`HideWhenIneligible` 表示“未满足领取条件时隐藏本条”。需要玩家先通过本入口完成外部操作的活动应留空或填否，以便玩家能看到并完成第一步。参与礼物按其 Steam 资格判断，Demo 填否，Playtest 填是。
+`HideWhenIneligible` 表示“未满足领取条件时隐藏本条”。需要玩家先通过本入口完成外部操作的活动应留空或填否，以便玩家能看到并完成第一步。Demo 和 Playtest 参与礼物均填否。Playtest 的排序放在常用入口之后，便于参加过测试的玩家找到礼包。
 
 `ELinkTreeOpenCheckType`：
 

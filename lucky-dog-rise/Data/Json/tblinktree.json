@@ -499,7 +499,7 @@
   {
     "Id": 1013,
     "Key": "PlaytestParticipationGift",
-    "SortOrder": 2,
+    "SortOrder": 140,
     "IsPinned": false,
     "IsEnabled": true,
     "BuildChannelMask": 10,
@@ -517,7 +517,7 @@
     "SteamReceiptItemDefId": 501013,
     "SteamClaimBundleItemDefId": 601013,
     "ParticipationAppId": 4972240,
-    "HideWhenIneligible": true,
+    "HideWhenIneligible": false,
     "RewardItemIds": []
   }
 ]
