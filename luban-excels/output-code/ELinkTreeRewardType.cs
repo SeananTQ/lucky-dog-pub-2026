@@ -36,6 +36,10 @@ namespace DataTables
         /// 奖励玩家盲盒票并自动开启
         /// </summary>
         BlindBox = 4,
+        /// <summary>
+        /// 一次领取 RewardItemIds 中的全部物品，每种一件。
+        /// </summary>
+        FixedItemList = 5,
     }
 
 } 

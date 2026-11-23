@@ -18,7 +18,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1002,
@@ -39,7 +42,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1003,
@@ -60,7 +66,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1004,
@@ -81,7 +90,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1005,
@@ -102,7 +114,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1006,
@@ -123,7 +138,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 501002,
-    "SteamClaimBundleItemDefId": 601002
+    "SteamClaimBundleItemDefId": 601002,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1007,
@@ -144,7 +162,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 501003,
-    "SteamClaimBundleItemDefId": 601003
+    "SteamClaimBundleItemDefId": 601003,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1008,
@@ -165,7 +186,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1009,
@@ -186,7 +210,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 501005,
-    "SteamClaimBundleItemDefId": 601005
+    "SteamClaimBundleItemDefId": 601005,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1010,
@@ -207,7 +234,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 1011,
@@ -228,7 +258,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 501007,
-    "SteamClaimBundleItemDefId": 601007
+    "SteamClaimBundleItemDefId": 601007,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410001,
@@ -249,7 +282,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 410001,
-    "SteamClaimBundleItemDefId": 410101
+    "SteamClaimBundleItemDefId": 410101,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410002,
@@ -270,7 +306,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 410002,
-    "SteamClaimBundleItemDefId": 410102
+    "SteamClaimBundleItemDefId": 410102,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410003,
@@ -291,7 +330,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 410003,
-    "SteamClaimBundleItemDefId": 410103
+    "SteamClaimBundleItemDefId": 410103,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 410004,
@@ -312,7 +354,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 410004,
-    "SteamClaimBundleItemDefId": 410104
+    "SteamClaimBundleItemDefId": 410104,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2001,
@@ -333,7 +378,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2002,
@@ -354,7 +402,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2003,
@@ -375,7 +426,10 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
   },
   {
     "Id": 2004,
@@ -396,6 +450,74 @@
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
     "SteamReceiptItemDefId": 0,
-    "SteamClaimBundleItemDefId": 0
+    "SteamClaimBundleItemDefId": 0,
+    "ParticipationAppId": 0,
+    "HideWhenIneligible": false,
+    "RewardItemIds": []
+  },
+  {
+    "Id": 1012,
+    "Key": "DemoParticipationGift",
+    "SortOrder": 1,
+    "IsPinned": false,
+    "IsEnabled": true,
+    "BuildChannelMask": 10,
+    "TooltipKey": "LinkTree_DemoGift",
+    "BannerTexturePath": "UI/LinkTree/Banner_DemoGift.png",
+    "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
+    "PreClaimUrl": "https://store.steampowered.com/app/5220880/",
+    "PostClaimUrl": "",
+    "OpenCheckType": 0,
+    "RewardType": 5,
+    "RewardItemId": 0,
+    "RewardChips": 0,
+    "SequentialPackId": 0,
+    "RewardBlindBoxId": 0,
+    "SteamReceiptItemDefId": 501012,
+    "SteamClaimBundleItemDefId": 601012,
+    "ParticipationAppId": 5220880,
+    "HideWhenIneligible": false,
+    "RewardItemIds": [
+      2034,
+      1008,
+      1011,
+      1013,
+      2003,
+      2009,
+      2013,
+      2022,
+      2029,
+      2032,
+      5004,
+      6006,
+      6008,
+      7008,
+      8005,
+      8012
+    ]
+  },
+  {
+    "Id": 1013,
+    "Key": "PlaytestParticipationGift",
+    "SortOrder": 2,
+    "IsPinned": false,
+    "IsEnabled": true,
+    "BuildChannelMask": 10,
+    "TooltipKey": "LinkTree_PlaytestGift",
+    "BannerTexturePath": "UI/LinkTree/Banner_PlaytestGift.png",
+    "BadgeTexturePath": "UI/LinkTree/Icon_Gift.svg",
+    "PreClaimUrl": "",
+    "PostClaimUrl": "",
+    "OpenCheckType": 0,
+    "RewardType": 1,
+    "RewardItemId": 1002,
+    "RewardChips": 0,
+    "SequentialPackId": 0,
+    "RewardBlindBoxId": 0,
+    "SteamReceiptItemDefId": 501013,
+    "SteamClaimBundleItemDefId": 601013,
+    "ParticipationAppId": 4972240,
+    "HideWhenIneligible": true,
+    "RewardItemIds": []
   }
 ]

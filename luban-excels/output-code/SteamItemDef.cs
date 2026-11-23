@@ -61,7 +61,7 @@ public sealed partial class SteamItemDef : Luban.BeanBase
     /// </summary>
     public readonly string Description;
     /// <summary>
-    /// Steam promo 属性；LinkTree 固定填 manual；补偿可填 owns:AppID<br/>只在“Steam 应该通过促销资格直接发放这个 ItemDef”时填写，其余时候留空
+    /// 普通 LinkTree 领奖使用 manual。参与礼物使用 played:AppID/累计游玩分钟数，如 played:5220880/2 表示 Demo 累计玩满 2 分钟。随礼包发放的回执留空。
     /// </summary>
     public readonly string PromoRule;
     /// <summary>
