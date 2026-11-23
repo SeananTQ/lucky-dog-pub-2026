@@ -99,15 +99,15 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly ELinkTreeRewardType RewardType;
     /// <summary>
-    /// RewardType=FixedItem 时发放的 Item.Id；不用填 0
+    /// RewardType=FixedItem 时发放的 Item.Id；填 0 表示无。
     /// </summary>
     public readonly int RewardItemId;
     /// <summary>
-    /// RewardType=FixedChips 时发放的固定筹码数；不用填 0
+    /// RewardType=FixedChips 时发放的固定筹码数；填 0 表示无。
     /// </summary>
     public readonly int RewardChips;
     /// <summary>
-    /// RewardType=SequentialPack 时关联的顺序礼包 ID；当前不用填 0
+    /// RewardType=SequentialPack 时关联的顺序礼包 ID；填 0 表示无。
     /// </summary>
     public readonly int SequentialPackId;
     /// <summary>
@@ -119,7 +119,7 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly int SteamReceiptItemDefId;
     /// <summary>
-    /// 客户端定向领取的礼包。普通入口使用 manual，参与礼物使用 played:AppID/2。
+    /// 客户端定向领取的礼包。普通入口使用 manual；参与礼物使用 played:AppID/分钟数，例如 played:5220880/2。
     /// </summary>
     public readonly int SteamClaimBundleItemDefId;
     /// <summary>

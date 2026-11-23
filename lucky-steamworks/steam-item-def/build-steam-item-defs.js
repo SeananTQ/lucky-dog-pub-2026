@@ -820,9 +820,13 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         if (claimBundle.Type !== 2) {
             errors.push(`${key}：领奖目标 ${claimBundleItemDefId} 必须是 Type=Bundle。`);
         }
-        const requiredPromo = isParticipation ? `played:${participationApp}/2` : "manual";
-        if (claimBundle.PromoRule !== requiredPromo || claimBundle.GrantedManually !== true) {
-            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须配置 PromoRule=${requiredPromo} 且 GrantedManually=true。`);
+        const playedRule = /^played:(\d+)\/([1-9]\d*)$/.exec(claimBundle.PromoRule);
+        const validPromo = isParticipation
+            ? playedRule?.[1] === String(participationApp) && Number.isSafeInteger(Number(playedRule[2]))
+            : claimBundle.PromoRule === "manual";
+        if (!validPromo || claimBundle.GrantedManually !== true) {
+            const expectedRule = isParticipation ? `played:${participationApp}/正整数分钟数` : "manual";
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须配置 PromoRule=${expectedRule} 且 GrantedManually=true。`);
         }
         if (claimBundle.Tradable !== false || claimBundle.Marketable !== false
             || claimBundle.GameOnly !== true || claimBundle.StoreHidden !== true) {

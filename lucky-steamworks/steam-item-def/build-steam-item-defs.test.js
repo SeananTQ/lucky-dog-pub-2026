@@ -350,14 +350,21 @@ test("validates a fixed chips LinkTree bundle containing only its receipt", () =
     assert.deepEqual(result.errors, []);
 });
 
-test("participation gift validates the app, two minutes, passive receipt and every outfit", () => {
+test("participation gift exports configured playtime and validates the app, receipt and outfits", () => {
     const row = linkTree({ BuildChannelMask: 10, ParticipationAppId: 5220880, RewardType: 5, RewardItemId: 0, RewardItemIds: [1002, 1003] });
     const items = [gameItem({ BuildChannelMask: 10 }),
         gameItem({ Id: 1003, SteamItemDefId: 101003, BuildChannelMask: 10 })];
     const passive = receipt({ PromoRule: "", GrantedManually: false });
     const bundle = claimBundle({ PromoRule: "played:5220880/2", Bundle: "401001x1;101002x1;101003x1" });
     assert.deepEqual(buildArtifacts([passive, bundle], [row], items).errors, []);
-    for (const invalid of ["manual", "played:4972240/2", "played:5220880/1"]) {
+    for (const minutes of [1, 30]) {
+        const promo = `played:5220880/${minutes}`;
+        const result = buildArtifacts([passive, { ...bundle, PromoRule: promo }], [row], items);
+        assert.deepEqual(result.errors, []);
+        assert.equal(result.items.find(item => item.itemdefid === bundle.Id).promo, promo);
+    }
+    for (const invalid of ["manual", "played:4972240/2", "played:5220880/0", "played:5220880/2.5",
+        "played:5220880/30;manual"]) {
         assert.ok(buildArtifacts([passive, { ...bundle, PromoRule: invalid }], [row], items).errors.length);
     }
     assert.ok(buildArtifacts([receipt(), bundle], [row], items).errors.length);
