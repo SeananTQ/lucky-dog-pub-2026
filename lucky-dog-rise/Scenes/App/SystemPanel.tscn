@@ -1395,6 +1395,8 @@ focus_mode = 1
 focus_next = NodePath("OverlayPanel/Margin/Content/ConfirmButton")
 IsRewardSummary = true
 
+[node name="ParticipationNotice" parent="." instance=ExtResource("3_confirm")]
+
 [node name="CollectionCelebrationConfetti" parent="." instance=ExtResource("20_collection_confetti")]
 
 [node name="WishlistCallToActionOverlay" parent="." instance=ExtResource("19_wishlist_cta")]

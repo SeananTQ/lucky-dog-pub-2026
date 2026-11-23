@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using Godot;
 
@@ -6,17 +5,12 @@ namespace LuckyDogRise;
 
 public partial class SystemPanelController
 {
-    private double _nextParticipationCheck;
-    private IReadOnlySet<int> _lastEligiblePromos;
     private readonly BuildChannel _participationChannel = BuildInfo.Channel;
+    private ConfirmOverlayController _participationNotice;
+    private LinkTreeRewardEntry _participationTrialEntry;
 
     private bool UsesSessionParticipationGift(LinkTreeRewardEntry entry) =>
-        entry.Data.ParticipationAppId > 0 && _participationChannel is BuildChannel.Dev or BuildChannel.Playtest;
-
-    private bool? IsParticipationEligible(LinkTreeRewardEntry entry) =>
-        _participationChannel == BuildChannel.Dev
-            ? true
-            : _inventoryService?.EligiblePromoItemDefs?.Contains(entry.Data.SteamClaimBundleItemDefId);
+        entry.Data.ParticipationAppId > 0 && _participationChannel == BuildChannel.Dev;
 
     private bool HasClaimedParticipationGift(LinkTreeRewardEntry entry) =>
         UsesSessionParticipationGift(entry)
@@ -31,75 +25,33 @@ public partial class SystemPanelController
 
     private bool MeetsLinkTreeVisibilityCondition(LinkTreeRewardEntry entry) =>
         !entry.Data.HideWhenIneligible || entry.ClaimPending || entry.RewardFeedbackPending || entry.RewardFeedbackPlaying
-        || (entry.Data.ParticipationAppId > 0 ? IsParticipationEligible(entry) == true
-            : entry.State is LinkTreeRewardState.ReadyToClaim or LinkTreeRewardState.Claimed);
+        || UsesSessionParticipationGift(entry) || entry.State is LinkTreeRewardState.ReadyToClaim or LinkTreeRewardState.Claimed;
 
-    public override void _Notification(int what)
-    {
-        if (what == NotificationApplicationFocusIn && _linkTreeContent?.IsVisibleInTree() == true)
-            RequestParticipationEligibility();
-    }
-
-    private void RequestParticipationEligibility()
-    {
-        if (_participationChannel is not (BuildChannel.Playtest or BuildChannel.Release))
-            return;
-        _inventoryService?.RefreshPromoEligibility();
-        _nextParticipationCheck = 15;
-    }
-
-    private void UpdateParticipationEligibility(double delta)
-    {
-        if (_participationChannel is not (BuildChannel.Playtest or BuildChannel.Release)
-            || _linkTreeContent?.IsVisibleInTree() != true)
-            return;
-        var eligible = _inventoryService?.EligiblePromoItemDefs;
-        if (!ReferenceEquals(_lastEligiblePromos, eligible))
-        {
-            _lastEligiblePromos = eligible;
-            RefreshLinkTreePagePresentation();
-        }
-        _nextParticipationCheck -= delta;
-        if (_nextParticipationCheck <= 0)
-            RequestParticipationEligibility();
-    }
+    private bool CanRequestParticipationGift(LinkTreeRewardEntry entry) =>
+        _gameData != null && !HasClaimedParticipationGift(entry) && !entry.ClaimPending
+        && (UsesSessionParticipationGift(entry)
+            || (_inventoryService?.IsInventoryReady == true && !IsSharedInventoryWritePending()));
 
     private void RefreshParticipationGift(LinkTreeRewardEntry entry)
     {
-        var claimed = HasClaimedParticipationGift(entry);
-        var eligible = IsParticipationEligible(entry);
-        var busy = _gameData == null || entry.ClaimPending
-            || (!UsesSessionParticipationGift(entry) && IsSharedInventoryWritePending());
-        var hasTrialLink = !string.IsNullOrWhiteSpace(entry.Data.PreClaimUrl);
-        entry.Banner.Disabled = claimed || busy || eligible == null || (eligible == false && !hasTrialLink);
-        entry.BannerImage.Modulate = busy ? LinkTreeBusyImageModulate : Colors.White;
+        var preview = UsesSessionParticipationGift(entry);
+        entry.Banner.Disabled = !CanRequestParticipationGift(entry);
+        entry.BannerImage.Modulate = entry.ClaimPending ? LinkTreeBusyImageModulate : Colors.White;
         entry.LoadingIndicator.SetLoading(entry.ClaimPending);
-        entry.GiftBadge.Visible = !claimed && !entry.ClaimPending;
-        entry.GiftBadge.Modulate = eligible == true ? LinkTreeGiftReadyColor : LinkTreeGiftLockedColor;
+        entry.GiftBadge.Visible = !HasClaimedParticipationGift(entry) && !entry.ClaimPending;
+        entry.GiftBadge.Modulate = preview ? LinkTreeGiftReadyColor : LinkTreeGiftLockedColor;
         entry.ParticipationTitle.Text = ResolveLinkTreeTooltip(entry.Data);
         entry.ParticipationSubtitle.Text = L10n.Tr(L10nKey.LinkTree_GiftThanks);
-        var action = claimed ? string.Empty : L10n.Tr(eligible switch
-        {
-            true => L10nKey.BlindBox_TapToClaim,
-            false when hasTrialLink => L10nKey.LinkTree_TryDemo,
-            false => L10nKey.LinkTree_ParticipationRequired,
-            null => L10nKey.LinkTree_CheckingParticipation,
-        });
-        entry.Banner.TooltipText = claimed ? entry.ParticipationTitle.Text : entry.ParticipationTitle.Text + "\n" + action;
+        var action = preview ? L10nKey.BlindBox_TapToClaim : L10nKey.LinkTree_CheckAndClaim;
+        if (entry.ClaimPending)
+            action = L10nKey.LinkTree_CheckingParticipation;
+        entry.Banner.TooltipText = entry.ParticipationTitle.Text + "\n" + L10n.Tr(action);
     }
 
     private void OnParticipationGiftPressed(LinkTreeRewardEntry entry)
     {
-        if (_gameData == null || HasClaimedParticipationGift(entry) || entry.ClaimPending)
+        if (!CanRequestParticipationGift(entry))
             return;
-        var eligible = IsParticipationEligible(entry);
-        if (eligible != true)
-        {
-            if (eligible == false && !string.IsNullOrWhiteSpace(entry.Data.PreClaimUrl))
-                OpenLinkTreeUrl(entry.Data.Key, entry.Data.PreClaimUrl);
-            RequestParticipationEligibility();
-            return;
-        }
         if (UsesSessionParticipationGift(entry))
         {
             if (!_gameData.TryGrantSessionParticipationGift(entry.Data))
@@ -109,9 +61,31 @@ public partial class SystemPanelController
             QueueLinkTreeRewardFeedback(entry);
             return;
         }
-        if (_inventoryService?.IsInventoryReady != true || IsSharedInventoryWritePending())
-            return;
-        entry.State = LinkTreeRewardState.ReadyToClaim;
         ClaimLinkTreeReward(entry);
+    }
+
+    private void ShowParticipationClaimNotice(LinkTreeRewardEntry entry, bool noGrantConfirmed)
+    {
+        if (entry.Data.ParticipationAppId <= 0 || _closingPanel || !entry.Banner.IsVisibleInTree())
+            return;
+        var title = ResolveLinkTreeTooltip(entry.Data);
+        if (noGrantConfirmed && !string.IsNullOrWhiteSpace(entry.Data.PreClaimUrl))
+        {
+            _participationTrialEntry = entry;
+            _participationNotice.ShowConfirm(title, L10n.Tr(L10nKey.LinkTree_DemoNotGranted),
+                L10n.Tr(L10nKey.LinkTree_TryDemo), L10n.Tr(L10nKey.Common_Cancel));
+            return;
+        }
+        _participationTrialEntry = null;
+        var message = noGrantConfirmed ? L10nKey.LinkTree_ParticipationRequired : L10nKey.LinkTree_RewardsUnavailable;
+        _participationNotice.ShowNotice(title, L10n.Tr(message), L10n.Tr(L10nKey.Common_Confirm));
+    }
+
+    private void OpenParticipationTrial()
+    {
+        var entry = _participationTrialEntry;
+        _participationTrialEntry = null;
+        if (entry != null)
+            OpenLinkTreeUrl(entry.Data.Key, entry.Data.PreClaimUrl);
     }
 }

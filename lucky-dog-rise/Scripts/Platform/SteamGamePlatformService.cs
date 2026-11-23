@@ -23,7 +23,8 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
     private readonly record struct InventoryRequest(
         InventoryRequestKind Kind,
         int ItemDefId = 0,
-        int OutputItemDefId = 0);
+        int OutputItemDefId = 0,
+        bool EmptyPromoResult = false);
 
     private readonly SteamworksRuntime _runtime;
     private readonly Callback<UserStatsReceived_t> _userStatsReceivedCallback;
@@ -126,86 +127,6 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         || _playtimeDropAwaitingInventoryVerification != null;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _inventoryItems;
 
-    private CallResult<SteamInventoryEligiblePromoItemDefIDs_t> _eligibilityCall;
-    private long _eligibilityRequestedAt;
-    private bool _participationBundlesLoaded;
-    private Task<HashSet<int>> _playtestTimeRead;
-    public IReadOnlySet<int> EligiblePromoItemDefs { get; private set; }
-
-    public void RefreshPromoEligibility()
-    {
-        if (!IsInventoryReady || !_runtime.TryGetCurrentSteamId(out var id) || id != _runtime.SteamId)
-            return;
-        if (BuildInfo.Channel == BuildChannel.Playtest)
-        {
-            if (_playtestTimeRead != null)
-                return;
-            var tables = LubanData.Tables;
-            var gifts = tables.TbLinkTree.DataList.Where(entry => entry.IsEnabled && entry.ParticipationAppId > 0
-                    && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask))
-                .Select(entry => new PlaytestParticipationPlaytime.Gift(entry.ParticipationAppId,
-                    entry.SteamClaimBundleItemDefId, tables.TbSteamItemDef.GetOrDefault(entry.SteamClaimBundleItemDefId)?.PromoRule ?? ""))
-                .ToArray();
-            var accountId = new CSteamID(id).GetAccountID().m_AccountID;
-            _playtestTimeRead = Task.Run(() => PlaytestParticipationPlaytime.Read(accountId, gifts));
-            return;
-        }
-        var now = Environment.TickCount64;
-        if (_eligibilityCall != null && now - _eligibilityRequestedAt < 10_000)
-            return;
-        _eligibilityCall?.Dispose();
-        _eligibilityCall = null;
-        _eligibilityRequestedAt = now;
-        if (!_participationBundlesLoaded)
-        {
-            // A successful but empty eligibility list is meaningless before the target schema is published.
-            foreach (var gift in LubanData.Tables.TbLinkTree.DataList.Where(entry =>
-                         entry.IsEnabled && entry.ParticipationAppId > 0 && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask)))
-            {
-                uint length = 64;
-                if (!SteamInventory.GetItemDefinitionProperty((SteamItemDef_t)gift.SteamClaimBundleItemDefId,
-                        "type", out var type, ref length) || type != "bundle")
-                {
-                    EligiblePromoItemDefs = null;
-                    return;
-                }
-            }
-            _participationBundlesLoaded = true;
-        }
-        var handle = SteamInventory.RequestEligiblePromoItemDefinitionsIDs(new CSteamID(id));
-        if (handle == SteamAPICall_t.Invalid)
-        {
-            EligiblePromoItemDefs = null;
-            return;
-        }
-        _eligibilityCall = CallResult<SteamInventoryEligiblePromoItemDefIDs_t>.Create(OnPromoEligibility);
-        _eligibilityCall.Set(handle);
-    }
-
-    private void OnPromoEligibility(SteamInventoryEligiblePromoItemDefIDs_t result, bool ioFailure)
-    {
-        _eligibilityCall?.Dispose();
-        _eligibilityCall = null;
-        EligiblePromoItemDefs = null;
-        if (ioFailure || result.m_result != EResult.k_EResultOK
-            || (ulong)result.m_steamID != _runtime.SteamId
-            || !_runtime.TryGetCurrentSteamId(out var id) || id != _runtime.SteamId
-            || result.m_numEligiblePromoItemDefs < 0)
-            return;
-
-        uint count = (uint)result.m_numEligiblePromoItemDefs;
-        var defs = new SteamItemDef_t[count];
-        if (count > 0 && (!SteamInventory.GetEligiblePromoItemDefinitionIDs(result.m_steamID, defs, ref count)
-            || count > defs.Length))
-            return;
-        EligiblePromoItemDefs = defs.Take((int)count).Select(def => (int)def).ToHashSet();
-        DiagnosticLog.Record("promo_eligibility_received", new Dictionary<string, object>
-        {
-            ["eligibleItemDefs"] = string.Join(",", EligiblePromoItemDefs),
-            ["cached"] = result.m_bCachedData,
-        });
-    }
-
     public void RunCallbacks()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
@@ -215,16 +136,6 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         _roomService?.Tick();
 #endif
         _runtime.RunCallbacks();
-        if (_playtestTimeRead is { IsCompleted: true } read)
-        {
-            _playtestTimeRead = null;
-            var eligible = IsInventoryReady && _runtime.TryGetCurrentSteamId(out var currentId) && currentId == _runtime.SteamId
-                && read.IsCompletedSuccessfully ? read.Result : null;
-            if (read.IsFaulted)
-                Godot.GD.PushWarning($"[LinkTree] Playtest playtime read failed ({read.Exception.GetBaseException().GetType().Name}).");
-            if (eligible == null || EligiblePromoItemDefs == null || !eligible.SetEquals(EligiblePromoItemDefs))
-                EligiblePromoItemDefs = eligible;
-        }
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomService?.Tick();
 #endif
@@ -731,9 +642,6 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     public void Dispose()
     {
-        _eligibilityCall?.Dispose();
-        _eligibilityCall = null;
-        EligiblePromoItemDefs = null;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomService?.Dispose();
         _roomService = null;
@@ -868,7 +776,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             PromoItemGrantCompleted(new PlatformPromoItemGrantResult(
                 promoRequest.ItemDefId,
                 promoRequest.OutputItemDefId,
-                receiptOwned,
+                receiptOwned || promoRequest.EmptyPromoResult,
                 receiptOwned,
                 receiptOwned
                     ? $"Steam 库存已确认回执 ItemDef={promoRequest.OutputItemDefId}。"
@@ -915,7 +823,7 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
             return;
         }
 
-        _promoItemAwaitingInventoryVerification = request;
+        _promoItemAwaitingInventoryVerification = request with { EmptyPromoResult = changedItems.Length == 0 };
         if (!RequestFullInventory())
         {
             _promoItemAwaitingInventoryVerification = null;

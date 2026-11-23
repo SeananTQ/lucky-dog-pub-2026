@@ -101,7 +101,7 @@ public partial class GameData : Node
 
     public bool TryGrantSessionParticipationGift(LinkTree data)
     {
-        if (BuildInfo.Channel is not (BuildChannel.Dev or BuildChannel.Playtest)
+        if (BuildInfo.Channel != BuildChannel.Dev
             || _accountStorageFrozen || data.ParticipationAppId <= 0
             || !_sessionParticipationGifts.Add(data.Id))
             return false;

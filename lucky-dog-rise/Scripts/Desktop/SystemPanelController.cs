@@ -747,6 +747,10 @@ public partial class SystemPanelController : CanvasLayer
 
         _linkTreeRewardsOverlay = GetNode<RecoveredItemsOverlayController>("LinkTreeRewardsOverlay");
         _linkTreeRewardsOverlay.Confirmed += ConfirmLinkTreeRewards;
+        _participationNotice = GetNode<ConfirmOverlayController>("ParticipationNotice");
+        _participationNotice.Confirmed += OpenParticipationTrial;
+        _participationNotice.Canceled += () => _participationTrialEntry = null;
+        _participationNotice.VisibilityChanged += ResetPanelScrollDrag;
         _recoveredItemsOverlay = GetNode<RecoveredItemsOverlayController>("RecoveredItemsOverlay");
         _recoveredItemsOverlay.Confirmed += OnRecoveredItemsConfirmed;
 #if DEBUG
@@ -915,7 +919,6 @@ public partial class SystemPanelController : CanvasLayer
             ResetPanelScrollDrag();
 
         ProcessLinkTreeInventoryRecheck(delta);
-        UpdateParticipationEligibility(delta);
 
         if (_linkTreePageState == LinkTreePageState.Loading && !_linkTreeShowRecoveryAdvice)
         {
@@ -1096,7 +1099,6 @@ public partial class SystemPanelController : CanvasLayer
         }
         if (index == 1)
         {
-            RequestParticipationEligibility();
             RefreshLinkTreeVisibleEntries();
             _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
             RefreshLinkTreePageFromPlatformState();
@@ -2104,6 +2106,7 @@ public partial class SystemPanelController : CanvasLayer
             entry.ClaimPending = false;
             ResetLinkTreeInventoryRecheck();
             RefreshLinkTreeInteractionPresentation();
+            ShowParticipationClaimNotice(entry, noGrantConfirmed: false);
             GD.PushWarning($"[LinkTree] {message}");
             return;
         }
@@ -2157,14 +2160,21 @@ public partial class SystemPanelController : CanvasLayer
         else if (pendingEntry != null)
         {
             pendingEntry.ClaimPending = true;
-            if (snapshot.OwnedItemDefIds.Contains(pending!.SteamReceiptItemDefId)
-                && IsLinkTreeRewardConfirmedBySnapshot(pendingEntry.Data, snapshot))
+            var receiptOwned = snapshot.OwnedItemDefIds.Contains(pending!.SteamReceiptItemDefId);
+            if (receiptOwned && IsLinkTreeRewardConfirmedBySnapshot(pendingEntry.Data, snapshot))
             {
                 CompleteSteamLinkTreeClaim(pendingEntry, recovered: true, snapshot.Items);
             }
             else if (_inventoryService?.IsPromoGrantPending != true)
             {
-                ScheduleLinkTreeInventoryRecheck(pendingEntry);
+                if (pendingEntry.Data.ParticipationAppId > 0 && !receiptOwned)
+                {
+                    pendingEntry.ClaimPending = false;
+                    _gameData.ClearPendingLinkTreeClaim();
+                    ResetLinkTreeInventoryRecheck();
+                }
+                else
+                    ScheduleLinkTreeInventoryRecheck(pendingEntry);
             }
         }
 
@@ -2197,10 +2207,7 @@ public partial class SystemPanelController : CanvasLayer
         RefreshLinkTreePageFromPlatformState();
         RefreshUpdateAndRestartAvailability();
         if (state == PlatformConnectionState.Ready)
-        {
-            RequestParticipationEligibility();
             ResumeWaitingLinkTreeClaims();
-        }
     }
 
     private void OnPlatformInventoryTrustStateChanged(PlatformInventoryTrustState _) =>
@@ -2217,13 +2224,31 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
+        if (_gameData?.PendingLinkTreeClaim is not { } pending || pending.LinkTreeId != entry.Data.Id
+            || pending.SteamClaimBundleItemDefId != result.PromoItemDefId || pending.SteamReceiptItemDefId != result.ReceiptItemDefId)
+            return;
+        if (entry.Data.ParticipationAppId > 0 && !result.Succeeded)
+        {
+            // A transport failure can arrive after Steam has granted the bundle.
+            // Keep the transaction until a full inventory can resolve the receipt.
+            entry.ClaimPending = true;
+            ShowParticipationClaimNotice(entry, noGrantConfirmed: false);
+            _inventoryService?.StartInventorySynchronization();
+            RefreshLinkTreeInteractionPresentation();
+            GD.PushWarning($"[LinkTree] {result.Message}");
+            return;
+        }
         entry.ClaimPending = false;
         if (!result.Succeeded || !result.ReceiptOwned)
         {
             _gameData?.ClearPendingLinkTreeClaim();
             ResetLinkTreeInventoryRecheck();
             RefreshLinkTreeInteractionPresentation();
-            GD.PushWarning($"[LinkTree] {result.Message}");
+            ShowParticipationClaimNotice(entry, noGrantConfirmed: result.Succeeded && !result.ReceiptOwned);
+            if (result.Succeeded)
+                GD.Print($"[LinkTree] {result.Message}");
+            else
+                GD.PushWarning($"[LinkTree] {result.Message}");
             return;
         }
 
@@ -2611,6 +2636,8 @@ public partial class SystemPanelController : CanvasLayer
 
     private void SuspendLinkTreeRewards()
     {
+        _participationNotice?.Hide();
+        _participationTrialEntry = null;
         if (_displayedLinkTreeReward == null) return;
         _displayedLinkTreeReward.RewardFeedbackPlaying = false;
         _displayedLinkTreeReward.RewardFeedbackPending = true;
@@ -3176,8 +3203,6 @@ public partial class SystemPanelController : CanvasLayer
         EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
-        if (_linkTreeContent?.Visible == true)
-            RequestParticipationEligibility();
         RefreshRecoveredItemsOverlay();
         EmitSignal(SignalName.OpenStateChanged, true);
         Callable.From(TryPlayPendingLinkTreeRewardFeedbacks).CallDeferred();
@@ -3228,6 +3253,7 @@ public partial class SystemPanelController : CanvasLayer
         _otherUiScaleConfirm?.SetOverlayRect(pos, PanelDesignSize);
         _recoveredItemsOverlay?.SetOverlayRect(pos, PanelDesignSize);
         _linkTreeRewardsOverlay?.SetOverlayRect(pos, PanelDesignSize);
+        _participationNotice?.SetOverlayRect(pos, PanelDesignSize);
         if (_collectionCelebrationConfetti != null)
             _collectionCelebrationConfetti.Position = pos;
         _wishlistCallToActionOverlay?.SetOverlayRect(pos, PanelDesignSize);
@@ -3268,6 +3294,7 @@ public partial class SystemPanelController : CanvasLayer
         _otherUiScaleConfirm.Scale = value;
         _recoveredItemsOverlay.Scale = value;
         _linkTreeRewardsOverlay.Scale = value;
+        _participationNotice.Scale = value;
         _collectionCelebrationConfetti.Scale = value;
         _wishlistCallToActionOverlay.Scale = value;
 #if DEBUG
@@ -3558,6 +3585,7 @@ public partial class SystemPanelController : CanvasLayer
             || (_otherUiScaleConfirm.Visible && new Rect2(_otherUiScaleConfirm.Position, PanelSize).HasPoint(windowPosition))
             || (_recoveredItemsOverlay.Visible && new Rect2(_recoveredItemsOverlay.Position, PanelSize).HasPoint(windowPosition))
             || (_linkTreeRewardsOverlay.Visible && new Rect2(_linkTreeRewardsOverlay.Position, PanelSize).HasPoint(windowPosition))
+            || (_participationNotice.Visible && new Rect2(_participationNotice.Position, PanelSize).HasPoint(windowPosition))
             || (_wishlistCallToActionOverlay.Visible && new Rect2(_wishlistCallToActionOverlay.Position, PanelSize).HasPoint(windowPosition))
 #if DEBUG
             || (_resetSaveConfirm.Visible && new Rect2(_resetSaveConfirm.Position, PanelSize).HasPoint(windowPosition))

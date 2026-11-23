@@ -165,30 +165,8 @@ public partial class DemoLinkTreeSmoke : Node
         for (var i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
-    private static void VerifyLocalPlaytimeRules()
-    {
-        const string config = """
-            "UserLocalConfigStore" {
-              "apps" { "5220880" { "Playtime" "999" } }
-              "Software" { "Valve" { "Steam" { "apps" {
-                "5220880" { "Playtime" "1" "Playtime2wks" "99" }
-                "4972240" { "Playtime" "2" }
-              } } } }
-            }
-            """;
-        PlaytestParticipationPlaytime.Gift[] gifts =
-            [new(5220880, 601012, "played:5220880/2"), new(4972240, 601013, "played:4972240/2")];
-        Require(PlaytestParticipationPlaytime.Evaluate(config, gifts)?.SetEquals([601013]) == true,
-            "Expected only the app with two lifetime minutes to qualify");
-        gifts[1] = gifts[1] with { PromoRule = "played:4972240/30" };
-        Require(PlaytestParticipationPlaytime.Evaluate(config, gifts)?.Count == 0, "Threshold ignored schema minutes");
-        Require(PlaytestParticipationPlaytime.Evaluate(config[..config.IndexOf("\"4972240\"", StringComparison.Ordinal)], gifts) == null,
-            "An interrupted VDF read must remain unknown");
-    }
-
     private async Task VerifyParticipationGifts(SystemPanelController panel, GameData data, GameData freshSession)
     {
-        VerifyLocalPlaytimeRules();
         var gifts = ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
             .Where(entry => ((LinkTree)Field(entry, "Data")).ParticipationAppId > 0).ToArray();
         Require(gifts.Length == 2, "Expected two independent participation gifts");
@@ -280,30 +258,60 @@ public partial class DemoLinkTreeSmoke : Node
         var query = new GiftInventory();
         Set(panel, "_participationChannel", BuildChannel.Playtest);
         Set(panel, "_inventoryService", query);
+        Set(freshSession, "_steamMockSimulationActive", true);
+        Set(freshSession, "_saveDataMode", SettingsManager.SaveDataMode.LocalSave);
+        var isolatedProgress = new PlayerProgress(AccountStorageContext.ForDevelopment("linktree-smoke"));
+        typeof(GameData).GetProperty(nameof(GameData.PlayerProgress))!.SetValue(freshSession, isolatedProgress);
         Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners.All(banner => banner.Visible && banner.Disabled), "Both gifts must remain visible during verification");
-        query.EligiblePromoItemDefs = new HashSet<int>();
+        Require(banners.All(button => button.Visible && button.Disabled), "Offline gifts must wait for trusted inventory");
+        query.IsInventoryReady = true;
         Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners[0].Visible && !banners[0].Disabled && banners[1].Visible && banners[1].Disabled
-            && banners[1].TooltipText.Contains(L10n.Tr(L10nKey.LinkTree_ParticipationRequired)),
-            "Only the Demo gift should offer a trial link when ineligible");
+        Require(banners.All(button => button.Visible && !button.Disabled
+            && button.TooltipText.Contains(L10n.Tr(L10nKey.LinkTree_CheckAndClaim))), "Unclaimed gifts must allow a Steam check");
+        var notice = (ConfirmOverlayController)Field(panel, "_participationNotice");
         var beforePlaytest = freshSession.Inventory.GetCount(rows[1].RewardItemId);
-        banners[1].EmitSignal(Button.SignalName.Pressed);
-        Require(freshSession.Inventory.GetCount(rows[1].RewardItemId) == beforePlaytest, "Ineligible Playtest claim");
-        query.EligiblePromoItemDefs = new HashSet<int> { rows[1].SteamClaimBundleItemDefId };
-        Call(panel, "RefreshLinkTreePagePresentation");
-        Require(banners[1].Visible && !banners[1].Disabled, "Qualified Playtest banner missing");
-        banners[1].EmitSignal(Button.SignalName.Pressed);
-        query.EligiblePromoItemDefs = new HashSet<int> { rows[0].SteamClaimBundleItemDefId };
-        Call(panel, "RefreshLinkTreePagePresentation");
-        var beforeDemo = freshSession.Inventory.GetCount(rows[0].FixedRewardItemIds[0]);
         banners[0].EmitSignal(Button.SignalName.Pressed);
-        Require(freshSession.Inventory.GetCount(rows[0].FixedRewardItemIds[0]) == beforeDemo + 1
-            && freshSession.Inventory.GetCount(rows[1].RewardItemId) == beforePlaytest + 1,
-            "Real-eligibility branch did not grant both independent session rewards");
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        banners[1].EmitSignal(Button.SignalName.Pressed);
+        Require(query.Requests.SequenceEqual([(rows[0].SteamClaimBundleItemDefId, rows[0].SteamReceiptItemDefId)])
+            && freshSession.PendingLinkTreeClaim?.LinkTreeId == rows[0].Id, "Duplicate or competing Steam claim accepted");
+        Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
+            rows[0].SteamClaimBundleItemDefId, rows[0].SteamReceiptItemDefId, true, false, "verified no grant", []));
+        Require(notice.Visible && Field(panel, "_participationTrialEntry") == gifts[0] && !modal.Visible
+            && freshSession.PendingLinkTreeClaim == null && !freshSession.HasAppliedLinkTreeReward(rows[0].Id),
+            "Empty result should offer Demo and leave the gift available");
+        Call(panel, "SuspendLinkTreeRewards");
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
+            rows[0].SteamClaimBundleItemDefId, rows[0].SteamReceiptItemDefId, false, false, "transport failure", []));
+        Require(notice.Visible && Field(panel, "_participationTrialEntry") == null && query.Requests.Count == 2
+            && freshSession.PendingLinkTreeClaim?.LinkTreeId == rows[0].Id,
+            "Network failure lost the unresolved claim or suggested that Steam denied eligibility");
+        Call(panel, "SuspendLinkTreeRewards");
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        Require(query.Requests.Count == 2, "Retried an unresolved Steam claim before inventory reconciliation");
+        Call(panel, "OnPlatformInventorySnapshotChanged", new PlatformInventorySnapshot(
+            true, "verified empty inventory", new HashSet<int>(), []));
+        Require(freshSession.PendingLinkTreeClaim == null && !banners[0].Disabled, "Empty trusted snapshot did not unlock retry");
+        banners[1].EmitSignal(Button.SignalName.Pressed);
+        Require(query.Requests.Last() == (rows[1].SteamClaimBundleItemDefId, rows[1].SteamReceiptItemDefId)
+            && beforePlaytest == freshSession.Inventory.GetCount(rows[1].RewardItemId), "Click granted a local Playtest outfit");
+        var playtestResult = new PlatformInventoryItem[] {
+            new(1234, rows[1].SteamReceiptItemDefId, 1),
+            new(1235, LubanData.Tables.TbItem.Get(rows[1].RewardItemId).SteamItemDefId, 1),
+        };
+        Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
+            rows[1].SteamClaimBundleItemDefId, rows[1].SteamReceiptItemDefId, true, true, "Steam grant", playtestResult));
+        Require(freshSession.HasAppliedLinkTreeReward(rows[1].Id) && !modal.Visible
+            && ((Control)Field(gifts[1], "RewardVisualRoot")).Visible, "Confirmed Playtest claim did not show single-item feedback");
+        await ToSignal(GetTree().CreateTimer(1.3), SceneTreeTimer.SignalName.Timeout);
+        banners[1].EmitSignal(Button.SignalName.Pressed);
+        Require(query.Requests.Count == 3 && !banners[1].Visible, "Confirmed participation gift was claimable twice");
+
+        // A new account-local ledger on either shipped channel must recover past Steam receipts silently.
+        Set(panel, "_gameData", data);
         Set(panel, "_participationChannel", BuildChannel.Release);
         Call(panel, "BuildLinkTree");
-        query.EligiblePromoItemDefs = rows.Select(row => row.SteamClaimBundleItemDefId).ToHashSet();
         Call(panel, "RefreshLinkTreePagePresentation");
         gifts = ((IList)Field(panel, "_linkTreeRewardEntries")).Cast<object>()
             .Where(entry => ((LinkTree)Field(entry, "Data")).ParticipationAppId > 0).ToArray();
@@ -354,22 +362,26 @@ public partial class DemoLinkTreeSmoke : Node
             Set(panel, "_gameData", freshSession);
             inFlight.Free();
         }
-        GD.Print("[ParticipationGifts] PASS: 16 distinct Demo items, scroll to last icon, confirm/reopen, single Playtest animation, independent counts, fresh session, eligibility, Release receipt restore.");
+        GD.Print("[ParticipationGifts] PASS: Dev preview, Steam claim on click, empty result, transport recovery, confirmed rewards, scrollable 16-item gift, single Playtest animation and historical receipts.");
     }
 
     private sealed class GiftInventory : IPlatformInventoryService
     {
-        public IReadOnlySet<int> EligiblePromoItemDefs { get; set; }
+        public List<(int Bundle, int Receipt)> Requests { get; } = [];
         public event Action<PlatformInventorySnapshot> InventorySnapshotChanged { add { } remove { } }
         public event Action<PlatformPromoItemGrantResult> PromoItemGrantCompleted { add { } remove { } }
         public event Action<PlatformPlaytimeDropResult> PlaytimeDropCompleted { add { } remove { } }
-        public bool IsInventoryReady => true;
+        public bool IsInventoryReady { get; set; }
         public bool IsPromoGrantPending => false;
         public bool IsPlaytimeDropPending => false;
         public IReadOnlyList<PlatformInventoryItem> InventoryItems { get; set; } = [];
         public void StartInventorySynchronization() { }
         public bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message)
-            => throw new InvalidOperationException("Session reward attempted a Steam write");
+        {
+            Requests.Add((promoItemDefId, receiptItemDefId));
+            message = "Test promo request";
+            return true;
+        }
         public bool TryTriggerPlaytimeDrop(int generatorItemDefId, out string message)
             => throw new InvalidOperationException();
     }
