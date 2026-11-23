@@ -102,6 +102,7 @@ public static class L10nKey
     public const string LinkTree_RewardsUnavailable = nameof(LinkTree_RewardsUnavailable);
     public const string LinkTree_DemoGift = nameof(LinkTree_DemoGift);
     public const string LinkTree_ItemsReceived = nameof(LinkTree_ItemsReceived);
+    public const string LinkTree_GiftThanks = nameof(LinkTree_GiftThanks);
     public const string LinkTree_PlaytestGift = nameof(LinkTree_PlaytestGift);
     public const string LinkTree_TryDemo = nameof(LinkTree_TryDemo);
     public const string LinkTree_CheckingParticipation = nameof(LinkTree_CheckingParticipation);

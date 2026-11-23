@@ -71,13 +71,14 @@ public partial class SystemPanelController
         entry.GiftBadge.Visible = !claimed && !entry.ClaimPending;
         entry.GiftBadge.Modulate = eligible == true ? LinkTreeGiftReadyColor : LinkTreeGiftLockedColor;
         entry.ParticipationTitle.Text = ResolveLinkTreeTooltip(entry.Data);
-        entry.ParticipationAction.Text = claimed ? string.Empty : L10n.Tr(eligible switch
+        entry.ParticipationSubtitle.Text = L10n.Tr(L10nKey.LinkTree_GiftThanks);
+        var action = claimed ? string.Empty : L10n.Tr(eligible switch
         {
             true => L10nKey.BlindBox_TapToClaim,
             false => L10nKey.LinkTree_TryDemo,
             null => L10nKey.LinkTree_CheckingParticipation,
         });
-        entry.Banner.TooltipText = entry.ParticipationTitle.Text + "\n" + entry.ParticipationAction.Text;
+        entry.Banner.TooltipText = claimed ? entry.ParticipationTitle.Text : entry.ParticipationTitle.Text + "\n" + action;
     }
 
     private void OnParticipationGiftPressed(LinkTreeRewardEntry entry)

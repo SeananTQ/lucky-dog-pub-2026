@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Banner_Twitter.png" id="1_banner"]
 [ext_resource type="Texture2D" path="res://Assets/UI/LinkTree/Icon_Gift.svg" id="2_gift"]
@@ -7,6 +7,13 @@
 [ext_resource type="FontFile" uid="uid://ctykpooby5f3n" path="res://Assets/Fonts/Inter/Inter-Bold.ttf" id="5_amount_inter"]
 [ext_resource type="FontFile" uid="uid://dcbaa0off46hm" path="res://Assets/Fonts/MiSans/otf/MiSans-Bold.otf" id="6_amount_misans"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/LoadingIndicator.tscn" id="7_loading_indicator"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/Inter/Inter-Regular.ttf" id="8_inter_regular"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/MiSans/otf/MiSans-Regular.otf" id="9_misans_regular"]
+
+[sub_resource type="FontVariation" id="FontVariation_gift_subtitle"]
+base_font = ExtResource("8_inter_regular")
+fallbacks = Array[Font]([ExtResource("9_misans_regular")])
+variation_embolden = 0.2
 
 [sub_resource type="FontVariation" id="FontVariation_reward_amount"]
 fallbacks = Array[Font]([ExtResource("6_amount_misans")])
@@ -51,16 +58,20 @@ anchor_right = 0.66
 anchor_bottom = 1.0
 offset_left = 14.0
 mouse_filter = 2
+theme_override_constants/separation = 2
 alignment = 1
 
 [node name="Title" type="Label" parent="ParticipationCaption"]
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 18
+theme_override_fonts/font = SubResource("FontVariation_reward_amount")
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+max_lines_visible = 2
 text_overrun_behavior = 3
 
-[node name="Action" type="Label" parent="ParticipationCaption"]
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 14
+[node name="Subtitle" type="Label" parent="ParticipationCaption"]
+theme_override_fonts/font = SubResource("FontVariation_gift_subtitle")
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.94, 0.92, 0.9, 1)
 autowrap_mode = 3
 
 [node name="GiftBadge" type="TextureRect" parent="." unique_id=205383931]

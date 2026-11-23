@@ -1665,7 +1665,7 @@ public partial class SystemPanelController : CanvasLayer
         public Label RewardAmountLabel = null!;
         public Label DebugIdLabel = null!;
         public Label ParticipationTitle;
-        public Label ParticipationAction;
+        public Label ParticipationSubtitle;
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
         public bool SelectedForDisplay;
@@ -1735,7 +1735,7 @@ public partial class SystemPanelController : CanvasLayer
             var caption = banner.GetNode<VBoxContainer>("ParticipationCaption");
             caption.Visible = true;
             entry.ParticipationTitle = caption.GetNode<Label>("Title");
-            entry.ParticipationAction = caption.GetNode<Label>("Action");
+            entry.ParticipationSubtitle = caption.GetNode<Label>("Subtitle");
         }
 #if DEBUG
         entry.DebugIdLabel.Visible = _steamMockActive;
