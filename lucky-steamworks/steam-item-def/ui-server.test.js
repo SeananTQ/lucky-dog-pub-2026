@@ -14,7 +14,7 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
 
     assert.equal(preview.ok, true);
     assert.equal(preview.stats.exportedItemDefs, preview.rows.length);
-    assert.equal(preview.stats.linkTreeReferences, 8);
+    assert.equal(preview.stats.linkTreeReferences, 10);
     assert.equal(preview.stats.blindBoxReferences, 2);
     assert.equal(preview.stats.playtimeReferences, 9);
     assert.equal(preview.channels.length, 2);
@@ -23,6 +23,9 @@ test("loads the real SteamItemDef and LinkTree preview", () => {
     assert.ok(playtest.itemDefIds.includes(410001));
     assert.ok(!release.itemDefIds.includes(410001));
     assert.ok(release.itemDefIds.includes(501002));
+    for (const id of [501008, 501009, 601008, 601009]) {
+        assert.ok(playtest.itemDefIds.includes(id) && release.itemDefIds.includes(id));
+    }
     assert.equal(preview.rows.find(row => row.id === 410001).linkTrees.length, 1);
     assert.equal(preview.sources.item.exists, true);
     assert.equal(preview.sources.blindBox.exists, true);

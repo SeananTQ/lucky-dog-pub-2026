@@ -1882,6 +1882,30 @@
       "auto_stack": false
     },
     {
+      "itemdefid": 501008,
+      "type": "item",
+      "name": "Demo participation receipt",
+      "description": "Permanent record of this gift.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
+      "itemdefid": 501009,
+      "type": "item",
+      "name": "Playtest participation receipt",
+      "description": "Permanent record of this gift.",
+      "granted_manually": false,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false
+    },
+    {
       "itemdefid": 601002,
       "type": "bundle",
       "name": "LinkTree Reward Bundle - Steam Community",
@@ -1936,6 +1960,34 @@
       "store_hidden": true,
       "auto_stack": false,
       "bundle": "501007x1;151001x1"
+    },
+    {
+      "itemdefid": 601008,
+      "type": "bundle",
+      "name": "Demo participation gift",
+      "description": "Participation gift.",
+      "promo": "played:5220880/2",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501008x1;102003x1"
+    },
+    {
+      "itemdefid": 601009,
+      "type": "bundle",
+      "name": "Playtest participation gift",
+      "description": "Participation gift.",
+      "promo": "played:4972240/2",
+      "granted_manually": true,
+      "tradable": false,
+      "marketable": false,
+      "game_only": true,
+      "store_hidden": true,
+      "auto_stack": false,
+      "bundle": "501009x1;101002x1"
     },
     {
       "itemdefid": 700001,

@@ -765,11 +765,15 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         if (receipt.Type !== 1) {
             errors.push(`${key}：永久回执 ${receiptItemDefId} 必须是 Type=Item。`);
         }
-        if (receipt.PromoRule !== "manual") {
-            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 PromoRule=manual。`);
+        const participationApp = record.ParticipationAppId ?? 0;
+        const isParticipation = participationApp > 0;
+        if (!Number.isSafeInteger(participationApp) || participationApp < 0
+            || (isParticipation && record.RewardType !== 1)) {
+            errors.push(`${key}：参与礼物必须配置有效的 AppID 和固定装扮。`);
         }
-        if (receipt.GrantedManually !== true) {
-            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 GrantedManually=true。`);
+        const receiptRule = isParticipation ? "" : "manual";
+        if ((receipt.PromoRule ?? "") !== receiptRule || receipt.GrantedManually !== !isParticipation) {
+            errors.push(`${key}：永久回执 ${receiptItemDefId} 必须配置 PromoRule=${receiptRule} 且 GrantedManually=${!isParticipation}。`);
         }
         if (receipt.Tradable !== false || receipt.Marketable !== false) {
             errors.push(`${key}：永久回执 ${receiptItemDefId} 必须不可交易且不可出售。`);
@@ -804,8 +808,9 @@ function validateLinkTree(records, itemDefs, itemRecords) {
         if (claimBundle.Type !== 2) {
             errors.push(`${key}：领奖目标 ${claimBundleItemDefId} 必须是 Type=Bundle。`);
         }
-        if (claimBundle.PromoRule !== "manual" || claimBundle.GrantedManually !== true) {
-            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须配置 PromoRule=manual 且 GrantedManually=true。`);
+        const requiredPromo = isParticipation ? `played:${participationApp}/2` : "manual";
+        if (claimBundle.PromoRule !== requiredPromo || claimBundle.GrantedManually !== true) {
+            errors.push(`${key}：领奖 Bundle ${claimBundleItemDefId} 必须配置 PromoRule=${requiredPromo} 且 GrantedManually=true。`);
         }
         if (claimBundle.Tradable !== false || claimBundle.Marketable !== false
             || claimBundle.GameOnly !== true || claimBundle.StoreHidden !== true) {
@@ -837,6 +842,15 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             errors.push(`${key}：不支持的 RewardType ${record.RewardType}。`);
         }
 
+        for (const itemId of record.AdditionalRewardItemIds ?? []) {
+            const item = itemsById.get(itemId);
+            if (!isParticipation || !item || !item.SteamItemDefId || expected.has(item.SteamItemDefId)
+                || (item.BuildChannelMask & buildChannelMask) !== buildChannelMask) {
+                errors.push(`${key}：附加装扮 ${itemId} 重复、未映射或渠道不匹配。`);
+                continue;
+            }
+            expected.set(item.SteamItemDefId, 1);
+        }
         const actual = parseFixedBundleRecipe(claimBundle.Bundle);
         const expectedRecipe = formatExpectedBundle([...expected.entries()]);
         if (!actual || actual.size !== expected.size

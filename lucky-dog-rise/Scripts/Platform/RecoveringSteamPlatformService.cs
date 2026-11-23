@@ -89,6 +89,13 @@ public sealed class RecoveringSteamPlatformService : IGamePlatformService, IPlat
     public bool IsPromoGrantPending => _session?.IsPromoGrantPending == true;
     public bool IsPlaytimeDropPending => _session?.IsPlaytimeDropPending == true;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _session?.InventoryItems ?? [];
+    public IReadOnlySet<int> EligiblePromoItemDefs =>
+        IsInventoryReady && !HasAccountIdentityConflict ? _session.EligiblePromoItemDefs : null;
+    public void RefreshPromoEligibility()
+    {
+        if (IsInventoryReady && !HasAccountIdentityConflict)
+            _session.RefreshPromoEligibility();
+    }
     public PlatformConnectionState ConnectionState { get; private set; } = PlatformConnectionState.Offline;
     public PlatformInventoryTrustState InventoryTrustState { get; private set; } = PlatformInventoryTrustState.Unknown;
     public string InventoryTrustMessage { get; private set; } = "Steam 库存尚未完成可信同步。";

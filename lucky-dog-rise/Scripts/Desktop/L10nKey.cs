@@ -100,6 +100,10 @@ public static class L10nKey
     public const string OutfitPreset_DeleteSlot = nameof(OutfitPreset_DeleteSlot);
     public const string LinkTree_SyncingRewards = nameof(LinkTree_SyncingRewards);
     public const string LinkTree_RewardsUnavailable = nameof(LinkTree_RewardsUnavailable);
+    public const string LinkTree_DemoGift = nameof(LinkTree_DemoGift);
+    public const string LinkTree_PlaytestGift = nameof(LinkTree_PlaytestGift);
+    public const string LinkTree_TryDemo = nameof(LinkTree_TryDemo);
+    public const string LinkTree_CheckingParticipation = nameof(LinkTree_CheckingParticipation);
     public const string InfoPanel_Chips = nameof(InfoPanel_Chips);
     public const string InfoPanel_Chips_Safe = nameof(InfoPanel_Chips_Safe);
     public const string InfoPanel_Open = nameof(InfoPanel_Open);

@@ -126,6 +126,71 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         || _playtimeDropAwaitingInventoryVerification != null;
     public IReadOnlyList<PlatformInventoryItem> InventoryItems => _inventoryItems;
 
+    private CallResult<SteamInventoryEligiblePromoItemDefIDs_t> _eligibilityCall;
+    private long _eligibilityRequestedAt;
+    private bool _participationBundlesLoaded;
+    public IReadOnlySet<int> EligiblePromoItemDefs { get; private set; }
+
+    public void RefreshPromoEligibility()
+    {
+        if (!IsInventoryReady || !_runtime.TryGetCurrentSteamId(out var id) || id != _runtime.SteamId)
+            return;
+        var now = Environment.TickCount64;
+        if (_eligibilityCall != null && now - _eligibilityRequestedAt < 10_000)
+            return;
+        _eligibilityCall?.Dispose();
+        _eligibilityCall = null;
+        _eligibilityRequestedAt = now;
+        if (!_participationBundlesLoaded)
+        {
+            // A successful but empty eligibility list is meaningless before the target schema is published.
+            foreach (var gift in LubanData.Tables.TbLinkTree.DataList.Where(entry =>
+                         entry.IsEnabled && entry.ParticipationAppId > 0 && BuildInfo.IncludesCurrentChannel(entry.BuildChannelMask)))
+            {
+                uint length = 64;
+                if (!SteamInventory.GetItemDefinitionProperty((SteamItemDef_t)gift.SteamClaimBundleItemDefId,
+                        "type", out var type, ref length) || type != "bundle")
+                {
+                    EligiblePromoItemDefs = null;
+                    return;
+                }
+            }
+            _participationBundlesLoaded = true;
+        }
+        var handle = SteamInventory.RequestEligiblePromoItemDefinitionsIDs(new CSteamID(id));
+        if (handle == SteamAPICall_t.Invalid)
+        {
+            EligiblePromoItemDefs = null;
+            return;
+        }
+        _eligibilityCall = CallResult<SteamInventoryEligiblePromoItemDefIDs_t>.Create(OnPromoEligibility);
+        _eligibilityCall.Set(handle);
+    }
+
+    private void OnPromoEligibility(SteamInventoryEligiblePromoItemDefIDs_t result, bool ioFailure)
+    {
+        _eligibilityCall?.Dispose();
+        _eligibilityCall = null;
+        EligiblePromoItemDefs = null;
+        if (ioFailure || result.m_result != EResult.k_EResultOK
+            || (ulong)result.m_steamID != _runtime.SteamId
+            || !_runtime.TryGetCurrentSteamId(out var id) || id != _runtime.SteamId
+            || result.m_numEligiblePromoItemDefs < 0)
+            return;
+
+        uint count = (uint)result.m_numEligiblePromoItemDefs;
+        var defs = new SteamItemDef_t[count];
+        if (count > 0 && (!SteamInventory.GetEligiblePromoItemDefinitionIDs(result.m_steamID, defs, ref count)
+            || count > defs.Length))
+            return;
+        EligiblePromoItemDefs = defs.Take((int)count).Select(def => (int)def).ToHashSet();
+        DiagnosticLog.Record("promo_eligibility_received", new Dictionary<string, object>
+        {
+            ["eligibleItemDefs"] = string.Join(",", EligiblePromoItemDefs),
+            ["cached"] = result.m_bCachedData,
+        });
+    }
+
     public void RunCallbacks()
     {
 #if !DEMO_BUILD && !RECORDING_BUILD
@@ -641,6 +706,9 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
 
     public void Dispose()
     {
+        _eligibilityCall?.Dispose();
+        _eligibilityCall = null;
+        EligiblePromoItemDefs = null;
 #if !DEMO_BUILD && !RECORDING_BUILD
         _roomService?.Dispose();
         _roomService = null;
@@ -677,15 +745,19 @@ public sealed class SteamGamePlatformService : IGamePlatformService, IPlatformAc
         }
 
         var serverIds = serverDefinitions.Select(itemDef => (int)itemDef).ToHashSet();
+        // Match the schema converter: the Playtest-only range is deliberately absent from Release.
+        var testRange = LubanData.Tables.TbSteamItemDefIdRange.Get(1009);
+        bool MissingInThisApp(int id) => !serverIds.Contains(id)
+            && (AppId != BuildInfo.ReleaseSteamAppId || id < testRange.StartItemDefId || id > testRange.EndItemDefId);
         var missingIds = LubanData.Tables.TbSteamItemDef.DataList
             // Steam does not enumerate published playtime generators here. Their validity is
             // checked by the TriggerItemDrop result when a schedule requests a drop.
             .Where(itemDef => itemDef.IsEnabled &&
                               itemDef.Type != DataTables.ESteamItemDefType.PlaytimeGenerator &&
-                              !serverIds.Contains(itemDef.Id))
+                              MissingInThisApp(itemDef.Id))
             .Select(itemDef => itemDef.Id)
             .Concat(LubanData.Tables.TbItem.DataList
-                .Where(item => item.SteamItemDefId > 0 && !serverIds.Contains(item.SteamItemDefId))
+                .Where(item => item.SteamItemDefId > 0 && MissingInThisApp(item.SteamItemDefId))
                 .Select(item => item.SteamItemDefId))
             .Distinct()
             .OrderBy(id => id)

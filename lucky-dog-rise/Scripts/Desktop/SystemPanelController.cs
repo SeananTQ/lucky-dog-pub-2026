@@ -909,6 +909,7 @@ public partial class SystemPanelController : CanvasLayer
             ResetPanelScrollDrag();
 
         ProcessLinkTreeInventoryRecheck(delta);
+        UpdateParticipationEligibility(delta);
 
         if (_linkTreePageState == LinkTreePageState.Loading && !_linkTreeShowRecoveryAdvice)
         {
@@ -1087,6 +1088,7 @@ public partial class SystemPanelController : CanvasLayer
         }
         if (index == 1)
         {
+            RequestParticipationEligibility();
             RefreshLinkTreeVisibleEntries();
             _refreshLinkTreeSelectionOnNextInventorySnapshot = true;
             RefreshLinkTreePageFromPlatformState();
@@ -1654,6 +1656,8 @@ public partial class SystemPanelController : CanvasLayer
         public ItemCellController RewardCell = null!;
         public Label RewardAmountLabel = null!;
         public Label DebugIdLabel = null!;
+        public Label ParticipationTitle;
+        public Label ParticipationAction;
         public LinkTree Data = null!;
         public LinkTreeRewardState State;
         public bool SelectedForDisplay;
@@ -1717,6 +1721,13 @@ public partial class SystemPanelController : CanvasLayer
             State = LinkTreeRewardState.Unopened,
         };
         entry.DebugIdLabel.Text = data.Id.ToString();
+        if (data.ParticipationAppId > 0)
+        {
+            var caption = banner.GetNode<VBoxContainer>("ParticipationCaption");
+            caption.Visible = true;
+            entry.ParticipationTitle = caption.GetNode<Label>("Title");
+            entry.ParticipationAction = caption.GetNode<Label>("Action");
+        }
 #if DEBUG
         entry.DebugIdLabel.Visible = _steamMockActive;
 #endif
@@ -1728,6 +1739,11 @@ public partial class SystemPanelController : CanvasLayer
 
     private void OnLinkTreeBannerPressed(LinkTreeRewardEntry entry)
     {
+        if (entry.Data.ParticipationAppId > 0)
+        {
+            OnParticipationGiftPressed(entry);
+            return;
+        }
         if (entry.State == LinkTreeRewardState.Claimed)
         {
             OpenLinkTreeUrl(entry.Data.Key, entry.Data.PostClaimUrl);
@@ -1900,7 +1916,9 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var entry in _linkTreeRewardEntries)
         {
             RefreshLinkTreeRewardEntry(entry);
-            entry.Banner.Visible = showBanners && entry.SelectedForDisplay;
+            entry.Banner.Visible = entry.Data.ParticipationAppId > 0
+                ? CanShowParticipationGift(entry)
+                : showBanners && entry.SelectedForDisplay;
         }
 
         TryPlayPendingLinkTreeRewardFeedbacks();
@@ -1980,7 +1998,8 @@ public partial class SystemPanelController : CanvasLayer
             GD.PushWarning("[LinkTree] LinkTreeVisibleBannerCount must be positive; showing all enabled banners.");
 
         var selected = new HashSet<LinkTreeRewardEntry>();
-        foreach (var entry in _linkTreeRewardEntries.Where(entry => entry.Data.IsPinned))
+        var ordinary = _linkTreeRewardEntries.Where(entry => entry.Data.ParticipationAppId == 0).ToList();
+        foreach (var entry in ordinary.Where(entry => entry.Data.IsPinned))
             selected.Add(entry);
 
         if (selected.Count > visibleCount)
@@ -1992,20 +2011,20 @@ public partial class SystemPanelController : CanvasLayer
 
         AddLinkTreeEntriesUntilFull(
             selected,
-            _linkTreeRewardEntries.Where(entry =>
+            ordinary.Where(entry =>
                 !entry.Data.IsPinned && (entry.RewardFeedbackPending || entry.RewardFeedbackPlaying)),
             visibleCount);
         AddLinkTreeEntriesUntilFull(
             selected,
-            _linkTreeRewardEntries.Where(entry => !entry.Data.IsPinned && entry.State != LinkTreeRewardState.Claimed),
+            ordinary.Where(entry => !entry.Data.IsPinned && entry.State != LinkTreeRewardState.Claimed),
             visibleCount);
         AddLinkTreeEntriesUntilFull(
             selected,
-            _linkTreeRewardEntries.Where(entry => !entry.Data.IsPinned && entry.State == LinkTreeRewardState.Claimed),
+            ordinary.Where(entry => !entry.Data.IsPinned && entry.State == LinkTreeRewardState.Claimed),
             visibleCount);
 
         foreach (var entry in _linkTreeRewardEntries)
-            entry.SelectedForDisplay = selected.Contains(entry);
+            entry.SelectedForDisplay = entry.Data.ParticipationAppId > 0 || selected.Contains(entry);
 
         RefreshLinkTreePagePresentation();
     }
@@ -2098,7 +2117,7 @@ public partial class SystemPanelController : CanvasLayer
         {
             var pendingLinkTreeId = _gameData.PendingLinkTreeClaim?.LinkTreeId;
             var baselineIds = _linkTreeRewardEntries
-                .Where(entry => snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
+                .Where(entry => !UsesSessionParticipationGift(entry) && snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
                 // A persisted in-flight claim is not historical. If its receipt appeared
                 // while the game was closed, the recovery block below must still grant it.
                 .Where(entry => entry.Data.Id != pendingLinkTreeId)
@@ -2126,12 +2145,7 @@ public partial class SystemPanelController : CanvasLayer
             if (snapshot.OwnedItemDefIds.Contains(pending!.SteamReceiptItemDefId)
                 && IsLinkTreeRewardConfirmedBySnapshot(pendingEntry.Data, snapshot))
             {
-                CompleteSteamLinkTreeClaim(
-                    pendingEntry,
-                    recovered: true,
-                    confirmedRewardItemCount: GetLinkTreeRewardItemCount(
-                        pendingEntry.Data,
-                        snapshot.Items));
+                CompleteSteamLinkTreeClaim(pendingEntry, recovered: true, snapshot.Items);
             }
             else if (_inventoryService?.IsPromoGrantPending != true)
             {
@@ -2141,16 +2155,13 @@ public partial class SystemPanelController : CanvasLayer
 
         foreach (var entry in _linkTreeRewardEntries)
         {
-            if (!snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
+            if (UsesSessionParticipationGift(entry) || !snapshot.OwnedItemDefIds.Contains(entry.Data.SteamReceiptItemDefId))
                 continue;
 
             if (!IsLinkTreeRewardConfirmedBySnapshot(entry.Data, snapshot))
                 continue;
 
-            CompleteSteamLinkTreeClaim(
-                entry,
-                recovered: true,
-                confirmedRewardItemCount: GetLinkTreeRewardItemCount(entry.Data, snapshot.Items));
+            CompleteSteamLinkTreeClaim(entry, recovered: true, snapshot.Items);
         }
 
         ResumeWaitingLinkTreeClaims();
@@ -2169,7 +2180,10 @@ public partial class SystemPanelController : CanvasLayer
         RefreshLinkTreePageFromPlatformState();
         RefreshUpdateAndRestartAvailability();
         if (state == PlatformConnectionState.Ready)
+        {
+            RequestParticipationEligibility();
             ResumeWaitingLinkTreeClaims();
+        }
     }
 
     private void OnPlatformInventoryTrustStateChanged(PlatformInventoryTrustState _) =>
@@ -2180,7 +2194,7 @@ public partial class SystemPanelController : CanvasLayer
         var entry = _linkTreeRewardEntries.FirstOrDefault(candidate =>
             candidate.Data.SteamClaimBundleItemDefId == result.PromoItemDefId
             && candidate.Data.SteamReceiptItemDefId == result.ReceiptItemDefId);
-        if (entry == null)
+        if (entry == null || UsesSessionParticipationGift(entry))
         {
             // Other inventory-backed features share AddPromoItem with LinkTree.
             return;
@@ -2203,12 +2217,7 @@ public partial class SystemPanelController : CanvasLayer
 
         if (IsLinkTreeRewardConfirmedByItems(entry.Data, result.ChangedItems))
         {
-            CompleteSteamLinkTreeClaim(
-                entry,
-                recovered: false,
-                confirmedRewardItemCount: GetConfirmedPromoRewardItemCount(
-                    entry.Data,
-                    result.ChangedItems));
+            CompleteSteamLinkTreeClaim(entry, recovered: false, result.ChangedItems);
         }
         else
         {
@@ -2223,7 +2232,7 @@ public partial class SystemPanelController : CanvasLayer
     private void CompleteSteamLinkTreeClaim(
         LinkTreeRewardEntry entry,
         bool recovered,
-        int confirmedRewardItemCount = 0)
+        IReadOnlyList<PlatformInventoryItem> items)
     {
         if (_gameData?.PendingLinkTreeClaim is { } pending
             && (pending.LinkTreeId != entry.Data.Id
@@ -2246,18 +2255,21 @@ public partial class SystemPanelController : CanvasLayer
             return;
         }
 
-        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItem
-            && entry.Data.RewardItemId > 0
-            && confirmedRewardItemCount > 0)
+        if (entry.Data.RewardType == ELinkTreeRewardType.FixedItem)
         {
             // The reward is a known Steam increase. Persist that attribution before the
             // LinkTree transaction is cleared so a later full snapshot cannot present the
             // same item as an unknown recovery.
-            _gameData?.RegisterKnownPlatformItemCount(
-                entry.Data.RewardItemId,
-                confirmedRewardItemCount);
+            foreach (var itemId in entry.Data.AdditionalRewardItemIds.Prepend(entry.Data.RewardItemId))
+            {
+                int count = recovered ? GetLinkTreeRewardItemCount(itemId, items)
+                    : GetConfirmedPromoRewardItemCount(itemId, items);
+                _gameData?.RegisterKnownPlatformItemCount(itemId, count);
+            }
         }
 
+        var showFeedback = entry.Data.ParticipationAppId == 0 || !recovered
+            || _gameData?.PendingLinkTreeClaim?.LinkTreeId == entry.Data.Id;
         if (!TryGrantLinkTreeReward(entry.Data))
         {
             GD.PushError($"[LinkTree] Steam receipt exists but local reward failed for {entry.Data.Key}.");
@@ -2266,8 +2278,11 @@ public partial class SystemPanelController : CanvasLayer
 
         MarkLinkTreeEntryClaimed(entry);
         _gameData?.RecordPlaytestLinkTreeRewardClaimed();
-        SetupLinkTreeRewardPreview(entry);
-        QueueLinkTreeRewardFeedback(entry);
+        if (showFeedback)
+        {
+            SetupLinkTreeRewardPreview(entry);
+            QueueLinkTreeRewardFeedback(entry);
+        }
         GD.Print($"[LinkTree] {(recovered ? "Recovered" : "Completed")} Steam-backed reward for {entry.Data.Key} ({entry.Data.Id}).");
         DiagnosticLog.Record("linktree_reward_completed", new Dictionary<string, object>
         {
@@ -2322,7 +2337,7 @@ public partial class SystemPanelController : CanvasLayer
         LinkTree data,
         PlatformInventorySnapshot snapshot)
     {
-        if (data.RewardType != ELinkTreeRewardType.FixedItem)
+        if (data.ParticipationAppId > 0 || data.RewardType != ELinkTreeRewardType.FixedItem)
             return true;
 
         var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
@@ -2348,13 +2363,10 @@ public partial class SystemPanelController : CanvasLayer
     }
 
     private static int GetLinkTreeRewardItemCount(
-        LinkTree data,
+        int itemId,
         IReadOnlyList<PlatformInventoryItem> items)
     {
-        if (data.RewardType != ELinkTreeRewardType.FixedItem)
-            return 0;
-
-        var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
         if (item == null || item.SteamItemDefId <= 0)
             return 0;
 
@@ -2366,13 +2378,13 @@ public partial class SystemPanelController : CanvasLayer
     }
 
     private int GetConfirmedPromoRewardItemCount(
-        LinkTree data,
+        int itemId,
         IReadOnlyList<PlatformInventoryItem> changedItems)
     {
         var cachedCount = GetLinkTreeRewardItemCount(
-            data,
+            itemId,
             _inventoryService?.InventoryItems ?? []);
-        var item = LubanData.Tables.TbItem.GetOrDefault(data.RewardItemId);
+        var item = LubanData.Tables.TbItem.GetOrDefault(itemId);
         if (item == null || item.SteamItemDefId <= 0)
             return cachedCount;
 
@@ -2474,6 +2486,11 @@ public partial class SystemPanelController : CanvasLayer
 
     private void RefreshLinkTreeRewardEntry(LinkTreeRewardEntry entry)
     {
+        if (entry.Data.ParticipationAppId > 0)
+        {
+            RefreshParticipationGift(entry);
+            return;
+        }
         var showLoading = entry.ClaimPending && entry.State != LinkTreeRewardState.Claimed;
         var inventoryWritePending = !BuildCapabilities.LocalLinkTreeRewards && IsSharedInventoryWritePending();
         entry.Banner.Disabled = inventoryWritePending;
@@ -2564,6 +2581,8 @@ public partial class SystemPanelController : CanvasLayer
     private void QueueLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
     {
         entry.RewardFeedbackPending = true;
+        if (entry.Data.ParticipationAppId > 0)
+            RefreshLinkTreePagePresentation();
         TryPlayPendingLinkTreeRewardFeedback(entry);
     }
 
@@ -2576,7 +2595,7 @@ public partial class SystemPanelController : CanvasLayer
     private void TryPlayPendingLinkTreeRewardFeedback(LinkTreeRewardEntry entry)
     {
         if (!entry.RewardFeedbackPending
-            || _linkTreePageState != LinkTreePageState.Ready
+            || (_linkTreePageState != LinkTreePageState.Ready && entry.Data.ParticipationAppId == 0)
             || !_linkTreeContent.Visible
             || !entry.SelectedForDisplay
             || !entry.Banner.IsVisibleInTree())
@@ -3115,6 +3134,8 @@ public partial class SystemPanelController : CanvasLayer
         EnsureCurrentTabReady();
         _panel.Modulate = Colors.White with { A = 0f };
         _panel.Visible = true;
+        if (_linkTreeContent?.Visible == true)
+            RequestParticipationEligibility();
         RefreshRecoveredItemsOverlay();
         EmitSignal(SignalName.OpenStateChanged, true);
         Callable.From(TryPlayPendingLinkTreeRewardFeedbacks).CallDeferred();
@@ -3755,7 +3776,12 @@ public partial class SystemPanelController : CanvasLayer
         foreach (var (button, tab) in _filterTabs)
             button.TooltipText = GetWardrobeTabTooltip(tab);
         foreach (var entry in _linkTreeRewardEntries)
-            entry.Banner.TooltipText = ResolveLinkTreeTooltip(entry.Data);
+        {
+            if (entry.Data.ParticipationAppId > 0)
+                RefreshParticipationGift(entry);
+            else
+                entry.Banner.TooltipText = ResolveLinkTreeTooltip(entry.Data);
+        }
         if (_outfitPresetTab != null)
             _outfitPresetTab.TooltipText = L10n.Tr(L10nKey.Settings_Tab_OutfitPresets);
         if (_outfitPresetContent?.Visible == true)

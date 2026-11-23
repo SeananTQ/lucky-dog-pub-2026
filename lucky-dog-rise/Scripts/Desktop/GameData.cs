@@ -95,6 +95,21 @@ public partial class GameData : Node
     private RefreshmentRuntimeState _refreshmentRuntimeState = new();
     public PendingLinkTreeClaim PendingLinkTreeClaim { get; private set; }
     private readonly HashSet<int> _appliedLinkTreeRewardIds = new();
+    // This ledger belongs to the current account session and is deliberately absent from SaveProfile.
+    private readonly HashSet<int> _sessionParticipationGifts = new();
+    public bool HasSessionParticipationGift(int id) => _sessionParticipationGifts.Contains(id);
+
+    public bool TryGrantSessionParticipationGift(LinkTree data)
+    {
+        if (BuildInfo.Channel is not (BuildChannel.Dev or BuildChannel.Playtest)
+            || _accountStorageFrozen || data.ParticipationAppId <= 0
+            || !_sessionParticipationGifts.Add(data.Id))
+            return false;
+        AddItem(data.RewardItemId, source: PlayerProgressSource.Debug);
+        foreach (var itemId in data.AdditionalRewardItemIds)
+            AddItem(itemId, source: PlayerProgressSource.Debug);
+        return true;
+    }
     private readonly Dictionary<string, HashSet<int>> _collectionEventRevealedItemIdsByEvent =
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _collectionEventVictoryRewardClaimedEventIds =
@@ -2492,7 +2507,7 @@ public partial class GameData : Node
                && linkTree.SteamClaimBundleItemDefId == pending.SteamClaimBundleItemDefId
                && linkTree.SteamReceiptItemDefId == pending.SteamReceiptItemDefId
                && linkTree.RewardType == ELinkTreeRewardType.FixedItem
-               && linkTree.RewardItemId == itemId;
+               && (linkTree.RewardItemId == itemId || linkTree.AdditionalRewardItemIds.Contains(itemId));
     }
 
     private void QueueRecoveredItem(int itemId, int count, string reason)

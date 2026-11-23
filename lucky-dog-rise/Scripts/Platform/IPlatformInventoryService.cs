@@ -14,6 +14,10 @@ public interface IPlatformInventoryService
     bool IsPlaytimeDropPending { get; }
     IReadOnlyList<PlatformInventoryItem> InventoryItems { get; }
 
+    // Null until a successful, account-bound read. Reading eligibility never grants a promo.
+    IReadOnlySet<int> EligiblePromoItemDefs => null;
+    void RefreshPromoEligibility() { }
+
     void StartInventorySynchronization();
     bool TryGrantPromoItem(int promoItemDefId, int receiptItemDefId, out string message);
     bool TryTriggerPlaytimeDrop(int generatorItemDefId, out string message);

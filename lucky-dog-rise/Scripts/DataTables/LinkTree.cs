@@ -36,6 +36,9 @@ public sealed partial class LinkTree : Luban.BeanBase
         { if(!_buf["RewardBlindBoxId"].IsNumber) { throw new SerializationException(); }  RewardBlindBoxId = _buf["RewardBlindBoxId"]; }
         { if(!_buf["SteamReceiptItemDefId"].IsNumber) { throw new SerializationException(); }  SteamReceiptItemDefId = _buf["SteamReceiptItemDefId"]; }
         { if(!_buf["SteamClaimBundleItemDefId"].IsNumber) { throw new SerializationException(); }  SteamClaimBundleItemDefId = _buf["SteamClaimBundleItemDefId"]; }
+        { if(!_buf["ParticipationAppId"].IsNumber) { throw new SerializationException(); }  ParticipationAppId = _buf["ParticipationAppId"]; }
+        { if(!_buf["ShowBeforeEligible"].IsBoolean) { throw new SerializationException(); }  ShowBeforeEligible = _buf["ShowBeforeEligible"]; }
+        { var __json0 = _buf["AdditionalRewardItemIds"]; if(!__json0.IsArray) { throw new SerializationException(); } AdditionalRewardItemIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  AdditionalRewardItemIds.Add(__v0); }   }
     }
 
     public static LinkTree DeserializeLinkTree(JSONNode _buf)
@@ -116,9 +119,21 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly int SteamReceiptItemDefId;
     /// <summary>
-    /// 客户端调用 AddPromoItem 的目标。<br/>必须指向 Type=Bundle、PromoRule=manual 的定义。
+    /// 客户端定向领取的礼包。普通入口使用 manual，参与礼物使用 played:AppID/2。
     /// </summary>
     public readonly int SteamClaimBundleItemDefId;
+    /// <summary>
+    /// 参与礼物依据此 Steam 应用的游玩资格；普通活动留空。
+    /// </summary>
+    public readonly int ParticipationAppId;
+    /// <summary>
+    /// 参与礼物未达标时仍显示，点击前往试玩。
+    /// </summary>
+    public readonly bool ShowBeforeEligible;
+    /// <summary>
+    /// 参与礼物除主展示道具外，每件另发一份。
+    /// </summary>
+    public readonly System.Collections.Generic.List<int> AdditionalRewardItemIds;
    
     public const int __ID__ = 1258843864;
     public override int GetTypeId() => __ID__;
@@ -149,6 +164,9 @@ public sealed partial class LinkTree : Luban.BeanBase
         + "RewardBlindBoxId:" + RewardBlindBoxId + ","
         + "SteamReceiptItemDefId:" + SteamReceiptItemDefId + ","
         + "SteamClaimBundleItemDefId:" + SteamClaimBundleItemDefId + ","
+        + "ParticipationAppId:" + ParticipationAppId + ","
+        + "ShowBeforeEligible:" + ShowBeforeEligible + ","
+        + "AdditionalRewardItemIds:" + Luban.StringUtil.CollectionToString(AdditionalRewardItemIds) + ","
         + "}";
     }
 }

@@ -45,6 +45,24 @@ texture = ExtResource("1_banner")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="ParticipationCaption" type="VBoxContainer" parent="."]
+visible = false
+anchor_right = 0.66
+anchor_bottom = 1.0
+offset_left = 14.0
+mouse_filter = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="ParticipationCaption"]
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+text_overrun_behavior = 3
+
+[node name="Action" type="Label" parent="ParticipationCaption"]
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 3
+
 [node name="GiftBadge" type="TextureRect" parent="." unique_id=205383931]
 mouse_filter = 2
 layout_mode = 1
