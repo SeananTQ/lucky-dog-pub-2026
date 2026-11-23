@@ -36,7 +36,7 @@ public enum DebugBlindBoxProgressMode
 public sealed record DebugSteamLinkTreeGrant(
     int BundleItemDefId,
     int ReceiptItemDefId,
-    int RewardItemDefId);
+    IReadOnlyList<int> RewardItemDefIds);
 
 public sealed record DebugSteamPlaytimeDropRule(
     int GeneratorItemDefId,

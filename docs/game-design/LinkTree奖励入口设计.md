@@ -1,6 +1,6 @@
 ---
 last_editor: Codex
-last_edit: 2026-08-12
+last_edit: 2026-11-23
 status: draft
 ---
 
@@ -103,7 +103,8 @@ Steam Inventory 写操作在盲盒与 LinkTree 之间共用事务保护。客户
 
 2. `FixedItem`
    - 固定道具奖励。
-   - `RewardItemId` 填本地 `Item.Id`，用于展示和映射。
+   - `RewardItemId` 填第一件物品的本地 `Item.Id`，其余物品按展示顺序填入 `AdditionalRewardItemIds`，在 Excel 单元格内用半角分号分隔。每种物品发一件，同一礼包内的 ID 必须互不重复。
+   - 单件物品在 Banner 上播放获得动画。两件及以上共用“小狗找回物品”的滚动图标网格，标题显示本次领取件数。玩家可在确认前查看全部奖励，离开系统面板后再次进入 LinkTree 可继续查看。确认只关闭奖励展示。
    - 实际物品由 Steam 领取 Bundle 直接发放，其 ItemDef 来自 `Item.SteamItemDefId`；客户端不在本地凭空添加该道具。
 
 3. `FixedChips`

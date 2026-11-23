@@ -884,10 +884,12 @@ public sealed class DebugSteamMockPlatformService : IGamePlatformService, IPlatf
             _mockItems.Add(receipt);
             changedItems.Add(receipt);
         }
-        if (grant.RewardItemDefId > 0)
+        foreach (var rewardItemDefId in grant.RewardItemDefIds)
         {
+            // ItemDefs occupy the six-digit range. Each bundle/reward pair has its own instance.
             var reward = new PlatformInventoryItem(
-                LinkTreeRewardInstanceBase + checked((ulong)grant.ReceiptItemDefId), grant.RewardItemDefId, 1);
+                LinkTreeRewardInstanceBase + (ulong)grant.ReceiptItemDefId * 1_000_000 + (ulong)rewardItemDefId,
+                rewardItemDefId, 1);
             if (_mockItems.All(item => item.InstanceId != reward.InstanceId))
             {
                 _mockItems.Add(reward);

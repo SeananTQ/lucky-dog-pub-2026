@@ -280,6 +280,8 @@ test("Demo rejects invalid rewards and Steam-backed claims", () => {
     const consumable = gameItem({ ItemType: 9, AcquisitionType: 3, SteamItemDefId: 0 });
     for (const change of [
         { RewardItemId: 999999 }, { RewardType: 4 },
+        { AdditionalRewardItemIds: [999999] }, { AdditionalRewardItemIds: [1002] },
+        { RewardType: 2, RewardChips: 100, RewardItemId: 0, AdditionalRewardItemIds: [1002] },
         { RewardType: 2, RewardItemId: 0, RewardChips: 0 },
         { RewardType: 2, RewardChips: 100 },
         { SteamReceiptItemDefId: 401001 }, { SteamClaimBundleItemDefId: 406001 },
@@ -360,6 +362,19 @@ test("participation gift validates the app, two minutes, passive receipt and eve
     }
     assert.ok(buildArtifacts([receipt(), bundle], [row], items).errors.length);
     assert.ok(buildArtifacts([passive, { ...bundle, Bundle: "401001x1;101002x1" }], [row], items).errors.length);
+});
+
+test("ordinary fixed item entries can grant several distinct items in one manual bundle", () => {
+    const row = linkTree({ BuildChannelMask: 10, AdditionalRewardItemIds: [1003] });
+    const items = [gameItem({ BuildChannelMask: 10 }),
+        gameItem({ Id: 1003, SteamItemDefId: 101003, BuildChannelMask: 10 })];
+    const verify = (recipe, entry = row) =>
+        buildArtifacts([receipt(), claimBundle({ Bundle: recipe })], [entry], items).errors;
+    const recipe = "401001x1;101002x1;101003x1";
+    assert.deepEqual(verify(recipe), []);
+    assert.ok(verify("401001x1;101002x1").length);
+    assert.ok(verify("401001x1;101002x1;101003x2").length);
+    assert.ok(verify(recipe, { ...row, AdditionalRewardItemIds: [1002] }).length);
 });
 
 test("rejects a LinkTree bundle with the wrong fixed item reward", () => {

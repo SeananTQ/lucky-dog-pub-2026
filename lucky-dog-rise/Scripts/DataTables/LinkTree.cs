@@ -131,7 +131,7 @@ public sealed partial class LinkTree : Luban.BeanBase
     /// </summary>
     public readonly bool ShowBeforeEligible;
     /// <summary>
-    /// 参与礼物除主展示道具外，每件另发一份。
+    /// 固定物品奖励除主物品外的其余 Item ID，每种发放一件。
     /// </summary>
     public readonly System.Collections.Generic.List<int> AdditionalRewardItemIds;
    

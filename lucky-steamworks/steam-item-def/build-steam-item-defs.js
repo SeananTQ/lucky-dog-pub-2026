@@ -716,6 +716,10 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             continue;
         }
 
+        const extraItems = record.AdditionalRewardItemIds ?? [];
+        if (extraItems.length && record.RewardType !== 1) {
+            errors.push(`${key}：只有 FixedItem 入口可以配置 AdditionalRewardItemIds。`);
+        }
         // Demo-only activities settle in the local save and never create Steam rewards.
         if (buildChannelMask === BUILD_CHANNEL_MASKS.demo) {
             if (receiptItemDefId !== 0 || claimBundleItemDefId !== 0) {
@@ -723,8 +727,12 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             }
             if (isEnabled) {
                 if (record.RewardType === 1) {
-                    const item = itemsById.get(record.RewardItemId);
-                    if (!item || item.ItemType !== 9 || item.AcquisitionType !== 3
+                    const ids = [record.RewardItemId, ...extraItems];
+                    const invalidItem = ids.some(id => {
+                        const item = itemsById.get(id);
+                        return !item || item.ItemType !== 9 || item.AcquisitionType !== 3;
+                    });
+                    if (invalidItem || new Set(ids).size !== ids.length
                         || (record.RewardChips ?? 0) !== 0) {
                         errors.push(`${key}：Demo 固定物品奖励必须是有效的本地 Refreshment 消耗品，RewardChips 必须为 0。`);
                     }
@@ -842,9 +850,9 @@ function validateLinkTree(records, itemDefs, itemRecords) {
             errors.push(`${key}：不支持的 RewardType ${record.RewardType}。`);
         }
 
-        for (const itemId of record.AdditionalRewardItemIds ?? []) {
+        for (const itemId of extraItems) {
             const item = itemsById.get(itemId);
-            if (!isParticipation || !item || !item.SteamItemDefId || expected.has(item.SteamItemDefId)
+            if (!item || !(item.SteamItemDefId > 0) || expected.has(item.SteamItemDefId)
                 || (item.BuildChannelMask & buildChannelMask) !== buildChannelMask) {
                 errors.push(`${key}：附加装扮 ${itemId} 重复、未映射或渠道不匹配。`);
                 continue;

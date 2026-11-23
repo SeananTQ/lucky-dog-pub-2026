@@ -103,6 +103,16 @@ public partial class DemoLinkTreeSmoke : Node
                 "Fresh save cannot claim again");
 
             var jsonRows = JSON.Parse(FileAccess.GetFileAsString("res://Data/Json/tblinktree.json")).AsArray;
+            var multiJson = JSON.Parse(jsonRows.Children.First(row => row["Id"].AsInt == 2001).ToString());
+            multiJson["Id"] = 2998;
+            var extra = LubanData.Tables.TbItem.DataList.First(item => item.Id != first.RewardItemId
+                && item.ItemType == EItemType.Refreshment && item.AcquisitionType == EAcquisitionType.RefreshmentBlindBox);
+            multiJson["AdditionalRewardItemIds"].AsArray.Add(extra.Id);
+            var multi = new LinkTree(multiJson);
+            var previousCounts = multi.FixedRewardItemIds.ToDictionary(id => id, restored.Inventory.GetCount);
+            Require(restored.TryApplyDemoLinkTreeRewardOnce(multi) && restored.TryApplyDemoLinkTreeRewardOnce(multi)
+                && previousCounts.All(pair => restored.Inventory.GetCount(pair.Key) == pair.Value + 1),
+                "Ordinary Demo LinkTree did not settle every configured item exactly once");
             var chipsJson = JSON.Parse(jsonRows.Children.First(row => row["Id"].AsInt == 2001).ToString());
             chipsJson["Id"] = 2999;
             chipsJson["RewardType"] = 2;
@@ -154,15 +164,56 @@ public partial class DemoLinkTreeSmoke : Node
             Require(banner.IsVisibleInTree() && !banner.Disabled, "Dev gift not claimable");
             Require(banner.GetNode<TextureRect>("BannerImage").Texture != null, "Temporary gift banner missing");
         }
-        for (int i = 0; i < banners.Length; i++)
+        var expected = LubanData.Tables.TbBlindBoxItemWeight.DataList
+            .Where(row => row.BlindBoxId is 2002 or 2003 && row.IsEnabled && row.Weight > 0)
+            .Select(row => row.ItemId).Append(2034).ToHashSet();
+        Require(expected.Count == 16 && rows[0].FixedRewardItemIds.Count() == 16
+            && expected.SetEquals(rows[0].FixedRewardItemIds), "Demo gift differs from the celebration pool and graduation cap");
+        var before = expected.ToDictionary(id => id, data.Inventory.GetCount);
+        var modal = panel.GetNode<Control>("LinkTreeRewardsOverlay");
+        var scroll = modal.GetNode<ScrollContainer>("OverlayPanel/Margin/Content/ItemsPanel/ItemsScroll");
+        var grid = scroll.GetNode<GridContainer>("ItemGrid");
+        var confirm = modal.GetNode<Button>("OverlayPanel/Margin/Content/ConfirmButton");
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        await Frames();
+        Require(modal.IsVisibleInTree() && confirm.IsVisibleInTree()
+            && modal.GetNode<Label>("OverlayPanel/Margin/Content/Title").Text.Contains("16"), "Multi-item dialog missing");
+        var cells = grid.GetChildren().Cast<ItemCellController>().ToArray();
+        Require(cells.Select(cell => cell.ItemId).SequenceEqual(rows[0].FixedRewardItemIds)
+            && cells.All(cell => cell.GetNode<TextureRect>("Content/IconRect").Texture != null),
+            "Reward grid has missing, duplicate, or misordered icons");
+        var bar = scroll.GetVScrollBar();
+        Require(bar.Page > 0 && bar.MaxValue > bar.Page, "All rows must be accessible via a vertical scrollbar");
+        var pointer = scroll.GetGlobalRect().GetCenter();
+        var viewport = panel.GetViewport();
+        viewport.PushInput(new InputEventMouseMotion { Position = pointer, GlobalPosition = pointer }, true);
+        viewport.PushInput(new InputEventMouseButton
         {
-            int before = data.Inventory.GetCount(rows[i].RewardItemId);
-            banners[i].EmitSignal(Button.SignalName.Pressed);
-            banners[i].EmitSignal(Button.SignalName.Pressed);
-            Require(data.Inventory.GetCount(rows[i].RewardItemId) == before + 1, "Duplicate or missing session gift");
-            Require(!data.HasAppliedLinkTreeReward(rows[i].Id), "Session gift persisted a claim receipt");
-            Require((bool)Field(gifts[i], "RewardFeedbackPlaying"), "Gift animation never started");
-        }
+            Position = pointer, GlobalPosition = pointer, ButtonIndex = MouseButton.WheelDown, Pressed = true,
+        }, true);
+        await Frames();
+        Require(scroll.ScrollVertical > 0, "Mouse wheel over the reward icons did not scroll the dialog");
+        scroll.ScrollVertical = (int)bar.MaxValue;
+        await Frames();
+        Require(scroll.ScrollVertical > 0 && scroll.GetGlobalRect().HasPoint(cells[^1].GetGlobalRect().GetCenter()),
+            "Last reward cannot be scrolled into view");
+        panel.CloseImmediate();
+        Require(!modal.Visible, "Closing the panel left a modal behind");
+        panel.Open();
+        await Frames();
+        Require(modal.Visible && scroll.ScrollVertical == 0, "Reward summary lost on reopen");
+        confirm.EmitSignal(Button.SignalName.Pressed);
+        banners[0].EmitSignal(Button.SignalName.Pressed);
+        Require(!modal.Visible && !banners[0].Visible && banners[1].Visible
+            && expected.All(id => data.Inventory.GetCount(id) == before[id] + 1),
+            "Demo confirmation did not settle all 16 distinct items once");
+        var singleCount = data.Inventory.GetCount(rows[1].RewardItemId);
+        banners[1].EmitSignal(Button.SignalName.Pressed);
+        banners[1].EmitSignal(Button.SignalName.Pressed);
+        Require(!modal.Visible && ((Control)Field(gifts[1], "RewardVisualRoot")).Visible
+            && data.Inventory.GetCount(rows[1].RewardItemId) == singleCount + 1, "Single gift feedback or count incorrect");
+        Require(rows.All(row => !data.HasAppliedLinkTreeReward(row.Id)), "Session gift persisted a claim receipt");
         await ToSignal(GetTree().CreateTimer(1.3), SceneTreeTimer.SignalName.Timeout);
         Require(banners.All(b => !b.Visible), "Claimed gifts stayed visible");
         Set(panel, "_gameData", freshSession);
@@ -209,7 +260,46 @@ public partial class DemoLinkTreeSmoke : Node
             true, "test receipt", new HashSet<int> { receipt.ItemDefId }, [receipt]));
         Require(!banners[0].Visible && banners[1].Visible && !(bool)Field(gifts[0], "RewardFeedbackPending"),
             "Release failed to restore the individual receipt without replaying feedback");
-        GD.Print("[ParticipationGifts] PASS: Dev repeat, independent counts, feedback/hide, fresh session, unknown/negative/late qualification, no Steam writes, Release receipt restore.");
+        var inFlight = NewSandbox();
+        try
+        {
+            var gift = rows[0];
+            Call(inFlight, "LoadBlindBoxState", new SaveProfile
+            {
+                PendingLinkTreeClaim = new PendingLinkTreeClaim
+                {
+                    LinkTreeId = gift.Id, SteamClaimBundleItemDefId = gift.SteamClaimBundleItemDefId,
+                    SteamReceiptItemDefId = gift.SteamReceiptItemDefId,
+                },
+            });
+            Set(panel, "_gameData", inFlight);
+            Call(panel, "BuildLinkTree");
+            var complete = gift.FixedRewardItemIds.Select(id => new PlatformInventoryItem(
+                (ulong)id, LubanData.Tables.TbItem.Get(id).SteamItemDefId, 1)).Prepend(receipt).ToArray();
+            var partial = complete.SkipLast(1).ToArray();
+            Call(panel, "OnPlatformPromoItemGrantCompleted", new PlatformPromoItemGrantResult(
+                gift.SteamClaimBundleItemDefId, receipt.ItemDefId, true, true, "partial bundle", partial));
+            void Sync(PlatformInventoryItem[] items)
+            {
+                query.InventoryItems = items;
+                Call(panel, "OnPlatformInventorySnapshotChanged", new PlatformInventorySnapshot(
+                    true, "test bundle", items.Select(item => item.ItemDefId).ToHashSet(), items));
+            }
+            Sync(partial);
+            Require(inFlight.PendingLinkTreeClaim != null && !modal.Visible, "Partial Steam reward shown as complete");
+            Sync(complete);
+            Require(modal.Visible && grid.GetChildCount() == 16 && inFlight.PendingLinkTreeClaim == null,
+                "Complete Steam bundle did not display all rewards");
+            confirm.EmitSignal(Button.SignalName.Pressed);
+            Sync(complete);
+            Require(!modal.Visible && inFlight.HasAppliedLinkTreeReward(gift.Id), "Steam snapshot replayed the reward dialog");
+        }
+        finally
+        {
+            Set(panel, "_gameData", freshSession);
+            inFlight.Free();
+        }
+        GD.Print("[ParticipationGifts] PASS: 16 distinct Demo items, scroll to last icon, confirm/reopen, single Playtest animation, independent counts, fresh session, eligibility, Release receipt restore.");
     }
 
     private sealed class GiftInventory : IPlatformInventoryService

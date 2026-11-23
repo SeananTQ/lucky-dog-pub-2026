@@ -469,7 +469,7 @@
     "PostClaimUrl": "",
     "OpenCheckType": 0,
     "RewardType": 1,
-    "RewardItemId": 2003,
+    "RewardItemId": 2034,
     "RewardChips": 0,
     "SequentialPackId": 0,
     "RewardBlindBoxId": 0,
@@ -477,7 +477,23 @@
     "SteamClaimBundleItemDefId": 601008,
     "ParticipationAppId": 5220880,
     "ShowBeforeEligible": true,
-    "AdditionalRewardItemIds": []
+    "AdditionalRewardItemIds": [
+      1008,
+      1011,
+      1013,
+      2003,
+      2009,
+      2013,
+      2022,
+      2029,
+      2032,
+      5004,
+      6006,
+      6008,
+      7008,
+      8005,
+      8012
+    ]
   },
   {
     "Id": 1013,
