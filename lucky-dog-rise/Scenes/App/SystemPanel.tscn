@@ -1391,6 +1391,8 @@ text = "Settings_ResetSaveData"
 [node name="RecoveredItemsOverlay" parent="." instance=ExtResource("17_recovered_items")]
 
 [node name="LinkTreeRewardsOverlay" parent="." instance=ExtResource("17_recovered_items")]
+focus_mode = 1
+focus_next = NodePath("OverlayPanel/Margin/Content/ConfirmButton")
 IsRewardSummary = true
 
 [node name="CollectionCelebrationConfetti" parent="." instance=ExtResource("20_collection_confetti")]

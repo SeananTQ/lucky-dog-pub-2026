@@ -179,6 +179,7 @@ public partial class DemoLinkTreeSmoke : Node
         await Frames();
         Require(modal.IsVisibleInTree() && confirm.IsVisibleInTree()
             && modal.GetNode<Label>("OverlayPanel/Margin/Content/Title").Text.Contains("16"), "Multi-item dialog missing");
+        Require(modal.HasFocus() && !confirm.HasFocus(), "Reward dialog preselected its confirm button");
         var cells = grid.GetChildren().Cast<ItemCellController>().ToArray();
         Require(cells.Select(cell => cell.ItemId).SequenceEqual(rows[0].FixedRewardItemIds)
             && cells.All(cell => cell.GetNode<TextureRect>("Content/IconRect").Texture != null),
@@ -203,7 +204,17 @@ public partial class DemoLinkTreeSmoke : Node
         panel.Open();
         await Frames();
         Require(modal.Visible && scroll.ScrollVertical == 0, "Reward summary lost on reopen");
-        confirm.EmitSignal(Button.SignalName.Pressed);
+        Require(modal.HasFocus() && !confirm.HasFocus(), "Reopening the dialog preselected the confirm button");
+        void PressKey(Key key)
+        {
+            viewport.PushInput(new InputEventKey { Keycode = key, Pressed = true }, true);
+            viewport.PushInput(new InputEventKey { Keycode = key, Pressed = false }, true);
+        }
+        PressKey(Key.Enter);
+        Require(modal.Visible, "Enter confirmed the reward before selecting the button");
+        PressKey(Key.Tab);
+        Require(confirm.HasFocus(), "Tab did not select the confirm button");
+        PressKey(Key.Enter);
         banners[0].EmitSignal(Button.SignalName.Pressed);
         Require(!modal.Visible && !banners[0].Visible && banners[1].Visible
             && expected.All(id => data.Inventory.GetCount(id) == before[id] + 1),

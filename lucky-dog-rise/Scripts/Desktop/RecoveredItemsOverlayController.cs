@@ -68,7 +68,7 @@ public partial class RecoveredItemsOverlayController : Control
         if (Visible && IsRewardSummary)
         {
             _scroll.ScrollVertical = 0;
-            _confirmButton.GrabFocus();
+            GrabFocus();
         }
     }
 
